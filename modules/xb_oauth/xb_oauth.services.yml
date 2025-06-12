@@ -1,0 +1,10 @@
+services:
+  _defaults:
+    autowire: true
+  Drupal\xb_oauth\Routing\XbOauthRouteSubscriber: ~
+  Drupal\xb_oauth\Authentication\Provider\XbOauthAuthenticationProvider:
+    arguments: ['@simple_oauth.authentication.simple_oauth']
+    tags:
+      # Matching the priority of the `oauth2` provider by the Simple OAuth
+      # module, because `xb_oauth` delegates to that.
+      - { name: authentication_provider, provider_id: xb_oauth, priority: 35 }

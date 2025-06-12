@@ -71,8 +71,9 @@ This adds to the product requirements listed in [`XB Components` doc](components
 
 This uses the terms defined above.
 
-A HTTP API is provided to list, read, create, update and delete _some_ of these config entities. This HTTP API is
-designed to only be used by XB's (client-side) UI.
+An HTTP API is provided to list, read, create, update and delete _some_ of these config entities. While this HTTP API is
+primarily designed to be used by XB's (client-side) UI, some endpoints are marked as external, indicating they are suitable
+for use by external applications.
 
 This covers only config entities that are explicitly excluded from auto-saving/workspaces — for those entities, XB's
 "Publish all" functionality is used; separate HTTP requests per entity in a set of changes must be avoided for both UX
@@ -89,6 +90,9 @@ XB intentionally does not use Drupal core's [JSON:API module](https://jsonapi.or
 
 See the `experience_builder.api.config.*` routes.
 
+Some of these routes are treated with the `xb_external_api: true` route option to indicate they can be used by third-party
+applications, too. The XB OAuth module, an optional submodule of XB, provides OAuth2 authentication for these routes.
+(See [`xb_oauth/README.md`](../modules/xb_oauth/README.md) for more info.)
 
 ### 3.1 `Component config entity`
 

@@ -137,6 +137,9 @@ class XBTestSetup implements TestSetupInterface {
     $module_installer->install([
       'experience_builder',
       'xb_dev_standard',
+      // Enabling XB OAuth to ensure that we don't break any routes for
+      // non-OAuth2 requests.
+      'xb_oauth',
       'xb_test_sdc',
       'xb_e2e_support',
       'system',

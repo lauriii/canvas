@@ -65,6 +65,11 @@ stages:
 variables:
   # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
+  # Ignore that `ext-sodium` is not available in the CI environment.
+  # It's required by a dependency of `drupal/simple_oauth`, but it doesn't cause any issues with what
+  # `drupal/simple_oauth` does.
+  # See https://git.drupalcode.org/project/simple_oauth/-/blob/6.0.x/.gitlab-ci.yml
+  COMPOSER_IGNORE_PLATFORM_REQS: ext-sodium
   # Needed to allow this to run locally.
   # https://project.pages.drupalcode.org/gitlab_templates/info/test-locally/
   DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
