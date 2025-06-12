@@ -5,6 +5,8 @@ import processResponseAssets from '@/services/processResponseAssets';
 import addAjaxPageState from '@/services/addAjaxPageState';
 import type { TransformConfig } from '@/utils/transforms';
 
+let lastArgInUseByAnyComponent: string | undefined = '';
+
 export const dummyPropsFormApi = createApi({
   reducerPath: 'dummyPropsFormApi',
   baseQuery,
@@ -27,9 +29,13 @@ export const dummyPropsFormApi = createApi({
         };
       },
       forceRefetch: ({ currentArg, previousArg, endpointState }) => {
-        // This will fetch new data on every request, but will use cached data
-        // until the new data is available.
-        return true;
+        // When true, this will fetch new data on the request, but will use
+        // cached data until the new data is available.
+        const noChangesFound =
+          currentArg === previousArg &&
+          lastArgInUseByAnyComponent === currentArg;
+        lastArgInUseByAnyComponent = currentArg;
+        return !noChangesFound;
       },
       transformResponse: processResponseAssets(['html', 'transforms']),
     }),
