@@ -252,8 +252,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'a3ade070-dc70-4989-b078-85cfd8fc741e' => [
             'source' => [
               'heading' => [
-                'expression' => 'ℹ︎string␟value',
                 'sourceType' => 'static:field_item:string',
+                'expression' => 'ℹ︎string␟value',
               ],
             ],
             'resolved' => [
@@ -263,8 +263,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           '67d6b081-a62f-463c-a5d8-42a145ec7243' => [
             'source' => [
               'heading' => [
-                'expression' => 'ℹ︎string␟value',
                 'sourceType' => 'static:field_item:string',
+                'expression' => 'ℹ︎string␟value',
               ],
             ],
             'resolved' => [

@@ -15,6 +15,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropSource\PropSource;
+use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
  * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
@@ -141,8 +142,30 @@ final class ComponentInputs extends TypedData implements DependentPluginInterfac
    * @return \Generator<string, \Drupal\experience_builder\PropSource\PropSourceBase>
    */
   private function getPropSources(): \Generator {
+    $item = $this->getParent();
+    \assert($item instanceof ComponentTreeItem);
+    $source = $item->getComponent()?->getComponentSource();
+    $default_prop_sources = $source !== NULL
+      ? $source->getDefaultExplicitInput()
+      // This component instance is invalid; validation will catch that.
+      : [];
+
     foreach ($this->inputs as $name => $raw_prop_source) {
       if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
+        // This is likely a *collapsed* StaticPropSource.
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::rawInputValueToPropSourceArray()
+        try {
+          $parsed_default_prop_source = array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name])
+            ? PropSource::parse($default_prop_sources[$name])
+            : NULL;
+          // If it indeed was a collapsed StaticPropSource, un-collapse it.
+          if ($parsed_default_prop_source instanceof StaticPropSource) {
+            yield "name" => $parsed_default_prop_source->withValue($raw_prop_source);
+          }
+        }
+        catch (\LogicException) {
+        }
+
         // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
         // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
         // @see https://www.drupal.org/project/experience_builder/issues/3467954

@@ -858,19 +858,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * @phpstan-return PropSourceArray
    */
   private function rawInputValueToPropSourceArray(mixed $value, string $prop_name): array {
-    $static_defaults = $this->configuration['prop_field_definitions'];
     if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
-      $value = [
-        'value' => $value,
-        'expression' => $static_defaults[$prop_name]['expression'] ?? throw new \UnexpectedValueException(\sprintf('Missing expression for prop %s.', $prop_name)),
-        'sourceType' => \sprintf('static:field_item:%s', $static_defaults[$prop_name]['field_type'] ?? throw new \UnexpectedValueException(\sprintf('Missing field type for prop %s.', $prop_name))),
-      ];
-      $value += \array_filter([
-        'sourceTypeSettings' => \array_filter([
-          'storage' => $static_defaults[$prop_name]['field_storage_settings'] ?? [],
-          'instance' => $static_defaults[$prop_name]['field_instance_settings'] ?? [],
-        ]),
-      ]);
+      $value = $this->getDefaultStaticPropSource($prop_name)->withValue($value)->toArray();
     }
     // phpcs:ignore
     /** @var PropSourceArray */

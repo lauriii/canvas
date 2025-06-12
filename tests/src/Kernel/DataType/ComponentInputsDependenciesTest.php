@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\DataType;
 
-use Drupal\Component\Serialization\Json;
-use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Component\Uuid\UuidInterface;
 use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -16,7 +16,9 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
@@ -27,7 +29,10 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  */
 class ComponentInputsDependenciesTest extends KernelTestBase {
 
+  use ComponentTreeItemListInstantiatorTrait;
+  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
+  use GenerateComponentConfigTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
 
@@ -46,6 +51,8 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     'system',
     'path',
     'experience_builder',
+    'link',
+    'options',
   ];
 
   /**
@@ -108,76 +115,143 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     ]);
     $node->save();
 
-    // Create test data.
-    $test_inputs = [
-      $this->randomMachineName() => [
-        'sourceType' => 'static:field_item:string',
-        'value' => 'Test Title',
-        'expression' => 'ℹ︎string␟value',
-      ],
-      $this->randomMachineName() => [
-        'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
-      ],
-      $this->randomMachineName() => [
-        'sourceType' => 'dynamic',
-        'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
-      ],
-    ];
-    $component_inputs = new ComponentInputs(
-      DataDefinition::create('component_inputs'),
-      NULL,
-    );
-    $component_inputs->setValue(Json::encode($test_inputs));
+    $this->generateComponentConfig();
 
-    $expected_dependencies = [
+    $uuid = \Drupal::service(UuidInterface::class);
+    $item_list = $this->createDanglingComponentTreeItemList();
+
+    // Create test data.
+    $item_list->appendItem([
+      'uuid' => $uuid->generate(),
+      'component_id' => 'sdc.experience_builder.heading',
+      'inputs' => [
+        'text' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'Test Title',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'element' => [
+          // ⚠️ Note that this is NOT the field type that's in the Component config entity.
+          'sourceType' => 'static:field_item:string',
+          'value' => 'h1',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ]);
+    // Same as above, but now with collapsed values.
+    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::rawInputValueToPropSourceArray()
+    // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs::getPropSources()
+    $item_list->appendItem([
+      'uuid' => $uuid->generate(),
+      'component_id' => 'sdc.experience_builder.heading',
+      'inputs' => [
+        'text' => 'Test Title',
+        'element' => 'h1',
+      ],
+    ]);
+    $item_list->appendItem([
+      'uuid' => $uuid->generate(),
+      'component_id' => 'sdc.experience_builder.heading',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
+        ],
+      ],
+    ]);
+    $item_list->appendItem([
+      'uuid' => $uuid->generate(),
+      'component_id' => 'sdc.experience_builder.image',
+      'inputs' => [
+        'image' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+        ],
+      ],
+    ]);
+    // The component tree is valid, except that this test is using
+    // DynamicPropSources. Those are not considered valid, but eventually might.
+    // So: ignore these validation errors; they don't get in the way of testing
+    // dependency calculation 👍
+    self::assertSame([
+      2 => "The 'dynamic' prop source type must be absent.",
+      3 => "The 'dynamic' prop source type must be absent.",
+    ], self::violationsToArray($item_list->validate()));
+    self::assertTrue(in_array('dynamic', $item_list->getItemDefinition()->getConstraints()['ComponentTreeMeetRequirements']['inputs']['absence']));
+
+    assert($item_list->get(0) instanceof ComponentTreeItem);
+    assert($item_list->get(1) instanceof ComponentTreeItem);
+    assert($item_list->get(2) instanceof ComponentTreeItem);
+    assert($item_list->get(3) instanceof ComponentTreeItem);
+
+    self::assertSame([
       'plugin' => [
         'field_type:string',
+        // ⚠️ Despite the Component config entity using the `list_string` field
+        // type, the stored data contains a non-collapsed StaticPropSource and
+        // hence the stored data is all that matters.
+        'field_type:string',
+      ],
+    ], $item_list->get(0)->get('inputs')->calculateDependencies($node));
+
+    self::assertSame([
+      'plugin' => [
+        'field_type:string',
+        // ⚠️ Here, the stored data contains a collapsed StaticPropSource, and
+        // hence the Component config entity is used to un-collapse it, which
+        // explains the different dependency.
+        'field_type:list_string',
+      ],
+      'module' => ['options'],
+    ], $item_list->get(1)->get('inputs')->calculateDependencies($node));
+
+    self::assertSame([
+      'module' => ['node'],
+      'plugin' => [
         'entity_type:node',
         'field_type:text_with_summary',
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
-      ],
-      'module' => [
-        'node',
-        'node',
-        'node',
-        'node',
-        'node',
       ],
       'config' => [
         'node.type.alpha',
         'field.field.node.alpha.body',
-        'node.type.alpha',
-        'field.field.node.alpha.field_hero',
-        'node.type.alpha',
-        'field.field.node.alpha.field_hero',
-        'node.type.alpha',
-        'field.field.node.alpha.field_hero',
-        'node.type.alpha',
-        'field.field.node.alpha.field_hero',
       ],
-    ];
-
-    $deps = $component_inputs->calculateDependencies(NULL);
-    $this->assertSame($deps, $expected_dependencies);
+    ], $item_list->get(2)->get('inputs')->calculateDependencies($node));
 
     // Verify content dependencies if we have a valid entity.
     $file_entity = $hero_reference->get('field_media_image')->entity;
     assert($file_entity instanceof File);
     $file_uuid = $file_entity->get('uuid')->value;
-    $deps = $component_inputs->calculateDependencies($node);
-    $this->assertSame($deps, array_merge($expected_dependencies, [
+    self::assertSame([
+      'module' => [
+        'node',
+        'node',
+        'node',
+        'node',
+      ],
+      'plugin' => [
+        'entity_type:node',
+        'field_type:image',
+        'entity_type:node',
+        'field_type:image',
+        'entity_type:node',
+        'field_type:image',
+        'entity_type:node',
+        'field_type:image',
+      ],
+      'config' => [
+        'node.type.alpha',
+        'field.field.node.alpha.field_hero',
+        'node.type.alpha',
+        'field.field.node.alpha.field_hero',
+        'node.type.alpha',
+        'field.field.node.alpha.field_hero',
+        'node.type.alpha',
+        'field.field.node.alpha.field_hero',
+      ],
       'content' => [
         'file:file:' . $file_uuid,
       ],
-    ]));
+    ], $item_list->get(3)->get('inputs')->calculateDependencies($node));
   }
 
 }

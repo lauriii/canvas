@@ -347,6 +347,33 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
     $entity->save();
     $third_revision = self::entityRevisionIdentifier($entity);
 
+    // Create a fourth revision, with collapsed `inputs` JSON blobs.
+    $this->setNewRevision($entity);
+    $entity->set('field_xb_field', [
+      [
+        'uuid' => 'my-component',
+        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'inputs' => [
+          'heading' => 'Hey there',
+        ],
+      ],
+      [
+        'uuid' => 'second-component',
+        'component_id' => 'block.xb_test_block_input_none',
+        'inputs' => [],
+      ],
+      [
+        'uuid' => 'fourth-component',
+        'component_id' => 'sdc.xb_test_sdc.my-cta',
+        'inputs' => [
+          'text' => 'Clickbait',
+          'href' => 'https://drupal.org/bait',
+        ],
+      ],
+    ])->save();
+    $entity->save();
+    $fourth_revision = self::entityRevisionIdentifier($entity);
+
     $expected_records = [
       $first_revision => [
         'config' => [$this->component1->getConfigDependencyName()],
@@ -376,6 +403,17 @@ class ComponentTreeDependencyRepositoryTest extends ComponentAuditTestBase {
           0 => 'field_type:string',
           // ⚠️ TRICKY: this content entity revision depends on the dependencies
           // used by the "my-cta" SDC Component at version 535435951dbc2e3c.
+          2 => 'field_type:uri',
+        ],
+      ],
+      $fourth_revision => [
+        'config' => [
+          $this->component2->getConfigDependencyName(),
+          $this->component4->getConfigDependencyName(),
+          $this->component1->getConfigDependencyName(),
+        ],
+        'plugin' => [
+          0 => 'field_type:string',
           2 => 'field_type:uri',
         ],
       ],
