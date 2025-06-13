@@ -3,8 +3,12 @@
   "version": "0.0.0",
   "description": "CLI tool for managing Experience Builder components",
   "main": "dist/index.js",
+  "bin": {
+    "xb": "./dist/index.js"
+  },
   "type": "module",
   "scripts": {
+    "start": "node dist/index.js",
     "build": "tsup",
     "dev": "tsup --watch",
     "prettier:fix": "prettier . --write --config ../.prettierrc.json",
@@ -14,6 +18,10 @@
     "lint:fix": "eslint --fix .",
     "type-check": "tsc --noEmit --pretty"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "keywords": [
     "experience-builder",
     "drupal",
@@ -22,6 +30,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.22.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.0.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "eslint": "^9.22.0",
@@ -31,5 +41,13 @@
     "prettier": "^3.2.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "axios": "^1.9.0",
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "dotenv": "^16.5.0",
+    "js-yaml": "^4.1.0"
   }
 }
