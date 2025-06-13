@@ -122,16 +122,10 @@ describe('Multi-select components', () => {
 
     // Find and click Hero components in layers view
     cy.findByTestId('xb-primary-panel').within(() => {
-      cy.findByLabelText('Expand component tree').click();
-
-      cy.findAllByLabelText('Expand slot').eq(1).click();
-      cy.findAllByLabelText('Expand slot').eq(0).click();
       cy.findAllByText('Hero') // Try to find by text instead of label
         .first()
         .click();
     });
-
-    cy.previewReady();
 
     // Verify a component is selected in preview
     cy.getAllComponentsInPreview('Hero')
@@ -161,15 +155,6 @@ describe('Multi-select components', () => {
     cy.openLayersPanel();
     cy.previewReady();
 
-    cy.findByTestId('xb-primary-panel').within(() => {
-      cy.findByLabelText('Expand component tree').click();
-
-      cy.findAllByLabelText('Expand slot').eq(1).click();
-      cy.findAllByLabelText('Expand slot').eq(0).click();
-    });
-
-    cy.previewReady();
-
     // Now select in preview
     cy.clickComponentInPreview('Hero', 0);
     cy.previewReady();
@@ -194,25 +179,6 @@ describe('Multi-select components', () => {
   it('should prevent selecting parent and child components simultaneously', () => {
     // Open the layers panel
     cy.openLayersPanel();
-    cy.previewReady();
-
-    // First expand the component tree
-    cy.findByTestId('xb-primary-panel')
-      .findByLabelText('Expand component tree')
-      .click();
-    cy.previewReady();
-
-    // Expand the first few slots to find nested components
-    cy.findByTestId('xb-primary-panel')
-      .findAllByLabelText('Expand slot')
-      .eq(0)
-      .click();
-    cy.previewReady();
-
-    cy.findByTestId('xb-primary-panel')
-      .findAllByLabelText('Expand slot')
-      .eq(0)
-      .click();
     cy.previewReady();
 
     cy.log('Select the parent');

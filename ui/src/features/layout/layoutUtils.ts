@@ -17,19 +17,33 @@ type NodeFunction = (
   parent: LayoutNode,
 ) => void;
 
-// The children of Slots and Regions are in components[] but Components' children are always in slots[].
-function getChildKeyByType(type: NodeType): 'slots' | 'components' {
-  return type === 'component' ? 'slots' : 'components';
+// Retrieves the children of a given node based on its type.
+// The children array is extracted differently depending on whether the node is a Component, Region, or Slot.
+function getChildrenFromNode(node: LayoutNode): LayoutChildNode[] {
+  switch (node.nodeType) {
+    case NodeType.Region:
+    case NodeType.Slot:
+      return node.components;
+
+    case NodeType.Component:
+      return node.slots;
+
+    default:
+      throw new Error('Unknown node type');
+  }
 }
 
+// Returns the unique identifier (string) for a given node.
+// Each node type has a specific identifier field: id for Slot and Region, uuid for Component.
 function getNodeIdentifier(node: LayoutNode): string {
   switch (node.nodeType) {
     case NodeType.Slot:
-      return node.id;
-    case NodeType.Component:
-      return node.uuid;
     case NodeType.Region:
       return node.id;
+
+    case NodeType.Component:
+      return node.uuid;
+
     default:
       throw new Error('Unknown node type');
   }
@@ -45,19 +59,11 @@ export function recurseNodes(
   node: LayoutNode,
   functionOrFunctions: NodeFunction | NodeFunction[] = [],
 ): void {
-  const childKey = getChildKeyByType(node.nodeType);
   let functionsToRun: NodeFunction[] = Array.isArray(functionOrFunctions)
     ? functionOrFunctions
     : [functionOrFunctions];
-  let children: LayoutChildNode[];
 
-  if (childKey === 'slots' && 'slots' in node) {
-    children = node.slots;
-  } else if (childKey === 'components' && 'components' in node) {
-    children = node.components;
-  } else {
-    children = [];
-  }
+  const children: LayoutChildNode[] = getChildrenFromNode(node);
 
   // Loop backwards in case the array is modified by the passed function/functions
   for (let index = children.length - 1; index >= 0; index--) {
@@ -283,13 +289,7 @@ export function findNodePathByUuid(
     if (nodeId === id) {
       return path.concat(i);
     }
-    const childKey = getChildKeyByType(node.nodeType);
-    let children: LayoutChildNode[] = [];
-    if (childKey === 'slots' && 'slots' in node) {
-      children = node.slots;
-    } else if (childKey === 'components' && 'components' in node) {
-      children = node.components;
-    }
+    const children: LayoutChildNode[] = getChildrenFromNode(node);
     const result = findNodePathByUuid(children, id, path.concat(i));
     if (result !== null) {
       return result;
@@ -366,15 +366,7 @@ export function insertNodeAtPath<T extends LayoutNode>(
     );
   }
 
-  const childKey = getChildKeyByType(newState.nodeType);
-
-  let children: LayoutChildNode[] = [];
-
-  if (childKey === 'slots' && 'slots' in newState) {
-    children = newState.slots;
-  } else if (childKey === 'components' && 'components' in newState) {
-    children = newState.components;
-  }
+  const children: LayoutChildNode[] = getChildrenFromNode(newState);
 
   // Base case: if the path has only one element, insert the new node at the specified index
   if (path.length === 1) {
@@ -623,16 +615,75 @@ export function isParentOf(
   return false;
 }
 
+/**
+ * Find all parent node IDs leading to a node with the given UUID.
+ * @param nodes - The nodes to search through.
+ * @param targetUuid - The UUID of the node to find.
+ * @returns An array of IDs representing the hierarchy path to the node, or null if not found.
+ */
+export function findNodeParents(
+  nodes: Array<RegionNode>,
+  targetUuid: string,
+): string[] | null {
+  if (!targetUuid) {
+    console.error('No UUID provided to findNodeParents.');
+    return null;
+  }
+
+  let result: string[] | null = null;
+
+  // Helper to traverse the tree and find the node
+  const findPath = (
+    currentNode: LayoutNode,
+    currentPath: string[] = [],
+  ): string[] | null => {
+    const nodeId = getNodeIdentifier(currentNode);
+    const newPath = [...currentPath, nodeId];
+
+    // If this is the node we're looking for, return the path
+    if (
+      currentNode.nodeType === NodeType.Component &&
+      currentNode.uuid === targetUuid
+    ) {
+      return newPath;
+    }
+
+    // Determine child nodes based on the node type
+    const children: LayoutChildNode[] = getChildrenFromNode(currentNode);
+
+    // Check children
+    for (const child of children) {
+      const childPath = findPath(child, newPath);
+      if (childPath) {
+        return childPath; // Found the node in a child, return the path
+      }
+    }
+
+    return null; // Not found in this branch
+  };
+
+  // Search through all regions
+  for (const region of nodes) {
+    result = findPath(region);
+    if (result) {
+      break; // Found the node, no need to check other regions
+    }
+  }
+
+  return result;
+}
+
 // Add the utils provided here to drupalSettings, so extensions have access to
 // them.
 const layoutUtils = {
-  getChildKeyByType,
+  getChildrenFromNode,
   getNodeIdentifier,
   recurseNodes,
   findComponentByUuid,
   findSlotById,
   removeComponentByUuid,
   findNodePathByUuid,
+  findNodeParents,
   insertNodeAtPath,
   moveNodeToPath,
   isChildNode,

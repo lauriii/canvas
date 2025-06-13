@@ -82,11 +82,6 @@ test.describe('Canary XB', () => {
     const layerPanel = 'xpath=//*[@data-testid="xb-primary-panel"]';
     const layerPanelElement = await page.locator(layerPanel);
     await expect(layerPanelElement).toContainText('Two Column');
-    await expect(layerPanelElement).not.toContainText('Column One');
-    await expect(layerPanelElement).not.toContainText('Column Two');
-    await page
-      .locator(`${layerPanel}//*[@aria-label="Expand component tree"]`)
-      .click();
     await expect(layerPanelElement).toContainText('Column One');
     await expect(layerPanelElement).toContainText('Column Two');
   });

@@ -118,6 +118,10 @@ const PageInfo = () => {
         }, 100);
       }
     }
+    // Keep local storage tidy and clear out the array of collapsed layers for the deleted item.
+    window.localStorage.removeItem(
+      `XB.collapsedLayers.xb_page.${pageToDeleteId}`,
+    );
   }
 
   function handleDuplication(item: ContentStub) {

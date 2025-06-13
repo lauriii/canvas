@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Flex, Box } from '@radix-ui/themes';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
@@ -14,10 +14,12 @@ import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
 import {
+  selectCollapsedLayers,
   setHoveredComponent,
+  toggleCollapsedLayer,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 
 interface SlotLayerProps {
@@ -36,8 +38,9 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const slotName = useGetComponentName(slot, parentNode);
-  const [open, setOpen] = useState(false);
+  const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const slotId = slot.id;
+  const isCollapsed = collapsedLayers.includes(slotId);
 
   const handleItemMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -55,17 +58,24 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
     [dispatch],
   );
 
+  const handleOpenChange = () => {
+    dispatch(toggleCollapsedLayer(slotId));
+  };
+
   return (
     <Box
       data-xb-uuid={slotId}
       data-xb-type={slot.nodeType}
       aria-labelledby={`layer-${slotId}-name`}
       position="relative"
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       <Collapsible.Root
         className="xb--collapsible-root"
-        open={open}
-        onOpenChange={setOpen}
+        open={!isCollapsed}
+        onOpenChange={handleOpenChange}
         data-xb-uuid={slotId}
       >
         <SidebarNode
@@ -75,7 +85,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
           title={slotName}
           draggable={false}
           variant="slot"
-          open={open}
+          open={!isCollapsed}
           disabled={disableDrop}
           leadingContent={
             <Flex>
@@ -86,11 +96,22 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
               <Box width="var(--space-4)" mr="1">
                 {slot.components.length > 0 ? (
                   <Box>
-                    <Collapsible.Trigger asChild={true}>
+                    <Collapsible.Trigger
+                      asChild={true}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
                       <button
-                        aria-label={open ? `Collapse slot` : `Expand slot`}
+                        aria-label={
+                          isCollapsed ? `Expand slot` : `Collapse slot`
+                        }
                       >
-                        {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
+                        {isCollapsed ? (
+                          <TriangleRightIcon />
+                        ) : (
+                          <TriangleDownIcon />
+                        )}
                       </button>
                     </Collapsible.Trigger>
                   </Box>
@@ -103,7 +124,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
         />
 
         {slot.components.length > 0 && (
-          <CollapsibleContent>
+          <CollapsibleContent role="tree">
             {slot.components.map((component, index) => (
               <ComponentLayer
                 key={component.uuid}

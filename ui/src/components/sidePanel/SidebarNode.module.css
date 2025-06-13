@@ -37,9 +37,13 @@
     }
   }
 
+  /* While the contextual menu is open, the dots button should always show */
+  &:has(.contextualTrigger[data-state="open"]) .dots {
+    display: flex;
+  }
+
   /* .hovered className required for when hover is programmatically applied to layers when hovering them in the preview */
   &.hovered,
-  &:has([data-state="open"]),
   &:hover {
     background-color: var(--bg-hover);
     &.open {

@@ -5,12 +5,16 @@ import { selectLayout } from '@/features/layout/layoutModelSlice';
 import RegionLayer from '@/features/layout/layers/RegionLayer';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useParams } from 'react-router';
+import useSyncCollapsedLayersLocalStorage from '@/hooks/useSyncCollapsedLayersLocalStorage';
+import useExpandParentsOnSelection from '@/hooks/useExpandParentsOnSelection';
 
 interface LayersProps {}
 
 const Layers: React.FC<LayersProps> = () => {
   const regions = useAppSelector(selectLayout);
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
+  useSyncCollapsedLayersLocalStorage();
+  useExpandParentsOnSelection();
 
   const displayedRegions = useMemo(() => {
     let filteredRegions = regions.filter((region) => {

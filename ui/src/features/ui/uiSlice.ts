@@ -37,6 +37,7 @@ export interface uiSliceState {
   hoveredComponent: string | undefined; //uuid of component
   updatingComponent: string | undefined; //uuid of component
   selection: Selection;
+  collapsedLayers: string[];
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   viewportWidth: number;
   viewportMinHeight: number;
@@ -83,6 +84,7 @@ export const initialState: uiSliceState = {
     consecutive: false,
     items: [],
   },
+  collapsedLayers: [],
 };
 
 export interface ScaleValue {
@@ -274,6 +276,23 @@ export const uiSlice = createAppSlice({
         }
       },
     ),
+    setCollapsedLayers: (state, action: PayloadAction<string[]>) => {
+      state.collapsedLayers = action.payload;
+    },
+    toggleCollapsedLayer: (state, action: PayloadAction<string>) => {
+      const index = state.collapsedLayers.indexOf(action.payload);
+      if (index >= 0) {
+        state.collapsedLayers.splice(index, 1);
+      } else {
+        state.collapsedLayers.push(action.payload);
+      }
+    },
+    removeCollapsedLayers: (state, action: PayloadAction<string[]>) => {
+      const uuidsToRemove = new Set(action.payload);
+      state.collapsedLayers = state.collapsedLayers.filter(
+        (uuid) => !uuidsToRemove.has(uuid),
+      );
+    },
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
@@ -342,6 +361,9 @@ export const uiSlice = createAppSlice({
         ? ui.selection.items[0]
         : undefined;
     },
+    selectCollapsedLayers: (ui): string[] => {
+      return ui.collapsedLayers;
+    },
   },
 });
 
@@ -372,6 +394,9 @@ export const {
   performUndoOrRedo,
   clearSelection,
   setSelection,
+  setCollapsedLayers,
+  toggleCollapsedLayer,
+  removeCollapsedLayers,
 } = uiSlice.actions;
 
 export const {
@@ -392,6 +417,7 @@ export const {
   selectRedoType,
   selectSelection,
   selectIsMultiSelect,
+  selectCollapsedLayers,
 } = uiSlice.selectors;
 
 // Memoized selectors using createSelector for better performance

@@ -31,12 +31,10 @@ describe('Operate on components + interact in global regions', () => {
       cy.get('.primaryPanelContent').as('layersTree');
 
       // Open the layers in the Tree.
-      cy.expandComponentLayer('Two Column');
-      cy.expandSlotLayer('Column One');
       cy.get('@layersTree').findAllByText('Image').should('be.visible');
       cy.get('@layersTree').findAllByText('Hero').should('be.visible');
 
-      cy.get('@layersTree').findAllByText('Hero').click();
+      cy.get('@layersTree').findAllByText('Hero').first().click();
 
       cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
       cy.log(

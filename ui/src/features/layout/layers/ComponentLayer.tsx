@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Box, Flex } from '@radix-ui/themes';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
@@ -9,6 +9,8 @@ import {
   selectIsComponentHovered,
   setHoveredComponent,
   unsetHoveredComponent,
+  toggleCollapsedLayer,
+  selectCollapsedLayers,
 } from '@/features/ui/uiSlice';
 import type {
   ComponentNode,
@@ -47,10 +49,11 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
-  const [open, setOpen] = useState(false);
+  const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const { handleComponentSelection } = useComponentSelection();
 
   const componentId = component.uuid;
+  const isCollapsed = collapsedLayers.includes(componentId);
   const nodeName = useGetComponentName(component);
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
@@ -106,6 +109,10 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     [],
   );
 
+  const handleOpenChange = () => {
+    dispatch(toggleCollapsedLayer(componentId));
+  };
+
   return (
     <Box
       {...listeners}
@@ -125,8 +132,8 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       <ComponentContextMenu component={component}>
         <Collapsible.Root
           className="xb--collapsible-root"
-          open={open}
-          onOpenChange={setOpen}
+          open={!isCollapsed}
+          onOpenChange={handleOpenChange}
           data-xb-uuid={component.uuid}
         >
           <SidebarNode
@@ -139,7 +146,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             hovered={isHovered}
             selected={isSelected}
             disabled={disableDrop || isDragging}
-            open={component.slots.length ? open : false}
+            open={component.slots.length ? !isCollapsed : false}
             dropdownMenuContent={
               <ComponentContextMenuContent
                 component={component}
@@ -154,15 +161,24 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                 />
                 <Box width="var(--space-4)" mr="1">
                   {component.slots.length > 0 ? (
-                    <Collapsible.Trigger asChild={true}>
+                    <Collapsible.Trigger
+                      asChild={true}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
                       <button
                         aria-label={
-                          open
-                            ? `Collapse component tree`
-                            : `Expand component tree`
+                          isCollapsed
+                            ? `Expand component tree`
+                            : `Collapse component tree`
                         }
                       >
-                        {open ? <TriangleDownIcon /> : <TriangleRightIcon />}
+                        {isCollapsed ? (
+                          <TriangleRightIcon />
+                        ) : (
+                          <TriangleDownIcon />
+                        )}
                       </button>
                     </Collapsible.Trigger>
                   ) : (
