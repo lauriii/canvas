@@ -27,4 +27,3 @@ export interface AssetLibrary {
     compiled: string;
   };
 }
-

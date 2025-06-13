@@ -1,1 +1,1 @@
-export { DrupalJsonApiParams } from "drupal-jsonapi-params"
+export { DrupalJsonApiParams } from 'drupal-jsonapi-params';

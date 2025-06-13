@@ -108,6 +108,8 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
  *   An object usually generated on render in inputBehaviors.tsx.
  *   The specific properties required by this function:
  *   - selectedComponent {string}: the id of the selected component within the model.
+ * @param newValue {string | number | boolean | null}
+ *   The new value to potentially validate.
  *
  * @return {boolean} true if JSON Validation should be skipped.
  */
@@ -115,10 +117,28 @@ export const shouldSkipPropValidation = (
   name: string,
   target: HTMLInputElement,
   inputAndUiData: InputUIData,
+  newValue?: string | number | boolean | null,
 ): boolean => {
   if (!(target.form instanceof HTMLFormElement)) {
     return true;
   }
+
+  // Reproduce core behavior of skipping validation for _none on selected
+  // options where the select is not required.
+  if (
+    ['SELECT', 'OPTION'].includes(target.tagName) &&
+    newValue === '_none' &&
+    !target.required
+  ) {
+    return true;
+  }
+
+  // An empty string on an optional field can skip validation. For example, an
+  // empty + optional URI field should not check for URI validity.
+  if (newValue === '' && !target.required) {
+    return true;
+  }
+
   const { selectedComponent } = inputAndUiData;
   const formData = new FormData(target.form);
   const formState = Object.fromEntries(formData);
@@ -392,7 +412,7 @@ export function getPropsValues(
   }, {});
 
   Object.entries(propsValues).forEach(([fieldName, value]) => {
-    const fieldData: FieldDataItem | undefined =
+    const propFieldData: FieldDataItem | undefined =
       (componentHasFieldData(component)
         ? component.propSources[fieldName]
         : undefined) || undefined;
@@ -401,16 +421,28 @@ export function getPropsValues(
     // this for many more use cases, so this should probably be moved to its
     // own utility once we have more use cases. Could we represent this with a
     // transform?
-    if (fieldData?.jsonSchema?.enum) {
-      if (!fieldData.jsonSchema.enum.includes(value)) {
+    if (propFieldData?.jsonSchema?.enum) {
+      if (!propFieldData.jsonSchema.enum.includes(value)) {
         delete propsValues[fieldName as keyof PropsValues];
         const resolved = { ...selectedModel.resolved };
         delete resolved[fieldName as keyof ComponentModel['resolved']];
         selectedModel.resolved = resolved;
       }
     }
-    // If the value is an empty string, don't store it at all.
-    if (value === '') {
+
+    // If the value is empty on an optional field, but the fields has format
+    // requirements, we should not store it.
+    // @todo: this means that if an optional field has format requirements, it's
+    //   not truly optional as the empty value will not be stored.
+    const emptyOptionalWithFormatRequirements =
+      value === '' &&
+      !propFieldData?.required &&
+      propFieldData?.jsonSchema?.format;
+
+    // If the value is an empty string in a required field, do not store.
+    const emptyRequired = value === '' && propFieldData?.required;
+
+    if (emptyOptionalWithFormatRequirements || emptyRequired) {
       delete propsValues[fieldName as keyof PropsValues];
       const resolved = { ...selectedModel.resolved };
       delete resolved[fieldName as keyof ComponentModel['resolved']];

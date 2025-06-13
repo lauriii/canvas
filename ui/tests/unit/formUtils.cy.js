@@ -243,8 +243,12 @@ describe('Get prop values from form state', () => {
       a_boolean: true,
       unchecked_boolean: false,
       heading: 'hello, world!',
+      subheading: '',
+      cta1: '',
+      cta2: '',
       cta1href: { uri: 'https://drupal.org', title: 'Do it' },
       linkNoTitle: 'http://example.com',
+      linkNoTitleEmpty: '',
       textarea: `Hi there
 Multiline
 Value`,

@@ -20,6 +20,7 @@ export interface FieldDataItem {
     type: 'number' | 'integer' | 'string' | 'boolean' | 'array' | 'object';
     properties?: object;
     enum?: any[];
+    format?: string;
   };
   default_values: DefaultValues;
   [x: string | number | symbol]: unknown;

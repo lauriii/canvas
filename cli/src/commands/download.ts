@@ -47,7 +47,9 @@ export function downloadCommand(program: Command): void {
         s.start('Fetching components');
 
         const components = await apiService.listComponents();
-        const { css: { original: globalCss } } = await apiService.getGlobalCss();
+        const {
+          css: { original: globalCss },
+        } = await apiService.getGlobalCss();
 
         if (Object.keys(components).length === 0) {
           s.stop('No components found');
@@ -99,12 +101,14 @@ export function downloadCommand(program: Command): void {
           }
 
           // Check if "all" option is selected
-          if ((selectedComponents).includes('_allComponents')) {
+          if (selectedComponents.includes('_allComponents')) {
             componentsToDownload = components;
           } else {
             componentsToDownload = Object.fromEntries(
               Object.entries(components).filter(([_, component]) =>
-                (selectedComponents as string[]).includes(component.machineName),
+                (selectedComponents as string[]).includes(
+                  component.machineName,
+                ),
               ),
             );
           }
@@ -138,7 +142,10 @@ export function downloadCommand(program: Command): void {
               component.machineName,
             );
             // Check if the directory exists and is non-empty to confirm deletion.
-            const dirExists = await fs.stat(componentDir).then(() => true).catch(() => false);
+            const dirExists = await fs
+              .stat(componentDir)
+              .then(() => true)
+              .catch(() => false);
             if (dirExists) {
               const files = await fs.readdir(componentDir);
               if (files.length > 0) {
@@ -215,13 +222,13 @@ export function downloadCommand(program: Command): void {
               name: 'Global CSS',
               success: true,
               path: globalCssPath,
-            }
+            };
           } catch (error) {
             globalCssResult = {
               name: 'Global CSS',
               success: false,
               error: error instanceof Error ? error.message : String(error),
-            }
+            };
           }
         }
 
@@ -248,7 +255,9 @@ export function downloadCommand(program: Command): void {
             });
         }
         if (globalCssResult && !globalCssResult.success) {
-          console.log(chalk.red(`Global CSS download failed: ${globalCssResult.error}`));
+          console.log(
+            chalk.red(`Global CSS download failed: ${globalCssResult.error}`),
+          );
         }
 
         // Output successful downloads
@@ -287,9 +296,10 @@ async function promptForMissingConfig(): Promise<void> {
       placeholder: 'https://example.com',
       validate: (value) => {
         if (!value) return 'Site URL is required';
-        if (!value.startsWith('http')) return 'URL must start with http:// or https://';
+        if (!value.startsWith('http'))
+          return 'URL must start with http:// or https://';
         return;
-      }
+      },
     });
 
     if (p.isCancel(url)) {
@@ -306,7 +316,7 @@ async function promptForMissingConfig(): Promise<void> {
       validate: (value) => {
         if (!value) return 'Authentication token is required';
         return;
-      }
+      },
     });
 
     if (p.isCancel(token)) {

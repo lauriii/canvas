@@ -34,7 +34,8 @@ export interface Config {
 let config: Config = {
   site_url: process.env.EXPERIENCE_BUILDER_SITE_URL || '',
   auth_token: process.env.EXPERIENCE_BUILDER_AUTH_TOKEN || '',
-  framework: (process.env.EXPERIENCE_BUILDER_FRAMEWORK as 'react' | 'vue') || 'react',
+  framework:
+    (process.env.EXPERIENCE_BUILDER_FRAMEWORK as 'react' | 'vue') || 'react',
   component_dir: process.env.EXPERIENCE_BUILDER_COMPONENT_DIR || './components',
   verbose: process.env.EXPERIENCE_BUILDER_VERBOSE === 'true',
 };

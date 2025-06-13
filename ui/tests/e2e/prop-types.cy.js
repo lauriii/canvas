@@ -94,6 +94,9 @@ describe('Prop types editing', () => {
     'Single textfields - valid input',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
+      cy.intercept('PATCH', '**/xb/api/v0/form/component-instance/node/1*').as(
+        'patch',
+      );
       Object.entries(textFieldIterations).forEach(([testName, testData]) => {
         cy.log(`Test ${testName}`);
         cy.findByLabelText(testData.labelText).should(
@@ -115,6 +118,7 @@ describe('Prop types editing', () => {
           // must be blurred before the store is updated.
           cy.findByLabelText(testData.labelText, { exact: true }).blur();
         }
+        cy.wait('@patch', { timeout: 10000 });
         cy.waitForElementContentInIframe(
           testData.iframeSelector,
           testData.valuePost,
@@ -139,6 +143,22 @@ describe('Prop types editing', () => {
     cy.get('@select').select(2, { force: true });
     cy.get('@select').should('have.value', 'bar');
     cy.waitForElementContentInIframe('#test-string-enum', 'bar');
+
+    // See if an empty value is maintained on reload.
+    cy.get('@select').select(0, { force: true });
+    cy.get('@select').should('have.value', '_none');
+    cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
+    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.openLayersPanel();
+    cy.clickComponentInLayersView('All props');
+    cy.findByLabelText('String — single line').should('exist');
+    cy.findByLabelText('String - Enum').should('have.value', '_none');
+    cy.waitForElementContentInIframe(
+      '#test-required-string',
+      'Hello, required world!',
+    );
+    cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
+    cy.waitForElementContentNotInIframe('#test-string-enum', 'foo');
   });
 
   it(
@@ -530,6 +550,25 @@ describe('Prop types editing', () => {
     cy.waitForElementContentInIframe(iframeSelector, valuePost);
   });
 
+  it('can empty an optional text field and it is saved that way', () => {
+    const iframeSelector = '#test-string';
+    const labelText = 'String — single line';
+    const valuePre = 'Hello, world!';
+    cy.waitForElementContentInIframe(iframeSelector, valuePre);
+    cy.findByLabelText(labelText).should('have.value', valuePre);
+    cy.findByLabelText(labelText).clear();
+    cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
+    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.openLayersPanel();
+    cy.clickComponentInLayersView('All props');
+    cy.findByLabelText('String — single line').should('exist');
+    cy.waitForElementContentInIframe(
+      '#test-required-string',
+      'Hello, required world!',
+    );
+    cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
+  });
+
   it(
     'HTML block formatting field uses CKEditor with appropriate configuration',
     { retries: { openMode: 0, runMode: 3 } },
@@ -612,4 +651,24 @@ describe('Prop types editing', () => {
       );
     },
   );
+
+  it('Select prop with _none', () => {
+    cy.loadURLandWaitForXBLoaded();
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent').findByText('Heading').click();
+    cy.findByLabelText('Style').should('have.value', 'primary');
+    cy.findByLabelText('Style').within(() => {
+      cy.get('option:selected').should('have.text', 'primary');
+    });
+    cy.findByLabelText('Style').select('_none');
+    cy.findByLabelText('Style').should('have.value', '_none');
+    cy.findByLabelText('Style').within(() => {
+      cy.get('option:selected').should('have.text', '- None -');
+    });
+    cy.findByLabelText('Style').should(
+      'not.have.attr',
+      'data-invalid-prop-value',
+    );
+    cy.get('[data-prop-message="true"]').should('not.exist');
+  });
 });

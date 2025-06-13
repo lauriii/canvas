@@ -13,16 +13,12 @@
   &::picker-icon {
     width: 8px;
     height: 8px;
-    transition: 0.4s rotate;
     color: transparent;
     border: none;
     background-image: url('../../../../assets/icons/select-chevron.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: 120%;
-  }
-  &:open::picker-icon {
-    rotate: 180deg;
   }
   option {
     border-radius: 4px;

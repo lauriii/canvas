@@ -24,7 +24,7 @@ export class ApiService {
         'X-Experience-Builder-CLI': '1',
       },
       // Allow longer timeout for uploads
-      timeout: 30000
+      timeout: 30000,
     });
 
     // Store the token for use in Experience Builder API requests
@@ -38,8 +38,8 @@ export class ApiService {
     try {
       const response = await this.client.get('/xb/api/v0/config/js_component', {
         headers: {
-          'Authorization': `Bearer ${this.authToken}`
-        }
+          Authorization: `Bearer ${this.authToken}`,
+        },
       });
       return response.data;
     } catch (error) {
@@ -51,13 +51,16 @@ export class ApiService {
   /**
    * Get global CSS.
    */
-  async getGlobalCss() : Promise<AssetLibrary> {
+  async getGlobalCss(): Promise<AssetLibrary> {
     try {
-      const response = await this.client.get('/xb/api/v0/config/xb_asset_library/global', {
-        headers: {
-          'Authorization': `Bearer ${this.authToken}`
-        }
-      });
+      const response = await this.client.get(
+        '/xb/api/v0/config/xb_asset_library/global',
+        {
+          headers: {
+            Authorization: `Bearer ${this.authToken}`,
+          },
+        },
+      );
       return response.data;
     } catch (error) {
       this.handleApiError(error);
@@ -78,7 +81,9 @@ export class ApiService {
           console.error('API Error Details:');
           console.error(`- Status: ${status}`);
           console.error(`- URL: ${error.config?.url || 'unknown'}`);
-          console.error(`- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`);
+          console.error(
+            `- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`,
+          );
           console.error('- Response data:', JSON.stringify(data, null, 2));
 
           // Hide auth token in logs
@@ -86,13 +91,20 @@ export class ApiService {
           if (safeHeaders && safeHeaders.Authorization) {
             safeHeaders.Authorization = 'Bearer ********';
           }
-          console.error('- Request headers:', JSON.stringify(safeHeaders, null, 2));
+          console.error(
+            '- Request headers:',
+            JSON.stringify(safeHeaders, null, 2),
+          );
         }
 
         if (status === 401) {
-          throw new Error('Authentication failed. Please check your API token.');
+          throw new Error(
+            'Authentication failed. Please check your API token.',
+          );
         } else if (status === 403) {
-          throw new Error('You do not have permission to perform this action. Make sure your user has the "administer code components" permission.');
+          throw new Error(
+            'You do not have permission to perform this action. Make sure your user has the "administer code components" permission.',
+          );
         } else if (data && data.message) {
           throw new Error(`API Error (${status}): ${data.message}`);
         } else {
@@ -104,30 +116,43 @@ export class ApiService {
           console.error('Network Error Details:');
           console.error(`- No response received from server`);
           console.error(`- URL: ${error.config?.url || 'unknown'}`);
-          console.error(`- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`);
+          console.error(
+            `- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`,
+          );
 
           // Hide auth token in logs
           const safeHeaders = { ...error.config?.headers };
           if (safeHeaders && safeHeaders.Authorization) {
             safeHeaders.Authorization = 'Bearer ********';
           }
-          console.error('- Request headers:', JSON.stringify(safeHeaders, null, 2));
+          console.error(
+            '- Request headers:',
+            JSON.stringify(safeHeaders, null, 2),
+          );
 
           // Check if this is a local development site
           const baseUrl = this.baseUrl;
           if (baseUrl.includes('ddev.site')) {
             console.error('\nDDEV Local Development Troubleshooting Tips:');
             console.error('1. Make sure DDEV is running: try "ddev status"');
-            console.error('2. Try using HTTP instead of HTTPS: use "http://drupal-dev.ddev.site" as URL');
+            console.error(
+              '2. Try using HTTP instead of HTTPS: use "http://drupal-dev.ddev.site" as URL',
+            );
             console.error('3. Check if the site is accessible in your browser');
-            console.error('4. For HTTPS issues: Try "ddev auth ssl" to set up local SSL certificates');
+            console.error(
+              '4. For HTTPS issues: Try "ddev auth ssl" to set up local SSL certificates',
+            );
           }
         }
 
         if (this.baseUrl.includes('ddev.site')) {
-          throw new Error(`Network error: No response from DDEV site. Is DDEV running? Try using HTTP instead of HTTPS.`);
+          throw new Error(
+            `Network error: No response from DDEV site. Is DDEV running? Try using HTTP instead of HTTPS.`,
+          );
         } else {
-          throw new Error(`Network error: No response from server. Check your site URL and internet connection.`);
+          throw new Error(
+            `Network error: No response from server. Check your site URL and internet connection.`,
+          );
         }
       } else {
         if (verbose) {
@@ -157,11 +182,15 @@ export function createApiService(): ApiService {
   const config = getConfig();
 
   if (!config.auth_token) {
-    throw new Error('Authentication token is required. Set it in the EXPERIENCE_BUILDER_AUTH_TOKEN environment variable or pass it with --token.');
+    throw new Error(
+      'Authentication token is required. Set it in the EXPERIENCE_BUILDER_AUTH_TOKEN environment variable or pass it with --token.',
+    );
   }
 
   if (!config.site_url) {
-    throw new Error('Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --url.');
+    throw new Error(
+      'Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --url.',
+    );
   }
 
   return new ApiService({

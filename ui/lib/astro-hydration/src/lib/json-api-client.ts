@@ -2,10 +2,12 @@
 import {
   JsonApiClient,
   createCache,
-  type JsonApiClientOptions, type GetOptions, type RawApiResponseWithData,
+  type JsonApiClientOptions,
+  type GetOptions,
+  type RawApiResponseWithData,
 } from '@drupal-api-client/json-api-client';
 import { type BaseUrl } from '@drupal-api-client/api-client';
-import { Jsona } from "jsona";
+import { Jsona } from 'jsona';
 
 class XbJsonApiClient extends JsonApiClient {
   constructor(baseUrl?: BaseUrl, options?: JsonApiClientOptions) {
@@ -32,5 +34,5 @@ class XbJsonApiClient extends JsonApiClient {
   }
 }
 
-export * from "@drupal-api-client/json-api-client";
+export * from '@drupal-api-client/json-api-client';
 export { XbJsonApiClient as JsonApiClient };
