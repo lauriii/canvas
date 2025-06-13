@@ -54,7 +54,6 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
 
     // Entity type: provided by a module.
     $dependencies['module'][] = $entity_type->getProvider();
-    $dependencies['plugin'][] = 'entity_type:' . $entity_type->id();
 
     // Bundle: only if there is a bundle config entity type.
     $bundle = NULL;
@@ -91,7 +90,6 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     if (!$config->isNew()) {
       // @todo Possible future optimization: ignore base field overrides unless they modify the `field_type`, `settings` or `required` properties compared to the code-defined base field. Any other modification has no effect on evaluating this expression.
       $dependencies['config'][] = $config->getConfigDependencyName();
-      $dependencies['plugin'][] = "field_type:{$field_definition->getType()}";
     }
 
     return $dependencies;

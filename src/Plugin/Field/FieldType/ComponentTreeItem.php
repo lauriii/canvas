@@ -36,6 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
  * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'component_version'
  *
  * @property \Drupal\experience_builder\HydratedTree $hydrated
@@ -130,12 +131,11 @@ class ComponentTreeItem extends FieldItemBase {
   /**
    * Calculates all dependencies of the field item (all field props).
    *
-   * @return array ($with_plugin_dependencies ? array{'config': string[], 'content': string[], 'module': string[], 'theme': string[], 'plugin': string[]} : array{'config': string[], 'content': string[], 'module': string[], 'theme': string[]})
+   * @return ConfigDependenciesArray
    *
    * @see \Drupal\Component\Plugin\DependentPluginInterface
-   * @see \Drupal\experience_builder\Audit\ComponentTreeDependencyRepository
    */
-  public function calculateFieldItemValueDependencies(bool $with_plugin_dependencies, ?FieldableEntityInterface $host_entity = NULL): array {
+  public function calculateFieldItemValueDependencies(?FieldableEntityInterface $host_entity = NULL): array {
     // Every field property that has dependencies on config or extensions must
     // implement DependentPluginInterface to ensure accurate dependency (i.e.
     // usage) tracking.
@@ -154,23 +154,6 @@ class ComponentTreeItem extends FieldItemBase {
     }
 
     $dependency_types = ['config', 'content', 'module', 'theme'];
-    // Config entities do not support plugin dependencies. (Plugin dependency
-    // information is only necessary for component trees in content entities.
-    // Because:
-    // - Component config entities always exist in a single state
-    // - content entity revisions contain component instances created based on
-    //   the state at the time of creating the revision
-    // This means that the Component config entity would prevent the
-    // uninstallation of a module that provides a field type that is CURRENTLY
-    // used for creating component instances, but that doesn't mean it
-    // sufficiently protects HISTORICALLY created component instances!
-    // @todo Consider removing this in https://www.drupal.org/i/3477428.
-    if ($with_plugin_dependencies) {
-      $dependency_types[] = 'plugin';
-    }
-    else {
-      unset($dependencies['plugin']);
-    }
 
     // Normalize.
     ksort($dependencies);
@@ -211,8 +194,7 @@ class ComponentTreeItem extends FieldItemBase {
       \assert($item instanceof ComponentTreeItem);
       $dependencies = NestedArray::mergeDeep(
         $dependencies,
-        // `type: config_dependencies_base` config schema doesn't allow `plugin`.
-        $item->calculateFieldItemValueDependencies(FALSE, NULL),
+        $item->calculateFieldItemValueDependencies(NULL),
       );
     }
     // Remove duplicates and sort into a reliable order.

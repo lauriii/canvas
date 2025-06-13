@@ -20,6 +20,8 @@ use Drupal\experience_builder\Config\Entity\BetterConfigDependencyManager;
  * @see \Drupal\Core\Config\Entity\ConfigEntityDependency::getDependencies()
  * @see \Drupal\Core\Config\Entity\ConfigDependencyManager::getDependentEntities()
  *
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ *
  * @internal
  */
 trait BetterConfigDependencyManagerTrait {
@@ -27,7 +29,7 @@ trait BetterConfigDependencyManagerTrait {
   /**
    * @param \Drupal\Core\Config\Entity\ConfigEntityInterface $config_entity
    *
-   * @return array{'config'?: string[], 'module'?: string[], 'theme'?: string[], 'content'?: string[]}
+   * @return ConfigDependenciesArray
    */
   protected function getAllDependencies(ConfigEntityInterface $config_entity) : array {
     $dep_manager = $this->getBetterConfigDependencyManager();

@@ -11,7 +11,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  * Provides an interface for a prop source that has dependencies.
  *
  * @internal
- * @phpstan-type ContentAwareDependencies array{content?: array<int, string>, plugin?: array<int, string>, config?: array<int, string>, module?: array<int, string>}
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
  */
 interface ContentAwareDependentInterface {
 
@@ -38,14 +38,13 @@ interface ContentAwareDependentInterface {
    *
    * @return array
    *   An array of dependencies grouped by type (config, content, module,
-   *   theme, plugin). For example:
+   *   theme). For example:
    *   @code
    *   [
    *     'config' => ['user.role.anonymous', 'user.role.authenticated'],
    *     'content' => ['node:article:f0a189e6-55fb-47fb-8005-5bef81c44d6d'],
    *     'module' => ['node', 'user'],
    *     'theme' => ['claro'],
-   *     'plugin' => ['field_type:link'],
    *   ];
    *   @endcode
    *

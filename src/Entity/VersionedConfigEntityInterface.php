@@ -6,6 +6,9 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
+/**
+ * @phpstan-type ConfigDependenciesArray array{content?: array<int, string>, config?: array<int, string>, module?: array<int, string>}
+ */
 interface VersionedConfigEntityInterface extends ConfigEntityInterface {
 
   public const string ACTIVE_VERSION = 'active';
@@ -30,5 +33,18 @@ interface VersionedConfigEntityInterface extends ConfigEntityInterface {
    * @return array<string>
    */
   public function getVersions(): array;
+
+  /**
+   * Gets the version-specific configuration dependencies.
+   *
+   * @param string $version
+   *
+   * @return ConfigDependenciesArray
+   *   An array of dependencies, keyed by $type.
+   *
+   * @see ::getDependencies()
+   * @see \Drupal\Core\Config\Entity\ConfigDependencyManager
+   */
+  public function getVersionSpecificDependencies(string $version): array;
 
 }

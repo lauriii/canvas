@@ -6,6 +6,7 @@ namespace Drupal\Tests\xb_oauth\Kernel;
 
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
@@ -50,6 +51,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       'id' => AssetLibrary::GLOBAL_ID,
       'label' => 'Global',
     ])->save();
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
   }
 
   /**

@@ -110,7 +110,6 @@ final class AdaptedPropSource extends PropSourceBase {
       is_array($plugin_definition) => $plugin_definition['provider'],
       default => NULL,
     };
-    $dependencies['plugin'][] = 'adapter:' . $this->adapter_instance->getPluginId();
     foreach ($this->adapter_inputs as $input_name => $input) {
       $dependencies = NestedArray::mergeDeep($dependencies, $this->getInputPropSource($input_name)->calculateDependencies($host_entity));
     }

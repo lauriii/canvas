@@ -480,8 +480,4 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
   }
 
-  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
-    return !empty($this->getPluginRemovedDependencies($this->getPluginDependencies($this), $dependencies));
-  }
-
 }

@@ -169,11 +169,7 @@ class PropSourceTest extends KernelTestBase {
       ],
       'expected_user_value' => 'Hello, world!',
       'expected_prop_expression' => FieldTypePropExpression::class,
-      'expected_dependencies' => [
-        'plugin' => [
-          'field_type:string',
-        ],
-      ],
+      'expected_dependencies' => [],
     ];
     yield "scalar shape, field type=uri, cardinality=1" => [
       'sourceType' => 'static:field_item:uri',
@@ -187,11 +183,7 @@ class PropSourceTest extends KernelTestBase {
       ],
       'expected_user_value' => 'https://drupal.org',
       'expected_prop_expression' => FieldTypePropExpression::class,
-      'expected_dependencies' => [
-        'plugin' => [
-          'field_type:uri',
-        ],
-      ],
+      'expected_dependencies' => [],
     ];
     yield "scalar shape, field type=boolean, cardinality=1" => [
       'sourceType' => 'static:field_item:boolean',
@@ -205,11 +197,7 @@ class PropSourceTest extends KernelTestBase {
       ],
       'expected_user_value' => TRUE,
       'expected_prop_expression' => FieldTypePropExpression::class,
-      'expected_dependencies' => [
-        'plugin' => [
-          'field_type:boolean',
-        ],
-      ],
+      'expected_dependencies' => [],
     ];
     // A simple (expression targeting a simple prop) array example (with
     // cardinality specified, rather than the default of `cardinality=1`).
@@ -239,11 +227,7 @@ class PropSourceTest extends KernelTestBase {
         92,
       ],
       'expected_prop_expression' => FieldTypePropExpression::class,
-      'expected_dependencies' => [
-        'plugin' => [
-          'field_type:integer',
-        ],
-      ],
+      'expected_dependencies' => [],
     ];
     yield "object shape, daterange field, cardinality=1" => [
       'sourceType' => 'static:field_item:daterange',
@@ -267,9 +251,6 @@ class PropSourceTest extends KernelTestBase {
       'expected_dependencies' => [
         'module' => [
           'datetime_range',
-        ],
-        'plugin' => [
-          'field_type:daterange',
         ],
       ],
     ];
@@ -312,9 +293,6 @@ class PropSourceTest extends KernelTestBase {
         'module' => [
           'datetime_range',
         ],
-        'plugin' => [
-          'field_type:daterange',
-        ],
       ],
     ];
     yield "complex empty example with entity_reference" => [
@@ -345,9 +323,6 @@ class PropSourceTest extends KernelTestBase {
         'content' => [],
         'module' => [
           'media',
-        ],
-        'plugin' => [
-          'field_type:entity_reference',
         ],
       ],
     ];
@@ -383,9 +358,6 @@ class PropSourceTest extends KernelTestBase {
       'module' => [
         'user',
       ],
-      'plugin' => [
-        'entity_type:user',
-      ],
     ], $simple_example->calculateDependencies($user));
 
     // A reference example: ReferenceFieldPropExpression.
@@ -418,7 +390,6 @@ class PropSourceTest extends KernelTestBase {
     // - calculate its dependencies
     $this->assertSame([
       'module' => ['node'],
-      'plugin' => ['entity_type:node'],
       'config' => ['node.type.page'],
       'content' => ['user:user:' . $user->uuid()],
     ], $simple_example->calculateDependencies($node));
@@ -456,10 +427,6 @@ class PropSourceTest extends KernelTestBase {
       'module' => [
         'node',
         'node',
-      ],
-      'plugin' => [
-        'entity_type:node',
-        'entity_type:node',
       ],
       'config' => [
         'node.type.page',
@@ -548,11 +515,6 @@ class PropSourceTest extends KernelTestBase {
         'datetime_range',
         'datetime_range',
       ],
-      'plugin' => [
-        'adapter:day_count',
-        'field_type:daterange',
-        'field_type:daterange',
-      ],
     ], $simple_static_example->calculateDependencies());
 
     // A simple dynamic example.
@@ -599,13 +561,6 @@ class PropSourceTest extends KernelTestBase {
         'experience_builder',
         'user',
       ],
-      'plugin' => [
-        'adapter:day_count',
-        'adapter:unix_to_date',
-        'entity_type:user',
-        'adapter:unix_to_date',
-        'entity_type:user',
-      ],
     ], $simple_dynamic_example->calculateDependencies($user));
 
     // A complex example.
@@ -650,12 +605,6 @@ class PropSourceTest extends KernelTestBase {
         'datetime',
         'experience_builder',
         'user',
-      ],
-      'plugin' => [
-        'adapter:day_count',
-        'field_type:datetime',
-        'adapter:unix_to_date',
-        'entity_type:user',
       ],
     ], $complex_example->calculateDependencies($user));
   }

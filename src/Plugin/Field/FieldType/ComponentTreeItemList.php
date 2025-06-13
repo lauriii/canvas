@@ -50,11 +50,17 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * {@inheritdoc}
    */
-  public function calculateDependencies(bool $with_plugin_dependencies = FALSE) : array {
+  public function calculateDependencies() : array {
     $dependencies = [];
     foreach ($this as $item) {
       \assert($item instanceof ComponentTreeItem);
-      $dependencies = NestedArray::mergeDeep($dependencies, $item->calculateFieldItemValueDependencies($with_plugin_dependencies));
+      $dependencies = NestedArray::mergeDeep($dependencies, $item->calculateFieldItemValueDependencies(
+        $this->getParent()
+          ? $this->getEntity()
+          // Support dangling component trees.
+          // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait
+          : NULL
+      ));
     }
     return $dependencies;
   }

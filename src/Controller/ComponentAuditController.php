@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
@@ -33,11 +34,43 @@ final class ComponentAuditController {
   }
 
   public function audit(Component $component): array {
+    $versions = $component->getVersions();
+
+    $build = [
+      'overview' => [
+        '#markup' => '<p>' . $this->t('There are %count versions of this component. The usages for each version are listed below:', ['%count' => count($versions)]) . '</p>',
+      ],
+    ];
     // @todo Field config default values
     // @todo Base field definition default values
     // @todo What if there are asymmetric content translations, or the translated
     //   config provide different defaults? Verify and test in
     //   https://www.drupal.org/i/3522198
+    foreach ($versions as $version) {
+      $build[$version] = [
+        'separator' => ['#markup' => '<hr>'],
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h2',
+          '#attributes' => [
+            'id' => $version,
+          ],
+          '#value' => $version === ComponentInterface::FALLBACK_VERSION
+            // phpcs:ignore Drupal.Semantics.FunctionT.ConcatString
+            ? '🚨' . $this->t('Fallback version active') . '🚨'
+            : "<code>$version</code>",
+        ],
+        'results' => $version === ComponentInterface::FALLBACK_VERSION
+          ? [
+            '#markup' => '<em>' . $this->t('All of the versions below are using the fallback rendering now — restore this component to make the instances listed below work again.') . '</em>',
+          ]
+          : $this->auditVersion($component->loadVersion($version)),
+      ];
+    }
+    return $build;
+  }
+
+  public function auditVersion(Component $component): array {
     return [
       'content' => $this->getContentAudit($component),
       'content templates' => $this->getContentTemplatesAudit($component),
@@ -75,7 +108,7 @@ final class ComponentAuditController {
         'class' => [RESPONSIVE_PRIORITY_MEDIUM],
       ],
     ];
-    $dependents = $this->componentAudit->getContentRevisionsUsingComponent($component);
+    $dependents = $this->componentAudit->getContentRevisionsUsingComponent($component, [$component->getLoadedVersion()]);
     foreach ($dependents as $entity) {
       $row = [];
       $entity_type_id = $entity->getEntityTypeId();
@@ -105,7 +138,7 @@ final class ComponentAuditController {
     return [
       'title' => [
         '#type' => 'html_tag',
-        '#tag' => 'h2',
+        '#tag' => 'h3',
         '#attributes' => ['name' => 'content'],
         '#value' => $this->t('Content usages'),
       ],

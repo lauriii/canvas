@@ -466,9 +466,11 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // updated settings config schema.
     // @see ::testBlockPluginUpdateConsequences()
     self::assertCount(1, Component::load('block.xb_test_block_input_schema_change_poc')?->getVersions() ?? []);
+    $old_version = Component::load('block.xb_test_block_input_schema_change_poc')?->getActiveVersion();
     \Drupal::state()->set('xb_test_block.allow_hook_block_alter', TRUE);
     $this->container->get(ModuleInstallerInterface::class)->install(['xb_test_block_simulate_input_schema_change']);
     self::assertCount(2, Component::load('block.xb_test_block_input_schema_change_poc')?->getVersions());
+    $new_version = Component::load('block.xb_test_block_input_schema_change_poc')->getActiveVersion();
 
     // MID-update: AFTER the module update, BEFORE applying an update path: the
     // component tree contains instances with explicit inputs that are now
@@ -503,11 +505,13 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $audit = $this->container->get(ComponentAudit::class);
     assert($audit instanceof ComponentAudit);
     $updated_component = Component::load('block.xb_test_block_input_schema_change_poc');
-    // @todo Update in https://www.drupal.org/i/3528499 to specifically check the non-active versions of the component.
-    $content_entity_revisions_to_update = $audit->getContentRevisionsUsingComponent($updated_component);
+    // The new version of the component does not have any uses.
+    self::assertSame([], $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]));
+    // Only the old version has uses that need to be updated.
+    $content_entity_revisions_to_update = $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]);
     self::assertSame($expected_config_entities_to_update, array_keys($audit->getConfigEntityDependenciesUsingComponent($updated_component, Pattern::ENTITY_TYPE_ID)));
     self::assertSame($expected_content_entity_revisions_to_update, array_map(
-      fn (ContentEntityInterface $e): string => sprintf("%s:%s:%s", $e->getEntityTypeId(), $e->id(), $e->getRevisionId()),
+      self::contentEntityRevisionObjectToString(...),
       $content_entity_revisions_to_update,
     ));
 
@@ -521,8 +525,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       $component_tree_item->setInput(self::blockUpdatePathSampleForCoreIssue3521221($component_tree_item->getInputs()));
       // Not valid until the component version is updated, too.
       self::assertNotEmpty(self::violationsToArray($component_tree_item->validate()));
-      $component_tree_item->set('component_version', '0b69de6df4584ecc');
-      self::assertEquals('0b69de6df4584ecc', $component_tree_item->getComponent()->getLoadedVersion());
+      $component_tree_item->set('component_version', $new_version);
+      self::assertEquals($new_version, $component_tree_item->getComponent()->getLoadedVersion());
       self::assertSame([], self::violationsToArray($component_tree_item->validate()));
     }
 
@@ -539,8 +543,17 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       },
       iterator_to_array($page->getComponentTree()->componentTreeItemsIterator()),
     ));
-    // @todo Update in https://www.drupal.org/i/3528499 to show that now ComponentAudit finds no matches.
     $page->save();
+    // Zero uses remain of the old version, every component instance is on the
+    // new version.
+    self::assertSame([], array_map(
+      self::contentEntityRevisionObjectToString(...),
+      $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]),
+    ));
+    self::assertSame($expected_content_entity_revisions_to_update, array_map(
+      self::contentEntityRevisionObjectToString(...),
+      $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]),
+    ));
     // @phpstan-ignore-next-line
     self::assertSame($expected_post_update_markup, self::getTextOfAllRenderedBlockComponentInstances(Page::load(1)));
 
@@ -578,6 +591,10 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     ));
     $pattern->save();
     self::assertSame($expected_post_update_markup, self::getTextOfAllRenderedBlockComponentInstances($pattern));
+  }
+
+  private static function contentEntityRevisionObjectToString(ContentEntityInterface $e): string {
+    return sprintf("%s:%s:%s", $e->getEntityTypeId(), $e->id(), $e->getRevisionId());
   }
 
 }

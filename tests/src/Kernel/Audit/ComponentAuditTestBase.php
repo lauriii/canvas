@@ -41,12 +41,16 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     $this->tree = [
       [
         'uuid' => 'my-component',
-        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'component_id' => 'sdc.xb_test_sdc.my-cta',
         'inputs' => [
-          'heading' => StaticPropSource::generate(
+          'text' => StaticPropSource::generate(
             expression: new FieldTypePropExpression('string', 'value'),
             cardinality: 1,
           )->withValue('Hey there')->toArray(),
+          'href' => StaticPropSource::generate(
+            expression: new FieldTypePropExpression('uri', 'value'),
+            cardinality: 1,
+          )->withValue('https://drupal.org/')->toArray(),
         ],
       ],
     ];

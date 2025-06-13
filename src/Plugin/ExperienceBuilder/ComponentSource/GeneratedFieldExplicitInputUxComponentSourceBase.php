@@ -863,20 +863,4 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     return $value;
   }
 
-  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
-    // Fall back when any of the deleted configuration or content is needed by
-    // this class' auto-generated explicit input UX.
-    // @todo Update in https://www.drupal.org/i/3528499 to look at the dependencies of ALL versions, not just the active version
-    foreach (\array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
-      \assert(\is_string($prop_name));
-      $prop_source = $this->getDefaultStaticPropSource($prop_name);
-      $prop_source_dependencies = $prop_source->calculateDependencies()['config'] ?? [];
-      $intersection = \array_intersect(\array_keys($dependencies['config'] ?? []), $prop_source_dependencies);
-      if (\count($intersection) > 0) {
-        return TRUE;
-      }
-    }
-    return FALSE;
-  }
-
 }

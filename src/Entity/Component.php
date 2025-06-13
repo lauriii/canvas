@@ -443,19 +443,14 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * @see \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
    */
   public function onDependencyRemoval(array $dependencies): bool {
-    $source = $this->getComponentSource();
-
-    // If this Component is NOT affected by a config or content dependency being
-    // removed, there's nothing to do.
+    // If only module and theme dependencies are being removed, there's nothing
+    // to do: this Component cannot work any longer. So rely on the default
+    // behavior of the config system: allow this to be deleted.
     // Note: The removal of module/theme dependencies is prevented by an
-    // uninstall validator.
+    // uninstall validator. So this should only be possible by using force.
     // @see \Drupal\experience_builder\ComponentDependencyUninstallValidator
-    $non_extension_dependencies = \array_diff_key($dependencies, \array_flip([
-      'module',
-      'theme',
-    ]));
-    if (!$source->onDependencyRemovalReplaceWithFallback($non_extension_dependencies)) {
-      return parent::onDependencyRemoval($non_extension_dependencies);
+    if (empty($dependencies['config'] ?? []) && empty($dependencies['content'] ?? [])) {
+      return parent::onDependencyRemoval($dependencies);
     }
 
     // When it is affected, then if there's 0 component instances using it, still

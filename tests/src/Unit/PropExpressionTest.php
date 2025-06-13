@@ -30,7 +30,7 @@ use Prophecy\Prophet;
  * @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
  * @group experience_builder
  *
- * @phpstan-import-type ContentAwareDependencies from \Drupal\experience_builder\PropSource\ContentAwareDependentInterface
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
  */
 class PropExpressionTest extends UnitTestCase {
 
@@ -63,7 +63,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Combines the cases of all individual data providers, assigns clear labels.
    *
-   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function provider(): array {
     // Allow this provider to be called by a kernel test, too.
@@ -93,7 +93,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldPropExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: FieldPropExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldPropExpression(): array {
     return [
@@ -101,19 +101,16 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', NULL, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
         ],
       ],
       ['ℹ︎␜entity:node␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 0, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
         ],
       ],
       ['ℹ︎␜entity:node␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node'), 'title', 99, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
         ],
       ],
 
@@ -121,21 +118,18 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node:article␝title␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'config' => ['node.type.article'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝title␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 0, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'config' => ['node.type.article'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝title␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', 99, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'config' => ['node.type.article'],
         ],
       ],
@@ -144,21 +138,18 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node', 'field_type:image'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node', 'field_type:image'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node', 'field_type:image'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
@@ -171,14 +162,12 @@ class PropExpressionTest extends UnitTestCase {
       'invalid delta' => ['ℹ︎␜entity:node:article␝title␞-1␟value', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', -1, 'value'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'config' => ['node.type.article'],
         ],
       ],
       'invalid prop name' => ['ℹ︎␜entity:node:article␝title␞␟non_existent', new FieldPropExpression(EntityDataDefinition::create('node', 'article'), 'title', NULL, 'non_existent'),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'config' => ['node.type.article'],
         ],
       ],
@@ -186,7 +175,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldPropExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: ReferenceFieldPropExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerReferenceFieldPropExpression(): array {
     $referencer_delta_null = new FieldPropExpression(EntityDataDefinition::create('node'), 'uid', NULL, 'entity');
@@ -197,21 +186,18 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
@@ -219,21 +205,18 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', NULL, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 0, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(EntityDataDefinition::create('user'), 'name', 99, 'value')),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
@@ -245,7 +228,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: FieldObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldObjectPropsExpression(): array {
     return [
@@ -258,7 +241,6 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
         ],
       ],
       [
@@ -269,7 +251,6 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         [
           'module' => ['node'],
-          'plugin' => ['entity_type:node'],
         ],
       ],
 
@@ -288,7 +269,6 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         [
           'module' => ['node', 'node'],
-          'plugin' => ['entity_type:node', 'field_type:image', 'entity_type:node', 'field_type:image'],
           'config' => ['node.type.article', 'field.field.node.article.field_image', 'node.type.article', 'field.field.node.article.field_image'],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -297,16 +277,14 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypePropExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: FieldTypePropExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypePropExpression(): array {
     return [
       // Field type with single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
       ['ℹ︎string␟value', new FieldTypePropExpression('string', 'value'),
-        [
-          'plugin' => ['field_type:string'],
-        ],
+        [],
       ],
 
       // Field type with >1 properties.
@@ -314,13 +292,11 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎image␟width', new FieldTypePropExpression('image', 'width'),
         [
           'module' => ['image'],
-          'plugin' => ['field_type:image'],
         ],
       ],
       ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
         [
           'module' => ['image'],
-          'plugin' => ['field_type:image'],
         ],
       ],
 
@@ -328,15 +304,13 @@ class PropExpressionTest extends UnitTestCase {
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted:
       'invalid prop name' => ['ℹ︎string␟non_existent', new FieldTypePropExpression('string', 'non_existent'),
-        [
-          'plugin' => ['field_type:string'],
-        ],
+        [],
       ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerReferenceFieldTypePropExpression(): array {
     return [
@@ -355,7 +329,6 @@ class PropExpressionTest extends UnitTestCase {
         ),
         [
           'module' => ['image'],
-          'plugin' => ['field_type:image'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -388,7 +361,6 @@ class PropExpressionTest extends UnitTestCase {
         ),
         [
           'module' => ['image'],
-          'plugin' => ['field_type:image'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -396,7 +368,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: ContentAwareDependencies|\Exception}>
+   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypeObjectPropsExpression(): array {
     return [
@@ -407,9 +379,7 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldTypePropExpression('string', 'value'),
         ]),
-        [
-          'plugin' => ['field_type:string'],
-        ],
+        [],
       ],
 
       // Context: bundle of entity type, configurable field.
@@ -427,7 +397,6 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         [
           'module' => ['image', 'image'],
-          'plugin' => ['field_type:image', 'field_type:image'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],

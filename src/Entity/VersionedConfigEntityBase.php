@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -13,6 +14,7 @@ use Drupal\experience_builder\Plugin\VersionedConfigurationSubsetSingleLazyPlugi
 
 /**
  * @property ?\Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter $typedData
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
  */
 abstract class VersionedConfigEntityBase extends ConfigEntityBase implements VersionedConfigEntityInterface {
 
@@ -188,6 +190,39 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
       $this->typedData = ConfigEntityVersionAdapter::createFromEntity($this);
     }
     return $this->typedData;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies(): static {
+    $this->dependencies = [];
+    $dependencies = [];
+    foreach ($this->getVersions() as $version) {
+      // Load each version and compute its dependencies.
+      $dependencies = NestedArray::mergeDeep($dependencies, $this->getVersionSpecificDependencies($version));
+    }
+    $this->addDependencies($dependencies);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getVersionSpecificDependencies(string $version): array {
+    $current_dependencies = $this->dependencies;
+    $current_version = $this->getLoadedVersion();
+
+    $this->loadVersion($version);
+    parent::calculateDependencies();
+    $dependencies = $this->dependencies;
+
+    // Restore original state.
+    $this->loadVersion($current_version);
+    $this->dependencies = $current_dependencies;
+
+    /** @var ConfigDependenciesArray */
+    return $dependencies;
   }
 
 }

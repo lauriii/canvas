@@ -224,32 +224,4 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    */
   public function checkRequirements(): void;
 
-  /**
-   * Allows a plugin to define whether it should be replaced with a fallback.
-   *
-   * If this method returns TRUE then the source is replaced with a fallback
-   * component source plugin.
-   *
-   * @param array $dependencies
-   *   An array of dependencies that will be deleted keyed by dependency type.
-   *   Dependency types are config or content.
-   *   Note that unlike \Drupal\experience_builder\PropSource\ContentAwareDependentInterface::calculateDependencies
-   *   this does not support a key of plugin.
-   *   Note that unlike \Drupal\Core\Config\Entity\ConfigEntityInterface::onDependencyRemoval
-   *   this does not support keys of module or theme, these are handled by an
-   *   uninstall validator.
-   *
-   * @return bool
-   *   TRUE if the fallback source should replace this plugin when the passed
-   *   dependencies are being removed.
-   *
-   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Fallback
-   * @see \Drupal\Core\Config\Entity\ConfigDependencyManager
-   * @see \Drupal\Core\Config\ConfigEntityBase::preDelete()
-   * @see \Drupal\Core\Config\ConfigManager::uninstall()
-   * @see \Drupal\Core\Config\Entity\ConfigEntityInterface::onDependencyRemoval
-   * @see \Drupal\experience_builder\ComponentDependencyUninstallValidator
-   */
-  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool;
-
 }

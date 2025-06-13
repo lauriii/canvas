@@ -178,7 +178,7 @@ final class PageTest extends KernelTestBase {
     // \Drupal\Tests\experience_builder\Unit\PropExpressionTest for extended test coverage,
     // which combined with \Drupal\Tests\experience_builder\Kernel\PropSourceTest::testDynamicPropSource,
     // does already prove that this will work correctly for EVERYTHING.
-    $dependencies = $components->calculateDependencies(TRUE);
+    $dependencies = $components->calculateDependencies();
     $this->assertSame([
       'experience_builder.component.sdc.xb_test_sdc.props-slots',
       'experience_builder.component.block.system_branding_block',
@@ -186,7 +186,6 @@ final class PageTest extends KernelTestBase {
     $this->assertSame([], $dependencies['content']);
     $this->assertSame([], $dependencies['module']);
     $this->assertSame([], $dependencies['theme']);
-    $this->assertSame(['field_type:string'], $dependencies['plugin']);
   }
 
 }

@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Audit;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -28,10 +29,12 @@ class ComponentAuditTest extends ComponentAuditTestBase {
    */
   public function testGetContentRevisionsUsingComponent(): void {
     $audit = $this->container->get(ComponentAudit::class);
-    $component = Component::load('sdc.xb_test_sdc.props-slots');
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
-    $config = $audit->getContentRevisionsUsingComponent($component);
-    self::assertCount(0, $config);
+    self::assertCount(1, $component->getVersions());
+    $old_version = $component->getActiveVersion();
+    $content = $audit->getContentRevisionsUsingComponent($component);
+    self::assertCount(0, $content);
 
     $page = Page::create([
       'title' => $this->randomMachineName(),
@@ -43,9 +46,30 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $page->set('components', [])->save();
     $page->save();
 
-    $config = $audit->getContentRevisionsUsingComponent($component);
-    self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $config));
-    self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $config));
+    // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
+    // field type used for populating the href prop.
+    // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    \Drupal::service(ModuleInstallerInterface::class)
+      ->install(['xb_test_storage_prop_shape_alter']);
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
+    \assert($component instanceof ComponentInterface);
+    self::assertCount(2, $component->getVersions());
+    $new_version = $component->getActiveVersion();
+
+    // 1. All versions.
+    $content = $audit->getContentRevisionsUsingComponent($component);
+    self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
+    self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
+
+    // 2. Active (i.e. new) version: no uses yet.
+    $content = $audit->getContentRevisionsUsingComponent($component, [$new_version]);
+    self::assertEquals([], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
+    self::assertEquals([], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
+
+    // 3. Old version.
+    $content = $audit->getContentRevisionsUsingComponent($component, [$old_version]);
+    self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
+    self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
   }
 
   protected function createTestPattern(array $tree): Pattern {
@@ -93,8 +117,10 @@ class ComponentAuditTest extends ComponentAuditTestBase {
    */
   public function testGetConfigEntityDependenciesUsingComponent(string $config_entity_type_id): void {
     $audit = $this->container->get(ComponentAudit::class);
-    $component = Component::load('sdc.xb_test_sdc.props-slots');
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
+    self::assertCount(1, $component->getVersions());
+    $old_version = $component->getActiveVersion();
     $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
     self::assertCount(0, $config);
     $entity = match ($config_entity_type_id) {
@@ -103,9 +129,33 @@ class ComponentAuditTest extends ComponentAuditTestBase {
       ContentTemplate::ENTITY_TYPE_ID => $this->createTestContentTemplate($this->tree),
       default => throw new \InvalidArgumentException()
     };
+
+    // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
+    // field type used for populating the href prop.
+    // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    \Drupal::service(ModuleInstallerInterface::class)
+      ->install(['xb_test_storage_prop_shape_alter']);
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
+    \assert($component instanceof ComponentInterface);
+    self::assertCount(2, $component->getVersions());
+    $new_version = $component->getActiveVersion();
+
+    // 1. All versions.
     $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
     self::assertCount(1, $config);
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
+
+    // @todo Uncomment this in https://www.drupal.org/i/3530051.
+    assert($new_version != $old_version);
+    /*
+    // 2. Active (i.e. new) version: no uses yet.
+    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id, [$new_version]);
+    self::assertEquals([], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
+
+    // 3. Old version.
+    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id, [$old_version]);
+    self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
+     */
   }
 
   public static function configProvider(): iterable {

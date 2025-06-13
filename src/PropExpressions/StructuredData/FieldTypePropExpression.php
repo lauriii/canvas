@@ -46,8 +46,6 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
     if (!in_array($provider, [NULL, 'core'], TRUE)) {
       $dependencies['module'][] = $provider;
     }
-    // @todo Consider removing this in https://www.drupal.org/i/3477428.
-    $dependencies['plugin'][] = "field_type:$this->fieldType";
 
     return $dependencies;
   }

@@ -184,33 +184,14 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     assert($item_list->get(2) instanceof ComponentTreeItem);
     assert($item_list->get(3) instanceof ComponentTreeItem);
 
-    self::assertSame([
-      'plugin' => [
-        'field_type:string',
-        // ⚠️ Despite the Component config entity using the `list_string` field
-        // type, the stored data contains a non-collapsed StaticPropSource and
-        // hence the stored data is all that matters.
-        'field_type:string',
-      ],
-    ], $item_list->get(0)->get('inputs')->calculateDependencies($node));
+    self::assertSame([], $item_list->get(0)->get('inputs')->calculateDependencies($node));
 
     self::assertSame([
-      'plugin' => [
-        'field_type:string',
-        // ⚠️ Here, the stored data contains a collapsed StaticPropSource, and
-        // hence the Component config entity is used to un-collapse it, which
-        // explains the different dependency.
-        'field_type:list_string',
-      ],
       'module' => ['options'],
     ], $item_list->get(1)->get('inputs')->calculateDependencies($node));
 
     self::assertSame([
       'module' => ['node'],
-      'plugin' => [
-        'entity_type:node',
-        'field_type:text_with_summary',
-      ],
       'config' => [
         'node.type.alpha',
         'field.field.node.alpha.body',
@@ -227,16 +208,6 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
         'node',
         'node',
         'node',
-      ],
-      'plugin' => [
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
-        'entity_type:node',
-        'field_type:image',
       ],
       'config' => [
         'node.type.alpha',
