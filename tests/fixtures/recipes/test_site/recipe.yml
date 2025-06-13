@@ -1,5 +1,6 @@
 name: 'Experience Builder Test Site'
 description: 'Site for running tests against.'
+type: 'XB'
 
 config:
   strict: true

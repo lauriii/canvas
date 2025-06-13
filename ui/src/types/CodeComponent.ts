@@ -13,6 +13,7 @@ export interface CodeComponent {
   compiled_js: string;
   compiled_css: string;
   imported_js_components: string[];
+  dataFetches: { [key: string]: any };
 }
 
 export interface CodeComponentSerialized

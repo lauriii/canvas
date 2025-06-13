@@ -16,6 +16,54 @@ export default function getStarterComponentTemplate(componentName: string) {
 // import { cva } from 'class-variance-authority'
 // import { twMerge } from 'tailwind-merge'
 
+/*****************
+ * Fetching Data *
+ *****************/
+// SWR can be imported and used for general data fetching
+// https://swr.vercel.app/
+// Data returned will be shown in the "Data Fetch" pane under the component preview.
+//
+// For fetching data from Drupal with JsonApiClient , JSON:API module must be
+// enabled.
+// https://project.pages.drupalcode.org/api_client/
+// You do not need to provide a baseUrl for the JsonApiClient, it will be
+// configured automatically, as well as deserialization and a default cache
+//
+// import useSWR from "swr";
+// import { JsonApiClient } from "@drupal-api-client/json-api-client";
+// import { DrupalJsonApiParams } from "drupal-jsonapi-params";
+// const client = new JsonApiClient();
+//
+// export default function List() {
+//   const { data, error, isLoading } = useSWR(
+//     ["node--article", {
+//       queryString: new DrupalJsonApiParams().addInclude(["field_tags"]).getQueryString()
+//     }],
+//     ([type, options]) => client.getCollection(type, options)
+//   );
+//
+//   if (error) return "An error has occurred.";
+//   if (isLoading) return "Loading...";
+//   return (
+//     <ul>
+//       {data.map((article) => (
+//         <li key={article.id}>{article.title}</li>
+//       ))}
+//     </ul>
+//   );
+// }
+//
+// You can override the baseUrl and default options:
+// const client = new JsonApiClient(
+//   "https://drupal-api-demo.party", {
+//     serializer: undefined,
+//     cache: undefined,
+//   }
+// );
+
+/**************
+ * Components *
+ **************/
 // Import your other code components to use within this component:
 // import Heading from '@/components/my_heading'
 
@@ -25,8 +73,10 @@ export default function getStarterComponentTemplate(componentName: string) {
 // The content is safe when processed through Drupal's filter system that is correctly configured.
 // @see https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security
 import FormattedText from "@/lib/FormattedText";
+
 // Combine classes with the built-in cn() utility function.
 // @see https://git.drupalcode.org/project/experience_builder/-/blob/0.x/ui/lib/astro-hydration/src/lib/utils.ts
+
 import { cn } from "@/lib/utils";
 
 const ${variableName} = ({

@@ -1,6 +1,6 @@
 name: 'Base'
 description: 'Provides a base site'
-type: 'Site'
+type: 'XB'
 
 recipes:
   - ./core/recipes/basic_block_type

@@ -6,6 +6,7 @@
   jsx, jsxs, and Fragment functions, with names, from the corresponding module bundles, which
   can then be imported by the in-browser JS components. */
 
+const { ...preact } = await import('preact');
 const { ...preactCompat } = await import('preact/compat');
 const { ...preactHooks } = await import('preact/hooks');
 const { jsx, jsxs, Fragment } = await import('preact/jsx-runtime');
@@ -14,5 +15,8 @@ const { ...tailwindMerge } = await import('tailwind-merge');
 const { cva } = await import('class-variance-authority');
 const FormattedText = await import('@/lib/FormattedText');
 const { cn } = await import('@/lib/utils');
+const { JsonApiClient } = await import('@/lib/json-api-client');
+const { DrupalJsonApiParams } = await import('@/lib/jsonapi-params');
+const useSwr = await import('@/lib/swr');
 
 export default function () {}

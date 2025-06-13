@@ -21,3 +21,6 @@ ui/dist
 !cli/**/*.jsx
 !cli/**/*.ts
 !cli/**/*.tsx
+
+# Explicitly enable Prettier for example code components.
+!tests/fixtures/code_components/**/*.jsx

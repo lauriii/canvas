@@ -93,6 +93,18 @@ running `drupal.setupXBTestSite()` you can do so with the following commands:
 ```
 drush site:install minimal
 drush recipe modules/contrib/experience_builder/tests/fixtures/recipes/base
+```
+You will then need to allow test modules to be enabled, if you're using `ddev-drupal-xb-dev` you can do this with:
+```
+ddev drupal test:extensions-enable
+```
+or manually add the following to `settings.php`:
+```
+$settings['extension_discovery_scan_tests'] = TRUE;
+```
+
+Then install the test modules and test site content:
+```
 drush pm:install xb_dev_standard xb_test_sdc xb_test_code_components
 drush recipe modules/contrib/experience_builder/tests/fixtures/recipes/test_site
 ```

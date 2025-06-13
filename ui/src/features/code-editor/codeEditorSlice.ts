@@ -53,6 +53,7 @@ export const initialState: CodeEditorState = {
     compiled_js: '',
     compiled_css: '',
     imported_js_components: [],
+    dataFetches: {},
   },
   globalAssetLibrary: {
     id: 'global',
@@ -166,7 +167,6 @@ export const codeEditorSlice = createSlice({
         derivedType: 'text',
       });
     },
-
     updateProp: (
       state,
       action: PayloadAction<{
@@ -338,6 +338,17 @@ export const codeEditorSlice = createSlice({
         previewCompiledJsForSlots: action.payload,
       }),
     ),
+
+    addDataFetch: (
+      state,
+      action: PayloadAction<{ id: string; data: any; error: boolean }>,
+    ) => {
+      state.codeComponent.dataFetches[action.payload.id] = action.payload;
+    },
+
+    clearDataFetches: (state) => {
+      state.codeComponent.dataFetches = {};
+    },
   }),
 });
 
@@ -381,6 +392,7 @@ export const selectCodeComponentSerialized = createSelector(
     compiled_js: codeComponent.compiled_js,
     compiled_css: codeComponent.compiled_css,
     imported_js_components: codeComponent.imported_js_components,
+    dataFetches: codeComponent.dataFetches,
   }),
 );
 
@@ -431,6 +443,8 @@ export const {
   removeSlot,
   reorderSlots,
   setPreviewCompiledJsForSlots,
+  addDataFetch,
+  clearDataFetches,
 } = codeEditorSlice.actions;
 
 export default codeEditorSlice;

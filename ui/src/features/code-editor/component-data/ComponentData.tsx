@@ -1,11 +1,16 @@
 import { Box, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
-import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
-import { useAppSelector } from '@/app/hooks';
+import {
+  addDataFetch,
+  selectCodeComponentProperty,
+} from '@/features/code-editor/codeEditorSlice';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Props from '@/features/code-editor/component-data/Props';
 import Slots from '@/features/code-editor/component-data/Slots';
 import OverrideExampleData from '@/features/code-editor/component-data/OverrideExampleData';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import styles from './ComponentData.module.css';
+import DataFetch from '@/features/code-editor/component-data/DataFetch';
+import { useEffect } from 'react';
 
 export default function ComponentData({
   isLoading = false,
@@ -15,6 +20,40 @@ export default function ComponentData({
   const blockOverride = useAppSelector(
     selectCodeComponentProperty('block_override'),
   );
+  const dispatch = useAppDispatch();
+
+  // Listen for messages from the code editor preview iframe.
+  useEffect(() => {
+    const handleMessage = (event: any) => {
+      // Ensure the message is from the expected source
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      switch (event.data?.type) {
+        case '_xb_useswr_data_fetch':
+          dispatch(
+            addDataFetch({
+              id: event.data.id,
+              data: event.data.data,
+              error: false,
+            }),
+          );
+          break;
+        case '_xb_useswr_error':
+          dispatch(
+            addDataFetch({
+              id: event.data.id,
+              data: event.data.data,
+              error: true,
+            }),
+          );
+          break;
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    // Cleanup function to remove the listener.
+    return () => window.removeEventListener('message', handleMessage);
+  }, [dispatch]);
 
   return (
     <Spinner loading={isLoading}>
@@ -23,6 +62,7 @@ export default function ComponentData({
           <Tabs.List size="1" mx="4">
             <Tabs.Trigger value="props">Props</Tabs.Trigger>
             <Tabs.Trigger value="slots">Slots</Tabs.Trigger>
+            <Tabs.Trigger value="data-fetch">Data Fetch</Tabs.Trigger>
           </Tabs.List>
           <Flex direction="column" height="100%">
             <ScrollArea>
@@ -49,6 +89,11 @@ export default function ComponentData({
                     ) : (
                       <Slots />
                     )}
+                  </ErrorBoundary>
+                </Tabs.Content>
+                <Tabs.Content value="data-fetch">
+                  <ErrorBoundary title="An unexpected error has occurred while fetching.">
+                    <DataFetch />
                   </ErrorBoundary>
                 </Tabs.Content>
               </Box>

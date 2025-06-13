@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // https://astro.build/config
 export default defineConfig({
   // Enable Preact to support Preact JSX components.
-  integrations: [preact()],
+  integrations: [preact({ compat: true })],
   vite: {
     resolve: {
       alias: {
@@ -30,6 +30,9 @@ export default defineConfig({
               'tailwind-merge': 'tailwind-merge.js',
               'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
               'lib/astro-hydration/src/lib/utils.ts': 'util.js',
+              'lib/astro-hydration/src/lib/json-api-client.ts': 'json-api-client.js',
+              'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
+              'lib/astro-hydration/src/lib/swr.ts': 'swr.js',
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {
               if (chunkInfo.facadeModuleId?.includes(`node_modules/${key}`)) {
@@ -40,6 +43,10 @@ export default defineConfig({
           },
           assetFileNames: '[name][extname]',
         },
+        // Mark this as external so astro doesn't bundle it. This is needed to
+        // redirect import paths to point to 'astro-hydration/dist' in the import map
+        // used for the code editor preview.
+        external: ['preact-ext/hooks']
       },
     },
   },

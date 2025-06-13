@@ -83,6 +83,7 @@ unvalidatable
 uuidv
 upserting
 upserts
+useswr
 Validatable
 vaul
 xbstark

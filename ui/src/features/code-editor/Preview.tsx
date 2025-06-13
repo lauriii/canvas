@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  clearDataFetches,
   selectCodeComponentProperty,
   selectGlobalAssetLibraryProperty,
   selectPreviewCompiledJsForSlots,
@@ -67,22 +68,28 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
 
+  // @see JsComponent.php
   const importMap = useMemo(
     () => ({
       imports: {
-        preact: 'https://esm.sh/preact',
-        'preact/': 'https://esm.sh/preact/',
-        react: 'https://esm.sh/preact/compat',
-        'react/': 'https://esm.sh/preact/compat/',
-        'react-dom': 'https://esm.sh/preact/compat',
-        'react-dom/': 'https://esm.sh/preact/compat/',
+        // Map to XB generated libraries.
+        preact: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/preact.module.js`,
+        'preact-ext/hooks': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
+        'preact/hooks': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
+        'react/jsx-runtime': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsxRuntime.module.js`,
+        react: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
+        'react-dom': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
+        'react-dom/client': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
         // @todo Remove hardcoding and allow components to nominate their own?
-        clsx: 'https://esm.sh/clsx',
-        'class-variance-authority': 'https://esm.sh/class-variance-authority',
-        'tailwind-merge': 'https://esm.sh/tailwind-merge',
+        clsx: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/clsx.js`,
+        'class-variance-authority': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/class-variance-authority.js`,
+        'tailwind-merge': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/tailwind-merge.js`,
         '@/lib/FormattedText': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/FormattedText.js`,
         '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
         '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
+        '@drupal-api-client/json-api-client': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/json-api-client.js`,
+        'drupal-jsonapi-params': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-params.js`,
+        swr: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/swr.js`,
       },
     }),
     [],
@@ -157,6 +164,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       // ex. [ 'my_button', 'my_heading']
       const scope = '@/components/';
       const imports = getImportsFromAst(ast, scope);
+      dispatch(clearDataFetches());
       dispatch(setCodeComponentProperty(['imported_js_components', imports]));
       setIsJsImportError(false);
       if (imports.length > 0) {
@@ -334,6 +342,8 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
             width="100%"
             srcDoc={iframeSrcDoc}
             data-xb-iframe="xb-code-editor-preview"
+            // @todo: Remove 'allow-same-origin' in https://www.drupal.org/i/3527515.
+            sandbox="allow-scripts allow-same-origin"
           />
         )}
       </div>
