@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
@@ -31,9 +31,9 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropE
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -71,7 +71,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     string $plugin_id,
     array $plugin_definition,
     private readonly ComponentValidator $componentValidator,
-    private readonly FieldTypePluginManagerInterface $fieldTypePluginManager,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
@@ -90,7 +89,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $plugin_id,
       $plugin_definition,
       $container->get(ComponentValidator::class),
-      $container->get(FieldTypePluginManagerInterface::class),
       $container->get('plugin.manager.field.widget'),
       $container->get(FieldForComponentSuggester::class),
       $container->get(EntityTypeManagerInterface::class),
@@ -114,16 +112,11 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     assert(array_key_exists('prop_field_definitions', $this->configuration));
     assert(is_array($this->configuration['prop_field_definitions']));
     $dependencies = [];
-    foreach ($this->configuration['prop_field_definitions'] as ['field_type' => $field_type, 'field_widget' => $field_widget]) {
-      // TRICKY: `field_type` (and `field_widget`) may not be set if no field
-      // types match this SDC prop shape.
-      if ($field_type === NULL) {
-        continue;
-      }
-      $field_type_definition = $this->fieldTypePluginManager->getDefinition($field_type);
-      $dependencies['module'][] = $field_type_definition['provider'];
+    foreach ($this->configuration['prop_field_definitions'] as $prop_name => ['field_type' => $field_type, 'field_widget' => $field_widget]) {
       $field_widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget);
       $dependencies['module'][] = $field_widget_definition['provider'];
+      $prop_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
+      $dependencies = NestedArray::mergeDeep($dependencies, \array_diff_key($prop_source->calculateDependencies(), \array_flip(['plugin'])));
     }
 
     ksort($dependencies);
@@ -139,15 +132,19 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *
    * @param string $prop_name
    *   The prop name.
+   * @param bool $validate_prop_name
+   *   TRUE to validate the prop name against the current version of the SDC
+   *   plugin. For past versions pass FALSE as a prop field definition may no
+   *   longer exist.
    *
    * @return \Drupal\experience_builder\PropSource\StaticPropSource
    *   The prop source object.
    */
-  private function getDefaultStaticPropSource(string $prop_name): StaticPropSource {
+  private function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name = TRUE): StaticPropSource {
     assert(isset($this->configuration['prop_field_definitions']));
     assert(is_array($this->configuration['prop_field_definitions']));
     $component_schema = $this->getSdcPlugin()->metadata->schema ?? [];
-    if (!array_key_exists($prop_name, $component_schema['properties'] ?? [])) {
+    if ($validate_prop_name && !array_key_exists($prop_name, $component_schema['properties'] ?? [])) {
       throw new \OutOfRangeException(sprintf("'%s' is not a prop on the component '%s'.", $prop_name, $this->getComponentDescription()));
     }
 
@@ -864,6 +861,22 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // phpcs:ignore
     /** @var PropSourceArray */
     return $value;
+  }
+
+  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
+    // Fall back when any of the deleted configuration or content is needed by
+    // this class' auto-generated explicit input UX.
+    // @todo Update in https://www.drupal.org/i/3528499 to look at the dependencies of ALL versions, not just the active version
+    foreach (\array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
+      \assert(\is_string($prop_name));
+      $prop_source = $this->getDefaultStaticPropSource($prop_name);
+      $prop_source_dependencies = $prop_source->calculateDependencies()['config'] ?? [];
+      $intersection = \array_intersect(\array_keys($dependencies['config'] ?? []), $prop_source_dependencies);
+      if (\count($intersection) > 0) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

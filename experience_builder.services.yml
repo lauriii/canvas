@@ -21,6 +21,10 @@ services:
     public: true
     tags:
       - { name: module_install.uninstall_validator }
+  Drupal\experience_builder\ComponentDependencyUninstallValidator:
+    public: true
+    tags:
+      - { name: module_install.uninstall_validator }
   xb_template_renderer:
     class: Drupal\experience_builder\Render\MainContent\XBTemplateRenderer
     arguments:

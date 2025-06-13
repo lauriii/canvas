@@ -171,7 +171,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     $build['#template'] .= '</div>';
   }
 
-  public function onDependencyRemoval(array $dependencies): bool {
+  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
     return FALSE;
   }
 

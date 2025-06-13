@@ -7,7 +7,6 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
-use Drupal\Core\Extension\ModuleUninstallValidatorException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\field\Entity\FieldConfig;
@@ -17,6 +16,7 @@ use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\UninstallValidatorTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 
 /**
@@ -27,6 +27,7 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use NodeCreationTrait;
+  use UninstallValidatorTestTrait;
 
   /**
    * {@inheritdoc}
@@ -211,26 +212,6 @@ final class FieldTypeUninstallValidatorTest extends KernelTestBase {
       $this->assertInstanceOf(FieldConfig::class, $field_config);
       $field_config->setDefaultValue($default_value);
       $field_config->save();
-    }
-  }
-
-  private function assertUninstallFailureReasons(array $reasons, string|null $not_contains = NULL): void {
-    try {
-      $this->container->get('module_installer')->uninstall(['link']);
-      $this->fail('Expected an exception');
-    }
-    catch (ModuleUninstallValidatorException $exception) {
-      if ($reasons) {
-        $this->assertSame($reasons, array_unique($reasons));
-        $this->assertSame(
-          'The following reasons prevent the modules from being uninstalled: ' . implode(', ', $reasons),
-          strtok($exception->getMessage(), ';'),
-        );
-      }
-      if ($not_contains) {
-        $this->assertStringNotContainsString($not_contains, $exception->getMessage());
-      }
-
     }
   }
 

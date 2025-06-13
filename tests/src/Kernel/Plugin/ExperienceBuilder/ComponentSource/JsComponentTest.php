@@ -476,7 +476,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'js.xb_test_code_components_vanilla_image' => [
+        'content' => [],
         'module' => [
+          'file',
           'image',
         ],
         'config' => [
@@ -958,7 +960,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     return Component::load($component_id);
   }
 
-  protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
+  protected function deleteConfigAndTriggerComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
     $source = $used_component->getComponentSource();
     \assert($source instanceof JsComponent);
     $source->getJavaScriptComponent()->delete();
@@ -1120,6 +1122,49 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $fifth_version = $fifth_version_component->getActiveVersion();
     $versions[] = $fifth_version;
     self::assertCount(4, array_unique($versions));
+  }
+
+  protected function createAndSaveInUseComponentForUninstallValidationTesting(): ComponentInterface {
+    $js_component_id = $this->randomMachineName();
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $js_component_id,
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => [
+        'text' => [
+          'type' => 'string',
+          'title' => 'Text',
+          'enum' => ['hello', 'goodbye'],
+        ],
+      ],
+      'required' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $js_component->enable()->save();
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load($component_id);
+  }
+
+  protected function createAndSaveUnusedComponentForUninstallValidationTesting(): ComponentInterface {
+    return $this->createAndSaveUnusedComponentForFallbackTesting();
+  }
+
+  protected function getNotAllowedModuleForUninstallValidatorTesting(): string {
+    // Provides the field type for the enum.
+    return 'options';
+  }
+
+  protected function getAllowedModuleForUninstallValidatorTesting(): string {
+    $this->markTestSkipped('Uninstall is not valid for JS Components as they only depend on config, not optional modules.');
   }
 
 }

@@ -125,7 +125,7 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
   /**
    * {@inheritdoc}
    */
-  public function onDependencyRemoval(array $dependencies): bool {
+  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
     return FALSE;
   }
 

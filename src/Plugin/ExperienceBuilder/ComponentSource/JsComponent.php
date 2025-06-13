@@ -406,8 +406,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     return $libraries;
   }
 
-  public function onDependencyRemoval(array $dependencies): bool {
-    return \in_array($this->getJavaScriptComponent()->getConfigDependencyName(), \array_keys($dependencies['config'] ?? [], TRUE));
+  public function onDependencyRemovalReplaceWithFallback(array $dependencies): bool {
+    // Fall back when either:
+    // - the backing code component config entity is deleted
+    //   @todo Ensure it can only be deleted when bypassing access control: https://www.drupal.org/i/3530058
+    // - configuration or content needed for the auto-generated explicit input
+    //   UX are deleted (the parent call)
+    return array_key_exists($this->getJavaScriptComponent()->getConfigDependencyName(), $dependencies['config'] ?? []) || parent::onDependencyRemovalReplaceWithFallback($dependencies);
   }
 
   public function setJavaScriptComponent(?JavaScriptComponent $jsComponent): static {

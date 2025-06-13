@@ -16,6 +16,8 @@ use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
@@ -34,6 +36,7 @@ use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\experience_builder\Traits\UninstallValidatorTestTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -59,6 +62,7 @@ use Symfony\Component\DomCrawler\Crawler;
 abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface {
 
   use RfcLoggerTrait;
+  use UninstallValidatorTestTrait;
 
   protected const string UUID_CRASH_TEST_DUMMY = '3204a711-a1bd-401d-9ce0-895665487eaa';
 
@@ -508,9 +512,23 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   abstract protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface;
 
   /**
-   * Perform an action that will cause a fallback for the given components.
+   * Delete config that will cause a fallback for the given components.
    */
-  abstract protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void;
+  abstract protected function deleteConfigAndTriggerComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void;
+
+  /**
+   * Build and save a used component for testing uninstall validation.
+   *
+   * @return \Drupal\experience_builder\Entity\ComponentInterface
+   */
+  abstract protected function createAndSaveInUseComponentForUninstallValidationTesting(): ComponentInterface;
+
+  /**
+   * Build and save an unused component for testing uninstall validation.
+   *
+   * @return \Drupal\experience_builder\Entity\ComponentInterface
+   */
+  abstract protected function createAndSaveUnusedComponentForUninstallValidationTesting(): ComponentInterface;
 
   /**
    * Perform an action that will cause a component to recover from the fallback.
@@ -519,7 +537,25 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    */
   abstract protected function recoverComponentFallback(ComponentInterface $component): void;
 
+  /**
+   * Return a module machine name that should not be able to be uninstalled.
+   *
+   * @return string
+   */
+  abstract protected function getNotAllowedModuleForUninstallValidatorTesting(): string;
+
+  /**
+   * Return a module machine name that should be able to be uninstalled.
+   *
+   * @return string
+   */
+  abstract protected function getAllowedModuleForUninstallValidatorTesting(): string;
+
   protected static function getPropsForComponentFallbackTesting(): array {
+    return [];
+  }
+
+  protected static function getPropsForUninstallValidationTesting(): array {
     return [];
   }
 
@@ -537,7 +573,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $entity = Page::create([
       'title' => $this->randomMachineName(),
-      'components' => self::generateFallbackComponentTree($used_component, $slots),
+      'components' => self::generateFallbackOrUninstallValidationComponentTree($used_component, $slots, static::getPropsForComponentFallbackTesting()),
     ]);
     // Save this so the usage can be queried.
     $entity->save();
@@ -552,7 +588,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     // Trigger an action that causes the components to perform
     // ::onDependencyRemoval and update its source plugin to use the fallback.
-    $this->forceComponentFallback($used_component, $unused_component);
+    $this->deleteConfigAndTriggerComponentFallback($used_component, $unused_component);
     $component_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
     $used_component = $component_storage->loadUnchanged($used_component->id());
     \assert($used_component instanceof ComponentInterface);
@@ -596,13 +632,13 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     }
   }
 
-  private static function generateFallbackComponentTree(ComponentInterface $component, array $slots): array {
+  private static function generateFallbackOrUninstallValidationComponentTree(ComponentInterface $component, array $slots, array $inputs): array {
     $items = [
       // Place the component that will become a fallback in the items.
       [
         'uuid' => self::UUID_FALLBACK_ROOT,
         'component_id' => $component->id(),
-        'inputs' => static::getPropsForComponentFallbackTesting(),
+        'inputs' => $inputs,
       ],
     ];
     // Ensure we have something in each slot. When we trigger the conditions
@@ -636,6 +672,44 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     }
     // Return component values.
     return $items;
+  }
+
+  public function testUninstallValidator(): void {
+    // Setup some content with this component source plugin in use.
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->generateComponentConfig();
+    $used_component = $this->createAndSaveInUseComponentForUninstallValidationTesting();
+    $unused_component = $this->createAndSaveUnusedComponentForUninstallValidationTesting();
+    $component_label = $used_component->label();
+    $source = $used_component->getComponentSource();
+    $slots = [];
+    if ($source instanceof ComponentSourceWithSlotsInterface) {
+      $slots = \array_keys($source->getSlotDefinitions());
+    }
+
+    $entity = Page::create([
+      'title' => $this->randomMachineName(),
+      'components' => self::generateFallbackOrUninstallValidationComponentTree($used_component, $slots, static::getPropsForUninstallValidationTesting()),
+    ]);
+    // Save this so the usage can be queried.
+    $entity->save();
+
+    $this->assertUninstallFailureReasons([
+      (string) new TranslatableMarkup(
+        'Is required by the %component component, that is in use in the 1 content entity - <a href=":url">View usage</a>',
+        [
+          '%component' => $component_label,
+          ':url' => Url::fromRoute('entity.component.audit', ['component' => $used_component->id()])->toString(),
+        ],
+      ),
+    ], modules: [$this->getNotAllowedModuleForUninstallValidatorTesting()]);
+
+    // Should be no issue uninstalling this module.
+    $this->assertUninstallFailureReasons([], modules: [$this->getAllowedModuleForUninstallValidatorTesting()]);
+
+    $component_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
+    // Assert that the component without any usage was cascade-deleted.
+    self::assertNull($component_storage->loadUnchanged($unused_component->id()));
   }
 
 }

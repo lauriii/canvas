@@ -8,6 +8,8 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
@@ -19,6 +21,9 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
+use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
@@ -26,6 +31,8 @@ use Drupal\Tests\experience_builder\Traits\SingleDirectoryComponentTreeTestTrait
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\TestFileCreationTrait;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -44,6 +51,8 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
   use CrawlerTrait;
+  use MediaTypeCreationTrait;
+  use TestFileCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -814,33 +823,43 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-gallery' => [
+        'content' => [],
         'module' => [
           'core',
+          'file',
           'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example' => [
+        'content' => [],
         'module' => [
+          'file',
           'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+        'content' => [],
         'module' => [
           'core',
+          'file',
           'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-optional-without-example' => [
+        'content' => [],
         'module' => [
+          'file',
           'image',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.image-required-with-example' => [
+        'content' => [],
         'module' => [
+          'file',
           'image',
           'xb_test_sdc',
         ],
@@ -1622,32 +1641,94 @@ HTML,
   }
 
   protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface {
+    // Media library depends on the views module and media depends on field
+    // config.
+    $this->enableModules(['media', 'media_library', 'views', 'field']);
+    $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
+    $this->installEntitySchema('media');
+    $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     /** @var \Drupal\experience_builder\Entity\ComponentInterface */
-    return Component::load('sdc.xb_test_sdc.props-slots');
+    return Component::load('sdc.experience_builder.image');
   }
 
   protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {
     /** @var \Drupal\experience_builder\Entity\ComponentInterface */
-    return Component::load('sdc.xb_test_sdc.sparkline');
+    return Component::load('sdc.xb_test_sdc.image-optional-without-example');
   }
 
-  protected function forceComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
-    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['xb_test_sdc']);
+  protected function deleteConfigAndTriggerComponentFallback(ComponentInterface $used_component, ComponentInterface $unused_component): void {
+    $type = MediaType::load('image');
+    \assert($type instanceof MediaType);
+    $type->delete();
   }
 
   protected static function getPropsForComponentFallbackTesting(): array {
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $file_uri = 'public://image-2.jpg';
+    if (!\file_exists($file_uri)) {
+      $file_system->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
+    }
+    $file = File::create([
+      'uri' => $file_uri,
+      'status' => 1,
+    ]);
+    $file->save();
+    $image = Media::create([
+      'bundle' => 'image',
+      'name' => 'Amazing image',
+      'field_media_image' => [
+        [
+          'target_id' => $file->id(),
+          'alt' => 'An image so amazing that to gaze upon it would melt your face',
+          'title' => 'This is an amazing image, just look at it and you will be amazed',
+        ],
+      ],
+    ]);
+    $image->save();
     return [
-      'heading' => [
-        'sourceType' => 'static:field_item:string',
-        'value' => 'This is a component',
-        'expression' => 'ℹ︎string␟value',
+      'image' => [
+        'sourceType' => 'static:field_item:entity_reference',
+        'value' => ['target_id' => $image->id()],
+        // This expression resolves `src` to the image's public URL.
+        'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+        'sourceTypeSettings' => [
+          'storage' => ['target_type' => 'media'],
+          'instance' => [
+            'handler' => 'default:media',
+            'handler_settings' => [
+              'target_bundles' => ['image' => 'image'],
+            ],
+          ],
+        ],
       ],
     ];
   }
 
   protected function recoverComponentFallback(ComponentInterface $component): void {
-    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_sdc']);
+    $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $this->generateComponentConfig();
+  }
+
+  protected function createAndSaveInUseComponentForUninstallValidationTesting(): ComponentInterface {
+    $this->enableModules(['sdc_test']);
+    $this->generateComponentConfig();
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('sdc.sdc_test.no-props');
+  }
+
+  protected function createAndSaveUnusedComponentForUninstallValidationTesting(): ComponentInterface {
+    /** @var \Drupal\experience_builder\Entity\ComponentInterface */
+    return Component::load('sdc.xb_test_sdc.props-slots');
+  }
+
+  protected function getNotAllowedModuleForUninstallValidatorTesting(): string {
+    return 'sdc_test';
+  }
+
+  protected function getAllowedModuleForUninstallValidatorTesting(): string {
+    return 'xb_test_sdc';
   }
 
 }

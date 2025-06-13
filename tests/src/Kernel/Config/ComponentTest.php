@@ -110,8 +110,8 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame('image', $initial_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame('a8c84fff36af8a5a', $initial_component->getActiveVersion());
     self::assertSame(['a8c84fff36af8a5a'], $initial_component->getVersions());
-    self::assertSame(['module' => ['image']], $initial_component->getDependencies());
-    self::assertSame(['module' => ['image']], $initial_component->calculateDependencies()->getDependencies());
+    self::assertSame(['module' => ['file', 'image']], $initial_component->getDependencies());
+    self::assertSame(['module' => ['file', 'image']], $initial_component->calculateDependencies()->getDependencies());
 
     // Then:
     // - uses `entity_reference` field type
@@ -124,7 +124,12 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame('02ac4f958c84990f', $updated_component->getActiveVersion());
     self::assertSame(['02ac4f958c84990f', 'a8c84fff36af8a5a'], $updated_component->getVersions());
-    self::assertSame(['module' => ['media_library']], $updated_component->getDependencies());
+    self::assertSame([
+      'config' => [
+        'media.type.image',
+      ],
+      'module' => ['media', 'media_library'],
+    ], $updated_component->getDependencies());
     // Now specifically load the old version, and check that calling
     // ::calculateDependencies() again causes ::getDependencies() to return only
     // the dependencies of THAT version. ⚠️
@@ -132,8 +137,13 @@ class ComponentTest extends KernelTestBase {
     $updated_component->loadVersion('a8c84fff36af8a5a');
     self::assertFalse($updated_component->isLoadedVersionActiveVersion());
     $this->assertSame('image', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    self::assertSame(['module' => ['media_library']], $updated_component->getDependencies());
-    self::assertSame(['module' => ['image']], $updated_component->calculateDependencies()->getDependencies());
+    self::assertSame([
+      'config' => [
+        'media.type.image',
+      ],
+      'module' => ['media', 'media_library'],
+    ], $updated_component->getDependencies());
+    self::assertSame(['module' => ['file', 'image']], $updated_component->calculateDependencies()->getDependencies());
     $updated_component->loadVersion('02ac4f958c84990f');
     self::assertTrue($updated_component->isLoadedVersionActiveVersion());
 
@@ -148,7 +158,12 @@ class ComponentTest extends KernelTestBase {
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame('02ac4f958c84990f', $updated_component->getActiveVersion());
     self::assertSame(['02ac4f958c84990f'], $updated_component->getVersions());
-    self::assertSame(['module' => ['media_library']], $updated_component->getDependencies());
+    self::assertSame([
+      'config' => [
+        'media.type.image',
+      ],
+      'module' => ['media', 'media_library'],
+    ], $updated_component->getDependencies());
   }
 
   public function testOperations(): void {

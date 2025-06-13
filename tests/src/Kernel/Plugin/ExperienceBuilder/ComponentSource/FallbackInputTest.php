@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
-use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\experience_builder\Entity\Component;
@@ -12,7 +13,11 @@ use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
+use Drupal\media\Entity\MediaType;
 use Drupal\Tests\experience_builder\Kernel\ApiLayoutControllerTestBase;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +29,8 @@ use Symfony\Component\HttpFoundation\Response;
  * @group experience_builder
  */
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
+
+  use MediaTypeCreationTrait;
 
   protected static $modules = [
     // Required modules.
@@ -39,6 +46,11 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     'image',
     'link',
     'options',
+    // Allow using media for image plugin.
+    'media',
+    'media_library',
+    'views',
+    'field',
     // Needed to install XB's default config.
     'filter',
     'ckeditor5',
@@ -60,11 +72,13 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
     // Add some entity-types required by the page entity.
     $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('media');
     $this->installEntitySchema('user');
     $this->installSchema('user', ['users_data']);
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
 
     // Make sure the global asset library is created.
     $this->installConfig('experience_builder');
@@ -92,7 +106,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
    *           [false]
    */
   public function testFallbackInputCanBeRecovered(bool $publish = FALSE): void {
-    $component_to_recover = Component::load('sdc.xb_test_sdc.props-slots');
+    $component_to_recover = Component::load('sdc.experience_builder.image');
     \assert($component_to_recover instanceof ComponentInterface);
     $component_to_edit = Component::load('sdc.experience_builder.heading');
     \assert($component_to_edit instanceof ComponentInterface);
@@ -100,15 +114,48 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // fallback and then be recovered. One that we will edit.
     $component_to_recover_uuid = '5821b0f4-162b-4a39-88b6-157b39b9b4f6';
     $component_to_edit_uuid = '20de2945-f515-49b6-b986-407d973860b9';
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $file_uri = 'public://image-2.jpg';
+    if (!\file_exists($file_uri)) {
+      $file_system->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
+    }
+    $file = File::create([
+      'uri' => $file_uri,
+      'status' => 1,
+    ]);
+    $file->save();
+    $image = Media::create([
+      'bundle' => 'image',
+      'name' => 'Amazing image',
+      'field_media_image' => [
+        [
+          'target_id' => $file->id(),
+          'alt' => 'An image so amazing that to gaze upon it would melt your face',
+          'title' => 'This is an amazing image, just look at it and you will be amazed',
+        ],
+      ],
+    ]);
+    $image->save();
     $tree = [
       [
         'uuid' => $component_to_recover_uuid,
         'component_id' => $component_to_recover->id(),
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'This is a component',
-            'expression' => 'ℹ︎string␟value',
+          'image' => [
+            'sourceType' => 'static:field_item:entity_reference',
+            'value' => ['target_id' => $image->id()],
+            // This expression resolves `src` to the image's public URL.
+            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+            'sourceTypeSettings' => [
+              'storage' => ['target_type' => 'media'],
+              'instance' => [
+                'handler' => 'default:media',
+                'handler_settings' => [
+                  'target_bundles' => ['image' => 'image'],
+                ],
+              ],
+            ],
           ],
         ],
       ],
@@ -196,15 +243,14 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // Make sure our components are there both in the preview and in the model.
     $crawler = new Crawler($data['html']);
     self::assertCount(1, $crawler->filter('h2:contains("Original heading text")'));
-    self::assertCount(1, $crawler->filter('h1:contains("This is a component")'));
+    self::assertCount(1, $crawler->filter('img[alt="An image so amazing that to gaze upon it would melt your face"]'));
     self::assertCount(2, $data['model']);
 
-    // Uninstall xb_test_sdc to trigger the first component moving to the
+    // Remove image media type to trigger the first component moving to the
     // fallback source.
-    $this->container->get(ModuleInstallerInterface::class)->uninstall(['xb_test_sdc']);
-    // Restore the container.
-    // @phpstan-ignore-next-line
-    $this->container = \Drupal::getContainer();
+    $type = MediaType::load('image');
+    \assert($type instanceof MediaType);
+    $type->delete();
 
     /** @var \Drupal\experience_builder\Entity\ComponentInterface $component_to_recover */
     $component_to_recover = Component::load($component_to_recover->id());
@@ -221,7 +267,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // have no outcome on the preview.
     $crawler = new Crawler($data['html']);
     self::assertCount(1, $crawler->filter('h2:contains("Original heading text")'));
-    self::assertCount(0, $crawler->filter('h1:contains("This is a component")'));
+    self::assertCount(0, $crawler->filter('img[alt="An image so amazing that to gaze upon it would melt your face"]'));
 
     // Now perform a patch update to the non fallback component.
     $new_model = $data['model'][$component_to_edit_uuid];
@@ -241,7 +287,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // We should see the updated property in the component preview.
     $crawler = new Crawler($data['html']);
     self::assertCount(1, $crawler->filter('h2:contains("New heading text")'));
-    self::assertCount(0, $crawler->filter('h1:contains("This is a component")'));
+    self::assertCount(0, $crawler->filter('img[alt="An image so amazing that to gaze upon it would melt your face"]'));
 
     if ($publish) {
       /** @var \Drupal\experience_builder\Controller\ApiAutoSaveController $auto_save_controller */
@@ -260,13 +306,9 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       $this->markTestSkipped('@todo Remove this in https://drupal.org/i/3524298');
     }
 
-    // Now reinstall xb_test_sdc which should force a 'recovery' of the fallback
-    // component. We do this via ::enableModules to avoid issues with stale
-    // stale containers etc.
-    $this->enableModules(['xb_test_sdc']);
-    // Restore the container.
-    // @phpstan-ignore-next-line
-    $this->container = \Drupal::getContainer();
+    // Now recreate the image media type which should force a 'recovery' of the
+    // fallback.
+    $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
 
     // Rebuild component entities.
     $component_plugin_manager = $this->container->get(ComponentPluginManager::class);
@@ -285,7 +327,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $crawler = new Crawler($data['html']);
     self::assertCount(2, $data['model']);
     self::assertCount(1, $crawler->filter('h2:contains("New heading text")'));
-    self::assertCount(1, $crawler->filter('h1:contains("This is a component")'));
+    self::assertCount(1, $crawler->filter('img[alt="An image so amazing that to gaze upon it would melt your face"]'));
   }
 
 }

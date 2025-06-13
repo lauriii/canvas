@@ -7,7 +7,6 @@ namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -59,7 +58,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     string $plugin_id,
     array $plugin_definition,
     ComponentValidator $componentValidator,
-    FieldTypePluginManagerInterface $fieldTypePluginManager,
     WidgetPluginManager $fieldWidgetPluginManager,
     FieldForComponentSuggester $fieldForComponentSuggester,
     EntityTypeManagerInterface $entityTypeManager,
@@ -73,7 +71,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $plugin_id,
       $plugin_definition,
       $componentValidator,
-      $fieldTypePluginManager,
       $fieldWidgetPluginManager,
       $fieldForComponentSuggester,
       $entityTypeManager,
@@ -89,7 +86,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $plugin_id,
       $plugin_definition,
       $container->get(ComponentValidator::class),
-      $container->get(FieldTypePluginManagerInterface::class),
       $container->get('plugin.manager.field.widget'),
       $container->get(FieldForComponentSuggester::class),
       $container->get(EntityTypeManagerInterface::class),
@@ -358,14 +354,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     //   reasonable preview, even though there is unlikely to be a page on the
     //   site with the `adapt-a-llama` path.
     return \base_path() . $path;
-  }
-
-  public function onDependencyRemoval(array $dependencies): bool {
-    $plugin = $this->getSdcPlugin();
-    \assert(\is_array($plugin->getPluginDefinition()));
-    $provider = $plugin->getPluginDefinition()['provider'];
-    $providers = \array_merge($dependencies['module'] ?? [], $dependencies['theme'] ?? []);
-    return \in_array($provider, $providers, TRUE);
   }
 
 }

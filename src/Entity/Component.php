@@ -445,11 +445,17 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   public function onDependencyRemoval(array $dependencies): bool {
     $source = $this->getComponentSource();
 
-    // If this Component is NOT affected by a dependency being removed (e.g. a
-    // module providing this component being uninstalled, or a config entity
-    // being deleted), there's nothing to do.
-    if (!$source->onDependencyRemoval($dependencies)) {
-      return parent::onDependencyRemoval($dependencies);
+    // If this Component is NOT affected by a config or content dependency being
+    // removed, there's nothing to do.
+    // Note: The removal of module/theme dependencies is prevented by an
+    // uninstall validator.
+    // @see \Drupal\experience_builder\ComponentDependencyUninstallValidator
+    $non_extension_dependencies = \array_diff_key($dependencies, \array_flip([
+      'module',
+      'theme',
+    ]));
+    if (!$source->onDependencyRemovalReplaceWithFallback($non_extension_dependencies)) {
+      return parent::onDependencyRemoval($non_extension_dependencies);
     }
 
     // When it is affected, then if there's 0 component instances using it, still
