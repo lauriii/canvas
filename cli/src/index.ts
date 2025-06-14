@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { downloadCommand } from './commands/download';
 import chalk from 'chalk';
+import { downloadCommand } from './commands/download';
+import { scaffoldCommand } from './commands/scaffold';
 
 const program = new Command();
 program
@@ -28,6 +29,7 @@ Environment variables can be set in:
 
 // Register commands
 downloadCommand(program);
+scaffoldCommand(program);
 
 // Handle errors
 program.showHelpAfterError();

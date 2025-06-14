@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import type { Command } from 'commander';
 import * as p from '@clack/prompts';
 import fs from 'fs/promises';
 import path from 'path';
@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { getConfig, setConfig } from '../config';
 import { createApiService } from '../services/api';
 import yaml from 'js-yaml';
-import { Component } from '../types/Component';
+import type { Component } from '../types/Component';
 
 interface DownloadOptions {
   token?: string;
@@ -184,7 +184,7 @@ export function downloadCommand(program: Command): void {
             // Create JS file
             if (component.source_code_js) {
               await fs.writeFile(
-                path.join(componentDir, 'index.jsx'),
+                path.join(componentDir, `${component.machineName}.jsx`),
                 component.source_code_js,
                 'utf-8',
               );
@@ -193,7 +193,7 @@ export function downloadCommand(program: Command): void {
             // Create CSS file
             if (component.source_code_css) {
               await fs.writeFile(
-                path.join(componentDir, 'index.css'),
+                path.join(componentDir, `${component.machineName}.css`),
                 component.source_code_css,
                 'utf-8',
               );
@@ -274,7 +274,7 @@ export function downloadCommand(program: Command): void {
           console.log(chalk.green(`  - Global CSS: ${globalCssResult.path}`));
         }
 
-        p.outro(`${successfulComponentPluralized} download completed`);
+        p.outro(`✅ ${successfulComponentPluralized} download completed`);
       } catch (error) {
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));

@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import axios from 'axios';
 import { getConfig } from '../config.js';
-import { AssetLibrary, Component } from '../types/Component';
+import type { AssetLibrary, Component } from '../types/Component';
 
 export interface ApiOptions {
   token: string;
