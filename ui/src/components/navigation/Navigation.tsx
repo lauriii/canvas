@@ -165,7 +165,7 @@ const ContentGroup = ({
                       </AlertDialog.Title>
                       <AlertDialog.Description size="2">
                         This action will permanently delete the page and all of
-                        it’s contents. This action cannot be undone.
+                        its contents. This action cannot be undone.
                       </AlertDialog.Description>
                       <Flex gap="3" mt="4" justify="end">
                         <AlertDialog.Cancel>
