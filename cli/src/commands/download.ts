@@ -3,14 +3,16 @@ import * as p from '@clack/prompts';
 import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { getConfig, setConfig } from '../config';
+import { getConfig, setConfig, ensureConfig } from '../config';
 import { createApiService } from '../services/api';
 import yaml from 'js-yaml';
 import type { Component } from '../types/Component';
 
 interface DownloadOptions {
-  token?: string;
-  url?: string;
+  clientId?: string;
+  clientSecret?: string;
+  siteUrl?: string;
+  scope?: string;
   dir?: string;
   component?: string;
   all?: boolean; // Download all components
@@ -20,8 +22,10 @@ export function downloadCommand(program: Command): void {
   program
     .command('download')
     .description('Download components from Experience Builder')
-    .option('-t, --token <token>', 'Authentication token')
-    .option('-u, --url <url>', 'Site URL')
+    .option('--client-id <id>', 'Client ID')
+    .option('--client-secret <secret>', 'Client Secret')
+    .option('--site-url <url>', 'Site URL')
+    .option('--scope <scope>', 'Scope')
     .option('-d, --dir <directory>', 'Component directory')
     .option('-c, --component <name>', 'Specific component to download')
     .option('--all', 'Download all components')
@@ -30,17 +34,24 @@ export function downloadCommand(program: Command): void {
 
       try {
         // Update config with CLI options
-        if (options.token) setConfig({ auth_token: options.token });
-        if (options.url) setConfig({ site_url: options.url });
-        if (options.dir) setConfig({ component_dir: options.dir });
+        if (options.clientId) setConfig({ clientId: options.clientId });
+        if (options.clientSecret)
+          setConfig({ clientSecret: options.clientSecret });
+        if (options.siteUrl) setConfig({ siteUrl: options.siteUrl });
+        if (options.dir) setConfig({ componentDir: options.dir });
         if (options.all) setConfig({ all: options.all });
+        if (options.scope) setConfig({ scope: options.scope });
+        // Ensure all required config is present
+        await ensureConfig([
+          'siteUrl',
+          'clientId',
+          'clientSecret',
+          'scope',
+          'componentDir',
+        ]);
 
         const config = getConfig();
-
-        // Prompt for any missing required configurations
-        await promptForMissingConfig();
-
-        const apiService = createApiService();
+        const apiService = await createApiService();
 
         // Get components
         const s = p.spinner();
@@ -119,7 +130,7 @@ export function downloadCommand(program: Command): void {
 
         // Confirm download
         const confirmDownload = await p.confirm({
-          message: `Download ${Object.keys(componentsToDownload).length} ${componentPluralized} to ${config.component_dir}?`,
+          message: `Download ${Object.keys(componentsToDownload).length} ${componentPluralized} to ${config.componentDir}?`,
           initialValue: true,
         });
 
@@ -138,7 +149,7 @@ export function downloadCommand(program: Command): void {
           try {
             // Create component directory structure
             const componentDir = path.join(
-              config.component_dir,
+              config.componentDir,
               component.machineName,
             );
             // Check if the directory exists and is non-empty to confirm deletion.
@@ -216,7 +227,7 @@ export function downloadCommand(program: Command): void {
         // Create global.css file if it exists.
         if (globalCss) {
           try {
-            const globalCssPath = path.join(config.component_dir, 'global.css');
+            const globalCssPath = path.join(config.componentDir, 'global.css');
             await fs.writeFile(globalCssPath, globalCss, 'utf-8');
             globalCssResult = {
               name: 'Global CSS',
@@ -284,46 +295,4 @@ export function downloadCommand(program: Command): void {
         process.exit(1);
       }
     });
-}
-
-async function promptForMissingConfig(): Promise<void> {
-  const config = getConfig();
-
-  // If any required config is missing, prompt for it
-  if (!config.site_url) {
-    const url = await p.text({
-      message: 'Enter the site URL',
-      placeholder: 'https://example.com',
-      validate: (value) => {
-        if (!value) return 'Site URL is required';
-        if (!value.startsWith('http'))
-          return 'URL must start with http:// or https://';
-        return;
-      },
-    });
-
-    if (p.isCancel(url)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-
-    setConfig({ site_url: url });
-  }
-
-  if (!config.auth_token) {
-    const token = await p.password({
-      message: 'Enter your authentication token',
-      validate: (value) => {
-        if (!value) return 'Authentication token is required';
-        return;
-      },
-    });
-
-    if (p.isCancel(token)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-
-    setConfig({ auth_token: token });
-  }
 }

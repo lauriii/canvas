@@ -363,16 +363,16 @@ UI eslint:
     - *manual-rule
   script:
     - cd ui
-    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/junit.xml --max-warnings=0
+    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/ui-eslint-junit.xml --max-warnings=0
   artifacts:
     expose_as: junit
     expire_in: 6 mos
     when: always
     name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
     paths:
-      - junit.xml
+      - ui-eslint-junit.xml
     reports:
-      junit: junit.xml
+      junit: ui-eslint-junit.xml
 
 CLI:
   stage: build
@@ -395,7 +395,7 @@ CLI:
     paths:
       - cli/node_modules
 
-CLI eslint type-check:
+CLI eslint:
   stage: validate
   image: node:20-alpine
   allow_failure: false
@@ -413,8 +413,45 @@ CLI eslint type-check:
     - *manual-rule
   script:
     - cd cli
-    - npm run lint
-    - npm run type-check
+    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/cli-eslint-junit.xml --max-warnings=0
+  artifacts:
+    expose_as: junit
+    expire_in: 6 mos
+    when: always
+    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
+    paths:
+      - cli-eslint-junit.xml
+    reports:
+      junit: cli-eslint-junit.xml
+
+CLI vitest:
+  stage: test
+  image: node:20-alpine
+  allow_failure: false
+  needs:
+    - CLI
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - cli/package.json
+        - cli/**/*.js
+        - cli/**/*.ts
+        - cli/**/*.tsx
+        - cli/tsconfig.json
+    - *manual-rule
+  script:
+    - cd cli
+    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/cli-vitest-junit.xml
+  artifacts:
+    expose_as: junit
+    expire_in: 6 mos
+    when: always
+    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
+    paths:
+      - cli-vitest-junit.xml
+    reports:
+      junit: cli-vitest-junit.xml
 
 vitest:
   stage: test
@@ -434,16 +471,16 @@ vitest:
     - *manual-rule
   script:
     - cd ui
-    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/junit.xml
+    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/ui-vitest-junit.xml
   artifacts:
     expose_as: junit
     expire_in: 6 mos
     when: always
     name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
     paths:
-      - junit.xml
+      - ui-vitest-junit.xml
     reports:
-      junit: junit.xml
+      junit: ui-vitest-junit.xml
 
 .cypress-base:
   stage: test

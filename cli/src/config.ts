@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import * as p from '@clack/prompts';
 
 // Load environment variables.
-function loadEnvFiles() {
+export function loadEnvFiles() {
   // Load from the user's home directory (for global settings).
   const homeDir = process.env.HOME || process.env.USERPROFILE || '';
   if (homeDir) {
@@ -23,20 +24,22 @@ function loadEnvFiles() {
 loadEnvFiles();
 
 export interface Config {
-  site_url: string;
-  auth_token: string;
-  framework: 'react' | 'vue' | 'unknown';
-  component_dir: string;
+  siteUrl: string;
+  clientId: string;
+  clientSecret: string;
+  scope: string;
+  componentDir: string;
   verbose: boolean;
   all?: boolean;
 }
 
 let config: Config = {
-  site_url: process.env.EXPERIENCE_BUILDER_SITE_URL || '',
-  auth_token: process.env.EXPERIENCE_BUILDER_AUTH_TOKEN || '',
-  framework:
-    (process.env.EXPERIENCE_BUILDER_FRAMEWORK as 'react' | 'vue') || 'react',
-  component_dir: process.env.EXPERIENCE_BUILDER_COMPONENT_DIR || './components',
+  siteUrl: process.env.EXPERIENCE_BUILDER_SITE_URL || '',
+  clientId: process.env.EXPERIENCE_BUILDER_CLIENT_ID || '',
+  clientSecret: process.env.EXPERIENCE_BUILDER_CLIENT_SECRET || '',
+  scope:
+    process.env.EXPERIENCE_BUILDER_SCOPE || 'xb:js_component xb:asset_library',
+  componentDir: process.env.EXPERIENCE_BUILDER_COMPONENT_DIR || './components',
   verbose: process.env.EXPERIENCE_BUILDER_VERBOSE === 'true',
 };
 
@@ -46,4 +49,95 @@ export function getConfig(): Config {
 
 export function setConfig(newConfig: Partial<Config>): void {
   config = { ...config, ...newConfig };
+}
+
+export type ConfigKey = keyof Config;
+
+export async function ensureConfig(requiredKeys: ConfigKey[]): Promise<void> {
+  const config = getConfig();
+  const missingKeys = requiredKeys.filter((key) => !config[key]);
+
+  for (const key of missingKeys) {
+    await promptForConfig(key);
+  }
+}
+
+export async function promptForConfig(key: ConfigKey): Promise<void> {
+  switch (key) {
+    case 'siteUrl': {
+      const value = await p.text({
+        message: 'Enter the site URL',
+        placeholder: 'https://example.com',
+        validate: (value) => {
+          if (!value) return 'Site URL is required';
+          if (!value.startsWith('http'))
+            return 'URL must start with http:// or https://';
+          return;
+        },
+      });
+
+      if (p.isCancel(value)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      setConfig({ siteUrl: value });
+      break;
+    }
+
+    case 'clientId': {
+      const value = await p.text({
+        message: 'Enter your client ID',
+        validate: (value) => {
+          if (!value) return 'Client ID is required';
+          return;
+        },
+      });
+
+      if (p.isCancel(value)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      setConfig({ clientId: value });
+      break;
+    }
+
+    case 'clientSecret': {
+      const value = await p.password({
+        message: 'Enter your client secret',
+        validate: (value) => {
+          if (!value) return 'Client secret is required';
+          return;
+        },
+      });
+
+      if (p.isCancel(value)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      setConfig({ clientSecret: value });
+      break;
+    }
+
+    case 'componentDir': {
+      const value = await p.text({
+        message: 'Enter the component directory',
+        placeholder: './components',
+        validate: (value) => {
+          if (!value) return 'Component directory is required';
+          return;
+        },
+      });
+
+      if (p.isCancel(value)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      setConfig({ componentDir: value });
+      break;
+    }
+  }
 }

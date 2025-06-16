@@ -4,21 +4,29 @@ import { getConfig } from '../config.js';
 import type { AssetLibrary, Component } from '../types/Component';
 
 export interface ApiOptions {
-  token: string;
-  baseUrl: string;
+  siteUrl: string;
+  clientId: string;
+  clientSecret: string;
+  scope: string;
 }
 
 export class ApiService {
   private client: AxiosInstance;
-  private readonly baseUrl: string;
-  private readonly authToken: string;
+  private readonly siteUrl: string;
+  private readonly clientId: string;
+  private readonly clientSecret: string;
+  private readonly scope: string;
+  private accessToken: string | null = null;
 
-  constructor(options: ApiOptions) {
-    this.baseUrl = options.baseUrl;
+  private constructor(options: ApiOptions) {
+    this.clientId = options.clientId;
+    this.clientSecret = options.clientSecret;
+    this.siteUrl = options.siteUrl;
+    this.scope = options.scope;
 
     // Create the client without authorization headers by default
     this.client = axios.create({
-      baseURL: options.baseUrl,
+      baseURL: options.siteUrl,
       headers: {
         'Content-Type': 'application/json',
         // Add the CLI marker header to identify CLI requests
@@ -27,9 +35,42 @@ export class ApiService {
       // Allow longer timeout for uploads
       timeout: 30000,
     });
+  }
 
-    // Store the token for use in Experience Builder API requests
-    this.authToken = options.token;
+  public static async create(options: ApiOptions): Promise<ApiService> {
+    const instance = new ApiService(options);
+    try {
+      const response = await instance.client.post(
+        '/oauth/token',
+        new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: instance.clientId,
+          client_secret: instance.clientSecret,
+          scope: instance.scope,
+        }).toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      );
+
+      instance.accessToken = response.data.access_token;
+
+      // Update the default headers to include the access token
+      instance.client.defaults.headers.common['Authorization'] =
+        `Bearer ${instance.accessToken}`;
+    } catch (error) {
+      instance.handleApiError(error);
+      throw new Error(
+        'Failed to initialize API service: Could not obtain access token',
+      );
+    }
+    return instance;
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
   }
 
   /**
@@ -37,11 +78,7 @@ export class ApiService {
    */
   async listComponents(): Promise<Record<string, Component>> {
     try {
-      const response = await this.client.get('/xb/api/v0/config/js_component', {
-        headers: {
-          Authorization: `Bearer ${this.authToken}`,
-        },
-      });
+      const response = await this.client.get('/xb/api/v0/config/js_component');
       return response.data;
     } catch (error) {
       this.handleApiError(error);
@@ -56,11 +93,6 @@ export class ApiService {
     try {
       const response = await this.client.get(
         '/xb/api/v0/config/xb_asset_library/global',
-        {
-          headers: {
-            Authorization: `Bearer ${this.authToken}`,
-          },
-        },
       );
       return response.data;
     } catch (error) {
@@ -100,14 +132,25 @@ export class ApiService {
 
         if (status === 401) {
           throw new Error(
-            'Authentication failed. Please check your API token.',
+            'Authentication failed. Please check your client ID and secret.',
           );
         } else if (status === 403) {
           throw new Error(
-            'You do not have permission to perform this action. Make sure your user has the "administer code components" permission.',
+            'You do not have permission to perform this action. Check your configured scope.',
           );
-        } else if (data && data.message) {
-          throw new Error(`API Error (${status}): ${data.message}`);
+        } else if (
+          data &&
+          (data.error || data.error_description || data.hint)
+        ) {
+          throw new Error(
+            `API Error (${status}): ${[
+              data.error,
+              data.error_description,
+              data.hint,
+            ]
+              .filter(Boolean)
+              .join(' | ')}`,
+          );
         } else {
           throw new Error(`API Error (${status}): ${error.message}`);
         }
@@ -132,8 +175,7 @@ export class ApiService {
           );
 
           // Check if this is a local development site
-          const baseUrl = this.baseUrl;
-          if (baseUrl.includes('ddev.site')) {
+          if (this.siteUrl.includes('ddev.site')) {
             console.error('\nDDEV Local Development Troubleshooting Tips:');
             console.error('1. Make sure DDEV is running: try "ddev status"');
             console.error(
@@ -146,7 +188,7 @@ export class ApiService {
           }
         }
 
-        if (this.baseUrl.includes('ddev.site')) {
+        if (this.siteUrl.includes('ddev.site')) {
           throw new Error(
             `Network error: No response from DDEV site. Is DDEV running? Try using HTTP instead of HTTPS.`,
           );
@@ -179,23 +221,37 @@ export class ApiService {
   }
 }
 
-export function createApiService(): ApiService {
+export function createApiService(): Promise<ApiService> {
   const config = getConfig();
 
-  if (!config.auth_token) {
-    throw new Error(
-      'Authentication token is required. Set it in the EXPERIENCE_BUILDER_AUTH_TOKEN environment variable or pass it with --token.',
-    );
-  }
-
-  if (!config.site_url) {
+  if (!config.siteUrl) {
     throw new Error(
       'Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --url.',
     );
   }
 
-  return new ApiService({
-    token: config.auth_token,
-    baseUrl: config.site_url,
+  if (!config.clientId) {
+    throw new Error(
+      'Client ID is required. Set it in the EXPERIENCE_BUILDER_CLIENT_ID environment variable or pass it with --client-id.',
+    );
+  }
+
+  if (!config.clientSecret) {
+    throw new Error(
+      'Client secret is required. Set it in the EXPERIENCE_BUILDER_CLIENT_SECRET environment variable or pass it with --client-secret.',
+    );
+  }
+
+  if (!config.scope) {
+    throw new Error(
+      'Scope is required. Set it in the EXPERIENCE_BUILDER_SCOPE environment variable or pass it with --scope.',
+    );
+  }
+
+  return ApiService.create({
+    siteUrl: config.siteUrl,
+    clientId: config.clientId,
+    clientSecret: config.clientSecret,
+    scope: config.scope,
   });
 }

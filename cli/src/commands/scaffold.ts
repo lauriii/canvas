@@ -30,9 +30,9 @@ export function scaffoldCommand(program: Command): void {
 
       try {
         // Update config with CLI options
-        if (options.dir) setConfig({ component_dir: options.dir });
+        if (options.dir) setConfig({ componentDir: options.dir });
         const config = getConfig();
-        const baseDir = config.component_dir;
+        const baseDir = config.componentDir;
 
         // Get component name
         let componentName = options.name;
