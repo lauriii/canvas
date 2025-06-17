@@ -125,6 +125,7 @@ services:
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiAutoSaveController: {}
 
+  # Decorators.
   Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor:
     public: false
     decorates: html_response.attachments_processor
@@ -133,4 +134,9 @@ services:
     # processors
     decoration_priority: -100
     arguments: ['@.inner']
-
+  Drupal\experience_builder\Messenger:
+    public: true
+    decorates: messenger
+    # We don't want any other module to display messages
+    decoration_priority: -100
+    arguments: ['@.inner']

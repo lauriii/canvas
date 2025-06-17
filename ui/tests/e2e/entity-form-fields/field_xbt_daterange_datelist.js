@@ -64,10 +64,6 @@ export const edit = (cy) => {
   });
   // Check we can select the empty value without raising a 500 error.
   cy.get('@startDateMonth').select('Month', { force: true });
-  cy.waitForElementContentInIframe(
-    '[data-drupal-messages]',
-    'A value must be selected for month',
-  );
   // This date is after daylight savings time has finished in the
   // timezone core uses for tests (Australia/Sydney). This is by design
   // as we want to assert that the saved value reflects the new offset
