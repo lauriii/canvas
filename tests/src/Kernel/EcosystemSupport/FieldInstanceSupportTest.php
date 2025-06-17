@@ -284,6 +284,11 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
           FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
           ReferenceFieldPropExpression::class => $expr->referencer->fieldName,
         };
+        // Even though FieldPropExpression's `fieldName` can be an array at the
+        // data structure level, it can only be a string here: because the logic
+        // in JsonSchemaFieldInstanceMatcher asses one entity type + bundle at
+        // time.
+        assert(is_string($field_name));
         if (!str_starts_with($field_name, self::XB_TEST_FIELD_PREFIX)) {
           continue;
         }

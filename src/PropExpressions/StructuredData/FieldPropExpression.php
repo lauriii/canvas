@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
-use Drupal\field\FieldConfigInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\field\FieldConfigInterface;
 
 /**
  * For pointing to a prop in a concrete field.
@@ -24,17 +25,45 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
     public readonly EntityDataDefinitionInterface $entityType,
-    public readonly string $fieldName,
+    public readonly string|array $fieldName,
     // A content entity field item delta is optional.
     // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
     public readonly int|null $delta,
     public readonly string $propName,
-  ) {}
+  ) {
+    $bundles = $entityType->getBundles();
+    if (($bundles === NULL || count($bundles) <= 1) && is_array($fieldName) && count($fieldName) > 1) {
+      throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field name can be specified.');
+    }
+    // When targeting >1 bundle, it's possible to target either:
+    // - a base field, then $fieldName will be a a string
+    // - bundle fields, then $fieldName must be an array: keys are bundle names,
+    //   values are bundle field names
+    // ⚠️ Note that $delta and $propNames continue to be unchanged; this is only
+    // designed for the use case where different bundles have different fields
+    // of the same type (and cardinality and storage settings).
+    // For example: pointing to multiple media types, with differently named
+    // "media source" fields, but with the same field types.
+    if (is_array($fieldName)) {
+      $bundles = $entityType->getBundles();
+      assert($bundles !== NULL && count($bundles) >= 1);
+
+      if (count($bundles) !== count(array_unique($bundles))) {
+        throw new \InvalidArgumentException('Duplicate bundles are nonsensical.');
+      }
+
+      // Ensure that the $fieldName ordering matches that of the bundles.
+      // @see \Drupal\experience_builder\TypedData\BetterEntityDataDefinition::create()
+      if ($bundles !== array_keys($fieldName)) {
+        throw new \InvalidArgumentException('A field name must be specified for every bundle, and in the same order.');
+      }
+    }
+  }
 
   public function __toString(): string {
     return static::PREFIX
       . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
-      . static::PREFIX_FIELD_LEVEL . $this->fieldName
+      . static::PREFIX_FIELD_LEVEL . implode('|', (array) $this->fieldName)
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
       . static::PREFIX_PROPERTY_LEVEL . $this->propName;
   }
@@ -61,20 +90,48 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     if ($possible_bundles !== NULL && $entity_type->getBundleEntityType()) {
       $possible_bundles = $this->entityType->getBundles();
       assert(is_array($possible_bundles));
-      if (count($possible_bundles) !== 1) {
-        throw new \LogicException();
+      foreach ($possible_bundles as $bundle) {
+        $bundle_config_dependency = $entity_type->getBundleConfigDependency($bundle);
+        $dependencies[$bundle_config_dependency['type']][] = $bundle_config_dependency['name'];
       }
-      $bundle = reset($possible_bundles);
-      $bundle_config_dependency = $entity_type->getBundleConfigDependency($bundle);
-      $dependencies[$bundle_config_dependency['type']][] = $bundle_config_dependency['name'];
     }
 
-    $field_definitions = $this->entityType->getPropertyDefinitions();
-    if (!isset($field_definitions[$this->fieldName])) {
-      throw new \LogicException(sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
+    if (is_string($this->fieldName)) {
+      $field_definitions = $this->entityType->getPropertyDefinitions();
+      if (!isset($field_definitions[$this->fieldName])) {
+        throw new \LogicException(sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
+      }
+      // Determine the bundle to use during dependency calculation:
+      $bundle = match (TRUE) {
+        // - an array with a single value: a single bundle is targeted
+        is_array($possible_bundles) && count($possible_bundles) === 1 => reset($possible_bundles),
+        // - no bundle: the entity type is targeted
+        // - an array with multiple values: multiple bundles are targeted, but
+        //   the same base field on all of them, so then fall back to `NULL` as
+        //   the bundle
+        default => NULL,
+      };
+      assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
+      $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definitions[$this->fieldName], $bundle));
     }
-    $field_definition = $field_definitions[$this->fieldName];
-    assert($field_definition instanceof FieldDefinitionInterface);
+    else {
+      assert(is_array($possible_bundles));
+      foreach ($possible_bundles as $bundle) {
+        // @phpstan-ignore-next-line
+        $bundle_field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
+        $bundle_specific_field_name = $this->fieldName[$bundle];
+        if (!isset($bundle_field_definitions[$bundle_specific_field_name])) {
+          throw new \LogicException(sprintf("%s field on the %s bundle referenced in %s %s does not exist.", $bundle_specific_field_name, $bundle, (string) $this, __CLASS__));
+        }
+        $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($bundle_field_definitions[$bundle_specific_field_name], $bundle));
+      }
+    }
+
+    return $dependencies;
+  }
+
+  private function calculateDependenciesForFieldDefinition(FieldDefinitionInterface $field_definition, ?string $bundle): array {
+    $dependencies = [];
 
     // If this is a base field definition, there are no other dependencies.
     if ($field_definition instanceof BaseFieldDefinition) {
@@ -106,12 +163,18 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
 
   public static function fromString(string $representation): static {
     [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation);
-    $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
+    $entity_data_definition = BetterEntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
     [$field_name, $remainder] = explode(self::PREFIX_FIELD_ITEM_LEVEL, $remainder, 2);
     [$delta, $prop_name] = explode(self::PREFIX_PROPERTY_LEVEL, $remainder, 2);
     return new static(
       $entity_data_definition,
-      $field_name,
+      str_contains($field_name, '|')
+        ? array_combine(
+          // @phpstan-ignore-next-line
+          $entity_data_definition->getBundles(),
+          explode('|', $field_name),
+        )
+        : $field_name,
       $delta === '' ? NULL : (int) $delta,
       $prop_name,
     );
@@ -120,12 +183,12 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): bool {
     assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->entityType->getEntityTypeId();
-    $expected_bundle = $this->entityType->getBundles()[0] ?? $expected_entity_type_id;
+    $expected_bundles = $this->entityType->getBundles();
     if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
       throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
     }
-    if ($entity->bundle() !== $expected_bundle && $expected_bundle !== $expected_entity_type_id) {
-      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, $expected_bundle, $entity->bundle()));
+    if ($expected_bundles !== NULL && !in_array($entity->bundle(), $expected_bundles)) {
+      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
     }
     // @todo validate that the field exists?
     return TRUE;

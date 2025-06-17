@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
-use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
@@ -15,6 +14,7 @@ use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 
 /**
  * Interprets JSON schema types (with type-specific constraints) to Typed Data.
@@ -332,7 +332,7 @@ enum JsonSchemaType: string {
           'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             'src' => new ReferenceFieldTypePropExpression(
               new FieldTypePropExpression('image', 'entity'),
-              new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
             ),
             'alt' => new FieldTypePropExpression('image', 'alt'),
             'width' => new FieldTypePropExpression('image', 'width'),

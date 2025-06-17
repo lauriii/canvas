@@ -69,11 +69,11 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installSchema('file', 'file_usage');
 
-    $type = NodeType::create([
+    // `article` node type.
+    NodeType::create([
       'type' => 'article',
       'name' => 'Article',
-    ]);
-    $type->save();
+    ])->save();
     $this->createEntityReferenceField(
       'node',
       'article',
@@ -97,6 +97,20 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       'label' => 'Body',
     ])->save();
     $this->createImageField('field_image', 'node', 'article');
+
+    // `news` node type.
+    NodeType::create([
+      'type' => 'news',
+      'name' => 'News',
+    ])->save();
+    $this->createImageField('field_photo', 'node', 'news');
+
+    // `product` node type.
+    NodeType::create([
+      'type' => 'product',
+      'name' => 'Product',
+    ])->save();
+    $this->createImageField('field_product_packaging_photo', 'node', 'product');
 
     User::create([
       'uuid' => 'some-user-uuid',

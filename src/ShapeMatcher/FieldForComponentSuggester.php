@@ -96,6 +96,11 @@ final class FieldForComponentSuggester {
               $field_name = $e instanceof ReferenceFieldPropExpression
                 ? $e->referencer->fieldName
                 : $e->fieldName;
+              // Even though FieldPropExpression's `fieldName` can be an array
+              // at the data structure level, it can only be a string here:
+              // because the logic in JsonSchemaFieldInstanceMatcher asses one
+              // entity type + bundle at a time.
+              assert(is_string($field_name));
               $field_definition = $field_definitions[$field_name];
               assert($field_definition instanceof FieldDefinitionInterface);
               assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);

@@ -8,10 +8,10 @@ use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 
 final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
@@ -101,7 +101,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
 
   public static function fromString(string $representation): static {
     [$entity_part, $remainder] = explode(self::PREFIX_FIELD_LEVEL, $representation, 2);
-    $entity_data_definition = EntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
+    $entity_data_definition = BetterEntityDataDefinition::createFromDataType(mb_substr($entity_part, 3));
     [$field_name, $remainder] = explode(self::PREFIX_FIELD_ITEM_LEVEL, $remainder, 2);
     [$delta, $object_mapping] = explode(self::PREFIX_PROPERTY_LEVEL, $remainder, 2);
     // Strip the surrounding curly braces.

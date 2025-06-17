@@ -7,7 +7,6 @@ namespace Drupal\experience_builder\Hook;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
@@ -33,8 +32,11 @@ use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpres
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 use Drupal\filter\FilterFormatInterface;
 use Drupal\media\Entity\MediaType;
+use Drupal\media\MediaTypeInterface;
+use Drupal\media\Plugin\media\Source\Image;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
 use Symfony\Component\Validator\Constraints\NotEqualTo;
@@ -235,27 +237,45 @@ class ShapeMatchingHooks {
       'type' => 'object',
       '$ref' => 'json-schema-definitions://experience_builder.module/image',
     ]) {
-      // @todo Allow configuring which media type, for now this assumes the
-      //   Standard 'image' media type.
-      // @see core/profiles/standard/config/optional/media.type.image.yml
-      $image_media_type = MediaType::load('image');
-      if (!$image_media_type) {
+      // Allow all MediaTypes that use the "image" MediaSource.
+      // @see \Drupal\media\Plugin\media\Source\Image
+      $image_media_types = array_filter(
+        MediaType::loadMultiple(),
+        fn (MediaTypeInterface $type): bool => $type->getSource() instanceof Image
+      );
+      if (empty($image_media_types)) {
         return;
       }
-      $source_field_definition = $image_media_type->getSource()
-        ->getSourceFieldDefinition($image_media_type);
-      \assert($source_field_definition !== \NULL);
-      $source_field_name = $source_field_definition->getName();
+      ksort($image_media_types);
+      $image_media_type_ids = array_map(
+        // @phpstan-ignore-next-line
+        fn (MediaTypeInterface $type): string => $type->id(),
+        $image_media_types
+      );
+      $source_field_names = array_map(
+        // @phpstan-ignore-next-line
+        fn (MediaTypeInterface $type): string => $type->getSource()->getSourceFieldDefinition($type)->getName(),
+        $image_media_types
+      );
+
       $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('entity_reference', [
-        'src' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new ReferenceFieldPropExpression(new FieldPropExpression(EntityDataDefinition::create('media', 'image'), $source_field_name, \NULL, 'entity'), new FieldPropExpression(EntityDataDefinition::create('file'), 'uri', \NULL, 'url'))),
-        'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(EntityDataDefinition::create('media', 'image'), $source_field_name, \NULL, 'alt')),
-        'width' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(EntityDataDefinition::create('media', 'image'), $source_field_name, \NULL, 'width')),
-        'height' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(EntityDataDefinition::create('media', 'image'), $source_field_name, \NULL, 'height')),
+        'src' => new ReferenceFieldTypePropExpression(
+          new FieldTypePropExpression('entity_reference', 'entity'),
+          new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', $image_media_type_ids), $source_field_names, \NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', \NULL, 'url')
+          )
+        ),
+        'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $image_media_type_ids), $source_field_names, \NULL, 'alt')),
+        'width' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $image_media_type_ids), $source_field_names, \NULL, 'width')),
+        'height' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $image_media_type_ids), $source_field_names, \NULL, 'height')),
       ]);
       $storable_prop_shape->fieldStorageSettings = ['target_type' => 'media'];
       $storable_prop_shape->fieldInstanceSettings = [
         'handler' => 'default:media',
-        'handler_settings' => ['target_bundles' => ['image' => 'image']],
+        'handler_settings' => [
+          'target_bundles' => array_combine($image_media_type_ids, $image_media_type_ids),
+        ],
       ];
       $storable_prop_shape->fieldWidget = 'media_library_widget';
     }

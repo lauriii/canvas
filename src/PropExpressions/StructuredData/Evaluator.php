@@ -94,7 +94,10 @@ final class Evaluator {
       assert($entity instanceof FieldableEntityInterface);
       return match (get_class($expr)) {
         FieldPropExpression::class => (function () use ($entity, $expr) {
-          $field_item_list = $entity->get($expr->fieldName);
+          $field_item_list = match (TRUE) {
+            is_string($expr->fieldName) => $entity->get($expr->fieldName),
+            is_array($expr->fieldName) => $entity->get($expr->fieldName[$entity->bundle()]),
+          };
           assert($field_item_list instanceof FieldItemListInterface);
           $field_definition = $field_item_list->getFieldDefinition();
           $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();

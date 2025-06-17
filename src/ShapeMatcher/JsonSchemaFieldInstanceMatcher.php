@@ -235,6 +235,11 @@ final class JsonSchemaFieldInstanceMatcher {
           ReferenceFieldPropExpression::class => $field_prop_expr->referencer->fieldName,
           default => throw new \LogicException('Unhandled.'),
         };
+        // Even though FieldPropExpression's `fieldName` can be an array at the
+        // data structure level, it can only be a string here: because the logic
+        // in ::matchEntityPropsForScalar() asses one entity type + bundle at a
+        // time.
+        assert(is_string($field_name));
         // The same field name prop should never be used multiple times; best
         // match is selected in object prop order.
         if (in_array($field_prop_expr, $inverted[$field_name] ?? [], FALSE)) {

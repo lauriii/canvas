@@ -6,13 +6,16 @@ namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
- * @covers media_library_storage_prop_shape_alter()
- * @covers media_library_field_widget_info_alter()
+ * @covers \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+ * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
  * @group experience_builder
  */
 class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
+
+  use MediaTypeCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -22,8 +25,8 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     'media',
     // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
     'media_library',
-    // Without this module installed, the `field_media_image` field won't be
-    // created, because the FieldConfig entity type would not exist.
+    // Without this module installed, the media source fields can't be created,
+    // because the FieldConfig entity type would not exist.
     'field',
     // The Media Library widget uses Views.
     'views',
@@ -43,9 +46,12 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
     $this->installEntitySchema('user');
 
+    // Intentionally do NOT rely on the Standard install profile: the MediaTypes
+    // using the Image MediaSource should work.
     // @see core/profiles/standard/config/optional/media.type.image.yml
-    $this->setInstallProfile('standard');
-    $this->installConfig(['media']);
+    // @see \Drupal\media\Plugin\media\Source\Image
+    $this->createMediaType('image', ['id' => 'baby_photos']);
+    $this->createMediaType('image', ['id' => 'vacation_photos']);
 
     // A sample value is generated during the test, which needs this table.
     $this->installSchema('file', ['file_usage']);
@@ -70,7 +76,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
         cardinality: $image_shape->cardinality,
         fieldWidget: 'media_library_widget',
         // @phpstan-ignore-next-line
-        fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}'),
+        fieldTypeProp: StructuredDataPropExpression::fromString("ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟alt,width↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟width,height↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟height}"),
         fieldStorageSettings: [
           'target_type' => 'media',
         ],
@@ -78,7 +84,8 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
           'handler' => 'default:media',
           'handler_settings' => [
             'target_bundles' => [
-              'image' => 'image',
+              'baby_photos' => 'baby_photos',
+              'vacation_photos' => 'vacation_photos',
             ],
           ],
         ],
