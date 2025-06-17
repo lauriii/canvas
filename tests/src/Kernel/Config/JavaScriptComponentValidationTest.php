@@ -321,7 +321,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         "'src' is a required key.",
       ],
       'props.some_object.examples.1' => 'This value should not be null.',
-      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?.*\.(png|gif|jpg|jpeg|webp)(\?.*)?(#.*)?$@</em>.',
+      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\?.*)?(#.*)?$@</em>.',
       'props.some_object.examples.5' => "'src' is a required key.",
     ]);
   }

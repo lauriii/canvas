@@ -38,6 +38,9 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_xb_props): void {
     $response = $this->parentRequest(Request::create('/xb/api/v0/config/component'))->getContent();
     self::assertIsString($response);
+    // @see RenderSafeComponentContainer::handleComponentException()
+    self::assertStringNotContainsString('Component failed to render', $response, 'Component failed to render');
+    self::assertStringNotContainsString('something went wrong', $response);
 
     // Fetch the client-side info.
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getClientSideInfo()
@@ -207,8 +210,8 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
                 'height' => 402,
               ],
               2 => [
-                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
-                'alt' => 'The BEST dog!',
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/UPPERCASE-GRACIE.JPG',
+                'alt' => 'THE BEST DOG!',
                 'width' => 601,
                 'height' => 402,
               ],
@@ -263,8 +266,8 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
                 'height' => 402,
               ],
               2 => [
-                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/gracie.jpg',
-                'alt' => 'The BEST dog!',
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image-gallery/UPPERCASE-GRACIE.JPG',
+                'alt' => 'THE BEST DOG!',
                 'width' => 601,
                 'height' => 402,
               ],

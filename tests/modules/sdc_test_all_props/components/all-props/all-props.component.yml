@@ -134,7 +134,7 @@ props:
       # type: string
       # format: uri
       # # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
-      # pattern: '\.(png|gif|jpg|jpeg|webp)$'
+      # pattern: '\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$'
     test_string_format_uri_reference:
       title: 'String, format=uri-reference'
       type: string

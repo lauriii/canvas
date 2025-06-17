@@ -787,7 +787,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.(png|gif|jpg|jpeg|webp)(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',

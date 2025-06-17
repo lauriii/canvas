@@ -408,8 +408,10 @@ final class JsonSchemaFieldInstanceMatcher {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
               $transformed_property_data_definition = clone $property_definition;
-              // @todo JSON schema does not support case-insensitive matching!!!! https://json-schema.org/understanding-json-schema/reference/regular_expressions
-              $trailing_uri_regex_pattern = '\.(' . preg_replace('/ +/', '|', preg_quote($entity_constraints['FileExtension']['extensions'])) . ')(\?.*)?(#.*)?$';
+              // JSON schema does not support case-insensitive matching (?i)! https://json-schema.org/understanding-json-schema/reference/regular_expressions
+              // But we can bypass it with a regexp without modifiers.
+              $ci_extensions = $this->buildCaseInsensitiveExtensionRegex($entity_constraints['FileExtension']['extensions']);
+              $trailing_uri_regex_pattern = '\.(' . $ci_extensions . ')(\?.*)?(#.*)?$';
               // If a `Regex` constraint exists, expand it to also match the trailing part.
               // @todo verify the regex constraint currently only matches the leading part.
               if ($regex_constraint = $transformed_property_data_definition->getConstraint('Regex')) {
@@ -460,6 +462,30 @@ final class JsonSchemaFieldInstanceMatcher {
       }
     }
     return $matches;
+  }
+
+  /**
+   * It converts the extensions in to a case-insensitive regexp without modifiers.
+   *
+   * @param string $extensions
+   *   The extensions as drupal store it (e.g. "png gif jpeg jpg webp").
+   *
+   * @return string
+   *   The regexp (e.g. [Pp][Nn][Gg]|[Gg][Ii][Ff]|...).
+   */
+  private function buildCaseInsensitiveExtensionRegex(string $extensions): string {
+    $ext_list = preg_split('/\s+/', trim($extensions));
+    if (!is_array($ext_list)) {
+      return '';
+    }
+
+    $patterns = array_map(function ($ext) {
+      return implode('', array_map(function ($char) {
+        return '[' . strtoupper($char) . strtolower($char) . ']';
+      }, str_split($ext)));
+    }, $ext_list);
+
+    return implode('|', $patterns);
   }
 
   /**

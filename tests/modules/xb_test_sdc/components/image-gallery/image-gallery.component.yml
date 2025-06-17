@@ -25,7 +25,7 @@ props:
             alt: 'Still a good dog'
             width: 601
             height: 402
-          - src: gracie.jpg
-            alt: 'The BEST dog!'
+          - src: UPPERCASE-GRACIE.JPG
+            alt: 'THE BEST DOG!'
             width: 601
             height: 402

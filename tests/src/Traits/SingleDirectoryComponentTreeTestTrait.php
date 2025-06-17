@@ -85,7 +85,7 @@ trait SingleDirectoryComponentTreeTestTrait {
                     'src' => [
                       'type' => 'string',
                       'format' => 'uri-reference',
-                      'pattern' => '^(/|https?://)?.*\.(png|gif|jpg|jpeg|webp)(\?.*)?(#.*)?$',
+                      'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\?.*)?(#.*)?$',
                     ],
                     'alt' => ['type' => 'string'],
                     'width' => ['type' => 'integer'],
