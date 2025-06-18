@@ -74,7 +74,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       imports: {
         // Map to XB generated libraries.
         preact: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/preact.module.js`,
-        'preact-ext/hooks': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
         'preact/hooks': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
         'react/jsx-runtime': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsxRuntime.module.js`,
         react: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,

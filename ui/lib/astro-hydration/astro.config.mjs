@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // https://astro.build/config
 export default defineConfig({
   // Enable Preact to support Preact JSX components.
-  integrations: [preact({ compat: true })],
+  integrations: [preact()],
   vite: {
     resolve: {
       alias: {
@@ -43,10 +43,18 @@ export default defineConfig({
           },
           assetFileNames: '[name][extname]',
         },
-        // Mark this as external so astro doesn't bundle it. This is needed to
-        // redirect import paths to point to 'astro-hydration/dist' in the import map
-        // used for the code editor preview.
-        external: ['preact-ext/hooks']
+        // Mark React external so Astro's bundler doesn't bundle it. This way if
+        // a module (e.g., lib/astro-hydration/src/lib/swr.ts) imports React,
+        // our import maps will handle the module resolution, which will take
+        // care of aliasing to `preact/compat`. This ensures that imports in the
+        // code of code components as well as in bundled packages can be mapped
+        // to the same module.
+        // (An alternative would be to use the `compat` option of the
+        // @astrojs/preact plugin, but it doesn't produce a bundle that can work
+        // in both code components and bundled packages.)
+        // @see src/features/code-editor/Preview.tsx
+        // @see src/Plugin/ExperienceBuilder/ComponentSource/JsComponent.php
+        external: ['react', 'react-dom', 'react-dom/client']
       },
     },
   },
