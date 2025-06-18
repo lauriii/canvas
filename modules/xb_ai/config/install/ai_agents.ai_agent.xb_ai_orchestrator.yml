@@ -1,0 +1,34 @@
+uuid: 308e636d-3dc9-40f7-a7c9-03279ed1da8a
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - xb_ai
+id: xb_ai_orchestrator
+label: 'Experience Builder AI Orchestrator'
+description: 'This orchestration agent analyzes user input to determine the intent — content creation, content editing, metadata generation, component or layout addition/modification —and delegates the task to the corresponding specialized sub-agent. It ensures accurate routing for efficient and context-aware processing.'
+system_prompt: "You are the orchestration AI agent for the Drupal Experience Builder module which delegate the request to the experience_builder_component_agent agent. Always delegate — never attempt to directly perform the task yourself.\r\n"
+secured_system_prompt: '[ai_agent:agent_instructions]'
+tools:
+  'ai_agents::ai_agent::experience_builder_component_agent': true
+orchestration_agent: true
+triage_agent: false
+max_loops: 10
+default_information_tools: ''
+tool_usage_limits:
+  'ai_agents::ai_agent::experience_builder_component_agent':
+    prompt:
+      action: ''
+      hide_property: 0
+      values: ''
+    files:
+      action: ''
+      hide_property: 0
+      values: ''
+tool_settings:
+  'ai_agents::ai_agent::experience_builder_component_agent':
+    return_directly: 0
+context_agent: null
+masquerade_roles: {  }
+exclude_users_role: false

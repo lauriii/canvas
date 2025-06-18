@@ -1,0 +1,99 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
+
+use Drupal\KernelTests\KernelTestBase;
+use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Tests for the GetJsComponent function call plugin.
+ *
+ * @group xb_ai
+ */
+final class GetJsComponentTest extends KernelTestBase {
+
+  /**
+   * The function call plugin manager.
+   *
+   * @var \Drupal\Component\Plugin\PluginManagerInterface
+   */
+  protected $functionCallManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'ai',
+    'ai_agents',
+    'experience_builder',
+    'system',
+    'user',
+    'xb_ai',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
+  }
+
+  /**
+   * Test getting JS component returns expected JS and CSS.
+   */
+  public function testGetJsComponent(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:get_js_component');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+
+    $component = JavaScriptComponent::create([
+      'machineName' => 'test_component',
+      'name' => 'Test Component',
+      'status' => FALSE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("hey");',
+        'compiled' => 'console.log("hey");',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test { display: none; }',
+      ],
+    ]);
+    $component->save();
+
+    $component_id = 'test_component';
+    $tool->setContextValue('component_name', $component_id);
+    $tool->execute();
+    $output = $tool->getReadableOutput();
+    $this->assertIsString($output);
+    $parsed = Yaml::parse($output);
+
+    $this->assertArrayHasKey('js', $parsed);
+    $this->assertArrayHasKey('css', $parsed);
+    $this->assertEquals('console.log("hey");', $parsed['js']);
+    $this->assertEquals('.test { display: none; }', $parsed['css']);
+  }
+
+  /**
+   * Test GetJsComponent returns error message when component does not exist.
+   */
+  public function testGetJsComponentNonExistent(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:get_js_component');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+
+    $tool->setContextValue('component_name', 'non_existent_component');
+
+    $tool->execute();
+
+    $output = $tool->getReadableOutput();
+    $this->assertStringContainsString('does not exist', $output);
+  }
+
+}

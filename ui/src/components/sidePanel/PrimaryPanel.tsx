@@ -1,3 +1,6 @@
+/**
+ * ⚠️ This is highly experimental and *will* be refactored.
+ */
 import clsx from 'clsx';
 import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 import { Box, Button, Flex, Heading, ScrollArea } from '@radix-ui/themes';
@@ -12,6 +15,7 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import Layers from '@/features/layout/layers/Layers';
 import ExtensionsList from '@/components/extensions/ExtensionsList';
 import { Cross2Icon } from '@radix-ui/react-icons';
+import AiWizard from '../aiExtension/AiWizard';
 
 export const PrimaryPanel = () => {
   const activePanel = useAppSelector(selectActivePanel);
@@ -22,6 +26,7 @@ export const PrimaryPanel = () => {
     library: 'Library',
     layers: 'Layers',
     extensions: 'Extensions',
+    aiWizard: 'AI',
   };
 
   return (
@@ -63,6 +68,11 @@ export const PrimaryPanel = () => {
             {activePanel === 'extensions' && (
               <ErrorBoundary>
                 <ExtensionsList />
+              </ErrorBoundary>
+            )}
+            {activePanel === 'aiWizard' && (
+              <ErrorBoundary>
+                <AiWizard />
               </ErrorBoundary>
             )}
           </Box>

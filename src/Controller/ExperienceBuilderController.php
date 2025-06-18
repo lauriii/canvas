@@ -93,6 +93,8 @@ HTML;
 
     $xb_module_path = $this->moduleHandler->getModule('experience_builder')->getPath();
     $dev_mode = $this->moduleHandler->moduleExists('xb_dev_mode');
+    // ⚠️ This is highly experimental and *will* be refactored.
+    $ai_extension_available = $this->moduleHandler->moduleExists('xb_ai');
 
     return (new HtmlResponse($this->buildHtml()))->setAttachments([
       'library' => [
@@ -107,6 +109,7 @@ HTML;
           'entity' => $entity?->id(),
           'entityTypeKeys' => $entity?->getEntityType()->getKeys(),
           'devMode' => $dev_mode,
+          'aiExtensionAvailable' => $ai_extension_available,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx

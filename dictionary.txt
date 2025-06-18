@@ -91,3 +91,4 @@ xbstark
 xbrc
 xbxb
 xmdi
+Deepchat

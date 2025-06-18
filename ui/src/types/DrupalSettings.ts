@@ -22,6 +22,8 @@ export interface DrupalSettings {
     selectedComponent: string;
     devMode: boolean;
     dialogCss: string[];
+    // ⚠️ This is highly experimental and *will* be refactored.
+    aiExtensionAvailable: boolean;
   };
   xbExtension: object;
   path: {

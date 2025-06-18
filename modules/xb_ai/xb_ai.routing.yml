@@ -1,0 +1,14 @@
+xb_ai.xb_builder:
+  path: '/admin/api/xb/ai'
+  defaults:
+    _controller: '\Drupal\xb_ai\Controller\XbBuilder::render'
+  requirements:
+    _permission: 'use experience builder ai'
+
+xb_ai.csrf_token:
+  path: '/admin/api/xb/token'
+  defaults:
+    _controller: '\Drupal\xb_ai\Controller\XbBuilder::getCsrfToken'
+  requirements:
+    _permission: 'use experience builder ai'
+    _method: 'POST'
