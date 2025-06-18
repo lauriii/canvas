@@ -17,7 +17,9 @@
       "tests/modules/xb_test_extension/ui/dist/**",
       "tests/modules/xb_test_semi_coupled/semicoupled_app/dist/**",
       "js/astro-bundles/**",
-      "js/assets/**"
+      "js/assets/**",
+      "playwright-report/**",
+      "test-results/**"
     ],
     "ignoreRegExpList": [
       "ℹ\uFE0E.*"

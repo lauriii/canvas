@@ -73,6 +73,8 @@ variables:
   # Needed to allow this to run locally.
   # https://project.pages.drupalcode.org/gitlab_templates/info/test-locally/
   DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
+  # Set this as CI_PROJECT_NAME changes on forks.
+  CI_PARENT_PROJECT_NAME: experience_builder
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
@@ -151,9 +153,18 @@ cspell:
   - cd _drupal
   # Add core-dev, Experience Builder, and drush
   - |
-    composer config repositories.experience_builder --json '{"type": "path", "url": "../experience_builder", "options": { "symlink": false } }'
+    composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
   - composer config minimum-stability dev
-  - composer require drupal/core-dev "drupal/experience_builder @dev" drush/drush --with-all-dependencies
+  - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" drush/drush --with-all-dependencies
+  - |
+    PACKAGE_INFO=$(composer info drupal/$CI_PARENT_PROJECT_NAME --all | grep "^dist" | awk -F": " "{print \$2}")
+    EXPECTED_PATH="[path] ../$CI_PROJECT_NAME $CI_COMMIT_SHA"
+    if [ "$PACKAGE_INFO" != "$EXPECTED_PATH" ]; then
+      echo "Unable to link to local $CI_PARENT_PROJECT_NAME package"
+      echo "Expected: $EXPECTED_PATH"
+      echo "Got: $PACKAGE_INFO"
+      exit 1
+    fi
   # Setup webserver root
   - rm -rf /var/www/html
   - ln -s $CI_PROJECT_DIR/_drupal/web /var/www/html
@@ -175,7 +186,7 @@ cspell:
   - cd $CI_PROJECT_DIR/_drupal/web
   - php core/scripts/drupal install minimal --no-interaction --quiet
   # Change to the project directory
-  - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME
+  - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
   # Install the UI
   # @todo consolidate this with the UI job?
   - cd ui
@@ -583,10 +594,8 @@ cypress unit:
       - "docs/diagrams/*.md"
 
 playwright:
-  # Put this in the build stage otherwise the composer job is triggered first
-  # and we don't need it
-  # @todo fix this
-  stage: build
+  stage: test
+  needs: []
   image: justafish/drupalci-environments-playwright:latest
   # This doesn't actually work 🤦‍♀️
   # https://www.drupal.org/project/infrastructure/issues/3387117
@@ -599,8 +608,8 @@ playwright:
       - /root/.composer/cache
       - /root/.npm
       - /root/.cache/ms-playwright/ms-playwright
-      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME/node_modules
-      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PROJECT_NAME/ui/node_modules
+      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/node_modules
+      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/node_modules
   extends:
     - .test-variables
   variables:
@@ -620,8 +629,8 @@ playwright:
     - mkdir -p $CI_PROJECT_DIR/logs
     - cp -R /var/log/apache2 $CI_PROJECT_DIR/logs/apache2
     - cp -R /var/log/supervisor $CI_PROJECT_DIR/logs/supervisor
-    - cp -R _drupal/web/modules/contrib/$CI_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
-    - cp -R _drupal/web/modules/contrib/$CI_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
   artifacts:
     expose_as: 'Playwright Test Reports'
     when: always
