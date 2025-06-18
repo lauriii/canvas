@@ -8,7 +8,8 @@ props:
       type: string
       title: Greeting
       description: The greeting to display
-      default: Hello World
+      examples:
+       - Hello World
     cta:
       type: string
       title: CTA display text
@@ -26,4 +27,4 @@ slots:
     title: Content
     description: Content to display below the greeting
     examples:
-      - Example slot content
+      - <div>Example slot content</div>

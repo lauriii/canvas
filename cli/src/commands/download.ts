@@ -7,6 +7,8 @@ import { getConfig, setConfig, ensureConfig } from '../config';
 import { createApiService } from '../services/api';
 import yaml from 'js-yaml';
 import type { Component } from '../types/Component';
+import { reportResults } from '../utils/report-results';
+import type { Result } from '../types/Result';
 
 interface DownloadOptions {
   clientId?: string;
@@ -18,6 +20,7 @@ interface DownloadOptions {
   all?: boolean; // Download all components
 }
 
+// @todo: Support non-interactive download if user passes all necessary args in.
 export function downloadCommand(program: Command): void {
   program
     .command('download')
@@ -100,7 +103,7 @@ export function downloadCommand(program: Command): void {
               },
               ...Object.keys(components).map((key) => ({
                 value: components[key].machineName,
-                label: components[key].name,
+                label: `${components[key].name} (${components[key].machineName})`,
               })),
             ],
             required: true,
@@ -140,7 +143,7 @@ export function downloadCommand(program: Command): void {
         }
 
         // Download components
-        const results = [];
+        const results: Result[] = [];
 
         s.start(`Downloading ${componentPluralized}`);
 
@@ -161,7 +164,7 @@ export function downloadCommand(program: Command): void {
               const files = await fs.readdir(componentDir);
               if (files.length > 0) {
                 const confirmDelete = await p.confirm({
-                  message: `The "${componentDir}" is not empty. Are you sure you want to delete and overwrite this directory?`,
+                  message: `The "${componentDir}" directory is not empty. Are you sure you want to delete and overwrite this directory?`,
                   initialValue: true,
                 });
                 if (p.isCancel(confirmDelete) || !confirmDelete) {
@@ -187,7 +190,7 @@ export function downloadCommand(program: Command): void {
             };
 
             await fs.writeFile(
-              path.join(componentDir, `${component.machineName}.component.yml`),
+              path.join(componentDir, `component.yml`),
               yaml.dump(metadata),
               'utf-8',
             );
@@ -195,7 +198,7 @@ export function downloadCommand(program: Command): void {
             // Create JS file
             if (component.source_code_js) {
               await fs.writeFile(
-                path.join(componentDir, `${component.machineName}.jsx`),
+                path.join(componentDir, `index.jsx`),
                 component.source_code_js,
                 'utf-8',
               );
@@ -204,88 +207,60 @@ export function downloadCommand(program: Command): void {
             // Create CSS file
             if (component.source_code_css) {
               await fs.writeFile(
-                path.join(componentDir, `${component.machineName}.css`),
+                path.join(componentDir, `index.css`),
                 component.source_code_css,
                 'utf-8',
               );
             }
 
             results.push({
-              name: component.name,
+              itemName: component.machineName,
               success: true,
-              path: componentDir,
             });
           } catch (error) {
             results.push({
-              name: component.name,
+              itemName: component.machineName,
               success: false,
-              error: error instanceof Error ? error.message : String(error),
+              details: [
+                {
+                  content:
+                    error instanceof Error ? error.message : String(error),
+                },
+              ],
             });
           }
         }
-        let globalCssResult;
+        s.stop('Download completed');
+
+        reportResults(results, 'Downloaded components', 'Component');
+
         // Create global.css file if it exists.
         if (globalCss) {
+          let globalCssResult: Result;
           try {
             const globalCssPath = path.join(config.componentDir, 'global.css');
             await fs.writeFile(globalCssPath, globalCss, 'utf-8');
             globalCssResult = {
-              name: 'Global CSS',
+              itemName: 'global.css',
               success: true,
-              path: globalCssPath,
             };
           } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
             globalCssResult = {
-              name: 'Global CSS',
+              itemName: 'global.css',
               success: false,
-              error: error instanceof Error ? error.message : String(error),
+              details: [
+                {
+                  content: errorMessage,
+                },
+              ],
             };
           }
+          reportResults([globalCssResult], 'Downloaded assets', 'Asset');
         }
 
-        s.stop('Download completed');
-
-        // Report results
-        const successful = results.filter((r) => r.success).length;
-        const failed = results.filter((r) => !r.success).length;
-
-        // Handle singular/plural cases for console messages.
-        const successfulComponentPluralized = `component${successful > 1 ? 's' : ''}`;
-
-        p.note(
-          `${successful} ${successfulComponentPluralized} downloaded successfully, ${failed} failed`,
-        );
-
-        // Output failures with details
-        if (failed > 0) {
-          console.log(chalk.red('Failed downloads:'));
-          results
-            .filter((r) => !r.success)
-            .forEach((r) => {
-              console.log(chalk.red(`  - ${r.name}: ${r.error}`));
-            });
-        }
-        if (globalCssResult && !globalCssResult.success) {
-          console.log(
-            chalk.red(`Global CSS download failed: ${globalCssResult.error}`),
-          );
-        }
-
-        // Output successful downloads
-        if (successful > 0) {
-          console.log(chalk.green('Successfully downloaded:'));
-          results
-            .filter((r) => r.success)
-            .forEach((r) => {
-              console.log(chalk.green(`  - ${r.name}: ${r.path}`));
-            });
-        }
-        if (globalCssResult && globalCssResult.success) {
-          console.log('');
-          console.log(chalk.green(`  - Global CSS: ${globalCssResult.path}`));
-        }
-
-        p.outro(`✅ ${successfulComponentPluralized} download completed`);
+        p.outro(`✅ Download completed`);
       } catch (error) {
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));

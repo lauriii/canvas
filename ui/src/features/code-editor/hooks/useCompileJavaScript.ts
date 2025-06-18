@@ -20,7 +20,6 @@ const SWC_OPTIONS: SwcOptions = {
     target: 'es2015',
     transform: {
       react: {
-        pragma: 'h',
         pragmaFrag: 'Fragment',
         throwIfNamespace: true,
         development: false,

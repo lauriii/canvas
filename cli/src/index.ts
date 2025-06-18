@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { downloadCommand } from './commands/download';
 import { scaffoldCommand } from './commands/scaffold';
+import { uploadCommand } from './commands/upload';
+import { buildCommand } from './commands/build';
 
 const program = new Command();
 program
@@ -30,6 +32,8 @@ Environment variables can be set in:
 // Register commands
 downloadCommand(program);
 scaffoldCommand(program);
+uploadCommand(program);
+buildCommand(program);
 
 // Handle errors
 program.showHelpAfterError();

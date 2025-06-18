@@ -87,6 +87,56 @@ export class ApiService {
   }
 
   /**
+   * Create a new component in XB.
+   */
+  async createComponent(component: Component): Promise<Component> {
+    try {
+      const response = await this.client.post(
+        '/xb/api/v0/config/js_component',
+        component,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to create component: '${component.machineName}'`);
+    }
+  }
+
+  /**
+   * Get a specific component
+   */
+  async getComponent(machineName: string): Promise<Component> {
+    try {
+      const response = await this.client.get(
+        `/xb/api/v0/config/js_component/${machineName}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Component '${machineName}' not found`);
+    }
+  }
+
+  /**
+   * Update an existing component
+   */
+  async updateComponent(
+    machineName: string,
+    component: Partial<Component>,
+  ): Promise<Component> {
+    try {
+      const response = await this.client.patch(
+        `/xb/api/v0/config/js_component/${machineName}`,
+        component,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error(`Failed to update component '${machineName}'`);
+    }
+  }
+
+  /**
    * Get global CSS.
    */
   async getGlobalCss(): Promise<AssetLibrary> {
@@ -98,6 +148,24 @@ export class ApiService {
     } catch (error) {
       this.handleApiError(error);
       throw new Error('Failed to get global CSS');
+    }
+  }
+
+  /**
+   * Update global CSS.
+   */
+  async updateGlobalCss(
+    assetLibrary: Partial<AssetLibrary>,
+  ): Promise<AssetLibrary> {
+    try {
+      const response = await this.client.patch(
+        '/xb/api/v0/config/xb_asset_library/global',
+        assetLibrary,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw new Error('Failed to update global CSS');
     }
   }
 

@@ -10,6 +10,7 @@ interface ScaffoldOptions {
   dir?: string;
 }
 
+// @todo: Support non-interactive scaffold if user passes all necessary args in.
 /**
  * Scaffolding command for creating an example React component.
  */
@@ -104,22 +105,6 @@ export function scaffoldCommand(program: Command): void {
               .replace(/Hello World/g, displayName)
               .replace(/hello_world/g, machineName);
 
-            // Rename the metadata file to follow the format `${componentName}.component.yml`
-            if (file.includes('component.yml')) {
-              destPath = path.join(
-                componentDir,
-                `${componentName}.component.yml`,
-              );
-            }
-            // Rename the JSX source file to follow the format `${componentName}.jsx`
-            if (file.includes('.jsx')) {
-              destPath = path.join(componentDir, `${componentName}.jsx`);
-            }
-            // Rename the CSS source file to follow the format `${componentName}.css`
-            if (file.includes('.css')) {
-              destPath = path.join(componentDir, `${componentName}.css`);
-            }
-
             // Write processed file
             await fs.writeFile(destPath, content, 'utf-8');
           }
@@ -131,9 +116,9 @@ export function scaffoldCommand(program: Command): void {
           // Show summary and next steps
           p.note(`Component "${componentName}" has been created:
 - Directory: ${componentDir}
-- Component metadata: ${path.join(componentDir, `${componentName}.component.yml`)}
-- Source file: ${path.join(componentDir, `${componentName}.jsx`)}
-- CSS file: ${path.join(componentDir, `${componentName}.css`)}
+- Component metadata: ${path.join(componentDir, `component.yml`)}
+- Source file: ${path.join(componentDir, `index.jsx`)}
+- CSS file: ${path.join(componentDir, `index.css`)}
 
 Next steps:
 1. Customize the component files to fit your needs
