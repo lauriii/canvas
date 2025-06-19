@@ -121,7 +121,7 @@ final class LibraryHooks {
     // not opened with AJAX can be styled correctly.
     $css_files = [];
     foreach ($libraries as $library_name => &$library) {
-      foreach ($libraries[$library_name]['css'] as $files) {
+      foreach ($libraries[$library_name]['css'] ?? [] as $files) {
         foreach ($files as $filename => $file_definition) {
           if (!str_ends_with($filename, '.css')) {
             continue;
