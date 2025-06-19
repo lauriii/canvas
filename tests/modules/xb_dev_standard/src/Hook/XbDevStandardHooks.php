@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\xb_dev_standard\Hook;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -46,7 +47,7 @@ class XbDevStandardHooks {
         catch (\LogicException) {
           return $items;
         }
-        $items['experience_builder'] += [
+        $items['experience_builder'] = NestedArray::mergeDeep($items['experience_builder'], [
           '#type' => 'toolbar_item',
           'tab' => [
             '#type' => 'link',
@@ -61,7 +62,10 @@ class XbDevStandardHooks {
             ],
           ],
           '#weight' => 1000,
-        ];
+          '#cache' => [
+            'tags' => $node->getCacheTags(),
+          ],
+        ]);
       }
     }
     return $items;
