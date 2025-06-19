@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
+use Drupal\Core\Plugin\Component;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinitionInterface;
@@ -44,16 +45,19 @@ final class FieldForComponentSuggester {
    * @return array<string, array{required: bool, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
    */
   public function suggest(string $component_plugin_id, ?EntityDataDefinitionInterface $host_entity_type): array {
+    $host_entity_type_bundle = $host_entity_type_id = NULL;
     if ($host_entity_type) {
       $host_entity_type_id = $host_entity_type->getEntityTypeId();
       assert(is_string($host_entity_type_id));
       $bundles = $host_entity_type->getBundles();
       assert(is_array($bundles) && array_key_exists(0, $bundles));
       $host_entity_type_bundle = $bundles[0];
+      $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
     }
 
     // 1. Get raw matches.
-    $raw_matches = $this->getRawMatches($component_plugin_id);
+    $component = $this->componentPluginManager->find($component_plugin_id);
+    $raw_matches = $this->getRawMatches($component, $host_entity_type_id, $host_entity_type_bundle);
 
     // 2. Process (filter and order) matches based on context and what Drupal
     //    considers best practices.
@@ -80,7 +84,6 @@ final class FieldForComponentSuggester {
     foreach ($processed_matches as $cpe => $m) {
       // Required property or not?
       $prop_name = ComponentPropExpression::fromString($cpe)->propName;
-      $component = $this->componentPluginManager->find($component_plugin_id);
       /** @var array<string, mixed> $schema */
       $schema = $component->metadata->schema;
       $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
@@ -89,7 +92,6 @@ final class FieldForComponentSuggester {
       // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3452848
       $suggestions[$cpe]['instances'] = [];
       if ($host_entity_type) {
-        $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
         $suggestions[$cpe]['instances'] = array_combine(
           array_map(
             function (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) use ($field_definitions, $host_entity_type_id, $host_entity_type_bundle) {
@@ -173,10 +175,9 @@ final class FieldForComponentSuggester {
   /**
    * @return array<string, array{instances: array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\experience_builder\Plugin\Adapter\AdapterInterface>}>
    */
-  private function getRawMatches(string $component_plugin_id): array {
+  private function getRawMatches(Component $component, ?string $host_entity_type, ?string $host_entity_bundle): array {
     $raw_matches = [];
 
-    $component = $this->componentPluginManager->find($component_plugin_id);
     foreach (PropShape::getComponentProps($component) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
       // @see https://json-schema.org/understanding-json-schema/reference/object#required
@@ -186,7 +187,7 @@ final class FieldForComponentSuggester {
 
       $primitive_type = JsonSchemaType::from($schema['type']);
 
-      $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
+      $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema, $host_entity_type, $host_entity_bundle);
       $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);
       $raw_matches[(string) $cpe]['instances'] = $instance_candidates;
       $raw_matches[(string) $cpe]['adapters'] = $adapter_candidates;

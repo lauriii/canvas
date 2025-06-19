@@ -32,6 +32,7 @@ use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
@@ -53,6 +54,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
   use CrawlerTrait;
   use MediaTypeCreationTrait;
   use TestFileCreationTrait;
+  use ContentTypeCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -63,7 +65,18 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     'node',
     'path',
     'user',
+    'field',
+    'text',
   ];
+
+  /**
+   * @depends testDiscovery
+   */
+  public function testGetClientSideInfo(array $component_ids): void {
+    $this->installConfig('node');
+    $this->createContentType(['type' => 'article']);
+    parent::testGetClientSideInfo($component_ids);
+  }
 
   /**
    * All test module SDCs must either have a Component or a reason why not.
@@ -180,6 +193,8 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
+    $this->installConfig('node');
+    $this->createContentType(['type' => 'article']);
     $this->assertNotEmpty($component_ids);
 
     $rendered = $this->renderComponentsLive(
@@ -949,7 +964,10 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'text' => [],
+          'text' => [
+            "This article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
         ],
         'transforms' => [],
       ],
@@ -977,7 +995,10 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'text' => [],
+          'text' => [
+            "This article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
         ],
         'transforms' => [],
       ],
@@ -1116,7 +1137,10 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'caption' => [],
+          'caption' => [
+            "This article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
           'images' => [],
         ],
         'transforms' => [],
@@ -1233,7 +1257,10 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'heading' => [],
+          'heading' => [
+            "This article's Revision log message" => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
           'image' => [],
         ],
         'transforms' => [],
@@ -1412,7 +1439,9 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'text' => [],
+          'text' => [
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
           'href' => [],
           'target' => [],
         ],
@@ -1443,7 +1472,9 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'heading' => [],
+          'heading' => [
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
         ],
         'transforms' => [],
       ],
@@ -1497,7 +1528,9 @@ HTML,
           ],
         ],
         'dynamic_prop_source_candidates' => [
-          'heading' => [],
+          'heading' => [
+            "This article's Title" => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
         ],
         'transforms' => [],
       ],

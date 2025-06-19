@@ -37,6 +37,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     'experience_builder',
     'xb_test_sdc',
     'node',
+    'field',
+    'text',
   ];
 
   /**
@@ -57,6 +59,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+    $this->createContentType(['type' => 'article']);
   }
 
   /**

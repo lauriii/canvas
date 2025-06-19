@@ -8,6 +8,7 @@ services:
     public: true
     arguments:
       $constraintManager: '@validation.constraint'
+      $cache: '@cache.static'
   Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester:
     public: true
   Drupal\experience_builder\ComponentIncompatibilityReasonRepository: {}

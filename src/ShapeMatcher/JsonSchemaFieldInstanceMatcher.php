@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\ShapeMatcher;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
@@ -106,7 +107,9 @@ final class JsonSchemaFieldInstanceMatcher {
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly AdapterManager $adapterManager,
-  ) {}
+    private readonly CacheBackendInterface $cache,
+  ) {
+  }
 
   /**
    * @see https://json-schema.org/understanding-json-schema/reference/type
@@ -497,22 +500,45 @@ final class JsonSchemaFieldInstanceMatcher {
    * @param JsonSchema $schema
    * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
-  public function findFieldInstanceFormatMatches(JsonSchemaType $primitive_type, bool $is_required_in_json_schema, array $schema): array {
+  public function findFieldInstanceFormatMatches(
+    JsonSchemaType $primitive_type,
+    bool $is_required_in_json_schema,
+    array $schema,
+    ?string $host_entity_type = NULL,
+    ?string $host_entity_bundle = NULL,
+  ): array {
+    \ksort($schema);
+    $cid = \sprintf('%s:%s:%s', $primitive_type->value, (string) $is_required_in_json_schema, \http_build_query($schema));
+    if ($host_entity_type !== NULL && $host_entity_bundle !== NULL) {
+      $cid .= \sprintf(':%s:%s', $host_entity_type, $host_entity_bundle);
+    }
+    $cached = $this->cache->get($cid);
+    if ($cached !== FALSE && $cached->data) {
+      return $cached->data;
+    }
     $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
     $matches = [];
-    foreach ($entity_type_bundles as $entity_type_id => $bundles) {
-      foreach (array_keys($bundles) as $bundle) {
-        $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$entity_type_id:$bundle");
-        $matches = [
-          ...$matches,
-          ...$this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema),
-        ];
+    if ($host_entity_type !== NULL && $host_entity_bundle !== NULL) {
+      $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
+      $matches = $this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema);
+    }
+    else {
+      foreach ($entity_type_bundles as $entity_type_id => $bundles) {
+        foreach (array_keys($bundles) as $bundle) {
+          $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$entity_type_id:$bundle");
+          $matches = [
+            ...$matches,
+            ...$this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema),
+          ];
+        }
       }
     }
     /** @var array<\Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
-    return array_values($keyed_by_string);
+    $instances = array_values($keyed_by_string);
+    $this->cache->set($cid, $instances);
+    return $instances;
   }
 
   private function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {
