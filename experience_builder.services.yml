@@ -30,11 +30,11 @@ services:
       - { name: render.main_content_renderer, format: xb_template }
   Drupal\experience_builder\Render\MainContent\XBPreviewRenderer: { }
   Drupal\experience_builder\Plugin\ComponentPluginManager:
-    decorates: Drupal\Core\Theme\ComponentPluginManager
+    decorates: plugin.manager.sdc
     parent: Drupal\Core\Theme\ComponentPluginManager
     arguments: ['@entity_type.manager', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository']
   Drupal\experience_builder\Plugin\BlockManager:
-    decorates: Drupal\Core\Block\BlockManagerInterface
+    decorates: plugin.manager.block
     parent: Drupal\Core\Block\BlockManagerInterface
     arguments: ['@config.typed', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository', '@Drupal\experience_builder\ComponentSource\ComponentSourceManager']
   Drupal\experience_builder\ComponentSource\ComponentSourceManager:

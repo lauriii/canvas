@@ -30,7 +30,15 @@ final class XbTwigExtensionTest extends KernelTestBase {
     'xb_test_sdc',
     'user',
     'system',
+    'block',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
+    'file',
+    'image',
     'media',
+    'options',
+    'path',
+    'link',
   ];
 
   /**

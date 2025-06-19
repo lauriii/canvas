@@ -20,7 +20,20 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder', 'system'];
+  protected static $modules = [
+    'experience_builder',
+    'block',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
+    'file',
+    'image',
+    'media',
+    'options',
+    'path',
+    'link',
+    'system',
+    'user',
+  ];
 
   /**
    * {@inheritdoc}

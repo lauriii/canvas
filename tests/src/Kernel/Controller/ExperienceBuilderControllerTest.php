@@ -34,9 +34,19 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
    */
   protected static $modules = [
     'experience_builder',
-    'system',
     'entity_test',
     ...self::PAGE_TEST_MODULES,
+    'block',
+    // XB's dependencies (modules providing field types + widgets).
+    'datetime',
+    'file',
+    'image',
+    'media',
+    'options',
+    'path',
+    'link',
+    'system',
+    'user',
   ];
 
   protected function setUp(): void {
