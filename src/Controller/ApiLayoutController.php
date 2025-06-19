@@ -316,7 +316,7 @@ final class ApiLayoutController {
         $content = $region_node;
       }
       // Save the global region if it has a corresponding enabled PageRegion.
-      elseif (array_key_exists($client_side_region_id, $page_regions)) {
+      elseif ($updateAutoSave && array_key_exists($client_side_region_id, $page_regions)) {
         $page_region = $page_regions[$client_side_region_id];
         $this->autoSaveManager->save($page_region, [
           'layout' => $region_node['components'],
