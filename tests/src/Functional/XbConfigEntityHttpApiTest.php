@@ -518,6 +518,25 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'js_footer' => '',
       ],
     ], $body);
+    $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/disabled_js_component');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      'machineName' => 'disabled_js_component',
+      'name' => 'Disabled JavaScript Component',
+      'status' => FALSE,
+      'block_override' => NULL,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'source_code_js' => '',
+      'source_code_css' => '',
+      'compiled_js' => '',
+      'compiled_css' => '',
+      'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
+      'css' => '',
+      'js_header' => '',
+      'js_footer' => '',
+    ], $body);
     $jsComponent->delete();
 
     // Create a Code Component via the XB HTTP API, but forget crucial data: 500, courtesy of OpenAPI.
@@ -811,6 +830,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
+    // Admin should be able to get the Code Component from the XB HTTP API.
+    $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/test');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_component, $body);
+
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
     $request_options[RequestOptions::JSON] = [
       'machineName' => [$code_component_to_send['machineName']],
@@ -1042,6 +1066,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/v0/config/xb_asset_library");
+    $canonical_url = Url::fromUri("base:/xb/api/v0/config/xb_asset_library/global");
     $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/xb_asset_library/global");
 
     $request_options = [
@@ -1068,6 +1093,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // unpublished ones.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
+    // Admin should be able to get disabled Asset Library from the XB HTTP API.
+    // @todo fix in https://www.drupal.org/project/experience_builder/issues/3530590
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, [''], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $this->assertSame([
+      'errors' => [''],
+    ], $body);
     $library->delete();
 
     // Create an Asset Library via the XB HTTP API, but forget crucial data that causes
@@ -1144,6 +1175,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         "'xb_asset_library' entity with ID 'global' already exists.",
       ],
     ], $body);
+
+    // Admin should be able to get the Asset Library from the XB HTTP API.
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, [''], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($asset_library_to_send, $body);
 
     $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), $list_url, 'config:xb_asset_library_list');
   }
