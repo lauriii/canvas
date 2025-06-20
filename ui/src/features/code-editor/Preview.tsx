@@ -25,7 +25,12 @@ import {
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
-import { getDrupal, getXbSettings, getBaseUrl } from '@/utils/drupal-globals';
+import {
+  getBaseUrl,
+  getDrupal,
+  getDrupalSettings,
+  getXbSettings,
+} from '@/utils/drupal-globals';
 
 const Drupal = getDrupal();
 const XB_MODULE_UI_PATH =
@@ -217,6 +222,10 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     const slotNames = !blockOverride
       ? getSlotNamesForPreview(slots)
       : getExampleSlotNamesForOverridePreview(blockOverride);
+    // Remove the `xb` and `xbExtension` properties from `drupalSettings`.
+    // They are only added for the XB UI, and are not available normally.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { xb, xbExtension, ...drupalSettings } = getDrupalSettings();
     const previewJsData = JSON.stringify({
       compiledJsUrl: URL.createObjectURL(
         new Blob([compiledJs], { type: 'text/javascript' }),
@@ -226,6 +235,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       ),
       propValues,
       slotNames,
+      drupalSettings,
     });
     setIframeSrcDoc(
       getIframeSrc({

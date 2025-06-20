@@ -34,7 +34,13 @@ try {
   throw new Error('Failed to parse code editor preview data: ' + e.message);
 }
 
-const { compiledJsUrl, compiledJsForSlotsUrl, propValues, slotNames } = data;
+const {
+  compiledJsUrl,
+  compiledJsForSlotsUrl,
+  propValues,
+  slotNames,
+  drupalSettings,
+} = data;
 
 if (!compiledJsUrl) {
   throw new Error(
@@ -59,6 +65,14 @@ if (!slotNames) {
     'Missing required property in code editor preview data: slotNames',
   );
 }
+
+if (!drupalSettings) {
+  throw new Error(
+    'Missing required property in code editor preview data: drupalSettings',
+  );
+}
+
+window.drupalSettings = drupalSettings;
 
 // Import the compiled JavaScript modules and render the component.
 Promise.all([import(compiledJsUrl), import(compiledJsForSlotsUrl)]).then(

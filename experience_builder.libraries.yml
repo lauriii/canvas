@@ -104,6 +104,8 @@ astro.hydration:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
     gpl-compatible: true
+  dependencies:
+    - core/drupalSettings
 
 preview:
   css:
