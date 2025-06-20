@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -16,6 +17,7 @@ use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Utility\Error;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\ClientDataToEntityConverter;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
@@ -25,6 +27,8 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\user\UserInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,12 +42,15 @@ final class ApiAutoSaveController extends ApiControllerBase {
   public const AVATAR_IMAGE_STYLE = 'xb_avatar';
 
   public function __construct(
+    private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly TypedConfigManagerInterface $typedConfigManager,
     private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
     private readonly AutoSaveManager $autoSaveManager,
+    #[Autowire(service: 'logger.channel.experience_builder')]
+    private readonly LoggerInterface $logger,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $all_auto_saves): ?JsonResponse {
@@ -200,10 +207,23 @@ final class ApiAutoSaveController extends ApiControllerBase {
     if ($validation_errors_response = self::createJsonResponseFromViolationSets(...$violationSets)) {
       return $validation_errors_response;
     }
-    foreach ($entities as $entity) {
-      $entity->save();
-      $this->autoSaveManager->delete($entity);
+
+    // Either everything must be published, or nothing at all.
+    try {
+      $transaction = $this->database->startTransaction();
+      foreach ($entities as $entity) {
+        $entity->save();
+        $this->autoSaveManager->delete($entity);
+      }
     }
+    catch (\Exception $e) {
+      if (isset($transaction)) {
+        $transaction->rollBack();
+      }
+      Error::logException($this->logger, $e);
+      throw $e;
+    }
+
     return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($publish_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);
   }
 
