@@ -1,13 +1,25 @@
 <div>
   <h2>Boolean shapes</h2>
-  <dl id="test-bool">
-    <dt>test_bool</dt>
+  <dt>test_bool_default_false</dt>
     <dd>
-  {% if test_bool %}
+      <div id="test-bool-default-false">
+  {% if test_bool_default_false %}
     <code>true</code>
   {% else %}
     <code>false</code>
   {% endif %}
+      </div>
+    </dd>
+  <dl>
+    <dt>test_bool_default_true</dt>
+    <dd>
+      <div id="test-bool-default-true">
+  {% if test_bool_default_true %}
+    <code>true</code>
+  {% else %}
+    <code>false</code>
+  {% endif %}
+      </div>
     </dd>
   </dl>
   <h2>String shapes</h2>

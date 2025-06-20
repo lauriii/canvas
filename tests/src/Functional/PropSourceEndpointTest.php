@@ -228,7 +228,17 @@ class PropSourceEndpointTest extends FunctionalTestBase {
       'sdc.sdc_test_all_props.all-props' => [
         'id' => 'sdc.sdc_test_all_props.all-props',
         'dynamic_prop_source_candidates' => [
-          'test_bool' => [
+          'test_bool_default_false' => [
+            "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',
+            "Subset of this Article's Image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝status␞␟value',
+            "This Article's Promoted to front page" => 'ℹ︎␜entity:node:article␝promote␞␟value',
+            "This Article's Default revision" => 'ℹ︎␜entity:node:article␝revision_default␞␟value',
+            "This Article's Revision user" => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "This Article's Published" => 'ℹ︎␜entity:node:article␝status␞␟value',
+            "This Article's Sticky at top of lists" => 'ℹ︎␜entity:node:article␝sticky␞␟value',
+            "This Article's Authored by" => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝status␞␟value',
+          ],
+          'test_bool_default_true' => [
             "This Article's Default translation" => 'ℹ︎␜entity:node:article␝default_langcode␞␟value',
             "Subset of this Article's Image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:article␝field_image␞␟entity␜␜entity:file␝status␞␟value',
             "This Article's Promoted to front page" => 'ℹ︎␜entity:node:article␝promote␞␟value',

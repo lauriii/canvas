@@ -67,7 +67,7 @@ into Field Types` doc](shape-matching-into-field-types.md).
 For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST always have schema, even for theme `SDC`s
 - MUST have `title` for each prop
-- MUST have `example` for each required prop
+- MUST have `example` for each required prop, the first example is used as the default value
 - MUST have only props for whose `prop shape`s a `static prop source` can be found (see the [`XB Shape Matching into Field
   Types` doc, section 3.1.2.b](shape-matching-into-field-types.md#3.1.2.b).
 - MUST not have `status` value `obsolete`

@@ -197,7 +197,21 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'sdc_test_all_props:all-props',
       'entity:node:foo',
       [
-        '⿲sdc_test_all_props:all-props␟test_bool' => [
+        '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
+          'required' => FALSE,
+          'instances' => [
+            "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
+            "Subset of this Foo's field_silly_image: entity (1 of 5 props — absent: alt, title, width, height)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            "This Foo's Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
+            "This Foo's Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
+            "This Foo's Revision user" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "This Foo's Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            "This Foo's Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "This Foo's Authored by" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
           'instances' => [
             "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',

@@ -478,7 +478,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲experience_builder:shoe_tab␟closable',
             '⿲experience_builder:shoe_tab␟disabled',
             '⿲experience_builder:shoe_tab_panel␟active',
-            '⿲sdc_test_all_props:all-props␟test_bool',
+            '⿲sdc_test_all_props:all-props␟test_bool_default_false',
+            '⿲sdc_test_all_props:all-props␟test_bool_default_true',
           ],
           'static prop source' => 'ℹ︎boolean␟value',
           'instances' => [

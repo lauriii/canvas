@@ -8,8 +8,13 @@ props:
     - test_REQUIRED_string_html_block
     - test_REQUIRED_string_html
   properties:
-    test_bool:
-      title: 'Bool'
+    test_bool_default_false:
+      title: 'Bool (default false)'
+      type: boolean
+      examples:
+        - false
+    test_bool_default_true:
+      title: 'Bool (default true)'
       type: boolean
       examples:
         - true

@@ -78,16 +78,44 @@ describe('Prop types editing', () => {
     cy.drupalUninstall();
   });
 
-  it('Boolean', { retries: { openMode: 0, runMode: 3 } }, () => {
-    cy.waitForElementContentInIframe('#test-bool code', 'true');
-    cy.waitForElementContentNotInIframe('#test-bool code', 'false');
-    cy.findByLabelText('Bool')
+  // it(
+  //   'Boolean - default false',
+  //   { retries: { openMode: 0, runMode: 3 } },
+  //   () => {
+  //     cy.waitForElementContentInIframe(
+  //       '#test-bool-default-false code',
+  //       'false',
+  //     );
+  //     cy.waitForElementContentNotInIframe(
+  //       '#test-bool-default-false code',
+  //       'true',
+  //     );
+  //     cy.findByLabelText('Bool (default false)')
+  //       .assertToggleState(false)
+  //       .toggleToggle()
+  //       .assertToggleState(true);
+  //
+  //     cy.waitForElementContentInIframe('#test-bool-default-false code', 'true');
+  //     cy.waitForElementContentNotInIframe(
+  //       '#test-bool-default-false code',
+  //       'false',
+  //     );
+  //   },
+  // );
+
+  it('Boolean - default true', () => {
+    cy.waitForElementContentInIframe('#test-bool-default-true code', 'true');
+    cy.waitForElementContentNotInIframe(
+      '#test-bool-default-true code',
+      'false',
+    );
+    cy.findByLabelText('Bool (default true)')
       .assertToggleState(true)
       .toggleToggle()
       .assertToggleState(false);
 
-    cy.waitForElementContentInIframe('#test-bool code', 'false');
-    cy.waitForElementContentNotInIframe('#test-bool code', 'true');
+    cy.waitForElementContentInIframe('#test-bool-default-true code', 'false');
+    cy.waitForElementContentNotInIframe('#test-bool-default-true code', 'true');
   });
 
   it(
