@@ -29,6 +29,19 @@ entity.component.enable:
     _entity_access: 'component.enable'
     _csrf_token: 'TRUE'
 
+experience_builder.api.auto-save.delete:
+  path: '/xb/api/v0/auto-saves/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::delete'
+  requirements:
+    _permission: 'access administration pages'
+  methods: [DELETE]
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+
 experience_builder.api.auto-save.get:
   path: '/xb/api/v0/auto-saves/pending'
   defaults:

@@ -177,6 +177,38 @@ paths:
                       - No items to publish
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
+  /xb/api/v0/auto-saves/{entityTypeId}/{entityId}:
+    description:  Interact with an auto-save entry for a particular entity
+    parameters:
+      - $ref: '#/components/parameters/entityTypeId'
+      - $ref: '#/components/parameters/entityId'
+    delete:
+      description: Deletes an auto-save entry
+      responses:
+        '204':
+          description: Auto-save entry deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    title: Status message
+                    examples:
+                      - Auto-save data deleted successfully.
+        '404':
+          description: Auto-save entry not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    title: Error message
+                    examples:
+                      - No auto-save data found for this entity.
   /xb/api/v0/config/auto-save/{entityTypeId}/{configEntityId}:
     description: Auto-save endpoints
     get:

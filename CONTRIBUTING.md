@@ -47,7 +47,7 @@ Tip: Use `ddev help <command>` for additional information about the command and 
 8.  Browse to `/node/add/article` just enter a title for the article and hit save. This will create a node with an empty canvas for the field `field_xb_demo`.
 9.  In the toolbar, click "Experience Builder"! 🥳
 10. If you're curious: look at the code, step through it with a debugger, and join us!
-11. If you want to run *all* tests locally: `composer require jangregor/phpstan-prophecy league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev && composer update`
+11. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator webflo/drupal-finder devizzent/cebe-php-openapi --dev && composer update`
 
 ### During development
 The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`).

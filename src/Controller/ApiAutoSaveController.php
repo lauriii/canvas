@@ -9,6 +9,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableInterface;
@@ -204,6 +205,14 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $this->autoSaveManager->delete($entity);
     }
     return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($publish_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);
+  }
+
+  public function delete(EntityInterface $entity): JsonResponse {
+    if ($this->autoSaveManager->getAutoSaveData($entity)->isEmpty()) {
+      return new JsonResponse(data: ['error' => 'No auto-save data found for this entity.'], status: Response::HTTP_NOT_FOUND);
+    }
+    $this->autoSaveManager->delete($entity);
+    return new JsonResponse(data: ['message' => 'Auto-save data deleted successfully.'], status: Response::HTTP_NO_CONTENT);
   }
 
   /**

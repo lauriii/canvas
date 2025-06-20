@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
@@ -30,6 +33,7 @@ use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Controller\ApiAutoSaveController
@@ -91,7 +95,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->save($anonAccountContent, $emptyData);
 
-    list($account1, $avatarUrl) = $this->setUserWithPictureField($permissions);
+    [$account1, $avatarUrl] = $this->setUserWithPictureField($permissions);
     self::assertInstanceOf(AccountInterface::class, $account1);
     self::assertInstanceOf(UserInterface::class, $account1);
 
@@ -665,6 +669,127 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Ensure that after the nodes have been published their auto-save data is
     // removed.
     $this->assertNoAutoSaveData();
+  }
+
+  /**
+   * @covers ::delete
+   */
+  public function testDelete(): void {
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    self::assertCount(0, $auto_save_data);
+
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Test Article for Delete',
+    ]);
+    $node->save();
+
+    $client_json = [
+      'layout' => [
+        [
+          'id' => 'content',
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [
+        'title[0][value]' => 'Updated Title',
+      ],
+    ];
+
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->save($node, $client_json);
+
+    // Verify auto-save data exists.
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    self::assertCount(1, $auto_save_data);
+    self::assertArrayHasKey("node:{$node->id()}:en", $auto_save_data);
+
+    $account = $this->createUser([]);
+    \assert($account instanceof AccountInterface);
+    $this->setCurrentUser($account);
+    $url = Url::fromRoute('experience_builder.api.auto-save.delete', [
+      'entity_type' => 'node',
+      'entity' => $node->id(),
+    ]);
+    $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+
+    // Authenticated but unauthorized: 403 due to missing permission.
+    try {
+      $this->request($request);
+      $this->fail('Expected access denied exception');
+    }
+    catch (AccessDeniedHttpException $e) {
+      // @todo Update in https://www.drupal.org/i/3529892
+      self::assertSame(
+        "The 'access administration pages' permission is required.",
+        $e->getMessage()
+      );
+    }
+
+    // With permission but no CSRF header.
+    $account = $this->createUser(['access administration pages']);
+    \assert($account instanceof AccountInterface);
+    $this->setCurrentUser($account);
+    $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+    $session_configuration = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
+    $request->cookies->set($session_configuration['name'], 'ABCD');
+    try {
+      $this->request($request);
+      $this->fail('Expected access denied exception');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertSame(
+        "X-CSRF-Token request header is missing",
+        $e->getMessage()
+      );
+    }
+
+    // Nonsense CSRF header
+    $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+    $session_configuration = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
+    $request->cookies->set($session_configuration['name'], 'ABCD');
+    $request->headers->set('X-CSRF-Token', 'let me in');
+    try {
+      $this->request($request);
+      $this->fail('Expected access denied exception');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertSame(
+        "X-CSRF-Token request header is invalid",
+        $e->getMessage()
+      );
+    }
+
+    // Valid DELETE request.
+    $token_generator = $this->container->get(CsrfTokenGenerator::class);
+    $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+    $request->cookies->set($session_configuration['name'], 'ABCD');
+    $request->headers->set('X-CSRF-Token', $token_generator->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY));
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    self::assertSame(
+      ['message' => 'Auto-save data deleted successfully.'],
+      json_decode((string) $response->getContent(), TRUE)
+    );
+
+    // Verify auto-save data was deleted.
+    self::assertCount(0, $this->getAutoSaveStatesFromServer());
+    $autoSaveData = $autoSave->getAutoSaveData($node);
+    self::assertTrue($autoSaveData->isEmpty());
+
+    // Try to delete again, should get 404.
+    $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+    $request->headers->set('X-CSRF-Token', $token_generator->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY));
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+    self::assertSame(
+      ['error' => 'No auto-save data found for this entity.'],
+      json_decode((string) $response->getContent(), TRUE)
+    );
   }
 
 }
