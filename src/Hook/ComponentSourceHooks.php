@@ -9,7 +9,6 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeCommonElements;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -25,13 +24,11 @@ use Symfony\Component\Routing\Route;
 final class ComponentSourceHooks implements ContainerInjectionInterface {
 
   public function __construct(
-    private readonly AutoSaveManager $autoSaveManager,
     private readonly RouteMatchInterface $routeMatch,
   ) {}
 
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get(AutoSaveManager::class),
       $container->get('current_route_match'),
     );
   }
@@ -99,25 +96,9 @@ final class ComponentSourceHooks implements ContainerInjectionInterface {
   public function pageAttachments(array &$page): void {
     $route = $this->routeMatch->getRouteObject();
     assert($route instanceof Route);
-    if ($route->getOption('_xb_use_template_draft') !== TRUE) {
-      // Outside the XB UI, never load the draft.
-      $page['#attached']['library'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
-      return;
-    }
-    // Load the auto-save/draft version of the global asset library in the XB UI.
-    $global_asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
-    assert($global_asset_library instanceof AssetLibrary);
-
-    $auto_saved_global_asset_library = NULL;
-    $auto_save = $this->autoSaveManager->getAutoSaveData($global_asset_library);
-    if (!$auto_save->isEmpty()) {
-      \assert($auto_save->data !== NULL);
-      $auto_saved_global_asset_library = $global_asset_library->forAutoSavePreview($auto_save->data);
-    }
-    $page['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
-    $page['#attached']['library'][] = $auto_saved_global_asset_library !== NULL ?
-      'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft' :
-      'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
+    $is_preview = $route->getOption('_xb_use_template_draft') === TRUE;
+    // @phpstan-ignore-next-line
+    $page['#attached']['library'][] = AssetLibrary::load(AssetLibrary::GLOBAL_ID)->getAssetLibrary($is_preview);
   }
 
   /**

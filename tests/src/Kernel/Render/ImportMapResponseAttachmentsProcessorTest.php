@@ -28,7 +28,24 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
   protected static $modules = [
     'experience_builder',
     'big_pipe',
+    // XB's dependencies (modules providing field types + widgets).
+    'ckeditor5',
+    'editor',
+    'field',
+    'file',
+    'filter',
+    'image',
+    'link',
+    'media',
+    'options',
+    'text',
   ];
+
+  protected function setUp(): void {
+    parent::setUp();
+    // Experience Builder configuration (creates the global AssetLibrary).
+    $this->installConfig('experience_builder');
+  }
 
   public function testImportMapResponseAttachmentsProcessor(): void {
     $renderer = $this->container->get('main_content_renderer.html');

@@ -490,6 +490,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    *   ["newline\nnot_allowed", true, "c413270ad235c44c"]
    *   ["rm -rf /", true, "d4b25a8c7fa2617c"]
    *   ["slot_\u03E2eird", true, "c33062b3a4641476"]
+   *   ["children", true, "1cea66d0113298ef"]
    */
   public function testSlotNameValidation(string $slot_name, bool $is_invalid, string $expected_version): void {
     // For every "code component" (JavaScriptComponent) with `status: true`, a

@@ -140,7 +140,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
       if ($key === '#is_preview' || $key === 'xb_is_preview') {
         $value = $is_preview;
       }
-      if ($value === 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID) {
+      if (is_string($value) && str_starts_with($value, 'experience_builder/')) {
         $value .= '.draft';
       }
     });
@@ -1026,6 +1026,7 @@ HTML,
                                           ],
                                         ],
                                         'library' => [
+                                          'experience_builder/astro_island.my-cta',
                                           'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID,
                                         ],
                                       ],
@@ -1093,6 +1094,7 @@ HTML,
                                           ],
                                         ],
                                         'library' => [
+                                          'experience_builder/astro_island.my-cta-with-auto-save',
                                           'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID,
                                         ],
                                       ],
@@ -1295,6 +1297,13 @@ HTML,
               'max-age' => Cache::PERMANENT,
             ],
           ],
+          // ⚠️ Now how also a code component without an auto-save is loaded
+          // from the draft URL anyway (which avoids race conditions), but note
+          // that its title does not get a "draft" suffix.
+          [
+            'parents' => [...$path_to_js_component, '#component_url'],
+            'value' => '/xb/api/v0/auto-saves/js/js_component/my-cta',
+          ],
           [
             'parents' => [...$path_to_js_component, '#cache'],
             'value' => [
@@ -1329,12 +1338,12 @@ HTML,
     Experience Builder Test Site
 </div>
 <!-- xb-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- xb-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><astro-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
-        component-url="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js"
+        component-url="/xb/api/v0/auto-saves/js/js_component/my-cta"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
         props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
         ssr="" client="only"
-        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+        opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
         component-url="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"

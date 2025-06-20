@@ -408,27 +408,28 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     return $entity_type->getConfigPrefix();
   }
 
-  public function getComponentUrl(FileUrlGeneratorInterface $generator, AutoSaveData $autoSave, bool $isPreview): string {
-    if (!self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
+  public function getComponentUrl(FileUrlGeneratorInterface $generator, bool $isPreview): string {
+    if (!$isPreview) {
       return $generator->generateString($this->getJsPath());
     }
-    \assert($autoSave->data !== NULL);
     return Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
       'xb_config_entity_type_id' => self::ENTITY_TYPE_ID,
       'xb_config_entity' => $this->id(),
     ])->toString();
   }
 
-  public function getCssLibrary(AutoSaveData $autoSave, bool $isPreview): ?string {
+  /**
+   * {@inheritdoc}
+   */
+  public function getAssetLibrary(bool $isPreview): string {
+    // Inside the XB UI, always load the draft even if there isn't one. Let the
+    // controller logic automatically serve the non-draft assets when a draft
+    // disappears. This is necessary to allow for asset library dependencies,
+    // and avoids race conditions.
     // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
-    $css_library = 'experience_builder/astro_island.' . $this->id();
-    $has_css = $this->hasCss();
-    if (self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
-      $css_library .= '.draft';
-      \assert($autoSave->data !== NULL);
-      $has_css = self::forAutoSavePreview($autoSave->data)->hasCss();
-    }
-    return $has_css ? $css_library : NULL;
+    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss()
+    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs()
+    return 'experience_builder/astro_island.' . $this->id() . ($isPreview ? '.draft' : '');
   }
 
   private static function shouldLoadAssetFromAutoSave(AutoSaveData $autoSave, bool $isPreview) : bool {

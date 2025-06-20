@@ -45,6 +45,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     'xb_test_sdc',
     ...self::PAGE_TEST_MODULES,
     // XB's dependencies (modules providing field types + widgets).
+    'ckeditor5',
+    'editor',
     'field',
     'file',
     'image',
@@ -59,6 +61,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     parent::setUp();
     $this->generateComponentConfig();
 
+    $this->container->get('theme_installer')->install(['stark']);
+
     // Needed for date formats.
     $this->installConfig(['system']);
     $this->installConfig('node');
@@ -67,6 +71,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
+    // Experience Builder configuration (creates the global AssetLibrary).
+    $this->installConfig('experience_builder');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $this->createContentType(['name' => 'Article', 'type' => 'article']);

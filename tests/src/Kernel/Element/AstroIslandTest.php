@@ -207,7 +207,7 @@ final class AstroIslandTest extends KernelTestBase {
       fn () => \Drupal::service('library.discovery.collector'),
     );
     assert($discovery instanceof CacheCollectorInterface);
-    self::assertArrayNotHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
+    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
 
     $island = [
       '#type' => AstroIsland::PLUGIN_ID,

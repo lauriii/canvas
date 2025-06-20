@@ -121,4 +121,17 @@ final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
     Cache::invalidateTags(['library_info']);
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getAssetLibrary(bool $isPreview): string {
+    // Inside the XB UI, always load the draft even if there isn't one. Let the
+    // controller logic automatically serve the non-draft assets when a draft
+    // disappears. This is necessary to allow for asset library dependencies,
+    // and avoids race conditions.
+    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss()
+    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs()
+    return 'experience_builder/asset_library.' . $this->id() . ($isPreview ? '.draft' : '');
+  }
+
 }

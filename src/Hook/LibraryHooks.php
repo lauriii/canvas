@@ -85,29 +85,43 @@ final class LibraryHooks {
   #[Hook('library_info_build')]
   public function libraryInfoBuild(): array {
     $libraries = [];
+
+    // @see \Drupal\experience_builder\Entity\AssetLibrary::getAssetLibrary()
     // @see \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
     foreach (AssetLibrary::loadMultiple() as $library_id => $library) {
       $library_name = "asset_library." . $library->id();
+      // Prod.
+      $libraries[$library_name] = [
+        'dependencies' => [],
+      ];
       if ($library->hasCss()) {
         $libraries[$library_name]['css']['theme'][$library->getCssPath()] = [];
       }
-      $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
-      $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
       }
+      // Draft.
+      $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
+      $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
       $draft_js_url = \sprintf('/xb/api/v0/auto-saves/js/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['js'][$draft_js_url] = ['preprocess' => FALSE];
     }
+
+    // @see \Drupal\experience_builder\Entity\JavaScriptComponent::getAssetLibrary()
     // @see \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
     foreach (JavaScriptComponent::loadMultiple() as $component_id => $component) {
       $library_name = "astro_island." . $component_id;
+      // Prod.
       if ($component->hasCss()) {
         $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
       }
+      $libraries[$library_name]['dependencies'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
+      // Draft.
       $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
       $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = ['preprocess' => FALSE];
+      $libraries[$library_name . '.draft']['dependencies'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft';
     }
+
     $theme_config = $this->configFactory->get('system.theme');
     $admin_theme_name = $theme_config->get('admin') ?: $theme_config->get('default');
     if ($this->themeHandler->themeExists($admin_theme_name)) {

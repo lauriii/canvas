@@ -24,6 +24,18 @@ interface XbAssetInterface extends XbHttpApiEligibleConfigEntityInterface {
   public function getCssPath(): string;
 
   /**
+   * The (generated) asset library for this config entity.
+   *
+   * @param bool $isPreview
+   *   Whether this asset library will be used for a preview or not; allows
+   *   returning a different asset library in previews.
+   *
+   * @return string
+   *   An asset library.
+   */
+  public function getAssetLibrary(bool $isPreview): string;
+
+  /**
    * Creates an instance for previewing with auto-save data.
    *
    * Note that no validation is performed and the caller is responsible for

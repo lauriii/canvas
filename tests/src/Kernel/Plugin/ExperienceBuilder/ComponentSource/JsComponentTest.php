@@ -249,6 +249,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
           ]),
         'attachments' => [
           'library' => [
+            'experience_builder/astro_island.xb_test_code_components_using_imports',
+            'experience_builder/astro_island.xb_test_code_components_with_no_props',
             'experience_builder/astro_island.xb_test_code_components_with_props',
             ...$default_libraries,
           ],
@@ -277,7 +279,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_vanilla_image']),
         'attachments' => [
-          'library' => $default_libraries,
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_vanilla_image',
+            ...$default_libraries,
+          ],
           'html_head_link' => [
             ...$default_html_head_links,
             [
@@ -295,7 +300,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_no_props']),
         'attachments' => [
-          'library' => $default_libraries,
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_with_no_props',
+            ...$default_libraries,
+          ],
           'html_head_link' => [
             ...$default_html_head_links,
             [
@@ -314,7 +322,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
           ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_props']),
         'attachments' => [
           'library' => [
-            // This code component has CSS, and hence an asset library for that.
             'experience_builder/astro_island.xb_test_code_components_with_props',
             ...$default_libraries,
           ],
@@ -340,7 +347,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
    * @depends testDiscovery
    * @testWith [false, false, "live", []]
    *           [false, true, "live", []]
-   *           [true, false, "live", ["experience_builder__auto_save"]]
+   *           [true, false, "draft", ["experience_builder__auto_save"]]
    *           [true, true, "draft", ["experience_builder__auto_save"]]
    */
   public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $additional_expected_cache_tags, array $component_ids): void {
@@ -575,9 +582,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
    *           [false, false, true, "live"]
    *           [false, true, false, "live"]
    *           [false, true, true, "live"]
-   *           [true, false, false, "live"]
+   *           [true, false, false, "draft"]
    *           [true, false, true, "draft"]
-   *           [true, true, false, "live"]
+   *           [true, true, false, "draft"]
    *           [true, true, true, "draft"]
    */
   public function testImportMaps(bool $preview, bool $create_auto_save, bool $create_dependency_auto_save, string $dependencies_expected_result): void {
@@ -706,15 +713,23 @@ final class JsComponentTest extends ComponentSourceTestBase {
     self::assertArrayHasKey('#import_maps', $rendered_component);
     self::assertArrayHasKey('scopes', $rendered_component['#import_maps']);
     $scoped_import_maps = $rendered_component['#import_maps']['scopes'];
-    $dependency_import_key = $dependency_js_component->getComponentUrl($file_generator, $autoSave->getAutoSaveData($dependency_js_component), $preview);
-    $nested_dependency_key = $nested_dependency_js_component->getComponentUrl($file_generator, $autoSave->getAutoSaveData($nested_dependency_js_component), $preview);
-    $dependency_without_css_import_key = $dependency_js_component_without_css->getComponentUrl($file_generator, $autoSave->getAutoSaveData($dependency_js_component_without_css), $preview);
+    $dependency_import_key = $dependency_js_component->getComponentUrl($file_generator, $preview);
+    $nested_dependency_key = $nested_dependency_js_component->getComponentUrl($file_generator, $preview);
+    $dependency_without_css_import_key = $dependency_js_component_without_css->getComponentUrl($file_generator, $preview);
     self::assertArrayHasKey($dependency_import_key, $scoped_import_maps);
     self::assertNotEmpty($rendered_component['#attached']['library']);
     $attached_libraries = $rendered_component['#attached']['library'];
-    // The dependency without CSS should not have its library attached.
-    self::assertNotContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
-    self::assertNotContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
+    // The dependency without CSS should ALSO have its library attached, because
+    // that is how every code component's dependency on the global asset library
+    // is declared.
+    if ($preview) {
+      self::assertContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
+      self::assertNotContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
+    }
+    else {
+      self::assertNotContains('experience_builder/astro_island.dependency_component_no_css.draft', $attached_libraries);
+      self::assertContains('experience_builder/astro_island.dependency_component_no_css', $attached_libraries);
+    }
     if ($dependencies_expected_result === 'draft') {
       $nested_dependency_js_path = base_path() . 'xb/api/v0/auto-saves/js/js_component/nested_dependency_component';
       self::assertContains('experience_builder/astro_island.dependency_component.draft', $attached_libraries);

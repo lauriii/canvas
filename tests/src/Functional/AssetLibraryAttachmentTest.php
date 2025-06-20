@@ -68,7 +68,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $auto_save_css_path = base_path() . 'xb/api/v0/auto-saves/css/xb_asset_library/' . $library->id();
     $auto_save_js_path = base_path() . 'xb/api/v0/auto-saves/js/xb_asset_library/' . $library->id();
 
-    $assert_library_global_library = function (string $path, bool $uses_auto_save) use ($regular_css_path, $regular_js_path, $auto_save_css_path, $auto_save_js_path) {
+    $assert_library_global_library = function (string $path, bool $is_preview) use ($regular_css_path, $regular_js_path, $auto_save_css_path, $auto_save_js_path) {
       $response = $this->drupalGet($path);
       $parsed_response = json_decode($response, TRUE);
       if ($parsed_response === NULL) {
@@ -79,10 +79,10 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
         $html = $parsed_response['html'];
       }
       $crawler = new Crawler($html);
-      self::assertCount($uses_auto_save ? 0 : 1, $crawler->filter('link[href^="' . $regular_css_path . '"]'));
-      self::assertCount($uses_auto_save ? 0 : 1, $crawler->filter('script[src^="' . $regular_js_path . '"]'));
-      self::assertCount($uses_auto_save ? 1 : 0, $crawler->filter('link[href^="' . $auto_save_css_path . '"]'));
-      self::assertCount($uses_auto_save ? 1 : 0, $crawler->filter('script[src^="' . $auto_save_js_path . '"]'));
+      self::assertCount($is_preview ? 0 : 1, $crawler->filter('link[href^="' . $regular_css_path . '"]'));
+      self::assertCount($is_preview ? 0 : 1, $crawler->filter('script[src^="' . $regular_js_path . '"]'));
+      self::assertCount($is_preview ? 1 : 0, $crawler->filter('link[href^="' . $auto_save_css_path . '"]'));
+      self::assertCount($is_preview ? 1 : 0, $crawler->filter('script[src^="' . $auto_save_js_path . '"]'));
     };
     // Case 1: Regular page should use regular asset library.
     $assert_library_global_library('/user', FALSE);
@@ -106,7 +106,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
     // Case 3: Route with _xb_use_template_draft should use regular asset
     // library if there is no auto-saved version.
-    $assert_library_global_library('/xb/api/v0/layout/xb_page/' . $page->id(), FALSE);
+    $assert_library_global_library('/xb/api/v0/layout/xb_page/' . $page->id(), TRUE);
 
     // Create auto-save data for the global asset library.
     $auto_save_data = [

@@ -121,9 +121,9 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
     // JS is attached via an astro island and not a library.
     self::assertArrayHasKey('js', $discovered[$js_component_draft]);
     self::assertCount(0, $discovered[$js_component_draft]['js']);
-    // But the actual libraries should not.
-    self::assertArrayNotHasKey($js_component_library, $discovered);
-    self::assertArrayNotHasKey($asset_library, $discovered);
+    // And so should the actual libraries.
+    self::assertArrayHasKey($js_component_library, $discovered);
+    self::assertArrayHasKey($asset_library, $discovered);
 
     // Now let's add some actual CSS/JS to the AssetLibrary config entity.
     $some_css = '.big { font-size: 3rem; }';
@@ -143,9 +143,8 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
     // JS is attached via an astro island and not a library.
     self::assertArrayHasKey('js', $discovered[$js_component_draft]);
     self::assertCount(0, $discovered[$js_component_draft]['js']);
-    // And the actual library should exist now too, but only for the
-    // AssetLibrary config entity.
-    self::assertArrayNotHasKey($js_component_library, $discovered);
+    // And the actual library should exist now too.
+    self::assertArrayHasKey($js_component_library, $discovered);
     self::assertArrayHasKey($asset_library, $discovered);
     self::assertArrayHasKey('css', $discovered[$asset_library]);
     self::assertArrayHasKey('js', $discovered[$asset_library]);
