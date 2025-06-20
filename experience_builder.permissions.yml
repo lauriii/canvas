@@ -34,3 +34,7 @@ edit xb_page:
 delete xb_page:
   title: 'Delete XB Page'
   description: 'Delete an Experience Builder page.'
+
+publish auto-saves:
+  title: 'Publish Experience Builder Content'
+  description: 'Update entities with auto-saved changes in Experience Builder (requires "update" access for those entities).'

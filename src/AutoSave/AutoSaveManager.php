@@ -22,6 +22,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class AutoSaveManager implements EventSubscriberInterface {
 
   public const CACHE_TAG = 'experience_builder__auto_save';
+  public const string PUBLISH_PERMISSION = 'publish auto-saves';
 
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 

@@ -14,6 +14,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
@@ -21,6 +22,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\xb_personalization\Entity\Segment;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @see \Drupal\Tests\experience_builder\Kernel\ApiAutoSaveControllerTest
@@ -32,6 +34,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use AutoSaveManagerTestTrait;
+  use AutoSaveRequestTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
   use RequestTrait;
@@ -150,17 +153,28 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
-  public function testApiAutoSaveControllerPost(): void {
+  /**
+   * @testWith [false, "The 'publish auto-saves' permission is required."]
+   *           [true, null]
+   */
+  public function testPost(bool $authorized, ?string $expected_403_message): void {
     $this->setUpImages();
     $entity_type_manager = $this->container->get('entity_type.manager');
     $segment_storage = $entity_type_manager->getStorage(Segment::ENTITY_TYPE_ID);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
-    $this->setUpCurrentUser(permissions: [
+    $permissions = [
       'edit any article content',
       Page::EDIT_PERMISSION,
-      Segment::ADMIN_PERMISSION,
-    ]);
+    ];
+    if ($authorized) {
+      $permissions[] = AutoSaveManager::PUBLISH_PERMISSION;
+    }
+    $this->setUpCurrentUser(permissions: $permissions);
+    if ($expected_403_message) {
+      $this->expectException(AccessDeniedHttpException::class);
+      $this->expectExceptionMessage($expected_403_message);
+    }
     $this->assertNoAutoSaveData();
     $segment_id = 'new_segment';
     $data = [

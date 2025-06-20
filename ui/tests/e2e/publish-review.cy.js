@@ -16,7 +16,7 @@ describe('Publish review functionality', () => {
   });
 
   it(
-    'Can make a change and see changes in the “Review x changes” button',
+    'Can make a change and see changes in the "Review x changes" button',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.loadURLandWaitForXBLoaded();
@@ -80,6 +80,38 @@ describe('Publish review functionality', () => {
       cy.log('After publishing, the change should be visible page!');
       cy.visit('/node/1');
       cy.findByText('hello, world! updated').should('exist');
+    },
+  );
+
+  it(
+    'User without "publish auto-saves" permission cannot publish changes',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      // Create user with all xbUser permissions except publish auto-saves
+      cy.visit('admin/people/permissions/xb');
+      cy.get(
+        'input[type="checkbox"][data-drupal-selector="edit-xb-publish-auto-saves"]',
+      ).uncheck();
+      cy.get('input[data-drupal-selector="edit-submit"]').click();
+
+      cy.loadURLandWaitForXBLoaded();
+
+      cy.clickComponentInPreview('Hero');
+      cy.findByTestId(/^xb-component-form-.*/)
+        .findByLabelText('Heading')
+        .type(' updated by user without publish permission');
+
+      cy.findByText('Changed');
+      cy.findByText('Review 1 change').click();
+
+      cy.findByTestId('xb-publish-reviews-content').within(() => {
+        cy.findByText('Publish all changes').click();
+      });
+
+      // Attempt to publish all changes should show permission error
+      cy.findByTestId('xb-review-publish-errors').within(() => {
+        cy.findByText(/Errors/i).should('exist');
+      });
     },
   );
 });

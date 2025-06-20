@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\TestSite;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -500,6 +501,7 @@ class XBTestSetup implements TestSetupInterface {
         Page::CREATE_PERMISSION,
         Page::EDIT_PERMISSION,
         Page::DELETE_PERMISSION,
+        AutoSaveManager::PUBLISH_PERMISSION,
         'administer url aliases',
         'create url aliases',
         JavaScriptComponent::ADMIN_PERMISSION,

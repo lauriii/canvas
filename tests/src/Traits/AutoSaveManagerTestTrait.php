@@ -10,13 +10,9 @@ use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\Core\Url;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 trait AutoSaveManagerTestTrait {
 
@@ -41,35 +37,6 @@ trait AutoSaveManagerTestTrait {
         $clientData['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveData->hash;
       }
     }
-  }
-
-  protected function getAutoSaveStatesFromServer(): array {
-    $auto_save_controller = \Drupal::service(ApiAutoSaveController::class);
-    $response = $auto_save_controller->get();
-    assert($response instanceof JsonResponse);
-    $content = $response->getContent();
-    assert(is_string($content));
-    $auto_saves = json_decode($content, TRUE);
-    return $auto_saves;
-  }
-
-  protected function assertNoAutoSaveData(): void {
-    $response = $this->makePublishAllRequest([]);
-    $json = json_decode($response->getContent() ?: '', TRUE);
-    self::assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
-    self::assertEquals(['message' => 'No items to publish.'], $json);
-  }
-
-  protected function makePublishAllRequest(?array $data = NULL): JsonResponse {
-    if (is_null($data)) {
-      $data = $this->getAutoSaveStatesFromServer();
-    }
-    $controller = \Drupal::service(ApiAutoSaveController::class);
-    $request = Request::create(
-      Url::fromRoute('experience_builder.api.auto-save.post')->toString(),
-      content: (string) json_encode($data)
-    );
-    return $controller->post($request);
   }
 
   /**

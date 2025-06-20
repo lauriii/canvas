@@ -25,6 +25,7 @@ use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
@@ -44,6 +45,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use AutoSaveManagerTestTrait;
+  use AutoSaveRequestTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
   use BlockCreationTrait;
@@ -307,14 +309,17 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   public static function providerCases(): iterable {
-    yield 'without_global' => [FALSE];
-    yield 'with_global' => [TRUE];
+    yield 'unauthorized, without global' => [FALSE, FALSE, "The 'publish auto-saves' permission is required."];
+    yield 'authorized, without global' => [TRUE, FALSE, NULL];
+    yield 'unauthorized, with global' => [FALSE, FALSE, "The 'publish auto-saves' permission is required."];
+    yield 'authorized, with global' => [TRUE, TRUE, NULL];
   }
 
   /**
+   * @covers ::post
    * @dataProvider providerCases
    */
-  public function testApiAutoSaveControllerPost(bool $withGlobal = FALSE): void {
+  public function testPost(bool $authorized, bool $withGlobal, ?string $expected_403_message): void {
     $this->setUpImages();
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
@@ -322,11 +327,19 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
-    $this->setUpCurrentUser(permissions: [
+    $permissions = [
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
       Page::EDIT_PERMISSION,
-    ]);
+    ];
+    if ($authorized) {
+      $permissions[] = AutoSaveManager::PUBLISH_PERMISSION;
+    }
+    $this->setUpCurrentUser(permissions: $permissions);
+    if ($expected_403_message) {
+      $this->expectException(AccessDeniedHttpException::class);
+      $this->expectExceptionMessage($expected_403_message);
+    }
     $this->assertNoAutoSaveData();
     $node1 = Node::create([
       'type' => 'article',
@@ -723,15 +736,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $this->fail('Expected access denied exception');
     }
     catch (AccessDeniedHttpException $e) {
-      // @todo Update in https://www.drupal.org/i/3529892
       self::assertSame(
-        "The 'access administration pages' permission is required.",
+        "The 'publish auto-saves' permission is required.",
         $e->getMessage()
       );
     }
 
     // With permission but no CSRF header.
-    $account = $this->createUser(['access administration pages']);
+    $account = $this->createUser([AutoSaveManager::PUBLISH_PERMISSION]);
     \assert($account instanceof AccountInterface);
     $this->setCurrentUser($account);
     $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
