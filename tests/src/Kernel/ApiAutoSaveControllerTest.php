@@ -449,11 +449,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // auto-save manager directly.
     $autoSave->save($node2, $validClientJson);
 
-    // 'imported_js_components' is a value sent by the client that is used to
+    // 'importedJsComponents' is a value sent by the client that is used to
     // determine Javascript Code component dependencies and is not saved
     // directly on the backend.
     // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-    $invalid_client_code_component_data = $code_component->normalizeForClientSide()->values + ['imported_js_components' => []];
+    $invalid_client_code_component_data = $code_component->normalizeForClientSide()->values + ['importedJsComponents' => []];
     $invalid_client_code_component_data['name'] = 'New name';
     $invalid_client_code_component_data['props'] = [
       'mixed_up_prop' => [
@@ -571,11 +571,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'CONTENT_TYPE' => 'application/json',
     ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    // 'imported_js_components' is a value sent by the client that is used to
+    // 'importedJsComponents' is a value sent by the client that is used to
     // determine Javascript Code component dependencies and is not saved
     // directly on the backend.
     // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-    $updated_code_component_data = $code_component->normalizeForClientSide()->values + ['imported_js_components' => []];
+    $updated_code_component_data = $code_component->normalizeForClientSide()->values + ['importedJsComponents' => []];
     $updated_code_component_data['name'] = 'New new JavaScriptComponent name';
     $autoSave->save($code_component, $updated_code_component_data);
     $updated_library_data = $library->normalizeForClientSide()->values;

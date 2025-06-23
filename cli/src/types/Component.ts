@@ -6,13 +6,12 @@ export interface Component {
   required?: string[];
   props?: Record<string, any>;
   slots?: Record<string, any>;
-  // @todo: Update to camelCase in https://www.drupal.org/i/3502640.
-  source_code_js?: string;
-  compiled_js?: string;
-  source_code_css?: string;
-  compiled_css?: string;
-  block_override?: string | null;
-  imported_js_components: string[];
+  sourceCodeJs?: string;
+  compiledJs?: string;
+  sourceCodeCss?: string;
+  compiledCss?: string;
+  blockOverride?: string | null;
+  importedJsComponents: string[];
 }
 
 export interface AssetLibrary {

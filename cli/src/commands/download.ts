@@ -185,8 +185,8 @@ export function downloadCommand(program: Command): void {
               required: component.required || [],
               props: component.props || {},
               slots: component.slots || {},
-              blockOverride: component.block_override || null,
-              importedJsComponents: component.imported_js_components || [],
+              blockOverride: component.blockOverride || null,
+              importedJsComponents: component.importedJsComponents || [],
             };
 
             await fs.writeFile(
@@ -196,19 +196,19 @@ export function downloadCommand(program: Command): void {
             );
 
             // Create JS file
-            if (component.source_code_js) {
+            if (component.sourceCodeJs) {
               await fs.writeFile(
                 path.join(componentDir, `index.jsx`),
-                component.source_code_js,
+                component.sourceCodeJs,
                 'utf-8',
               );
             }
 
             // Create CSS file
-            if (component.source_code_css) {
+            if (component.sourceCodeCss) {
               await fs.writeFile(
                 path.join(componentDir, `index.css`),
-                component.source_code_css,
+                component.sourceCodeCss,
                 'utf-8',
               );
             }

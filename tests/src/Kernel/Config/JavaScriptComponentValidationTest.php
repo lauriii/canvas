@@ -206,10 +206,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
   /**
    * @testWith ["missing", "The JavaScript component with the machine name 'missing' does not exist."]
-   *           ["", "The 'imported_js_components' contains an invalid component name."]
-   *           ["🚀", "The 'imported_js_components' contains an invalid component name."]
-   *           ["componente_extraño", "The 'imported_js_components' contains an invalid component name."]
-   *           [";", "The 'imported_js_components' contains an invalid component name."]
+   *           ["", "The 'importedJsComponents' contains an invalid component name."]
+   *           ["🚀", "The 'importedJsComponents' contains an invalid component name."]
+   *           ["componente_extraño", "The 'importedJsComponents' contains an invalid component name."]
+   *           [";", "The 'importedJsComponents' contains an invalid component name."]
    */
   public function testNonExistingJsDependencies(string $component_id, string $expected_exception_message): void {
     \assert($this->entity instanceof JavaScriptComponent);
@@ -218,7 +218,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
     \assert($this->entity instanceof JavaScriptComponent);
     $client_values = $this->entity->normalizeForClientSide()->values;
-    $client_values['imported_js_components'] = [$component_id];
+    $client_values['importedJsComponents'] = [$component_id];
     $this->entity->updateFromClientSide($client_values);
   }
 

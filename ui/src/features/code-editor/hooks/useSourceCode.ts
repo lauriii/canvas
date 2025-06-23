@@ -58,13 +58,13 @@ const useSourceCode = (requestedComponentId: string): void => {
   );
 
   const sourceCodeJS = useAppSelector(
-    selectCodeComponentProperty('source_code_js'),
+    selectCodeComponentProperty('sourceCodeJs'),
   );
   const sourceCodeCSS = useAppSelector(
-    selectCodeComponentProperty('source_code_css'),
+    selectCodeComponentProperty('sourceCodeCss'),
   );
   const blockOverride = useAppSelector(
-    selectCodeComponentProperty('block_override'),
+    selectCodeComponentProperty('blockOverride'),
   );
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
   const globalSourceCodeCSS = useAppSelector(
@@ -200,17 +200,13 @@ const useSourceCode = (requestedComponentId: string): void => {
       );
       dispatch(
         setCodeComponentProperty([
-          'compiled_css',
+          'compiledCss',
           compiledCss,
           { needsAutoSave },
         ]),
       );
       dispatch(
-        setCodeComponentProperty([
-          'compiled_js',
-          compiledJs,
-          { needsAutoSave },
-        ]),
+        setCodeComponentProperty(['compiledJs', compiledJs, { needsAutoSave }]),
       );
       dispatch(setPreviewCompiledJsForSlots(compiledJsForSlots));
       dispatch(

@@ -77,8 +77,8 @@ export const componentAndLayoutApi = createApi({
           (filtered, [key, component]) => {
             // Filter by override status.
             const overrideMatch = override
-              ? !!component.block_override // When override=true, keep components WITH block_override
-              : !component.block_override; // When override=false, keep components WITHOUT block_override
+              ? !!component.blockOverride // When override=true, keep components WITH blockOverride
+              : !component.blockOverride; // When override=false, keep components WITHOUT blockOverride
 
             // Only filter by status if it's provided (internal=false, exposed=true)
             const statusMatch =

@@ -72,8 +72,8 @@ const useCodeEditor: () => {
           // produced fallback content after an error, we need to auto-save the
           // newly compiled code.
           needsAutoSaveOnFirstCompilation:
-            dataCodeComponent?.compiled_js === '' ||
-            dataCodeComponent?.compiled_js.startsWith('// @error'),
+            dataCodeComponent?.compiledJs === '' ||
+            dataCodeComponent?.compiledJs.startsWith('// @error'),
         },
       }),
     );

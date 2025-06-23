@@ -18,7 +18,7 @@ export default function ComponentData({
   isLoading?: boolean;
 }) {
   const blockOverride = useAppSelector(
-    selectCodeComponentProperty('block_override'),
+    selectCodeComponentProperty('blockOverride'),
   );
   const dispatch = useAppDispatch();
 

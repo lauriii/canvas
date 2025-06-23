@@ -132,6 +132,22 @@ cspell:
       - ui/tests/fixtures/**/*
     when: on_success
 
+.CLI-files-change-rule: &CLI-files-change-rule
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    changes:
+      - cli/package.json
+      - cli/**/*.js
+      - cli/**/*.ts
+      - cli/**/*.tsx
+      - cli/tsconfig.json
+
+.CLI-HTTP-API-change-rule: &CLI-HTTP-API-change-rule
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    changes:
+      - openapi.yml
+      - src/Entity/JavaScriptComponent.php
+      - src/Controller/ApiConfigControllers.php
+
 # Helper to setup a Drupal installation
 #
 # This should be quite fast with a warm cache, and is only used by one job
@@ -323,7 +339,7 @@ eslint:
   # This module wants to strictly comply with eslint.
   allow_failure: false
   before_script:
-    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI - eslint` job below.
+    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI eslint` and `CLI eslint` jobs below.
     - rm -rf ui
     - rm -rf tests/src/Playwright playwright.config.ts eslint.config.mjs
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
@@ -388,15 +404,11 @@ UI eslint:
 CLI:
   stage: build
   image: node:20-alpine
+  needs: []
   rules:
     - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - cli/package.json
-        - cli/**/*.js
-        - cli/**/*.ts
-        - cli/**/*.tsx
-        - cli/tsconfig.json
+    - *CLI-files-change-rule
+    - *CLI-HTTP-API-change-rule
     - *manual-rule
   script:
     - cd cli
@@ -414,13 +426,7 @@ CLI eslint:
     - CLI
   rules:
     - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - cli/package.json
-        - cli/**/*.js
-        - cli/**/*.ts
-        - cli/**/*.tsx
-        - cli/tsconfig.json
+    - *CLI-files-change-rule
     - *manual-rule
   script:
     - cd cli
@@ -443,13 +449,8 @@ CLI vitest:
     - CLI
   rules:
     - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - cli/package.json
-        - cli/**/*.js
-        - cli/**/*.ts
-        - cli/**/*.tsx
-        - cli/tsconfig.json
+    - *CLI-files-change-rule
+    - *CLI-HTTP-API-change-rule
     - *manual-rule
   script:
     - cd cli

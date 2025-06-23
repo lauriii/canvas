@@ -54,14 +54,14 @@ const useAutoSave = (requestedComponentId: string): void => {
     selectCodeComponentProperty('machineName'),
   );
   const sourceCodeJs = useAppSelector(
-    selectCodeComponentProperty('source_code_js'),
+    selectCodeComponentProperty('sourceCodeJs'),
   );
-  const compiledJs = useAppSelector(selectCodeComponentProperty('compiled_js'));
+  const compiledJs = useAppSelector(selectCodeComponentProperty('compiledJs'));
   const sourceCodeCss = useAppSelector(
-    selectCodeComponentProperty('source_code_css'),
+    selectCodeComponentProperty('sourceCodeCss'),
   );
   const compiledCss = useAppSelector(
-    selectCodeComponentProperty('compiled_css'),
+    selectCodeComponentProperty('compiledCss'),
   );
   const props = useAppSelector(selectCodeComponentProperty('props'));
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
@@ -98,7 +98,7 @@ const useAutoSave = (requestedComponentId: string): void => {
     componentNameRef.current = componentName;
   }, [componentName]);
   const importedJsComponents = useAppSelector(
-    selectCodeComponentProperty('imported_js_components'),
+    selectCodeComponentProperty('importedJsComponents'),
   );
   const importedJsComponentsRef = useRef<string[]>([]);
   useEffect(() => {
@@ -129,14 +129,14 @@ const useAutoSave = (requestedComponentId: string): void => {
           status: componentStatusRef.current,
           name: componentNameRef.current,
           machineName: componentId,
-          source_code_js: sourceCodeJs,
-          source_code_css: sourceCodeCss,
-          compiled_js: compiledJs,
-          compiled_css: compiledCss,
+          sourceCodeJs: sourceCodeJs,
+          sourceCodeCss: sourceCodeCss,
+          compiledJs: compiledJs,
+          compiledCss: compiledCss,
           props: serializeProps(props),
           slots: serializeSlots(slots),
           required,
-          imported_js_components: importedJsComponentsRef.current,
+          importedJsComponents: importedJsComponentsRef.current,
         },
       });
     }, 1000);

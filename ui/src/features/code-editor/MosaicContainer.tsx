@@ -53,7 +53,7 @@ const MosaicContainer = () => {
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
   const blockOverride = useAppSelector(
-    selectCodeComponentProperty('block_override'),
+    selectCodeComponentProperty('blockOverride'),
   );
 
   const { isLoading } = useCodeEditor();

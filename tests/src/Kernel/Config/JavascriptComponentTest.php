@@ -31,11 +31,11 @@ class JavascriptComponentTest extends KernelTestBase {
       'required' => [],
       'props' => [],
       'slots' => [],
-      'source_code_js' => '',
-      'source_code_css' => '',
-      'compiled_js' => '',
-      'compiled_css' => '',
-      'imported_js_components' => [],
+      'sourceCodeJs' => '',
+      'sourceCodeCss' => '',
+      'compiledJs' => '',
+      'compiledCss' => '',
+      'importedJsComponents' => [],
     ];
     $js_component = JavaScriptComponent::createFromClientSide($client_data);
     $this->assertSame(SAVED_NEW, $js_component->save());
@@ -55,9 +55,9 @@ class JavascriptComponentTest extends KernelTestBase {
       'config:experience_builder.js_component.test2',
     ], $js_component2->getCacheTags());
 
-    // Adding a component to `imported_js_components` should add this component
+    // Adding a component to `importedJsComponents` should add this component
     // to the dependencies.
-    $client_data['imported_js_components'] = [$js_component2->id()];
+    $client_data['importedJsComponents'] = [$js_component2->id()];
     $js_component->updateFromClientSide($client_data);
     $this->assertSame(SAVED_UPDATED, $js_component->save());
     $this->assertSame(
@@ -72,7 +72,7 @@ class JavascriptComponentTest extends KernelTestBase {
     ], $js_component->getCacheTags());
 
     // Ensure missing components are will throw a validation error.
-    $client_data['imported_js_components'] = [$js_component2->id(), 'missing'];
+    $client_data['importedJsComponents'] = [$js_component2->id(), 'missing'];
     try {
       $js_component->updateFromClientSide($client_data);
       $this->fail('Expected ConstraintViolationException not thrown.');
@@ -83,12 +83,12 @@ class JavascriptComponentTest extends KernelTestBase {
       $this->assertSame($js_component->id(), $violations->entity->id());
       $this->assertCount(1, $violations);
       $violation = $violations->get(0);
-      $this->assertSame('imported_js_components.1', $violation->getPropertyPath());
+      $this->assertSame('importedJsComponents.1', $violation->getPropertyPath());
       $this->assertSame("The JavaScript component with the machine name 'missing' does not exist.", $violation->getMessage());
     }
 
-    // Ensure not sending `imported_js_components` will throw an error.
-    unset($client_data['imported_js_components']);
+    // Ensure not sending `importedJsComponents` will throw an error.
+    unset($client_data['importedJsComponents']);
     try {
       $js_component->updateFromClientSide($client_data);
       $this->fail('Expected ConstraintViolationException not thrown.');
@@ -99,13 +99,13 @@ class JavascriptComponentTest extends KernelTestBase {
       $this->assertSame($js_component->id(), $violations->entity->id());
       $this->assertCount(1, $violations);
       $violation = $violations->get(0);
-      $this->assertSame('imported_js_components', $violation->getPropertyPath());
-      $this->assertSame("The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided", $violation->getMessage());
+      $this->assertSame('importedJsComponents', $violation->getPropertyPath());
+      $this->assertSame("The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided", $violation->getMessage());
     }
 
     // Resetting the imported components to an empty array should remove the
     // dependencies.
-    $client_data['imported_js_components'] = [];
+    $client_data['importedJsComponents'] = [];
     $js_component->updateFromClientSide($client_data);
     $this->assertSame(SAVED_UPDATED, $js_component->save());
     $this->assertSame([], $js_component->getDependencies());

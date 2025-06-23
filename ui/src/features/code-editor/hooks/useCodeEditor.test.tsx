@@ -84,10 +84,10 @@ describe('useCodeEditor hook', () => {
         ...codeEditorInitialState.codeComponent,
         machineName: 'test_component',
         name: 'Test Component',
-        source_code_css: '/* source CSS */',
-        source_code_js: '// source JS',
-        compiled_css: '/* compiled CSS */',
-        compiled_js: '// compiled JS',
+        sourceCodeCss: '/* source CSS */',
+        sourceCodeJs: '// source JS',
+        compiledCss: '/* compiled CSS */',
+        compiledJs: '// compiled JS',
       },
       error: null,
       isFetching: false,
@@ -158,10 +158,10 @@ describe('useCodeEditor hook', () => {
     });
     expect(store.getState().codeEditor).toMatchObject({
       codeComponent: {
-        source_code_css: '/* source CSS */',
-        source_code_js: '// source JS',
-        compiled_css: '', // Needs to be re-compiled.
-        compiled_js: '', // Needs to be re-compiled.
+        sourceCodeCss: '/* source CSS */',
+        sourceCodeJs: '// source JS',
+        compiledCss: '', // Needs to be re-compiled.
+        compiledJs: '', // Needs to be re-compiled.
       },
       globalAssetLibrary: {
         css: {
@@ -195,8 +195,8 @@ describe('useCodeEditor hook', () => {
     expect(compileCss).toHaveBeenCalledTimes(1);
     expect(store.getState().codeEditor).toMatchObject({
       codeComponent: {
-        compiled_css: '/* compiled CSS */',
-        compiled_js: '// compiled JS',
+        compiledCss: '/* compiled CSS */',
+        compiledJs: '// compiled JS',
       },
       globalAssetLibrary: {
         css: { compiled: '/* compiled TW CSS */' },
@@ -285,7 +285,7 @@ describe('useCodeEditor hook', () => {
     });
     await act(async () => {
       store.dispatch(
-        setCodeComponentProperty(['source_code_js', '// source JS v2']),
+        setCodeComponentProperty(['sourceCodeJs', '// source JS v2']),
       );
     });
     await act(async () => {
@@ -293,11 +293,11 @@ describe('useCodeEditor hook', () => {
     });
     await act(async () => {
       store.dispatch(
-        setCodeComponentProperty(['source_code_js', '// source JS v3']),
+        setCodeComponentProperty(['sourceCodeJs', '// source JS v3']),
       );
     });
     expect(compileCss).toHaveBeenCalledTimes(2);
-    expect(store.getState().codeEditor.codeComponent.source_code_js).toBe(
+    expect(store.getState().codeEditor.codeComponent.sourceCodeJs).toBe(
       '// source JS v3',
     );
   });
@@ -318,13 +318,13 @@ describe('useCodeEditor hook', () => {
       });
     });
     // No compiled JS to start with.
-    expect(store.getState().codeEditor.codeComponent.compiled_js).toBe('');
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe('');
     // Run timer to trigger compilation.
     await act(async () => {
       vi.advanceTimersByTime(1500);
     });
     // We now have compiled JS.
-    expect(store.getState().codeEditor.codeComponent.compiled_js).toBe(
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe(
       '// compiled JS',
     );
     // No need to auto-save on first compilation.
@@ -338,7 +338,7 @@ describe('useCodeEditor hook', () => {
     // Change the source JS to trigger a new compilation.
     await act(async () => {
       store.dispatch(
-        setCodeComponentProperty(['source_code_js', '// source JS v2']),
+        setCodeComponentProperty(['sourceCodeJs', '// source JS v2']),
       );
     });
     await act(async () => {
@@ -353,8 +353,8 @@ describe('useCodeEditor hook', () => {
       currentData: {
         ...codeEditorInitialState.codeComponent,
         machineName: 'test_component',
-        source_code_js: '// source JS',
-        compiled_js: '',
+        sourceCodeJs: '// source JS',
+        compiledJs: '',
       },
       error: null,
       isFetching: false,
@@ -377,7 +377,7 @@ describe('useCodeEditor hook', () => {
     await act(async () => {
       vi.runAllTimers();
     });
-    expect(store.getState().codeEditor.codeComponent.compiled_js).toBe(
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe(
       '// compiled JS',
     );
     expect(
@@ -391,7 +391,7 @@ describe('useCodeEditor hook', () => {
     (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {
       store.dispatch(
-        setCodeComponentProperty(['source_code_js', '// source JS v2']),
+        setCodeComponentProperty(['sourceCodeJs', '// source JS v2']),
       );
     });
     await act(async () => {
@@ -405,8 +405,8 @@ describe('useCodeEditor hook', () => {
       currentData: {
         ...codeEditorInitialState.codeComponent,
         machineName: 'test_component',
-        source_code_js: '// source JS',
-        compiled_js: '// @error', // @see useCompileJavaScript.ts
+        sourceCodeJs: '// source JS',
+        compiledJs: '// @error', // @see useCompileJavaScript.ts
       },
       error: null,
       isFetching: false,
@@ -429,7 +429,7 @@ describe('useCodeEditor hook', () => {
     await act(async () => {
       vi.runAllTimers();
     });
-    expect(store.getState().codeEditor.codeComponent.compiled_js).toBe(
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe(
       '// compiled JS',
     );
     expect(
@@ -443,7 +443,7 @@ describe('useCodeEditor hook', () => {
     (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
     await act(async () => {
       store.dispatch(
-        setCodeComponentProperty(['source_code_js', '// source JS v2']),
+        setCodeComponentProperty(['sourceCodeJs', '// source JS v2']),
       );
     });
     await act(async () => {

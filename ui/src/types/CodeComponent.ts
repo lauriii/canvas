@@ -4,15 +4,15 @@ export interface CodeComponent {
   machineName: string;
   name: string;
   status: boolean;
-  block_override: string | null;
+  blockOverride: string | null;
   props: CodeComponentProp[];
   required: string[];
   slots: any[];
-  source_code_js: string;
-  source_code_css: string;
-  compiled_js: string;
-  compiled_css: string;
-  imported_js_components: string[];
+  sourceCodeJs: string;
+  sourceCodeCss: string;
+  compiledJs: string;
+  compiledCss: string;
+  importedJsComponents: string[];
   dataFetches: { [key: string]: any };
 }
 

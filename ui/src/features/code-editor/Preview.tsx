@@ -43,14 +43,14 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     selectCodeComponentProperty('machineName'),
   );
   const blockOverride = useAppSelector(
-    selectCodeComponentProperty('block_override'),
+    selectCodeComponentProperty('blockOverride'),
   );
   const sourceCodeJs = useAppSelector(
-    selectCodeComponentProperty('source_code_js'),
+    selectCodeComponentProperty('sourceCodeJs'),
   );
-  const compiledJs = useAppSelector(selectCodeComponentProperty('compiled_js'));
+  const compiledJs = useAppSelector(selectCodeComponentProperty('compiledJs'));
   const compiledCss = useAppSelector(
-    selectCodeComponentProperty('compiled_css'),
+    selectCodeComponentProperty('compiledCss'),
   );
   const compiledGlobalCss = useAppSelector(
     selectGlobalAssetLibraryProperty(['css', 'compiled']),
@@ -169,7 +169,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       const scope = '@/components/';
       const imports = getImportsFromAst(ast, scope);
       dispatch(clearDataFetches());
-      dispatch(setCodeComponentProperty(['imported_js_components', imports]));
+      dispatch(setCodeComponentProperty(['importedJsComponents', imports]));
       setIsJsImportError(false);
       if (imports.length > 0) {
         imports.map((importName) => {

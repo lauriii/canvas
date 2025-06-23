@@ -393,14 +393,14 @@ final class JsComponentTest extends ComponentSourceTestBase {
       $this->container->get(AutoSaveManager::class)
         ->save(
           $js_component,
-          // 'imported_js_components' is a value sent by the client that is used to
+          // 'importedJsComponents' is a value sent by the client that is used to
           // determine Javascript Code component dependencies and is not saved
           // directly on the backend.
           // Ensure that the current set of imported JS components continues to
           // be respected.
           // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
           $js_component->normalizeForClientSide()->values + [
-            'imported_js_components' => array_map(
+            'importedJsComponents' => array_map(
               fn (string $config_name): string => str_replace('experience_builder.js_component.', '', $config_name),
               $js_component->toArray()['dependencies']['enforced']['config'] ?? []
             ),
@@ -628,7 +628,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     ]);
     $dependency_js_component->save();
     $js_component_data = $dependency_js_component->normalizeForClientSide()->values;
-    $js_component_data['imported_js_components'] = ['nested_dependency_component'];
+    $js_component_data['importedJsComponents'] = ['nested_dependency_component'];
     $dependency_js_component->updateFromClientSide($js_component_data);
     $dependency_js_component->save();
 
@@ -676,7 +676,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     ]);
     // Add the dependency through client API.
     $js_component_data = $js_component->normalizeForClientSide()->values;
-    $js_component_data['imported_js_components'] = ['dependency_component', 'dependency_component_no_css'];
+    $js_component_data['importedJsComponents'] = ['dependency_component', 'dependency_component_no_css'];
     $js_component->updateFromClientSide($js_component_data);
     $js_component->save();
 
@@ -687,22 +687,22 @@ final class JsComponentTest extends ComponentSourceTestBase {
         $js_component,
         $js_component->normalizeForClientSide()->values +
         [
-          'imported_js_components' => ['dependency_component', 'dependency_component_no_css'],
+          'importedJsComponents' => ['dependency_component', 'dependency_component_no_css'],
         ]
       );
     }
     if ($create_dependency_auto_save) {
       $autoSave->save(
         $dependency_js_component,
-        $dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => ['nested_dependency_component']],
+        $dependency_js_component->normalizeForClientSide()->values + ['importedJsComponents' => ['nested_dependency_component']],
       );
       $autoSave->save(
         $dependency_js_component_without_css,
-        $dependency_js_component_without_css->normalizeForClientSide()->values + ['imported_js_components' => []],
+        $dependency_js_component_without_css->normalizeForClientSide()->values + ['importedJsComponents' => []],
       );
       $autoSave->save(
         $nested_dependency_js_component,
-        $nested_dependency_js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
+        $nested_dependency_js_component->normalizeForClientSide()->values + ['importedJsComponents' => []],
       );
     }
 
@@ -752,7 +752,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       $autoSave->save(
         $js_component,
         // Remove both dependencies from the auto-save entry.
-        $js_component->normalizeForClientSide()->values + ['imported_js_components' => []],
+        $js_component->normalizeForClientSide()->values + ['importedJsComponents' => []],
       );
       $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
@@ -913,7 +913,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       // Add updated values the auto-save entry.
       $client_side_data +
       [
-        'imported_js_components' => [],
+        'importedJsComponents' => [],
       ]
     );
 

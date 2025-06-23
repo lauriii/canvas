@@ -60,7 +60,7 @@ trait CreateTestJsComponentTrait {
       // Add updated values the auto-save entry.
       $client_side_data +
       [
-        'imported_js_components' => [],
+        'importedJsComponents' => [],
       ]
     );
   }

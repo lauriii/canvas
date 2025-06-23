@@ -144,11 +144,11 @@ export function createComponentPayload(params: {
     required: Array.isArray(metadata.required) ? metadata.required : [],
     props: propsData,
     slots: slotsData,
-    source_code_js: sourceCodeJs,
-    compiled_js: compiledJs,
-    source_code_css: sourceCodeCss,
-    compiled_css: compiledCss,
-    block_override: metadata.blockOverride || null,
-    imported_js_components: metadata.importedJsComponents || [],
+    sourceCodeJs: sourceCodeJs,
+    compiledJs: compiledJs,
+    sourceCodeCss: sourceCodeCss,
+    compiledCss: compiledCss,
+    blockOverride: metadata.blockOverride || null,
+    importedJsComponents: metadata.importedJsComponents || [],
   };
 }

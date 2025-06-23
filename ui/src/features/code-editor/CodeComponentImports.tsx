@@ -116,7 +116,7 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
   const [inserted, setInserted] = useState(false);
   const dispatch = useAppDispatch();
   const sourceCodeJs = useAppSelector(
-    selectCodeComponentProperty('source_code_js'),
+    selectCodeComponentProperty('sourceCodeJs'),
   );
   const iconResetDelay = 1500;
 
@@ -129,7 +129,7 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
       const isEmpty = sourceCodeJs.trim() === '';
       if (isEmpty) {
         dispatch(
-          setCodeComponentProperty(['source_code_js', importStatement + '\n']),
+          setCodeComponentProperty(['sourceCodeJs', importStatement + '\n']),
         );
       } else {
         // Find last import statement
@@ -148,13 +148,13 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
           // Insert after existing imports
           lines.splice(lastImportIndex + 1, 0, importStatement);
           dispatch(
-            setCodeComponentProperty(['source_code_js', lines.join('\n')]),
+            setCodeComponentProperty(['sourceCodeJs', lines.join('\n')]),
           );
         } else {
           // Add at beginning with an extra line between the import and the component.
           dispatch(
             setCodeComponentProperty([
-              'source_code_js',
+              'sourceCodeJs',
               `${importStatement}\n\n${sourceCodeJs}`,
             ]),
           );

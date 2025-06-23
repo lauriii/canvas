@@ -36,11 +36,11 @@ const AddCodeComponentDialog = () => {
       // Mark this code component as "internal": do not make it available to Content Creators yet.
       // @see docs/config-management.md, section 3.2.1
       status: false,
-      source_code_js: getStarterComponentTemplate(componentName),
-      source_code_css: '',
-      compiled_js: '',
-      compiled_css: '',
-      imported_js_components: [],
+      sourceCodeJs: getStarterComponentTemplate(componentName),
+      sourceCodeCss: '',
+      compiledJs: '',
+      compiledCss: '',
+      importedJsComponents: [],
     });
   };
 

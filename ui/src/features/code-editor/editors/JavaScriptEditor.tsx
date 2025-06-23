@@ -10,10 +10,10 @@ import ImportButton from '@/features/code-editor/ImportButton';
 
 const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectCodeComponentProperty('source_code_js'));
+  const value = useAppSelector(selectCodeComponentProperty('sourceCodeJs'));
 
   function onChangeHandler(value: string) {
-    dispatch(setCodeComponentProperty(['source_code_js', value]));
+    dispatch(setCodeComponentProperty(['sourceCodeJs', value]));
   }
   if (isLoading) {
     return null;

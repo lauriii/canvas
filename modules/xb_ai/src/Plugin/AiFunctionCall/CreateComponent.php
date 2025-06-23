@@ -122,11 +122,11 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       // Mark this code component as "internal": do not make it available to Content Creators yet.
       // @see docs/config-management.md, section 3.2.1
       'status' => FALSE,
-      'source_code_js' => $javascript,
-      'source_code_css' => $css,
-      'compiled_js' => '',
-      'compiled_css' => '',
-      'imported_js_components' => [],
+      'sourceCodeJs' => $javascript,
+      'sourceCodeCss' => $css,
+      'compiledJs' => '',
+      'compiledCss' => '',
+      'importedJsComponents' => [],
       'props' => $transformed_props,
     ];
 

@@ -104,8 +104,8 @@ final class GetJsComponent extends FunctionCallBase implements ExecutableFunctio
 
     // Only give back the js and css.
     $output = [
-      'js' => $save->data['source_code_js'] ?? $array['values']['source_code_js'],
-      'css' => $save->data['source_code_css'] ?? $array['values']['source_code_css'],
+      'js' => $save->data['sourceCodeJs'] ?? $array['values']['sourceCodeJs'],
+      'css' => $save->data['sourceCodeCss'] ?? $array['values']['sourceCodeCss'],
     ];
 
     $this->information = Yaml::dump($output, 10, 2);

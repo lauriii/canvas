@@ -9,10 +9,10 @@ import {
 
 const CssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
-  const value = useAppSelector(selectCodeComponentProperty('source_code_css'));
+  const value = useAppSelector(selectCodeComponentProperty('sourceCodeCss'));
 
   function onChangeHandler(value: string) {
-    dispatch(setCodeComponentProperty(['source_code_css', value]));
+    dispatch(setCodeComponentProperty(['sourceCodeCss', value]));
   }
   if (isLoading) {
     return null;

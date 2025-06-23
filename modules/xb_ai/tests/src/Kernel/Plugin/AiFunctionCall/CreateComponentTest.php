@@ -83,11 +83,11 @@ final class CreateComponentTest extends KernelTestBase {
     $this->assertEquals($component_name, $component_structure['name']);
     $this->assertEquals('test_component', $component_structure['machineName']);
     $this->assertFalse($component_structure['status']);
-    $this->assertEquals($javascript, $component_structure['source_code_js']);
-    $this->assertEquals($css, $component_structure['source_code_css']);
-    $this->assertEquals('', $component_structure['compiled_js']);
-    $this->assertEquals('', $component_structure['compiled_css']);
-    $this->assertEquals([], $component_structure['imported_js_components']);
+    $this->assertEquals($javascript, $component_structure['sourceCodeJs']);
+    $this->assertEquals($css, $component_structure['sourceCodeCss']);
+    $this->assertEquals('', $component_structure['compiledJs']);
+    $this->assertEquals('', $component_structure['compiledCss']);
+    $this->assertEquals([], $component_structure['importedJsComponents']);
 
     $expected_props = [
       'title' => [

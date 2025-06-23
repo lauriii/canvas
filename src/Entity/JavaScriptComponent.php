@@ -118,14 +118,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         'machineName' => $this->id(),
         'name' => (string) $this->label(),
         'status' => $this->status(),
-        'block_override' => $this->block_override,
+        'blockOverride' => $this->block_override,
         'props' => $this->props,
         'required' => $this->required,
         'slots' => $this->slots,
-        'source_code_js' => $this->js['original'] ?? '',
-        'source_code_css' => $this->css['original'] ?? '',
-        'compiled_js' => $this->js['compiled'] ?? '',
-        'compiled_css' => $this->css['compiled'] ?? '',
+        'sourceCodeJs' => $this->js['original'] ?? '',
+        'sourceCodeCss' => $this->css['original'] ?? '',
+        'compiledJs' => $this->js['compiled'] ?? '',
+        'compiledCss' => $this->css['compiled'] ?? '',
       ],
       preview: [
         '#markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
@@ -158,35 +158,35 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       $this->set($key, $value);
     }
 
-    if (array_key_exists('source_code_css', $data) || array_key_exists('compiled_css', $data)) {
+    if (array_key_exists('sourceCodeCss', $data) || array_key_exists('compiledCss', $data)) {
       $this->set('css', [
-        'original' => $data['source_code_css'] ?? '',
-        'compiled' => $data['compiled_css'] ?? '',
+        'original' => $data['sourceCodeCss'] ?? '',
+        'compiled' => $data['compiledCss'] ?? '',
       ]);
     }
 
     $violation_list = new EntityConstraintViolationList($this);
-    if (array_key_exists('source_code_js', $data) || array_key_exists('compiled_js', $data)) {
-      if (!array_key_exists('imported_js_components', $data)) {
+    if (array_key_exists('sourceCodeJs', $data) || array_key_exists('compiledJs', $data)) {
+      if (!array_key_exists('importedJsComponents', $data)) {
         $violation_list->add(new ConstraintViolation(
-          "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
-          "The 'imported_js_components' field is required when 'source_code_js' or 'compiled_js' is provided",
+          "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",
+          "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",
           [],
           NULL,
-          "imported_js_components",
+          "importedJsComponents",
           NULL
         ));
         throw new ConstraintViolationException($violation_list);
       }
-      foreach ($data['imported_js_components'] as $key => $js_component_name) {
-        // Test that the imported_js_components are valid names.
+      foreach ($data['importedJsComponents'] as $key => $js_component_name) {
+        // Test that the importedJsComponents are valid names.
         if (!preg_match('/^[a-z0-9_-]+$/', $js_component_name)) {
           $violation_list->add(new ConstraintViolation(
-            "The 'imported_js_components' contains an invalid component name.",
-            "The 'imported_js_components' contains an invalid component name.",
+            "The 'importedJsComponents' contains an invalid component name.",
+            "The 'importedJsComponents' contains an invalid component name.",
             [],
             NULL,
-            "imported_js_components",
+            "importedJsComponents",
             NULL
           ));
         }
@@ -196,17 +196,17 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       }
       // The client calculates imported JavaScript components dependencies. This
       // value is never returned to the client as it will always recalculate it
-      // based off source_code_js.
-      $this->addJavaScriptComponentsDependencies($data['imported_js_components']);
+      // based off sourceCodeJs.
+      $this->addJavaScriptComponentsDependencies($data['importedJsComponents']);
       $this->set('js', [
-        'original' => $data['source_code_js'] ?? '',
-        'compiled' => $data['compiled_js'] ?? '',
+        'original' => $data['sourceCodeJs'] ?? '',
+        'compiled' => $data['compiledJs'] ?? '',
       ]);
     }
 
     // ⚠️ This is highly experimental and *will* be refactored.
-    if (array_key_exists('block_override', $data)) {
-      $this->set('block_override', $data['block_override']);
+    if (array_key_exists('blockOverride', $data)) {
+      $this->set('block_override', $data['blockOverride']);
     }
   }
 
@@ -375,7 +375,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
           "The JavaScript component with the machine name '$js_component_name' does not exist.",
           [],
           NULL,
-          "imported_js_components.$key",
+          "importedJsComponents.$key",
           $js_component_name
         ));
       }

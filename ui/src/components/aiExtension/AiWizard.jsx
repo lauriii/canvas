@@ -48,15 +48,12 @@ const AiWizard = () => {
         // @todo Revisit this in https://www.drupal.org/i/3529968.
         if ('css_structure' in message && message.css_structure) {
           dispatch(
-            setCodeComponentProperty([
-              'source_code_css',
-              message.css_structure,
-            ]),
+            setCodeComponentProperty(['sourceCodeCss', message.css_structure]),
           );
         }
         if ('js_structure' in message && message.js_structure) {
           dispatch(
-            setCodeComponentProperty(['source_code_js', message.js_structure]),
+            setCodeComponentProperty(['sourceCodeJs', message.js_structure]),
           );
         }
         if ('component_structure' in message && message.component_structure) {
