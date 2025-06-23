@@ -1,9 +1,21 @@
 name: 'Experience Builder Test Site'
 description: 'Site for running tests against.'
 type: 'XB'
-
+install:
+  - stark
+  - xb_dev_standard
+  - xb_test_code_components
+  - xb_test_sdc
 config:
   strict: true
+  import:
+    experience_builder: '*'
+    system:
+      # This menu must exist so it can be exposed as a block component and used in our
+      # default content.
+      - system.menu.admin
+    xb_dev_standard: '*'
+    xb_test_code_components: '*'
   actions:
     system.site:
       simpleConfigUpdate:

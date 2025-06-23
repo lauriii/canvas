@@ -48,13 +48,6 @@ export class Drupal {
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/base`,
     );
-    // These have to be enabled manually because they don't create the article
-    // fields when enabled via a recipe.
-    await this.installModules([
-      'xb_dev_standard',
-      'xb_test_sdc',
-      'xb_test_code_components',
-    ]);
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/test_site`,
     );

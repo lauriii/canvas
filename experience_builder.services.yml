@@ -34,10 +34,14 @@ services:
     decorates: plugin.manager.sdc
     parent: Drupal\Core\Theme\ComponentPluginManager
     arguments: ['@entity_type.manager', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository']
+    tags:
+      - { name: experience_builder.component_source }
   Drupal\experience_builder\Plugin\BlockManager:
     decorates: plugin.manager.block
     parent: Drupal\Core\Block\BlockManagerInterface
     arguments: ['@config.typed', '@Drupal\experience_builder\ComponentIncompatibilityReasonRepository', '@Drupal\experience_builder\ComponentSource\ComponentSourceManager']
+    tags:
+      - { name: experience_builder.component_source }
   Drupal\experience_builder\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
     public: true
@@ -92,6 +96,9 @@ services:
     tags:
       - { name: path_processor_inbound, priority: 200 }
   Drupal\experience_builder\Controller\XbBlockListController: ~
+  Drupal\experience_builder\EventSubscriber\RecipeSubscriber:
+    tags:
+      - { name: service_collector, call: addComponentSource, tag: experience_builder.component_source }
 
   # Routing.
   Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer:
