@@ -13,6 +13,50 @@ import { useNavigate } from 'react-router-dom';
 import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
+const simplePropertyHandler = (property, propKey) => ({
+  canHandle: (msg) => property in msg && msg[property],
+  handle: async ({ message, dispatch }) => {
+    dispatch(setCodeComponentProperty([propKey, message[property]]));
+  },
+});
+
+const cssStructureHandler = simplePropertyHandler(
+  'css_structure',
+  'sourceCodeCss',
+);
+const jsStructureHandler = simplePropertyHandler(
+  'js_structure',
+  'sourceCodeJs',
+);
+
+const componentStructureHandler = {
+  canHandle: (msg) => 'component_structure' in msg && msg.component_structure,
+  handle: async ({ message, createCodeComponent, navigate }) => {
+    const component = message.component_structure;
+    await createCodeComponent(component).unwrap();
+    navigate(`/code-editor/component/${component.machineName}`);
+  },
+};
+
+const propsMetadataHandler = {
+  canHandle: (msg) => 'props_metadata' in msg && msg.props_metadata,
+  handle: async ({ message, dispatch }) => {
+    const parsedProps = JSON.parse(message.props_metadata);
+    dispatch(setCodeComponentProperty(['props', parsedProps]));
+  },
+};
+
+const messageHandlers = [
+  cssStructureHandler,
+  jsStructureHandler,
+  componentStructureHandler,
+  propsMetadataHandler,
+];
+
+function getHandlersForMessage(message) {
+  return messageHandlers.filter((handler) => handler.canHandle(message));
+}
+
 const AiWizard = () => {
   const dispatch = useAppDispatch();
   const drupalSettings = getDrupalSettings();
@@ -45,25 +89,10 @@ const AiWizard = () => {
   const receiveMessage = useCallback(
     async (message) => {
       try {
-        // @todo Revisit this in https://www.drupal.org/i/3529968.
-        if ('css_structure' in message && message.css_structure) {
-          dispatch(
-            setCodeComponentProperty(['sourceCodeCss', message.css_structure]),
-          );
-        }
-        if ('js_structure' in message && message.js_structure) {
-          dispatch(
-            setCodeComponentProperty(['sourceCodeJs', message.js_structure]),
-          );
-        }
-        if ('component_structure' in message && message.component_structure) {
-          const component = message.component_structure;
-          await createCodeComponent(component).unwrap();
-          navigate(`/code-editor/component/${component.machineName}`);
-        }
-        if ('props_metadata' in message && message.props_metadata) {
-          const parsedProps = JSON.parse(message.props_metadata);
-          dispatch(setCodeComponentProperty(['props', parsedProps]));
+        const context = { message, dispatch, createCodeComponent, navigate };
+        const handlers = getHandlersForMessage(message);
+        for (const handler of handlers) {
+          await handler.handle(context);
         }
         return { text: message.message };
       } catch (error) {
