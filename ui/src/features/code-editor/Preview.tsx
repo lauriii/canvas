@@ -140,6 +140,15 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       </head>
       <body>
         <div id="xb-code-editor-preview-root"></div>
+        <script>
+          document.addEventListener('click', function (e) {
+            const anchor = e.target.closest('a');
+            if (anchor) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          });
+        </script>
       </body>
     </html>`,
     [codeComponents, componentId, importMap],
