@@ -673,8 +673,11 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
+                type: object
+                minProperties: 0
+                # @todo Validate the property keys match the '^\\[a-zA-Z0-9_-]$'
+                #  pattern in https://drupal.org/i/3506543.
+                additionalProperties:
                   type: object
                   properties:
                     id:

@@ -92,6 +92,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/v0/config/pattern");
+    $canonical_url = Url::fromUri("base:/xb/api/v0/config/pattern/disabled_pattern");
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -116,6 +117,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Get the pattern list the XB HTTP API should not return unpublished ones.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
+
+    // Admin should not be able to get disabled pattern from the XB HTTP API.
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, [''], ['4xx-response', 'config:experience_builder.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $this->assertSame([
+      'errors' => [''],
+    ], $body);
+
     $pattern->delete();
 
     // Create a Pattern via the XB HTTP API, but forget crucial data that causes
@@ -1093,8 +1101,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // unpublished ones.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
-    // Admin should be able to get disabled Asset Library from the XB HTTP API.
-    // @todo fix in https://www.drupal.org/project/experience_builder/issues/3530590
+
+    // Admin should not be able to get disabled Asset Library from the XB HTTP API.
     $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, [''], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [''],
