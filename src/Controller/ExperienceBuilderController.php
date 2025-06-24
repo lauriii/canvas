@@ -8,7 +8,10 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Render\HtmlResponse;
@@ -22,6 +25,7 @@ use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ExperienceBuilderController {
@@ -37,6 +41,9 @@ final class ExperienceBuilderController {
     private readonly RendererInterface $renderer,
     private readonly ThemeInitializationInterface $themeInitialization,
     private readonly AccountInterface $currentUser,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
   ) {}
 
   private const HTML = <<<HTML
@@ -124,6 +131,7 @@ HTML;
             'sections' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
             'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
             'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
+            'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
           ],
         ],
       ],
@@ -244,6 +252,36 @@ HTML;
     }
 
     return TRUE;
+  }
+
+  /**
+   * Returns the content entity create operations permissions.
+   *
+   * @return array
+   *   Returns an array keyed by entity type IDs, containing a nested array with
+   *   the bundle IDs as key, and the value being FALSE if the user doesn't
+   *   access to the create operation, or the singular label for the bundle if
+   *   they do.
+   */
+  private function getContentEntityCreateOperations(): array {
+    $operations = [];
+    $field_map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+    foreach ($field_map as $entity_type_id => $detail) {
+      $bundleInfo = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
+      $field_names = \array_keys($detail);
+      // This assumes one component tree field per bundle/entity.
+      // If this assumption is willing to change, will need to be updated in
+      // https://www.drupal.org/i/3526189.
+      foreach ($field_names as $field_name) {
+        $bundles = $detail[$field_name]['bundles'];
+        foreach ($bundles as $bundle) {
+          if ($this->entityTypeManager->getAccessControlHandler($entity_type_id)->createAccess($bundle)) {
+            $operations[$entity_type_id][$bundle] = $bundleInfo[$bundle]['label'];
+          }
+        }
+      }
+    }
+    return $operations;
   }
 
 }

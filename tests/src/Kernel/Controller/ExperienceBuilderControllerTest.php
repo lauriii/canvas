@@ -10,7 +10,10 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\XbUiAssertionsTrait;
@@ -37,7 +40,9 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     'entity_test',
     ...self::PAGE_TEST_MODULES,
     'block',
+    'node',
     // XB's dependencies (modules providing field types + widgets).
+    'text',
     'datetime',
     'file',
     'image',
@@ -53,7 +58,25 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     parent::setUp();
     // Needed for date formats.
     $this->installConfig(['system']);
+    $this->installConfig(['node']);
     $this->installEntitySchema('path_alias');
+    $this->installEntitySchema('node_type');
+    $this->installEntitySchema('node');
+
+    NodeType::create([
+      'name' => 'Amazing article',
+      'type' => 'article',
+    ])->save();
+    $field_storage = FieldStorageConfig::create([
+      'type' => 'component_tree',
+      'entity_type' => 'node',
+      'field_name' => 'field_xb_tree',
+    ]);
+    $field_storage->save();
+    FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'article',
+    ])->save();
   }
 
   /**
@@ -162,7 +185,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     /** @var \Drupal\Core\Render\HtmlResponse $response */
     $response = $this->request(Request::create($add_url));
 
-    $this->assertEqualsCanonicalizing($expectedPermissionFlags, $this->drupalSettings['xb']['permissions']);
+    $this->assertSame($expectedPermissionFlags, $this->drupalSettings['xb']['permissions']);
     self::assertSame([
       'user.permissions',
       'languages:language_interface',
@@ -188,22 +211,36 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           ...$page_permissions,
         ],
         [
-          'globalRegion' => FALSE,
+          'globalRegions' => FALSE,
           'sections' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
+          'contentEntityCreateOperations' => [
+            'xb_page' => [
+              'xb_page' => 'Page',
+            ],
+          ],
         ],
       ],
       [
         [
           ...$page_permissions,
           JavaScriptComponent::ADMIN_PERMISSION,
+          'create article content',
         ],
         [
-          'globalRegion' => FALSE,
+          'globalRegions' => FALSE,
           'sections' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
+          'contentEntityCreateOperations' => [
+            'xb_page' => [
+              'xb_page' => 'Page',
+            ],
+            'node' => [
+              'article' => 'Amazing article',
+            ],
+          ],
         ],
       ],
       [
@@ -213,10 +250,15 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           PageRegion::ADMIN_PERMISSION,
         ],
         [
-          'globalRegion' => TRUE,
+          'globalRegions' => TRUE,
           'sections' => TRUE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
+          'contentEntityCreateOperations' => [
+            'xb_page' => [
+              'xb_page' => 'Page',
+            ],
+          ],
         ],
       ],
       [
@@ -227,10 +269,15 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           JavaScriptComponent::ADMIN_PERMISSION,
         ],
         [
-          'globalRegion' => TRUE,
+          'globalRegions' => TRUE,
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
+          'contentEntityCreateOperations' => [
+            'xb_page' => [
+              'xb_page' => 'Page',
+            ],
+          ],
         ],
       ],
       [
@@ -240,12 +287,21 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           PageRegion::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
+          'create article content',
         ],
         [
-          'globalRegion' => TRUE,
+          'globalRegions' => TRUE,
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
+          'contentEntityCreateOperations' => [
+            'xb_page' => [
+              'xb_page' => 'Page',
+            ],
+            'node' => [
+              'article' => 'Amazing article',
+            ],
+          ],
         ],
       ],
     ];
