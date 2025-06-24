@@ -131,8 +131,8 @@ HTML;
             'sections' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
             'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
             'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
-            'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
           ],
+          'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
         ],
       ],
       // Note: the tokens here are under our control, and this accepts no user

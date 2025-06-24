@@ -215,32 +215,18 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
-          'contentEntityCreateOperations' => [
-            'xb_page' => [
-              'xb_page' => 'Page',
-            ],
-          ],
         ],
       ],
       [
         [
           ...$page_permissions,
           JavaScriptComponent::ADMIN_PERMISSION,
-          'create article content',
         ],
         [
           'globalRegions' => FALSE,
           'sections' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
-          'contentEntityCreateOperations' => [
-            'xb_page' => [
-              'xb_page' => 'Page',
-            ],
-            'node' => [
-              'article' => 'Amazing article',
-            ],
-          ],
         ],
       ],
       [
@@ -254,11 +240,6 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => TRUE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
-          'contentEntityCreateOperations' => [
-            'xb_page' => [
-              'xb_page' => 'Page',
-            ],
-          ],
         ],
       ],
       [
@@ -273,11 +254,6 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
-          'contentEntityCreateOperations' => [
-            'xb_page' => [
-              'xb_page' => 'Page',
-            ],
-          ],
         ],
       ],
       [
@@ -287,20 +263,77 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           PageRegion::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
-          'create article content',
         ],
         [
           'globalRegions' => TRUE,
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
-          'contentEntityCreateOperations' => [
-            'xb_page' => [
-              'xb_page' => 'Page',
-            ],
-            'node' => [
-              'article' => 'Amazing article',
-            ],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Tests controller exposed content entity create operations.
+   *
+   * @param array $permissions
+   *   The permissions.
+   * @param array $expectedCreateOperations
+   *   The expected create operations array.
+   *
+   * @dataProvider createOperationsData
+   */
+  public function testControllerExposedContentEntityCreateOperations(array $permissions, array $expectedCreateOperations): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    $this->setUpCurrentUser([], $permissions);
+
+    $add_url = Url::fromRoute('experience_builder.experience_builder', [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity' => '',
+    ])->toString();
+    self::assertEquals("/xb/xb_page", $add_url);
+
+    /** @var \Drupal\Core\Render\HtmlResponse $response */
+    $response = $this->request(Request::create($add_url));
+
+    $this->assertSame($expectedCreateOperations, $this->drupalSettings['xb']['contentEntityCreateOperations']);
+    self::assertSame([
+      'user.permissions',
+      'languages:language_interface',
+      'theme',
+    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertSame([
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
+  }
+
+  public static function createOperationsData(): array {
+    return [
+      [
+        [
+          'access content',
+          Page::CREATE_PERMISSION,
+        ],
+        [
+          'xb_page' => [
+            'xb_page' => 'Page',
+          ],
+        ],
+      ],
+      [
+        [
+          'access content',
+          Page::CREATE_PERMISSION,
+          'create article content',
+        ],
+        [
+          'xb_page' => [
+            'xb_page' => 'Page',
+          ],
+          'node' => [
+            'article' => 'Amazing article',
           ],
         ],
       ],
