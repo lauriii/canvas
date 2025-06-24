@@ -249,7 +249,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       "my_segment" => $expected_segment_normalization,
     ], $body);
     // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/segment/my_segment'), [], 200, ['user.permissions'], ['config:xb_personalization.segment.my_segment', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/segment/my_segment'), [], 200, ['user.permissions', 'user.roles:authenticated'], ['config:xb_personalization.segment.my_segment', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_individual_body_normalization = $expected_segment_normalization;
     $this->assertSame($expected_individual_body_normalization, $individual_body);
 

@@ -18,8 +18,10 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandler extends XbCo
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
-      // We always allow viewing these entities, unless disabled.
-      'view' => AccessResult::allowedIf($entity->status())->addCacheableDependency($entity),
+      // We allow viewing these entities if authenticated and their status is enabled.
+      'view' => AccessResult::allowedIf($account->isAuthenticated() && $entity->status())
+        ->addCacheContexts(['user.roles:authenticated'])
+        ->addCacheableDependency($entity),
       default => parent::checkAccess($entity, $operation, $account),
     };
   }

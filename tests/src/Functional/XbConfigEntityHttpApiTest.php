@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -15,8 +16,10 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @covers \Drupal\experience_builder\Controller\ApiConfigControllers
@@ -28,6 +31,7 @@ use GuzzleHttp\RequestOptions;
 class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use OpenApiSpecTrait;
 
   /**
    * {@inheritdoc}
@@ -119,7 +123,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled pattern from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, [''], ['4xx-response', 'config:experience_builder.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'config:experience_builder.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -401,7 +405,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
     // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme', 'user.roles:authenticated'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_individual_body_normalization = $expected_pattern_normalization;
     $expected_individual_body_normalization['js_footer'] = str_replace('xb\/api\/config\/pattern', 'xb\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
     $this->assertSame($expected_individual_body_normalization, $individual_body);
@@ -527,7 +531,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
     $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/disabled_js_component');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'user.roles:authenticated'], ['config:experience_builder.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'machineName' => 'disabled_js_component',
       'name' => 'Disabled JavaScript Component',
@@ -840,7 +844,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Admin should be able to get the Code Component from the XB HTTP API.
     $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/test');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'user.roles:authenticated'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_component, $body);
 
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
@@ -1103,7 +1107,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled Asset Library from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, [''], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -1185,7 +1189,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Admin should be able to get the Asset Library from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, [''], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.roles:authenticated'], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($asset_library_to_send, $body);
 
     $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), $list_url, 'config:xb_asset_library_list');
@@ -1220,6 +1224,50 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         "X-CSRF-Token request header is missing",
       ],
     ], json_decode((string) $response->getBody(), TRUE));
+
+    // Create a new entity, so we can check GETing it after anonymously.
+    $token = $this->drupalGet('session/token');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+        'X-CSRF-Token' => $token,
+      ],
+    ];
+    $request_options[RequestOptions::JSON] = $this->getConfigRequestPostExample($entity_type_id);
+    $response = $this->makeApiRequest('POST', $list_url, $request_options);
+    self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+    $body = json_decode((string) $response->getBody(), TRUE);
+    $idKey = $this->container->get(EntityTypeManagerInterface::class)->getDefinition($entity_type_id)->getKey('id');
+    $this->assertArrayHasKey($idKey, $body);
+    $id = $body[$idKey];
+
+    $this->drupalLogout();
+    // Verify we cannot access it as anonymous.
+    $canonical_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id/$id");
+    $response = $this->makeApiRequest('GET', $canonical_url, []);
+    $this->assertSame(403, $response->getStatusCode());
+
+    // Delete it to not affect further tests.
+    $this->drupalLogin($this->httpApiUser);
+    $token = $this->drupalGet('session/token');
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+        'X-CSRF-Token' => $token,
+      ],
+    ];
+    $response = $this->makeApiRequest('DELETE', $canonical_url, $request_options);
+    $this->assertSame(204, $response->getStatusCode());
+  }
+
+  private function getConfigRequestPostExample(string $entity_type_id): array {
+    $openApiSpec = $this->getSpecification();
+    $openApiSpecData = $openApiSpec->getSerializableData();
+    $examples = (array) $openApiSpecData->paths->{'/xb/api/v0/config/' . $entity_type_id}->post->requestBody->content->{'application/json'}->examples;
+    if (empty($examples)) {
+      throw new \Exception('We require to define at least one example for POST "/xb/api/v0/config/' . $entity_type_id . '" request in openapi.yml.');
+    }
+    return (array) reset($examples);
   }
 
   private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options, array $additional_expected_cache_tags = []): void {

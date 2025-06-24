@@ -18,8 +18,8 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandler extends XbConf
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
-      // We always allow viewing these entities, even if disabled.
-      'view' => AccessResult::allowed(),
+      // We always allow viewing these entities if authenticated, even if disabled.
+      'view' => AccessResult::allowedIf($account->isAuthenticated())->addCacheContexts(['user.roles:authenticated']),
       default => parent::checkAccess($entity, $operation, $account),
     };
   }

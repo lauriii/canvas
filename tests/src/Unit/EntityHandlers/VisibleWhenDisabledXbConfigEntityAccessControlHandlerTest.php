@@ -6,6 +6,7 @@ namespace Drupal\Tests\experience_builder\Unit\EntityHandlers;
 
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
+use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\Context\CacheContextsManager;
@@ -37,10 +38,11 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
    * @covers ::checkAccess
    * @dataProvider viewPermissionProvider
    */
-  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, string $permission, string $expectedAccessResult): void {
+  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $authenticated, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
+    $cacheContextsManager->assertValidTokens(['user.roles:authenticated'])->willReturn(TRUE);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);
-    $cacheContextsManager->assertValidTokens(['context:one', 'context:two'])->willReturn(TRUE);
+    $cacheContextsManager->assertValidTokens(['user.roles:authenticated', 'context:one', 'context:two'])->willReturn(TRUE);
     $container = new ContainerBuilder();
     $container->set('cache_contexts_manager', $cacheContextsManager->reveal());
     \Drupal::setContainer($container);
@@ -55,6 +57,7 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
     $configManager = $this->createMock(ConfigManagerInterface::class);
     $account = $this->createMock(AccountInterface::class);
     $account->expects($this->never())->method('hasPermission')->willReturn(TRUE);
+    $account->expects($this->once())->method('isAuthenticated')->willReturn($authenticated);
     $language = $this->createMock(LanguageInterface::class);
     $language->expects($this->any())->method('getId')->willReturn('en');
     $entity->expects($this->any())->method('language')->willReturn($language);
@@ -68,15 +71,17 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
     $result = $sut->access($entity, 'view', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
     assert($result instanceof RefinableCacheableDependencyInterface);
-    $this->assertSame([], $result->getCacheContexts());
+    $this->assertSame(['user.roles:authenticated'], $result->getCacheContexts());
     $this->assertSame([], $result->getCacheTags());
     $this->assertSame(Cache::PERMANENT, $result->getCacheMaxAge());
   }
 
   public static function viewPermissionProvider(): array {
     return [
-      [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', TRUE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', FALSE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'js_component, enabled, authenticated is allowed' => [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', TRUE, TRUE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'js_component, disabled, authenticated is allowed' => [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', FALSE, TRUE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'js_component, enabled, not authenticated is neutral' => [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', TRUE, FALSE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'js_component, disabled, not authenticated is neutral' => [JavaScriptComponent::ENTITY_TYPE_ID, 'js_component', FALSE, FALSE, JavaScriptComponent::ADMIN_PERMISSION, AccessResultNeutral::class],
     ];
   }
 

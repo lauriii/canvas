@@ -7,6 +7,7 @@ namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -15,6 +16,8 @@ use Symfony\Component\Yaml\Yaml;
  * @group xb_ai
  */
 final class GetJsComponentTest extends KernelTestBase {
+
+  use UserCreationTrait;
 
   /**
    * The function call plugin manager.
@@ -41,6 +44,8 @@ final class GetJsComponentTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
+    // Needs a logged-in user to access components.
+    $this->setUpCurrentUser([], []);
   }
 
   /**

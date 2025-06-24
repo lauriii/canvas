@@ -155,6 +155,9 @@ experience_builder.api.config.get:
     _entity_access: 'xb_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
+    # The UI client can fetch all the components the current user has access too, regardless of which kind of XB-enabled
+    # entity you're editing.
+    _user_is_logged_in: 'TRUE'
   options:
     parameters:
       xb_config_entity:

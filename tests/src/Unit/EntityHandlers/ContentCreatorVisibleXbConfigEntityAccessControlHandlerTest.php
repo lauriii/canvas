@@ -38,10 +38,11 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
    * @covers ::checkAccess
    * @dataProvider viewPermissionProvider
    */
-  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, string $permission, string $expectedAccessResult): void {
+  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $authenticated, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
+    $cacheContextsManager->assertValidTokens(['user.roles:authenticated'])->willReturn(TRUE);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);
-    $cacheContextsManager->assertValidTokens(['context:one', 'context:two'])->willReturn(TRUE);
+    $cacheContextsManager->assertValidTokens(['user.roles:authenticated', 'context:one', 'context:two'])->willReturn(TRUE);
     $container = new ContainerBuilder();
     $container->set('cache_contexts_manager', $cacheContextsManager->reveal());
     \Drupal::setContainer($container);
@@ -52,7 +53,7 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
     $entityType->expects($this->never())->method('getAdminPermission')->willReturn($permission);
     $entity = $this->createMock(ConfigEntityInterface::class);
 
-    $entity->expects($this->once())
+    $entity->expects($authenticated ? $this->once() : $this->never())
       ->method('status')
       ->willReturn($status);
     $entity->expects($this->once())
@@ -66,6 +67,7 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
       ->willReturn(Cache::PERMANENT);
     $configManager = $this->createMock(ConfigManagerInterface::class);
     $account = $this->createMock(AccountInterface::class);
+    $account->expects($this->once())->method('isAuthenticated')->willReturn($authenticated);
     $account->expects($this->never())->method('hasPermission')->willReturn(TRUE);
     $language = $this->createMock(LanguageInterface::class);
     $language->expects($this->any())->method('getId')->willReturn('en');
@@ -79,12 +81,14 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
 
   public static function viewPermissionProvider(): array {
     return [
-      [Component::ENTITY_TYPE_ID, 'component', TRUE, Component::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [Pattern::ENTITY_TYPE_ID, 'pattern', TRUE, Pattern::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [PageRegion::ENTITY_TYPE_ID, 'page region', TRUE, PageRegion::ADMIN_PERMISSION, AccessResultAllowed::class],
-      [Component::ENTITY_TYPE_ID, 'component', FALSE, Component::ADMIN_PERMISSION, AccessResultNeutral::class],
-      [Pattern::ENTITY_TYPE_ID, 'pattern', FALSE, Pattern::ADMIN_PERMISSION, AccessResultNeutral::class],
-      [PageRegion::ENTITY_TYPE_ID, 'page region', FALSE, PageRegion::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'component, enabled, authenticated is allowed' => [Component::ENTITY_TYPE_ID, 'component', TRUE, TRUE, Component::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'pattern, enabled, authenticated is allowed' => [Pattern::ENTITY_TYPE_ID, 'pattern', TRUE, TRUE, Pattern::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'region, enabled, authenticated is allowed' => [PageRegion::ENTITY_TYPE_ID, 'page region', TRUE, TRUE, PageRegion::ADMIN_PERMISSION, AccessResultAllowed::class],
+      'component, disabled, authenticated is neutral' => [Component::ENTITY_TYPE_ID, 'component', FALSE, TRUE, Component::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'pattern, disabled, authenticated is neutral' => [Pattern::ENTITY_TYPE_ID, 'pattern', FALSE, TRUE, Pattern::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'region, disabled, authenticated is neutral' => [PageRegion::ENTITY_TYPE_ID, 'page region', FALSE, TRUE, PageRegion::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'component, enabled, not authenticated is neutral' => [Component::ENTITY_TYPE_ID, 'component', TRUE, FALSE, PageRegion::ADMIN_PERMISSION, AccessResultNeutral::class],
+      'component, disabled, not authenticated is neutral' => [PageRegion::ENTITY_TYPE_ID, 'page region', FALSE, FALSE, PageRegion::ADMIN_PERMISSION, AccessResultNeutral::class],
     ];
   }
 

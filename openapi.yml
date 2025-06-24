@@ -336,6 +336,18 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewCodeComponent'
+            examples:
+              a simple js component with no slots or props, and no imports:
+                machineName: test_component
+                name: Test Component
+                status: FALSE
+                props: []
+                slots: []
+                sourceCodeJs: 'console.log("Test");'
+                sourceCodeCss: '.test{ display:none; }'
+                compiledJs: 'console.log("Test");'
+                compiledCss: '.test{display:none;}'
+                importedJsComponents: []
       responses:
         '201':
           description: Successful creation of individual Code Component
@@ -422,6 +434,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewPattern'
+            examples:
+              example with one section:
+                name: Section
+                layout:
+                  -
+                    uuid: 0b755464-281c-4487-82a0-ece34a9b1121
+                    nodeType: component
+                    type: sdc.experience_builder.my-section@05bd00d2c481f924
+                    slots: [ ]
+                model:
+                  0b755464-281c-4487-82a0-ece34a9b1121:
+                    resolved:
+                      text:
+                        value: >-
+                          Our mission is to deliver the best products and
+                          services to our customers. We strive to exceed
+                          expectations and continuously improve our offerings.
+                    source:
+                      text:
+                        sourceType: static:field_item:string,
+                        expression: 'ℹ︎string␟value'
       responses:
         '201':
           description: Successful save of Section/Pattern
@@ -728,16 +761,15 @@ paths:
             schema:
               $ref: '#/components/schemas/NewAssetLibrary'
             examples:
-              example:
-                value:
-                  id: "global"
-                  label: "Global Asset Library"
-                  css:
-                    original: "body { background-color: #fff; }"
-                    compiled: "body{background-color:#fff}"
-                  js:
-                    original: "console.log('Hello, world!');"
-                    compiled: "console.log('Hello, world!');"
+              example of a global library:
+                id: "global"
+                label: "Global Asset Library"
+                css:
+                  original: "body { background-color: #fff; }"
+                  compiled: "body{background-color:#fff}"
+                js:
+                  original: "console.log('Hello, world!');"
+                  compiled: "console.log('Hello, world!');"
       responses:
         '201':
           description: Created entity successfully
