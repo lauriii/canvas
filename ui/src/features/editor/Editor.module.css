@@ -5,3 +5,22 @@
 .absoluteContainer {
   position: absolute;
 }
+.xbCalloutContainer {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-background, #fff);
+  inset: 0;
+}
+
+@media (max-width: 1023px) {
+  .xbCalloutContainer {
+    display: flex;
+  }
+  .xbAppContent {
+    display: none;
+  }
+}

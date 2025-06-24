@@ -26,9 +26,10 @@ import { MultiBackend } from 'react-dnd-multi-backend';
 import Topbar from '@/components/topbar/Topbar';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import styles from '@/features/editor/Editor.module.css';
-import { Flex } from '@radix-ui/themes';
+import { Flex, Callout, Box } from '@radix-ui/themes';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback
@@ -63,27 +64,46 @@ const App: React.FC = () => {
   const sensors = useSensors(pointerSensor);
   return (
     <div className="xb-app">
-      <ErrorBoundary
-        variant="alert"
-        title="Experience Builder has encountered an unexpected error."
-      >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={customCollisionDetectionAlgorithm}
+      <div className={styles.xbCalloutContainer}>
+        <Box maxWidth="500px">
+          <Callout.Root color="orange" size="2">
+            <Callout.Icon>
+              <InfoCircledIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              Experience Builder requires a browser window at least 1024 pixels
+              wide to function properly.
+            </Callout.Text>
+            <Callout.Text>
+              Please resize your browser window or switch to a device with a
+              larger screen to continue using Experience Builder.
+            </Callout.Text>
+          </Callout.Root>
+        </Box>
+      </div>
+      <div className={styles.xbAppContent}>
+        <ErrorBoundary
+          variant="alert"
+          title="Experience Builder has encountered an unexpected error."
         >
-          <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-            <Flex className={styles.xbContainer} gap="0">
-              <ErrorBoundary variant="page">
-                <Outlet />
-              </ErrorBoundary>
-            </Flex>
-            <Topbar />
-            <DragEventsHandler />
-            <SavingOverlay />
-            <Toast />
-          </DndProvider>
-        </DndContext>
-      </ErrorBoundary>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={customCollisionDetectionAlgorithm}
+          >
+            <DndProvider backend={MultiBackend} options={HTML5toTouch}>
+              <Flex className={styles.xbContainer} gap="0">
+                <ErrorBoundary variant="page">
+                  <Outlet />
+                </ErrorBoundary>
+              </Flex>
+              <Topbar />
+              <DragEventsHandler />
+              <SavingOverlay />
+              <Toast />
+            </DndProvider>
+          </DndContext>
+        </ErrorBoundary>
+      </div>
     </div>
   );
 };
