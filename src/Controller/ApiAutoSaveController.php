@@ -14,6 +14,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
@@ -144,15 +145,35 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
 
     // We keep these in an array instead of making use of a collection like
-    // ConstraintViolationList so we can keep violations grouped by each entity.
+    // ConstraintViolationList, so we can keep violations grouped by each entity.
     $violationSets = [];
     $entities = [];
     // The client auto-saves do not contain the 'data' key, so we need to use
     // the versions from the auto-save manager.
     $publish_auto_saves = array_intersect_key($all_auto_saves, $client_auto_saves);
-    foreach ($publish_auto_saves as $auto_save) {
-      $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->create($auto_save['data']);
 
+    // We want to report all access errors at one, so keeping the labels.
+    $access_error_labels = [];
+    $access_error_cache = new CacheableMetadata();
+    $loadedEntities = [];
+    foreach ($publish_auto_saves as $autoSaveKey => $auto_save) {
+      $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->create($auto_save['data']);
+      assert($entity instanceof EntityInterface);
+      $loadedEntities[$autoSaveKey] = $entity;
+
+      $access = $entity->access(operation: 'update', return_as_object: TRUE);
+      if (!$access->isAllowed()) {
+        $access_error_cache->addCacheableDependency($entity);
+        $access_error_cache->addCacheableDependency($access);
+        $access_error_cache->addCacheTags([AutoSaveManager::CACHE_TAG]);
+        $access_error_labels[] = $entity->label();
+      }
+    }
+    if (!empty($access_error_labels)) {
+      throw new CacheableAccessDeniedHttpException($access_error_cache, sprintf('Unable to update entities: %s.', implode(', ', array_map(fn(\Stringable|string|NULL $label) => $label ? "'$label'" : "''", $access_error_labels))));
+    }
+
+    foreach ($loadedEntities as $entity) {
       if ($entity instanceof PageRegion) {
         $entity->enforceIsNew(FALSE);
         $violations = $entity->getTypedData()->validate();

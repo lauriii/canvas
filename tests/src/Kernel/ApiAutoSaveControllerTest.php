@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Core\Url;
@@ -450,6 +451,31 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $css['original'] = NULL;
     $library->set('css', $css);
     $autoSave->saveEntity($library);
+
+    // Try to publish all the changes. We are not allowed, as we are missing
+    // permissions for the code components and library assets.
+    try {
+      $this->makePublishAllRequest();
+      $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
+    }
+    catch (CacheableAccessDeniedHttpException $exception) {
+      // Get access denied as expected. The label is the new one that we set.
+      $this->assertSame("Unable to update entities: 'New name', 'New label'.", $exception->getMessage());
+      $this->assertSame([
+        'config:experience_builder.js_component.test-component',
+        AutoSaveManager::CACHE_TAG,
+        'config:experience_builder.xb_asset_library.global',
+      ], $exception->getCacheTags());
+      $this->assertSame(['user.permissions'], $exception->getCacheContexts());
+    }
+    // Grant that permission.
+    $this->setUpCurrentUser(permissions: [
+      PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+      JavaScriptComponent::ADMIN_PERMISSION,
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
 
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);

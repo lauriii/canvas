@@ -167,6 +167,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $permissions = [
       'edit any article content',
+      Segment::ADMIN_PERMISSION,
       Page::EDIT_PERMISSION,
     ];
     if ($authorized) {
