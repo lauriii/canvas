@@ -3,21 +3,46 @@ description: 'Site for running tests against.'
 type: 'XB'
 install:
   - stark
-  - xb_dev_standard
+  - experience_builder
   - xb_test_code_components
   - xb_test_sdc
+  - xb_dev_standard
 config:
-  strict: true
+  # Loose config imports because the code components in `xb_test_code_components` contain UUIDs, which are used to
+  # generate corresponding assets on disk with predictable names.
+  # @todo Change to `strict: true` after core bug https://www.drupal.org/project/drupal/issues/3532271 is fixed.
+  strict: false
   import:
     experience_builder: '*'
     system:
       # This menu must exist so it can be exposed as a block component and used in our
       # default content.
       - system.menu.admin
-    xb_dev_standard: '*'
-    xb_test_code_components: '*'
+    # Import only the code components (JavaScriptComponent) config entities, not the corresponding Component config
+    # entities. Let those be auto-created, because the set of modules installed affects the generated
+    # `prop_field_definitions`.
+    xb_test_code_components:
+      - experience_builder.js_component.xb_test_code_components_using_imports
+      - experience_builder.js_component.xb_test_code_components_vanilla_image
+      - experience_builder.js_component.xb_test_code_components_with_no_props
+      - experience_builder.js_component.xb_test_code_components_with_props
+    # For the `field_xb_demo` field instance, populated by the default content in this recipe.
+    xb_dev_standard:
+      - field.storage.node.field_xb_demo
+      - field.field.node.article.field_xb_demo
   actions:
     system.site:
       simpleConfigUpdate:
         page.front: /homepage
         name: 'Drupal'
+    # @see \xb_dev_standard_install()
+    core.entity_view_display.node.article.default:
+      setComponent:
+        name: field_tags
+        options:
+          type: experience_builder_naive_render_sdc_tree
+          label: hidden
+          settings: {}
+          third_party_settings: {}
+          weight: -2
+          region: content

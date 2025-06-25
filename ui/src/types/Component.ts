@@ -55,7 +55,6 @@ export interface DynamicComponent extends BaseComponent {
 export interface JSComponent extends BaseComponent {
   library: 'primary_components';
   source: 'Code component';
-  dynamic_prop_source_candidates: any[];
   transforms: any[];
 }
 
@@ -72,7 +71,6 @@ export interface PropSourceComponent extends BaseComponent {
     };
     [key: string]: any;
   };
-  dynamic_prop_source_candidates: Record<string, any>;
   transforms: TransformConfig;
 }
 // Union type for any component

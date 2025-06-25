@@ -778,7 +778,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'dynamic_prop_source_candidates' => [],
         'transforms' => [],
       ],
       'js.xb_test_code_components_vanilla_image' => [
@@ -831,7 +830,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
             ],
           ],
         ],
-        'dynamic_prop_source_candidates' => [],
         'transforms' => [],
       ],
       'js.xb_test_code_components_with_no_props' => [
@@ -842,7 +840,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'dynamic_prop_source_candidates' => [],
         'transforms' => [],
       ],
       'js.xb_test_code_components_with_props' => [
@@ -882,7 +879,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
             ],
           ],
         ],
-        'dynamic_prop_source_candidates' => [],
         'transforms' => [],
       ],
     ];

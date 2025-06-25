@@ -95,7 +95,6 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
       'build' => $this->renderComponent([], $component->uuid(), FALSE),
       'metadata' => ['slots' => $this->getSlotDefinitions()],
       'field_data' => [],
-      'dynamic_prop_source_candidates' => [],
       'transforms' => [],
     ];
   }

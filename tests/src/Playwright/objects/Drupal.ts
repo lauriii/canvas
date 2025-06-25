@@ -48,6 +48,14 @@ export class Drupal {
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/base`,
     );
+    // These have to be enabled manually because they don't create the article
+    // fields when enabled via a recipe.
+    // @todo Revert this, see https://www.drupal.org/project/experience_builder/issues/3532130#comment-16164321.
+    await this.installModules([
+      'xb_dev_standard',
+      'xb_test_sdc',
+      'xb_test_code_components',
+    ]);
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/test_site`,
     );
@@ -242,8 +250,14 @@ export class Drupal {
   }
 
   async getXBEditorPath() {
+    const bodyClass = await this.page.locator('body').getAttribute('class');
+    const hasXBPageClass = bodyClass?.includes('xb-page');
     const drupalSettings = await this.getSettings();
-    return `/xb${drupalSettings.path.baseUrl}${drupalSettings.path.currentPath}/editor`;
+    if (hasXBPageClass) {
+      return `${drupalSettings.path.baseUrl}xb/xb_${drupalSettings.path.currentPath}`;
+    } else {
+      return `${drupalSettings.path.baseUrl}xb/${drupalSettings.path.currentPath}/editor`;
+    }
   }
 
   async waitForXBEditor() {

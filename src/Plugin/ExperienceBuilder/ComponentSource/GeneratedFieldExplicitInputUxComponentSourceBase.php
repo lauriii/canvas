@@ -8,7 +8,6 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
@@ -24,17 +23,13 @@ use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -72,7 +67,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     array $plugin_definition,
     private readonly ComponentValidator $componentValidator,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
-    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
     assert(array_key_exists('local_source_id', $configuration));
@@ -90,7 +84,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $plugin_definition,
       $container->get(ComponentValidator::class),
       $container->get('plugin.manager.field.widget'),
-      $container->get(FieldForComponentSuggester::class),
       $container->get(EntityTypeManagerInterface::class),
     );
   }
@@ -494,16 +487,11 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function getClientSideInfo(ComponentEntity $component): array {
     $component_plugin = $this->getSdcPlugin();
     assert($component_plugin instanceof SdcPlugin);
-    // @todo Refactor away this instanceof check in https://www.drupal.org/i/3503038
-    $suggestions = $this instanceof SingleDirectoryComponent
-      ? $this->fieldForComponentSuggester->suggest($component_plugin->getPluginId(), EntityDataDefinition::create('node', 'article'))
-      : [];
     $prop_field_definitions = $component->getSettings()['prop_field_definitions'];
 
     $field_data = [];
     $default_props_for_default_markup = [];
     $unpopulated_props_for_default_markup = [];
-    $dynamic_prop_source_candidates = [];
     $transforms = [];
     foreach (PropShape::getComponentProps($component_plugin) as $component_prop_expression => $prop_shape) {
       $storable_prop_shape = $prop_shape->getStorage();
@@ -515,12 +503,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $prop_name = $component_prop->propName;
-      if (isset($suggestions[$component_prop_expression])) {
-        $dynamic_prop_source_candidates[$prop_name] = array_map(
-          fn(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr) => (string) $expr,
-          $suggestions[$component_prop_expression]['instances']
-        );
-      }
 
       // Determine the default:
       // - resolved value (used for the preview of the component)
@@ -644,7 +626,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
       'propSources' => $field_data,
-      'dynamic_prop_source_candidates' => $dynamic_prop_source_candidates,
       'transforms' => $transforms,
     ];
   }

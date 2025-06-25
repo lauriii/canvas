@@ -21,7 +21,6 @@ use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Path;
 
@@ -59,7 +58,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     array $plugin_definition,
     ComponentValidator $componentValidator,
     WidgetPluginManager $fieldWidgetPluginManager,
-    FieldForComponentSuggester $fieldForComponentSuggester,
     EntityTypeManagerInterface $entityTypeManager,
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly ModuleHandlerInterface $moduleHandler,
@@ -72,7 +70,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $plugin_definition,
       $componentValidator,
       $fieldWidgetPluginManager,
-      $fieldForComponentSuggester,
       $entityTypeManager,
     );
   }
@@ -87,7 +84,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $plugin_definition,
       $container->get(ComponentValidator::class),
       $container->get('plugin.manager.field.widget'),
-      $container->get(FieldForComponentSuggester::class),
       $container->get(EntityTypeManagerInterface::class),
       $container->get(ComponentPluginManager::class),
       $container->get(ModuleHandlerInterface::class),
