@@ -30,6 +30,7 @@ import { Flex, Callout, Box } from '@radix-ui/themes';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import AiPanel from '@/components/aiExtension/AiPanel';
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback
@@ -93,6 +94,7 @@ const App: React.FC = () => {
             <DndProvider backend={MultiBackend} options={HTML5toTouch}>
               <Flex className={styles.xbContainer} gap="0">
                 <ErrorBoundary variant="page">
+                  <AiPanel />
                   <Outlet />
                 </ErrorBoundary>
               </Flex>

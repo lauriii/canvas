@@ -1,10 +1,5 @@
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
-import {
-  FileTextIcon,
-  LayersIcon,
-  PlusIcon,
-  TransformIcon,
-} from '@radix-ui/react-icons';
+import { FileTextIcon, LayersIcon, PlusIcon } from '@radix-ui/react-icons';
 import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
 import styles from './SideMenu.module.css';
 import { useCallback } from 'react';
@@ -35,18 +30,11 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
   if (drupalSettings && drupalSettings.xbExtension) {
     hasExtensions = Object.values(drupalSettings.xbExtension).length > 0;
   }
-  let hasAiExtensionAvailable = false;
 
-  if (drupalSettings && drupalSettings.xb.aiExtensionAvailable) {
-    hasAiExtensionAvailable = true;
-  }
   const dispatch = useAppDispatch();
 
   const handleAddClick = useCallback(() => {
     dispatch(setActivePanel('library'));
-  }, [dispatch]);
-  const handleOpenAiPanel = useCallback(() => {
-    dispatch(setActivePanel('aiWizard'));
   }, [dispatch]);
 
   const handleLayersClick = useCallback(() => {
@@ -89,16 +77,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <ExtensionIcon />,
       label: 'Extensions',
       onClick: handleExtensionsClick,
-    });
-  }
-  if (hasAiExtensionAvailable) {
-    menuItems.push({ type: 'separator' });
-    menuItems.push({
-      type: 'button',
-      id: 'aiWizard',
-      icon: <TransformIcon />,
-      label: 'AI',
-      onClick: handleOpenAiPanel,
     });
   }
 

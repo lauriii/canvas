@@ -9,6 +9,8 @@ import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import PageInfo from '../pageInfo/PageInfo';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
+import AIToggleButton from '@/components/aiExtension/AiToggleButton';
+import { getDrupalSettings } from '@/utils/drupal-globals';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
@@ -16,6 +18,13 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.includes('/preview');
+
+  let hasAiExtensionAvailable = false;
+
+  const drupalSettings = getDrupalSettings();
+  if (drupalSettings && drupalSettings.xb.aiExtensionAvailable) {
+    hasAiExtensionAvailable = true;
+  }
 
   function handleChangeModeClick() {
     if (isPreview) {
@@ -54,6 +63,12 @@ const Topbar = () => {
                 />
               </a>
             </Tooltip>
+            {!isPreview && hasAiExtensionAvailable && (
+              <>
+                <div className={clsx(styles.verticalDivider)}></div>
+                <AIToggleButton />
+              </>
+            )}
             <div className={clsx(styles.verticalDivider)}></div>
             {!isPreview && (
               <>

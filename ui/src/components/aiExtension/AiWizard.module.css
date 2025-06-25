@@ -1,0 +1,16 @@
+.aiWizard {
+  width: fit-content;
+  height: 100%;
+  background: white;
+  padding: 16px;
+  font-family: sans-serif;
+
+  h3 {
+    font-weight: 600;
+    margin: 4px 0 16px;
+  }
+
+  .blue-text {
+    color: #007BFF;
+  }
+}

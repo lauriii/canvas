@@ -14,6 +14,7 @@ export enum LayoutItemType {
   DYNAMIC = 'dynamicComponent',
   CODE = 'code',
   OVERRIDE = 'override',
+  AIWIZARD = 'aiWizard',
   UNDEFINED = 'undefined',
 }
 
