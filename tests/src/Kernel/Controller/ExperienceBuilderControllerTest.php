@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Controller;
 
 use Drupal\Core\Url;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
@@ -215,18 +216,21 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
+          'publishChanges' => FALSE,
         ],
       ],
       [
         [
           ...$page_permissions,
           JavaScriptComponent::ADMIN_PERMISSION,
+          AutoSaveManager::PUBLISH_PERMISSION,
         ],
         [
           'globalRegions' => FALSE,
           'sections' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
+          'publishChanges' => TRUE,
         ],
       ],
       [
@@ -240,6 +244,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => TRUE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
+          'publishChanges' => FALSE,
         ],
       ],
       [
@@ -254,6 +259,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
+          'publishChanges' => FALSE,
         ],
       ],
       [
@@ -263,12 +269,14 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
           PageRegion::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
+          AutoSaveManager::PUBLISH_PERMISSION,
         ],
         [
           'globalRegions' => TRUE,
           'sections' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
+          'publishChanges' => TRUE,
         ],
       ],
     ];
