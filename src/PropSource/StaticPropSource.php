@@ -69,6 +69,32 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   /**
+   * Two StaticPropSources have the same shape if they have identical storage.
+   *
+   * @return bool
+   */
+  public function hasSameShapeAs(StaticPropSource $other): bool {
+    if ((string) $this->expression !== (string) $other->expression) {
+      return FALSE;
+    }
+    // Cardinality, field storage settings and field instance settings all are
+    // optional:
+    // - cardinality defaults to 1
+    if (($this->cardinality ?? 1) !== ($other->cardinality ?? 1)) {
+      return FALSE;
+    }
+    // - field storage settings defaults to NULL
+    if (($this->fieldStorageSettings ?? []) !== ($other->fieldStorageSettings ?? [])) {
+      return FALSE;
+    }
+    // - field instance settings defaults to NULL
+    if (($this->fieldInstanceSettings ?? []) !== ($other->fieldInstanceSettings ?? [])) {
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function toArray(): array {

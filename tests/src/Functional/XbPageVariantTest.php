@@ -280,18 +280,14 @@ class XbPageVariantTest extends FunctionalTestBase {
     // changes) should result in … NO changes on the front page! Because auto-
     // saved data must only appear inside XB's UI.
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
-    $autoSaveManager->save(
-      entity: $branding_component,
-      // 'importedJsComponents' is a value sent by the client that is used to
-      // determine Javascript Code component dependencies and is not saved
-      // directly on the backend.
-      // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-      data: ['name' => 'Site branding updated', 'importedJsComponents' => []] + $branding_component->normalizeForClientSide()->values,
-    );
+    $draft = JavaScriptComponent::create([
+      'name' => 'Site branding updated',
+    ] + $branding_component->toArray());
+    $autoSaveManager->saveEntity($draft);
     $this->assertSame('Site branding', $branding_component->label());
-    $autoSaveData = $autoSaveManager->getAutoSaveData($branding_component)->data;
-    self::assertNotNull($autoSaveData);
-    $branding_component_auto_saved = JavaScriptComponent::create($autoSaveData);
+    $autoSaveData = $autoSaveManager->getAutoSaveEntity($branding_component);
+    self::assertInstanceOf(JavaScriptComponent::class, $autoSaveData->entity);
+    $branding_component_auto_saved = $autoSaveData->entity;
     $this->assertSame('Site branding updated', $branding_component_auto_saved->label());
     $this->assertPageDisplayVariant(
       XbPageVariant::class,

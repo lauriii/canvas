@@ -2,7 +2,6 @@
 
 namespace Drupal\xb_ai\Plugin\AiFunctionCall;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -13,6 +12,7 @@ use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
 use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Yaml\Yaml;
 
@@ -82,7 +82,7 @@ final class GetJsComponent extends FunctionCallBase implements ExecutableFunctio
 
     // Check if the component exists.
     /** @var \Drupal\experience_builder\Entity\JavaScriptComponent $component */
-    $component = $this->entityTypeManager->getStorage('js_component')->load($component_id);
+    $component = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)->load($component_id);
 
     // If the component does not exist, return an error.
     if (!$component) {
@@ -97,15 +97,19 @@ final class GetJsComponent extends FunctionCallBase implements ExecutableFunctio
     }
 
     // Normalize it for the frontend as array.
-    $array = Json::decode(Json::encode($component->normalizeForClientSide()));
+    $array = $component->toArray();
 
     // Check if there is autosaved data.
-    $save = $this->autoSaveManager->getAutoSaveData($component);
+    $save = $this->autoSaveManager->getAutoSaveEntity($component);
+    if (!$save->isEmpty()) {
+      \assert($save->entity instanceof JavaScriptComponent);
+      $array = $save->entity->toArray();
+    }
 
     // Only give back the js and css.
     $output = [
-      'js' => $save->data['sourceCodeJs'] ?? $array['values']['sourceCodeJs'],
-      'css' => $save->data['sourceCodeCss'] ?? $array['values']['sourceCodeCss'],
+      'js' => $array['js']['original'],
+      'css' => $array['css']['original'],
     ];
 
     $this->information = Yaml::dump($output, 10, 2);

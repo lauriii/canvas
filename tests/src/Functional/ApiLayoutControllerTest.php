@@ -108,7 +108,8 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
     $saved_component_values['importedJsComponents'] = [];
     unset($saved_component_values['js'], $saved_component_values['css']);
-    $autoSave->save($code_component, $saved_component_values);
+    $code_component->updateFromClientSide($saved_component_values);
+    $autoSave->saveEntity($code_component);
 
     // Load the test data from the layout controller.
     $content = $this->drupalGet('/xb/api/v0/layout/xb_page/1');
@@ -199,7 +200,8 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     // Updating the auto-save should invalidate the config cache and cause the
     // new value to be used on a subsequent POST.
     $saved_component_values['name'] = 'Rodney';
-    $autoSave->save($code_component, $saved_component_values);
+    $code_component->updateFromClientSide($saved_component_values);
+    $autoSave->saveEntity($code_component);
 
     $original_request_json['autoSaves'] = $json['autoSaves'];
     $request_options[RequestOptions::BODY] = Json::encode($original_request_json);

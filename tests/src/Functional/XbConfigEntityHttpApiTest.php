@@ -726,23 +726,23 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
       'props' => [
         'string' => [
-          'type' => 'string',
           'title' => 'Title',
+          'type' => 'string',
           'examples' => ['Press', 'Submit now'],
         ],
         'boolean' => [
-          'type' => 'boolean',
           'title' => 'Truth',
+          'type' => 'boolean',
           'examples' => [TRUE, FALSE],
         ],
         'integer' => [
-          'type' => 'integer',
           'title' => 'Integer',
+          'type' => 'integer',
           'examples' => [23, 10, 2024],
         ],
         'number' => [
-          'type' => 'number',
           'title' => 'Number',
+          'type' => 'number',
           'examples' => [3.14, 42],
         ],
       ],
@@ -959,7 +959,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // it.
     $auto_save_data = $code_component_to_send;
     $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
-    $this->performAutoSave($auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
+    $auto_save_data['props']['string'] = [
+      'title' => 'Title (new)',
+    ] + $auto_save_data['props']['string'];
+    $expected_auto_save = $expected_component;
+    $expected_auto_save['name'] = $auto_save_data['name'];
+    $expected_auto_save['props']['string']['title'] = 'Title (new)';
+    unset($expected_auto_save['css'], $expected_auto_save['default_markup'], $expected_auto_save['js_footer'], $expected_auto_save['js_header']);
+    $this->performAutoSave($auto_save_data, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `internal` → `exposed`, for the first time,
@@ -987,8 +994,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:experience_builder.js_component.test',
     ]);
     // Confirm that there STILL is an auto-save, and its `status` was updated!
-    $auto_save_data['status'] = TRUE;
-    $this->assertCurrentAutoSave(200, $auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
+    $expected_auto_save['status'] = TRUE;
+    $this->assertCurrentAutoSave(200, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Modify a Code Component correctly, to test the highly experimental block
     // override functionality: 200.
@@ -1037,7 +1044,14 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Create a new auto-save entry.
     $auto_save_data = $code_component_to_send;
     $auto_save_data['name'] = 'Auto-save title, should not affect GET requests';
-    $this->performAutoSave($auto_save_data, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
+    $auto_save_data['props']['string'] = [
+      'title' => 'Title (new)',
+    ] + $auto_save_data['props']['string'];
+    $expected_auto_save = $expected_component;
+    $expected_auto_save['name'] = $auto_save_data['name'];
+    $expected_auto_save['props']['string']['title'] = 'Title (new)';
+    unset($expected_auto_save['css'], $expected_auto_save['default_markup'], $expected_auto_save['js_footer'], $expected_auto_save['js_header']);
+    $this->performAutoSave($auto_save_data, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // We can delete the 'test' Code Component via the XB HTTP API. As it isn't
     // in use it will cascade delete the component as well.

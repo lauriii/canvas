@@ -66,7 +66,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
 
-    list($account, $avatarUrl) = $this->setUserWithPictureField($permissions);
+    [$account, $avatarUrl] = $this->setUserWithPictureField($permissions);
 
     $segment_id = $this->getRandomGenerator()->machineName();
     $data = [
@@ -114,7 +114,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ];
-    $autoSave->save($segment, $data);
+    $segment->updateFromClientSide($data);
+    $autoSave->saveEntity($segment);
 
     $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
     $response = $this->request($request);
@@ -135,9 +136,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Assert the content is marked as updated.
     self::assertArrayHasKey('updated', $content[$segmentIdentifier]);
+    // And that a hash exists.
+    self::assertArrayHasKey('data_hash', $content[$segmentIdentifier]);
 
     self::assertEquals([
-      'langcode' => NULL,
+      'langcode' => 'en',
       'entity_type' => $segment->getEntityTypeId(),
       'entity_id' => $segment->id(),
       'owner' => [
@@ -147,8 +150,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account->toUrl()->toString(),
       ],
       'label' => $new_title,
-      'data_hash' => self::generateAutoSaveHash($data),
-    ], \array_diff_key($content[$segmentIdentifier], \array_flip(['updated'])));
+    ], \array_diff_key($content[$segmentIdentifier], \array_flip(['updated', 'data_hash'])));
 
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
@@ -221,8 +223,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ];
-
-    $autoSave->save($segment, $missing_auto_save_data);
+    $segment->updateFromClientSide($missing_auto_save_data);
+    $autoSave->saveEntity($segment);
 
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
@@ -265,7 +267,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $updated_segment_data['label'] = $new_title;
     $updated_segment_data['description'] = $new_description;
     $updated_segment_data['rules'] = $data['rules'];
-    $autoSave->save($segment, $updated_segment_data);
+    $segment->updateFromClientSide($updated_segment_data);
+    $autoSave->saveEntity($segment);
 
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $segment_auto_save_key = 'segment:' . $segment_id;

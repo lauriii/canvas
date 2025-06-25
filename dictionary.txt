@@ -79,6 +79,9 @@ toolset
 topbar
 tsconfigs
 ultrawide
+uncollapse
+uncollapsed
+uncollapses
 unstorable
 unstub
 unvalidatable

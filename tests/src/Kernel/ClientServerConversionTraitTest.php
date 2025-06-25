@@ -120,7 +120,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
   public function testConvertClientToServer(): void {
     ['layout' => $layout, 'model' => $model] = $this->getValidClientJson(FALSE);
-    $converted_items = $this->convertClientToServer($layout, $model);
+    $converted_items = self::convertClientToServer($layout, $model);
     $expected_inputs = $this->getValidConvertedInputs(FALSE);
     self::assertEqualsCanonicalizing($expected_inputs, \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
     $this->assertSame([
@@ -174,7 +174,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     ['layout' => $layout, 'model' => $model] = $this->getValidPatternJson();
-    $converted_items = $this->convertClientToServer($layout, $model);
+    $converted_items = self::convertClientToServer($layout, $model);
     self::assertEqualsCanonicalizing($this->traitGetValidConvertedInputs(FALSE), \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
     $this->assertSame([
       [

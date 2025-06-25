@@ -36,6 +36,8 @@ This uses the terms defined above.
   - MUST be evolvable to [support other component types later](https://www.drupal.org/project/experience_builder/issues/3454519)
 - MUST support existing `SDC`s and `Block`s, if they meet certain criteria necessary for XB to provide a good UX
 - MUST support categorization of `component`s
+- MUST support efficiently storing `explicit component input` in whatever format is appropriate for the `Component
+  Source Plugin`
 - MAY require API additions and perhaps even changes to `SDC`s (such as: defining restrictions for `component slot`s, schema references and more) ⚠️ [an overview of what has been identified is constantly updated](https://www.drupal.org/project/experience_builder/issues/3462705) ⚠️
 
 ⚠️ The [supported component modeling approaches](https://www.drupal.org/project/experience_builder/issues/3446083)
@@ -60,7 +62,10 @@ schema.
 
 `SDC` DOES NOT provide an input UX, so its `Component Source Plugin` must do so on its behalf; and does so by matching
 available field types against the JSON schema of its explicit inputs ("props"). For details, see the [`XB Shape Matching
-into Field Types` doc](shape-matching-into-field-types.md).
+into Field Types` doc](shape-matching-into-field-types.md). Using the `conjured field`s explained there requires a
+significant amount of metadata, which is reduced significantly thanks to:
+- `\Drupal\experience_builder\ComponentSource\ComponentSourceInterface::preSaveItem()`
+- `\Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()`
 
 #### 3.1.2 Criteria for `SDC` `component`s
 

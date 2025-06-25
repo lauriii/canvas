@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -50,8 +51,11 @@ final class GetJsComponentTest extends KernelTestBase {
 
   /**
    * Test getting JS component returns expected JS and CSS.
+   *
+   * @testWith [false]
+   *            [true]
    */
-  public function testGetJsComponent(): void {
+  public function testGetJsComponent(bool $with_auto_save = FALSE): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:get_js_component');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
@@ -73,6 +77,17 @@ final class GetJsComponentTest extends KernelTestBase {
     ]);
     $component->save();
 
+    if ($with_auto_save) {
+      $autoSave = JavaScriptComponent::create($component->toArray());
+      \assert($autoSave instanceof JavaScriptComponent);
+      $css = $autoSave->get('css');
+      $css['original'] = '.test { display: none; }/**/';
+      $autoSave->set('css', $css);
+      $autoSaveManager = $this->container->get(AutoSaveManager::class);
+      \assert($autoSaveManager instanceof AutoSaveManager);
+      $autoSaveManager->saveEntity($autoSave);
+    }
+
     $component_id = 'test_component';
     $tool->setContextValue('component_name', $component_id);
     $tool->execute();
@@ -83,7 +98,7 @@ final class GetJsComponentTest extends KernelTestBase {
     $this->assertArrayHasKey('js', $parsed);
     $this->assertArrayHasKey('css', $parsed);
     $this->assertEquals('console.log("hey");', $parsed['js']);
-    $this->assertEquals('.test { display: none; }', $parsed['css']);
+    $this->assertEquals('.test { display: none; }' . ($with_auto_save ? '/**/' : ''), $parsed['css']);
   }
 
   /**

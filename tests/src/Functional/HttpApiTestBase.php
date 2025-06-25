@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\user\UserInterface;
@@ -75,7 +76,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
   /**
    * Asserts the given data can be auto-saved (and retrieved) correctly.
    */
-  protected function performAutoSave(array $data_to_auto_save, string $entity_type_id, string $entity_id): void {
+  protected function performAutoSave(array $data_to_auto_save, array $expected_auto_save_entity, string $entity_type_id, string $entity_id): void {
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -86,7 +87,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
     $this->assertSame([], $patch_response);
 
-    $this->assertCurrentAutoSave(200, $data_to_auto_save, $entity_type_id, $entity_id);
+    $this->assertCurrentAutoSave(200, $expected_auto_save_entity, $entity_type_id, $entity_id);
   }
 
   /**
@@ -134,9 +135,10 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       self::assertCount(0, \array_filter($auto_save_keys, static fn (string $key): bool => \str_starts_with($key, "$entity_type_id:$entity_id")));
       return;
     }
-    assert($entity instanceof EntityInterface);
-    $data = $this->container->get(AutoSaveManager::class)->getAutoSaveData($entity)->data;
-    $this->assertSame($expected_auto_save, $data);
+    \assert($entity instanceof EntityInterface);
+    $data = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($entity)->entity;
+    \assert($data instanceof XbHttpApiEligibleConfigEntityInterface);
+    $this->assertSame($expected_auto_save, $data->normalizeForClientSide()->values);
   }
 
   /**
@@ -154,7 +156,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $this->assertSame([], $individual_body);
   }
 
-  protected function assertSingleConfigAutoSaveList(EntityInterface $entity, array $auto_save_data, UserInterface $user): void {
+  protected function assertSingleConfigAutoSaveList(EntityInterface $entity, UserInterface $user): void {
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -170,16 +172,17 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         ],
         'entity_type' => $entity->getEntityTypeId(),
         'entity_id' => $entity->id(),
-
-        'data_hash' => self::generateAutoSaveHash($auto_save_data),
-        'langcode' => NULL,
+        'langcode' => 'en',
         'label' => $entity->label(),
       ],
     ];
     $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
-    assert(isset($body[$id]['updated']));
-    unset($body[$id]['updated']);
+    \assert(\is_array($body));
+    self::assertArrayHasKey($id, $body);
+    self::assertArrayHasKey('data_hash', $body[$id]);
+    self::assertArrayHasKey('updated', $body[$id]);
+    unset($body[$id]['updated'], $body[$id]['data_hash']);
     $this->assertSame($expected_list, $body);
   }
 

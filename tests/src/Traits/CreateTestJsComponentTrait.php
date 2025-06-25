@@ -55,14 +55,12 @@ trait CreateTestJsComponentTrait {
     $client_side_data['name'] .= ' - Draft';
     // @phpstan-ignore-next-line
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->save(
-      $my_cta_with_auto_save,
-      // Add updated values the auto-save entry.
-      $client_side_data +
+    // Add updated values the auto-save entry.
+    $my_cta_with_auto_save->updateFromClientSide($client_side_data +
       [
         'importedJsComponents' => [],
-      ]
-    );
+      ]);
+    $autoSave->saveEntity($my_cta_with_auto_save);
   }
 
   private function createTestCodeComponent(): void {

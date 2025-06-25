@@ -392,10 +392,14 @@ class ComponentTreeItem extends FieldItemBase {
     }
     if ($property_name === 'component_version') {
       // Reset the component reference property.
-      $this->writePropertyValue('component', [
-        'target_id' => $this->get('component')->getTargetIdentifier(),
-        'version' => $this->get('component_version')->getValue(),
-      ]);
+      $component_id = $this->get('component')->getTargetIdentifier();
+      $version_id = $this->get('component_version')->getValue();
+      if ($component_id !== NULL && $version_id !== NULL) {
+        $this->writePropertyValue('component', [
+          'target_id' => $component_id,
+          'version' => $version_id,
+        ]);
+      }
     }
     // DX: if no version is specified, set it automatically to the active
     // version of the Component.
@@ -439,6 +443,9 @@ class ComponentTreeItem extends FieldItemBase {
       }
       if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values)) {
         $this->onChange('component_id', FALSE);
+      }
+      if (\array_key_exists('component_version', $values) && $this->getComponent()?->getLoadedVersion() !== $values['component_version']) {
+        $this->onChange('component_version', FALSE);
       }
       if (\array_key_exists('component_version', $values) && $values['component_version'] === VersionedConfigEntityBase::ACTIVE_VERSION && $component = $this->getComponent()) {
         // Replace 'active' with the current active version. This allows passing
@@ -585,6 +592,8 @@ class ComponentTreeItem extends FieldItemBase {
       throw new \LogicException(sprintf('Missing input for component instance with UUID %s', $component_instance_uuid));
     }
 
+    // Allow component source plugins to normalize the stored data.
+    $this->getComponent()?->getComponentSource()?->preSaveItem($this);
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
     // $template_inputs = '@todo';

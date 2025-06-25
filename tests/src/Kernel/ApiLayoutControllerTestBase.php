@@ -100,7 +100,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     foreach ($expectedEntities as $entity) {
       self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($entity), $data['autoSaves']);
-      $autoSaveData = $autoSaveManager->getAutoSaveData($entity);
+      $autoSaveData = $autoSaveManager->getAutoSaveEntity($entity);
       // Ensure that the auto-saves are not empty are not returned.
       self::assertNotNull($autoSaveData->hash);
       self::assertSame($data['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)], $autoSaveData->hash);

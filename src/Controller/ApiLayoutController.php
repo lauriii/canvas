@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -73,47 +74,21 @@ final class ApiLayoutController {
 
     $is_published = $entity->isPublished();
 
-    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
+    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
-      $body = $autoSaveData->data;
-      \assert(\is_array($body));
-      ['layout' => $layout, 'model' => $model, 'entity_form_fields' => $entity_form_fields] = $body;
-      $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
-    }
-    else {
-      $model = [];
-      $entity_form_fields = $this->getEntityData($entity);
-      // Build the content region.
-      $tree = $this->componentTreeLoader->load($entity);
-      $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
-      $layout = [$content_layout];
-      $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
-      // Remember the initial client-side representation of this XB-enabled
-      // content entity (prior to auto-saves existing), to allow detecting when
-      // an auto-save request from the client should actually be stored (i.e.
-      // when changes are detected).
-      $this->autoSaveManager->recordInitialClientSideRepresentation($entity, [
-        'layout' => [$content_layout],
-        'model' => self::extractModelForSubtree($content_layout, $model),
-        'entity_form_fields' => $entity_form_fields,
-      ]);
+      $entity = $autoSaveData->entity;
+      \assert($entity instanceof ContentEntityInterface);
     }
 
+    $model = [];
+    $entity_form_fields = $this->getEntityData($entity);
+    // Build the content region.
+    $tree = $this->componentTreeLoader->load($entity);
+    $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
+    $layout = [$content_layout];
+    $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
+
     if ($regions) {
-      // Also remember the initial client-side representation of (editable)
-      // PageRegions without prior auto-saves existing.
-      foreach ($regions as $id => $region) {
-        assert($region instanceof PageRegion);
-        assert($region->status() === TRUE);
-        if ($this->autoSaveManager->getAutoSaveData($region)->isEmpty()) {
-          $region_model = [];
-          $region_layout = $this->buildRegion($id, $region->getComponentTree(), $region_model);
-          $this->autoSaveManager->recordInitialClientSideRepresentation($region, [
-            'layout' => $region_layout['components'],
-            'model' => $region_model,
-          ]);
-        }
-      }
       $this->addGlobalRegions($regions, $model, $layout);
       $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
       // Reorder the layout to match theme order.
@@ -172,6 +147,19 @@ final class ApiLayoutController {
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     // Filter out form values that are not accessible to the client.
     $values = self::filterFormValues($form_state->getValues(), $form);
+
+    // If the user had previously submitted any invalid values, these will be
+    // stored in their respective violations in the auto-save manager. We
+    // restore invalid values so that if a user is attempting to rectify invalid
+    // values the value shown matches what was previously entered.
+    $violations = $this->autoSaveManager->getEntityFormViolation($entity);
+    foreach ($violations as $violation) {
+      $property_path = $violation->getPropertyPath();
+      // @see \Drupal\experience_builder\ClientDataToEntityConverter::setEntityFields
+      $parents = \explode('.', $property_path);
+      NestedArray::setValue($values, $parents, $violation->getInvalidValue());
+    }
+
     // Collapse form values into the respective element name, e.g.
     // ['title' => ['value' => 'Node title']] becomes
     // ['title[0][value]' => 'Node title'. This keeps the data sent in the same
@@ -194,14 +182,9 @@ final class ApiLayoutController {
       }
 
       // Use auto-save data for each PageRegion config entity if available.
-      if ($draft_region = $this->autoSaveManager->getAutoSaveData($region)->data) {
-        $layout[] = [
-          'nodeType' => 'region',
-          'id' => $this->regionsClientSideIds[$id],
-          'name' => $this->regions[$id],
-          'components' => $draft_region['layout'],
-        ];
-        $model += $draft_region['model'];
+      if ($draft_region = $this->autoSaveManager->getAutoSaveEntity($region)->entity) {
+        \assert($draft_region instanceof PageRegion);
+        $layout[] = $this->buildRegion($id, $draft_region->getComponentTree(), $model);
       }
       // Otherwise fall back to the currently live PageRegion config entity.
       // (Note: this automatically ignores auto-saves for PageRegions that were
@@ -317,17 +300,18 @@ final class ApiLayoutController {
       }
       // Save the global region if it has a corresponding enabled PageRegion.
       elseif ($updateAutoSave && array_key_exists($client_side_region_id, $page_regions)) {
-        $page_region = $page_regions[$client_side_region_id];
-        $this->autoSaveManager->save($page_region, [
+        \assert($page_regions[$client_side_region_id] instanceof PageRegion);
+        $page_region = $page_regions[$client_side_region_id]->forAutoSaveData([
           'layout' => $region_node['components'],
           'model' => self::extractModelForSubtree($region_node, (array) $model),
-        ]);
+        ], validate: FALSE);
+        $this->autoSaveManager->saveEntity($page_region);
       }
     }
 
     assert(isset($content));
     \assert($entity instanceof FieldableEntityInterface);
-    $updated_entity_form_fields = $this->converter->convert([
+    $this->converter->convert([
       'layout' => $content,
       // An empty model needs to be represented as \stdClass so that it is
       // correctly json encoded. But we need to convert it to an array before
@@ -342,21 +326,7 @@ final class ApiLayoutController {
     ], $entity, validate: FALSE);
     // Store the auto-save entry.
     if ($updateAutoSave) {
-      $this->autoSaveManager->save($entity, [
-        'layout' => [$content],
-        // An empty model needs to be represented as \stdClass so that it is
-        // correctly json encoded. But we need to convert it to an array before
-        // we can extract it.
-        'model' => self::extractModelForSubtree($content, (array) $model),
-        // Store the updated form build ID but leave all other fields as-is.
-        // This allows us to re-submit the values from auto-save when we finally
-        // publish the entity. Some field widgets make transformations to the form
-        // data which cannot be repeated.
-        // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::validateElement
-        'entity_form_fields' => \array_filter([
-          'form_build_id' => $updated_entity_form_fields['form_build_id'] ?? NULL,
-        ]) + $body['entity_form_fields'],
-      ]);
+      $this->autoSaveManager->saveEntity($entity);
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
 
@@ -380,13 +350,10 @@ final class ApiLayoutController {
    */
   public function getLabel(EntityInterface $entity): string {
     // Get title from auto saved data if available.
-    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
+    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
-      $data = $autoSaveData->data;
-      $label_field_input_name = sprintf("%s[0][value]", $entity->getEntityType()->getKey('label'));
-      if (isset($data['entity_form_fields'][$label_field_input_name])) {
-        return $data['entity_form_fields'][$label_field_input_name];
-      }
+      \assert($autoSaveData->entity instanceof EntityInterface);
+      return (string) $autoSaveData->entity->label();
     }
     return (string) $entity->label();
   }
@@ -415,19 +382,19 @@ final class ApiLayoutController {
   private function getLastStoredData(EntityInterface $entity, bool $includeAllRegions = FALSE): array {
     assert($entity instanceof FieldableEntityInterface);
     $data = NULL;
-    $autoSaveData = $this->autoSaveManager->getAutoSaveData($entity);
-    if ($autoSaveData->isEmpty()) {
+    $build_entity = $entity;
+    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
+    if (!$autoSaveData->isEmpty()) {
       // There are no changes (everything is published), read back the original
       // model.
-      $data['model'] = [];
-      $data['entity_form_fields'] = $this->getEntityData($entity);
-      // Build the content region.
-      $tree = $this->componentTreeLoader->load($entity);
-      $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
+      \assert($autoSaveData->entity instanceof FieldableEntityInterface);
+      $build_entity = $autoSaveData->entity;
     }
-    else {
-      $data = $autoSaveData->data;
-    }
+    $data['model'] = [];
+    $data['entity_form_fields'] = $this->getEntityData($build_entity);
+    // Build the content region.
+    $tree = $this->componentTreeLoader->load($build_entity);
+    $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     assert(is_array($data));
     assert(is_array($data['model']) && is_array($data['entity_form_fields']) && is_array($data['layout']));
 
@@ -491,14 +458,14 @@ final class ApiLayoutController {
     }
     $autoSaves = $body['autoSaves'];
     $expected_auto_saves = [];
-    $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveData($entity)->hash;
+    $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveEntity($entity)->hash;
     $regions = PageRegion::loadForActiveTheme();
     foreach ($regions as $region) {
       assert($region instanceof PageRegion);
       if ($region->access('edit') === FALSE) {
         continue;
       }
-      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($region)] = $this->autoSaveManager->getAutoSaveData($region)->hash;
+      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($region)] = $this->autoSaveManager->getAutoSaveEntity($region)->hash;
     }
     $expected_auto_saves = array_filter($expected_auto_saves);
     ksort($expected_auto_saves);
@@ -520,7 +487,7 @@ final class ApiLayoutController {
     $autoSaveHashes = [];
     foreach ($entities as $entity) {
       \assert($entity instanceof EntityInterface);
-      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveData($entity)->hash;
+      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveEntity($entity)->hash;
     }
     return array_filter($autoSaveHashes);
   }

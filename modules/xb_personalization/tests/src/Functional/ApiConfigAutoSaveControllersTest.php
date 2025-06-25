@@ -77,6 +77,33 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             ],
           ],
         ],
+        [
+          'label' => 'Updated',
+        ],
+        [
+          'id' => 'test',
+          'label' => 'Updated',
+          'description' => NULL,
+          'rules' => [
+            'utm_parameters' => [
+              'id' => 'utm_parameters',
+              'negate' => FALSE,
+              'all' => TRUE,
+              'parameters' => [
+                [
+                  "key" => "utm_source",
+                  "value" => "my-source-id",
+                  "matching" => "exact",
+                ],
+                [
+                  "key" => "utm_campaign",
+                  "value" => "HALLOWEEN",
+                  "matching" => "starts_with",
+                ],
+              ],
+            ],
+          ],
+        ],
         "The 'administer personalization segments' permission is required.",
       ],
     ];
@@ -88,6 +115,8 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   public function test(
     string $entity_type_id,
     array $initial_entity,
+    array $patch_update,
+    array $updated_entity,
     string $missingPermissionError,
   ): void {
     $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
@@ -152,17 +181,18 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     // Assert auto-saving works for:
     // 1. The given *valid* entity values.
     $this->drupalLogin($this->httpApiUser);
-    $this->performAutoSave($initial_entity, $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity, $this->httpApiUser);
+    $this->performAutoSave($patch_update + $initial_entity, $updated_entity, $entity_type_id, $entity_id);
+    $original_entity->updateFromClientSide($patch_update);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
     // 2. The given *valid* entity values, with a garbage key-value pair added.
-    $this->performAutoSave($initial_entity + ['new_key' => 'new_value'], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity + ['new_key' => 'new_value'], $this->httpApiUser);
-    // 3. For an empty array (which obviously would not be a valid entity).
-    $this->performAutoSave([], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, [], $this->httpApiUser);
-    // 4. For pure garbage key-value pairs.
-    $this->performAutoSave(['any_key' => ['any' => 'value']], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, ['any_key' => ['any' => 'value']], $this->httpApiUser);
+    $this->performAutoSave($patch_update + $initial_entity + ['new_key' => 'new_value'], $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
+    // 3. For just a patch update (missing other values).
+    $this->performAutoSave($patch_update, $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
+    // 4. For missing values + garbage.
+    $this->performAutoSave($patch_update + ['any_key' => ['any' => 'value']], $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
 
     $this->assertSame($original_entity_array, $storage->loadUnchanged($entity_id)?->toArray(), 'The original entity was not changed by the auto-save.');
   }

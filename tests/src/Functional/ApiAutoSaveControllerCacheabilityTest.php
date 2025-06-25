@@ -64,13 +64,10 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
     $this->drupalLogin($account1);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
-    $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
-    self::assertNotFalse($sampleData);
-    $data = \json_decode($sampleData, TRUE);
-    // Full data.
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
-    $autoSave->save($node1, $data);
+    $node1->setTitle($this->randomMachineName());
+    $autoSave->saveEntity($node1);
     $url = Url::fromRoute('experience_builder.api.auto-save.get');
     $this->drupalGet($url);
     $this->assertSession()->responseHeaderEquals(DynamicPageCacheSubscriber::HEADER, 'MISS');

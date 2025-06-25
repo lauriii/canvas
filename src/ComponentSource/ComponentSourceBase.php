@@ -10,6 +10,7 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * Defines a base class for component source plugins.
@@ -55,7 +56,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     return \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
   }
 
-  private static function recursiveKsort(array &$array): void {
+  protected static function recursiveKsort(array &$array): void {
     ksort($array);
     foreach ($array as &$value) {
       if (is_array($value)) {
@@ -165,5 +166,12 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    *   - …
    */
   abstract protected function getExplicitInputDefinitions(): array;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSaveItem(ComponentTreeItem $item): void {
+    // Nil-op.
+  }
 
 }

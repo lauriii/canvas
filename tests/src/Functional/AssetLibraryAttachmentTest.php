@@ -121,7 +121,8 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     ];
 
     $auto_save_manager = $this->container->get(AutoSaveManager::class);
-    $auto_save_manager->save($library, $auto_save_data);
+    $library->updateFromClientSide($auto_save_data);
+    $auto_save_manager->saveEntity($library);
 
     // Case 4: Route with _xb_use_template_draft should use auto-saved version
     // library if it exists.

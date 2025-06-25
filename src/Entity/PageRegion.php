@@ -118,7 +118,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
    * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
    *   If violations exist and $throwOnViolations is TRUE.
    */
-  public function forAutoSaveData(array $autoSaveData): static {
+  public function forAutoSaveData(array $autoSaveData, bool $validate): static {
     // Ignore auto-saved regions that are no longer editable.
     if (!$this->status()) {
       // @todo Throw an exception instead. Better yet: wipe the stale auto-save
@@ -126,11 +126,14 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
       return static::create($this->toArray());
     }
 
-    $items = self::clientToServerTree($autoSaveData['layout'], $autoSaveData['model'], NULL);
+    $items = self::clientToServerTree($autoSaveData['layout'], $autoSaveData['model'], NULL, $validate);
 
     $auto_saved_page_region = static::create([
       'component_tree' => $items,
     ] + $this->toArray());
+    if (!$validate) {
+      return $auto_saved_page_region;
+    }
     $violations = $auto_saved_page_region->getTypedData()->validate();
     if ($violations->count()) {
       throw new ConstraintViolationException($violations);

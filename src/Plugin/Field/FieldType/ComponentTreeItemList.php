@@ -426,6 +426,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $uuid = $item->getUuid();
       $component = $components[$component_id];
       assert($component instanceof Component);
+      $component->loadVersion($item->getComponentVersion());
 
       $source = $component->getComponentSource();
       $hydrated[$uuid] = [
@@ -444,7 +445,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       assert(array_key_exists('slots', $hydrated[$parent_uuid]));
 
       // Remove default slot value: this slot is populated.
-      if (is_string($hydrated[$parent_uuid]['slots'][$slot])) {
+      if (\array_key_exists($slot, $hydrated[$parent_uuid]['slots']) && \is_string($hydrated[$parent_uuid]['slots'][$slot])) {
         unset($hydrated[$parent_uuid]['slots'][$slot]);
       }
 

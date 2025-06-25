@@ -165,7 +165,7 @@ cspell:
   - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -exec mv {} tmp/ \;
   - mv tmp $CI_PROJECT_NAME
   # Get Drupal
-  - composer create-project drupal/recommended-project _drupal
+  - composer create-project drupal/recommended-project:$DRUPAL_CORE _drupal
   - cd _drupal
   # Add core-dev, Experience Builder, and drush
   - |

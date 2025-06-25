@@ -225,7 +225,7 @@ class TranslationTest extends FunctionalTestBase {
     // `label` field properties are translatable and this should only change the
     // translation.
     $french_inputs = $updated_item_inputs;
-    $french_inputs['heading']['value'] = 'bonjour, monde!';
+    $french_inputs['heading'] = 'bonjour, monde!';
     $french_list = $translation->get('field_xb_test');
     assert($french_list instanceof ComponentTreeItemList);
     $french_item = $french_list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
@@ -235,7 +235,7 @@ class TranslationTest extends FunctionalTestBase {
     $translation->save();
 
     // Update the English version.
-    $updated_item_inputs['heading']['value'] = 'hello, new world!';
+    $updated_item_inputs['heading'] = 'hello, new world!';
     // In both the Symmetric and Asymmetric cases, the `inputs` property is
     // translatable and this should only change the original. If the field is
     // not translatable, this should change both the original and the

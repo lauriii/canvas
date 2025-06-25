@@ -63,23 +63,23 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           ],
           'props' => [
             'string' => [
-              'type' => 'string',
               'title' => 'Title',
+              'type' => 'string',
               'examples' => ['Press', 'Submit now'],
             ],
             'boolean' => [
-              'type' => 'boolean',
               'title' => 'Truth',
+              'type' => 'boolean',
               'examples' => [TRUE, FALSE],
             ],
             'integer' => [
-              'type' => 'integer',
               'title' => 'Integer',
+              'type' => 'integer',
               'examples' => [23, 10, 2024],
             ],
             'number' => [
-              'type' => 'number',
               'title' => 'Number',
+              'type' => 'number',
               'examples' => [3.14],
             ],
           ],
@@ -89,6 +89,47 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'compiledJs' => 'console.log("Test")',
           'compiledCss' => '.test{display:none;}',
           'importedJsComponents' => [],
+        ],
+        [
+          'sourceCodeCss' => '.test { display: none; }/**/',
+          'compiledCss' => '.test{display:none;}/**/',
+        ],
+        [
+          'machineName' => 'test',
+          'name' => 'Test',
+          'status' => FALSE,
+          'blockOverride' => NULL,
+          'props' => [
+            'string' => [
+              'title' => 'Title',
+              'type' => 'string',
+              'examples' => ['Press', 'Submit now'],
+            ],
+            'boolean' => [
+              'title' => 'Truth',
+              'type' => 'boolean',
+              'examples' => [TRUE, FALSE],
+            ],
+            'integer' => [
+              'title' => 'Integer',
+              'type' => 'integer',
+              'examples' => [23, 10, 2024],
+            ],
+            'number' => [
+              'title' => 'Number',
+              'type' => 'number',
+              'examples' => [3.14],
+            ],
+          ],
+          'required' => [
+            'string',
+            'integer',
+          ],
+          'slots' => [],
+          'sourceCodeJs' => 'console.log("Test")',
+          'sourceCodeCss' => '.test { display: none; }/**/',
+          'compiledJs' => 'console.log("Test")',
+          'compiledCss' => '.test{display:none;}/**/',
         ],
         ['compiledJs'],
         ['compiledCss'],
@@ -104,8 +145,26 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             'original' => '.test { display: none; }',
           ],
           'js' => [
-            'compiled' => 'console.log("Test")',
             'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
+          ],
+        ],
+        [
+          'css' => [
+            'original' => '.test { display: none; }/**/',
+            'compiled' => '.test{display:none;}/**/',
+          ],
+        ],
+        [
+          'id' => 'global',
+          'label' => 'I am an asset!',
+          'css' => [
+            'original' => '.test { display: none; }/**/',
+            'compiled' => '.test{display:none;}/**/',
+          ],
+          'js' => [
+            'original' => 'console.log("Test")',
+            'compiled' => 'console.log("Test")',
           ],
         ],
         ['js', 'compiled'],
@@ -121,6 +180,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   public function test(
     string $entity_type_id,
     array $initial_entity,
+    array $patch_update,
+    array $updated_entity,
     array $compiled_js_path_in_normalization,
     array $compiled_css_path_in_normalization,
     string $missingPermissionError,
@@ -175,7 +236,6 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     ]);
     $original_entity = $storage->load($entity_id);
     \assert($original_entity instanceof XbAssetInterface);
-    assert($original_entity !== NULL);
     $original_entity_array = $original_entity->toArray();
     assert(is_array($original_entity_array));
 
@@ -209,7 +269,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     // Assert auto-saving works for:
     // 1. The given *valid* entity values.
     $this->drupalLogin($this->httpApiUser);
-    $this->performAutoSave($initial_entity, $entity_type_id, $entity_id);
+    $this->performAutoSave($patch_update + $initial_entity, $updated_entity, $entity_type_id, $entity_id);
 
     // Assert that draft endpoints can be fetched.
     // Draft CSS/JS should not be available to unprivileged users.
@@ -223,23 +283,23 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->responseHeaderEquals('Content-Type', 'text/javascript; charset=utf-8');
-    self::assertEquals(NestedArray::getValue($initial_entity, $compiled_js_path_in_normalization), $this->getSession()->getPage()->getContent());
+    self::assertEquals(NestedArray::getValue($updated_entity, $compiled_js_path_in_normalization), $this->getSession()->getPage()->getContent());
 
     $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->responseHeaderEquals('Content-Type', 'text/css; charset=utf-8');
-    self::assertEquals(NestedArray::getValue($initial_entity, $compiled_css_path_in_normalization), $this->getSession()->getPage()->getContent());
+    self::assertEquals(NestedArray::getValue($updated_entity, $compiled_css_path_in_normalization), $this->getSession()->getPage()->getContent());
 
-    $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity, $this->httpApiUser);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
     // 2. The given *valid* entity values, with a garbage key-value pair added.
-    $this->performAutoSave($initial_entity + ['new_key' => 'new_value'], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, $initial_entity + ['new_key' => 'new_value'], $this->httpApiUser);
-    // 3. For an empty array (which obviously would not be a valid entity).
-    $this->performAutoSave([], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, [], $this->httpApiUser);
-    // 4. For pure garbage key-value pairs.
-    $this->performAutoSave(['any_key' => ['any' => 'value']], $entity_type_id, $entity_id);
-    $this->assertSingleConfigAutoSaveList($original_entity, ['any_key' => ['any' => 'value']], $this->httpApiUser);
+    $this->performAutoSave($patch_update + $initial_entity + ['new_key' => 'new_value'], $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
+    // 3. For just a patch update (missing other values).
+    $this->performAutoSave($patch_update, $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
+    // 4. For missing values + garbage.
+    $this->performAutoSave($patch_update + ['any_key' => ['any' => 'value']], $updated_entity, $entity_type_id, $entity_id);
+    $this->assertSingleConfigAutoSaveList($original_entity, $this->httpApiUser);
 
     $this->assertSame($original_entity_array, $storage->loadUnchanged($entity_id)?->toArray(), 'The original entity was not changed by the auto-save.');
   }

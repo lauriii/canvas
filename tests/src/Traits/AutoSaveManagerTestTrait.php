@@ -32,7 +32,7 @@ trait AutoSaveManagerTestTrait {
     assert($autoSaveManager instanceof AutoSaveManager);
     foreach ($entities as $entity) {
       assert($entity instanceof EntityInterface);
-      $autoSaveData = $autoSaveManager->getAutoSaveData($entity);
+      $autoSaveData = $autoSaveManager->getAutoSaveEntity($entity);
       if ($autoSaveData->hash) {
         $clientData['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveData->hash;
       }

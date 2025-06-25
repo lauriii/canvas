@@ -262,11 +262,14 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertConvert(
       $invalid_form_callback_client_json,
       ['uid.0.target_id' => 'There are no users matching "Strikes and gutters, ups and downs".'],
-      'The original title.',
+      // Other valid entity values should be updated for storage in the
+      // auto-save store, otherwise there is no change to detect when generating
+      // the hash and therefore no auto-save entry created.
+      'The updated title.',
       $test_node,
     );
-    // Test owner wasn't updated.
-    self::assertEquals(3, (int) $test_node->getOwnerId());
+    // Owner field will be updated, but invalid/empty.
+    self::assertNull($test_node->getOwnerId());
 
     // Ensure that the entity values are passed through the widget.
     $modify_title_client_json = $valid_client_json;

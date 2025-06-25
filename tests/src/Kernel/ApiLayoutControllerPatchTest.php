@@ -205,9 +205,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
       $this->assertResponseAutoSaves($response, []);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-      self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+      self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
       foreach ($regions as $region) {
-        self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+        self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
       }
     }
 
@@ -243,9 +243,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $image_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($fileUri);
     self::assertEquals($image_url, $data['model'][XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
-    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
     foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
 
     // Check that each level is structured correctly.
@@ -310,12 +310,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $data = self::decodeResponse($response);
       self::assertEquals($new_label, $data['model'][$globalComponentUuid]['resolved']['label']);
 
-      self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+      self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
       $sidebarFirstRegion = NULL;
       foreach ($regions as $region) {
         // The updated component is in sidebar_first and so auto-save should not
         // be empty.
-        self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveData($region)->isEmpty());
+        self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveEntity($region)->isEmpty());
         if ($region->get('region') === 'sidebar_first') {
           $sidebarFirstRegion = $region;
           $this->assertResponseAutoSaves($response, [$node, $sidebarFirstRegion]);

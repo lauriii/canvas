@@ -9,13 +9,11 @@ parameters:
     - profile
   excludePaths:
     - modules/xb_vite
-    - modules/same_page_preview
     # These are 1:1 copies from Drupal core, with trivial additions that cannot have significant PHPStan impact. PHPStan compliance should happen upstream.
     - src/Plugin/DataTypeOverride
     - src/Plugin/Field/FieldTypeOverride
     - src/TypedData/BetterEntityDataDefinition.php
     # The npm package flatted includes PHP files 🙃
-    - tests/src/Cypress/node_modules
     - ui/node_modules
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php

@@ -390,22 +390,24 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     // Create auto-save entry if that's expected by this test case.
     if ($auto_save_exists) {
-      $this->container->get(AutoSaveManager::class)
-        ->save(
-          $js_component,
-          // 'importedJsComponents' is a value sent by the client that is used to
-          // determine Javascript Code component dependencies and is not saved
-          // directly on the backend.
-          // Ensure that the current set of imported JS components continues to
-          // be respected.
-          // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-          $js_component->normalizeForClientSide()->values + [
-            'importedJsComponents' => array_map(
-              fn (string $config_name): string => str_replace('experience_builder.js_component.', '', $config_name),
-              $js_component->toArray()['dependencies']['enforced']['config'] ?? []
-            ),
-          ],
-        );
+      // 'importedJsComponents' is a value sent by the client that is used to
+      // determine Javascript Code component dependencies and is not saved
+      // directly on the backend.
+      // Ensure that the current set of imported JS components continues to
+      // be respected.
+      // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
+      $css = $js_component->get('css');
+      // We need to make this different to the saved value.
+      $css['original'] .= '/**/';
+      $js_component->set('css', $css);
+      $js_component->updateFromClientSide([
+        'importedJsComponents' => array_map(
+          fn (string $config_name): string => str_replace('experience_builder.js_component.', '', $config_name),
+          $js_component->toArray()['dependencies']['enforced']['config'] ?? []
+        ),
+        'compiled_js' => $js_component->getJs(),
+      ]);
+      $this->container->get(AutoSaveManager::class)->saveEntity($js_component);
     }
 
     $island = $source->renderComponent([
@@ -682,28 +684,46 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     $autoSave = $this->container->get(AutoSaveManager::class);
     assert($autoSave instanceof AutoSaveManager);
+    $touch_component = function (JavaScriptComponent $component) {
+      $css = $component->get('css');
+      // We need to make this different to the saved value.
+      $css['original'] .= '/**/';
+      $component->set('css', $css);
+    };
     if ($create_auto_save) {
-      $autoSave->save(
-        $js_component,
-        $js_component->normalizeForClientSide()->values +
-        [
-          'importedJsComponents' => ['dependency_component', 'dependency_component_no_css'],
-        ]
-      );
+      $touch_component($js_component);
+      $js_component->updateFromClientSide([
+        'importedJsComponents' => [
+          'dependency_component',
+          'dependency_component_no_css',
+        ],
+        'compiledJs' => $js_component->getJs(),
+      ]);
+      $autoSave->saveEntity($js_component);
     }
     if ($create_dependency_auto_save) {
-      $autoSave->save(
-        $dependency_js_component,
-        $dependency_js_component->normalizeForClientSide()->values + ['importedJsComponents' => ['nested_dependency_component']],
+      $touch_component($dependency_js_component);
+      $dependency_js_component->updateFromClientSide([
+        'importedJsComponents' => ['nested_dependency_component'],
+        'compiledJs' => $dependency_js_component->getJs(),
+      ]
       );
-      $autoSave->save(
-        $dependency_js_component_without_css,
-        $dependency_js_component_without_css->normalizeForClientSide()->values + ['importedJsComponents' => []],
-      );
-      $autoSave->save(
-        $nested_dependency_js_component,
-        $nested_dependency_js_component->normalizeForClientSide()->values + ['importedJsComponents' => []],
-      );
+      $autoSave->saveEntity($dependency_js_component);
+
+      $touch_component($dependency_js_component_without_css);
+      $dependency_js_component_without_css->updateFromClientSide([
+        'importedJsComponents' => [],
+        'compiledJs' => $dependency_js_component_without_css->getJs(),
+      ]);
+
+      $autoSave->saveEntity($dependency_js_component_without_css);
+
+      $touch_component($nested_dependency_js_component);
+      $nested_dependency_js_component->updateFromClientSide([
+        'importedJsComponents' => [],
+        'compiledJs' => $nested_dependency_js_component->getJs(),
+      ]);
+      $autoSave->saveEntity($nested_dependency_js_component);
     }
 
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $js_component->id()));
@@ -711,7 +731,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $source = $component->getComponentSource();
     $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
     self::assertArrayHasKey('#import_maps', $rendered_component);
-    self::assertArrayHasKey('scopes', $rendered_component['#import_maps']);
+    self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
     $scoped_import_maps = $rendered_component['#import_maps']['scopes'];
     $dependency_import_key = $dependency_js_component->getComponentUrl($file_generator, $preview);
     $nested_dependency_key = $nested_dependency_js_component->getComponentUrl($file_generator, $preview);
@@ -749,14 +769,18 @@ final class JsComponentTest extends ComponentSourceTestBase {
     // preview ensure that if the dependencies are changed in the auto-save
     // entry it is reflected in the import map and attached libraries.
     if ($create_auto_save && $preview) {
-      $autoSave->save(
+      // Remove both dependencies from the auto-save entry.
+      $touch_component($js_component);
+      $js_component->updateFromClientSide([
+        'importedJsComponents' => [],
+        'compiledJs' => $js_component->getJs(),
+      ]);
+      $autoSave->saveEntity(
         $js_component,
-        // Remove both dependencies from the auto-save entry.
-        $js_component->normalizeForClientSide()->values + ['importedJsComponents' => []],
       );
       $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
-      self::assertArrayNotHasKey('scopes', $rendered_component['#import_maps']);
+      self::assertArrayNotHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
       self::assertNotEmpty($rendered_component['#attached']['library']);
       self::assertEmpty(array_filter(
         $rendered_component['#attached']['library'],
@@ -901,17 +925,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
     assert($source instanceof JsComponent);
     $js_component = $source->getJavaScriptComponent();
     // Create an auto-save entry for this test code component.
-    $client_side_data = $js_component->normalizeForClientSide()->values;
-    $client_side_data['name'] = 'With props - Draft';
+    $js_component->set('name', 'With props - Draft');
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->save(
-      $js_component,
-      // Add updated values the auto-save entry.
-      $client_side_data +
-      [
-        'importedJsComponents' => [],
-      ]
-    );
+    $autoSave->saveEntity($js_component);
 
     $client_side_info_when_auto_save_exists = $source->getClientSideInfo($component);
     $this->assertRenderArrayMatchesSelectors($client_side_info_when_auto_save_exists['build'], ['astro-island[opts*="With props - Draft"][props*="name"][props*="XB"][props*="age"][props*="40"]']);

@@ -10,6 +10,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
@@ -19,6 +20,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -109,7 +111,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
                   'nodeType' => 'slot',
                 ],
               ],
-              'type' => 'sdc.experience_builder.one_column',
+              'type' => 'sdc.experience_builder.one_column@f6a3a392e98e8342',
               'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
             ],
           ],
@@ -176,7 +178,19 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+
+    // Modify the data type of an entity field in the JSON that should not
+    // represent a change in the values.
+    \assert(\is_string($json['entity_form_fields']['changed']));
+    $json['entity_form_fields']['changed'] = (int) $json['entity_form_fields']['changed'];
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost(\json_encode($json, \JSON_THROW_ON_ERROR))));
+    $this->assertResponseAutoSaves($response, []);
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
 
     // Check that each level is structured correctly.
     $contentRegion = $this->getRegion('content');
@@ -192,13 +206,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading',
+      'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
       'slots' => [],
     ];
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     \assert($autoSave instanceof AutoSaveManager);
     $this->assertResponseAutoSaves($response, [$node]);
-    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
 
     try {
       $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($original_content)));
@@ -214,7 +228,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
     $this->assertResponseAutoSaves($response, [$node]);
-    self::assertFalse($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
     self::assertArrayHasKey($uuid, $json['model']);
   }
 
@@ -236,9 +250,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
     foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
 
     // Check that regions exist and are wrapped.
@@ -254,16 +268,16 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][\key($highlightedRegion)]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading',
+      'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
       'slots' => [],
     ];
     $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
     foreach ($regions as $region) {
       \assert($region instanceof PageRegion);
-      self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveData($region)->isEmpty());
+      self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveEntity($region)->isEmpty());
     }
   }
 
@@ -290,9 +304,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($autoSave instanceof AutoSaveManager);
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
     foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveData($region)->isEmpty());
+      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
 
     // Check that content region exist and is wrapped.
@@ -355,7 +369,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ];
     $code_component = JavaScriptComponent::create($saved_component_values);
     $code_component->save();
-    $saved_component_values['props']['voice'] = [
+    $props = $code_component->get('props');
+    $props['voice'] = [
       'type' => 'string',
       'enum' => [
         'polite',
@@ -365,11 +380,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'title' => 'Voice',
       'examples' => ['polite'],
     ];
-    $saved_component_values['name'] = 'Here comes the';
+    $code_component->set('props', $props);
+    $code_component->set('name', 'Here comes the');
     // But store an overridden version in auto-save (draft).
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->save($code_component, $saved_component_values);
+    $autoSave->saveEntity($code_component);
 
     // Load the test data from the layout controller.
     $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent() ?: '';
@@ -378,10 +394,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Add the code component into the layout.
     $uuid = 'ccf36def-3f87-4b7d-bc20-8f8594274818';
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $code_component->id()));
+    \assert($component instanceof ComponentInterface);
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => JsComponent::componentIdFromJavascriptComponentId((string) $code_component->id()),
+      'type' => $component->id() . '@' . $component->getLoadedVersion(),
       'slots' => [],
     ];
     $props = [
@@ -541,7 +559,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => $component->id(),
+      'type' => $component->id() . '@' . $component->getLoadedVersion(),
       'slots' => [],
     ];
     $reference_media = \Drupal::entityTypeManager()->getStorage('media')->loadByProperties(
@@ -583,6 +601,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       ],
     ];
 
+    // Only the `image-optional-with-example-and-additional-prop` SDC contains a
+    // `heading` prop.
+    if ($sdc !== 'image-optional-with-example-and-additional-prop') {
+      unset($json['model'][$uuid]['resolved']['heading']);
+      unset($json['model'][$uuid]['source']['heading']);
+    }
+
     $module_path = \Drupal::service('extension.list.module')->getPath('experience_builder');
     $expected_preview_html = str_replace('XB/MODULE/PATH', $module_path, $expected_preview_html);
     \assert($reference_media->field_media_image->entity instanceof FileInterface);
@@ -592,6 +617,31 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     // Ensure the component is rendered using the expected markup.
     $this->assertRaw('<!-- xb-start-166c9eee-35e9-4795-8c6f-24537728e95e -->' . $expected_preview_html . '<!-- xb-end-166c9eee-35e9-4795-8c6f-24537728e95e -->');
+  }
+
+  public function testInvalidFormValuesAreReturned(): void {
+    $this->setUpCurrentUser([], [
+      'administer nodes',
+      'access administration pages',
+      'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+    ]);
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    self::assertIsString($content);
+    $json = \json_decode($content, TRUE);
+    self::assertEquals('Anonymous (0)', $json['entity_form_fields']['uid[0][target_id]']);
+    unset($json['html'], $json['isPublished'], $json['isNew']);
+    $json['entity_form_fields']['uid[0][target_id]'] = 'This is not a user';
+    $content = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $content->getStatusCode());
+    // Even though 'This is not a user' is not a valid user, the GET response
+    // should still contain the invalid value the user sent so that another user
+    // can fix the invalid value.
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    self::assertIsString($content);
+    $json = \json_decode($content, TRUE);
+    self::assertEquals('This is not a user', $json['entity_form_fields']['uid[0][target_id]']);
   }
 
 }

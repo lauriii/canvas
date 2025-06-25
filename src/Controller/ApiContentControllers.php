@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
@@ -19,8 +20,6 @@ use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\ClientDataToEntityConverter;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
 use Drupal\experience_builder\Resource\XbResourceLink;
 use Drupal\experience_builder\Resource\XbResourceLinkCollection;
 use Drupal\experience_builder\XbUriDefinitions;
@@ -43,7 +42,6 @@ final class ApiContentControllers {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RendererInterface $renderer,
     private readonly AutoSaveManager $autoSaveManager,
-    private readonly ClientDataToEntityConverter $clientDataToEntityConverter,
     private readonly RouteProviderInterface $routeProvider,
   ) {}
 
@@ -128,32 +126,24 @@ final class ApiContentControllers {
       $id = (int) $content_entity->id();
       $generated_url = $content_entity->toUrl()->toString(TRUE);
 
-      $autoSaveData = $this->autoSaveManager->getAutoSaveData($content_entity);
-      $autoSavePath = NULL;
-      // @todo Dynamically use the entity 'path' key to determine which field is
-      //   the path in https://drupal.org/i/3503446.
-      $path_form_key = 'path[0][alias]';
-      if (isset($autoSaveData->data['entity_form_fields'][$path_form_key])) {
-        // If an alias is not set in the auto-save data, fall back to the
-        // internal path as any alias in the saved entity will be removed.
-        if (empty($autoSaveData->data['entity_form_fields'][$path_form_key])) {
-          $autoSavePath = '/' . $content_entity->toUrl()->getInternalPath();
-        }
-        else {
-          // The alias user input should always start with '/'.
-          $autoSavePath = $autoSaveData->data['entity_form_fields'][$path_form_key];
-          assert(str_starts_with($autoSavePath, '/'));
-        }
-      }
+      $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($content_entity);
       // Expose available entity operations.
       $linkCollection = $this->getEntityOperations($content_entity);
+      $autoSaveEntity = $autoSaveData->isEmpty() ? NULL : $autoSaveData->entity;
+
+      // @todo Dynamically use the entity 'path' key to determine which field is
+      //   the path in https://drupal.org/i/3503446.
+      $autoSavePath = NULL;
+      if ($autoSaveEntity instanceof FieldableEntityInterface && $autoSaveEntity->hasField('path')) {
+        $autoSavePath = $autoSaveEntity->get('path')->first()?->getValue()['alias'] ?? \sprintf('/%s', \ltrim($autoSaveEntity->toUrl()->getInternalPath(), '/'));
+      }
 
       $content_list[$id] = [
         'id' => $id,
         'title' => $content_entity->label(),
         'status' => $content_entity->isPublished(),
         'path' => $generated_url->getGeneratedUrl(),
-        'autoSaveLabel' => is_null($autoSaveData->data) ? NULL : AutoSaveManager::getLabelToSave($content_entity, $autoSaveData->data),
+        'autoSaveLabel' => $autoSaveEntity?->label(),
         'autoSavePath' => $autoSavePath,
         // @see https://jsonapi.org/format/#document-links
         'links' => $linkCollection->asArray(),
@@ -186,21 +176,11 @@ final class ApiContentControllers {
     $duplicate = $entity->createDuplicate();
 
     // Get temp data of original entity.
-    if ($data = $this->autoSaveManager->getAutoSaveData($entity)->data) {
+    if ($entity = $this->autoSaveManager->getAutoSaveEntity($entity)->entity) {
       // Before merging temp data remove path value to avoid collision.
-      if (isset($data['entity_form_fields']['path[0][alias]'])) {
-        // @todo Remove hardcoded field name when https://www.drupal.org/project/experience_builder/issues/3503446 lands.
-        unset($data['entity_form_fields']['path[0][alias]']);
-        unset($data['entity_form_fields']['form_build_id]']);
-      }
-      // clientDataToEntityConverter->convert expects the entity to be saved.
-      $duplicate->save();
-      $content_region = \array_values(\array_filter($data['layout'], static fn(array $region) => $region['id'] === XbPageVariant::MAIN_CONTENT_REGION));
-      $this->clientDataToEntityConverter->convert([
-        'layout' => reset($content_region),
-        'model' => $data['model'],
-        'entity_form_fields' => $data['entity_form_fields'],
-      ], $duplicate);
+      // @todo Remove hardcoded field name when https://www.drupal.org/project/experience_builder/issues/3503446 lands.
+      $duplicate = $entity->createDuplicate();
+      \assert($duplicate instanceof ContentEntityInterface);
     }
 
     // Update title and status.

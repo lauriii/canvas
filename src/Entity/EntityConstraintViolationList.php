@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Entity;
 
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 
@@ -16,10 +17,14 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *
  * @todo Remove this once https://www.drupal.org/project/drupal/issues/2300677 ships in Drupal core.
  */
-class EntityConstraintViolationList extends ConstraintViolationList {
+final class EntityConstraintViolationList extends ConstraintViolationList {
 
-  public function __construct(public readonly EntityInterface $entity, array $violations = []) {
+  public function __construct(public readonly EntityInterface $entity, iterable $violations = []) {
     parent::__construct($violations);
+  }
+
+  public static function fromCoreConstraintViolationList(EntityConstraintViolationListInterface $violation_list): self {
+    return new static($violation_list->getEntity(), $violation_list);
   }
 
 }

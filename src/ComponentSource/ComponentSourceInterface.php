@@ -224,4 +224,15 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    */
   public function checkRequirements(): void;
 
+  /**
+   * Modify a component item prior to saving.
+   *
+   * For example a component source plugin may with to store a normalized
+   * representation of its data.
+   *
+   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item
+   *   The item being saved.
+   */
+  public function preSaveItem(ComponentTreeItem $item): void;
+
 }

@@ -72,30 +72,17 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   public function testApiAutoSaveControllerGet(): void {
     $this->installConfig(['test_user_config']);
     $permissions = [Page::EDIT_PERMISSION, 'access administration pages'];
-    $emptyData = [
-      'layout' => [
-        [
-          'id' => 'content',
-          'nodeType' => 'region',
-          'name' => 'Content',
-          'components' => [],
-        ],
-      ],
-      'model' => [],
-      'entity_form_fields' => [
-        // Ensure that if the form title is empty, the saved title will be
-        // returned.
-        'title[0][value]' => '',
-      ],
-    ];
     $anonAccountContent = Node::create([
       'type' => 'article',
       'title' => 'Anon, empty',
     ]);
     $anonAccountContent->save();
+    \assert($anonAccountContent instanceof NodeInterface);
+    // Trigger a new hash.
+    $anonAccountContent->setRevisionUserId(2);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->save($anonAccountContent, $emptyData);
+    $autoSave->saveEntity($anonAccountContent);
 
     [$account1, $avatarUrl] = $this->setUserWithPictureField($permissions);
     self::assertInstanceOf(AccountInterface::class, $account1);
@@ -104,34 +91,23 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $account2 = $this->createUser($permissions);
     self::assertInstanceOf(AccountInterface::class, $account2);
     $this->setCurrentUser($account1);
-    $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
-    self::assertNotFalse($sampleData);
-    $data = \json_decode($sampleData, TRUE);
-    $data += ['entity_form_fields' => []];
+
     // Update the page title.
     $new_title = $this->getRandomGenerator()->sentences(10);
-    $data['entity_form_fields']['title[0][value]'] = $new_title;
-
     $account1content = Node::load(1);
     \assert($account1content instanceof NodeInterface);
-    $autoSave->save($account1content, $data);
+    $account1content->setTitle($new_title);
+    $autoSave->saveEntity($account1content);
     // Save a draft of the page region.
     $region = PageRegion::createFromBlockLayout('stark')['stark.highlighted']->enable();
     $region->save();
     $regionData = [
       'layout' => [
         [
-          "components" => [
-            [
-              "nodeType" => "component",
-              "slots" => [],
-              "type" => "block.page_title_block@62af221149ae4887",
-              "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-            ],
-          ],
-          "name" => "Highlighted",
-          "nodeType" => "region",
-          "id" => "stark.highlighted",
+          "nodeType" => "component",
+          "slots" => [],
+          "type" => "block.page_title_block@62af221149ae4887",
+          "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
       'model' => [
@@ -142,12 +118,15 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ];
-    $autoSave->save($region, $regionData);
+    $region = $region->forAutoSaveData($regionData, validate: TRUE);
+    $autoSave->saveEntity($region);
     // Empty data.
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
+    $account2content->setRevisionUser($account2);
+    \assert($account2content instanceof NodeInterface);
     $this->setCurrentUser($account2);
-    $autoSave->save($account2content, $emptyData);
+    $autoSave->saveEntity($account2content);
     $code_component = JavaScriptComponent::create(
       [
         'machineName' => 'test_code',
@@ -181,10 +160,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ]
     );
     $this->assertSame(SAVED_NEW, $code_component->save());
-    $autoSave->save($code_component, ['dummy' => 'js_component: auto-save data is not validated']);
+    $code_component->set('props', $code_component->get('props') + ['yeah' => 'this is not valid, but not validated either']);
+    $autoSave->saveEntity($code_component);
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
-    $autoSave->save($library, ['dummy' => 'xb_asset_library: auto-save data is not validated']);
+    $library->set('css', $library->get('css') + ['yeah' => 'this is not validated either']);
+    $autoSave->saveEntity($library);
     $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
@@ -232,8 +213,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => $new_title,
-      'data_hash' => self::generateAutoSaveHash($data),
-    ], \array_diff_key($content['node:1:en'], \array_flip(['updated'])));
+    ], \array_diff_key($content['node:1:en'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $account2content->getEntityTypeId(),
@@ -245,8 +225,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $account2content->label(),
-      'data_hash' => self::generateAutoSaveHash($emptyData),
-    ], \array_diff_key($content['node:2:en'], \array_flip(['updated'])));
+    ], \array_diff_key($content['node:2:en'], \array_flip(['updated', 'data_hash'])));
     $anonAccount = User::load(0);
     self::assertInstanceOf(AccountInterface::class, $anonAccount);
     self::assertEquals([
@@ -264,10 +243,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $anonAccount->toUrl()->toString(),
       ],
       'label' => $anonAccountContent->label(),
-      'data_hash' => self::generateAutoSaveHash($emptyData),
-    ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated'])));
+    ], \array_diff_key($content[$anonContentIdentifier], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
-      'langcode' => NULL,
+      'langcode' => 'en',
       'entity_type' => $region->getEntityTypeId(),
       'entity_id' => $region->id(),
       'owner' => [
@@ -277,10 +255,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => 'Highlighted region',
-      'data_hash' => self::generateAutoSaveHash($regionData),
-    ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated'])));
+    ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
-      'langcode' => NULL,
+      'langcode' => 'en',
       'entity_type' => $code_component->getEntityTypeId(),
       'entity_id' => $code_component->id(),
       'owner' => [
@@ -290,10 +267,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $code_component->label(),
-      'data_hash' => self::generateAutoSaveHash(['dummy' => 'js_component: auto-save data is not validated']),
-    ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated'])));
+    ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
-      'langcode' => NULL,
+      'langcode' => 'en',
       'entity_type' => $library->getEntityTypeId(),
       'entity_id' => $library->id(),
       'owner' => [
@@ -303,8 +279,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $library->label(),
-      'data_hash' => self::generateAutoSaveHash(['dummy' => 'xb_asset_library: auto-save data is not validated']),
-    ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated'])));
+    ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated', 'data_hash'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
@@ -393,7 +368,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $originalGlobalLibraryName = $library->label();
 
     $validClientJson = $this->getValidClientJson(FALSE);
-
     $page = Page::create([
       'title' => 'Test page',
       'status' => FALSE,
@@ -401,7 +375,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $this->assertSame(SAVED_NEW, $page->save());
     $this->assertFalse($page->isPublished());
-    $autoSave->save($page, $validClientJson);
+    // Trigger a new hash for auto-save.
+    $page->set('title', 'The updated title.');
+    $autoSave->saveEntity($page);
 
     // Add some global elements.
     if ($withGlobal) {
@@ -439,23 +415,23 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
-    // Auto-save node 2 with only the heading.
-    unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
-    unset($validClientJson['layout'][0]['components'][1]);
-    // And an invalid prop.
-    $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'flared';
+    // Auto-save node 2 with only the heading and an invalid prop.
+    $node2->set('field_xb_demo', [
+      [
+        'uuid' => self::TEST_HEADING_UUID,
+        'component_id' => 'sdc.experience_builder.heading',
+        'component_version' => '1b4f8df7c94d7e3c',
+        'inputs' => [
+          'style' => 'flared',
+          'element' => 'h3',
+          'text' => $this->randomMachineName(),
+        ],
+      ],
+    ]);
+    $autoSave->saveEntity($node2);
 
-    // This is testing ApiAutoSaveController, not auto-saving itself. So use the
-    // auto-save manager directly.
-    $autoSave->save($node2, $validClientJson);
-
-    // 'importedJsComponents' is a value sent by the client that is used to
-    // determine Javascript Code component dependencies and is not saved
-    // directly on the backend.
-    // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-    $invalid_client_code_component_data = $code_component->normalizeForClientSide()->values + ['importedJsComponents' => []];
-    $invalid_client_code_component_data['name'] = 'New name';
-    $invalid_client_code_component_data['props'] = [
+    $code_component->set('name', 'New name');
+    $code_component->set('props', [
       'mixed_up_prop' => [
         'type' => 'unknown',
         'title' => 'Title',
@@ -466,13 +442,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
         'examples' => ['Press', 'Submit now'],
       ],
-    ];
-    $autoSave->save($code_component, $invalid_client_code_component_data);
+    ]);
+    $autoSave->saveEntity($code_component);
 
-    $invalid_library_data = $library->normalizeForClientSide()->values;
-    $invalid_library_data['label'] = 'New label';
-    $invalid_library_data['css']['original'] = NULL;
-    $autoSave->save($library, $invalid_library_data);
+    $library->set('label', 'New label');
+    $css = $library->get('css');
+    $css['original'] = NULL;
+    $library->set('css', $css);
+    $autoSave->saveEntity($library);
 
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
@@ -519,7 +496,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $errors[] = [
       'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
       'source' => [
-        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
+        'pointer' => 'field_xb_demo.0.inputs.' . self::TEST_HEADING_UUID . '.style',
       ],
       'meta' => [
         'entity_type' => 'node',
@@ -563,6 +540,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Fix the errors.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
+    // Auto-save node 2 with only the heading.
+    unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
+    unset($validClientJson['layout'][0]['components'][1]);
     $this->addClientAutoSaves($validClientJson, array_merge([$node2], $withGlobal ? [$page_region] : []));
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
@@ -571,16 +551,19 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'CONTENT_TYPE' => 'application/json',
     ], content: (string) json_encode($validClientJson)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    // 'importedJsComponents' is a value sent by the client that is used to
-    // determine Javascript Code component dependencies and is not saved
-    // directly on the backend.
-    // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
-    $updated_code_component_data = $code_component->normalizeForClientSide()->values + ['importedJsComponents' => []];
-    $updated_code_component_data['name'] = 'New new JavaScriptComponent name';
-    $autoSave->save($code_component, $updated_code_component_data);
-    $updated_library_data = $library->normalizeForClientSide()->values;
-    $updated_library_data['label'] = 'New new AssetLibrary label';
-    $autoSave->save($library, $updated_library_data);
+    $code_component->set('name', 'New new JavaScriptComponent name');
+    $code_component->set('props', [
+      'text' => [
+        'type' => 'string',
+        'title' => 'Title',
+        'examples' => ['Press', 'Submit now'],
+      ],
+    ]);
+    $autoSave->saveEntity($code_component);
+    $library->set('label', 'New new AssetLibrary label');
+    $css['original'] = '';
+    $library->set('css', $css);
+    $autoSave->saveEntity($library);
 
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $node1_auto_save_key = 'node:' . $node1->id() . ':en';
@@ -648,7 +631,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $withGlobal ? 5 : 4)], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $auto_save_count - 1)], $json);
 
     $this->assertNodeValues(
       $node2,
@@ -697,24 +680,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $node->save();
 
-    $client_json = [
-      'layout' => [
-        [
-          'id' => 'content',
-          'nodeType' => 'region',
-          'name' => 'Content',
-          'components' => [],
-        ],
-      ],
-      'model' => [],
-      'entity_form_fields' => [
-        'title[0][value]' => 'Updated Title',
-      ],
-    ];
-
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->save($node, $client_json);
+    // Update something so the auto-save entry generates a different hash.
+    $node->setTitle('Updated Title');
+    $autoSave->saveEntity($node);
 
     // Verify auto-save data exists.
     $auto_save_data = $this->getAutoSaveStatesFromServer();
@@ -790,7 +760,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Verify auto-save data was deleted.
     self::assertCount(0, $this->getAutoSaveStatesFromServer());
-    $autoSaveData = $autoSave->getAutoSaveData($node);
+    $autoSaveData = $autoSave->getAutoSaveEntity($node);
     self::assertTrue($autoSaveData->isEmpty());
 
     // Try to delete again, should get 404.

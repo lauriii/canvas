@@ -35,19 +35,4 @@ interface XbAssetInterface extends XbHttpApiEligibleConfigEntityInterface {
    */
   public function getAssetLibrary(bool $isPreview): string;
 
-  /**
-   * Creates an instance for previewing with auto-save data.
-   *
-   * Note that no validation is performed and the caller is responsible for
-   * handling any side effects of the config entity possibly being in an invalid
-   * state.
-   *
-   * @param array $data
-   *   Auto-save data.
-   *
-   * @return static
-   *   New instance with given values.
-   */
-  public function forAutoSavePreview(array $data): static;
-
 }

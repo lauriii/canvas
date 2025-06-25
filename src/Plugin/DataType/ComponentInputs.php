@@ -153,7 +153,8 @@ final class ComponentInputs extends TypedData implements DependentPluginInterfac
     foreach ($this->inputs as $name => $raw_prop_source) {
       if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
         // This is likely a *collapsed* StaticPropSource.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::rawInputValueToPropSourceArray()
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
+        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
         try {
           $parsed_default_prop_source = array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name])
             ? PropSource::parse($default_prop_sources[$name])

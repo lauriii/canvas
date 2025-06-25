@@ -12,7 +12,6 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -144,15 +143,16 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
       // If we are in preview mode replace the region with the auto-saved
       // version if any.
       if ($is_preview) {
-        $autoSaveData = $this->autoSaveManager->getAutoSaveData($region)->data;
-        if ($autoSaveData) {
-          try {
-            $region = $region->forAutoSaveData($autoSaveData);
-          }
-          catch (ConstraintViolationException) {
+        $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($region);
+        if (!$autoSaveData->isEmpty()) {
+          \assert($autoSaveData->entity instanceof PageRegion);
+          $violations = $autoSaveData->entity->getTypedData()->validate();
+          if (\count($violations) > 0) {
             // The auto-save entry is invalid, we don't use it and instead fallback
             // to the saved version.
+            continue;
           }
+          $region = $autoSaveData->entity;
         }
       }
 

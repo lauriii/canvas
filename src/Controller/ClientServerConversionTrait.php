@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Controller;
 
-use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -35,7 +36,7 @@ trait ClientServerConversionTrait {
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
-  private static function clientToServerTree(array $layout, array $model, ?FieldableEntityInterface $entity, bool $validate = TRUE): array {
+  protected static function clientToServerTree(array $layout, array $model, ?FieldableEntityInterface $entity, bool $validate = TRUE): array {
     // Transform client-side representation to server-side representation.
     $items = [];
     foreach ($layout as $component) {
@@ -129,10 +130,14 @@ trait ClientServerConversionTrait {
       $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     }
     foreach ($items as $delta => ['uuid' => $uuid, 'component_id' => $component_id, 'inputs' => $inputs]) {
-      $component = $components[$component_id];
-      // This has already been validated in ::clientToServerTree
+      $component = $components[$component_id] ?? NULL;
+      // If validation is requested, this has already been validated in
+      // ::clientToServerTree
       // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint
-      assert($component instanceof Component);
+      if (!$validate && !$component) {
+        continue;
+      }
+      assert($component instanceof ComponentInterface);
       $source = $component->getComponentSource();
       // First we transform the incoming client model into input values using
       // the source plugin.

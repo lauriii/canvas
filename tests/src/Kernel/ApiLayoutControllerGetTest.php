@@ -10,6 +10,7 @@ use Drupal\experience_builder\Controller\ApiLayoutController;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
@@ -80,7 +81,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $node = $this->assertRegions(1);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
-    self::assertTrue($autoSave->getAutoSaveData($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
     $regions = $this->enableGlobalRegions();
 
     // … but the corresponding client-side representation contains only the
@@ -117,7 +118,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         ],
       ],
     ];
-    $autoSave->save($regions['stark.highlighted'], $layoutData);
+    $stark_highlighted = $regions['stark.highlighted']->forAutoSaveData($layoutData, validate: TRUE);
+    $autoSave->saveEntity($stark_highlighted);
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     $url = Url::fromRoute('experience_builder.api.layout.get', [
@@ -139,31 +141,32 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertCount(1, $highlightedRegion);
     self::assertArrayHasKey('model', $json);
     self::assertArrayHasKey('c3f3c22c-c22e-4bb6-ad16-635f069148e4', $json['model']);
-    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['label']);
+    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['resolved']['label']);
     self::assertEquals([
       [
         "nodeType" => "component",
         "slots" => [],
         "type" => "block.page_title_block@62af221149ae4887",
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+        'name' => NULL,
       ],
     ], reset($highlightedRegion)['components']);
 
-    // Now let's add an auto-save entry for the node.
-    $sampleData = \file_get_contents(\dirname(__DIR__, 3) . '/ui/tests/fixtures/layout-default.json');
-    self::assertNotFalse($sampleData);
-    $data = \json_decode($sampleData, TRUE);
-    // Remove the adapted image.
-    unset($data['model']['static-image-static-imageStyle-something7d']);
-    unset($data['layout'][0]['components'][3]);
-    $data['layout'][0]['components'] = \array_values($data['layout'][0]['components']);
-    // Update the page title.
-    $new_title = $this->getRandomGenerator()->sentences(10);
-    $data['entity_form_fields']['title[0][value]'] = $new_title;
-    $data['entity_form_fields']['status[value]'] = (string) TRUE;
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
-    $autoSave->save($node1, $data);
+    // Remove the adapted image.
+    $tree = $node1->get('field_xb_demo');
+    \assert($tree instanceof ComponentTreeItemList);
+    $delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_ADAPTED_IMAGE);
+    \assert($delta !== NULL);
+    $tree->removeItem($delta);
+    // Update the title.
+    $new_title = $this->getRandomGenerator()->sentences(10);
+    $node1->setTitle($new_title);
+    // Note we use a string here.
+    $node1->set('status', '1');
+
+    $autoSave->saveEntity($node1);
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$node1, $regions['stark.highlighted']]);
 
@@ -179,13 +182,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertCount(1, $highlightedRegion);
     self::assertArrayHasKey('model', $json);
     self::assertArrayHasKey('c3f3c22c-c22e-4bb6-ad16-635f069148e4', $json['model']);
-    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['label']);
+    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['resolved']['label']);
     self::assertEquals([
       [
         "nodeType" => "component",
         "slots" => [],
         "type" => "block.page_title_block@62af221149ae4887",
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+        'name' => NULL,
       ],
     ], reset($highlightedRegion)['components']);
     self::assertEquals($new_title, $json['entity_form_fields']['title[0][value]']);
@@ -213,6 +217,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       // Filter out the UUID as that is added randomly by creating the block
       // in the setup class.
       \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), \current($highlightedRegion)['components']));
+
+    // Test that saving the exact values as the stored/live node, no auto-saves
+    // remain.
+    $original_node = Node::load(1);
+    assert($original_node instanceof Node);
+    $autoSave->saveEntity($original_node);
+    $response = $this->request(Request::create($url->toString()));
+    $this->assertResponseAutoSaves($response, []);
   }
 
   protected function assertRegions(int $count): NodeInterface {
@@ -432,25 +444,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave = $this->container->get(AutoSaveManager::class);
     assert($autoSave instanceof AutoSaveManager);
 
-    // Create test data with a field the user doesn't have access to (path field).
-    $data = [
-      'layout' => [
-        [
-          'nodeType' => 'region',
-          'id' => 'content',
-          'name' => 'Content',
-          'components' => [],
-        ],
-      ],
-      'model' => [],
-      'entity_form_fields' => [
-        'title[0][value]' => 'Test Node',
-        // Path field that user doesn't have access to
-        'path[0][alias]' => '/test-path',
-      ],
-    ];
-
-    $autoSave->save($node, $data);
+    $node->set('path', ['alias' => '/test-path']);
+    $autoSave->saveEntity($node);
 
     $url = Url::fromRoute('experience_builder.api.layout.get', [
       'entity' => $node->id(),

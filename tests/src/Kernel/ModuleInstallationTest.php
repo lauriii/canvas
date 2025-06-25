@@ -41,7 +41,9 @@ final class ModuleInstallationTest extends KernelTestBase {
 
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
-    $autoSave->save($test_entity, []);
+    // Update a value to allow auto-save to be stored.
+    $test_entity->set('name', 'I can haz auto save');
+    $autoSave->saveEntity($test_entity);
     self::assertCount(1, $autoSave->getAllAutoSaveList());
 
     $this->container->get('module_installer')->uninstall(['experience_builder']);

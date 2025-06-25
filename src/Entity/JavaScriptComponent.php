@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSaveData;
+use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
@@ -400,6 +400,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     if (empty($this->dependencies['enforced']['config'])) {
       unset($this->dependencies['enforced']['config']);
     }
+    if (empty($this->dependencies['enforced'])) {
+      unset($this->dependencies['enforced']);
+    }
   }
 
   protected function getConfigPrefix(): string {
@@ -432,15 +435,15 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     return 'experience_builder/astro_island.' . $this->id() . ($isPreview ? '.draft' : '');
   }
 
-  private static function shouldLoadAssetFromAutoSave(AutoSaveData $autoSave, bool $isPreview) : bool {
+  private static function shouldLoadAssetFromAutoSave(AutoSaveEntity $autoSave, bool $isPreview) : bool {
     return $isPreview && !$autoSave->isEmpty();
   }
 
-  public function getComponentDependencies(AutoSaveData $autoSave, bool $isPreview): array {
+  public function getComponentDependencies(AutoSaveEntity $autoSave, bool $isPreview): array {
     $instance = $this;
     if (self::shouldLoadAssetFromAutoSave($autoSave, $isPreview)) {
-      \assert($autoSave->data !== NULL);
-      $instance = self::forAutoSavePreview($autoSave->data);
+      \assert($autoSave->entity instanceof self);
+      $instance = $autoSave->entity;
     }
 
     $js_dependencies = \array_filter(

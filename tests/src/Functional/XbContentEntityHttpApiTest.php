@@ -139,30 +139,15 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $page_1 = Page::load(1);
     $this->assertInstanceOf(Page::class, $page_1);
-    $autoSaveManager->save(
-      $page_1,
-      [
-        'layout' => [],
-        'model' => [],
-        'entity_form_fields' => [
-          'title[0][value]' => 'The updated title.',
-          'path[0][alias]' => '/the-updated-path',
-        ],
-      ]
-    );
+    $page_1->set('title', 'The updated title.');
+    $page_1->set('path', ['alias' => "/the-updated-path"]);
+    $autoSaveManager->saveEntity($page_1);
+
     $page_2 = Page::load(2);
     $this->assertInstanceOf(Page::class, $page_2);
-    $autoSaveManager->save(
-      $page_2,
-      [
-        'layout' => [],
-        'model' => [],
-        'entity_form_fields' => [
-          'title[0][value]' => 'The updated title2.',
-          'path[0][alias]' => '/the-new-path',
-        ],
-      ]
-    );
+    $page_2->set('title', 'The updated title2.');
+    $page_2->set('path', ['alias' => "/the-new-path"]);
+    $autoSaveManager->saveEntity($page_2);
 
     $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
     $auto_save_expected_pages = $no_auto_save_expected_pages;
@@ -178,28 +163,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
 
     // Confirm that if path alias is empty, the system path is used, not the
     // existing alias if set.
-    $autoSaveManager->save(
-      $page_1,
-      [
-        'layout' => [],
-        'model' => [],
-        'entity_form_fields' => [
-          'title[0][value]' => 'The updated title.',
-          'path[0][alias]' => '',
-        ],
-      ]
-    );
-    $autoSaveManager->save(
-      $page_2,
-      [
-        'layout' => [],
-        'model' => [],
-        'entity_form_fields' => [
-          'title[0][value]' => 'The updated title2.',
-          'path[0][alias]' => '',
-        ],
-      ]
-    );
+    $page_1->set('title', 'The updated title.');
+    $page_1->set('path', NULL);
+    $autoSaveManager->saveEntity($page_1);
+
+    $page_2->set('title', 'The updated title2.');
+    $page_2->set('path', NULL);
+    $autoSaveManager->saveEntity($page_2);
+
     $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
     $auto_save_expected_pages['1']['autoSavePath'] = '/page/1';
     $auto_save_expected_pages['2']['autoSavePath'] = '/page/2';
@@ -346,20 +317,8 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     // Add temp store data for Previous duplicate.
     assert($original instanceof EntityInterface);
     $auto_save_manager = \Drupal::service(AutoSaveManager::class);
-    $auto_save_manager->save($original, [
-      'layout' => [
-        0 => [
-          'nodeType' => 'region',
-          'id' => 'content',
-          'name' => 'Content',
-          'components' => [],
-        ],
-      ],
-      'model' => [],
-      'entity_form_fields' => [
-        'title[0][value]' => 'Title from temp store',
-      ],
-    ]);
+    $original->set('title', 'Title from temp store');
+    $auto_save_manager->saveEntity($original);
 
     $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
     $request_options[RequestOptions::JSON] = ['entity_id' => '4'];
@@ -374,9 +333,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     assert($duplicate instanceof EntityInterface);
     // Test that the data from the temp store is present.
     $this->assertEquals('Title from temp store (Copy)', $duplicate->label());
-    $this->assertNotEmpty($auto_save_manager->getAutoSaveData($original));
+    $this->assertNotEmpty($auto_save_manager->getAutoSaveEntity($original));
     // Autosaved data is empty on duplicate.
-    $this->assertEmpty($auto_save_manager->getAutoSaveData($duplicate)->data);
+    self::assertTrue($auto_save_manager->getAutoSaveEntity($duplicate)->isEmpty());
   }
 
   private function assertAuthenticationAndAuthorization(Url $url, string $method): void {

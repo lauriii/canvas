@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\DataReferenceDefinition;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
 
 /**
@@ -82,9 +83,19 @@ final class ConfigEntityVersionReference extends EntityReference {
       // By default, always load the default version, so caches get used.
       $entity = $storage->load($this->id);
       \assert($entity instanceof VersionedConfigEntityInterface || $entity === NULL);
-      if ($entity !== NULL && $this->version !== NULL&& $entity->getLoadedVersion() !== $this->version) {
+      if ($entity !== NULL &&
+        $this->version !== NULL &&
+        $entity->getLoadedVersion() !== $this->version &&
+        // Do not allow a component instance to explicitly reference the fallback version.
+        $this->version !== ComponentInterface::FALLBACK_VERSION
+      ) {
         // A non-default version is referenced, so load that one.
-        $entity->loadVersion($this->version);
+        try {
+          $entity->loadVersion($this->version);
+        }
+        catch (\OutOfRangeException) {
+          // Validation will catch this.
+        }
       }
       $this->target = $entity?->getTypedData() ?? NULL;
     }

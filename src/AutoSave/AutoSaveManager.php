@@ -6,15 +6,23 @@ use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
-use Drupal\experience_builder\AutoSaveData;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\TypedData\PrimitiveInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\Controller\ApiContentControllers;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Defines a class for storing and retrieving auto-save data.
@@ -30,6 +38,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     private readonly AutoSaveTempStoreFactory $tempStoreFactory,
     private readonly ConfigManagerInterface $configManager,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
   }
 
@@ -41,47 +50,96 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $this->tempStoreFactory->get('experience_builder.auto_save', expire: $expire);
   }
 
-  protected function getHashStore(): AutoSaveTempStore {
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018.
+   */
+  protected function getFormViolationTempStore(): AutoSaveTempStore {
     // Store for 30 days.
     $expire = 86400 * 30;
     // We need to fetch a new shared temp store from the factory for each
     // usage because the current user can change in the lifetime of a request.
-    return $this->tempStoreFactory->get('experience_builder.auto_save.hashes', expire: $expire);
+    return $this->tempStoreFactory->get('experience_builder.auto_save.form_violations', expire: $expire);
   }
 
-  public function save(EntityInterface $entity, array $data): void {
+  public function saveEntity(EntityInterface $entity): void {
     $key = $this->getAutoSaveKey($entity);
+    $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
-    $stored_hash = $this->readHash($entity);
-    if ($stored_hash !== NULL && \hash_equals($stored_hash, $data_hash)) {
+    $original_hash = $this->getUnchangedHash($entity);
+    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash)) {
       // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
-      $this->delete($entity, FALSE);
+      $this->delete($entity);
       return;
     }
 
     $auto_save_data = [
       'entity_type' => $entity->getEntityTypeId(),
       'entity_id' => $entity->id(),
-      'data' => $data,
+      'data' => $entity->toArray(),
+      'langcode' => $entity->language()->getId(),
+      'label' => $entity->label(),
       'data_hash' => $data_hash,
-      'langcode' => $entity instanceof TranslatableInterface ? $entity->language()->getId() : NULL,
-      'label' => self::getLabelToSave($entity, $data),
     ];
     $this->getTempStore()->set($key, $auto_save_data);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
   }
 
-  public static function getLabelToSave(EntityInterface $entity, array $data): string {
-    // The key for Drupal forms.
-    $key = \sprintf("%s[0][value]", $entity->getEntityType()->getKey('label'));
-    // But for config entities we might set the value directly.
-    if ($entity instanceof ConfigEntityInterface && empty($data['entity_form_fields'])) {
-      return $data[$entity->getEntityType()->getKey('label')] ?? (string) $entity->label();
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018.
+   */
+  public function saveEntityFormViolations(FieldableEntityInterface $entity, ?ConstraintViolationListInterface $violations = NULL): self {
+    $key = self::getAutoSaveKey($entity);
+    if ($violations === NULL) {
+      $this->getFormViolationTempStore()->delete($key);
+      return $this;
     }
-    return empty($data['entity_form_fields'][$key]) ?
-      (string) $entity->label() :
-      (string) $data['entity_form_fields'][$key];
+    $this->getFormViolationTempStore()->set($key, $violations);
+    return $this;
+  }
+
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018.
+   */
+  public function getEntityFormViolation(FieldableEntityInterface $entity): ConstraintViolationListInterface {
+    return $this->getFormViolationTempStore()->get(self::getAutoSaveKey($entity)) ?? new ConstraintViolationList();
+  }
+
+  private static function normalizeEntity(EntityInterface $entity): array {
+    if (!$entity instanceof FieldableEntityInterface) {
+      return $entity->toArray();
+    }
+    $normalized = [];
+    $fields = $entity->getFields();
+    if ($entity instanceof EntityChangedInterface) {
+      // If the entity has a 'changed' field, we don't want to include it in the
+      // normalized data, as will be updated when we create an entity to
+      // compare against the save version.
+      // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::getAutoSaveEntity().
+      $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'changed');
+    }
+    foreach (\array_keys($fields) as $name) {
+      $items = $entity->get($name);
+      // Exclude items that are empty.
+      if ($items->isEmpty()) {
+        continue;
+      }
+      $normalized[$name] = \array_map(
+        static function (FieldItemInterface $item): array {
+          $value = $item->toArray();
+          foreach (\array_filter($item->getProperties(), static fn (TypedDataInterface $property) => $property instanceof PrimitiveInterface) as $property) {
+            \assert($property instanceof PrimitiveInterface);
+            // For items that support it, cast to their primitive value, this
+            // ensures consistency, for example a boolean field with value '1'
+            // will be normalized to TRUE.
+            $value[$property->getName()] = $property->getCastedValue();
+          }
+          return $value;
+        },
+        \iterator_to_array($items)
+      );
+    }
+    return $normalized;
   }
 
   public static function getAutoSaveKey(EntityInterface $entity): string {
@@ -93,25 +151,25 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $entity->getEntityTypeId() . ':' . $entity->id();
   }
 
-  public function recordInitialClientSideRepresentation(EntityInterface $entity, array $data): static {
-    $this->getHashStore()->set(self::getAutoSaveKey($entity), self::generateHash($data));
-    return $this;
+  private function getUnchangedHash(EntityInterface $entity): ?string {
+    $original = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
+    if ($original === NULL) {
+      return NULL;
+    }
+    return self::generateHash(self::normalizeEntity($original));
   }
 
-  private function readHash(EntityInterface $entity): ?string {
-    return $this->getHashStore()->get(self::getAutoSaveKey($entity));
-  }
-
-  public function getAutoSaveData(EntityInterface $entity): AutoSaveData {
+  public function getAutoSaveEntity(EntityInterface $entity): AutoSaveEntity {
     $auto_save_data = $this->getTempStore()->get($this->getAutoSaveKey($entity));
     if (\is_null($auto_save_data)) {
-      return new AutoSaveData(NULL, NULL);
+      return new AutoSaveEntity(NULL, NULL);
     }
 
     \assert(\is_array($auto_save_data));
     \assert(\array_key_exists('data', $auto_save_data));
+    \assert(\array_key_exists('entity_type', $auto_save_data));
     \assert(\is_array($auto_save_data['data']));
-    return new AutoSaveData($auto_save_data['data'], $auto_save_data['data_hash']);
+    return new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash']);
   }
 
   /**
@@ -133,18 +191,16 @@ class AutoSaveManager implements EventSubscriberInterface {
   /**
    * @see ::onXbConfigEntitySave()
    */
-  public function delete(EntityInterface $entity, bool $resetHash = TRUE): void {
+  public function delete(EntityInterface $entity): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
-    $this->getTempStore()->delete($this->getAutoSaveKey($entity));
-    if ($resetHash) {
-      $this->getHashStore()->delete($this->getAutoSaveKey($entity));
-    }
+    $key = $this->getAutoSaveKey($entity);
+    $this->getTempStore()->delete($key);
+    $this->getFormViolationTempStore()->delete($key);
   }
 
   public function deleteAll(): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $this->getTempStore()->deleteAll();
-    $this->getHashStore()->deleteAll();
   }
 
   private static function generateHash(array $data): string {
@@ -152,16 +208,6 @@ class AutoSaveManager implements EventSubscriberInterface {
     // the keys for an individual component are in different orders. This causes
     // the hash to be different though the data is functionally the same.
     self::recursiveKsort($data);
-    // @todo Determine if model entries that contain no information besides
-    //   'name' should be removed from the model for hashing purposes in
-    //   https://drupal.org/i/3511447.
-    // Remove values that only exist for retrieving form state cache during
-    // entity conversion and should not influence the hash.
-    unset(
-      $data['entity_form_fields']['form_build_id'],
-      $data['entity_form_fields']['form_id'],
-      $data['entity_form_fields']['form_token'],
-    );
     // We use \json_encode here instead of \serialize because we're not dealing
     // with PHP Objects and this ensures the representation hashed from PHP is
     // consistent with the representation transmitted by the client. Some of the
@@ -196,12 +242,12 @@ class AutoSaveManager implements EventSubscriberInterface {
       return;
     }
 
-    $autoSaveData = $this->getAutoSaveData($entity);
+    $autoSaveData = $this->getAutoSaveEntity($entity);
     if ($autoSaveData->isEmpty()) {
       return;
     }
-    $data = $autoSaveData->data;
-    assert($data !== NULL);
+    $autoSaveEntity = $autoSaveData->entity;
+    assert($autoSaveEntity instanceof XbHttpApiEligibleConfigEntityInterface);
 
     // Update the `label` and `status` keys of the config entity, if they've
     // changed.
@@ -223,8 +269,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
 
     foreach ($auto_save_updatable_properties as $auto_save_updatable_property) {
-      if ($event->isChanged($auto_save_updatable_property) && array_key_exists($auto_save_updatable_property, $data)) {
-        $data[$auto_save_updatable_property] = $entity->get($auto_save_updatable_property);
+      if ($event->isChanged($auto_save_updatable_property)) {
+        $autoSaveEntity->set($auto_save_updatable_property, $entity->get($auto_save_updatable_property));
         $auto_save_update_needed = TRUE;
       }
     }
@@ -232,7 +278,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // Finally: the goal: to update rather than delete the auto-save entry when
     // safe.
     if ($auto_save_update_needed) {
-      $this->save($entity, $data);
+      $this->saveEntity($autoSaveEntity);
     }
   }
 

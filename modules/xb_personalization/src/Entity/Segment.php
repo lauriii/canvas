@@ -16,7 +16,6 @@ use Drupal\Core\Plugin\FilteredPluginManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\xb_personalization\Form\SegmentForm;
 use Drupal\xb_personalization\Form\SegmentRuleForm;
 use Drupal\xb_personalization\SegmentListBuilder;
@@ -63,7 +62,7 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "rules",
   ],
 )]
-final class Segment extends ConfigEntityBase implements SegmentInterface, XbHttpApiEligibleConfigEntityInterface {
+final class Segment extends ConfigEntityBase implements SegmentInterface {
 
   use StringTranslationTrait;
 

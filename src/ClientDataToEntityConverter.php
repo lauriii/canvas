@@ -3,6 +3,8 @@
 namespace Drupal\experience_builder;
 
 use Drupal\Component\Render\PlainTextOutput;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
@@ -36,12 +38,13 @@ class ClientDataToEntityConverter {
     private readonly FormBuilderInterface & FormCacheInterface $formBuilder,
     private readonly CsrfTokenGenerator $csrfTokenGenerator,
     private readonly ComponentTreeLoader $componentTreeLoader,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
-  public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): array {
+  public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): void {
     $expected_keys = ['layout', 'model', 'entity_form_fields'];
     if (!empty(array_diff_key($client_data, array_flip($expected_keys)))) {
       throw new \LogicException();
@@ -65,12 +68,16 @@ class ClientDataToEntityConverter {
     // this function may have been called to only update the layout.
     $form_validation = new EntityConstraintViolationList($entity);
     try {
-      $updated_entity_form_fields = \count($entity_form_fields) !== 0 ?
-        $this->setEntityFields($entity, $entity_form_fields) :
-        [];
+      if (\count($entity_form_fields) > 0) {
+        $this->setEntityFields($entity, $entity_form_fields);
+        $this->autoSaveManager->saveEntityFormViolations($entity);
+      }
     }
     catch (ConstraintViolationException $e) {
-      $updated_entity_form_fields = [];
+      if (!$validate) {
+        // @todo Remove this in https://drupal.org/i/3505018
+        $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
+      }
       $form_validation->addAll($e->getConstraintViolationList());
     }
     $original_entity_violations = $entity->validate();
@@ -88,7 +95,6 @@ class ClientDataToEntityConverter {
         "$field_name.0.inputs" => 'model',
       ]);
     }
-    return $updated_entity_form_fields;
   }
 
   /**
@@ -256,14 +262,16 @@ class ClientDataToEntityConverter {
       }
     }
     $form = $this->formBuilder->buildForm($form_object, $form_state);
+    $violations_list = new EntityConstraintViolationList($entity);
     $errors = $form_state->getErrors();
     if (\count($errors) > 0) {
-      $violations_list = new EntityConstraintViolationList($entity);
       foreach ($errors as $element_path => $error) {
+        $parents = \explode('][', $element_path);
         // Reverse the property path to element path change made in
         // ContentEntityForm.
         // @see \Drupal\Core\Entity\ContentEntityForm::flagViolations
-        $property_path = str_replace('][', '.', $element_path);
+        $property_path = \implode('.', $parents);
+        $invalid_value = NestedArray::getValue($entity_form_fields, $parents);
         $violations_list->add(new ConstraintViolation(
           // Some errors may contain markup from the user of % placeholders in
           // TranslatableMarkup. We just want the plain text version.
@@ -272,10 +280,9 @@ class ClientDataToEntityConverter {
           [],
           NULL,
           $property_path,
-          NULL,
+          $invalid_value,
         ));
       }
-      throw new ConstraintViolationException($violations_list);
     }
     // Now trigger the form level submit handler.
     $form_object->submitForm($form, $form_state);
@@ -332,7 +339,6 @@ class ClientDataToEntityConverter {
 
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     assert($original_entity instanceof FieldableEntityInterface);
-    $violations_list = new EntityConstraintViolationList($entity);
     // Filter out form_build_id, form_id and form_token.
     $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
     // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField()
