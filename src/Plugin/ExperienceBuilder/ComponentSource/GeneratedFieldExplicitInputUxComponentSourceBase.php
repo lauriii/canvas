@@ -819,13 +819,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     return $props;
   }
 
-  public function preSaveItem(ComponentTreeItem $item): void {
-    $inputs = $item->getInputs();
-    if (\is_null($inputs)) {
-      return;
-    }
-    $changed = FALSE;
-    foreach ($inputs as $prop => $input) {
+  public function optimizeExplicitInput(array $values): array {
+    foreach ($values as $prop => $input) {
       // Every input for a component instance of this ComponentSource plugin
       // base class MUST be a PropSourceBase, which all are stored as arrays.
       // @see \Drupal\experience_builder\PropSource\PropSourceBase::toArray()
@@ -841,14 +836,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $source = PropSource::parse($input);
       $collapsed_input = $this->collapse($source, $prop);
       if ($input !== $collapsed_input) {
-        $inputs[$prop] = $collapsed_input;
-        $changed = TRUE;
+        $values[$prop] = $collapsed_input;
       }
     }
-    if ($changed) {
-      $item->setInput($inputs);
-    }
-    parent::preSaveItem($item);
+    return $values;
   }
 
   /**

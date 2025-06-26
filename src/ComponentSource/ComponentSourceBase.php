@@ -10,7 +10,6 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * Defines a base class for component source plugins.
@@ -170,8 +169,9 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   /**
    * {@inheritdoc}
    */
-  public function preSaveItem(ComponentTreeItem $item): void {
+  public function optimizeExplicitInput(array $values): array {
     // Nil-op.
+    return $values;
   }
 
 }

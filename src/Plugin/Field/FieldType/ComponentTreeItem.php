@@ -593,7 +593,11 @@ class ComponentTreeItem extends FieldItemBase {
     }
 
     // Allow component source plugins to normalize the stored data.
-    $this->getComponent()?->getComponentSource()?->preSaveItem($this);
+    $inputs = $this->getInputs();
+    if ($inputs !== NULL && $source = $this->getComponent()?->getComponentSource()) {
+      $inputs = $source->optimizeExplicitInput($inputs);
+      $this->setInput($inputs);
+    }
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
     // $template_inputs = '@todo';
