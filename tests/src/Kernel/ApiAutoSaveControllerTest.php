@@ -522,7 +522,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $errors[] = [
       'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
       'source' => [
-        'pointer' => 'field_xb_demo.0.inputs.' . self::TEST_HEADING_UUID . '.style',
+        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
       ],
       'meta' => [
         'entity_type' => 'node',

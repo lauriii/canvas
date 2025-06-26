@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
@@ -22,6 +23,8 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
@@ -34,6 +37,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Handles retrieval and publication of auto-saved changes.
  */
 final class ApiAutoSaveController extends ApiControllerBase {
+
+  use ConstraintPropertyPathTranslatorTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
   public const AVATAR_IMAGE_STYLE = 'xb_avatar';
@@ -220,7 +225,14 @@ final class ApiAutoSaveController extends ApiControllerBase {
           $violations->add($form_violation);
         }
         if ($violations->count() > 0) {
-          $violationSets[] = EntityConstraintViolationList::fromCoreConstraintViolationList($violations);
+          // Violations for XB field inputs should show against the 'model'
+          // property.
+          $map = \array_reduce(
+            \array_keys(\array_filter($entity->getFields(), static fn(FieldItemListInterface $field): bool => $field->getItemDefinition()->getClass() === ComponentTreeItem::class)),
+            static fn (array $carry, string $field_name): array => [...$carry, ...[$field_name . '.0.inputs' => 'model']],
+            []
+          );
+          $violationSets[] = self::translateConstraintPropertyPathsAndRoot($map, EntityConstraintViolationList::fromCoreConstraintViolationList($violations));
           continue;
         }
       }
