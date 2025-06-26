@@ -464,6 +464,13 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('entity_form_fields', $json);
     self::assertEquals('Test Node', $json['entity_form_fields']['title[0][value]']);
+    $entity_form_fields = $json['entity_form_fields'];
+    // Expand form values from their respective element name, e.g.
+    // ['title[0][value]' => 'Node title'] becomes
+    // ['title' => ['value' => 'Node title']].
+    // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
+    \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
+    self::assertArrayNotHasKey('path', $entity_form_fields);
   }
 
   public function testFieldException(): void {
