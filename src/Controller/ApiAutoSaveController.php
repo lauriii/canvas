@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Controller;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -21,8 +22,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
@@ -164,6 +163,13 @@ final class ApiAutoSaveController extends ApiControllerBase {
     foreach ($publish_auto_saves as $autoSaveKey => $auto_save) {
       $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->create($auto_save['data']);
       assert($entity instanceof EntityInterface);
+      // Auto-saves always are updates to existing entities. This just used
+      // EntityStorageInterface::create() to construct an entity object from
+      // just its values, which for some entities would result in it being
+      // considered new, when it is not. Ensure it is never considered new.
+      // @see \Drupal\Core\Entity\EntityBase::isNew()
+      // @see \Drupal\Core\Config\Entity\ConfigEntityBase::isNew()
+      $entity->enforceIsNew(FALSE);
       $loadedEntities[$autoSaveKey] = $entity;
 
       $access = $entity->access(operation: 'update', return_as_object: TRUE);
@@ -179,15 +185,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
 
     foreach ($loadedEntities as $entity) {
-      if ($entity instanceof PageRegion) {
-        $entity->enforceIsNew(FALSE);
-        $violations = $entity->getTypedData()->validate();
-        if ($violations->count() > 0) {
-          $violationSets[] = new EntityConstraintViolationList($entity, $violations);
-          continue;
-        }
-      }
-      elseif ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+      if ($entity instanceof ConfigEntityInterface) {
         $violations = $entity->getTypedData()->validate();
         if ($violations->count() > 0) {
           $violationSets[] = new EntityConstraintViolationList($entity, $violations);
