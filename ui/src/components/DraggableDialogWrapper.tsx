@@ -29,9 +29,9 @@ const DraggableDialogWrapper: React.FC<DraggableDialogWrapperProps> = ({
   const initialPosition = useMemo(() => {
     return {
       x: windowWidth / 2 - dialogWidth / 2,
-      y: 200,
+      y: (windowHeight / 100) * 20, // 20% from the top
     };
-  }, [windowWidth, dialogWidth]);
+  }, [windowHeight, windowWidth, dialogWidth]);
   const [position, setPosition] = useState(initialPosition);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 

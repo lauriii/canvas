@@ -42,7 +42,8 @@ const ExtensionDialog: React.FC<ExtensionDialogProps> = () => {
       onOpenChange={handleOpenChange}
       title={activeExtension.name}
       modal={false}
-      footer={{ cancelText: 'Close' }}
+      headerClose={true}
+      footer={{ hidden: true }}
     >
       <Box
         id="extensionPortalContainer"

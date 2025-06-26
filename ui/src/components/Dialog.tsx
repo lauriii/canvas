@@ -1,8 +1,16 @@
-import { Button, Dialog as ThemedDialog, Flex, Text } from '@radix-ui/themes';
+import {
+  Box,
+  Button,
+  Dialog as ThemedDialog,
+  Flex,
+  IconButton,
+  Text,
+} from '@radix-ui/themes';
 import ErrorCard from '@/components/error/ErrorCard';
 import styles from './Dialog.module.css';
 import DraggableDialogWrapper from '@/components/DraggableDialogWrapper';
 import type React from 'react';
+import { Cross2Icon } from '@radix-ui/react-icons';
 
 export interface DialogProps {
   open: boolean;
@@ -17,11 +25,13 @@ export interface DialogProps {
     resetButtonText?: string;
     onReset?: () => void;
   };
+  headerClose?: boolean;
   footer?: {
     cancelText?: string;
     confirmText?: string;
     onConfirm?: () => void;
     isConfirmDisabled?: boolean;
+    hidden?: boolean;
     isConfirmLoading?: boolean;
     isDanger?: boolean;
   };
@@ -61,6 +71,7 @@ const Dialog = ({
   description,
   children,
   error,
+  headerClose,
   modal = true,
   footer = {
     cancelText: 'Cancel',
@@ -79,51 +90,64 @@ const Dialog = ({
       handleOpenChange={handleOpenChange}
       description={description}
     >
+      {headerClose && (
+        <Box className={styles.headerCloseButton}>
+          <ThemedDialog.Close>
+            <IconButton variant="ghost" size="1" aria-label="Close">
+              <span className="visually-hidden">Close</span>
+              <Cross2Icon color="black" />
+            </IconButton>
+          </ThemedDialog.Close>
+        </Box>
+      )}
       <ThemedDialog.Title className={styles.title}>
         <Text size="1" weight="bold">
           {title}
         </Text>
       </ThemedDialog.Title>
 
-      {description && (
-        <ThemedDialog.Description size="2" mb="4">
-          {description}
-        </ThemedDialog.Description>
-      )}
-
-      <Flex direction="column" gap="2">
-        <Flex direction="column" gap="1">
-          {children}
-        </Flex>
-
-        {error && (
-          <ErrorCard
-            title={error.title}
-            error={error.message}
-            resetButtonText={error.resetButtonText}
-            resetErrorBoundary={error.onReset}
-          />
+      <Box className={styles.dialogScrollableInner}>
+        {description && (
+          <ThemedDialog.Description size="2" mb="4">
+            {description}
+          </ThemedDialog.Description>
         )}
 
-        <Flex gap="2" justify="end">
-          <ThemedDialog.Close>
-            <Button variant="outline" size="1">
-              {footer.cancelText}
-            </Button>
-          </ThemedDialog.Close>
-          {footer.onConfirm && (
-            <Button
-              onClick={footer.onConfirm}
-              disabled={footer.isConfirmDisabled}
-              loading={footer.isConfirmLoading}
-              size="1"
-              color={footer.isDanger ? 'red' : 'blue'}
-            >
-              {footer.confirmText}
-            </Button>
+        <Flex direction="column" gap="2">
+          <Flex direction="column" gap="1">
+            {children}
+          </Flex>
+
+          {error && (
+            <ErrorCard
+              title={error.title}
+              error={error.message}
+              resetButtonText={error.resetButtonText}
+              resetErrorBoundary={error.onReset}
+            />
+          )}
+          {footer.hidden ? null : (
+            <Flex gap="2" justify="end">
+              <ThemedDialog.Close>
+                <Button variant="outline" size="1">
+                  {footer.cancelText}
+                </Button>
+              </ThemedDialog.Close>
+              {footer.onConfirm && (
+                <Button
+                  onClick={footer.onConfirm}
+                  disabled={footer.isConfirmDisabled}
+                  loading={footer.isConfirmLoading}
+                  size="1"
+                  color={footer.isDanger ? 'red' : 'blue'}
+                >
+                  {footer.confirmText}
+                </Button>
+              )}
+            </Flex>
           )}
         </Flex>
-      </Flex>
+      </Box>
     </Wrapper>
   );
 };
