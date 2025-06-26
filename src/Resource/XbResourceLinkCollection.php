@@ -85,11 +85,18 @@ final class XbResourceLinkCollection implements \IteratorAggregate, CacheableDep
     if (isset($merged[$key])) {
       if (XbResourceLink::compare($merged[$key], $new_link) === 0) {
         $merged[$key] = XbResourceLink::merge($merged[$key], $new_link);
-        return new static($merged);
       }
     }
-    $merged[$key] = $new_link;
-    return new static($merged);
+    else {
+      $merged[$key] = $new_link;
+    }
+    $collection = new static($merged);
+    // We need to keep existing cache metadata added to the collection object
+    // for e.g. absent links.
+    $collection->addCacheTags($this->getCacheTags())
+      ->addCacheContexts($this->getCacheContexts())
+      ->mergeCacheMaxAge($this->getCacheMaxAge());
+    return $collection;
   }
 
   /**
