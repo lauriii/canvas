@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
@@ -288,7 +289,13 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       (string) $response->getBody()
     );
 
-    $request_options[RequestOptions::JSON] = ['entity_id' => '1'];
+    $original = \Drupal::entityTypeManager()->getStorage('xb_page')->load(1);
+    assert($original instanceof ContentEntityInterface);
+    $this->assertEquals('Page 1', $original->label());
+    self::assertFalse($original->get('path')->isEmpty());
+    self::assertNotNull($original->get('path')->first()?->get('alias')->getValue());
+
+    $request_options[RequestOptions::JSON] = ['entity_id' => $original->id()];
 
     // Test module will return view access forbidden for xb_page id 1 instance.
     $this->container->get('module_installer')->install(['xb_test_access']);
@@ -310,18 +317,18 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       '{"entity_type":"xb_page","entity_id":"4"}',
       (string) $response->getBody()
     );
-    $original = \Drupal::entityTypeManager()->getStorage('xb_page')->load(4);
-    assert($original instanceof EntityInterface);
-    $this->assertEquals('Page 1 (Copy)', $original->label());
+    $duplicate_1 = \Drupal::entityTypeManager()->getStorage('xb_page')->load(4);
+    assert($duplicate_1 instanceof ContentEntityInterface);
+    $this->assertEquals('Page 1 (Copy)', $duplicate_1->label());
+    self::assertNull($duplicate_1->get('path')->first()?->get('alias')->getValue());
 
     // Add temp store data for Previous duplicate.
-    assert($original instanceof EntityInterface);
     $auto_save_manager = \Drupal::service(AutoSaveManager::class);
-    $original->set('title', 'Title from temp store');
-    $auto_save_manager->saveEntity($original);
+    $duplicate_1->set('title', 'Title from temp store');
+    $auto_save_manager->saveEntity($duplicate_1);
 
     $url = Url::fromUri('base:/xb/api/v0/content/xb_page');
-    $request_options[RequestOptions::JSON] = ['entity_id' => '4'];
+    $request_options[RequestOptions::JSON] = ['entity_id' => $duplicate_1->id()];
     $response = $this->makeApiRequest('POST', $url, $request_options);
     $this->assertSame(201, $response->getStatusCode());
     $this->assertSame(
@@ -329,13 +336,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       (string) $response->getBody()
     );
 
-    $duplicate = \Drupal::entityTypeManager()->getStorage('xb_page')->load(5);
-    assert($duplicate instanceof EntityInterface);
+    $duplicate_2 = \Drupal::entityTypeManager()->getStorage('xb_page')->load(5);
+    assert($duplicate_2 instanceof EntityInterface);
     // Test that the data from the temp store is present.
-    $this->assertEquals('Title from temp store (Copy)', $duplicate->label());
+    $this->assertEquals('Title from temp store (Copy)', $duplicate_2->label());
     $this->assertNotEmpty($auto_save_manager->getAutoSaveEntity($original));
     // Autosaved data is empty on duplicate.
-    self::assertTrue($auto_save_manager->getAutoSaveEntity($duplicate)->isEmpty());
+    self::assertTrue($auto_save_manager->getAutoSaveEntity($duplicate_2)->isEmpty());
+    self::assertNull($duplicate_2->get('path')->first()?->get('alias')->getValue());
   }
 
   private function assertAuthenticationAndAuthorization(Url $url, string $method): void {
