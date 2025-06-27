@@ -72,6 +72,59 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ], JSON_THROW_ON_ERROR)));
   }
 
+  public function testNonEditAccessFieldsFiltered(): void {
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+      'edit any article content',
+    ]);
+
+    // Ensure 'sticky' is currently false and the user does not have edit access to it.
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $this->assertFalse($node->isSticky());
+    $this->assertTrue($node->get('sticky')->access('view'));
+    $this->assertFalse($node->get('sticky')->access('edit'));
+    $this->assertNotEquals('Updated title', $node->label());
+
+    // Make a request that has an updated value for 'sticky'.
+    // This request will not throw an AccessException even though the user does
+    // not have 'edit' access to the 'sticky' field. While not ideal,
+    // importantly the serialized entity values that are stored in the auto-save
+    // will not be updated with value sent by the client. This is because we
+    // programmatically submit the entity form to massage the field values
+    // before comparing them to the existing saved values. In this case the form
+    // logic will ignore the updated value for 'sticky' because the user does
+    // not have 'edit' access to it.
+    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+          'id' => 'content',
+        ],
+      ],
+      'model' => [],
+      'entity_form_fields' => [
+        'sticky' => TRUE,
+        'title[0][value]' => 'Updated title',
+      ],
+      'autoSaves' => [],
+    ], JSON_THROW_ON_ERROR)));
+    \assert($node instanceof NodeInterface);
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $autoSaveEntity = $autoSave->getAutoSaveEntity($node);
+    self::assertFalse($autoSaveEntity->isEmpty());
+    $entityFromAutoSave = $autoSaveEntity->entity;
+    self::assertInstanceOf(NodeInterface::class, $entityFromAutoSave);
+    // Ensure that the change to the 'sticky' field was not changed in the
+    // auto-save entity.
+    self::assertFalse($entityFromAutoSave->isSticky());
+    $this->assertSame('Updated title', $entityFromAutoSave->label());
+  }
+
   public function testEmpty(): void {
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
