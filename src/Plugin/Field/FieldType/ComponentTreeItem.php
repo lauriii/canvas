@@ -591,13 +591,7 @@ class ComponentTreeItem extends FieldItemBase {
     if ($input_values === NULL && $source->requiresExplicitInput()) {
       throw new \LogicException(sprintf('Missing input for component instance with UUID %s', $component_instance_uuid));
     }
-
-    // Allow component source plugins to normalize the stored data.
-    $inputs = $this->getInputs();
-    if ($inputs !== NULL && $source = $this->getComponent()?->getComponentSource()) {
-      $inputs = $source->optimizeExplicitInput($inputs);
-      $this->setInput($inputs);
-    }
+    $this->optimizeInputs();
     // @todo Omit defaults that are stored at the content type template level, e.g. in core.entity_view_display.node.article.default.yml
     // $template_tree = '@todo';
     // $template_inputs = '@todo';
@@ -650,6 +644,22 @@ class ComponentTreeItem extends FieldItemBase {
     }
     $this->setInput($inputs ?? []);
     return $changed;
+  }
+
+  public function optimizeInputs(): void {
+    $source = $this->getComponent()?->getComponentSource();
+    if ($source === NULL) {
+      // This could be running against data that has not been validated, in
+      // which case there is nothing we can do without a valid component or
+      // source.
+      return;
+    }
+    // Allow component source plugins to normalize the stored data.
+    $inputs = $this->getInputs();
+    if ($inputs !== NULL) {
+      $inputs = $source->optimizeExplicitInput($inputs);
+      $this->setInput($inputs);
+    }
   }
 
 }

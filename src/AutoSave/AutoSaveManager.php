@@ -20,6 +20,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\Controller\ApiContentControllers;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -66,6 +67,16 @@ class AutoSaveManager implements EventSubscriberInterface {
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
     $original_hash = $this->getUnchangedHash($entity);
+    // 💡 If you are debugging why an entry is being created, but you didn't
+    // expect one to be, the code below can be evaluated in a debugger and will
+    // show you which field varies.
+    // @code
+    // $original = self::normalizeEntity($this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id()))
+    // $data_hash = \array_map(self::generateHash(...), $data)
+    // $original_hash = \array_map(self::generateHash(...), $original)
+    // \array_diff($data_hash, $original_hash)
+    // \array_diff($original_hash, $data_hash)
+    // @endcode
     if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash)) {
       // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
@@ -126,6 +137,11 @@ class AutoSaveManager implements EventSubscriberInterface {
       }
       $normalized[$name] = \array_map(
         static function (FieldItemInterface $item): array {
+          if ($item instanceof ComponentTreeItem) {
+            // Optimize component inputs to ensure the normalized value is
+            // determinative.
+            $item->optimizeInputs();
+          }
           $value = $item->toArray();
           foreach (\array_filter($item->getProperties(), static fn (TypedDataInterface $property) => $property instanceof PrimitiveInterface) as $property) {
             \assert($property instanceof PrimitiveInterface);
