@@ -21,6 +21,7 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
@@ -278,6 +279,59 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       $modify_title_client_json,
       [],
       'Modified!',
+    );
+
+    $this->container->get('module_installer')->install(['xb_test_article_fields']);
+    // Remove the field_xbt_textarea_summary field installed by
+    // xb_test_article_fields because it is not used in the test and causes
+    // unrelated validation errors.
+    $field = FieldConfig::load('node.article.field_xbt_textarea_summary');
+    if ($field) {
+      $field->delete();
+    }
+
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+      'edit any article content',
+      'use editorial transition create_new_draft',
+      'use editorial transition publish',
+      'use editorial transition archive',
+    ]);
+    $no_view_field_access_client_json = $valid_client_json;
+
+    // Assert we get access error when the user cannot view the field but the
+    // set value is the same as the current value.
+    $no_view_field_access_client_json['entity_form_fields']['field_xbt_comment[0][status]'] = 2;
+    $test_node = $this->createTestNode();
+    /** @var \Drupal\comment\CommentFieldItemList $comment_field */
+    $comment_field = $test_node->get('field_xbt_comment');
+    /** @var \Drupal\comment\Plugin\Field\FieldType\CommentItem $first_comment */
+    $first_comment = $comment_field->first();
+    $this->assertSame(2, $first_comment->get('status')->getValue());
+    $this->assertFalse($comment_field->access('view'));
+    $this->assertConvert(
+      $no_view_field_access_client_json,
+      ['entity_form_fields.field_xbt_comment' => "The current user is not allowed to update the field 'field_xbt_comment'."],
+      'The updated title.',
+      $test_node
+    );
+
+    // Assert we get access error when the user cannot view the field but the
+    // set value is different from the current value.
+    $no_view_field_access_client_json['entity_form_fields']['field_xbt_comment[0][status]'] = 1;
+    $test_node = $this->createTestNode();
+    /** @var \Drupal\comment\CommentFieldItemList $comment_field */
+    $comment_field = $test_node->get('field_xbt_comment');
+    /** @var \Drupal\comment\Plugin\Field\FieldType\CommentItem $first_comment */
+    $first_comment = $comment_field->first();
+    $this->assertFalse($comment_field->access('view'));
+    $this->assertSame(2, $first_comment->get('status')->getValue());
+    $this->assertConvert(
+      $no_view_field_access_client_json,
+      ['entity_form_fields.field_xbt_comment' => "The current user is not allowed to update the field 'field_xbt_comment'."],
+      'The updated title.',
+      $test_node
     );
 
     // @todo Test case where the user does not have access to view the field.
