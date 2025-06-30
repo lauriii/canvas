@@ -191,16 +191,18 @@ class AutoSaveManager implements EventSubscriberInterface {
   /**
    * Gets all auto-save data.
    *
-   * @return array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, langcode: ?string}>
+   * @return array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, langcode: ?string, entity: ?EntityInterface}>
    *   All auto-save data entries.
    */
-  public function getAllAutoSaveList(): array {
-    return \array_map(static fn (object $entry) => $entry->data +
-    // Append the owner and updated data into each entry.
+  public function getAllAutoSaveList(bool $with_entities = FALSE): array {
+    return \array_map(fn (object $entry) => $entry->data +
+    // Append the owner and updated data into each entry, and an entity object
+    // upon request.
     [
       // Remove the unique session key for anonymous users.
       'owner' => \is_numeric($entry->owner) ? (int) $entry->owner : 0,
       'updated' => $entry->updated,
+      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry->data['entity_type'])->create($entry->data['data']) : NULL,
     ], $this->getTempStore()->getAll());
   }
 

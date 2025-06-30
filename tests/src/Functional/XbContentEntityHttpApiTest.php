@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Page;
@@ -93,7 +94,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->drupalLogin($user);
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $expected_tags = [
+      AutoSaveManager::CACHE_TAG,
+      'config:system.site',
+      'http_response',
+      'xb_page:2',
+      'xb_page_list',
+    ];
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     $no_auto_save_expected_pages = [
       // Page 1 has a path alias.
       '1' => [
@@ -141,7 +149,39 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       $no_auto_save_expected_pages,
       $body
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
+
+    // Test searching by query parameter
+    $search_url = Url::fromUri('base:/xb/api/v0/content/xb_page', ['query' => ['search' => 'Page 1']]);
+    // Because page 2 isn't in these results, we don't get its cache tag.
+    $expected_tags_without_page_2 = \array_diff($expected_tags, ['xb_page:2']);
+    // Confirm that the cache is not hit when a different request is made with query parameter.
+    $search_body = $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals(
+      [
+        '1' => [
+          'id' => 1,
+          'title' => 'Page 1',
+          'status' => TRUE,
+          'path' => base_path() . 'page-1',
+          'autoSaveLabel' => NULL,
+          'autoSavePath' => NULL,
+          'links' => [
+            // @todo https://www.drupal.org/i/3498525 should remove the hardcoded `xb_page` from these.
+            XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
+            XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
+          ],
+        ],
+      ],
+      $search_body
+    );
+    // Confirm that the cache is hit when the same request is made again.
+    $this->assertExpectedResponse('GET', $search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags_without_page_2, 'UNCACHEABLE (request policy)', 'HIT');
+
+    // Test searching by query parameter - substring match.
+    $substring_search_url = Url::fromUri('base:/xb/api/v0/content/xb_page', ['query' => ['search' => 'age']]);
+    $substring_search_body = $this->assertExpectedResponse('GET', $substring_search_url, [], 200, ['languages:' . LanguageInterface::TYPE_CONTENT, 'url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals($no_auto_save_expected_pages, $substring_search_body);
 
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $page_1 = Page::load(1);
@@ -156,7 +196,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', ['alias' => "/the-new-path"]);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     $auto_save_expected_pages = $no_auto_save_expected_pages;
     $auto_save_expected_pages['1']['autoSaveLabel'] = 'The updated title.';
     $auto_save_expected_pages['1']['autoSavePath'] = '/the-updated-path';
@@ -166,7 +206,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       $auto_save_expected_pages,
       $body
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
 
     // Confirm that if path alias is empty, the system path is used, not the
     // existing alias if set.
@@ -178,7 +218,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $page_2->set('path', NULL);
     $autoSaveManager->saveEntity($page_2);
 
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     $auto_save_expected_pages['1']['autoSavePath'] = '/page/1';
     $auto_save_expected_pages['2']['autoSavePath'] = '/page/2';
     $this->assertEquals(
@@ -188,12 +228,12 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
 
     $autoSaveManager->delete($page_1);
     $autoSaveManager->delete($page_2);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertEquals(
       $no_auto_save_expected_pages,
       $body
     );
-    $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], $expected_tags, 'UNCACHEABLE (request policy)', 'HIT');
   }
 
   /**
@@ -211,10 +251,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser($permissions);
     assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:search', 'user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
     assert(\is_array($body));
     assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
     $this->assertEquals(
@@ -293,7 +332,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $user = $this->createUser([Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'administer_xb_page_user');
     assert($user instanceof UserInterface);
     $this->drupalLogin($user);
-    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'xb_page:2', 'xb_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
     assert(\is_array($body));
     assert(\array_key_exists('2', $body) && \array_key_exists('links', $body['2']));
     $this->assertEquals(

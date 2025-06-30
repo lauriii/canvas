@@ -20,13 +20,29 @@ export interface CreateContentRequest {
   entity_id?: string;
   entity_type: string;
 }
+
+export interface ContentListParams {
+  entityType: string;
+  search?: string;
+}
+
 export const contentApi = createApi({
   reducerPath: 'contentApi',
   baseQuery,
   tagTypes: ['Content'],
   endpoints: (builder) => ({
-    getContentList: builder.query<ContentStub[], string>({
-      query: (entityType) => `/xb/api/v0/content/${entityType}`,
+    getContentList: builder.query<ContentStub[], ContentListParams>({
+      query: ({ entityType, search }) => {
+        const params = new URLSearchParams();
+        if (search) {
+          const normalizedSearch = search.toLowerCase().trim();
+          params.append('search', normalizedSearch);
+        }
+        return {
+          url: `/xb/api/v0/content/${entityType}`,
+          params: search ? params : undefined,
+        };
+      },
       transformResponse: (response: ContentListResponse) => {
         return Object.values(response);
       },

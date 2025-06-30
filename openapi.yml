@@ -855,6 +855,18 @@ paths:
   '/xb/api/v0/content/{entity_type}':
     get:
       description: Provides api for page listing.
+      parameters:
+        - in: query
+          name: search
+          required: false
+          description: Search term to filter content by title
+          schema:
+            type: string
+          examples:
+            Find content with title 'My page':
+              value: 'My page'
+            Search for marketing update content:
+              value: 'Marketing update'
       responses:
         200:
           description: Page list generated successfully.

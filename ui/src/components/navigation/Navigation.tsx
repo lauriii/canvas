@@ -42,7 +42,7 @@ const ContentGroup = ({
 }) => {
   if (items.length === 0) {
     return (
-      <Callout.Root size="1" color="gray">
+      <Callout.Root size="1" color="gray" data-testid="xb-navigation-results">
         <Callout.Icon>
           <InfoCircledIcon />
         </Callout.Icon>
@@ -56,12 +56,18 @@ const ContentGroup = ({
       <Heading as="h5" size="1" color="gray">
         {title}
       </Heading>
-      <Flex direction="column" gap="2" mt="2">
+      <Flex
+        data-testid="xb-navigation-results"
+        direction="column"
+        gap="2"
+        mt="2"
+      >
         {items.map((item) => {
           return (
             <Flex
               direction={'row'}
               align={'center'}
+              role={'list'}
               mr="4"
               p="1"
               pr="2"
@@ -70,6 +76,7 @@ const ContentGroup = ({
               data-xb-page-id={item.id}
             >
               <Flex
+                role={'listitem'}
                 className={styles.pageLink}
                 flexGrow="1"
                 onClick={onSelect ? () => onSelect(item) : undefined}
@@ -224,7 +231,7 @@ const Navigation = ({
       <Flex direction="row" gap="2" mb="4">
         <form
           className={styles.search}
-          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          onChange={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             const form = event.currentTarget;
             const formElements = form.elements as typeof form.elements & {
@@ -237,6 +244,7 @@ const Navigation = ({
             id="xb-navigation-search"
             placeholder="Search…"
             radius="medium"
+            aria-label="Search content"
             size="1"
           >
             <TextField.Slot>

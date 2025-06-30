@@ -112,9 +112,9 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // User display names depend on configuration.
     $cache->addCacheableDependency($this->configFactory->get('user.settings'));
 
-    // Remove 'data' key because this will reduce the amount of data sent to the
-    // client and back to the server.
-    $all = \array_map(fn(array $item) => \array_diff_key($item, ['data' => '']), $all);
+    // Remove 'data' and 'entity' key because this will reduce the amount of
+    // data sent to the client and back to the server.
+    $all = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'entity'])), $all);
 
     $withUserDetails = \array_map(fn(array $item) => [
       // @phpstan-ignore-next-line
@@ -139,7 +139,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   public function post(Request $request): JsonResponse {
     $client_auto_saves = \json_decode($request->getContent(), TRUE);
     \assert(\is_array($client_auto_saves));
-    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList();
+    $all_auto_saves = $this->autoSaveManager->getAllAutoSaveList(TRUE);
     if ($validation_response = self::validateExpectedAutoSaves($client_auto_saves, $all_auto_saves)) {
       return $validation_response;
     }
@@ -160,8 +160,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     $access_error_labels = [];
     $access_error_cache = new CacheableMetadata();
     $loadedEntities = [];
-    foreach ($publish_auto_saves as $autoSaveKey => $auto_save) {
-      $entity = $this->entityTypeManager->getStorage($auto_save['entity_type'])->create($auto_save['data']);
+    foreach ($publish_auto_saves as $autoSaveKey => ['entity' => $entity]) {
       assert($entity instanceof EntityInterface);
       // Auto-saves always are updates to existing entities. This just used
       // EntityStorageInterface::create() to construct an entity object from

@@ -14,6 +14,7 @@ import {
   Popover,
 } from '@radix-ui/themes';
 import { useAppSelector } from '@/app/hooks';
+import { debounce } from 'lodash';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
@@ -30,6 +31,7 @@ import {
 } from '@/services/content';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useState } from 'react';
 import type { ContentStub } from '@/types/Content';
 import ErrorCard from '@/components/error/ErrorCard';
 import PageStatus from '@/components/pageStatus/PageStatus';
@@ -68,12 +70,16 @@ const PageInfo = () => {
   const entity_form_fields = useAppSelector(selectPageData);
   const title =
     entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
-
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const {
     data: pageItems,
     isLoading: isPageItemsLoading,
     error: pageItemsError,
-  } = useGetContentListQuery('xb_page');
+  } = useGetContentListQuery({
+    // @todo Generalize in https://www.drupal.org/i/3498525
+    entityType: 'xb_page',
+    search: searchTerm,
+  });
   const entityId = useAppSelector(selectEntityId);
   const entityType = useAppSelector(selectEntityType);
   const baseUrl = getBaseUrl();
@@ -136,6 +142,22 @@ const PageInfo = () => {
     setEditorEntity('xb_page', String(item.id));
   }
 
+  // @todo Fix in https://www.drupal.org/project/experience_builder/issues/3533096
+  useEffect(() => {
+    const debouncedSearch = debounce((term: string) => {
+      if (term.length === 0 || term.length >= 3) {
+        setSearchTerm(term);
+      }
+    }, 400);
+
+    // Set up the debounced search effect
+    debouncedSearch(searchTerm);
+
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [searchTerm]);
+
   useEffect(() => {
     if (isCreateContentSuccess) {
       setEditorEntity(
@@ -188,7 +210,7 @@ const PageInfo = () => {
                   loading={isPageItemsLoading}
                   items={pageItems || []}
                   onNewPage={handleNewPage}
-                  onSearch={handleNonWorkingBtn}
+                  onSearch={(value) => setSearchTerm(value)}
                   onSelect={handleOnSelect}
                   onRename={handleNonWorkingBtn}
                   onDuplicate={handleDuplication}
