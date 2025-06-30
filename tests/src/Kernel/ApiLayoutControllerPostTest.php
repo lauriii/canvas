@@ -92,10 +92,11 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // not have 'edit' access to the 'sticky' field. While not ideal,
     // importantly the serialized entity values that are stored in the auto-save
     // will not be updated with value sent by the client. This is because we
-    // programmatically submit the entity form to massage the field values
-    // before comparing them to the existing saved values. In this case the form
-    // logic will ignore the updated value for 'sticky' because the user does
-    // not have 'edit' access to it.
+    // programmatically submit the entity form using
+    // `::setProgrammedBypassAccessCheck(FALSE)` to massage the field values
+    // before comparing them to the existing saved values. This causes Form API
+    // to ignore the updated value for 'sticky' because the user does not have
+    // 'edit' access to it.
     $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode([
       'layout' => [
         [
