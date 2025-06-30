@@ -197,10 +197,13 @@ cspell:
   # Set simpletest environment variables
   - !reference [ .simpletest-db ]
   - !reference [ .show-environment-variables ]
-  # Install Drupal, this is only needed due to a bug when applying recipes with
-  # drush (hash salt errors).
-  - cd $CI_PROJECT_DIR/_drupal/web
-  - php core/scripts/drupal install minimal --no-interaction --quiet
+  # Ensure that every test site will be able to discover and install test modules.
+  # Anything in settings.testing.php is automatically copied into the settings of
+  # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
+  # which is called (indirectly) by \Drupal\TestSite\Commands\TestSiteInstallCommand.
+  - cd $CI_PROJECT_DIR/_drupal/web/sites/default
+  - echo '<?php' >> settings.testing.php
+  - echo '$settings["extension_discovery_scan_tests"] = TRUE;' >> settings.testing.php
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
   # Install the UI

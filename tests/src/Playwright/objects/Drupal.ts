@@ -45,17 +45,11 @@ export class Drupal {
 
   async setupXBTestSite() {
     const moduleDir = await getModuleDir();
+    await this.enableTestExtensions();
+    await this.writeBaseUrl();
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/base`,
     );
-    // These have to be enabled manually because they don't create the article
-    // fields when enabled via a recipe.
-    // @todo Revert this, see https://www.drupal.org/project/experience_builder/issues/3532130#comment-16164321.
-    await this.installModules([
-      'xb_dev_standard',
-      'xb_test_sdc',
-      'xb_test_code_components',
-    ]);
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/test_site`,
     );
@@ -228,18 +222,29 @@ export class Drupal {
       `${this.drupalSite.sitePath}/settings.php`,
     );
     fs.chmodSync(settingsFile, 0o775);
-    exec(
+    return await exec(
       `echo '$settings["extension_discovery_scan_tests"] = TRUE;' >> ${settingsFile}`,
     );
   }
 
+  async writeBaseUrl() {
+    // \Drupal\Core\StreamWrapper\PublicStream::baseUrl needs a base-url set,
+    // otherwise it will default to $GLOBALS['base_url']. When a recipe is being
+    // run via core/scripts/drupal, that defaults to core/scripts/drupal 😭.
+    const settingsFile = nodePath.resolve(
+      getRootDir(),
+      `${this.drupalSite.sitePath}/settings.php`,
+    );
+    fs.chmodSync(settingsFile, 0o775);
+    return await exec(
+      `echo '$settings["file_public_base_url"] = "${this.drupalSite.url}/${this.drupalSite.sitePath}/files";' >> ${settingsFile}`,
+    );
+  }
+
   async applyRecipe(path: string) {
-    if (!this.drupalSite.hasDrush) {
-      throw new Error(
-        'This cannot currently be done without drush.\nhttps://www.drupal.org/project/drupal/issues/3417012',
-      );
-    }
-    await this.drush(`recipe ${path}`);
+    return await exec(
+      `DRUPAL_DEV_SITE_PATH=${this.drupalSite.sitePath} php core/scripts/drupal recipe ${path}`,
+    );
   }
 
   async getSettings() {

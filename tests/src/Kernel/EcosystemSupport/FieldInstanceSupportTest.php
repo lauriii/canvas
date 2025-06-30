@@ -56,7 +56,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
   /**
    * The current % of supported field type props.
    */
-  public const COMPLETION_PROPS = 0.8918918918918919;
+  public const COMPLETION_PROPS = 0.8947368421052632;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).

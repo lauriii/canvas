@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\editor\EditorInterface;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
+use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
 use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FloatItemOverride;
@@ -108,6 +109,7 @@ class ShapeMatchingHooks {
       'text_with_summary' => TextWithSummaryItemOverride::class,
       'uuid' => UuidItemOverride::class,
       'uri' => UriItemOverride::class,
+      'entity_reference' => EntityReferenceItemOverride::class,
     ];
     foreach ($overrides as $plugin_id => $class) {
       if (\array_key_exists($plugin_id, $info)) {
