@@ -8,4 +8,8 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
+  noExternal: ['tailwindcss-in-browser'],
+  loader: {
+    '.wasm': 'file',
+  },
 });

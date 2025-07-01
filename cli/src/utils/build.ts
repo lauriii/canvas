@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { compileJS } from '../lib/compile-js';
 import type { Result } from '../types/Result';
+import { transformCss } from '../lib/transform-css';
+import { fileExists } from './utils';
 
 export async function buildComponent(componentDir: string): Promise<Result> {
   const componentName = path.basename(componentDir);
@@ -40,11 +42,22 @@ export async function buildComponent(componentDir: string): Promise<Result> {
     });
   }
 
-  // @todo Transpile CSS: https://drupal.org/i/3525590
-  await fs.writeFile(
-    path.join(distDir, 'index.css'),
-    `/* @todo Transpile CSS for ${componentName} in https://drupal.org/i/3525590 */`,
-  );
+  // Read the CSS source and transpile it.
+  try {
+    const cssPath = path.join(componentDir, 'index.css');
+    const cssFileExists = await fileExists(cssPath);
+    if (cssFileExists) {
+      const cssSource = await fs.readFile(cssPath, 'utf-8');
+      const cssTranspiled = await transformCss(cssSource);
+      await fs.writeFile(path.join(distDir, 'index.css'), cssTranspiled);
+    }
+  } catch (error) {
+    result.success = false;
+    result.details?.push({
+      heading: 'Error while transforming CSS',
+      content: String(error),
+    });
+  }
 
   return result;
 }

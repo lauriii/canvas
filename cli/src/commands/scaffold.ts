@@ -109,24 +109,16 @@ export function scaffoldCommand(program: Command): void {
             await fs.writeFile(destPath, content, 'utf-8');
           }
 
-          s.stop(
-            chalk.green(`Successfully created component "${componentName}"`),
-          );
+          s.stop(chalk.green(`Created component "${componentName}"`));
 
           // Show summary and next steps
           p.note(`Component "${componentName}" has been created:
 - Directory: ${componentDir}
 - Component metadata: ${path.join(componentDir, `component.yml`)}
 - Source file: ${path.join(componentDir, `index.jsx`)}
-- CSS file: ${path.join(componentDir, `index.css`)}
+- CSS file: ${path.join(componentDir, `index.css`)}`);
 
-Next steps:
-1. Customize the component files to fit your needs
-2. If needed, run: cd ${componentDir} && npm install
-3. Build the component: cd ${componentDir} && npm run build
-4. Upload to Experience Builder: xb upload --dir ${componentDir}`);
-
-          p.outro('🎉 Your new component awaits!');
+          p.outro('🏗️ Scaffold command completed');
         } catch (error) {
           s.stop(chalk.red(`Failed to create component "${componentName}"`));
           throw error;

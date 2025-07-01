@@ -9,6 +9,7 @@ import yaml from 'js-yaml';
 import type { Component } from '../types/Component';
 import { reportResults } from '../utils/report-results';
 import type { Result } from '../types/Result';
+import { directoryExists } from '../utils/utils';
 
 interface DownloadOptions {
   clientId?: string;
@@ -63,7 +64,7 @@ export function downloadCommand(program: Command): void {
         const components = await apiService.listComponents();
         const {
           css: { original: globalCss },
-        } = await apiService.getGlobalCss();
+        } = await apiService.getGlobalAssetLibrary();
 
         if (Object.keys(components).length === 0) {
           s.stop('No components found');
@@ -156,10 +157,7 @@ export function downloadCommand(program: Command): void {
               component.machineName,
             );
             // Check if the directory exists and is non-empty to confirm deletion.
-            const dirExists = await fs
-              .stat(componentDir)
-              .then(() => true)
-              .catch(() => false);
+            const dirExists = await directoryExists(componentDir);
             if (dirExists) {
               const files = await fs.readdir(componentDir);
               if (files.length > 0) {
@@ -230,7 +228,11 @@ export function downloadCommand(program: Command): void {
             });
           }
         }
-        s.stop('Download completed');
+        s.stop(
+          chalk.green(
+            `Processed ${Object.keys(componentsToDownload).length} ${componentPluralized}`,
+          ),
+        );
 
         reportResults(results, 'Downloaded components', 'Component');
 
@@ -260,7 +262,7 @@ export function downloadCommand(program: Command): void {
           reportResults([globalCssResult], 'Downloaded assets', 'Asset');
         }
 
-        p.outro(`✅ Download completed`);
+        p.outro(`⬇️ Download command completed`);
       } catch (error) {
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));

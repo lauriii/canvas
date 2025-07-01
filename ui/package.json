@@ -4,7 +4,8 @@
   "homepage": "https://www.drupal.org/project/experience_builder",
   "private": true,
   "workspaces": [
-    "lib/astro-hydration"
+    "lib/astro-hydration",
+    "../cli"
   ],
   "version": "0.0.0",
   "engines": {

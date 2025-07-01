@@ -137,9 +137,9 @@ export class ApiService {
   }
 
   /**
-   * Get global CSS.
+   * Get global asset library.
    */
-  async getGlobalCss(): Promise<AssetLibrary> {
+  async getGlobalAssetLibrary(): Promise<AssetLibrary> {
     try {
       const response = await this.client.get(
         '/xb/api/v0/config/xb_asset_library/global',
@@ -147,14 +147,14 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to get global CSS');
+      throw new Error('Failed to get global asset library');
     }
   }
 
   /**
-   * Update global CSS.
+   * Update global asset library.
    */
-  async updateGlobalCss(
+  async updateGlobalAssetLibrary(
     assetLibrary: Partial<AssetLibrary>,
   ): Promise<AssetLibrary> {
     try {
@@ -165,7 +165,7 @@ export class ApiService {
       return response.data;
     } catch (error) {
       this.handleApiError(error);
-      throw new Error('Failed to update global CSS');
+      throw new Error('Failed to update global asset library');
     }
   }
 
@@ -178,7 +178,9 @@ export class ApiService {
         const status = error.response.status;
         const data = error.response.data;
 
-        if (verbose) {
+        // Do not output verbose logs for 404 responses. They are expected when
+        // uploading newly created components.
+        if (verbose && status !== 404) {
           console.error('API Error Details:');
           console.error(`- Status: ${status}`);
           console.error(`- URL: ${error.config?.url || 'unknown'}`);

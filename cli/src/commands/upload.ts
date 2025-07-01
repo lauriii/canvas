@@ -9,11 +9,13 @@ import {
   processComponentFiles,
   createComponentPayload,
 } from '../utils/process-component-files.js';
-import { findComponentDirectories } from '../utils/find-component-directories.js';
 import type { Result } from '../types/Result.js';
 import { buildComponent } from '../utils/build';
 import fs from 'fs/promises';
 import { reportResults } from '../utils/report-results';
+import { fileExists } from '../utils/utils';
+import { selectLocalComponents } from '../utils/select-local-components.js';
+import { buildTailwindForComponents } from '../utils/build-tailwind.js';
 
 interface UploadOptions {
   clientId?: string;
@@ -23,6 +25,7 @@ interface UploadOptions {
   dir?: string;
   verbose?: boolean;
   all?: boolean;
+  tailwind?: boolean;
 }
 
 /**
@@ -39,8 +42,11 @@ export function uploadCommand(program: Command): void {
     .option('-d, --dir <directory>', 'Component directory')
     .option('--all', 'Upload all components')
     .option('--verbose', 'Verbose output')
+    .option('--no-tailwind', 'Skip Tailwind CSS building')
     .action(async (options: UploadOptions) => {
       const allFlag = options.all || false;
+      const skipTailwind = !options.tailwind;
+
       try {
         p.intro('Experience Builder Component Upload');
 
@@ -63,18 +69,10 @@ export function uploadCommand(program: Command): void {
         ]);
         const config = getConfig();
 
-        // Find component directories
-        const componentDirs = await findComponentDirectories(
-          config.componentDir,
-        );
-        if (componentDirs.length === 0) {
-          p.outro('Upload cancelled - no components were found');
-          return;
-        }
         // Select components to upload
-        const componentsToUpload = await selectComponentsToUpload(
-          componentDirs,
+        const componentsToUpload = await selectLocalComponents(
           allFlag,
+          'Select components to upload',
         );
         if (!componentsToUpload || componentsToUpload.length === 0) {
           return;
@@ -88,16 +86,44 @@ export function uploadCommand(program: Command): void {
           componentsToUpload as string[],
           apiService,
         );
-        const globalCssResult = await uploadGlobalCss(
-          apiService,
-          config.componentDir,
-        );
-        // Display results
+
+        // Display component upload results
         reportResults(componentResults, 'Uploaded components', 'Component');
-        if (globalCssResult) {
-          reportResults([globalCssResult], 'Uploaded assets', 'Asset');
+
+        if (skipTailwind) {
+          p.log.info('Skipping Tailwind CSS build');
+        } else {
+          // Build Tailwind CSS and upload global CSS
+          const s2 = p.spinner();
+          s2.start('Building Tailwind CSS');
+          const tailwindResult = await buildTailwindForComponents(
+            componentsToUpload as string[],
+          );
+          const componentLabelPluralized =
+            componentsToUpload.length === 1 ? 'component' : 'components';
+          s2.stop(
+            chalk.green(
+              `Processed Tailwind CSS classes from ${componentsToUpload.length} selected local ${componentLabelPluralized} and all online components`,
+            ),
+          );
+
+          // Capture Tailwind error if any
+          if (!tailwindResult.success && tailwindResult.details) {
+            // Report failed Tailwind CSS build.
+            reportResults([tailwindResult], 'Built assets', 'Asset');
+            p.note(
+              chalk.red(`Tailwind build failed, global assets upload aborted.`),
+            );
+          } else {
+            // If the Tailwind build was successful, proceed with uploading the global CSS.
+            const globalCssResult = await uploadGlobalAssetLibrary(
+              apiService,
+              config.componentDir,
+            );
+            reportResults([globalCssResult], 'Uploaded assets', 'Asset');
+          }
         }
-        p.outro('🥳 Upload completed');
+        p.outro('⬆️ Upload command completed');
       } catch (error) {
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));
@@ -107,61 +133,6 @@ export function uploadCommand(program: Command): void {
         process.exit(1);
       }
     });
-}
-
-/**
- * Select components to upload.
- */
-async function selectComponentsToUpload(
-  componentDirs: string[],
-  allFlag: boolean,
-): Promise<string[] | null> {
-  // Select all components if the --all flag is set.
-  if (allFlag) {
-    console.log(`Selected all ${componentDirs.length} components to upload`);
-    return componentDirs;
-  }
-  const selectedDirs = await p.multiselect({
-    message: 'Select components to upload',
-    options: [
-      {
-        value: '_allComponents',
-        label: 'All components',
-      },
-      ...componentDirs.map((dir) => ({
-        value: dir,
-        label: path.basename(dir),
-      })),
-    ],
-    required: true,
-  });
-
-  if (p.isCancel(selectedDirs)) {
-    p.cancel('Operation cancelled');
-    return null;
-  }
-
-  const count = selectedDirs.includes('_allComponents')
-    ? componentDirs.length
-    : selectedDirs.length;
-
-  // Confirm upload
-  const config = getConfig();
-  const confirmUpload = await p.confirm({
-    message: `Upload ${count} components to ${config.siteUrl}?`,
-    initialValue: true,
-  });
-
-  if (p.isCancel(confirmUpload) || !confirmUpload) {
-    p.cancel('Operation cancelled');
-    return null;
-  }
-
-  // If 'all' is selected, return all component directories.
-  if (selectedDirs.includes('_allComponents')) {
-    return componentDirs;
-  }
-  return selectedDirs;
 }
 
 // Get the build and upload results.
@@ -178,11 +149,9 @@ async function getBuildAndUploadResults(
   const successfulBuilds = buildResults.filter((build) => build.success);
   const failedBuilds = buildResults.filter((build) => !build.success);
 
-  // // If no successful builds, return early
   if (successfulBuilds.length === 0) {
-    const message = 'All component builds failed. Upload process aborted.';
+    const message = 'All component builds failed.';
     p.note(chalk.red(message));
-    process.exit(1);
   }
   let spinner: any;
   spinner = p.spinner();
@@ -267,7 +236,11 @@ async function getBuildAndUploadResults(
   }
   // Add the failed builds to the upload results to get the correct count.
   results.push(...failedBuilds);
-  spinner.stop('Upload completed');
+  const componentLabelPluralized =
+    results.length === 1 ? 'component' : 'components';
+  spinner.stop(
+    chalk.green(`Processed ${results.length} ${componentLabelPluralized}`),
+  );
   return results;
 }
 
@@ -287,38 +260,60 @@ async function buildSelectedComponents(
 /**
  * Uploads global CSS if it exists
  */
-async function uploadGlobalCss(
+async function uploadGlobalAssetLibrary(
   apiService: ApiService,
   componentDir: string,
-): Promise<Result | null> {
+): Promise<Result> {
   try {
-    const globalCssPath = path.join(componentDir, 'global.css');
-    const globalCssExists = await fs
-      .access(globalCssPath)
-      .then(() => true)
-      .catch(() => false);
-    if (globalCssExists) {
-      const globalCssContent = await fs.readFile(globalCssPath, 'utf-8');
+    const distDir = path.join(componentDir, 'dist');
+    const globalCompiledCssPath = path.join(distDir, 'index.css');
+    const globalCompiledCssExists = await fileExists(globalCompiledCssPath);
+    if (globalCompiledCssExists) {
+      const globalCompiledCss = await fs.readFile(
+        path.join(distDir, 'index.css'),
+        'utf-8',
+      );
+      const classNameCandidateIndexFile = await fs.readFile(
+        path.join(distDir, 'index.js'),
+        'utf-8',
+      );
+      // @todo: It doesn't make sense to have to fetch the current.css.original
+      // from the API, but we need to do this because otherwise, the existing
+      // css.original gets overwritten if we don't pass anything.
+      const current = await apiService.getGlobalAssetLibrary();
+      const originalCss = current.css.original;
 
       // Upload the global CSS
-      await apiService.updateGlobalCss({
+      await apiService.updateGlobalAssetLibrary({
         css: {
-          original: globalCssContent,
+          original: originalCss,
+          compiled: globalCompiledCss,
+        },
+        js: {
+          original: classNameCandidateIndexFile,
           compiled: '',
         },
       });
       return {
         success: true,
-        itemName: 'global.css',
+        itemName: 'Global CSS',
       };
     } else {
-      return null;
+      return {
+        success: false,
+        itemName: 'Global CSS',
+        details: [
+          {
+            content: `Global CSS file not found at ${globalCompiledCssPath}.`,
+          },
+        ],
+      };
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      itemName: 'global.css',
+      itemName: 'Global CSS',
       details: [
         {
           content: errorMessage,

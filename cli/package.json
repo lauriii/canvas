@@ -7,6 +7,9 @@
     "xb": "./dist/index.js"
   },
   "type": "module",
+  "workspaces": [
+    "../ui"
+  ],
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsup",
@@ -55,6 +58,8 @@
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
     "js-yaml": "^4.1.0",
-    "table": "^6.9.0"
+    "table": "^6.9.0",
+    "tailwindcss-in-browser": "^0.2.0",
+    "lightningcss": "^1.30.1"
   }
 }

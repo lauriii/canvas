@@ -48,7 +48,7 @@ export function reportResults(
               r.success ? chalk.green('Success') : chalk.red('Failed'),
             ],
       ),
-      hasDetails ? ['📋 Summary', '', summary] : ['📋 Summary', summary],
+      hasDetails ? ['SUMMARY', '', summary] : ['SUMMARY', summary],
     ];
     p.log.info(
       table(tableData, {
@@ -63,7 +63,7 @@ export function reportResults(
             row: results.length + 2,
             col: 0,
             colSpan: hasDetails ? 2 : 1,
-            alignment: 'right',
+            alignment: hasDetails ? 'right' : 'left',
           },
         ],
       }),
