@@ -100,6 +100,14 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
 
   const { html, transforms } = currentData || { html: false, transforms: {} };
 
+  const persistentTransforms = useRef<undefined | TransformConfig>(undefined);
+
+  useEffect(() => {
+    if (transforms) {
+      persistentTransforms.current = transforms;
+    }
+  }, [transforms]);
+
   useEffect(() => {
     if (!html) {
       return;
@@ -228,7 +236,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         }}
         ref={formRef}
       >
-        <TransformsContext.Provider value={transforms}>
+        <TransformsContext.Provider value={persistentTransforms.current}>
           {jsxFormContent}
         </TransformsContext.Provider>
       </div>

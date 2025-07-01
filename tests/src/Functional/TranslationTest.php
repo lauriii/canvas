@@ -143,7 +143,7 @@ class TranslationTest extends FunctionalTestBase {
     $assert_session->pageTextNotContains('bonjour');
     // Confirm the first hero component does not use the translated properties
     // because it uses a StaticPropSource.
-    $this->assertSame('hello, new world!', $hero_component->getText());
+    $this->assertSame('hello, new world!', $hero_component->find('css', 'h1')?->getText());
     // Confirm the heading has been removed from display. This was changed on
     // the default translation.
     $assert_session->elementsCount('css', 'article [data-component-id="experience_builder:heading"]', 0);
@@ -155,14 +155,14 @@ class TranslationTest extends FunctionalTestBase {
     if ($field_is_translatable) {
       // If the field is translatable updating inputs in the default translation
       // should not have updated the French translation.
-      $this->assertSame('bonjour, monde!', $hero_component->getText());
+      $this->assertSame('bonjour, monde!', $hero_component->find('css', 'h1')?->getText());
       $assert_session->pageTextNotContains('hello, new world!');
     }
     else {
       // If the field is not translatable updating inputs in the default translation
       // should have also updated the French translation.
       $assert_session->pageTextNotContains('bonjour');
-      $this->assertSame('hello, new world!', $hero_component->getText());
+      $this->assertSame('hello, new world!', $hero_component->find('css', 'h1')?->getText());
     }
 
     // Confirm the heading component has been removed or not based the test case

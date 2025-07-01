@@ -14,6 +14,8 @@ export interface TransformConfig {
   [key: keyof PropsValues]: Partial<Transform>;
 }
 
+export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)/;
+
 type PropsValuesOrArrayOfPropsValues = Array<PropsValues> | PropsValues;
 
 type Transformer<
@@ -77,11 +79,33 @@ const link: Transformer<
   PropsValuesOrArrayOfPropsValues,
   LinkPropShape
 > = (value, options, propSource) => {
-  // `0` corresponds to `DRUPAL_DISABLED` on the server side.
-  if (propSource.sourceTypeSettings.instance.title === 0) {
-    return mainProperty(value, { name: 'uri' }, propSource);
+  // `1` corresponds to `DRUPAL_OPTIONAL` and `2` to DRUPAL_REQUIRED on the
+  // server side.
+  if (![1, 2].includes(propSource?.sourceTypeSettings?.instance?.title)) {
+    const uri = mainProperty(value, { name: 'uri' }, propSource);
+    const match = uri.match(ENTITY_AUTOCOMPLETE_MATCH);
+    if (match !== null) {
+      // LinkWidget with autocomplete support only supports matching on node
+      // entities.
+      // @todo Add support for other entity types once core does -
+      // https://www.drupal.org/i/2423093
+      return `entity:node/${match[1]}`;
+    }
+    return uri;
   }
-  return firstRecord(value, undefined, propSource);
+  const record = firstRecord(value, undefined, propSource);
+  if (record === null) {
+    return record;
+  }
+  const match = record.uri.match(ENTITY_AUTOCOMPLETE_MATCH);
+  if (match !== null) {
+    // LinkWidget with autocomplete support only supports matching on node
+    // entities.
+    // @todo Add support for other entity types once core does -
+    // https://www.drupal.org/i/2423093
+    return { ...record, uri: `entity:node/${match[1]}` };
+  }
+  return record;
 };
 
 const cast: Transformer<

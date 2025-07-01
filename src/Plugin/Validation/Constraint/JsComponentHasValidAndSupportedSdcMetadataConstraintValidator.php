@@ -60,11 +60,6 @@ final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extend
       $this->context->addViolation($e->getMessage());
       return;
     }
-    finally {
-      // The validator is stateful, reset it so that subsequent validation does
-      // not return the previous errors.
-      $this->componentValidator->setValidator(NULL);
-    }
 
     // The JavaScriptComponent has *valid* SDC metadata, but does it also meet
     // XB's additional requirements? Only then is it supported by XB.

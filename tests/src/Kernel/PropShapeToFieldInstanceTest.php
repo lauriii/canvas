@@ -370,7 +370,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:my-hero␟cta1href',
           ],
-          'static prop source' => 'ℹ︎link␟uri',
+          'static prop source' => 'ℹ︎link␟url',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1022,7 +1022,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::IRI->value,
           ],
-          'static prop source' => 'ℹ︎link␟uri',
+          'static prop source' => 'ℹ︎link␟url',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1036,7 +1036,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::IRI_REFERENCE->value),
           ],
-          'static prop source' => 'ℹ︎link␟uri',
+          'static prop source' => 'ℹ︎link␟url',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1090,7 +1090,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::URI->value,
           ],
-          'static prop source' => 'ℹ︎link␟uri',
+          'static prop source' => 'ℹ︎link␟url',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1104,7 +1104,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . str_replace('-', '_', JsonSchemaStringFormat::URI_REFERENCE->value),
           ],
-          'static prop source' => 'ℹ︎link␟uri',
+          'static prop source' => 'ℹ︎link␟url',
           'instances' => [
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',

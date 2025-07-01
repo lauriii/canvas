@@ -108,7 +108,7 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
   // @see \Drupal\Tests\experience_builder\Kernel\HookStoragePropAlterTest
   if ($storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'uri']) {
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::propertyDefinitions()
-    $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎link␟uri');
+    $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎link␟url');
     // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
     $storable_prop_shape->fieldInstanceSettings = [
       // This shape only needs the URI, not a title.

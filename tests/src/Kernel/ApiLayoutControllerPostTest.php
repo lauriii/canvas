@@ -264,7 +264,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
       'slots' => [],
     ];
+    // And update the card model to use a URI reference.
+    $json['model'][XBTestSetup::UUID_STATIC_CARD1]['resolved']['cta1href'] = 'entity:node/1';
+    $json['model'][XBTestSetup::UUID_STATIC_CARD1]['source']['cta1href']['value']['uri'] = 'entity:node/1';
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $crawler = new Crawler($this->getRawContent());
+    self::assertCount(1, $crawler->filter(\sprintf('a[href="%s"].my-hero__cta--primary', $node->toUrl()->toString())));
     \assert($autoSave instanceof AutoSaveManager);
     $this->assertResponseAutoSaves($response, [$node]);
     self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());

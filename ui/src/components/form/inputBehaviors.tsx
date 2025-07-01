@@ -8,6 +8,7 @@ import {
   getPropSchemas,
   shouldSkipPropValidation,
   getPropsValues,
+  propInputData,
 } from '@/components/form/formUtil';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import type {
@@ -397,16 +398,48 @@ const InputBehaviorsComponentPropsForm = (
     });
   };
 
+  const formState = useAppSelector((state) =>
+    selectFormValues(state, FORM_TYPES.COMPONENT_INPUTS_FORM),
+  );
+
   const fieldName = attributes.name || attributes['data-xb-name'];
   const propName = toPropName(fieldName, selectedComponent);
   const propsOverrides: { options?: Object[] } = {};
+
+  const { multipleInputsSingleValue } = propInputData(
+    formState,
+    inputAndUiData,
+  );
+
   const parseNewValue = (e: React.ChangeEvent) => {
     const schemas = getPropSchemas(inputAndUiData);
-    return parseValue(
+    const rawValue = parseValue(
       (e.target as HTMLInputElement | HTMLSelectElement).value,
       e.target as HTMLInputElement,
       schemas?.[propName],
     );
+    const fieldName = (e.target as HTMLInputElement | HTMLSelectElement).name;
+    if (
+      // If there are no transforms, we cannot use them, just return the raw
+      // value. Note that the 'undefined' check here is technically not required
+      // because at this point the form has loaded and the value will be
+      // defined, it is required to satisfy type-checks.
+      transforms === undefined ||
+      Object.entries(transforms).length === 0 ||
+      // Or if there are no transforms for this prop, don't bother with the
+      // overhead of transforms.
+      !(propName in transforms) ||
+      // Or if the prop relies on multiple input fields.
+      multipleInputsSingleValue.includes(propName)
+    ) {
+      return rawValue;
+    }
+    const { propsValues: values } = getPropsValues(
+      { [fieldName]: rawValue },
+      inputAndUiData,
+      transforms,
+    );
+    return propName in values ? values[propName] : rawValue;
   };
 
   const validateNewValue = (e: React.ChangeEvent, newValue: any) => {

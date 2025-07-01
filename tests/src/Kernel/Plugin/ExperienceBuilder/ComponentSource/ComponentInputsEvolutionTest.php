@@ -160,7 +160,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
                 'uri' => 'http://arachnophobia.com/',
                 'options' => [],
               ],
-              'expression' => 'ℹ︎link␟uri',
+              'expression' => 'ℹ︎link␟url',
             ],
           ],
           'resolved' => [

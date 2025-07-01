@@ -342,7 +342,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&format=uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => 'uri']),
-        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',
       ),
@@ -379,19 +379,19 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&format=iri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI->value]),
-        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',
       ),
       'type=string&format=iri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IRI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',
       ),
       'type=string&format=uri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
-        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',
       ),

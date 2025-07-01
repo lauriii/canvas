@@ -718,7 +718,7 @@ HTML,
                 'options' => [],
               ],
             ],
-            'expression' => 'ℹ︎link␟uri',
+            'expression' => 'ℹ︎link␟url',
           ],
           'target' => [
             'field_type' => 'list_string',
@@ -1354,7 +1354,7 @@ HTML,
               'format' => 'uri',
             ],
             'sourceType' => 'static:field_item:link',
-            'expression' => 'ℹ︎link␟uri',
+            'expression' => 'ℹ︎link␟url',
             'sourceTypeSettings' => [
               'instance' => [
                 'title' => 0,

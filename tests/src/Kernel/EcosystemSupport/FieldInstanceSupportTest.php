@@ -112,6 +112,10 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     'link' => [
       // @todo Decide in https://www.drupal.org/project/experience_builder/issues/3512849 whether this is okay or not; if it is: document rationale here.
       'options' => FALSE,
+      // We want to support the computed 'url' field instead as this handles
+      // resolving URIs such as entity:node/1, base:/node/1 and
+      // route:entity.node.canonical;node=1
+      'uri' => FALSE,
     ],
     // Note that 'password' is deliberately not here (unsupported) as we don't
     // want any of its properties to be associated with a dynamic prop source.
@@ -192,8 +196,6 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     // Create a required and optional configurable field of EVERY field type on
     // the `entity_test` entity type.
     $this->installEntitySchema('entity_test');
-    $this->installEntitySchema('field_storage_config');
-    $this->installEntitySchema('field_config');
     $created_fields = $this->createFieldsForAllFieldTypes();
 
     // Generate expectations:

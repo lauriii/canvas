@@ -198,7 +198,7 @@ class XBTestSetup implements TestSetupInterface {
           ],
         ],
         'value' => ['uri' => 'https://drupal.org'],
-        'expression' => 'ℹ︎link␟uri',
+        'expression' => 'ℹ︎link␟url',
       ];
     }
     $items = [

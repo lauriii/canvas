@@ -167,7 +167,7 @@ enum JsonSchemaStringFormat: string {
       // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
       static::URI_REFERENCE, static::URI, static::IRI_REFERENCE, static::IRI => new StorablePropShape(
         shape: $shape,
-        fieldTypeProp: new FieldTypePropExpression('link', 'uri'),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
         fieldInstanceSettings: [
           // This shape only needs the URI, not a title.

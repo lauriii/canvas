@@ -5,7 +5,7 @@
     "type": "drupal-module",
     "homepage": "https://www.drupal.org/project/experience_builder",
     "require": {
-        "drupal/core": "^11.1.2",
+        "drupal/core": "^11.1.7",
         "justinrainbow/json-schema": "^5.2",
         "twig/twig": "^3.16",
         "php": ">=8.3"
