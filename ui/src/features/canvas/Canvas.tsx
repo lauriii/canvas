@@ -34,7 +34,8 @@ const Canvas = () => {
   const dispatch = useAppDispatch();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const canvasPaneRef = useRef<HTMLDivElement | null>(null);
-  const animFrameIdRef = useRef<number | null>(null);
+  const animFrameScrollRef = useRef<number | null>(null);
+  const animFrameScaleRef = useRef<number | null>(null);
   const scalingContainerRef = useRef<HTMLDivElement | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const canvasViewPort = useAppSelector(selectCanvasViewPort);
@@ -183,11 +184,11 @@ const Canvas = () => {
       const translationX = startPos.x - clientX;
       const translationY = startPos.y - clientY;
 
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
+      if (animFrameScrollRef.current) {
+        cancelAnimationFrame(animFrameScrollRef.current);
       }
 
-      animFrameIdRef.current = requestAnimationFrame(() => {
+      animFrameScrollRef.current = requestAnimationFrame(() => {
         if (scalingContainerRef.current) {
           scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
         }
@@ -234,11 +235,11 @@ const Canvas = () => {
   );
 
   useEffect(() => {
-    if (animFrameIdRef.current) {
-      cancelAnimationFrame(animFrameIdRef.current);
+    if (animFrameScrollRef.current) {
+      cancelAnimationFrame(animFrameScrollRef.current);
     }
 
-    animFrameIdRef.current = requestAnimationFrame(() => {
+    animFrameScrollRef.current = requestAnimationFrame(() => {
       if (canvasPaneRef.current) {
         canvasPaneRef.current.scrollLeft = canvasViewPort.x;
         canvasPaneRef.current.scrollTop = canvasViewPort.y;
@@ -247,11 +248,11 @@ const Canvas = () => {
   }, [canvasViewPort.x, canvasViewPort.y]);
 
   useEffect(() => {
-    if (animFrameIdRef.current) {
-      cancelAnimationFrame(animFrameIdRef.current);
+    if (animFrameScaleRef.current) {
+      cancelAnimationFrame(animFrameScaleRef.current);
     }
 
-    animFrameIdRef.current = requestAnimationFrame(() => {
+    animFrameScaleRef.current = requestAnimationFrame(() => {
       if (scalingContainerRef.current) {
         scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
       }
