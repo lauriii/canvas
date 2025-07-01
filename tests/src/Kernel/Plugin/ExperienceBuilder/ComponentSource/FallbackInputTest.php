@@ -302,9 +302,6 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       $response = $auto_save_controller->post($request);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     }
-    else {
-      $this->markTestSkipped('@todo Remove this in https://drupal.org/i/3524298');
-    }
 
     // Now recreate the image media type which should force a 'recovery' of the
     // fallback.
