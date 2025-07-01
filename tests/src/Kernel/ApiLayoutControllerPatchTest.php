@@ -191,7 +191,6 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'path[0][langcode]',
       'title[0][value]',
       'langcode[0][value]',
-      'revision_log[0][value]',
     ], array_keys($data['entity_form_fields']));
 
     $model = $data['model'];

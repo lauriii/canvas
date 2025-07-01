@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -69,6 +70,9 @@ final class ApiLayoutController {
     assert(array_key_exists(XbPageVariant::MAIN_CONTENT_REGION, $this->regions));
   }
 
+  /**
+   * Returns JSON for the entity layout and fields that the user can edit.
+   */
   public function get(ContentEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {
     $regions = PageRegion::loadForActiveTheme();
 
@@ -81,7 +85,7 @@ final class ApiLayoutController {
     }
 
     $model = [];
-    $entity_form_fields = $this->getEntityData($entity);
+    $entity_form_fields = $this->getFilteredEntityData($entity);
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
     $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
@@ -135,7 +139,7 @@ final class ApiLayoutController {
     ];
   }
 
-  private function getEntityData(FieldableEntityInterface $entity): array {
+  private function getFilteredEntityData(FieldableEntityInterface $entity): array {
     // @todo Try to return this from the form controller instead.
     // @see https://www.drupal.org/project/experience_builder/issues/3496875
     // This mirrors a lot of the logic of EntityFormController::form. We want
@@ -146,13 +150,13 @@ final class ApiLayoutController {
     $form_state = $this->buildFormState($form_object, $entity, 'default');
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     // Filter out form values that are not accessible to the client.
-    $values = self::filterFormValues($form_state->getValues(), $form);
+    $values = self::filterFormValues($form_state->getValues(), $form, $entity);
 
     // If the user had previously submitted any invalid values, these will be
     // stored in their respective violations in the auto-save manager. We
     // restore invalid values so that if a user is attempting to rectify invalid
     // values the value shown matches what was previously entered.
-    $violations = $this->autoSaveManager->getEntityFormViolation($entity);
+    $violations = $this->autoSaveManager->getEntityFormViolations($entity);
     foreach ($violations as $violation) {
       $property_path = $violation->getPropertyPath();
       // @see \Drupal\experience_builder\ClientDataToEntityConverter::setEntityFields
@@ -284,6 +288,26 @@ final class ApiLayoutController {
         }
       }
     }
+    $autoSave = $this->autoSaveManager->getAutoSaveEntity($entity);
+    if (!$autoSave->isEmpty()) {
+      \assert($autoSave->entity instanceof FieldableEntityInterface);
+      // We want to work with the auto-save entity from this point so that any
+      // previously saved values from e.g. another user are respected.
+      $entity = $autoSave->entity;
+      // AutoSaveManager::getAutoSaveEntity calls ::create which makes the
+      // entity appear new. There are some form widgets that check if the entity
+      // is new when constructing their form element. The auto-save entity is
+      // never new so we enforce that to avoid issues with form widgets.
+      // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::formElement
+      $entity->enforceIsNew(FALSE);
+      // We also need to record the loaded revision ID as the auto-save manager
+      // does not do this for us and some widgets make use of this information
+      // to load a particular revision.
+      // @see \Drupal\content_moderation\Plugin\Field\FieldWidget\ModerationStateWidget::formElement
+      if ($entity instanceof RevisionableInterface) {
+        $entity->updateLoadedRevisionId();
+      }
+    }
     return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE), [
       'autoSaves' => $this->getAutoSaveHashes($entity),
     ]);
@@ -391,7 +415,7 @@ final class ApiLayoutController {
       $build_entity = $autoSaveData->entity;
     }
     $data['model'] = [];
-    $data['entity_form_fields'] = $this->getEntityData($build_entity);
+    $data['entity_form_fields'] = $this->getFilteredEntityData($build_entity);
     // Build the content region.
     $tree = $this->componentTreeLoader->load($build_entity);
     $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];

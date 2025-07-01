@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
@@ -689,6 +690,12 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['entity_form_fields']['uid[0][target_id]'] = 'This is not a user';
     $content = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $content->getStatusCode());
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $violations = $this->container->get(AutoSaveManager::class)->getEntityFormViolations($node);
+    self::assertCount(1, $violations);
+    self::assertEquals('This is not a user', $violations[0]?->getInvalidValue());
+
     // Even though 'This is not a user' is not a valid user, the GET response
     // should still contain the invalid value the user sent so that another user
     // can fix the invalid value.
@@ -696,6 +703,72 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertIsString($content);
     $json = \json_decode($content, TRUE);
     self::assertEquals('This is not a user', $json['entity_form_fields']['uid[0][target_id]']);
+  }
+
+  public function testUsersWithLesserPermissionsDoNotWipeValuesTheyCannotAccess(): void {
+    $admin = $this->setUpCurrentUser([], [
+      'administer nodes',
+      'access administration pages',
+      'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+    ]);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $original_title = $node->label();
+    self::assertEquals(0, (int) $node->getOwnerId());
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    self::assertIsString($content);
+    $json = \json_decode($content, TRUE);
+    self::assertEquals('Anonymous (0)', $json['entity_form_fields']['uid[0][target_id]']);
+    unset($json['html'], $json['isPublished'], $json['isNew']);
+    $json['entity_form_fields']['uid[0][target_id]'] = \sprintf('%s (%d)', $admin->getDisplayName(), $admin->id());
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+    // We should have an entry in auto-save with the new value.
+    $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
+    \assert($node instanceof NodeInterface);
+    self::assertEquals(0, (int) $node->getOwnerId());
+    self::assertEquals($original_title, $node->label());
+    $autoSave = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($node);
+    self::assertFalse($autoSave->isEmpty());
+    \assert($autoSave->entity instanceof NodeInterface);
+    self::assertEquals($admin->id(), (int) $autoSave->entity->getOwnerId());
+    self::assertEquals($original_title, $autoSave->entity->label());
+
+    // Now login as a user who cannot access that field.
+    $this->setUpCurrentUser([], [
+      'access administration pages',
+      'administer url aliases',
+      PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+    ]);
+    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    self::assertIsString($content);
+    $json = \json_decode($content, TRUE);
+    // The author field should not be in the response for this user because they
+    // do not have the 'administer nodes' permission.
+    self::assertArrayNotHasKey('uid[0][target_id]', $json['entity_form_fields']);
+
+    // Make an edit as this user.
+    unset($json['html'], $json['isPublished'], $json['isNew']);
+    $new_title = $this->randomMachineName();
+    $json['entity_form_fields']['title[0][value]'] = $new_title;
+    $content = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $content->getStatusCode());
+
+    // We should have an entry in auto-save with the new title value, but the
+    // edit to the author from the admin user should be retained.
+    $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
+    \assert($node instanceof NodeInterface);
+    self::assertEquals(0, (int) $node->getOwnerId());
+    self::assertEquals($original_title, $node->label());
+    $autoSave = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($node);
+    self::assertFalse($autoSave->isEmpty());
+    \assert($autoSave->entity instanceof NodeInterface);
+    self::assertEquals($admin->id(), (int) $autoSave->entity->getOwnerId());
+    self::assertEquals($new_title, $autoSave->entity->label());
   }
 
 }

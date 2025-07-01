@@ -2,6 +2,7 @@
 
 namespace Drupal\experience_builder\AutoSave;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
@@ -21,6 +22,7 @@ use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\Controller\ApiContentControllers;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -40,6 +42,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     private readonly ConfigManagerInterface $configManager,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    #[Autowire(service: 'cache.static')]
+    private readonly CacheBackendInterface $cache,
   ) {
   }
 
@@ -67,6 +71,10 @@ class AutoSaveManager implements EventSubscriberInterface {
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
     $original_hash = $this->getUnchangedHash($entity);
+    $has_form_violations = FALSE;
+    if ($entity instanceof FieldableEntityInterface) {
+      $has_form_violations = $this->getEntityFormViolations($entity)->count() > 0;
+    }
     // 💡 If you are debugging why an entry is being created, but you didn't
     // expect one to be, the code below can be evaluated in a debugger and will
     // show you which field varies.
@@ -77,7 +85,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // \array_diff($data_hash, $original_hash)
     // \array_diff($original_hash, $data_hash)
     // @endcode
-    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash)) {
+    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash) && !$has_form_violations) {
       // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
       $this->delete($entity);
@@ -93,6 +101,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       'data_hash' => $data_hash,
     ];
     $this->getTempStore()->set($key, $auto_save_data);
+    $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
   }
 
@@ -106,13 +115,14 @@ class AutoSaveManager implements EventSubscriberInterface {
       return $this;
     }
     $this->getFormViolationTempStore()->set($key, $violations);
+    $this->cache->delete($key);
     return $this;
   }
 
   /**
    * @todo Remove this in https://drupal.org/i/3505018.
    */
-  public function getEntityFormViolation(FieldableEntityInterface $entity): ConstraintViolationListInterface {
+  public function getEntityFormViolations(FieldableEntityInterface $entity): ConstraintViolationListInterface {
     return $this->getFormViolationTempStore()->get(self::getAutoSaveKey($entity)) ?? new ConstraintViolationList();
   }
 
@@ -176,7 +186,13 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public function getAutoSaveEntity(EntityInterface $entity): AutoSaveEntity {
-    $auto_save_data = $this->getTempStore()->get($this->getAutoSaveKey($entity));
+    $key = $this->getAutoSaveKey($entity);
+    $cached = $this->cache->get($key);
+    if ($cached) {
+      \assert($cached->data instanceof AutoSaveEntity);
+      return $cached->data;
+    }
+    $auto_save_data = $this->getTempStore()->get($key);
     if (\is_null($auto_save_data)) {
       return new AutoSaveEntity(NULL, NULL);
     }
@@ -185,7 +201,15 @@ class AutoSaveManager implements EventSubscriberInterface {
     \assert(\array_key_exists('data', $auto_save_data));
     \assert(\array_key_exists('entity_type', $auto_save_data));
     \assert(\is_array($auto_save_data['data']));
-    return new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash']);
+    // Create an entity from the stored values, but don't call ::enforceIsNew on
+    // it to avoid possible issues where someone accidentally calls ::save on
+    // the entity. Calling code that needs to reflect the fact that the entity
+    // is not new should call ::enforceIsNew as required.
+    $auto_save_entity = new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash']);
+    // Store in static cache to avoid the overhead of calling Entity::create
+    // multiple times during layout preview rendering.
+    $this->cache->set($key, $auto_save_entity, tags: [self::CACHE_TAG]);
+    return $auto_save_entity;
   }
 
   /**
@@ -219,6 +243,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   public function deleteAll(): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $this->getTempStore()->deleteAll();
+    $this->getFormViolationTempStore()->deleteAll();
   }
 
   private static function generateHash(array $data): string {

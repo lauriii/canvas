@@ -1265,7 +1265,7 @@ paths:
                     $ref: '#/components/schemas/Model'
                   entity_form_fields:
                     type: object
-                    description: The full entity data.
+                    description: Entity field values that the user has edit access to.
                   isNew:
                     type: boolean
                     # @see \Drupal\experience_builder\Controller\ApiLayoutController::contentEntityIsConsideredNew()

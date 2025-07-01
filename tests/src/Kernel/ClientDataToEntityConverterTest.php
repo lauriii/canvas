@@ -7,6 +7,10 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\experience_builder\Controller\ApiLayoutController;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -21,7 +25,9 @@ use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\experience_builder\Render\PreviewEnvelope;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
@@ -98,6 +104,41 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         $xb_role->grantPermission($permission)->save();
       }
     }
+    // Add a multi-value date and time field.
+    $date = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', '2025-04-01T04:15:00');
+    \assert($date instanceof \DateTimeImmutable);
+    $date_field = 'field_xbt_datetime_timestamp';
+    self::assertNull(FieldStorageConfig::loadByName('node', $date_field));
+    FieldStorageConfig::create([
+      'field_name' => $date_field,
+      'entity_type' => 'node',
+      'type' => 'datetime',
+      'settings' => [
+        'datetime_type' => DateTimeItem::DATETIME_TYPE_DATETIME,
+      ],
+      'cardinality' => 3,
+    ])->save();
+    self::assertNull(FieldConfig::loadByName('node', 'article', $date_field));
+    FieldConfig::create([
+      'field_name' => $date_field,
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Date-time',
+      'settings' => [
+        'datetime_type' => DateTimeItem::DATETIME_TYPE_DATETIME,
+      ],
+      'default_value' => [
+        [
+          'default_date_type' => 'relative',
+          'default_date' => $date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
+        ],
+      ],
+    ])->save();
+    \Drupal::service(EntityDisplayRepositoryInterface::class)->getFormDisplay('node', 'article')->setComponent($date_field, [
+      'type' => 'datetime_timestamp',
+      'settings' => [],
+    ])->save();
+
     $account = $this->createUser(values: [
       'roles' => [
         'xb',
@@ -229,7 +270,9 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     if ($with_content_moderation) {
       $permissions[] = 'use editorial transition create_new_draft';
     }
-    $this->setupCurrentUser([], $permissions);
+    $this->setupCurrentUser([
+      'timezone' => \date_default_timezone_get(),
+    ], $permissions);
     $test_node = $this->createTestNode();
     self::assertTrue($test_node->get('sticky')->access('edit'));
     self::assertTrue($test_node->get('sticky')->access('view'));
@@ -269,8 +312,59 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'The updated title.',
       $test_node,
     );
-    // Owner field will be updated, but invalid/empty.
-    self::assertNull($test_node->getOwnerId());
+    // Owner field will not be updated and will retain the original value.
+    self::assertEquals(3, $test_node->getOwnerId());
+
+    $utc = new \DateTimeZone('UTC');
+    $test_node = $this->createTestNode([
+      $date_field => [
+        [
+          'value' => $date->setTimezone($utc)->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
+        ],
+        [
+          'value' => $date->setTimezone($utc)->modify('+2 days')->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT),
+        ],
+      ],
+    ]);
+    self::assertSame([], self::violationsToArray($test_node->validate()));
+    $result = \Drupal::classResolver(ApiLayoutController::class)->get($test_node);
+    \assert($result instanceof PreviewEnvelope);
+    $invalid_form_callback_client_json = \array_intersect_key($result->additionalData, \array_flip(['layout', 'model', 'entity_form_fields']));
+    // Assert the default date and time values are returned.
+    self::assertEquals('2025-04-01', $date->format('Y-m-d'));
+    self::assertEquals($date->format('Y-m-d'), $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[0][value][date]', $date_field)]);
+    self::assertEquals('04:15:00', $date->format('H:i:s'));
+    self::assertEquals($date->format('H:i:s'), $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[0][value][time]', $date_field)]);
+    self::assertEquals($date->modify('+2 days')->format('Y-m-d'), $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[1][value][date]', $date_field)]);
+    self::assertEquals($date->modify('+2 days')->format('H:i:s'), $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[1][value][time]', $date_field)]);
+    // Submit with an invalid value for time in the second item/delta.
+    $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[1][value][time]', $date_field)] = '';
+    // But a valid value in the first item/delta
+    $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[0][value][time]', $date_field)] = $date->modify('+2 hours')->format('H:i:s');
+    // And a third (new) item/delta.
+    $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[2][value][date]', $date_field)] = $date->modify('+5 hours')->format('Y-m-d');
+    $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[2][value][time]', $date_field)] = $date->modify('+5 hours')->format('H:i:s');
+    $invalid_form_callback_client_json['entity_form_fields']['title[0][value]'] = 'The updated title.';
+    $invalid_form_callback_client_json['layout'] = $valid_client_json['layout'];
+    $invalid_form_callback_client_json['model'] = $valid_client_json['model'];
+    $this->assertConvert(
+      $invalid_form_callback_client_json,
+      [
+        'field_xbt_datetime_timestamp.1.value' => 'The Date-time (value 2) date is invalid. Enter a date in the correct format.',
+      ],
+      // Other valid entity values should be updated for storage in the
+      // auto-save store, otherwise there is no change to detect when generating
+      // the hash and therefore no auto-save entry created.
+      'The updated title.',
+      $test_node,
+    );
+    // First delta will return the updated value.
+    self::assertEquals($date->setTimezone($utc)->modify('+2 hours')->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT), $test_node->get($date_field)->get(0)?->get('date')->getValue()->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT));
+    // Second delta will return the original value because the submitted values
+    // were invalid.
+    self::assertEquals($date->setTimezone($utc)->modify('+2 days')->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT), $test_node->get($date_field)->get(1)?->get('date')->getValue()->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT));
+    // Third (new) delta is also retained.
+    self::assertEquals($date->setTimezone($utc)->modify('+5 hours')->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT), $test_node->get($date_field)->get(2)?->get('date')->getValue()->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT));
 
     // Ensure that the entity values are passed through the widget.
     $modify_title_client_json = $valid_client_json;
@@ -412,7 +506,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     return $node;
   }
 
-  protected function createTestNode(): Node {
+  protected function createTestNode(array $values = []): Node {
     $node = Node::create([
       'status' => FALSE,
       'uid' => $this->otherUser->id(),
@@ -429,7 +523,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
           'value' => 'Initial revision.',
         ],
       ],
-    ]);
+    ] + $values);
     assert($node instanceof Node);
     $this->assertSame(SAVED_NEW, $node->save());
     return $node;

@@ -67,29 +67,34 @@ class ClientDataToEntityConverter {
     // The current user may not have access any other fields on the entity or
     // this function may have been called to only update the layout.
     $form_validation = new EntityConstraintViolationList($entity);
-    try {
-      if (\count($entity_form_fields) > 0) {
+    if (\count($entity_form_fields) > 0) {
+      try {
         $this->setEntityFields($entity, $entity_form_fields);
         $this->autoSaveManager->saveEntityFormViolations($entity);
       }
-    }
-    catch (ConstraintViolationException $e) {
-      if (!$validate) {
-        // @todo Remove this in https://drupal.org/i/3505018
-        $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
+      catch (ConstraintViolationException $e) {
+        if (!$validate) {
+          // @todo Remove this in https://drupal.org/i/3505018
+          $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
+        }
+        $form_validation->addAll($e->getConstraintViolationList());
       }
-      $form_validation->addAll($e->getConstraintViolationList());
     }
-    $original_entity_violations = $entity->validate();
-    $original_entity_violations->addAll($form_validation);
+
+    // Validate the updated entity:
+    // - at minimum the component tree field has been updated based on `layout`
+    //   and `model`
+    // - perhaps also other fields, if `entity_form_fields` was not empty
+    $updated_entity_violations = $entity->validate();
+    $updated_entity_violations->addAll($form_validation);
     // Validation happens using the server-side representation, but the
     // error message should use the client-side representation received in
     // the request body.
     // @see ::convertClientToServer()
-    if ($original_entity_violations->count() && $validate) {
+    if ($updated_entity_violations->count() && $validate) {
       $field_name = $item_list->getFieldDefinition()->getName();
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
-      throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($original_entity_violations))))->renamePropertyPaths([
+      throw (new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($updated_entity_violations))))->renamePropertyPaths([
         "$field_name.0.tree[" . ComponentTreeItemList::ROOT_UUID . "]" => 'layout.children',
         "$field_name.0.tree" => 'layout',
         "$field_name.0.inputs" => 'model',
@@ -264,6 +269,7 @@ class ClientDataToEntityConverter {
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     $violations_list = new EntityConstraintViolationList($entity);
     $errors = $form_state->getErrors();
+    $invalid_fields = [];
     if (\count($errors) > 0) {
       foreach ($errors as $element_path => $error) {
         $parents = \explode('][', $element_path);
@@ -282,6 +288,8 @@ class ClientDataToEntityConverter {
           $property_path,
           $invalid_value,
         ));
+        $field_name = \reset($parents);
+        $invalid_fields[$property_path] = $field_name;
       }
     }
     // Now trigger the form level submit handler.
@@ -309,11 +317,23 @@ class ClientDataToEntityConverter {
     \assert($updated_entity instanceof FieldableEntityInterface);
     $form_updated_changed_field = FALSE;
     foreach (\array_intersect_key($updated_entity->getFields(), $entity_form_fields) as $name => $items) {
-      // Only update values for fields the user submitted.
-      if (!\is_string($name) || !$entity->hasField($name)) {
-        continue;
+      // For any form elements that yielded validation errors, revert back to
+      // the value from the original entity. We do this on a per-delta basis to
+      // ensure new valid deltas or any valid changes to existing deltas are
+      // retained.
+      \assert($items instanceof FieldItemListInterface);
+      $new_value = $items->getValue();
+      if (!\is_string($name) || !$entity->hasField($name) || \in_array($name, $invalid_fields, TRUE)) {
+        $invalid_property_paths = \array_keys(\array_filter($invalid_fields, static fn (string $field_name) => $field_name === $name));
+        $original_value = $entity->get($name);
+        foreach ($invalid_property_paths as $invalid_property_path) {
+          [, $delta] = \explode('.', $invalid_property_path);
+          if (\is_numeric($delta)) {
+            $new_value[$delta] = $original_value->get($delta)?->getValue();
+          }
+        }
       }
-      $entity->set($name, $items->getValue());
+      $entity->set($name, $new_value);
       // TRICKY: We call `$form_object->submitForm($form, $form_state);` which will most likely call
       // . \Drupal\Core\Entity\ContentEntityForm::submitForm() which will call
       // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
@@ -368,7 +388,7 @@ class ClientDataToEntityConverter {
       throw new ConstraintViolationException($violations_list);
     }
     // Filter out form values that are not accessible to the client.
-    $values = self::filterFormValues($form_state->getValues(), $form);
+    $values = self::filterFormValues($form_state->getValues(), $form, $original_entity);
     // Collapse form values into the respective element name, e.g.
     // ['title' => ['value' => 'Node title']] becomes
     // ['title[0][value]' => 'Node title'. This keeps the data sent in the same
