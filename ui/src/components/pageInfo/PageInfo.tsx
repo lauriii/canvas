@@ -14,10 +14,10 @@ import {
   Popover,
 } from '@radix-ui/themes';
 import { useAppSelector } from '@/app/hooks';
-import { debounce } from 'lodash';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
+import useDebounce from '@/hooks/useDebounce';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { Link, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
@@ -71,6 +71,7 @@ const PageInfo = () => {
   const title =
     entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const {
     data: pageItems,
     isLoading: isPageItemsLoading,
@@ -78,7 +79,7 @@ const PageInfo = () => {
   } = useGetContentListQuery({
     // @todo Generalize in https://www.drupal.org/i/3498525
     entityType: 'xb_page',
-    search: searchTerm,
+    search: debouncedSearchTerm,
   });
   const entityId = useAppSelector(selectEntityId);
   const entityType = useAppSelector(selectEntityType);
@@ -142,22 +143,6 @@ const PageInfo = () => {
     setEditorEntity('xb_page', String(item.id));
   }
 
-  // @todo Fix in https://www.drupal.org/project/experience_builder/issues/3533096
-  useEffect(() => {
-    const debouncedSearch = debounce((term: string) => {
-      if (term.length === 0 || term.length >= 3) {
-        setSearchTerm(term);
-      }
-    }, 400);
-
-    // Set up the debounced search effect
-    debouncedSearch(searchTerm);
-
-    return () => {
-      debouncedSearch.cancel();
-    };
-  }, [searchTerm]);
-
   useEffect(() => {
     if (isCreateContentSuccess) {
       setEditorEntity(
@@ -210,7 +195,7 @@ const PageInfo = () => {
                   loading={isPageItemsLoading}
                   items={pageItems || []}
                   onNewPage={handleNewPage}
-                  onSearch={(value) => setSearchTerm(value)}
+                  onSearch={setSearchTerm}
                   onSelect={handleOnSelect}
                   onRename={handleNonWorkingBtn}
                   onDuplicate={handleDuplication}
