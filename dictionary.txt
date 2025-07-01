@@ -21,6 +21,7 @@ dhta
 diaclone
 drupalcode
 drupaldev
+drupalsettings
 endapply
 entityviewdisplay
 extralight

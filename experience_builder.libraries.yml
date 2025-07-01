@@ -143,3 +143,50 @@ jquery.overrides:
     js/jquery.overrides.js: {}
   dependencies:
     - core/jquery
+
+# @see \Drupal\experience_builder\Entity\JavaScriptComponent::getAssetLibraryDependencies()
+# @see \Drupal\experience_builder\Hook\ComponentSourceHooks::jsSettingsAlter()
+xbData.v0:
+  dependencies:
+    - experience_builder/xbData.v0.baseUrl
+    - experience_builder/xbData.v0.branding
+    - experience_builder/xbData.v0.breadcrumbs
+    - experience_builder/xbData.v0.pageTitle
+  drupalSettings:
+    xbData:
+      v0: null
+
+xbData.v0.baseUrl:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    xbData:
+      v0:
+        baseUrl: null
+
+xbData.v0.branding:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    xbData:
+      v0:
+        branding:
+          homeUrl: null
+          siteName: null
+          siteSlogan: null
+
+xbData.v0.breadcrumbs:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    xbData:
+      v0:
+        breadcrumbs: null
+
+xbData.v0.pageTitle:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    xbData:
+      v0:
+        pageTitle: null

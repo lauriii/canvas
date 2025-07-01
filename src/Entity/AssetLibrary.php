@@ -134,4 +134,11 @@ final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
     return 'experience_builder/asset_library.' . $this->id() . ($isPreview ? '.draft' : '');
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getAssetLibraryDependencies(): array {
+    return [];
+  }
+
 }

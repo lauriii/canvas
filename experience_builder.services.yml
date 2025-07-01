@@ -60,6 +60,7 @@ services:
   Drupal\experience_builder\AutoSave\AutoSaveTempStoreFactory:
     parent: tempstore.shared
   Drupal\experience_builder\Storage\ComponentTreeLoader: {}
+  Drupal\experience_builder\CodeComponentDataProvider: {}
 
   # Event subscribers.
   experience_builder.openapi.http_request_validator.subscriber:

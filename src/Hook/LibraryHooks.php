@@ -100,6 +100,7 @@ final class LibraryHooks {
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
       }
+      assert(empty($library->getAssetLibraryDependencies()));
       // Draft.
       $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];
@@ -115,11 +116,15 @@ final class LibraryHooks {
       if ($component->hasCss()) {
         $libraries[$library_name]['css']['component'][$component->getCssPath()] = [];
       }
+      $libraries[$library_name]['dependencies'] = $component->getAssetLibraryDependencies();
       $libraries[$library_name]['dependencies'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID;
       // Draft.
       $draft_css_url = \sprintf('/xb/api/v0/auto-saves/css/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $component_id);
       $libraries[$library_name . '.draft']['css']['component'][$draft_css_url] = ['preprocess' => FALSE];
       $libraries[$library_name . '.draft']['dependencies'][] = 'experience_builder/asset_library.' . AssetLibrary::GLOBAL_ID . '.draft';
+      // To avoid a race condition for auto-saved code components, always load
+      // the data that it might start using at any point.
+      $libraries[$library_name . '.draft']['dependencies'][] = 'experience_builder/xbData.v0';
     }
 
     $theme_config = $this->configFactory->get('system.theme');

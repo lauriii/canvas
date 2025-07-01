@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Hook;
 
+use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeCommonElements;
+use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -21,15 +23,17 @@ use Symfony\Component\Routing\Route;
  * @see https://www.drupal.org/project/issues/experience_builder?component=Component+sources
  * @see docs/components.md
  */
-final class ComponentSourceHooks implements ContainerInjectionInterface {
+readonly final class ComponentSourceHooks implements ContainerInjectionInterface {
 
   public function __construct(
-    private readonly RouteMatchInterface $routeMatch,
+    private RouteMatchInterface $routeMatch,
+    private CodeComponentDataProvider $codeComponentDataProvider,
   ) {}
 
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('current_route_match'),
+      $container->get(CodeComponentDataProvider::class),
     );
   }
 
@@ -99,6 +103,16 @@ final class ComponentSourceHooks implements ContainerInjectionInterface {
     $is_preview = $route->getOption('_xb_use_template_draft') === TRUE;
     // @phpstan-ignore-next-line
     $page['#attached']['library'][] = AssetLibrary::load(AssetLibrary::GLOBAL_ID)->getAssetLibrary($is_preview);
+  }
+
+  /**
+   * Implements hook_js_settings_build().
+   */
+  #[Hook('js_settings_build')]
+  public function jsSettingsBuild(array &$settings, AttachedAssetsInterface $assets): void {
+    if (isset($settings[CodeComponentDataProvider::XB_DATA_KEY])) {
+      $settings[CodeComponentDataProvider::XB_DATA_KEY] = $this->codeComponentDataProvider->getPartialXbDataFromSettingsV0($settings);
+    }
   }
 
   /**

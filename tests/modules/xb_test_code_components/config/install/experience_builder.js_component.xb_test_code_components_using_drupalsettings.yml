@@ -1,0 +1,34 @@
+uuid: 15c27aae-5e37-4727-96ba-4b0b3d84f114
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: xb_test_code_components_using_drupalsettings
+name: 'Using drupalSettings'
+block_override: null
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    const WithDrupalSettings = ({
+      homeUrl = drupalSettings?.xbData?.v0?.branding?.homeUrl || 'There is no xbData',
+    }) => {
+      return (
+        <div>{homeUrl}</div>
+      );
+    };
+
+    export default WithDrupalSettings;
+  compiled: |
+    var _drupalSettings_xbData_v0_branding, _drupalSettings_xbData_v0, _drupalSettings_xbData, _drupalSettings;
+    import { jsx as _jsx } from "react/jsx-runtime";
+    const WithDrupalSettings = ({ homeUrl = ((_drupalSettings = drupalSettings) === null || _drupalSettings === void 0 ? void 0 : (_drupalSettings_xbData = _drupalSettings.xbData) === null || _drupalSettings_xbData === void 0 ? void 0 : (_drupalSettings_xbData_v0 = _drupalSettings_xbData.v0) === null || _drupalSettings_xbData_v0 === void 0 ? void 0 : (_drupalSettings_xbData_v0_branding = _drupalSettings_xbData_v0.branding) === null || _drupalSettings_xbData_v0_branding === void 0 ? void 0 : _drupalSettings_xbData_v0_branding.homeUrl) || 'There is no xbData' })=>{
+        return /*#__PURE__*/ _jsx("div", {
+            children: homeUrl
+        });
+    };
+    export default WithDrupalSettings;
+css:
+  original: ''
+  compiled: ''

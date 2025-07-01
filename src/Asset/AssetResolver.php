@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Asset;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AssetResolver as CoreAssetResolver;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssetsInterface;
@@ -92,7 +93,26 @@ final class AssetResolver extends CoreAssetResolver {
     if (!empty($to_load_xb) || !empty($already_loaded_xb)) {
       return $this->getXbJsAssets($assets, $optimize, $language);
     }
-    return $this->assetResolver->getJsAssets($assets, $optimize, $language);
+    return parent::getJsAssets($assets, $optimize, $language);
+  }
+
+  /**
+   * The only difference: asset type is `drupalSettings` instead of `js`.
+   *
+   * @todo Remove when core bug https://www.drupal.org/project/drupal/issues/3533354 is fixed.
+   */
+  protected function getJsSettingsAssets(AttachedAssetsInterface $assets): array {
+    $settings = [];
+
+    foreach ($this->getLibrariesToLoad($assets, asset_type: 'drupalSettings') as $library) {
+      [$extension, $name] = explode('/', $library, 2);
+      $definition = $this->libraryDiscovery->getLibraryByName($extension, $name);
+      if (isset($definition['drupalSettings'])) {
+        $settings = NestedArray::mergeDeepArray([$settings, $definition['drupalSettings']], TRUE);
+      }
+    }
+
+    return $settings;
   }
 
 }

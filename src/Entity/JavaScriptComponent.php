@@ -16,6 +16,7 @@ use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
 use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
@@ -460,6 +461,15 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       $cache_tags = array_merge($cache_tags, array_map(fn($dependency) => "config:$dependency", $dependencies['config'] ?? []));
     }
     return $cache_tags;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @see \Drupal\experience_builder\Hook\ComponentSourceHooks::jsSettingsAlter()
+   */
+  public function getAssetLibraryDependencies(): array {
+    return CodeComponentDataProvider::getRequiredXbDataLibraries($this->getJs());
   }
 
 }

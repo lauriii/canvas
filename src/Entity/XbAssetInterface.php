@@ -35,4 +35,12 @@ interface XbAssetInterface extends XbHttpApiEligibleConfigEntityInterface {
    */
   public function getAssetLibrary(bool $isPreview): string;
 
+  /**
+   * The (computed) asset library dependencies for this config entity.
+   *
+   * @return string[]
+   *   Asset libraries this asset depends upon.
+   */
+  public function getAssetLibraryDependencies(): array;
+
 }

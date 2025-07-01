@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
-// cspell:ignore Tilly anzut nhsy sxnz
+// cspell:ignore Tilly anzut nhsy sxnz lffq
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -17,6 +17,7 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -47,6 +48,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
   use CrawlerTrait;
 
   protected readonly AssetResolverInterface $assetResolver;
+  protected readonly CodeComponentDataProvider $codeComponentDataProvider;
   /**
    * {@inheritdoc}
    */
@@ -60,6 +62,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
   public function setUp(): void {
     parent::setUp();
     $this->assetResolver = $this->container->get(AssetResolverInterface::class);
+    $this->codeComponentDataProvider = $this->container->get(CodeComponentDataProvider::class);
   }
 
   protected function generateComponentConfig(): void {
@@ -126,6 +129,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
   public static function getExpectedSettings(): array {
     return [
+      'js.xb_test_code_components_using_drupalsettings' => [
+        'prop_field_definitions' => [],
+      ],
       'js.xb_test_code_components_using_imports' => [
         'prop_field_definitions' => [],
       ],
@@ -338,6 +344,27 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'import_maps' => $default_imports,
         ],
       ],
+      'js.xb_test_code_components_using_drupalsettings' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_using_drupalsettings']),
+        'attachments' => [
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_using_drupalsettings',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/YGvFtlLffqZAsMISAt3KuDn0xYmGW3Pr-yWkDcS8_wg.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
     ], $rendered_without_html);
   }
 
@@ -482,6 +509,11 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
+      'js.xb_test_code_components_using_drupalsettings' => [
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_using_drupalsettings',
+        ],
+      ],
       'js.xb_test_code_components_using_imports' => [
         'config' => [
           'experience_builder.js_component.xb_test_code_components_using_imports',
@@ -794,6 +826,16 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   public static function getExpectedClientSideInfo(): array {
     return [
+      'js.xb_test_code_components_using_drupalsettings' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="Using drupalSettings"][props="{}"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'transforms' => [],
+      ],
       'js.xb_test_code_components_using_imports' => [
         'expected_output_selectors' => [
           'astro-island[opts*="using imports"]',
