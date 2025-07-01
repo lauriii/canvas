@@ -143,11 +143,7 @@ describe('Media Library', () => {
     cy.get('[class*="contextualPanel"]')
       .findByLabelText('Remove The bones are their money')
       .click();
-
     // Confirm the widget is now empty.
-    cy.get('.js-media-library-widget .field-prefix')
-      .contains('No media items are selected.')
-      .should('exist');
     cy.get('.js-media-library-widget .description')
       .contains('One media item remaining.')
       .should('exist');

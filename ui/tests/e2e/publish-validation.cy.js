@@ -101,7 +101,7 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
 
   it('Form validation errors prevent publishing', () => {
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
-    cy.findByText('Authoring information').click();
+    cy.findByText('Authoring information').click({ force: true });
     cy.findByText('Authoring information')
       .parents('[data-state="open"][data-drupal-selector]')
       .as('authoringInformation');

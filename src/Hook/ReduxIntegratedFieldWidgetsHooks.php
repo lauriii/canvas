@@ -11,6 +11,7 @@ use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\CurrentRouteMatch;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\Form\ComponentInputsForm;
@@ -101,6 +102,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         ...$query,
       ]);
       $form['open_button']['#ajax']['url'] = $url;
+      $form['open_button']['#attributes']['data-xb-media-library-open-button'] = 'true';
       // Add a property to be used by the AjaxCommands.add_css override in
       // ajax.hyperscriptify.js that will identify the CSS as something that should
       // be scoped inside the dialog only.
@@ -116,6 +118,11 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       // updated and tracked in Redux form state.
       if (isset($form['selection'][0]['target_id'])) {
         $form['selection'][0]['target_id']['#attributes']['data-track-hidden-value'] = 'true';
+      }
+
+      $selections = $form['selection'] ?? [];
+      foreach (Element::children($selections) as $key) {
+        $form['selection'][$key]['remove_button']['#attributes']['data-xb-media-remove-button'] = 'true';
       }
 
     }

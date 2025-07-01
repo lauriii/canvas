@@ -13,6 +13,9 @@ import {
   DrupalContainerTextFormatFilterHelp,
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
+import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
+import XbText from '@/components/form/xb-components/XbText';
+import XbBox from '@/components/form/xb-components/XbBox';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see \Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()
@@ -37,6 +40,9 @@ const twigToJSXComponentMap = {
   'drupal-select': DrupalSelect,
   'drupal-textarea': DrupalTextArea,
   'drupal-vertical-tabs': DrupalVerticalTabs,
+  'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
+  'xb-text': XbText,
+  'xb-box': XbBox,
 };
 
 export default twigToJSXComponentMap;

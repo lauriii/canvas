@@ -1,5 +1,5 @@
 export const edit = (cy) => {
-  cy.findByText('Comment settings').click();
+  cy.findByText('Comment settings').click({ force: true });
   cy.findByText('Comment settings')
     .parents('[data-state="open"][data-drupal-selector]')
     .as('commentFieldset');

@@ -60,3 +60,9 @@ function xb_stark_preprocess_radios(array &$vars): void {
   // @todo Rename to xb-data-form-id in https://drupal.org/i//3517029.
   $vars['attributes']['data-form-id'] = $vars['element']['#attributes']['data-form-id'] ?? '';
 }
+
+function xb_stark_preprocess_form_element(array &$variables): void {
+  if (isset($variables['element']['#theme']) && $variables['element']['#theme'] === 'input__number__media_library_item_weight') {
+    $variables['attributes']['data-xb-media-library-item-weight-wrapper'] = 'true';
+  }
+}

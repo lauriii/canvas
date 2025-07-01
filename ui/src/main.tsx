@@ -164,7 +164,7 @@ if (container) {
     context: HTMLElement,
     settings: { doNotReinvoke?: boolean },
   ): void => {
-    const container = document.createElement('div');
+    const container = document.createElement('drupal-html-fragment');
     context.after(container);
     const root = createRoot(container);
 
@@ -188,8 +188,7 @@ if (container) {
     // If the render root already has content, we know it is rendered and can
     // return it.
     if (container.innerHTML.length > 0) {
-      context.setAttribute('data-drupal-scriptified', 'true');
-      context.innerHTML = '';
+      context.remove();
       attachBehaviorsAfterAjaxing(
         container,
         settings as { doNotReinvoke?: boolean },
@@ -205,8 +204,7 @@ if (container) {
         attempts += 1;
         if (container.innerHTML.length || attempts * intervalDuration > 600) {
           clearInterval(intervalId);
-          context.setAttribute('data-drupal-scriptified', 'true');
-          context.innerHTML = '';
+          context.remove();
           attachBehaviorsAfterAjaxing(
             container,
             settings as { doNotReinvoke?: boolean },

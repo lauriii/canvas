@@ -179,4 +179,11 @@ hyperscriptify(
 )
 ```
 
+## Using `<xb-something>` elements in Twig templates
+This is not technically part of the "engine" part of the  `Semi-Coupled theme engine`, but is syntax that can be used within Twig templates to indicate it should be rendered by a React component. For example:
+- You can use the `<xb-text>` element in a Twig template.
+- That element is then mapped in `ui/src/components/form/twig-to-jsx-component-map.js` to the `XbText` React component. 
+- The attributes from `<xb-text>` are passed as props to the `XbText` component.
+
+This approach makes it possible to render text with the React-defined theming without having to fully override a template to be processed by the `Semi-Coupled theme engine`. This approach could also be used for more complex components as the need arises.
 
