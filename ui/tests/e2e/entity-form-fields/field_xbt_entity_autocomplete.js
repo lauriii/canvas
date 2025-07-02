@@ -4,8 +4,8 @@ export const edit = (cy) => {
     'have.value',
     'XB With a block in the layout (3)',
   );
-  cy.get('@autocomplete').clear();
-  cy.get('@autocomplete').realType('XB Needs This For');
+  cy.get('@autocomplete').clear({ force: true });
+  cy.get('@autocomplete').realType('XB Needs This For', { force: true });
   cy.get('ul.ui-autocomplete').should('exist');
   cy.get('ul.ui-autocomplete li a').should(
     'have.text',

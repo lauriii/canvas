@@ -75,7 +75,7 @@ describe('Perform CRUD operations on components', () => {
     );
 
     // Click the autocomplete field.
-    cy.findByLabelText('CTA 1 link').type('com');
+    cy.findByLabelText('CTA 1 link').type('com', { force: true });
     // Click another field to blur the autocomplete field, which in #3519734
     // would revert the preview to earlier values.
     cy.findByLabelText('CTA 2 text').click();

@@ -137,6 +137,7 @@ describe('Prop types editing', () => {
         );
         cy.findByLabelText(testData.labelText, { exact: true }).type(
           testData.typeThis,
+          { force: true },
         );
         if (
           testData.labelText.includes('uri') ||
@@ -341,7 +342,7 @@ describe('Prop types editing', () => {
     cy.findByLabelText('String, format=uri')
       .as('theInput')
       .should('have.value', 'https://uri.example.com');
-    cy.get('@theInput').clear();
+    cy.get('@theInput').clear({ force: true });
     // Autocomplete fields that did not select an autocomplete suggestion
     // must be blurred before the store is updated.
     cy.get('@theInput').blur();
@@ -359,7 +360,7 @@ describe('Prop types editing', () => {
       expect(uriPreview.textContent.trim()).to.equal('');
     });
 
-    cy.get('@theInput').type('start');
+    cy.get('@theInput').type('start', { force: true });
     cy.get('@theInput').should('have.value', 'start');
     // Autocomplete fields that did not select an autocomplete suggestion
     // must be blurred before the store is updated.
@@ -455,7 +456,7 @@ describe('Prop types editing', () => {
       cy.findByLabelText('String, format=uri-reference')
         .as('theInput')
         .should('have.value', initialValue);
-      cy.get('@theInput').clear();
+      cy.get('@theInput').clear({ force: true });
       // Autocomplete fields that did not select an autocomplete suggestion
       // must be blurred before the store is updated.
       cy.get('@theInput').blur();
@@ -485,7 +486,7 @@ describe('Prop types editing', () => {
       // Fortunately we are still confirming values in an invalid format does not
       // result in errors.
 
-      cy.get('@theInput').clear();
+      cy.get('@theInput').clear({ force: true });
       cy.get('@theInput').focus();
       cy.realType('/whatever');
       // Autocomplete fields that did not select an autocomplete suggestion
@@ -507,7 +508,7 @@ describe('Prop types editing', () => {
       cy.findByLabelText('String, format=iri-reference')
         .as('theInput')
         .should('have.value', initialValue);
-      cy.findByLabelText('String, format=iri-reference').clear();
+      cy.findByLabelText('String, format=iri-reference').clear({ force: true });
       // Autocomplete fields that did not select an autocomplete suggestion
       // must be blurred before the store is updated.
       cy.findByLabelText('String, format=iri-reference').blur();
@@ -537,7 +538,7 @@ describe('Prop types editing', () => {
       // Fortunately we are still confirming values in an invalid format does not
       // result in errors.
 
-      cy.get('@theInput').clear();
+      cy.get('@theInput').clear({ force: true });
       cy.get('@theInput').focus();
       cy.realType('/whatever');
       // Autocomplete fields that did not select an autocomplete suggestion
@@ -558,7 +559,7 @@ describe('Prop types editing', () => {
       const valuePost = '1999';
       cy.waitForElementContentInIframe(iframeSelector, valuePre);
       cy.findByLabelText(labelText).should('have.value', valuePre);
-      cy.findByLabelText(labelText).clear();
+      cy.findByLabelText(labelText).clear({ force: true });
       cy.findByLabelText(labelText).type(valuePost);
       cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
       cy.waitForElementContentInIframe(iframeSelector, valuePost);
@@ -572,7 +573,7 @@ describe('Prop types editing', () => {
     const valuePost = ' ';
     cy.waitForElementContentInIframe(iframeSelector, valuePre);
     cy.findByLabelText(labelText).should('have.value', valuePre);
-    cy.findByLabelText(labelText).clear();
+    cy.findByLabelText(labelText).clear({ force: true });
     cy.findByLabelText(labelText).type(valuePost);
     cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
     cy.waitForElementContentInIframe(iframeSelector, valuePost);
@@ -584,7 +585,7 @@ describe('Prop types editing', () => {
     const valuePre = 'Hello, world!';
     cy.waitForElementContentInIframe(iframeSelector, valuePre);
     cy.findByLabelText(labelText).should('have.value', valuePre);
-    cy.findByLabelText(labelText).clear();
+    cy.findByLabelText(labelText).clear({ force: true });
     cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
     cy.openLayersPanel();

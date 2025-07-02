@@ -29,10 +29,10 @@ describe('Component transforms', () => {
       .findByLabelText('CTA 1 link')
       .as('componentFormCTA1Link');
 
-    cy.get('@componentFormCTA1Link').clear();
+    cy.get('@componentFormCTA1Link').clear({ force: true });
     // Ensure the input is invalid.
     const newUri = 'https://example.com/abdedfg';
-    cy.get('@componentFormCTA1Link').type(newUri);
+    cy.get('@componentFormCTA1Link').type(newUri, { force: true });
 
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('CTA 1 text')

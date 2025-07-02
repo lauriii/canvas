@@ -22,7 +22,9 @@ describe('Prop with autocomplete', () => {
       .eq(0)
       .click({ force: true });
     cy.get('[data-drupal-selector="edit-test-autocomplete"]').should('exist');
-    cy.get('[data-drupal-selector="edit-test-autocomplete"]').type('Ban');
+    cy.get('[data-drupal-selector="edit-test-autocomplete"]').type('Ban', {
+      force: true,
+    });
     cy.get('ul.ui-autocomplete').should('exist');
     cy.get('ul.ui-autocomplete li').should('have.text', 'Banana');
     cy.get('ul.ui-autocomplete li').click();

@@ -1083,8 +1083,8 @@ Cypress.Commands.add('editHeroComponent', () => {
   expectedLabels.forEach((label) => {
     // Type a new value into a given input.
     cy.findByLabelText(label).focus();
-    cy.findByLabelText(label).clear();
-    cy.findByLabelText(label).type(newValues[label]);
+    cy.findByLabelText(label).clear({ force: true });
+    cy.findByLabelText(label).type(newValues[label], { force: true });
     // If an autocomplete field is updated without choosing an autocomplete
     // suggestion, it will not update the store + preview until it is blurred.
     if (label === 'CTA 1 link') {

@@ -4,6 +4,8 @@
  */
 
 (function ($, Drupal) {
+  Drupal.autocomplete.options.position = {collision: 'flip'};
+
   Drupal.behaviors.autocompleteXbExtend = {
     attach(context) {
       // Act on the same textfields that receive autocomplete functionality.

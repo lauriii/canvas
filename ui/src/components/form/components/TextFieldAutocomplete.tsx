@@ -64,10 +64,10 @@ const TextFieldAutocomplete = ({
   );
 
   return (
-    <div className={styles.wrap}>
+    <div className={clsx(styles.wrap, styles.autocompleteWrap)}>
       <input
         {...a2p(attributes, {}, { skipAttributes: ['onBlur', 'onChange'] })}
-        className={clsx(styles.root, className)}
+        className={clsx(styles.root, styles.autocomplete, className)}
         ref={(node) => {
           if (node) {
             // @ts-ignore

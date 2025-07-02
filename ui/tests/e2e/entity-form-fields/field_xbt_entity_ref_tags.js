@@ -4,7 +4,7 @@ export const edit = (cy) => {
     'have.value',
     'Air-Sea Dolphin (1), The Apples in Stereo (2)',
   );
-  cy.get('@tags').type(', Black Swan');
+  cy.get('@tags').type(', Black Swan', { force: true });
   cy.get('ul.ui-autocomplete:visible').should('exist');
   cy.get('ul.ui-autocomplete:visible li').should(
     'have.text',

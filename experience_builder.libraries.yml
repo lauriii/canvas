@@ -29,6 +29,9 @@ xb-ui:
 autocomplete.extended:
   js:
     js/autocomplete.extend.js: { }
+  css:
+    theme:
+      css/autocomplete.extend.css: { }
 
 xb.drupal.dialog.ajax:
   dependencies:

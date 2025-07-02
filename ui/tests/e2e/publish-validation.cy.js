@@ -108,8 +108,8 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
     cy.get('@authoringInformation')
       .findByLabelText('Authored by', { exact: false })
       .as('author');
-    cy.get('@author').clear();
-    cy.get('@author').type('El Duderino');
+    cy.get('@author').clear({ force: true });
+    cy.get('@author').type('El Duderino', { force: true });
     // Blur the autocomplete input to trigger an update.
     cy.findByLabelText('Title').focus();
 

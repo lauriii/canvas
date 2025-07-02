@@ -220,7 +220,7 @@ describe('Contextual panel', () => {
     // Check if the "CTA 1 link" prop's <input> tag has the `required` attribute.
     cy.get('@componentFormCTA1Link').should('have.attr', 'required');
     // Clear the value.
-    cy.get('@componentFormCTA1Link').clear();
+    cy.get('@componentFormCTA1Link').clear({ force: true });
     // Ensure the input is invalid.
     cy.get('@componentFormCTA1Link').then(($input) => {
       expect($input[0].validity.valid).to.be.false;
@@ -236,14 +236,14 @@ describe('Contextual panel', () => {
     });
 
     // Update the value of the "CTA 1 link" prop's <input>.
-    cy.get('@componentFormCTA1Link').clear();
+    cy.get('@componentFormCTA1Link').clear({ force: true });
     // Ensure the input is invalid.
     cy.get('@componentFormCTA1Link')
       .then(($input) => {
         expect($input[0].validity.valid).to.be.false;
         expect($input[0].matches(':invalid')).to.be.true;
       })
-      .type('https://www.example.com/');
+      .type('https://www.example.com/', { force: true });
     // Also update the value of the "CTA 1 text" prop's <input>.
     cy.get('@componentFormCTA1Text').clear();
     cy.get('@componentFormCTA1Text').type('Example link');
