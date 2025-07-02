@@ -1661,7 +1661,8 @@ components:
       required:
         - layout
         - model
-        # @todo Make 'autoSaves' required in https://drupal.org/i/3526907.
+        - autoSaves
+        - clientInstanceId
       additionalProperties: false
       properties:
         layout:
@@ -1676,6 +1677,9 @@ components:
         autoSaves:
           type: object
           description: Auto-saved entries with hash values for concurrency control
+        clientInstanceId:
+          type: string
+          description: Client instance ID for the layout preview
         entity_form_fields:
           type: object
         isNew:
@@ -2106,7 +2110,8 @@ components:
               - componentInstanceUuid
               - componentType
               - model
-              # @todo Make 'autoSaves' required in https://drupal.org/i/3526907.
+              - autoSaves
+              - clientInstanceId
             additionalProperties: false
             properties:
               model:
@@ -2132,3 +2137,6 @@ components:
               autoSaves:
                 type: object
                 description: Auto-saved entries with hash values for concurrency control
+              clientInstanceId:
+                type: string
+                description: Client instance ID for the layout preview

@@ -32,19 +32,22 @@ describe('Operate on components + interact in global regions', () => {
 
       // Open the layers in the Tree.
       cy.get('@layersTree').findAllByText('Image').should('be.visible');
-      cy.get('@layersTree').findAllByText('Hero').should('be.visible');
+      cy.get('@layersTree')
+        .findAllByText('Hero')
+        .should('be.visible')
+        .and('have.length', 3);
 
       cy.get('@layersTree').findAllByText('Hero').first().click();
 
       cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
       cy.log(
-        'Drag static hero component out of the content region into the highlighted region.',
+        'Move static hero component out of the content region into the highlighted region.',
       );
-      cy.sendComponentToRegion('Hero', 'Highlighted');
-      cy.wait('@getPreview');
 
-      // One hero should remain in content region.
-      cy.clickComponentInPreview('Hero');
+      cy.getComponentInPreview('Hero', 2).should('exist');
+      cy.sendComponentToRegion('Hero', 'Highlighted');
+      cy.getComponentInPreview('Hero', 2).should('not.exist');
+
       cy.focusRegion('Highlighted');
       // But a hero component should now be in highlighted region too.
       cy.clickComponentInPreview('Hero', 0, 'highlighted');
@@ -52,6 +55,9 @@ describe('Operate on components + interact in global regions', () => {
       cy.log('Test region overlays.');
       let lgPreviewRect = {};
       // Enter the iframe to find an element in the preview iframe and hover over it.
+      cy.waitForElementInIframe(
+        '[data-xb-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1',
+      );
       cy.getIframeBody()
         // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
         .find('[data-xb-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1')

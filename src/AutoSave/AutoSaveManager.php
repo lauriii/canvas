@@ -66,7 +66,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $this->tempStoreFactory->get('experience_builder.auto_save.form_violations', expire: $expire);
   }
 
-  public function saveEntity(EntityInterface $entity): void {
+  public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
     $key = $this->getAutoSaveKey($entity);
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
@@ -99,6 +99,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       'langcode' => $entity->language()->getId(),
       'label' => $entity->label(),
       'data_hash' => $data_hash,
+      'client_id' => $clientId,
     ];
     $this->getTempStore()->set($key, $auto_save_data);
     $this->cache->delete($key);
@@ -194,7 +195,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
     $auto_save_data = $this->getTempStore()->get($key);
     if (\is_null($auto_save_data)) {
-      return new AutoSaveEntity(NULL, NULL);
+      return AutoSaveEntity::empty();
     }
 
     \assert(\is_array($auto_save_data));
@@ -205,7 +206,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // it to avoid possible issues where someone accidentally calls ::save on
     // the entity. Calling code that needs to reflect the fact that the entity
     // is not new should call ::enforceIsNew as required.
-    $auto_save_entity = new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash']);
+    $auto_save_entity = new AutoSaveEntity($this->entityTypeManager->getStorage($auto_save_data['entity_type'])->create($auto_save_data['data']), $auto_save_data['data_hash'], $auto_save_data['client_id']);
     // Store in static cache to avoid the overhead of calling Entity::create
     // multiple times during layout preview rendering.
     $this->cache->set($key, $auto_save_entity, tags: [self::CACHE_TAG]);
@@ -321,7 +322,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // Finally: the goal: to update rather than delete the auto-save entry when
     // safe.
     if ($auto_save_update_needed) {
-      $this->saveEntity($autoSaveEntity);
+      $this->saveEntity($autoSaveEntity, $autoSaveData->clientId);
     }
   }
 

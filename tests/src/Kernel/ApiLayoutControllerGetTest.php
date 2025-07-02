@@ -72,7 +72,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     ]);
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $this->assertResponseAutoSaves($response, []);
+    $this->assertResponseAutoSaves($response, [$node]);
   }
 
   public function test(): void {
@@ -135,7 +135,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertArrayHasKey('html', $json);
     $this->setRawContent($json['html']);
     $this->assertTitle($node1->label() . ' | Drupal');
-    $this->assertResponseAutoSaves($response, [$regions['stark.highlighted']]);
+    $this->assertResponseAutoSaves($response, [$node1], TRUE);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -168,7 +168,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     $autoSave->saveEntity($node1);
     $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, [$node1, $regions['stark.highlighted']]);
+    $this->assertResponseAutoSaves($response, [$node1], TRUE);
 
     // Extract HTML from JSON response for title assertion
     self::assertInstanceOf(JsonResponse::class, $response);
@@ -199,7 +199,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave->delete($regions['stark.highlighted']);
     // We should still see the global regions.
     $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, [$node1]);
+    $this->assertResponseAutoSaves($response, [$node1], TRUE);
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
     self::assertArrayHasKey('layout', $json);
@@ -224,7 +224,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     assert($original_node instanceof Node);
     $autoSave->saveEntity($original_node);
     $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, []);
+    $this->assertResponseAutoSaves($response, [$original_node], TRUE);
   }
 
   protected function assertRegions(int $count): NodeInterface {

@@ -26,7 +26,6 @@ use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -37,6 +36,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class ApiLayoutController {
 
+  use AutoSaveTrait;
   use EntityFormTrait;
   private array $regions;
   private array $regionsClientSideIds;
@@ -116,7 +116,7 @@ final class ApiLayoutController {
       'entity_form_fields' => $entity_form_fields,
       'isNew' => $is_new,
       'isPublished' => $is_published,
-      'autoSaves' => $this->getAutoSaveHashes($entity),
+      'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
     ];
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
   }
@@ -213,13 +213,25 @@ final class ApiLayoutController {
     if (!\array_key_exists('model', $body)) {
       throw new BadRequestHttpException('Missing model');
     }
+    if (!\array_key_exists('autoSaves', $body)) {
+      throw new BadRequestHttpException('Missing autoSaves');
+    }
+    if (!\array_key_exists('clientInstanceId', $body)) {
+      throw new BadRequestHttpException('Missing clientInstanceId');
+    }
     [
       'componentInstanceUuid' => $componentInstanceUuid,
       'componentType' => $componentTypeAndVersion,
       'model' => $model,
+      'autoSaves' => $autoSaves,
+      'clientInstanceId' => $clientInstanceId,
     ] = $body;
 
-    $this->validateAutoSaves($entity, $body);
+    // @todo Currently ::validateAutoSaves() validates all page regions as well
+    //   as `$entity`, determine if here we should only validate the entity
+    //   containing the component in https://drupal.org/i/3532056 or implement
+    //   concurrent editing in https://drupal.org/i/3492065.
+    $this->validateAutoSaves(array_merge([$entity], self::getEditableRegions()), $autoSaves, $clientInstanceId);
 
     $data = $this->getLastStoredData($entity, includeAllRegions: TRUE);
     if (!\array_key_exists('model', $data)) {
@@ -256,11 +268,12 @@ final class ApiLayoutController {
       }
     }
     $data['model'][$componentInstanceUuid] = $model;
+    $data['clientInstanceId'] = $clientInstanceId;
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data + [
       // Add the auto-save hashes. We do this after building the preview
       // render array, because the auto-save entry is written during building
       // the preview.
-      'autoSaves' => $this->getAutoSaveHashes($entity),
+      'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
     ]);
   }
 
@@ -274,8 +287,9 @@ final class ApiLayoutController {
     \assert(\array_key_exists('model', $body));
     \assert(\array_key_exists('layout', $body));
     \assert(\array_key_exists('entity_form_fields', $body));
-
-    $this->validateAutoSaves($entity, $body);
+    \assert(\array_key_exists('clientInstanceId', $body));
+    \assert(\array_key_exists('autoSaves', $body));
+    $this->validateAutoSaves(array_merge([$entity], self::getEditableRegions()), $body['autoSaves'], $body['clientInstanceId']);
 
     $regions = PageRegion::loadForActiveThemeByClientSideId();
     if (!empty($regions)) {
@@ -309,7 +323,7 @@ final class ApiLayoutController {
       }
     }
     return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE), [
-      'autoSaves' => $this->getAutoSaveHashes($entity),
+      'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
     ]);
   }
 
@@ -329,7 +343,7 @@ final class ApiLayoutController {
           'layout' => $region_node['components'],
           'model' => self::extractModelForSubtree($region_node, (array) $model),
         ], validate: FALSE);
-        $this->autoSaveManager->saveEntity($page_region);
+        $this->autoSaveManager->saveEntity($page_region, $body['clientInstanceId']);
       }
     }
 
@@ -350,7 +364,7 @@ final class ApiLayoutController {
     ], $entity, validate: FALSE);
     // Store the auto-save entry.
     if ($updateAutoSave) {
-      $this->autoSaveManager->saveEntity($entity);
+      $this->autoSaveManager->saveEntity($entity, $body['clientInstanceId']);
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
 
@@ -471,49 +485,12 @@ final class ApiLayoutController {
     return (!empty($regions) && count($regionForComponent) === 1) ? (string) key($regionForComponent) : NULL;
   }
 
-  private function validateAutoSaves(EntityInterface $entity, array $body): void {
-    // @todo Remove the special case for testing in https://drupal.org/i/3526907.
-    // @phpstan-ignore-next-line
-    if (!(drupal_valid_test_ua() && \Drupal::installProfile() !== 'nightwatch_testing')) {
-      return;
-    }
-    if (!\array_key_exists('autoSaves', $body)) {
-      throw new BadRequestHttpException('Missing autoSaves');
-    }
-    $autoSaves = $body['autoSaves'];
-    $expected_auto_saves = [];
-    $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveEntity($entity)->hash;
-    $regions = PageRegion::loadForActiveTheme();
-    foreach ($regions as $region) {
-      assert($region instanceof PageRegion);
-      if ($region->access('edit') === FALSE) {
-        continue;
-      }
-      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($region)] = $this->autoSaveManager->getAutoSaveEntity($region)->hash;
-    }
-    $expected_auto_saves = array_filter($expected_auto_saves);
-    ksort($expected_auto_saves);
-    ksort($autoSaves);
-    if ($expected_auto_saves !== $autoSaves) {
-      throw new ConflictHttpException('You do not have the latest changes, please refresh your browser.');
-    }
-  }
-
-  private function getAutoSaveHashes(FieldableEntityInterface $entity): array {
-    // Collect entities that need auto-save hashes.
-    $entities = [$entity];
-    // Add the regions the user has access to edit.
-    foreach (PageRegion::loadForActiveTheme() as $region) {
-      if ($region->access('edit') !== FALSE) {
-        $entities[] = $region;
-      }
-    }
-    $autoSaveHashes = [];
-    foreach ($entities as $entity) {
-      \assert($entity instanceof EntityInterface);
-      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getAutoSaveEntity($entity)->hash;
-    }
-    return array_filter($autoSaveHashes);
+  /**
+   * @return \Drupal\experience_builder\Entity\PageRegion[]
+   *   The editable regions for the active theme.
+   */
+  private static function getEditableRegions(): array {
+    return array_filter(PageRegion::loadForActiveTheme(), fn(PageRegion $region) => $region->access('update'));
   }
 
 }

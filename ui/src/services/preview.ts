@@ -1,6 +1,11 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery } from '@/services/baseQuery';
-import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
+import { baseQuery as sharedBaseQuery } from '@/services/baseQuery';
+import type { BaseQueryFn } from '@reduxjs/toolkit/query';
+import type { AutoSavesHash } from '@/types/AutoSaves';
+import {
+  setAutoSavesHash,
+  setPostPreviewCompleted,
+} from '@/components/review/PublishReview.slice';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
@@ -16,6 +21,7 @@ type UpdateComponentResultType = {
   html: string;
   layout: any;
   model: any;
+  autoSaves: AutoSavesHash;
   errors?: Array<ConflictError>;
 };
 
@@ -25,13 +31,32 @@ type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
-// Define a service using a base URL and expected endpoints
+const previewBaseQuery: BaseQueryFn = (args, api, extraOptions) => {
+  if (typeof args === 'object' && args.url?.startsWith('xb/api/v0/layout/')) {
+    const state = api.getState() as RootState;
+    const { publishReview } = state;
+    return sharedBaseQuery(
+      {
+        ...args,
+        body: {
+          ...args.body,
+          autoSaves: publishReview.autoSavesHash,
+          clientInstanceId: publishReview.clientInstanceId,
+        },
+      },
+      api,
+      extraOptions,
+    );
+  }
+  return sharedBaseQuery(args, api, extraOptions);
+};
+
 export const previewApi = createApi({
   reducerPath: 'previewApi',
-  baseQuery,
+  baseQuery: previewBaseQuery,
   endpoints: (builder) => ({
     postPreview: builder.mutation<
-      { html: string },
+      { html: string; autoSaves: AutoSavesHash },
       { layout: any; model: any; entity_form_fields: any }
     >({
       query: (body) => ({
@@ -40,20 +65,17 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          dispatch(
-            pendingChangesApi.util.invalidateTags([
-              { type: 'PendingChanges', id: 'LIST' },
-            ]),
-          );
-          const { data } = await queryFulfilled;
-          const { html } = data;
-          // Update our preview slice.
-          dispatch(setHtml(html));
-          dispatch(setPostPreviewCompleted(true));
-        } catch (error) {
-          console.error('An error occurred while getting preview', error);
-        }
+        const { data } = await queryFulfilled;
+        const { html, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        // Update our preview slice.
+        dispatch(setHtml(html));
+        dispatch(setAutoSavesHash(autoSaves));
+        dispatch(setPostPreviewCompleted(true));
       },
     }),
     updateComponent: builder.mutation<
@@ -66,21 +88,18 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
-        try {
-          dispatch(
-            pendingChangesApi.util.invalidateTags([
-              { type: 'PendingChanges', id: 'LIST' },
-            ]),
-          );
-          const { data } = await queryFulfilled;
-          const { html, layout, model } = data;
-          dispatch(setHtml(html));
-          // Pass update preview false to prevent a subsequent preview update,
-          // we have the data here.
-          dispatch(setLayoutModel({ layout, model, updatePreview: false }));
-        } catch {
-          // @todo display errors to the user in https://www.drupal.org/i/3505018.
-        }
+        const { data } = await queryFulfilled;
+        const { html, layout, model, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        dispatch(setHtml(html));
+        dispatch(setAutoSavesHash(autoSaves));
+        // Pass update preview false to prevent a subsequent preview update,
+        // we have the data here.
+        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
       },
     }),
   }),

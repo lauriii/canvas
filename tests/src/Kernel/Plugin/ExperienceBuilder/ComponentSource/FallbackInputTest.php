@@ -17,6 +17,8 @@ use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\experience_builder\Kernel\ApiLayoutControllerTestBase;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +33,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
   use MediaTypeCreationTrait;
+  use AutoSaveManagerTestTrait;
+  use XBFieldTrait;
 
   protected static $modules = [
     // Required modules.
@@ -276,8 +280,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       'model' => $new_model,
       'componentType' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
       'componentInstanceUuid' => $component_to_edit_uuid,
-      'autoSaves' => [],
-    ], JSON_THROW_ON_ERROR)));
+    ] + $this->getPatchContentsDefaults([$page]), JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $data = self::decodeResponse($response);
 

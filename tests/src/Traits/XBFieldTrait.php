@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -11,6 +12,7 @@ use Drupal\Tests\TestFileCreationTrait;
 
 trait XBFieldTrait {
 
+  use AutoSaveManagerTestTrait;
   use TestFileCreationTrait;
 
   private const TEST_HEADING_UUID = '8f1971f7-68e0-442f-98f2-c541bb071046';
@@ -117,7 +119,7 @@ trait XBFieldTrait {
     }
   }
 
-  private function getValidClientJson(bool $dynamic_image = TRUE): array {
+  private function getValidClientJson(?EntityInterface $autoSaveEntity, bool $dynamic_image = TRUE): array {
     return [
       'layout' => [
         [
@@ -273,8 +275,24 @@ trait XBFieldTrait {
       'entity_form_fields' => [
         'title[0][value]' => 'The updated title.',
       ],
-      'autoSaves' => [],
-    ];
+    ] + ($autoSaveEntity === NULL ? [] : $this->getPatchContentsDefaults([$autoSaveEntity]));
+  }
+
+  protected function getPostContentsDefaults(EntityInterface $autoSaveEntity): array {
+    static $clientInstanceId = 1;
+    return [
+      'model' => [],
+      'entity_form_fields' => [],
+      'clientInstanceId' => (string) ++$clientInstanceId,
+    ] + $this->getClientAutoSaves([$autoSaveEntity]);
+  }
+
+  protected function getPatchContentsDefaults(array $autoSaveEntities, bool $addRegions = TRUE): array {
+    static $clientInstanceId = 1;
+    return [
+      'model' => [],
+      'clientInstanceId' => (string) ++$clientInstanceId,
+    ] + $this->getClientAutoSaves($autoSaveEntities, $addRegions);
   }
 
   private static function getSrcPropertyFromFile(File $file): string {

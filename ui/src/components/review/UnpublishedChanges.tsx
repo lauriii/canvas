@@ -114,6 +114,18 @@ const UnpublishedChanges = () => {
             },
           ),
         );
+
+        // Pause updating the preview/POSTing to Drupal for this action.
+        dispatch(setUpdatePreview(false));
+        // Invalidate the layout query cache of the current entity to ensure that the autoSaves hash is updated
+        // ALSO, For example Drupal has hook_entity_presave which allows altering an entity before it is saved.
+        // XB will not be aware of any changes made in custom code here, therefore if XB doesn't re-request
+        // after publishing, the auto-save request could wipe out any changes that were made in
+        // any hook_entity_presave code
+        dispatch(
+          componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+        );
+
         // Avoid the "The content has either been modified by another user, or
         // you have already submitted modifications. As a result, your changes
         // cannot be saved" error.

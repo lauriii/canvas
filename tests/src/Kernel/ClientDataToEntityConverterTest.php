@@ -79,7 +79,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
    * {@inheritdoc}
    */
   private function getValidClientJson(bool $dynamic_image = TRUE): array {
-    $json = $this->traitGetValidClientJson($dynamic_image);
+    $json = $this->traitGetValidClientJson(NULL, $dynamic_image);
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'));
     return [
       'layout' => reset($content_region),

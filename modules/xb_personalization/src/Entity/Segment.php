@@ -97,7 +97,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
   /**
    * The condition plugin manager for instantiating the segmentation rules.
    */
-  protected (ExecutableManagerInterface&FilteredPluginManagerInterface)|null $conditionPluginManager;
+  protected (ExecutableManagerInterface&FilteredPluginManagerInterface)|NULL $conditionPluginManager;
 
   /**
    * {@inheritdoc}

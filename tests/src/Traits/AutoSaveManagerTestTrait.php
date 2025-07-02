@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Traits;
 
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 trait AutoSaveManagerTestTrait {
+
+  use UserCreationTrait;
 
   protected static function generateAutoSaveHash(array $data): string {
     // Use reflection access private \Drupal\experience_builder\AutoSave\AutoSaveManager::generateHash
@@ -26,17 +32,36 @@ trait AutoSaveManagerTestTrait {
     return $hash;
   }
 
-  protected function addClientAutoSaves(array &$clientData, array $entities): void {
-    $clientData['autoSaves'] ??= [];
-    $autoSaveManager = $this->container->get(AutoSaveManager::class);
+  protected function getClientAutoSaves(array $entities, bool $addRegions = TRUE): array {
+    $autoSaves = [];
+    $autoSaveManager = \Drupal::service(AutoSaveManager::class);
     assert($autoSaveManager instanceof AutoSaveManager);
+    if ($addRegions) {
+      $entities += PageRegion::loadForActiveTheme();
+    }
     foreach ($entities as $entity) {
       assert($entity instanceof EntityInterface);
-      $autoSaveData = $autoSaveManager->getAutoSaveEntity($entity);
-      if ($autoSaveData->hash) {
-        $clientData['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveData->hash;
-      }
+      $autoSaves[AutoSaveManager::getAutoSaveKey($entity)] = $this->getClientAutoSaveData($entity);
     }
+    return ['autoSaves' => $autoSaves];
+  }
+
+  /**
+   * @see \Drupal\experience_builder\Controller\ApiLayoutController::getClientAutoSaveData()
+   */
+  protected function getClientAutoSaveData(EntityInterface $entity): array {
+    $autoSaveManager = \Drupal::service(AutoSaveManager::class);
+    assert($autoSaveManager instanceof AutoSaveManager);
+    $autoSaveStartRevision = $entity instanceof RevisionableInterface ?
+      $entity->getRevisionId() :
+      \hash('xxh64', \json_encode($entity->toArray(), JSON_THROW_ON_ERROR));
+    if ($entity instanceof EntityChangedInterface) {
+      $autoSaveStartRevision .= '-' . $entity->getChangedTime();
+    }
+    return [
+      'autoSaveRevision' => $autoSaveStartRevision,
+      'hash' => $autoSaveManager->getAutoSaveEntity($entity)->hash,
+    ];
   }
 
   /**

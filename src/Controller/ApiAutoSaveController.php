@@ -112,9 +112,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // User display names depend on configuration.
     $cache->addCacheableDependency($this->configFactory->get('user.settings'));
 
-    // Remove 'data' and 'entity' key because this will reduce the amount of
-    // data sent to the client and back to the server.
-    $all = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'entity'])), $all);
+    // Remove 'data', 'client_id', 'entity' keys because this will reduce the amount of
+    // data sent to the client and back to the server. Also, 'client_id' is only
+    // used to determine if the client has the latest changes when editing an
+    // entity in Experience Builder and not needed for the publishing process.
+    $all = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'client_id', 'entity'])), $all);
 
     $withUserDetails = \array_map(fn(array $item) => [
       // @phpstan-ignore-next-line

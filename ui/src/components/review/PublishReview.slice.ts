@@ -1,20 +1,26 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { v4 as uuidv4 } from 'uuid';
 import { createSlice } from '@reduxjs/toolkit';
 import type {
   ConflictError,
   ErrorResponse,
   PendingChanges,
 } from '@/services/pendingChangesApi';
+import type { AutoSavesHash } from '@/types/AutoSaves';
 
-interface postPreviewSignalSliceState {
+export interface postPreviewSignalSliceState {
   postPreviewCompleted: boolean;
   previousPendingChanges?: PendingChanges;
   conflicts?: ConflictError[];
   errors?: ErrorResponse;
+  autoSavesHash: AutoSavesHash;
+  clientInstanceId: string;
 }
 
 const initialState: postPreviewSignalSliceState = {
   postPreviewCompleted: false,
+  autoSavesHash: {},
+  clientInstanceId: uuidv4(),
 };
 
 export const publishReviewSlice = createSlice({
@@ -36,6 +42,9 @@ export const publishReviewSlice = createSlice({
     setErrors(state, action: PayloadAction<ErrorResponse | undefined>) {
       state.errors = action.payload;
     },
+    setAutoSavesHash(state, action: PayloadAction<AutoSavesHash>) {
+      state.autoSavesHash = action.payload;
+    },
   },
   selectors: {
     selectPostPreviewCompletedStatus: (postPreviewSignal): boolean => {
@@ -50,6 +59,12 @@ export const publishReviewSlice = createSlice({
     selectErrors: (state): ErrorResponse | undefined => {
       return state?.errors;
     },
+    selectAutoSavesHash: (state): AutoSavesHash => {
+      return state?.autoSavesHash;
+    },
+    selectClientInstanceId: (state): string => {
+      return state?.clientInstanceId;
+    },
   },
 });
 
@@ -58,6 +73,7 @@ export const {
   setPreviousPendingChanges,
   setConflicts,
   setErrors,
+  setAutoSavesHash,
 } = publishReviewSlice.actions;
 
 export const {
@@ -65,4 +81,6 @@ export const {
   selectPreviousPendingChanges,
   selectConflicts,
   selectErrors,
+  selectAutoSavesHash,
+  selectClientInstanceId,
 } = publishReviewSlice.selectors;

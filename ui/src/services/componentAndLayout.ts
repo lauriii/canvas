@@ -8,6 +8,7 @@ import {
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
+import { setAutoSavesHash } from '@/components/review/PublishReview.slice';
 
 type getComponentsQueryOptions = {
   libraries: libraryTypes[];
@@ -19,6 +20,7 @@ type LayoutApiResponse = RootLayoutModel & {
   isNew: boolean;
   isPublished: boolean;
   html: string;
+  autoSaves: Record<string, string>;
 };
 
 export const componentAndLayoutApi = createApi({
@@ -46,10 +48,11 @@ export const componentAndLayoutApi = createApi({
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
           const {
-            data: { entity_form_fields, html },
+            data: { entity_form_fields, html, autoSaves },
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
           dispatch(setHtml(html));
+          dispatch(setAutoSavesHash(autoSaves));
         } catch (err) {
           dispatch(setPageData({}));
         }

@@ -368,7 +368,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert($library instanceof AssetLibrary);
     $originalGlobalLibraryName = $library->label();
 
-    $validClientJson = $this->getValidClientJson(FALSE);
+    $validClientJson = $this->getValidClientJson($node1, FALSE);
     $page = Page::create([
       'title' => 'Test page',
       'status' => FALSE,
@@ -405,8 +405,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ];
     }
-
-    $this->addClientAutoSaves($validClientJson, [$node1]);
+    unset($validClientJson['autoSaves']);
+    $validClientJson += $this->getClientAutoSaves([$node1]);
     // Auto-save node 1.
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
@@ -569,7 +569,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Auto-save node 2 with only the heading.
     unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
     unset($validClientJson['layout'][0]['components'][1]);
-    $this->addClientAutoSaves($validClientJson, array_merge([$node2], $withGlobal ? [$page_region] : []));
+    unset($validClientJson['autoSaves']);
+    $validClientJson += $this->getClientAutoSaves([$node2]);
     $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node2->id(),

@@ -2,6 +2,7 @@ import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
 import { combineSlices, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { v4 as uuidv4 } from 'uuid';
+import { rtkQueryErrorHandler } from '@/utils/rtkQuery-error';
 import type { UndoRedoType } from '@/features/ui/uiSlice';
 import {
   performUndoOrRedo,
@@ -39,6 +40,7 @@ import { publishReviewSlice } from '@/components/review/PublishReview.slice';
 import codeEditorSlice from '@/features/code-editor/codeEditorSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
 import { contentApi } from '@/services/content';
+import { queryErrorSlice } from '@/features/error-handling/queryErrorSlice';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -141,6 +143,7 @@ const rootReducer = combineSlices(
   contentApi,
   codeEditorSlice,
   previewSlice,
+  queryErrorSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -199,6 +202,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
         contentApi.middleware,
+        rtkQueryErrorHandler, // Add the error handling middleware
       );
     },
     preloadedState,

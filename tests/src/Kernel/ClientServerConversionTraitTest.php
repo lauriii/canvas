@@ -37,7 +37,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
    * {@inheritdoc}
    */
   private function getValidClientJson(bool $dynamic_image = TRUE): array {
-    $json = $this->traitGetValidClientJson($dynamic_image);
+    $json = $this->traitGetValidClientJson(NULL, $dynamic_image);
     // @see \Drupal\experience_builder\ClientDataToEntityConverter::convert()
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'))[0];
     assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($content_region))) === 4);

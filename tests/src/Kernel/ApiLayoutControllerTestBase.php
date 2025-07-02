@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
 class ApiLayoutControllerTestBase extends KernelTestBase {
+
+  use AutoSaveManagerTestTrait;
 
   const REGION_PATTERN = '/<!-- xb-region-start-%1$s -->([\n\s\S]*)<!-- xb-region-end-%1$s -->/';
 
@@ -37,8 +42,21 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
   protected function request(Request $request): Response {
     $request->headers->set('Content-Type', 'application/json');
     $response = $this->parentRequest($request);
-    $this->setRawContent(static::decodeResponse($response)['html']);
+    $decodedResponse = static::decodeResponse($response);
+    if (isset($decodedResponse['html'])) {
+      $this->setRawContent($decodedResponse['html']);
+    }
     return $response;
+  }
+
+  protected function assertRequestAutoSaveConflict(Request $request): void {
+    try {
+      $this->request($request);
+      $this->fail('Expected exception');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+    }
   }
 
   /**
@@ -47,6 +65,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
   protected function filterLayoutForPost(string $content): string {
     $json = \json_decode($content, TRUE);
     unset($json['isNew'], $json['isPublished'], $json['html']);
+    $json += ['clientInstanceId' => $this->randomString(100)];
     return \json_encode($json, JSON_THROW_ON_ERROR);
   }
 
@@ -91,19 +110,21 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     return $matches[2];
   }
 
-  protected function assertResponseAutoSaves(Response $response, array $expectedEntities): void {
+  protected function assertResponseAutoSaves(Response $response, array $expectedEntities, bool $expectRegions = FALSE): void {
+    if ($expectRegions) {
+      $expectedEntities += PageRegion::loadForActiveTheme();
+    }
     $data = self::decodeResponse($response);
     self::assertArrayHasKey('autoSaves', $data);
     self::assertIsArray($data['autoSaves']);
     self::assertCount(\count($expectedEntities), $data['autoSaves']);
     self::assertCount(\count($expectedEntities), array_filter($data['autoSaves']));
-    $autoSaveManager = $this->container->get(AutoSaveManager::class);
     foreach ($expectedEntities as $entity) {
       self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($entity), $data['autoSaves']);
-      $autoSaveData = $autoSaveManager->getAutoSaveEntity($entity);
-      // Ensure that the auto-saves are not empty are not returned.
-      self::assertNotNull($autoSaveData->hash);
-      self::assertSame($data['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)], $autoSaveData->hash);
+      self::assertSame(
+        $data['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)],
+        $this->getClientAutoSaveData($entity),
+      );
     }
   }
 
