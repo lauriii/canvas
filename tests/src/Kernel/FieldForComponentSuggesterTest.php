@@ -452,6 +452,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_video' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
           'instances' => [

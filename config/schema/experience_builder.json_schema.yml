@@ -204,6 +204,7 @@ experience_builder.json_schema.prop.object:
         # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
           - 'json-schema-definitions://experience_builder.module/image'
+          - 'json-schema-definitions://experience_builder.module/video'
 
 experience_builder.json_schema.object:
   class: '\Drupal\experience_builder\Config\Schema\JsonSchemaObject'

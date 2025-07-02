@@ -208,6 +208,33 @@
         }
       }
     },
+    "video": {
+      "title": "video",
+      "type":  "object",
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "title": "Video URL",
+          "type": "string",
+          "format": "uri-reference",
+          "pattern": "^(/|https?://)?.*\\.([Mm][Pp]4)(\\?.*)?(#.*)?$"
+        },
+        "poster": {
+          "title": "Poster image URL",
+          "$ref": "json-schema-definitions://experience_builder.module/image-uri"
+        },
+        "width": {
+          "title": "Intrinsic video width",
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "title": "Intrinsic video height",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
     "config-entity-id": {
       "title": "config entity id",
       "type": "string",

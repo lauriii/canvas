@@ -52,7 +52,10 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     // only warranted if there is a change in the data needing to be stored for
     // a component instance.
     self::recursiveKsort($normalized_data);
-    return \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
+    $hash = \hash('xxh64', \json_encode($normalized_data, JSON_THROW_ON_ERROR));
+    // 💡 If you are debugging why a version hash does not match, put a
+    // conditional breakpoint here.
+    return $hash;
   }
 
   protected static function recursiveKsort(array &$array): void {

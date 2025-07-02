@@ -400,9 +400,40 @@ final class JsonSchemaFieldInstanceMatcher {
               assert($field_item instanceof FileItem);
               $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
             }
+
+            // Matches in $target:
+            // - both base + bundle fields if <=1 bundle is specified
+            // - only base fields if >1 bundle is specified
+            // @see \Drupal\Core\Entity\TypedData\EntityDataDefinition::getPropertyDefinitions()
             $referenced_matches = $this->matchEntityProps($target, $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
             foreach ($referenced_matches as $referenced_match) {
               $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
+            }
+
+            // When >1 bundle is specified, the above only matched base fields.
+            // Iterate over all possible target bundles, set each on a clone of
+            // $target, and hence repeat the same process as above — but exclude
+            // base fields that are re-matched.
+            // @see \Drupal\Core\Entity\TypedData\EntityDataDefinition::getPropertyDefinitions()
+            $target_bundles = $field_definition->getItemDefinition()->getSettings()['handler_settings']['target_bundles'] ?? [];
+            if (count($target_bundles) > 1) {
+              $base_field_names = array_keys($target->getPropertyDefinitions());
+              foreach ($target_bundles as $target_bundle) {
+                assert($target->getBundles() === NULL);
+                $bundle_specific_target = clone $target;
+                $bundle_specific_target->setBundles([$target_bundle]);
+                $referenced_matches = $this->matchEntityProps($bundle_specific_target, $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
+                // Ignore base field matches; those are already handled by the
+                // logic just before this ">1 target bundles" conditional.
+                foreach ($referenced_matches as $referenced_match) {
+                  $field_name = $referenced_match instanceof ReferenceFieldPropExpression
+                    ? $referenced_match->referencer->fieldName
+                    : $referenced_match->fieldName;
+                  if (!in_array($field_name, $base_field_names, TRUE)) {
+                    $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
+                  }
+                }
+              }
             }
           }
         }
@@ -473,13 +504,15 @@ final class JsonSchemaFieldInstanceMatcher {
   }
 
   /**
-   * It converts the extensions in to a case-insensitive regexp without modifiers.
+   * Converts file extensions into a case-insensitive regexp without modifiers.
    *
    * @param string $extensions
-   *   The extensions as drupal store it (e.g. "png gif jpeg jpg webp").
+   *   The extensions as Drupal stores it (e.g. "png gif" or "mp4").
    *
    * @return string
-   *   The regexp (e.g. [Pp][Nn][Gg]|[Gg][Ii][Ff]|...).
+   *   The corresponding case-insensitive regexp. For example:
+   *   - `png` becomes `[Pp][Nn][Gg]`
+   *   - `mp4` becomes `[Mm][Pp]4`
    */
   private function buildCaseInsensitiveExtensionRegex(string $extensions): string {
     $ext_list = preg_split('/\s+/', trim($extensions));
@@ -488,8 +521,10 @@ final class JsonSchemaFieldInstanceMatcher {
     }
 
     $patterns = array_map(function ($ext) {
-      return implode('', array_map(function ($char) {
-        return '[' . strtoupper($char) . strtolower($char) . ']';
+      return implode('', array_map(fn ($char) => match (TRUE) {
+        ctype_digit($char) => $char,
+        ctype_alpha($char) => '[' . strtoupper($char) . strtolower($char) . ']',
+        default => throw new \LogicException(),
       }, str_split($ext)));
     }, $ext_list);
 

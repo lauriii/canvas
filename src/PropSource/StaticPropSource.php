@@ -211,8 +211,9 @@ final class StaticPropSource extends PropSourceBase {
         $field_item = $field_item_list[$i];
         assert($field_item instanceof EntityReferenceItem);
         if ($field_item->get('target_id')->getValue() === NULL && $field_item->get('entity')->getValue()->isNew()) {
-          $target_id = $field_item->get('entity')->getValue()->save();
-          $field_item->get('target_id')->setValue($target_id);
+          $entity = $field_item->get('entity')->getValue();
+          $entity->save();
+          $field_item->setValue(['entity' => $entity]);
         }
       }
     }

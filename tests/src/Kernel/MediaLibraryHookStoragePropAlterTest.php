@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
@@ -52,12 +53,24 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     // @see \Drupal\media\Plugin\media\Source\Image
     $this->createMediaType('image', ['id' => 'baby_photos']);
     $this->createMediaType('image', ['id' => 'vacation_photos']);
+    // Same for the VideoFile, oEmbed and File MediaSources.
+    // @see \Drupal\media\Plugin\media\Source\VideoFile
+    $this->createMediaType('video_file', ['id' => 'baby_videos']);
+    $this->createMediaType('video_file', ['id' => 'vacation_videos']);
 
     // A sample value is generated during the test, which needs this table.
     $this->installSchema('file', ['file_usage']);
 
     // @see \Drupal\media_library\MediaLibraryEditorOpener::__construct()
     $this->installEntitySchema('filter_format');
+  }
+
+  public static function getExpectedUnstorablePropShapes(): array {
+    $unstorable_prop_shapes = parent::getExpectedUnstorablePropShapes();
+    unset(
+      $unstorable_prop_shapes['type=object&$ref=json-schema-definitions://experience_builder.module/video'],
+    );
+    return $unstorable_prop_shapes;
   }
 
   /**
@@ -67,7 +80,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();
     $image_shapes = array_filter(
       $storable_prop_shapes,
-      fn ($k) => str_contains($k, 'json-schema-definitions://experience_builder.module/image'),
+      fn (string $k) => str_contains($k, 'json-schema-definitions://experience_builder.module/image'),
       ARRAY_FILTER_USE_KEY
     );
     foreach ($image_shapes as $k => $image_shape) {
@@ -91,6 +104,26 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
         ],
       );
     }
+
+    $storable_prop_shapes['type=object&$ref=json-schema-definitions://experience_builder.module/video'] = new StorablePropShape(
+      shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
+      // @phpstan-ignore-next-line
+      fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_videos|vacation_videos␝field_media_video_file|field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url}'),
+      fieldWidget: 'media_library_widget',
+      fieldStorageSettings: [
+        'target_type' => 'media',
+      ],
+      fieldInstanceSettings: [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => [
+            'baby_videos' => 'baby_videos',
+            'vacation_videos' => 'vacation_videos',
+          ],
+        ],
+      ],
+    );
+
     return $storable_prop_shapes;
   }
 
