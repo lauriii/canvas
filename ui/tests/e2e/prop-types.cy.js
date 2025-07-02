@@ -78,30 +78,30 @@ describe('Prop types editing', () => {
     cy.drupalUninstall();
   });
 
-  // it(
-  //   'Boolean - default false',
-  //   { retries: { openMode: 0, runMode: 3 } },
-  //   () => {
-  //     cy.waitForElementContentInIframe(
-  //       '#test-bool-default-false code',
-  //       'false',
-  //     );
-  //     cy.waitForElementContentNotInIframe(
-  //       '#test-bool-default-false code',
-  //       'true',
-  //     );
-  //     cy.findByLabelText('Bool (default false)')
-  //       .assertToggleState(false)
-  //       .toggleToggle()
-  //       .assertToggleState(true);
-  //
-  //     cy.waitForElementContentInIframe('#test-bool-default-false code', 'true');
-  //     cy.waitForElementContentNotInIframe(
-  //       '#test-bool-default-false code',
-  //       'false',
-  //     );
-  //   },
-  // );
+  it(
+    'Boolean - default false',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.waitForElementContentInIframe(
+        '#test-bool-default-false code',
+        'false',
+      );
+      cy.waitForElementContentNotInIframe(
+        '#test-bool-default-false code',
+        'true',
+      );
+      cy.findByLabelText('Bool (default false)')
+        .assertToggleState(false)
+        .toggleToggle()
+        .assertToggleState(true);
+
+      cy.waitForElementContentInIframe('#test-bool-default-false code', 'true');
+      cy.waitForElementContentNotInIframe(
+        '#test-bool-default-false code',
+        'false',
+      );
+    },
+  );
 
   it('Boolean - default true', () => {
     cy.waitForElementContentInIframe('#test-bool-default-true code', 'true');
