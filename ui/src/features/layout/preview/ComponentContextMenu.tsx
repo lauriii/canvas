@@ -167,6 +167,7 @@ export const ComponentContextMenuContent: React.FC<
       menuType={menuType}
       align="start"
       side="right"
+      onClick={(e) => e.stopPropagation()}
     >
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
       {isCodeComponent && (
