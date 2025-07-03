@@ -22,7 +22,7 @@ final class PageAccessControlHandler extends EntityAccessControlHandler {
       'view' => $access->orIf(
         AccessResult::allowedIfHasPermissions($account, ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'OR')
       ),
-      'update' => $access->orIf(
+      'update', 'view all revisions', 'view revision', 'revert' => $access->orIf(
         AccessResult::allowedIfHasPermission($account, Page::EDIT_PERMISSION)
       ),
       'delete' => $access->orIf(

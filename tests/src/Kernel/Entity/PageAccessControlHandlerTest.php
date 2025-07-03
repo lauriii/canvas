@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
@@ -83,6 +84,65 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
       'delete: with edit permission' => [[Page::EDIT_PERMISSION], 'delete', FALSE],
       'delete: with delete permission' => [[Page::DELETE_PERMISSION], 'delete', TRUE],
       'delete: without permission' => [['access content'], 'delete', FALSE],
+
+      'view all revisions: with edit permission' => [[Page::EDIT_PERMISSION], 'view all revisions', TRUE],
+      'view all revisions: without permission' => [['access content'], 'view all revisions', FALSE],
+
+      'view revision: with edit permission' => [[Page::EDIT_PERMISSION], 'view revision', TRUE],
+      'view revision: without permission' => [['access content'], 'view revision', FALSE],
+    ];
+  }
+
+  /**
+   * Tests permissions on a non-default revision.
+   *
+   * @param array $permissions
+   *   The permissions to grant to the account.
+   * @param string $op
+   *   The operation to check access for.
+   * @param bool $expected_result
+   *   The expected result.
+   *
+   * @dataProvider revertAccessProvider
+   */
+  public function testRevertPermissionOnNonDefaultRevision(array $permissions, string $op, bool $expected_result): void {
+    $this->installPageEntitySchema();
+
+    // Create a page with an initial revision.
+    $page = Page::create(['title' => 'Test Page']);
+    $page->save();
+    $original_vid = $page->getRevisionId();
+
+    // Create a second revision that is not the default.
+    $page->setNewRevision(TRUE);
+    $page->set('title', 'Test Page - Revision 2');
+    $page->save();
+
+    // Load the non-default revision.
+    $non_default_revision = \Drupal::entityTypeManager()
+      ->getStorage(Page::ENTITY_TYPE_ID)
+      ->loadRevision((int) $original_vid);
+
+    $access_handler = $this->container->get('entity_type.manager')
+      ->getAccessControlHandler(Page::ENTITY_TYPE_ID);
+
+    $account = $this->createMock(AccountInterface::class);
+    $account->expects($this->atLeastOnce())
+      ->method('hasPermission')
+      ->willReturnCallback(fn ($permission) => in_array($permission, $permissions, TRUE));
+
+    assert($non_default_revision instanceof EntityInterface);
+    $result = $access_handler->access($non_default_revision, $op, $account);
+    self::assertEquals($expected_result, $result);
+  }
+
+  public static function revertAccessProvider(): array {
+    return [
+      'view revision: with edit permission' => [[Page::EDIT_PERMISSION], 'view revision', TRUE],
+      'view revision: without permission' => [['access content'], 'view revision', FALSE],
+
+      'revert: with edit permission' => [[Page::EDIT_PERMISSION], 'revert', TRUE],
+      'revert: without edit permission' => [['access content'], 'revert', FALSE],
     ];
   }
 
