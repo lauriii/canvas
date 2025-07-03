@@ -10,6 +10,7 @@ use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\Task\Task;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\xb_ai\Plugin\AiFunctionCall\AddMetadata;
 use Drupal\xb_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\xb_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -102,10 +103,6 @@ final class XbBuilder extends ControllerBase {
     }
     // Add dynamic comments.
     $comments = [];
-    $comments[] = [
-      'role' => 'user',
-      'message' => 'component_name is ' . (!empty($prompt['selected_component']) ? $prompt['selected_component'] : 'not required.'),
-    ];
     $task_message = array_pop($prompt['messages']);
     $task = $prompt['messages'];
     foreach ($task as $message) {
@@ -128,6 +125,7 @@ final class XbBuilder extends ControllerBase {
     $agent->setModelName($default['model_id']);
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
+    $agent->setTokenContexts(['entity_type' => $prompt['entity_type'], 'entity_id' => $prompt['entity_id'], 'selected_component' => $prompt['selected_component'] ?? NULL, 'layout' => $prompt['layout'] ?? NULL]);
     $solvability = $agent->determineSolvability();
     $status = FALSE;
     $message = '';
@@ -147,12 +145,17 @@ final class XbBuilder extends ControllerBase {
       $map = [
         EditComponentJs::class => ['js_structure', 'props_metadata'],
         CreateComponent::class => ['component_structure'],
+        AddMetadata::class => ['metadata'],
+      ];
+      $plugins = [
+        'ai_agents::ai_agent::experience_builder_component_agent',
+        'ai_agents::ai_agent::experience_builder_metadata_generation_agent',
       ];
       if (!empty($tools)) {
         foreach ($tools as $tool) {
           // @todo Refactor this after https://www.drupal.org/i/3529310 is fixed.
           if (
-            $tool->getPluginId() === 'ai_agents::ai_agent::experience_builder_component_agent'
+            in_array($tool->getPluginId(), $plugins)
           ) {
             $response['message'] = $tool->getReadableOutput();
             foreach ($tool->getAgent()->getToolResults() as $sub_agent_tool) {

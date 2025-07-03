@@ -7,16 +7,35 @@ dependencies:
       - xb_ai
 id: xb_ai_orchestrator
 label: 'Experience Builder AI Orchestrator'
-description: 'This orchestration agent analyzes user input to determine the intent — content creation, content editing, metadata generation, component or layout addition/modification —and delegates the task to the corresponding specialized sub-agent. It ensures accurate routing for efficient and context-aware processing.'
-system_prompt: "You are the orchestration AI agent for the Drupal Experience Builder module which delegate the request to the experience_builder_component_agent agent. Always delegate — never attempt to directly perform the task yourself.\r\n"
+description: 'This orchestration agent analyzes user input to determine the intent — metadata generation, component or layout addition/modification —and delegates the task to the corresponding specialized sub-agent. It ensures accurate routing for efficient and context-aware processing.'
+system_prompt: "You are the orchestration AI agent for the Drupal Experience Builder module.\r\n\r\nYour responsibility is to:\r\n- Infer the intent (component creation or metadata generation) from the user's input unless it is unclear.\r\n\r\n🔍 Intent Detection\r\nInfer the intent based on user input:\r\nIf the input includes:\r\n- \"Create component\\\", \"Add component\\\", \"Edit component\\\"-> strictly treat it as component related task and delegate it to experience_builder_component_agent.\r\n- \"metadata\", \"metatag\", \"description\", \"taxonomy\", or \"SEO\" :-\r\n        a. If the selected component context is empty → strictly treat it as metadata generation and delegate it to experience_builder_metadata_generation_agent\r\n        b. If the selected component context is not empty or null → strictly treat it as a component related task and delegate it to experience_builder_component_agent.\r\nIf the input is phrased as a question (e.g., starts with \"What\", \"How\", \"Why\", \"Explain\", etc.) and **does not contain directive language** (like \"write\", \"generate\", etc. used imperatively), then try to help user as far as you can and also ask: \"Would you like to create/edit component, or generate metadata\"\r\nAlways delegate — never attempt to directly perform the task yourself. It's the responsibility of the sub agents to figure out if there is any missing information or context. You should always delegate it to the subagents for further processing."
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
+  'ai_agent:get_entity_information': true
   'ai_agents::ai_agent::experience_builder_component_agent': true
+  'ai_agents::ai_agent::experience_builder_metadata_generation_agent': true
 orchestration_agent: true
 triage_agent: false
 max_loops: 10
-default_information_tools: ''
+default_information_tools: "get_entity_context:\r\n  label: 'Get entity context'\r\n  description: 'This context information is passed to all other agents'\r\n  tool: 'ai_agent:get_entity_information'\r\n  parameters:\r\n    entity_type: '[xb_ai:entity_type]'\r\n    entity_id: '[xb_ai:entity_id]'\r\n    selected_component: '[xb_ai:selected_component]'\r\n"
 tool_usage_limits:
+  'ai_agent:get_entity_information':
+    entity_type:
+      action: ''
+      hide_property: 0
+      values: ''
+    entity_id:
+      action: ''
+      hide_property: 0
+      values: ''
+    selected_component:
+      action: ''
+      hide_property: 0
+      values: ''
+    layout:
+      action: ''
+      hide_property: 0
+      values: ''
   'ai_agents::ai_agent::experience_builder_component_agent':
     prompt:
       action: ''
@@ -26,8 +45,21 @@ tool_usage_limits:
       action: ''
       hide_property: 0
       values: ''
+  'ai_agents::ai_agent::experience_builder_metadata_generation_agent':
+    prompt:
+      action: ''
+      hide_property: 0
+      values: ''
+    files:
+      action: ''
+      hide_property: 0
+      values: ''
 tool_settings:
+  'ai_agent:get_entity_information':
+    return_directly: 0
   'ai_agents::ai_agent::experience_builder_component_agent':
+    return_directly: 0
+  'ai_agents::ai_agent::experience_builder_metadata_generation_agent':
     return_directly: 0
 context_agent: null
 masquerade_roles: {  }

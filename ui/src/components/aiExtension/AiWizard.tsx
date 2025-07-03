@@ -14,6 +14,11 @@ import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 import { Flex, Text } from '@radix-ui/themes';
 import type { CodeComponent } from '@/types/CodeComponent';
+import { setPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectModel,
+  setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
 
 const simplePropertyHandler = (
   property: string,
@@ -60,11 +65,23 @@ const propsMetadataHandler = {
   },
 };
 
+const metadataHandler = {
+  canHandle: (msg: any) => 'metadata' in msg && msg.metadata,
+  handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
+    const value = JSON.parse(message.metadata);
+    dispatch(setUpdatePreview(true));
+    dispatch(
+      setPageData({ 'description[0][value]': value.metatag_description }),
+    );
+  },
+};
+
 const messageHandlers = [
   cssStructureHandler,
   jsStructureHandler,
   componentStructureHandler,
   propsMetadataHandler,
+  metadataHandler,
 ];
 
 function getHandlersForMessage(message: any) {
@@ -81,6 +98,11 @@ const AiWizard = () => {
   const codeComponentName = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
+  const model = useAppSelector(selectModel);
+  const textPropsMap = Object.fromEntries(
+    Object.entries(model).map(([uuid, comp]) => [uuid, comp.resolved]),
+  );
+  const textPropsMapString = JSON.stringify(textPropsMap);
 
   // Fetch CSRF token on mount.
   useEffect(() => {
@@ -157,6 +179,7 @@ const AiWizard = () => {
             entity_type: drupalSettings.xb.entityType,
             entity_id: drupalSettings.xb.entity,
             selected_component: codeComponentName,
+            layout: textPropsMapString,
           },
         }}
         textInput={{
