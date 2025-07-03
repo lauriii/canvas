@@ -628,7 +628,7 @@ experience_builder.xb_asset_library.*:
       constraints:
         Regex:
           # ℹ️ Initially, only one such config entity is allowed. Later, one per theme. Later still, additional ones. Details TBD.
-          pattern: '/^global+$/'
+          pattern: '/^global$/'
           message: "The %value machine name is not valid."
     label:
       type: required_label
