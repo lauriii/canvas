@@ -12,7 +12,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
+use Drupal\experience_builder\EntityHandlers\AssetLibraryAccessControlHandler;
 use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
 
 #[ConfigEntityType(
@@ -24,7 +24,7 @@ use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
   admin_permission: JavaScriptComponent::ADMIN_PERMISSION,
   handlers: [
     'storage' => XbAssetStorage::class,
-    'access' => ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
+    'access' => AssetLibraryAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'id',

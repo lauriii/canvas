@@ -1088,7 +1088,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
     $library->delete();
-    $this->assertAuthenticationAndAuthorization('xb_asset_library');
+    $this->assertAuthenticationAndAuthorization('xb_asset_library', FALSE);
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/v0/config/xb_asset_library");
@@ -1101,6 +1101,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
 
+    // Manually delete.
+    $library->delete();
     $library = AssetLibrary::create([
       'id' => AssetLibrary::GLOBAL_ID,
       'label' => 'Disabled Global Library Component',
@@ -1206,10 +1208,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.roles:authenticated'], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($asset_library_to_send, $body);
 
-    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), $list_url, 'config:xb_asset_library_list');
+    // Cannot delete the global library.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), [], 403, NULL, NULL, NULL, NULL);
   }
 
-  private function assertAuthenticationAndAuthorization(string $entity_type_id): void {
+  private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE): void {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
     // Anonymously: 403.
@@ -1271,7 +1274,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
     $response = $this->makeApiRequest('DELETE', $canonical_url, $request_options);
-    $this->assertSame(204, $response->getStatusCode());
+    $this->assertSame($delete_allowed ? 204 : 403, $response->getStatusCode());
   }
 
   private function getConfigRequestPostExample(string $entity_type_id): array {
