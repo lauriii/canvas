@@ -50,7 +50,7 @@ const DrupalToggle = ({
           'aria-checked': isChecked ? 'true' : 'false',
         } as unknown as Omit<typeof attributes, 'onChange'>,
         {},
-        { skipAttributes: ['value', 'onChange', 'type'] },
+        { skipAttributes: ['value', 'onChange', 'type', 'checked'] },
       )}
     />
   );

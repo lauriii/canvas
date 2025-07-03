@@ -294,6 +294,10 @@ export function getDefaultValue(
   attributes: PropsValues | undefined,
   value: any,
 ) {
+  if (attributes?.type === 'checkbox') {
+    return !!attributes?.checked;
+  }
+
   // If options are present:
   // - If an option is defined as selected, use that value
   // Else if `attributes.value` is truthy, use that value.
