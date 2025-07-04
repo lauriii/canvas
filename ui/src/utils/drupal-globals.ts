@@ -7,6 +7,8 @@ export const getDrupal = () => Drupal;
 export const getDrupalSettings = (): DrupalSettings => drupalSettings;
 export const getXbSettings = () => drupalSettings.xb;
 export const getBaseUrl = () => drupalSettings.path.baseUrl;
+export const getXbPermissions = () =>
+  drupalSettings.xb.permissions as Record<string, boolean>;
 
 export const setXbDrupalSetting = (
   property: 'layoutUtils' | 'navUtils',

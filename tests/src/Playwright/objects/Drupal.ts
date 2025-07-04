@@ -3,6 +3,7 @@ import { exec, execDrush } from '../utilities/DrupalExec';
 import * as nodePath from 'node:path';
 import * as fs from 'node:fs';
 import { getModuleDir, getRootDir } from '../utilities/DrupalFilesystem';
+import { previewReady } from '../xbHelper';
 
 export class Drupal {
   readonly page: Page;
@@ -80,9 +81,9 @@ export class Drupal {
       await page.goto(loginUrl);
     } else {
       await page.goto(`${this.drupalSite.url}/user/login`);
-      await page.getByTestId('edit-name').fill(username);
-      await page.getByTestId('edit-pass').fill(password);
-      await page.getByTestId('edit-submit').click();
+      await page.locator('[data-drupal-selector="edit-name"]').fill(username);
+      await page.locator('[data-drupal-selector="edit-pass"]').fill(password);
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
     }
     await expect(page.locator('h1')).toHaveText(username);
   }
@@ -90,7 +91,7 @@ export class Drupal {
   async logout() {
     const page = this.page;
     await page.goto(`${this.drupalSite.url}/user/logout/confirm`);
-    await page.getByTestId('edit-submit').click();
+    await page.locator('[data-drupal-selector="edit-submit"]').click();
     let cookies = await page.context().cookies();
     cookies = cookies.filter(
       (cookie) =>
@@ -105,8 +106,8 @@ export class Drupal {
     } else {
       const page = this.page;
       await page.goto(`${this.drupalSite.url}/admin/people/roles/add`);
-      await page.getByTestId('edit-label').fill(name);
-      await page.getByTestId('edit-submit').click();
+      await page.locator('[data-drupal-selector="edit-label"]').fill(name);
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
       await expect(page.locator('//*[@data-drupal-messages]')).toContainText(
         'has been added.',
       );
@@ -130,12 +131,14 @@ export class Drupal {
       await page.goto(`${this.drupalSite.url}/admin/people/permissions`);
       for (const permission of permissions) {
         await page
-          .getByTestId(
-            `edit-${this.normalizeAttribute(role)}-${this.normalizeAttribute(permission)}`,
+          .locator(
+            `[data-drupal-selector="edit-${this.normalizeAttribute(
+              role,
+            )}-${this.normalizeAttribute(permission)}"]`,
           )
           .check();
       }
-      await page.getByTestId('edit-submit').click();
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
       await expect(page.locator('//*[@data-drupal-messages]')).toContainText(
         'The changes have been saved',
       );
@@ -163,16 +166,24 @@ export class Drupal {
     } else {
       const page = this.page;
       await page.goto(`${this.drupalSite.url}/admin/people/create`);
-      await page.getByTestId('edit-mail').fill(email);
-      await page.getByTestId('edit-name').fill(username);
-      await page.getByTestId('edit-pass-pass1').fill(password);
-      await page.getByTestId('edit-pass-pass2').fill(password);
+      await page.locator('[data-drupal-selector="edit-mail"]').fill(email);
+      await page.locator('[data-drupal-selector="edit-name"]').fill(username);
+      await page
+        .locator('[data-drupal-selector="edit-pass-pass1"]')
+        .fill(password);
+      await page
+        .locator('[data-drupal-selector="edit-pass-pass2"]')
+        .fill(password);
       for (const role of roles) {
         await page
-          .getByTestId(`edit-roles-${this.normalizeAttribute(role)}`)
+          .locator(
+            `[data-drupal-selector="edit-roles-${this.normalizeAttribute(
+              role,
+            )}"]`,
+          )
           .check();
       }
-      await page.getByTestId('edit-submit').click();
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
       await expect(page.locator('//*[@data-drupal-messages]')).toContainText(
         'Created a new user account for',
       );
@@ -199,13 +210,19 @@ export class Drupal {
       await page.goto(`${this.drupalSite.url}/admin/modules`);
       for (const module of modules) {
         await page
-          .getByTestId(`edit-modules-${this.normalizeAttribute(module)}-enable`)
+          .locator(
+            `[data-drupal-selector="edit-modules-${this.normalizeAttribute(
+              module,
+            )}-enable"]`,
+          )
           .check();
       }
-      await page.getByTestId('edit-submit').click();
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
       for (const module of modules) {
-        const checkbox = await page.getByTestId(
-          `edit-modules-${this.normalizeAttribute(module)}-enable`,
+        const checkbox = await page.locator(
+          `[data-drupal-selector="edit-modules-${this.normalizeAttribute(
+            module,
+          )}-enable"]`,
         );
         await expect(checkbox).toBeTruthy();
         await expect(checkbox).toBeDisabled();
@@ -266,25 +283,26 @@ export class Drupal {
   }
 
   async waitForXBEditor() {
-    await expect(
-      this.page.locator('xpath=//*[@data-testid="xb-contextual-panel"]'),
-    ).toContainText('Title', {
-      timeout: 15_000,
-    });
-    await expect(
-      this.page.locator('xpath=//*[@data-testid="xb-primary-panel"]'),
-    ).toContainText('Content', {
-      timeout: 15_000,
-    });
-    await expect(this.page.locator('css=.xb--viewport-overlay')).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(this.page.getByTestId('xb-contextual-panel')).toContainText(
+      'Title',
+      {
+        timeout: 15_000,
+      },
+    );
+    await expect(this.page.getByTestId('xb-primary-panel')).toContainText(
+      'Content',
+      {
+        timeout: 15_000,
+      },
+    );
   }
 
   async goToXBEditor() {
     const path = await this.getXBEditorPath();
     await this.page.goto(path);
     await this.waitForXBEditor();
+    // Wait for the preview iframe and canvas to be ready
+    await previewReady(this.page);
   }
 
   normalizeAttribute(attribute: string) {

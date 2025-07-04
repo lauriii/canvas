@@ -36,7 +36,7 @@ export default defineConfig({
       fullPage: true,
     },
     /* For https://playwright.dev/docs/locators#locate-by-test-id */
-    testIdAttribute: 'data-drupal-selector',
+    testIdAttribute: 'data-testid', // Use default test ID attribute
   },
   /* Configure projects for major browsers */
   projects: [
@@ -47,19 +47,29 @@ export default defineConfig({
 
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the preview canvas etc. */
+        viewport: { width: 2560, height: 1440 },
+      },
       dependencies: ['setup'],
     },
 
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 2560, height: 1440 },
+      },
       dependencies: ['setup'],
     },
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: {
+        ...devices['Desktop Safari'],
+        viewport: { width: 2560, height: 1440 },
+      },
       dependencies: ['setup'],
     },
 

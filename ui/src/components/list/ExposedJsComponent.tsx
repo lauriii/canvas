@@ -17,6 +17,7 @@ import { componentExistsInLayout } from '@/features/layout/layoutUtils';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { JSComponent } from '@/types/Component';
 import { useNavigate, useParams } from 'react-router-dom';
+import PermissionCheck from '@/components/PermissionCheck';
 
 function removeJsPrefix(input: string): string {
   if (input.startsWith('js.')) {
@@ -79,7 +80,12 @@ const ExposedJsComponent: React.FC<{
   };
 
   const menuItems = (
-    <>
+    <PermissionCheck
+      hasPermission="codeComponents"
+      denied={
+        <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+      }
+    >
       <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
         Remove from components
       </UnifiedMenu.Item>
@@ -89,7 +95,7 @@ const ExposedJsComponent: React.FC<{
       <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
         Delete
       </UnifiedMenu.Item>
-    </>
+    </PermissionCheck>
   );
   return (
     <ContextMenu.Root key={component.id} onOpenChange={onMenuOpenChange}>

@@ -13,10 +13,33 @@ import MosaicContainer from '@/features/code-editor/MosaicContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import SideMenu from '@/components/sideMenu/SideMenu';
+import PermissionCheck from '@/components/PermissionCheck';
+import ErrorCard from '@/components/error/ErrorCard';
+import { Flex } from '@radix-ui/themes';
 
 interface AppRoutesInterface {
   basePath: string;
 }
+
+const CodeEditorUi = (
+  <PermissionCheck
+    hasPermission="codeComponents"
+    denied={
+      <Flex align="center" justify="center" height="100vh" width="100%">
+        <ErrorCard
+          title="You do not have permission to access the code editor."
+          error="Please contact your site administrator if you believe this is an error."
+        />
+      </Flex>
+    }
+  >
+    <SideMenu />
+    <PrimaryPanel />
+    <MosaicContainer />
+    <CodeComponentDialogs />
+  </PermissionCheck>
+);
+
 const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
   const router = createBrowserRouter(
     [
@@ -63,26 +86,12 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             // Opens the code editor for an item under 'Code'.
             path: '/code-editor/code/:codeComponentId',
-            element: (
-              <>
-                <SideMenu />
-                <PrimaryPanel />
-                <MosaicContainer />
-                <CodeComponentDialogs />
-              </>
-            ),
+            element: CodeEditorUi,
           },
           {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
-            element: (
-              <>
-                <SideMenu />
-                <PrimaryPanel />
-                <MosaicContainer />
-                <CodeComponentDialogs />
-              </>
-            ),
+            element: CodeEditorUi,
           },
         ],
       },

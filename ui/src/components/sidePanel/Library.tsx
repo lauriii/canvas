@@ -17,6 +17,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import styles from './Library.module.css';
 import DynamicComponentList from '@/components/list/DynamicComponentList';
+import PermissionCheck from '@/components/PermissionCheck';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
@@ -33,9 +34,11 @@ const Library = () => {
 
   return (
     <>
-      <Flex direction="column" mb="4">
-        <AddCodeComponentButton />
-      </Flex>
+      <PermissionCheck hasPermission="codeComponents">
+        <Flex direction="column" mb="4">
+          <AddCodeComponentButton />
+        </Flex>
+      </PermissionCheck>
       <AccordionRoot value={openItems} onValueChange={() => setOpenLayoutItem}>
         <AccordionDetails
           value={LayoutItemType.PATTERN}
@@ -59,17 +62,19 @@ const Library = () => {
             <ComponentList />
           </ErrorBoundary>
         </AccordionDetails>
-        <AccordionDetails
-          value={LayoutItemType.CODE}
-          title="Code"
-          onTriggerClick={() => onClickHandler(LayoutItemType.CODE)}
-          className={styles.accordionDetails}
-          triggerClassName={styles.accordionDetailsTrigger}
-        >
-          <ErrorBoundary title="An unexpected error has occurred while fetching code components.">
-            <CodeComponentList />
-          </ErrorBoundary>
-        </AccordionDetails>
+        <PermissionCheck hasPermission="codeComponents">
+          <AccordionDetails
+            value={LayoutItemType.CODE}
+            title="Code"
+            onTriggerClick={() => onClickHandler(LayoutItemType.CODE)}
+            className={styles.accordionDetails}
+            triggerClassName={styles.accordionDetailsTrigger}
+          >
+            <ErrorBoundary title="An unexpected error has occurred while fetching code components.">
+              <CodeComponentList />
+            </ErrorBoundary>
+          </AccordionDetails>
+        </PermissionCheck>
         <AccordionDetails
           value={LayoutItemType.DYNAMIC}
           title="Dynamic Components"

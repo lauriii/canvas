@@ -10,11 +10,8 @@
 # Ignore the `dist` directory.
 ui/dist
 
-# Explicitly enable Prettier for JS/JSX/TS/TSX files in Cypress tests.
-!tests/src/Cypress/**/*.js
-!tests/src/Cypress/**/*.jsx
-!tests/src/Cypress/**/*.ts
-!tests/src/Cypress/**/*.tsx
+# Explicitly enable Prettier for JS/JSX/TS/TSX files in Playwright tests.
+!tests/src/Playwright/**/*.ts
 
 # Explicitly enable Prettier for CLI codebase.
 !cli/**/*.js

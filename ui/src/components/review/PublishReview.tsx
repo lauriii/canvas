@@ -30,6 +30,7 @@ import type {
 } from '@/services/pendingChangesApi';
 import ReviewErrors from '@/components/review/ReviewErrors';
 import clsx from 'clsx';
+import PermissionCheck from '@/components/PermissionCheck';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 export const DEFAULT_BUTTON_TEXT = 'Publish all changes';
@@ -181,29 +182,31 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               </Box>
             </ScrollArea>
           </Box>
-          <Flex justify="end" align="center" width="100%">
-            <Box mt="3">
-              <Button
-                disabled={
-                  !onPublishClick ||
-                  isPublishing ||
-                  isFetching ||
-                  !changes ||
-                  !changes.length
-                }
-                variant="solid"
-                onClick={onPublishClick}
-              >
-                {isPublishing || isFetching ? (
-                  <span className={styles.loading}>
-                    {isPublishing ? 'Publishing' : 'Please wait'}
-                  </span>
-                ) : (
-                  buttonText
-                )}
-              </Button>
-            </Box>
-          </Flex>
+          <PermissionCheck hasPermission="publishChanges">
+            <Flex justify="end" align="center" width="100%">
+              <Box mt="3">
+                <Button
+                  disabled={
+                    !onPublishClick ||
+                    isPublishing ||
+                    isFetching ||
+                    !changes ||
+                    !changes.length
+                  }
+                  variant="solid"
+                  onClick={onPublishClick}
+                >
+                  {isPublishing || isFetching ? (
+                    <span className={styles.loading}>
+                      {isPublishing ? 'Publishing' : 'Please wait'}
+                    </span>
+                  ) : (
+                    buttonText
+                  )}
+                </Button>
+              </Box>
+            </Flex>
+          </PermissionCheck>
         </Panel>
       </Popover.Content>
     </Popover.Root>

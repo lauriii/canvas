@@ -23,6 +23,7 @@ import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useNavigate } from 'react-router-dom';
+import PermissionCheck from '@/components/PermissionCheck';
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -186,10 +187,12 @@ export const ComponentContextMenuContent: React.FC<
       <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
         Paste
       </UnifiedMenu.Item>
-      <UnifiedMenu.Separator />
-      <UnifiedMenu.Item onClick={handleCreatePatternClick}>
-        Create pattern
-      </UnifiedMenu.Item>
+      <PermissionCheck hasPermission="patterns">
+        <UnifiedMenu.Separator />
+        <UnifiedMenu.Item onClick={handleCreatePatternClick}>
+          Create pattern
+        </UnifiedMenu.Item>
+      </PermissionCheck>
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Sub>
@@ -208,7 +211,9 @@ export const ComponentContextMenuContent: React.FC<
           </UnifiedMenu.Item>
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>
-      <ComponentContextMenuRegions component={component} />
+      <PermissionCheck hasPermission="globalRegions">
+        <ComponentContextMenuRegions component={component} />
+      </PermissionCheck>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
         Delete

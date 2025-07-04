@@ -105,12 +105,7 @@ describe('Publish review functionality', () => {
       cy.findByText('Review 1 change').click();
 
       cy.findByTestId('xb-publish-reviews-content').within(() => {
-        cy.findByText('Publish all changes').click();
-      });
-
-      // Attempt to publish all changes should show permission error
-      cy.findByTestId('xb-review-publish-errors').within(() => {
-        cy.findByText(/Errors/i).should('exist');
+        cy.findByText('Publish all changes').should('not.exist');
       });
     },
   );

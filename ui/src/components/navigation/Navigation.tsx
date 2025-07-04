@@ -23,6 +23,154 @@ import {
 import styles from './Navigation.module.css';
 import type { FormEvent } from 'react';
 
+const hasPermission = (
+  permission: 'rename' | 'edit' | 'duplicate' | 'homepage' | 'delete',
+  item: ContentStub,
+) => {
+  const links = item.links || {};
+  switch (permission) {
+    case 'rename':
+      return !!links['edit-form'];
+    case 'edit':
+      return !!links['edit-form'];
+    case 'duplicate':
+      return !!links[
+        'https://drupal.org/project/experience_builder#link-rel-duplicate'
+      ];
+    case 'homepage':
+      return !!links[
+        'https://drupal.org/project/experience_builder#link-rel-set-as-homepage'
+      ];
+    case 'delete':
+      return !!links['delete-form'];
+    default:
+      return false;
+  }
+};
+
+// Helper functions to return JSX or null based on item links/permissions
+const renderRenameButton = (
+  item: ContentStub,
+  onRename?: (page: ContentStub) => void,
+) =>
+  hasPermission('edit', item) ? (
+    <DropdownMenu.Item
+      onClick={(event) => event.stopPropagation()}
+      onSelect={onRename ? () => onRename(item) : undefined}
+    >
+      Rename page
+    </DropdownMenu.Item>
+  ) : null;
+
+const renderDuplicateButton = (
+  item: ContentStub,
+  onDuplicate?: (page: ContentStub) => void,
+) =>
+  hasPermission('duplicate', item) ? (
+    <DropdownMenu.Item
+      onClick={(event) => event.stopPropagation()}
+      onSelect={onDuplicate ? () => onDuplicate(item) : undefined}
+    >
+      Duplicate page
+    </DropdownMenu.Item>
+  ) : null;
+
+const renderSetAsHomepageButton = (
+  item: ContentStub,
+  onSetHomepage?: (page: ContentStub) => void,
+) =>
+  hasPermission('homepage', item) ? (
+    <>
+      <DropdownMenu.Separator />
+      <AlertDialog.Root>
+        <AlertDialog.Trigger>
+          <DropdownMenu.Item
+            onClick={(event) => event.stopPropagation()}
+            onSelect={(event) => event.preventDefault()}
+          >
+            Set as homepage
+          </DropdownMenu.Item>
+        </AlertDialog.Trigger>
+        <AlertDialog.Content>
+          <AlertDialog.Title>Set {item.title} as homepage</AlertDialog.Title>
+          <AlertDialog.Description size="2">
+            This action will set the selected page as homepage. This action
+            cannot be undone.
+          </AlertDialog.Description>
+          <Flex gap="3" mt="4" justify="end">
+            <AlertDialog.Cancel>
+              <Button variant="soft" color="gray">
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action>
+              <DropdownMenu.Item
+                onClick={(event) => event.stopPropagation()}
+                onSelect={() =>
+                  onSetHomepage ? onSetHomepage(item) : undefined
+                }
+              >
+                <Button variant="solid" color="blue">
+                  Set as homepage
+                </Button>
+              </DropdownMenu.Item>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </>
+  ) : null;
+
+const renderDeleteButton = (
+  item: ContentStub,
+  onDelete?: (page: ContentStub) => void,
+) =>
+  hasPermission('delete', item) ? (
+    <>
+      {/* If there are any links above, show a separator */}
+      {hasPermission('edit', item) ||
+      hasPermission('homepage', item) ||
+      hasPermission('duplicate', item) ? (
+        <DropdownMenu.Separator />
+      ) : null}
+      <AlertDialog.Root>
+        <AlertDialog.Trigger>
+          <DropdownMenu.Item
+            onClick={(event) => event.stopPropagation()}
+            onSelect={(event) => event.preventDefault()}
+            color="red"
+          >
+            Delete page
+          </DropdownMenu.Item>
+        </AlertDialog.Trigger>
+        <AlertDialog.Content>
+          <AlertDialog.Title>Delete {item.title} page</AlertDialog.Title>
+          <AlertDialog.Description size="2">
+            This action will permanently delete the page and all of its
+            contents. This action cannot be undone.
+          </AlertDialog.Description>
+          <Flex gap="3" mt="4" justify="end">
+            <AlertDialog.Cancel>
+              <Button variant="soft" color="gray">
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action>
+              <DropdownMenu.Item
+                onClick={(event) => event.stopPropagation()}
+                onSelect={() => (onDelete ? onDelete(item) : undefined)}
+              >
+                <Button variant="solid" color="red">
+                  Delete page
+                </Button>
+              </DropdownMenu.Item>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </>
+  ) : null;
+
 const ContentGroup = ({
   title,
   items,
@@ -93,110 +241,26 @@ const ContentGroup = ({
                   </Text>
                 </Flex>
               </Flex>
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger>
-                  <IconButton
-                    variant="ghost"
-                    color="gray"
-                    className={styles.optionsButton}
-                    aria-label={`Page options for ${item.title}`}
-                  >
-                    <DotsVerticalIcon />
-                  </IconButton>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
-                  <DropdownMenu.Item
-                    onClick={(event) => event.stopPropagation()}
-                    onSelect={onRename ? () => onRename(item) : undefined}
-                  >
-                    Rename page
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onClick={(event) => event.stopPropagation()}
-                    onSelect={onDuplicate ? () => onDuplicate(item) : undefined}
-                  >
-                    Duplicate page
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator />
-                  <AlertDialog.Root>
-                    <AlertDialog.Trigger>
-                      <DropdownMenu.Item
-                        onClick={(event) => event.stopPropagation()}
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        Set as homepage
-                      </DropdownMenu.Item>
-                    </AlertDialog.Trigger>
-                    <AlertDialog.Content>
-                      <AlertDialog.Title>
-                        Set {item.title} as homepage
-                      </AlertDialog.Title>
-                      <AlertDialog.Description size="2">
-                        This action will set the selected page as homepage. This
-                        action cannot be undone.
-                      </AlertDialog.Description>
-                      <Flex gap="3" mt="4" justify="end">
-                        <AlertDialog.Cancel>
-                          <Button variant="soft" color="gray">
-                            Cancel
-                          </Button>
-                        </AlertDialog.Cancel>
-                        <AlertDialog.Action>
-                          <DropdownMenu.Item
-                            onClick={(event) => event.stopPropagation()}
-                            onSelect={() =>
-                              onSetHomepage ? onSetHomepage(item) : undefined
-                            }
-                          >
-                            <Button variant="solid" color="blue">
-                              Set as homepage
-                            </Button>
-                          </DropdownMenu.Item>
-                        </AlertDialog.Action>
-                      </Flex>
-                    </AlertDialog.Content>
-                  </AlertDialog.Root>
-                  <DropdownMenu.Separator />
-                  <AlertDialog.Root>
-                    <AlertDialog.Trigger>
-                      <DropdownMenu.Item
-                        onClick={(event) => event.stopPropagation()}
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        Delete page
-                      </DropdownMenu.Item>
-                    </AlertDialog.Trigger>
-                    <AlertDialog.Content>
-                      <AlertDialog.Title>
-                        Delete {item.title} page
-                      </AlertDialog.Title>
-                      <AlertDialog.Description size="2">
-                        This action will permanently delete the page and all of
-                        its contents. This action cannot be undone.
-                      </AlertDialog.Description>
-                      <Flex gap="3" mt="4" justify="end">
-                        <AlertDialog.Cancel>
-                          <Button variant="soft" color="gray">
-                            Cancel
-                          </Button>
-                        </AlertDialog.Cancel>
-                        <AlertDialog.Action>
-                          <DropdownMenu.Item
-                            onClick={(event) => event.stopPropagation()}
-                            onSelect={() =>
-                              onDelete ? onDelete(item) : undefined
-                            }
-                          >
-                            <Button variant="solid" color="red">
-                              Delete page
-                            </Button>
-                          </DropdownMenu.Item>
-                        </AlertDialog.Action>
-                      </Flex>
-                    </AlertDialog.Content>
-                  </AlertDialog.Root>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              {Object.keys(item.links).length && (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      className={styles.optionsButton}
+                      aria-label={`Page options for ${item.title}`}
+                    >
+                      <DotsVerticalIcon />
+                    </IconButton>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
+                    {renderRenameButton(item, onRename)}
+                    {renderDuplicateButton(item, onDuplicate)}
+                    {renderSetAsHomepageButton(item, onSetHomepage)}
+                    {renderDeleteButton(item, onDelete)}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              )}
             </Flex>
           );
         })}
@@ -207,6 +271,7 @@ const ContentGroup = ({
 
 const Navigation = ({
   loading = false,
+  showNew,
   items = [],
   onNewPage,
   onSearch,
@@ -217,6 +282,7 @@ const Navigation = ({
   onDelete,
 }: {
   loading: boolean;
+  showNew: boolean;
   items: ContentStub[];
   onNewPage?: () => void;
   onSearch?: (value: string) => void;
@@ -252,28 +318,30 @@ const Navigation = ({
             </TextField.Slot>
           </TextField.Root>
         </form>
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            <Button
-              variant="soft"
-              data-testid="xb-navigation-new-button"
-              size="1"
-            >
-              <PlusIcon />
-              New
-              <ChevronDownIcon />
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            <DropdownMenu.Item
-              onClick={onNewPage}
-              data-testid="xb-navigation-new-page-button"
-            >
-              <FileIcon />
-              New page
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
+        {showNew && (
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <Button
+                variant="soft"
+                data-testid="xb-navigation-new-button"
+                size="1"
+              >
+                <PlusIcon />
+                New
+                <ChevronDownIcon />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item
+                onClick={onNewPage}
+                data-testid="xb-navigation-new-page-button"
+              >
+                <FileIcon />
+                New page
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        )}
       </Flex>
       <ScrollArea scrollbars="vertical" style={{ height: 175 }}>
         {loading && <p>Loading...</p>}

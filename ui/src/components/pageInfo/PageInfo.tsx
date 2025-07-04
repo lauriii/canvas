@@ -61,7 +61,6 @@ const PageInfo = () => {
   const { setEditorEntity } = useEditorNavigation();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
-
   const isCodeEditor = codeComponentName !== '';
   const layout = useAppSelector(selectLayout);
   const focusedRegionName = layout.find(
@@ -72,6 +71,9 @@ const PageInfo = () => {
     entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
+  const canCreatePages =
+    !!xbSettings.contentEntityCreateOperations?.xb_page?.xb_page;
   const {
     data: pageItems,
     isLoading: isPageItemsLoading,
@@ -194,6 +196,7 @@ const PageInfo = () => {
                 <Navigation
                   loading={isPageItemsLoading}
                   items={pageItems || []}
+                  showNew={canCreatePages}
                   onNewPage={handleNewPage}
                   onSearch={setSearchTerm}
                   onSelect={handleOnSelect}

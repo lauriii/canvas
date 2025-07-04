@@ -5,6 +5,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch } from '@/app/hooks';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import type { Pattern } from '@/types/Pattern';
+import PermissionCheck from '@/components/PermissionCheck';
 
 const PatternNode: React.FC<{
   pattern: Pattern;
@@ -25,9 +26,16 @@ const PatternNode: React.FC<{
   };
 
   const menuItems = (
-    <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-      Delete
-    </UnifiedMenu.Item>
+    <PermissionCheck
+      hasPermission="patterns"
+      denied={
+        <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+      }
+    >
+      <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
+        Delete pattern
+      </UnifiedMenu.Item>
+    </PermissionCheck>
   );
 
   return (

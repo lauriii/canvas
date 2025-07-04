@@ -6,6 +6,7 @@ const ErrorPage: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
     align="center"
     justify="center"
     height="100vh"
+    width="100%"
     style={{ backgroundColor: 'var(--canvas-bg)' }}
   >
     {children}

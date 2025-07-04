@@ -20,6 +20,14 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/1',
+      'edit-form': '/xb/xb_page/1',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Bravo',
@@ -28,6 +36,14 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/2',
+      'edit-form': '/xb/xb_page/2',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Charlie',
@@ -36,6 +52,14 @@ const items: ContentStub[] = [
     status: false,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/3',
+      'edit-form': '/xb/xb_page/3',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Delta',
@@ -44,6 +68,14 @@ const items: ContentStub[] = [
     status: false,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/4',
+      'edit-form': '/xb/xb_page/4',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Echo',
@@ -52,6 +84,14 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/5',
+      'edit-form': '/xb/xb_page/5',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Foxtrot',
@@ -60,6 +100,14 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/6',
+      'edit-form': '/xb/xb_page/6',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Golf',
@@ -68,6 +116,14 @@ const items: ContentStub[] = [
     status: false,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/7',
+      'edit-form': '/xb/xb_page/7',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Hotel',
@@ -76,6 +132,14 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/8',
+      'edit-form': '/xb/xb_page/8',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'India',
@@ -84,6 +148,14 @@ const items: ContentStub[] = [
     status: false,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/9',
+      'edit-form': '/xb/xb_page/9',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
   {
     title: 'Juliet',
@@ -92,12 +164,21 @@ const items: ContentStub[] = [
     status: true,
     autoSaveLabel: '',
     autoSavePath: '',
+    links: {
+      'delete-form': '/xb/api/v0/content/xb_page/10',
+      'edit-form': '/xb/xb_page/10',
+      'https://drupal.org/project/experience_builder#link-rel-duplicate':
+        '/xb/api/v0/content/xb_page',
+      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
+        '/xb/api/v0/content/xb_page',
+    },
   },
 ];
 
 export const Default: Story = {
   args: {
     loading: false,
+    showNew: true,
     items,
     onNewPage: () => console.log('Creating new page'),
     onSearch: (query: string) => console.log('Searching for', query),
@@ -120,5 +201,12 @@ export const NoItems: Story = {
   args: {
     loading: false,
     items: [],
+  },
+};
+
+export const NoNewDropDown: Story = {
+  args: {
+    loading: false,
+    showNew: false,
   },
 };

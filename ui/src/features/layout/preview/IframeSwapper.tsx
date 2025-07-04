@@ -44,14 +44,22 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       return { activeIFrame, inactiveIFrame };
     }, []);
 
-    const swapIFrames = useCallback(() => {
-      setWhichActive((current) => (current ? 0 : 1));
-      setTimeout(() => {
-        const { activeIFrame } = getIFrames();
-        activeIFrame.style.display = '';
-        setIsReloading(false);
-      }, 0);
-    }, [getIFrames, setIsReloading]);
+    const swapIFrames = useCallback(
+      (e: Event) => {
+        const iframe = e.target as HTMLIFrameElement | null;
+        if (!iframe?.srcdoc?.length) {
+          // The load event in some browsers (e.g., Safari) fires on page load if the srcdoc is empty, but we don't want to swap in that case.
+          return;
+        }
+        setWhichActive((current) => (current ? 0 : 1));
+        setTimeout(() => {
+          const { activeIFrame } = getIFrames();
+          activeIFrame.style.display = '';
+          setIsReloading(false);
+        }, 0);
+      },
+      [getIFrames, setIsReloading],
+    );
 
     useEffect(() => {
       whichActiveRef.current = whichActive;
