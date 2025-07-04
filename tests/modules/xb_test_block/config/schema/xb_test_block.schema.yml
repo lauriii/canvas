@@ -36,4 +36,5 @@ block.settings.xb_test_block_input_schema_change_poc:
       type: string
       label: 'Foo'
       constraints:
-        Choice: [bar, baz]
+        Choice:
+          choices: [bar, baz]

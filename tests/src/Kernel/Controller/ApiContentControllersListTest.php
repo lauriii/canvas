@@ -15,7 +15,6 @@ use Drupal\experience_builder\Controller\ApiContentControllers;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -178,7 +177,6 @@ class ApiContentControllersListTest extends KernelTestBase {
   protected function executeListRequest(array $query = []): array {
     $request = Request::create(self::API_BASE_PATH, 'GET', $query);
     $response = $this->apiContentController->list(Page::ENTITY_TYPE_ID, $request);
-    self::assertInstanceOf(JsonResponse::class, $response);
 
     $content = $response->getContent();
     self::assertNotEmpty($content);
@@ -220,7 +218,6 @@ class ApiContentControllersListTest extends KernelTestBase {
   public function testBasicList(): void {
     $response = $this->apiContentController->list('xb_page', Request::create(self::API_BASE_PATH, 'GET'));
 
-    self::assertInstanceOf(JsonResponse::class, $response, 'Response should be a JsonResponse');
     $content = $response->getContent();
     self::assertNotEmpty($content, 'Response content should not be empty');
 

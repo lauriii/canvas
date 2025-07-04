@@ -20,7 +20,6 @@ use GuzzleHttp\RequestOptions;
  *
  * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
  * @group experience_builder
- * @group #slow
  */
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 

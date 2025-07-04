@@ -509,6 +509,7 @@ class PropExpressionTest extends UnitTestCase {
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('`ℹ︎␜entity:file␝bytes␞0␟value` is not a valid expression, because it does not map the same field item (entity type `entity:file`, field name `uri`, delta `0`).');
 
+    // @phpstan-ignore-next-line new.resultUnused
     new ReferenceFieldTypePropExpression(
       new FieldTypePropExpression('image', 'entity'),
       new FieldObjectPropsExpression(

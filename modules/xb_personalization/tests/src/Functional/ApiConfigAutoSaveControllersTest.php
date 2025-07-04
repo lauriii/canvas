@@ -20,7 +20,6 @@ use GuzzleHttp\RequestOptions;
  * @see \Drupal\Tests\experience_builder\Functional\ApiConfigAutoSaveControllersTest
  * @group experience_builder
  * @group xb_personalization
- * @group #slow
  */
 class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
@@ -159,7 +158,6 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     ]);
     $original_entity = $storage->load($entity_id);
     \assert($original_entity instanceof SegmentInterface);
-    assert($original_entity !== NULL);
     $original_entity_array = $original_entity->toArray();
     assert(is_array($original_entity_array));
 

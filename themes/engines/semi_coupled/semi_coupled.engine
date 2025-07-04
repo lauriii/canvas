@@ -257,7 +257,7 @@ function _semi_coupled_get_variable(array|object $variables, string $index_in_js
     $method_name = $index_in_js_format;
     // If the index exists as a method on this object and can be called, then
     // return the value of that invocation.
-    if (is_callable([$variables, $method_name]) && method_exists($variables, $method_name)) {
+    if (is_callable([$variables, $method_name])) {
       return $variables->$method_name();
     }
     elseif ($variables instanceof EntityReferenceFieldItemList && $method_name === 'entity') {
@@ -267,6 +267,7 @@ function _semi_coupled_get_variable(array|object $variables, string $index_in_js
 
       // The referenced entities will have their data made available as their
       // 'toArray' form when possible.
+      // @phpstan-ignore-next-line function.alreadyNarrowedType
       $entity_summaries = array_map(fn($entity) => method_exists($entity, 'toArray') ? $entity->toArray() : $entity, $referenced_entities);
 
       // To avoid unnecessary nesting, single-result entity references are not

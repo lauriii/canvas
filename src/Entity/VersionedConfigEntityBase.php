@@ -31,18 +31,17 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    */
   public function __construct(array $values, $entity_type) {
     parent::__construct($values, $entity_type);
-    assert($this->active_version !== NULL);
+    assert(isset($this->active_version));
     $this->loadedVersion = $this->active_version;
   }
 
   public function getActiveVersion(): string {
-    assert($this->active_version !== NULL);
+    assert(isset($this->active_version));
     return $this->active_version;
   }
 
   public function getLoadedVersion(): string {
-    assert($this->active_version !== NULL);
-    return $this->loadedVersion ?? $this->active_version;
+    return $this->loadedVersion;
   }
 
   public function isLoadedVersionActiveVersion(): bool {
@@ -51,7 +50,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
 
   public function loadVersion(string $version): static {
     if ($version !== $this->loadedVersion) {
-      assert($this->versioned_properties !== NULL);
+      assert(isset($this->versioned_properties));
       if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
         throw new \OutOfRangeException(sprintf('The requested version `%s` is not available. Available versions: %s.',
           (string) $version,
@@ -74,7 +73,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
       return $this;
     }
     // Reverse chronological order: new versions appear at the top.
-    assert($this->versioned_properties !== NULL);
+    assert(isset($this->versioned_properties));
     $this->versioned_properties = [
       // At the top: the new version, with empty settings by default.
       self::ACTIVE_VERSION => [],
@@ -112,7 +111,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
   }
 
   public function resetToActiveVersion(): static {
-    assert($this->active_version !== NULL);
+    assert(isset($this->active_version));
     $this->loadedVersion = $this->active_version;
     return $this;
   }

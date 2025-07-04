@@ -17,8 +17,8 @@ use Drupal\user\UserInterface;
  * Tests JavascriptComponent access.
  *
  * @group experience_builder
- * @coversDefaultClass \Drupal\experience_builder\Entity\JavaScriptComponent
- * @coversDefaultClass \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
+ * @covers \Drupal\experience_builder\Entity\JavaScriptComponent
+ * @covers \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
  */
 final class JavascriptComponentAccessTest extends KernelTestBase {
 

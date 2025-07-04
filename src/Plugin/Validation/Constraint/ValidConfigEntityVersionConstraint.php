@@ -42,7 +42,7 @@ final class ValidConfigEntityVersionConstraint extends SymfonyConstraint {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultOption(): ?string {
+  public function getDefaultOption(): string {
     return 'configName';
   }
 

@@ -287,7 +287,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         'type' => 'object',
         '$ref' => 'json-schema-definitions://experience_builder.module/image',
         'title' => $this->randomString(),
-        'enum' => [[], NULL],
+        'enum' => [NULL],
         'examples' => [
           [],
           NULL,
@@ -313,15 +313,14 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ]);
     $this->assertValidationErrors([
-      '' => "Prop \"some_object\" has invalid example value: [src] The property src is required\n[] Does not have a value in the enumeration [[],null]",
-      'props.some_object.enum.0' => 'This value should not be blank.',
-      'props.some_object.enum.1' => 'This value should not be null.',
+      '' => "Prop \"some_object\" has invalid example value: [src] The property src is required\n[] Does not have a value in the enumeration [null]",
+      'props.some_object.enum.0' => 'This value should not be null.',
       'props.some_object.examples.0' => [
         'This value should not be blank.',
         "'src' is a required key.",
       ],
       'props.some_object.examples.1' => 'This value should not be null.',
-      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\?.*)?(#.*)?$@</em>.',
+      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$@</em>.',
       'props.some_object.examples.5' => "'src' is a required key.",
     ]);
   }
@@ -802,8 +801,13 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     //   But currently we can not use the 'patternProperties' until
     //   https://www.drupal.org/i/3471064 is fixed.
     $this->assertValidationErrors([]);
-    $this->entity->set('slots', ['test-slot' => []]);
+
+    unset($original_test_slot['title']);
+    $this->entity->set('slots', [
+      'test-slot' => $original_test_slot,
+    ]);
     $this->assertValidationErrors([
+      '' => 'Slot "test-slot" must have title',
       'slots.test-slot' => "'title' is a required key.",
     ]);
   }

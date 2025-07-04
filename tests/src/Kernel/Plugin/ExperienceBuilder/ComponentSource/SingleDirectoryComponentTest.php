@@ -73,6 +73,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
    * @depends testDiscovery
    */
   public function testGetClientSideInfo(array $component_ids): void {
+    $this->installEntitySchema('node');
     $this->installConfig('node');
     $this->createContentType(['type' => 'article']);
     parent::testGetClientSideInfo($component_ids);
@@ -117,6 +118,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       ],
       'sdc.xb_test_sdc.props-no-title' => [
         'Prop "heading" must have title',
+      ],
+      'sdc.xb_test_sdc.slots-no-title' => [
+        'Slot "the_footer" must have title',
       ],
       'sdc.xb_test_sdc.sparkline_min_2' => [
         // Drupal core's Field API only supports specifying "required or not",
@@ -193,6 +197,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
+    $this->installEntitySchema('node');
     $this->installConfig('node');
     $this->createContentType(['type' => 'article']);
     $this->assertNotEmpty($component_ids);
@@ -426,6 +431,7 @@ HTML,
    */
   public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids): void {
     $this->generateComponentConfig();
+    $this->installEntitySchema('node');
     $this->container->get('module_installer')->install(['xb_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
@@ -509,12 +515,12 @@ HTML,
     yield "SDC with valid props, with exception" => [
       'component_id' => 'sdc.xb_test_sdc.crash',
       'inputs' => [
-        'crash' => $generate_static_prop_source('boolean', TRUE),
+        'crash' => TRUE,
       ],
       'expected_validation_errors' => [],
       'expected_exception' => [
         'class' => Error::class,
-        'message' => "Intentional test exception.",
+        'message' => 'Intentional test exception in "xb_test_sdc:crash" at line 2.',
       ],
       'expected_output_selector' => NULL,
     ];
@@ -529,7 +535,7 @@ HTML,
       ],
       'expected_exception' => [
         'class' => RuntimeError::class,
-        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".").',
+        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".") in "xb_test_sdc:crash" at line 1.',
       ],
       'expected_output_selector' => NULL,
     ];
@@ -542,7 +548,7 @@ HTML,
       ],
       'expected_exception' => [
         'class' => RuntimeError::class,
-        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] The property crash is required.").',
+        'message' => 'An exception has been thrown during the rendering of a template ("[xb_test_sdc:crash/crash] The property crash is required.") in "xb_test_sdc:crash" at line 1.',
       ],
       'expected_output_selector' => NULL,
     ];
@@ -1071,7 +1077,7 @@ HTML,
                     'title' => 'Image URL',
                     'type' => 'string',
                     'format' => 'uri-reference',
-                    'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                    'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                   ],
                   'alt' => [
                     'title' => 'Alternative text',
@@ -1140,7 +1146,7 @@ HTML,
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -1199,7 +1205,7 @@ HTML,
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -1248,7 +1254,7 @@ HTML,
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -1290,7 +1296,7 @@ HTML,
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -1565,7 +1571,7 @@ HTML,
                 'src' => [
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
                 ],
                 'alt' => [
                   'type' => 'string',

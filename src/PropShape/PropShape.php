@@ -127,11 +127,14 @@ final class PropShape {
     // Ensure that `type` is always listed first.
     $normalized_prop_schema = ['type' => $prop_schema['type']] + $prop_schema;
 
-    // Title, description and examples do not affect which field type + widget
-    // should be used.
+    // Title, description, examples and meta:enum (and its associated optional
+    // x-translation-context) do not affect which field type + widget should be
+    // used.
     unset($normalized_prop_schema['title']);
     unset($normalized_prop_schema['description']);
     unset($normalized_prop_schema['examples']);
+    unset($normalized_prop_schema['meta:enum']);
+    unset($normalized_prop_schema['x-translation-context']);
     // @todo Add support to `SDC` for `default` in https://www.drupal.org/project/experience_builder/issues/3462705?
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);

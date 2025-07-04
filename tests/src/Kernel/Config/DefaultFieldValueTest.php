@@ -24,6 +24,7 @@ class DefaultFieldValueTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'user',
     'block',
     'experience_builder',
     'system',
@@ -49,6 +50,8 @@ class DefaultFieldValueTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->generateComponentConfig();
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('node');
     $this->installConfig(['xb_test_config_node_article']);
   }
 

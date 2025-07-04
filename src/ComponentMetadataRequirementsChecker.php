@@ -41,6 +41,13 @@ final class ComponentMetadataRequirementsChecker {
       $messages[] = 'Component uses the reserved "Elements" category';
     }
 
+    // Every slot must have a title.
+    foreach ($metadata->slots as $slot_name => $slot_definition) {
+      if (!array_key_exists('title', $slot_definition)) {
+        $messages[] = \sprintf('Slot "%s" must have title', $slot_name);
+      }
+    }
+
     $props_for_metadata = PropShape::getComponentPropsForMetadata($component_id, $metadata);
     $validator = new Validator();
     foreach ($metadata->schema['properties'] as $prop_name => $prop) {

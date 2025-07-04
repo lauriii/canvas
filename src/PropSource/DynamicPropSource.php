@@ -16,6 +16,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
  *
  * @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  * @internal
+ *
+ * @phpstan-import-type PropSourceArray from PropSourceBase
  */
 final class DynamicPropSource extends PropSourceBase {
 
@@ -39,6 +41,8 @@ final class DynamicPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @return PropSourceArray
    */
   public function toArray(): array {
     return [

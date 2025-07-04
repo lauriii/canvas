@@ -16,7 +16,6 @@ use Drupal\xb_personalization\Entity\Segment;
 /**
  * @group experience_builder
  * @group xb_personalization
- * @group #slow
  */
 class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
 

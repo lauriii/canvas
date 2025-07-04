@@ -39,6 +39,8 @@ use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropE
  * interact with only a FieldItemInterface, not a FieldItemListInterface.
  *
  * @internal
+ *
+ * @phpstan-import-type PropSourceArray from PropSourceBase
  */
 final class StaticPropSource extends PropSourceBase {
 
@@ -96,6 +98,8 @@ final class StaticPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @return PropSourceArray
    */
   public function toArray(): array {
     $array_representation = [

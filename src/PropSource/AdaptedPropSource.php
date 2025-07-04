@@ -42,6 +42,8 @@ final class AdaptedPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-return AdaptedPropSourceArray
    */
   public function toArray(): array {
     return [

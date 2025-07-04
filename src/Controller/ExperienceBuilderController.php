@@ -86,6 +86,7 @@ final class ExperienceBuilderController {
 HTML;
 
   public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
+    // @phpstan-ignore-next-line function.alreadyNarrowedType
     assert($this->validateTransformAssetLibraries());
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
@@ -185,12 +186,12 @@ HTML;
     $body_attributes = new Attribute();
 
     if ($html_element) {
-      foreach (($html_element?->attributes ?? []) as $attribute) {
+      foreach (($html_element->attributes ?? []) as $attribute) {
         $html_attributes->setAttribute($attribute->name, $attribute->value);
       }
     }
     if ($body_element) {
-      foreach (($body_element?->attributes ?? []) as $attribute) {
+      foreach (($body_element->attributes ?? []) as $attribute) {
         $body_attributes->setAttribute($attribute->name, $attribute->value);
       }
     }

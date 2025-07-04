@@ -63,8 +63,8 @@ class XbPageVariantTest extends FunctionalTestBase {
 
     // Register a second session for an authenticated user that can access the
     // XB UI, to allow testing that independently.
-    $this->mink->registerSession('xb_ui', new Session($this->getDefaultDriverInstance()));
-    $this->mink->setDefaultSessionName('xb_ui');
+    $this->mink?->registerSession('xb_ui', new Session($this->getDefaultDriverInstance()));
+    $this->mink?->setDefaultSessionName('xb_ui');
     /** @var \Drupal\user\UserInterface $admin_user */
     $admin_user = $this->createUser();
     // cspell:ignore xbpageadmin

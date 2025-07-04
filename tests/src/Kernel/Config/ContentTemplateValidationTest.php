@@ -85,6 +85,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   protected function setUp(): void {
     parent::setUp();
 
+    $this->installEntitySchema('node');
     $this->installConfig('node');
     $this->createContentType(['type' => 'alpha']);
     FieldStorageConfig::create([
@@ -129,7 +130,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '57afe4ed-c593-4457-a741-2ac5053be928',
           'component_id' => 'js.my-cta',
-          'component_version' => '58dd1b48256c3ff2',
+          'component_version' => 'dd3127c82cca2600',
           'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',

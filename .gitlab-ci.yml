@@ -63,6 +63,10 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
+  # Opt in to testing Drupal 11.2.
+  # @todo Remove when 11.2 is the default in the GitLab CI template.
+  CORE_STABLE: '11.2.2'
+
   # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
   # Ignore that `ext-sodium` is not available in the CI environment.
@@ -75,6 +79,7 @@ variables:
   DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
   # Set this as CI_PROJECT_NAME changes on forks.
   CI_PARENT_PROJECT_NAME: experience_builder
+  PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:
@@ -301,11 +306,15 @@ stylelint:
 
 phpunit:
   variables:
-    # Note: XB uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~100 seconds.
+    # Note: XB uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
     _PHPUNIT_CONCURRENT: 1
   needs:
     - composer
     - UI
+  before_script:
+    # ⚠️ Since Drupal 11.2 this is necessary to avoid PHPUnit tests taking painfully long.
+    # @see https://www.drupal.org/project/drupal/issues/3249443
+    - rm -rf ui/node_modules && echo "🧹 clean up node modules"
   parallel:
     # @see https://www.drupal.org/node/3444548
     matrix:

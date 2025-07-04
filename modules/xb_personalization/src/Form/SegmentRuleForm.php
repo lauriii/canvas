@@ -39,7 +39,7 @@ final class SegmentRuleForm extends EntityForm {
     // Filter those conditions that we want to allow in personalization only.
     $condition_definitions = $this->conditionManager->getFilteredDefinitions('xb_personalization');
     $condition_definitions = \array_filter($condition_definitions, fn($condition_definition) => is_array($condition_definition) && !\array_key_exists($condition_definition['id'], $segment_rules));
-    $condition_options = \array_map(fn($condition_definition) => is_array($condition_definition) ? $condition_definition['label'] : '', $condition_definitions);
+    $condition_options = \array_map(fn($condition_definition) => $condition_definition['label'], $condition_definitions);
 
     if (!empty($condition_options)) {
       $form['plugin_id'] = [

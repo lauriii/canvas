@@ -59,6 +59,12 @@ final class BlockManager extends CoreBlockManager {
       if ($id === 'broken') {
         continue;
       }
+      // The node syndicate block does not qualify anyway, and it has been
+      // deprecated: avoid flooding XB's tests with this news.
+      // @see https://www.drupal.org/node/3519248
+      if ($id === 'node_syndicate_block') {
+        continue;
+      }
 
       // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
       $block = $this->createInstance($id);

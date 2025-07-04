@@ -80,7 +80,7 @@ default:
       slot: column_one
       uuid: cea4c5b3-7921-4c6f-b388-da921bd1496d
       component_id: block.system_menu_block.admin
-      component_version: 1774cb121c8686fa
+      component_version: 02b80c9f6cbacff5
       inputs: '{"label":"Administration","label_display":false,"level":1,"depth":1,"expand_all_items":false}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040

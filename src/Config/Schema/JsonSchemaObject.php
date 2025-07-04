@@ -61,7 +61,7 @@ final class JsonSchemaObject extends Mapping {
         ];
       }
       if (\array_key_exists('enum', $detail)) {
-        $definition['mapping'][$property_name]['constraints']['Choice'] = $detail['enum'];
+        $definition['mapping'][$property_name]['constraints']['Choice'] = ['choices' => $detail['enum']];
       }
     }
     parent::__construct($definition, $name, $parent);

@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -38,7 +39,7 @@ class ModuleHooks {
    *
    * @see \Drupal\experience_builder\Controller\EntityFormController
    */
-  #[Hook('form_alter')]
+  #[Hook('form_alter', order: Order::Last)]
   public function formAlter(array &$form, FormStateInterface $form_state, string $form_id): void {
     $route_name = $this->routeMatch->getRouteName();
     $form_object = $form_state->getFormObject();

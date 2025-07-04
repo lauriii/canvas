@@ -13,7 +13,7 @@ For joining the development process of Experience Builder (XB for short) or tryi
 mkdir ~/Sites/xb-dev
 cd ~/Sites/xb-dev
 ddev config --project-type=drupal --php-version=8.3 --docroot=web
-# XB requires Drupal >= 11.1.2
+# XB requires Drupal >= 11.2
 ddev composer create drupal/recommended-project:11.x@dev --no-install
 ddev add-on get drupal-xb/ddev-drupal-xb-dev
 # This will clone the 'experience_builder' repo under web/modules/contrib
@@ -35,7 +35,7 @@ The most common commands in the development process are:
 Tip: Use `ddev help <command>` for additional information about the command and arguments available.
 
 ## Setting up you local manually
-1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — >= Drupal 11.1.2 is required).
+1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — >= Drupal 11.2 is required).
 2. `cd drupal && git clone git@git.drupal.org:project/experience_builder.git modules/contrib/experience_builder`
 4. `composer require drush/drush`
 5. `vendor/bin/drush si standard`

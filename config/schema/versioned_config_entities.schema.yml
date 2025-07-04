@@ -16,7 +16,8 @@ versioned_config_entity:
       #    constraints:
       #      - Choice:
       #        # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
-      #        - active
+      #        choices:
+      #          - active
       #      - SequenceKeyExists:
       #          propertyPathToSequence: 'versioned_properties'
       #          message: '%value is not an existing version.'

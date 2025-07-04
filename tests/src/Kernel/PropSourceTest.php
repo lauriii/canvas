@@ -79,6 +79,7 @@ class PropSourceTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
+    $this->installEntitySchema('media');
 
     $this->createMediaType('image', ['id' => 'image']);
     $this->createMediaType('image', ['id' => 'anything_is_possible']);
@@ -141,22 +142,22 @@ class PropSourceTest extends KernelTestBase {
    * @dataProvider providerStaticPropSource
    */
   public function testStaticPropSource(
-    string $source_type,
-    array|null $source_type_settings,
+    string $sourceType,
+    array|null $sourceTypeSettings,
     mixed $value,
     string $expression,
     string $expected_json_representation,
     array|null $field_widgets,
     mixed $expected_user_value,
-    string $expected_prop_expression_class,
+    string $expected_prop_expression,
     array $expected_dependencies,
   ): void {
     // @phpstan-ignore-next-line
     $prop_source_example = StaticPropSource::parse([
-      'sourceType' => $source_type,
+      'sourceType' => $sourceType,
       'value' => $value,
       'expression' => $expression,
-      'sourceTypeSettings' => $source_type_settings,
+      'sourceTypeSettings' => $sourceTypeSettings,
     ]);
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
@@ -166,9 +167,9 @@ class PropSourceTest extends KernelTestBase {
     $prop_source_example = PropSource::parse($decoded_representation);
     $this->assertInstanceOf(StaticPropSource::class, $prop_source_example);
     // The contained information read back out.
-    $this->assertSame($source_type, $prop_source_example->getSourceType());
-    /** @var class-string $expected_prop_expression_class */
-    $this->assertInstanceOf($expected_prop_expression_class, StructuredDataPropExpression::fromString($prop_source_example->asChoice()));
+    $this->assertSame($sourceType, $prop_source_example->getSourceType());
+    /** @var class-string $expected_prop_expression */
+    $this->assertInstanceOf($expected_prop_expression, StructuredDataPropExpression::fromString($prop_source_example->asChoice()));
     self::assertSame($expected_dependencies, $prop_source_example->calculateDependencies());
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
@@ -744,7 +745,7 @@ class PropSourceTest extends KernelTestBase {
           'src' => [
             'type' => 'string',
             'format' => 'uri-reference',
-            'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\?.*)?(#.*)?$',
+            'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
             'title' => 'Image URL',
           ],
           'alt' => [
@@ -767,7 +768,7 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
-    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
     $decoded = json_decode($json_representation, TRUE);
     // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
     // order for the JSON Schema definition it contains.

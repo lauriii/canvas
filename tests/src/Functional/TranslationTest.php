@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -31,7 +32,7 @@ class TranslationTest extends FunctionalTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'xb_test_config_node_article',
+    'experience_builder',
     'content_translation',
     'language',
   ];
@@ -51,6 +52,10 @@ class TranslationTest extends FunctionalTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+
+    // In 11.2 and above we install modules in groups, which means this module
+    // cannot be installed in the same group as experience_builder
+    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_config_node_article']);
 
     // Display the `field_xb_test` field.
     \Drupal::service('entity_display.repository')
@@ -137,7 +142,7 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('The French title', (string) $translated_node->getTitle());
 
     $this->drupalGet($original_node->toUrl());
-    $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="experience_builder:my-hero"]');
 
     // Confirm the translated property is not on the page anywhere.
     $assert_session->pageTextNotContains('bonjour');
@@ -146,12 +151,12 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('hello, new world!', $hero_component->find('css', 'h1')?->getText());
     // Confirm the heading has been removed from display. This was changed on
     // the default translation.
-    $assert_session->elementsCount('css', 'article [data-component-id="experience_builder:heading"]', 0);
+    $assert_session->elementsCount('css', '[data-component-id="experience_builder:heading"]', 0);
 
     $this->drupalGet($translated_node->toUrl());
     $assert_session->elementTextEquals('css', '#block-stark-page-title h1', 'The French title');
 
-    $hero_component = $assert_session->elementExists('css', 'article [data-component-id="experience_builder:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="experience_builder:my-hero"]');
     if ($field_is_translatable) {
       // If the field is translatable updating inputs in the default translation
       // should not have updated the French translation.
@@ -169,7 +174,7 @@ class TranslationTest extends FunctionalTestBase {
     // expectation.
     $assert_session->elementsCount(
       'css',
-      'article [data-component-id="experience_builder:heading"]',
+      '[data-component-id="experience_builder:heading"]',
       $expect_component_removed_on_translation ? 0 : 1
     );
 

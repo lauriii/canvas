@@ -15,6 +15,7 @@ trait ConfigComponentTreeTrait {
    * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
    */
   private function conjureFieldItemObject(array $value): ComponentTreeItem {
+    // @phpstan-ignore-next-line instanceof.alwaysTrue function.alreadyNarrowedType
     assert($this->typedDataManager instanceof TypedDataManagerInterface);
     $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
     $field_item = $this->typedDataManager->createInstance('field_item:component_tree', [

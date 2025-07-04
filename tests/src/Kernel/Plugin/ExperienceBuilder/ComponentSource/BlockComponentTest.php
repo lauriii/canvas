@@ -26,7 +26,6 @@ use Drupal\xb_test_block\Plugin\Block\XbTestBlockOptionalContexts;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
  * @group experience_builder
- * @group #slow
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
 final class BlockComponentTest extends ComponentSourceTestBase {
@@ -42,6 +41,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   protected static $modules = [
     'block',
     'xb_test_block',
+    'node',
   ];
 
   /**
@@ -289,6 +289,7 @@ HTML,
   public function testGetExplicitInput(array $componentItemValue): void {
     $this->generateComponentConfig();
 
+    $this->installEntitySchema('node');
     $this->container->get('module_installer')->install(['xb_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
@@ -374,7 +375,7 @@ HTML,
       'label' => 'Main navigation',
       'label_display' => '',
       'level' => 1,
-      'depth' => 0,
+      'depth' => NULL,
       'expand_all_items' => TRUE,
     ];
   }

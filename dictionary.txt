@@ -98,3 +98,4 @@ xbxb
 xmdi
 ymls
 Deepchat
+interactable

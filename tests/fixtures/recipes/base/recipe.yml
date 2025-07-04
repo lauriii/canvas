@@ -19,7 +19,7 @@ config:
       simpleConfigUpdate:
         js.preprocess: false
     system.theme:
-      simple_config_update:
+      simpleConfigUpdate:
         admin: 'claro'
         default: 'stark'
     node.settings:

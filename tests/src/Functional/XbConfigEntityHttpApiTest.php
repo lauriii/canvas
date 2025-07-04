@@ -25,7 +25,6 @@ use Symfony\Component\HttpFoundation\Response;
  * @covers \Drupal\experience_builder\Controller\ApiConfigControllers
  * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
  * @group experience_builder
- * @group #slow
  * @internal
  */
 class XbConfigEntityHttpApiTest extends HttpApiTestBase {
@@ -1022,7 +1021,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Component config entity's `status` was just changed to `FALSE`).
     // @see docs/config-management.md#3.2.1
     $component = Component::load('js.test');
-    $this->assertNotNull($component);
     $this->assertFalse($component->status());
     $this->assertExposedCodeComponents([], 'MISS', $request_options, []);
     $this->assertExposedCodeComponents([], 'HIT', $request_options, []);
@@ -1327,7 +1325,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     // If expected adds new components, those components add additional cache tags. If those cache tags are not
     // present, the test will fail. This array is used to add those additional expected cache tags.
-    $expected_cache_tags = Cache::mergeTags($expected_cache_tags, $additional_expected_cache_tags);
+    $expected_cache_tags = \array_values(Cache::mergeTags($expected_cache_tags, \array_values($additional_expected_cache_tags)));
     $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), $request_options, 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
     self:self::assertNotNull($body);
     $component_config_entity_ids = array_keys($body);

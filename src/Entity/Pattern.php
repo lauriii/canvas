@@ -104,11 +104,9 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
     // beginning and end of the transliterated string.
     $id = preg_replace('@^([^a-z0-9]+)|([^a-z0-9]+)$@', '', $id);
     assert(is_string($id));
-    assert(is_string($id));
     if (strlen($id) > 23) {
       $id = substr($id, 0, 23);
     }
-    assert(is_string($id));
 
     $query = \Drupal::entityTypeManager()->getStorage('pattern')->getQuery()->accessCheck(FALSE);
     $ids = $query->execute();

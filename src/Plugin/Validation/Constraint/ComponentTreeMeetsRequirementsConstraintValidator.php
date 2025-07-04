@@ -68,9 +68,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       },
       default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
     };
-    \assert(\is_callable($component_tree_item_list_factory));
     $component_tree_item_list = $component_tree_item_list_factory($value);
-    assert($component_tree_item_list instanceof ComponentTreeItemList);
 
     // Perform the necessary detections to check against what the constraint
     // options specify.

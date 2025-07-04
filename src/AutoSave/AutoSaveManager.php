@@ -179,6 +179,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   private function getUnchangedHash(EntityInterface $entity): ?string {
+    assert(!is_null($entity->id()));
     $original = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     if ($original === NULL) {
       return NULL;

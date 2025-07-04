@@ -28,6 +28,24 @@ use Drupal\TestSite\TestSetupInterface;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
+if (!\class_exists(TestSetupInterface::class)) {
+  // We're running test-discovery inside run-tests.sh which is before
+  // autoloading for the \Drupal\TestSite namespace has been established.
+  // run-tests.sh has set the cwd to the Drupal root.
+  // @todo Remove in https://drupal.org/i/3531679
+  $root = getcwd();
+  $interface = $root . '/core/tests/Drupal/TestSite/TestSetupInterface.php';
+  // If the site is installed under `web/`, sometimes getcwd returns
+  // /var/www/html but not /var/www/html/web and it fails.
+  if (!\file_exists($interface)) {
+    $interface = $root . '/web/core/tests/Drupal/TestSite/TestSetupInterface.php';
+  }
+  if (!\file_exists($interface)) {
+    $interface = $root . '/tests/Drupal/TestSite/TestSetupInterface.php';
+  }
+  require_once $interface;
+}
+
 class XBTestSetup implements TestSetupInterface {
 
   // Fixed IDs for testing sake
@@ -437,7 +455,7 @@ class XBTestSetup implements TestSetupInterface {
         'label' => 'Administration',
         'label_display' => FALSE,
         'level' => 1,
-        'depth' => 0,
+        'depth' => NULL,
         'expand_all_items' => FALSE,
       ],
     ];
@@ -535,7 +553,7 @@ class XBTestSetup implements TestSetupInterface {
     $xb_user->save();
 
     if (getenv('XB_EXTRA_MODULES')) {
-      $modules = \explode(',', getenv('XB_EXTRA_MODULES'));
+      $modules = \explode(',', getenv('XB_EXTRA_MODULES') ?: '');
       $module_installer->install($modules);
 
       // Rebuild the container before the test starts making HTTP requests.
@@ -546,7 +564,7 @@ class XBTestSetup implements TestSetupInterface {
     if (getenv('XB_EXTRA_PERMISSIONS')) {
       $role = Role::load('xb');
       if ($role) {
-        $permissions = \explode(',', getenv('XB_EXTRA_PERMISSIONS'));
+        $permissions = \explode(',', getenv('XB_EXTRA_PERMISSIONS') ?: '');
         foreach ($permissions as $permission) {
           $role->grantPermission($permission);
         }

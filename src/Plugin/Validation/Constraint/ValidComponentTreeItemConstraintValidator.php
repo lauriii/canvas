@@ -69,7 +69,6 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     if ($component_tree_type === 'content' && $value->getParent()?->getParent() !== NULL) {
       $host_entity = $value->getEntity();
     }
-    \assert($value instanceof ComponentTreeItem);
 
     // Validate the prop source resolves into a value that is considered
     // valid by the source plugin.

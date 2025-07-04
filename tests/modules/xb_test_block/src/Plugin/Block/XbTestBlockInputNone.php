@@ -65,6 +65,7 @@ final class XbTestBlockInputNone extends BlockBase implements ContainerFactoryPl
    * {@inheritdoc}
    */
   public function getCacheContexts() {
+    // @phpstan-ignore-next-line argument.type
     return Cache::mergeContexts(parent::getCacheContexts(), ['user']);
   }
 

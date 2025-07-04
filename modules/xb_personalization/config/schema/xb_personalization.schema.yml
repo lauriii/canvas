@@ -47,18 +47,21 @@ condition.plugin.utm_parameters:
           key:
             type: string
             constraints:
-              NotBlank: [ ]
+              NotBlank: ~
               # todo: Verify this regex is the right one in https://www.drupal.org/i/3527075
-              Regex: '/^[a-zA-Z0-9_\+%\-]+$/'
+              Regex:
+                pattern: '/^[a-zA-Z0-9_\+%\-]+$/'
           value:
             type: string
             constraints:
-              NotBlank: [ ]
+              NotBlank: ~
               # todo: Verify this regex is the right one in https://www.drupal.org/i/3527075
-              Regex: '/^[a-zA-Z0-9_\+%\-]+$/'
+              Regex:
+                pattern: '/^[a-zA-Z0-9_\+%\-]+$/'
           matching:
             type: string
             constraints:
               Choice:
-                - exact
-                - starts_with
+                choices:
+                  - exact
+                  - starts_with

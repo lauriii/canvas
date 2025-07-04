@@ -105,7 +105,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
     // Assertions are assumed to be disabled in prod, so this assignment will
     // never take place there.
-    // @phpstan-ignore booleanNot.alwaysTrue
+    // @phpstan-ignore-next-line booleanNot.alwaysTrue, function.alreadyNarrowedType
     assert(!($is_prod = FALSE));
 
     return $is_prod;

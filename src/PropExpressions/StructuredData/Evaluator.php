@@ -89,7 +89,6 @@ final class Evaluator {
     }
     else {
       $entity = $entity_or_field;
-      assert($entity instanceof EntityInterface);
       // @todo support non-fieldable entities?
       assert($entity instanceof FieldableEntityInterface);
       return match (get_class($expr)) {

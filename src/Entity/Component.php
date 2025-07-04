@@ -174,6 +174,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * {@inheritdoc}
    *
    * @throws \Drupal\Core\Config\Schema\SchemaIncompleteException
+   *
+   * @phpstan-ignore-next-line throws.unusedType
    */
   public function save() {
     return parent::save();
@@ -249,9 +251,9 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * {@inheritdoc}
    */
   public function getPluginCollections(): array {
-    return array_filter([
+    return [
       'settings' => $this->sourcePluginCollection(),
-    ]);
+    ];
   }
 
   /**

@@ -259,8 +259,7 @@ class ComponentTreeItem extends FieldItemBase {
           'type' => 'json',
           'pgsql_type' => 'jsonb',
           'mysql_type' => 'json',
-          // @todo Change back to 'json' once https://www.drupal.org/i/3487533 is resolved.
-          'sqlite_type' => 'text',
+          'sqlite_type' => 'json',
           'not null' => FALSE,
         ],
         'label' => [

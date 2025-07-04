@@ -345,7 +345,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
-   * @phpstan-ignore-next-line
+   * {@inheritdoc}
    */
   public function onChange($delta): void {
     parent::onChange($delta);
@@ -365,8 +365,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   private static function constructDepthFirstGraph(ComponentTreeItemList $tree): array {
     // Transform the tree to the input expected by Drupal's Graph utility.
     $graph = [];
-    /** @var \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $value */
     foreach ($tree as $value) {
+      \assert($value instanceof ComponentTreeItem);
       $parent_uuid = $value->getParentUuid() ?? self::ROOT_UUID;
       $component_instance_uuid = $value->getUuid();
       $graph[$parent_uuid]['edges'][$component_instance_uuid] = TRUE;
@@ -421,7 +421,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // ignoring their slots. The result: a flat list of hydrated components, but
     // with all slots empty.
     foreach ($this as $item) {
-      /** @var \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item */
+      \assert($item instanceof ComponentTreeItem);
       $component_id = $item->getComponentId();
       $uuid = $item->getUuid();
       $component = $components[$component_id];
@@ -472,8 +472,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    */
   public function getPropSourceTypePrefixList(): array {
     $source_type_prefixes = [];
-    /** @var \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($this as $item) {
+      \assert($item instanceof ComponentTreeItem);
       /** @var \Drupal\experience_builder\Plugin\DataType\ComponentInputs $inputs */
       $inputs = $item->get('inputs');
       $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypePrefixList());

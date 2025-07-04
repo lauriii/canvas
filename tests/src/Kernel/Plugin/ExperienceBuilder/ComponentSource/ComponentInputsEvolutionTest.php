@@ -355,8 +355,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $before = Component::load('block.xb_test_block_input_schema_change_poc');
     assert($before instanceof Component);
     self::assertSame(XbTestBlockInputSchemaChangePoc::class, $before->getComponentSource()->getReferencedPluginClass());
-    self::assertSame('1c0d0b93d0cdf9af', $before->getActiveVersion());
-    self::assertSame(['1c0d0b93d0cdf9af'], $before->getVersions());
+    self::assertSame('86af6a7a4e4644d5', $before->getActiveVersion());
+    self::assertSame(['86af6a7a4e4644d5'], $before->getVersions());
     self::assertSame(['foo' => 'bar'], array_diff_key($before->getSettings()['default_settings'], array_flip($generic_block_settings)));
     self::assertSame('Current foo value: bar', $this->renderBlockWithDefaultSettings($before));
 
@@ -373,7 +373,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     assert($after instanceof Component);
     self::assertSame(SimulatedInputSchemaChangeBlock::class, $after->getComponentSource()->getReferencedPluginClass());
     self::assertSame('0b69de6df4584ecc', $after->getActiveVersion());
-    self::assertSame(['0b69de6df4584ecc', '1c0d0b93d0cdf9af'], $after->getVersions());
+    self::assertSame(['0b69de6df4584ecc', '86af6a7a4e4644d5'], $after->getVersions());
     self::assertSame(['foo' => 2, 'change' => 'is scary'], array_diff_key($after->getSettings()['default_settings'], array_flip($generic_block_settings)));
     self::assertSame('Modified block! Current foo value: 2. Change … is scary.', $this->renderBlockWithDefaultSettings($after));
 
@@ -381,7 +381,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // validate the "before" Component config entity in the reality of the
     // updated codebase.
     self::assertSame([
-      'active_version' => 'The version 1c0d0b93d0cdf9af does not match the hash of the settings for this version, expected 739aaf363770b8b9.',
+      'active_version' => 'The version 86af6a7a4e4644d5 does not match the hash of the settings for this version, expected 739aaf363770b8b9.',
       'versioned_properties.active.settings.default_settings' => "'change' is a required key because source_local_id is xb_test_block_input_schema_change_poc (see config schema type block.settings.xb_test_block_input_schema_change_poc).",
       'versioned_properties.active.settings.default_settings.foo' => [
         'The value you selected is not a valid choice.',

@@ -15,9 +15,6 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class DxRouteConsistencyTest extends UnitTestCase {
 
-  /**
-   * @covers experience_builder.routing.yml
-   */
   public function testRoutingYmlDx(): array {
     $routes = Yaml::parseFile(__DIR__ . '/../../../experience_builder.routing.yml');
     assert(is_array($routes));
@@ -41,7 +38,6 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   }
 
   /**
-   * @covers openapi.yml
    * @depends testRoutingYmlDx
    */
   public function testOpenApiCompleteness(array $xb_api_routes): void {

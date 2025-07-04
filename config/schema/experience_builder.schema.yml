@@ -22,7 +22,8 @@ experience_builder.component.*:
       # with the source-specific settings for old (non-active) versions: those already use `type: ignore` because the
       # config schema for older versions might have been different.
       constraints:
-        Callback: ['\Drupal\experience_builder\Entity\Component', validateActiveVersion]
+        Callback:
+          callback: ['\Drupal\experience_builder\Entity\Component', validateActiveVersion]
     id:
       # This ID intentionally does not use `type: machine_name`, because it is a composite ID that is better validated
       # using the `StringParts` constraint than the `RegEx` constraint.
@@ -48,7 +49,8 @@ experience_builder.component.*:
         NotBlank:
           allowNull: true
         ExtensionName: []
-        Callback: ['\Drupal\experience_builder\Entity\Component', providerExists]
+        Callback:
+          callback: ['\Drupal\experience_builder\Entity\Component', providerExists]
     source:
       type: string
       label: 'Source plugin'
@@ -166,9 +168,10 @@ experience_builder.js_component.*:
       label: 'Block plugin base ID'
       constraints:
         Choice:
-          - system_breadcrumb_block
-          - system_menu_block
-          - system_branding_block
+          choices:
+            - system_breadcrumb_block
+            - system_menu_block
+            - system_branding_block
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:
       type: sequence
@@ -231,7 +234,8 @@ experience_builder.page_region.*:
       label: 'Theme region'
       constraints:
         # @see https://www.drupal.org/docs/develop/theming-drupal/adding-regions-to-a-theme#s-adding-regions-to-your-info-file
-        Regex: '/^[a-z]+[a-z0-9_]+$/'
+        Regex:
+          pattern: '/^[a-z]+[a-z0-9_]+$/'
         Length:
           max: 64
         ThemeRegionExists: '%parent.theme'
@@ -447,7 +451,8 @@ experience_builder.generated_field_explicit_input_ux:
             #    constraints:
             #      - Choice:
             #          # @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
-            #          - -1
+            #          choices:
+            #            - -1
             #      - Range:
             #          min: 2
             # Optional *if* the default of cardinality = 1 should be used.

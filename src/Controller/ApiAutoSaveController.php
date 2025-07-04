@@ -13,7 +13,6 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -201,20 +200,18 @@ final class ApiAutoSaveController extends ApiControllerBase {
         if ($entity instanceof EntityPublishedInterface) {
           $entity->setPublished();
         }
-        if ($entity instanceof RevisionableInterface) {
-          // If the entity is new, the autosaved data is considered to be part
-          // of the first revision. Therefore, do not create a new revision
-          // for new entities.
-          if ($use_existing_revision_id) {
-            $entity->setNewRevision(FALSE);
-          }
-          else {
-            // Reset the revision ID.
-            $entity->setNewRevision();
-            $revision_id_key = $entity->getEntityType()->getKey('revision');
-            \assert(\is_string($revision_id_key));
-            $entity->set($revision_id_key, NULL);
-          }
+        // If the entity is new, the autosaved data is considered to be part
+        // of the first revision. Therefore, do not create a new revision
+        // for new entities.
+        if ($use_existing_revision_id) {
+          $entity->setNewRevision(FALSE);
+        }
+        else {
+          // Reset the revision ID.
+          $entity->setNewRevision();
+          $revision_id_key = $entity->getEntityType()->getKey('revision');
+          \assert(\is_string($revision_id_key));
+          $entity->set($revision_id_key, NULL);
         }
         $violations = $entity->validate();
         $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);

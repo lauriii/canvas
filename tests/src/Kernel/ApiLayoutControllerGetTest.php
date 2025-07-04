@@ -26,6 +26,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 /**
  * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
  * @group experience_builder
+ * @group #slow
  */
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
@@ -132,6 +133,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $response = $this->request(Request::create($url->toString()));
     self::assertInstanceOf(JsonResponse::class, $response);
     $json = \json_decode($response->getContent() ?: '', TRUE);
+    self::assertIsArray($json);
     self::assertArrayHasKey('html', $json);
     $this->setRawContent($json['html']);
     $this->assertTitle($node1->label() . ' | Drupal');
@@ -177,6 +179,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->setRawContent($json['html']);
     $this->assertTitle("$new_title | Drupal");
 
+    self::assertIsArray($json);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -240,6 +243,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     $this->assertInstanceOf(JsonResponse::class, $response);
     $json = json_decode($response->getContent() ?: '', TRUE);
+    self::assertIsArray($json);
     $this->assertArrayHasKey('layout', $json);
     $this->assertCount($count, $json['layout']);
     self::assertArrayHasKey('html', $json);
@@ -371,6 +375,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       ], $region['components']);
     }
 
+    self::assertIsArray($json);
     $this->assertArrayHasKey('entity_form_fields', $json);
     $this->assertSame($node->label(), $json['entity_form_fields']['title[0][value]']);
 

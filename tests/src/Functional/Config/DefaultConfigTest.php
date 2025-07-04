@@ -12,7 +12,6 @@ use Drupal\Tests\experience_builder\Functional\FunctionalTestBase;
 
 /**
  * @group experience_builder
- * @group #slow
  */
 class DefaultConfigTest extends FunctionalTestBase {
 

@@ -119,7 +119,7 @@ final class UtmParameters extends ConditionPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function summary(): string|\Stringable {
+  public function summary(): string {
     $parameterSummary = '';
     $parameters = $this->configuration['parameters'];
     foreach ($parameters as $parameter) {

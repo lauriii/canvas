@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
@@ -132,6 +131,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
+      new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary', 'tertiary']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'success', 'neutral', 'warning', 'danger']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'medium', 'large']]),
       new PropShape(['type' => 'string', 'enum' => ['top', 'bottom', 'start', 'end']]),
@@ -253,7 +253,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=foo&enum[1]=bar' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['foo', 'bar']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['foo', 'bar'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -264,7 +267,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=_blank&enum[1]=_parent&enum[2]=_self&enum[3]=_top' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['_blank', '_parent', '_self', '_top']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['_blank', '_parent', '_self', '_top'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -272,7 +278,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=default&enum[1]=primary&enum[2]=success&enum[3]=neutral&enum[4]=warning&enum[5]=danger&enum[6]=text' => new StorablePropShape(
-        new PropShape(['type' => 'string', 'enum' => ['default', 'primary', 'success', 'neutral', 'warning', 'danger', 'text']]),
+        new PropShape([
+          'type' => 'string',
+          'enum' => ['default', 'primary', 'success', 'neutral', 'warning', 'danger', 'text'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -280,7 +289,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=full&enum[1]=wide&enum[2]=normal&enum[3]=narrow' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['full', 'wide', 'normal', 'narrow']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['full', 'wide', 'normal', 'narrow'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -288,7 +300,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=moon-stars-fill&enum[1]=moon-stars&enum[2]=star-fill&enum[3]=star&enum[4]=stars&enum[5]=rocket-fill&enum[6]=rocket-takeoff-fill&enum[7]=rocket-takeoff&enum[8]=rocket' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -296,7 +311,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=prefix&enum[1]=suffix' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['prefix', 'suffix'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -304,7 +322,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=primary&enum[1]=secondary' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['primary', 'secondary'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -312,15 +333,32 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=primary&enum[1]=success&enum[2]=neutral&enum[3]=warning&enum[4]=danger' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['primary', 'success', 'neutral', 'warning', 'danger']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['primary', 'success', 'neutral', 'warning', 'danger'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
           'allowed_values' => $generate_allowed_values_setting(['primary', 'success', 'neutral', 'warning', 'danger']),
         ],
       ),
+      'type=string&enum[0]=primary&enum[1]=secondary&enum[2]=tertiary' => new StorablePropShape(
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['primary', 'secondary', 'tertiary'],
+        ]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values' => $generate_allowed_values_setting(['primary', 'secondary', 'tertiary']),
+        ],
+      ),
       'type=string&enum[0]=small&enum[1]=medium&enum[2]=large' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['small', 'medium', 'large']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['small', 'medium', 'large'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -328,7 +366,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=top&enum[1]=bottom&enum[2]=start&enum[3]=end' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['top', 'bottom', 'start', 'end']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['top', 'bottom', 'start', 'end'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -336,7 +377,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=string&enum[0]=power&enum[1]=like&enum[2]=external' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['power', 'like', 'external'],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -438,7 +482,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
       ),
       'type=integer&enum[0]=1&enum[1]=2' => new StorablePropShape(
-        shape: new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
+        shape: new PropShape([
+          'type' => 'integer',
+          'enum' => [1, 2],
+        ]),
         fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
@@ -500,9 +547,30 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=time' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::TIME->value]),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
+      // These can't be stored as they have empty values as enum values.
       'type=string&enum[0]=&enum[1]=_blank' => new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
-      'type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
-      'type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
+      'type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => new PropShape([
+        'type' => 'string',
+        'enum' => ['', 'base', 'l', 's', 'xs', 'xxs'],
+      ]),
+      'type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => new PropShape([
+        'type' => 'string',
+        'enum' => [
+          '',
+          'gray',
+          'primary',
+          'neutral-soft',
+          'neutral-medium',
+          'neutral-loud',
+          'primary-medium',
+          'primary-loud',
+          'black',
+          'white',
+          'red',
+          'gold',
+          'green',
+        ],
+      ]),
     ];
   }
 
@@ -528,7 +596,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // ⚠️ No field type + widget yet for these! For some that is fine though.
     $this->assertEquals(static::getExpectedUnstorablePropShapes(), $unstorable_prop_shapes);
 
-    return array_filter($unique_storable_prop_shapes, fn ($prop_shape) => $prop_shape instanceof StorablePropShape);
+    return $unique_storable_prop_shapes;
   }
 
   /**
@@ -540,11 +608,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
     foreach ($storable_prop_shapes as $storable_prop_shape) {
       // A static prop source can be generated.
       $prop_source = $storable_prop_shape->toStaticPropSource();
-      $this->assertInstanceOf(StaticPropSource::class, $prop_source);
 
       // A widget can be generated.
       $widget = $prop_source->getWidget('irrelevant-in-this-test', $this->randomString(), $storable_prop_shape->fieldWidget);
-      $this->assertInstanceof(WidgetInterface::class, $widget);
       $this->assertSame($storable_prop_shape->fieldWidget, $widget->getPluginId());
 
       // A widget form can be generated.
@@ -567,7 +633,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       $random_value = $randomized_prop_source->getValue();
       $stored_randomized_prop_source = (string) $randomized_prop_source;
       $reloaded_randomized_prop_source = StaticPropSource::parse(json_decode($stored_randomized_prop_source, TRUE));
-      $this->assertInstanceOf(StaticPropSource::class, $reloaded_randomized_prop_source);
       $this->assertSame($random_value, $reloaded_randomized_prop_source->getValue());
       // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
       $some_prop_name = $this->randomMachineName();
@@ -608,8 +673,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $definitions = $widget_manager->getDefinitions();
     foreach ($storable_prop_shapes as $storable_prop_shape) {
       // A static prop source can be generated.
-      $prop_source = $storable_prop_shape->toStaticPropSource();
-      self::assertInstanceOf(StaticPropSource::class, $prop_source);
+      $storable_prop_shape->toStaticPropSource();
 
       $widget_plugin_id = $storable_prop_shape->fieldWidget;
       self::assertArrayHasKey($widget_plugin_id, $definitions);

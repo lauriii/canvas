@@ -14,7 +14,7 @@ final class XbTwigExtension extends AbstractExtension {
   /**
    * {@inheritdoc}
    */
-  public function getNodeVisitors() {
+  public function getNodeVisitors(): array {
     return [
       new XbPropVisitor(),
     ];

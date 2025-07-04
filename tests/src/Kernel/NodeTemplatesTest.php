@@ -140,6 +140,7 @@ HTML;
     $this->createComponentTreeField('node', 'article');
 
     // Reload the node now that the field definitions have changed.
+    self::assertNotNull($node->id());
     $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
     \assert($node instanceof NodeInterface);
     // Set up a logger so we can tell if

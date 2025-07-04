@@ -128,9 +128,9 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
   }
 
   public function getPluginCollections() {
-    return array_filter([
+    return [
       'rules' => $this->getSegmentRulesPluginCollection(),
-    ]);
+    ];
   }
 
   /**

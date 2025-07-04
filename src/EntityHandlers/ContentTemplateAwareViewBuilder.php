@@ -71,6 +71,11 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
       try {
         $this->componentTreeLoader->getXbFieldName($entity);
         $keys[] = 'with-xb';
+        // We don't want to use the default theme template as preprocess functions
+        // etc might make assumptions about various fields being present.
+        // @see template_preprocess_node.
+        // @todo Remove in https://www.drupal.org/i/3534128 when https://drupal.org/i/3524738 is fixed
+        unset($defaults['#theme']);
       }
       catch (\LogicException) {
         $keys[] = 'without-xb';

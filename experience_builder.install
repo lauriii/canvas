@@ -70,9 +70,9 @@ function experience_builder_requirements(string $phase): array {
       // Check if PHP assertions are enabled and update the severity.
       // @see \Drupal\experience_builder\EventSubscriber\ApiMessageValidator::isProd()
       $assertions_disabled = TRUE;
-      // @phpstan-ignore booleanNot.alwaysTrue
+      // @phpstan-ignore-next-line booleanNot.alwaysTrue
       assert(!($assertions_disabled = FALSE));
-      // @phpstan-ignore booleanNot.alwaysTrue
+      // @phpstan-ignore-next-line booleanNot.alwaysTrue function.alreadyNarrowedType
       if (!$assertions_disabled) {
         $severity = REQUIREMENT_ERROR;
       }

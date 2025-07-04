@@ -97,7 +97,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
   /**
    * {@inheritdoc}
    */
-  public function id() {
+  public function id(): string {
     return $this->machineName;
   }
 
@@ -460,7 +460,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     if ($dependencies = $this->getDependencies()) {
       $cache_tags = array_merge($cache_tags, array_map(fn($dependency) => "config:$dependency", $dependencies['config'] ?? []));
     }
-    return $cache_tags;
+    return \array_values($cache_tags);
   }
 
   /**

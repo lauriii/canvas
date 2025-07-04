@@ -93,6 +93,7 @@ final class ApiLayoutController {
     $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
 
     if ($regions) {
+      \assert($model !== NULL);
       $this->addGlobalRegions($regions, $model, $layout);
       $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
       // Reorder the layout to match theme order.
@@ -188,12 +189,14 @@ final class ApiLayoutController {
       // Use auto-save data for each PageRegion config entity if available.
       if ($draft_region = $this->autoSaveManager->getAutoSaveEntity($region)->entity) {
         \assert($draft_region instanceof PageRegion);
+        // @phpstan-ignore-next-line parameterByRef.type
         $layout[] = $this->buildRegion($id, $draft_region->getComponentTree(), $model);
       }
       // Otherwise fall back to the currently live PageRegion config entity.
       // (Note: this automatically ignores auto-saves for PageRegions that were
       // editable at the time, but no longer are.)
       else {
+        // @phpstan-ignore-next-line parameterByRef.type
         $layout[] = $this->buildRegion($id, $region->getComponentTree(), $model);
       }
     }
@@ -255,7 +258,6 @@ final class ApiLayoutController {
     catch (\OutOfRangeException) {
       throw new NotFoundHttpException(\sprintf('No such version %s for component %s', $version, $componentType));
     }
-    \assert($entity instanceof FieldableEntityInterface);
 
     // Validate that we have access to the page region of this component.
     $page_regions = PageRegion::loadForActiveThemeByClientSideId();
@@ -338,7 +340,6 @@ final class ApiLayoutController {
       }
       // Save the global region if it has a corresponding enabled PageRegion.
       elseif ($updateAutoSave && array_key_exists($client_side_region_id, $page_regions)) {
-        \assert($page_regions[$client_side_region_id] instanceof PageRegion);
         $page_region = $page_regions[$client_side_region_id]->forAutoSaveData([
           'layout' => $region_node['components'],
           'model' => self::extractModelForSubtree($region_node, (array) $model),
@@ -433,8 +434,7 @@ final class ApiLayoutController {
     // Build the content region.
     $tree = $this->componentTreeLoader->load($build_entity);
     $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
-    assert(is_array($data));
-    assert(is_array($data['model']) && is_array($data['entity_form_fields']) && is_array($data['layout']));
+    assert(is_array($data['model']));
 
     $regions = PageRegion::loadForActiveTheme();
     if (!empty($regions)) {

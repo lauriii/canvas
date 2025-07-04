@@ -30,12 +30,13 @@ experience_builder.json_schema.prop.*:
         Choice:
           # Not all JSON Schema basic types make sense (for example: `null`).
           # @see https://json-schema.org/understanding-json-schema/reference/type
-          - 'string'
-          - 'number'
-          - 'integer'
-          - 'boolean'
-          - 'object'
-          # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
+          choices:
+            - 'string'
+            - 'number'
+            - 'integer'
+            - 'boolean'
+            - 'object'
+            # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
     description:
       requiredKey: false
       type: label
@@ -79,28 +80,31 @@ experience_builder.json_schema.prop.string:
         Choice:
           # @see https://json-schema.org/understanding-json-schema/reference/type#built-in-formats
           # @see Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::computeStorablePropShape()
-          - date-time
-          - date
-          - email
-          - idn-email
-          - uri
-          - uri-reference
-          - iri
-          - iri-reference
+          choices:
+            - date-time
+            - date
+            - email
+            - idn-email
+            - uri
+            - uri-reference
+            - iri
+            - iri-reference
     '$ref':
       requiredKey: false
       type: string
       constraints:
         # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
-          - 'json-schema-definitions://experience_builder.module/textarea'
+          choices:
+            - 'json-schema-definitions://experience_builder.module/textarea'
     contentMediaType:
       requiredKey: false
       type: string
       label: 'Content media type'
       constraints:
         Choice:
-          - 'text/html'
+          choices:
+            - 'text/html'
     # @see docs/shape-matching-into-field-types.md#3.2
     'x-formatting-context':
       requiredKey: false
@@ -108,9 +112,10 @@ experience_builder.json_schema.prop.string:
       label: 'Formatting context'
       constraints:
         Choice:
-          - 'block'
-          # @todo Uncomment this in https://www.drupal.org/i/3517735
-          # - 'inline'
+          choices:
+            - 'block'
+            # @todo Uncomment this in https://www.drupal.org/i/3517735
+            # - 'inline'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#integer
 experience_builder.json_schema.prop.integer:
@@ -203,8 +208,9 @@ experience_builder.json_schema.prop.object:
       constraints:
         # @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
         Choice:
-          - 'json-schema-definitions://experience_builder.module/image'
-          - 'json-schema-definitions://experience_builder.module/video'
+          choices:
+            - 'json-schema-definitions://experience_builder.module/image'
+            - 'json-schema-definitions://experience_builder.module/video'
 
 experience_builder.json_schema.object:
   class: '\Drupal\experience_builder\Config\Schema\JsonSchemaObject'

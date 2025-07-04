@@ -43,20 +43,6 @@ HTML);
 }
 
 /**
- * Implements hook_module_implements_alter().
- *
- * @todo Refactor this once XB requires Drupal 11.2, to use https://www.drupal.org/node/3497308.
- */
-function experience_builder_module_implements_alter(array &$implementations, mixed $hook): void {
-  // Make the form alter hooks in this module run last.
-  if ($hook === 'form_alter') {
-    $group = $implementations['experience_builder'];
-    unset($implementations['experience_builder']);
-    $implementations['experience_builder'] = $group;
-  }
-}
-
-/**
  * Implements hook_preprocess_form_element().
  */
 function experience_builder_preprocess_form_element(array &$variables): void {

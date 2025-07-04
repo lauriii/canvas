@@ -21,6 +21,7 @@ use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
  * @group experience_builder
+ * @group #slow
  * @covers \Drupal\experience_builder\EventSubscriber\RecipeSubscriber
  * @covers \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
  */

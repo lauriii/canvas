@@ -138,7 +138,7 @@ final class XbPropVisitor implements NodeVisitorInterface {
   /**
    * {@inheritdoc}
    */
-  public function leaveNode(Node $node, Environment $env): ?Node {
+  public function leaveNode(Node $node, Environment $env): Node {
     if ($node instanceof ModuleNode && $node->getSourceContext() !== NULL) {
       // We have left a template, we no longer need the buffer for it, so flush
       // it.

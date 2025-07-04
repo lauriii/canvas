@@ -17,7 +17,6 @@ use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
  *
  * @covers \Drupal\experience_builder\Controller\ApiComponentsController
  * @group experience_builder
- * @group #slow
  * @internal
  */
 class PropSourceEndpointTest extends FunctionalTestBase {

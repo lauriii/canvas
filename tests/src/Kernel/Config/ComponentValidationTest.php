@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
@@ -16,6 +17,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Symfony\Component\Yaml\Yaml;
@@ -29,6 +31,7 @@ use Symfony\Component\Yaml\Yaml;
 class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
+  use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
@@ -206,6 +209,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $target = $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'];
     unset($invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target']);
     try {
+      \assert($this->entity instanceof ComponentInterface);
       $this->entity->createVersion('abcdef12343fa3dc')
         ->setSettings($invalid_settings_due_to_missing_prop_field_definition)
         ->save();
@@ -217,6 +221,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     }
     // But an invalid version hash doesn't matter for old versions.
     $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
+    \assert($this->entity instanceof ComponentInterface);
     $this->entity->createVersion(
       '95f7ef6a63ef6102'
     )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
@@ -236,6 +241,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // The `xb_test_sdc:my-cta` SDC does not actually meet the requirements.
     $props['href']['examples'][] = 'https://example.com';
     $props['target']['examples'][] = '_blank';
+    // @todo Consider supporting this in https://www.drupal.org/i/3514672
+    unset($props['target']['default']);
+    // @todo Remove these 2 in https://www.drupal.org/i/3516602
+    unset($props['target']['meta:enum']);
+    unset($props['target']['x-translation-context']);
     JavaScriptComponent::create([
       'machineName' => 'my-cta',
       'name' => $this->getRandomGenerator()->sentences(5),
@@ -520,8 +530,18 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     ]);
     $violations = $js_component_with_invalid_slot->getTypedData()->validate();
     if ($is_invalid) {
-      self::assertCount(1, $violations);
-      self::assertSame(sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name)), (string) $js_component_with_invalid_slot->getTypedData()->validate()->get(0)->getMessage());
+      $expected_violations = [
+        "slots.$slot_name" => \sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', \htmlentities($slot_name)),
+      ];
+      // Violations could come from ValidSlotNameConstraint but also from json
+      // schema where slot properties must match the ^[a-zA-Z0-9_-]+$ pattern.
+      // @see core/assets/schemas/v1/metadata-full.schema.json
+      if (\preg_match('/^[a-zA-Z0-9_-]+$/', $slot_name) !== 1) {
+        $expected_violations = [
+          '' => \sprintf('[slots] The property %s is not defined and the definition does not allow additional properties', $slot_name),
+        ] + $expected_violations;
+      }
+      self::assertSame($expected_violations, self::violationsToArray($violations));
     }
     else {
       self::assertCount(0, $violations);

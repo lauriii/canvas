@@ -68,7 +68,7 @@ class XbPageVariantEnableTest extends BrowserTestBase {
     $assert->elementTextContains('css', '[aria-label="Warning message"] .messages__content', 'configured to use Experience Builder for managing the block layout');
 
     // Check the regions are created correctly.
-    $expected_page_region_ids = \array_filter([
+    $expected_page_region_ids = [
       'olivero.breadcrumb',
       'olivero.content_above',
       'olivero.content_below',
@@ -81,12 +81,12 @@ class XbPageVariantEnableTest extends BrowserTestBase {
       'olivero.secondary_menu',
       'olivero.sidebar',
       'olivero.social',
-    ]);
+    ];
     $regions_with_component_tree = [];
     foreach ($regions as $region) {
       $regions_with_component_tree[$region->id()] = $region->getComponentTree()->getValue();
     }
-    $this->assertSame(\array_values($expected_page_region_ids), array_keys($regions_with_component_tree));
+    $this->assertSame($expected_page_region_ids, array_keys($regions_with_component_tree));
 
     foreach ($regions_with_component_tree as $tree) {
       foreach ($tree as $component) {

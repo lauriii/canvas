@@ -125,7 +125,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
     $account2content->setRevisionUser($account2);
-    \assert($account2content instanceof NodeInterface);
     $this->setCurrentUser($account2);
     $autoSave->saveEntity($account2content);
     $code_component = JavaScriptComponent::create(
@@ -550,8 +549,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Ensure none of the entities are updated if one is invalid.
     $this->assertNodeValues($node1, [], [], ['title' => $node1_original_title, 'status' => '0']);
     $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
+    $this->assertNotNull($code_component->id());
     $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertNotNull($library->id());
     $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
+    $this->assertNotNull($page->id());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())?->label());
 
     if ($withGlobal) {
@@ -651,8 +653,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount($auto_save_count - 1, $auto_save_data);
     // Ensure none of other the entities were updated.
     $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
+    $this->assertNotNull($code_component->id());
     $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertNotNull($library->id());
     $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
+    $this->assertNotNull($page->id());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())->label());
 
     $response = $this->makePublishAllRequest();
@@ -673,12 +678,15 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ]
     );
 
+    $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());
     assert($page instanceof Page);
     $this->assertTrue($page->isPublished());
     $this->assertSame('The updated title.', $page->label());
 
+    $this->assertNotNull($code_component->id());
     $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
+    $this->assertNotNull($library->id());
     $this->assertSame('New new AssetLibrary label', $library_storage->loadUnchanged($library->id())?->label());
 
     if ($withGlobal) {

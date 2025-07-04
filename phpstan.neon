@@ -14,7 +14,10 @@ parameters:
     - src/Plugin/Field/FieldTypeOverride
     - src/TypedData/BetterEntityDataDefinition.php
     # The npm package flatted includes PHP files 🙃
-    - ui/node_modules
+    # Note: `ui/node_modules` may exist on local development environments, but is deleted on CI to avoid slow tests,
+    # hence the `(?)`.
+    # @todo Remove once https://www.drupal.org/project/drupal/issues/3249443 is fixed.
+    - ui/node_modules (?)
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
   treatPhpDocTypesAsCertain: false
@@ -32,11 +35,14 @@ parameters:
         class: Drupal\experience_builder\Entity\PageRegion
       pattern:
         class: Drupal\experience_builder\Entity\Pattern
-  stubFiles:
-    - phpstan-stubs/EntityTypeManagerInterface.stub
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
+    # Ignore invalid phpunit methods/covers
+    # @todo Remove in https://drupal.org/i/3533845
+    - identifier: phpunit.coversMethod
+    - identifier: phpunit.covers
+
     -
       message: "#^Class .* extends @internal class#"
       count: 1

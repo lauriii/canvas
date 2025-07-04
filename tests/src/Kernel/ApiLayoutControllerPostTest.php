@@ -117,7 +117,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         'title[0][value]' => 'Updated title',
       ],
     ] + $this->getPostContentsDefaults($node), JSON_THROW_ON_ERROR)));
-    \assert($node instanceof NodeInterface);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $autoSaveEntity = $autoSave->getAutoSaveEntity($node);
@@ -356,7 +355,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // After publishing, we no longer have an auto-save entry with a client Id.
     // Therefore, we can no longer post with an outdated auto-save hash with a
     // matching client id.
-    \assert($autoSaveManager instanceof AutoSaveManager);
     self::assertTrue($autoSaveManager->getAutoSaveEntity($entity)->isEmpty());
     $originalGetJsonWithMatchingClientId = $originalGetJson;
     $originalGetJsonWithMatchingClientId['clientInstanceId'] = $originalClientId;
@@ -372,7 +370,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Even if the auto-save hash and the client ID match there would be still
     // be a conflict exception because the `autoSaveRevision` does not match.
-    \assert($autoSaveManager instanceof AutoSaveManager);
     $autoSaveEntity = $autoSaveManager->getAutoSaveEntity($entity);
     self::assertFalse($autoSaveEntity->isEmpty());
     self::assertSame($originalClientId, $autoSaveEntity->clientId);
@@ -433,7 +430,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     $crawler = new Crawler($this->getRawContent());
     self::assertCount(1, $crawler->filter(\sprintf('a[href="%s"].my-hero__cta--primary', $node->toUrl()->toString())));
-    \assert($autoSave instanceof AutoSaveManager);
     $this->assertResponseAutoSaves($response, [$node]);
     self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
 
@@ -900,6 +896,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // We should have an entry in auto-save with the new value.
+    self::assertNotNull($node->id());
     $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
     \assert($node instanceof NodeInterface);
     self::assertEquals(0, (int) $node->getOwnerId());
@@ -933,6 +930,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // We should have an entry in auto-save with the new title value, but the
     // edit to the author from the admin user should be retained.
+    self::assertNotNull($node->id());
     $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
     \assert($node instanceof NodeInterface);
     self::assertEquals(0, (int) $node->getOwnerId());

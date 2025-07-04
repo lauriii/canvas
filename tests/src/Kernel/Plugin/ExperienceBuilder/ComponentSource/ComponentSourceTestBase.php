@@ -402,7 +402,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
   /**
    * @dataProvider providerRenderComponentFailure
-   * $expected_exception array{'class': string, 'message': string}|NULL
+   *
+   * @phpstan-param array{'class': string, 'message': string}|NULL $expected_exception
    */
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
     $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
@@ -590,6 +591,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // ::onDependencyRemoval and update its source plugin to use the fallback.
     $this->deleteConfigAndTriggerComponentFallback($used_component, $unused_component);
     $component_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
+    self::assertNotNull($used_component->id());
     $used_component = $component_storage->loadUnchanged($used_component->id());
     \assert($used_component instanceof ComponentInterface);
     // Assert that the component has the same label, despite being dropped back
@@ -597,6 +599,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     self::assertEquals($component_label, $used_component->label());
     self::assertFalse($used_component->status());
     // Assert that the component without any usage was cascade-deleted.
+    self::assertNotNull($unused_component->id());
     self::assertNull($component_storage->loadUnchanged($unused_component->id()));
     // Assert that we can still render the fallback component and any children
     // in its slots.
@@ -709,6 +712,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $component_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
     // Assert that the component without any usage was cascade-deleted.
+    self::assertNotNull($unused_component->id());
     self::assertNull($component_storage->loadUnchanged($unused_component->id()));
   }
 

@@ -188,7 +188,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
         // @phpstan-ignore-next-line
         new RouteMatch('<front>', \Drupal::service(RouteProviderInterface::class)->getRouteByName('<front>')),
       );
-      assert($block instanceof SystemBreadcrumbBlock);
     }
 
     foreach ($inputs[self::EXPLICIT_INPUT_NAME] ?? [] as $key => $value) {

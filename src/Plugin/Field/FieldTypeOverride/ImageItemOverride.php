@@ -21,6 +21,12 @@ class ImageItemOverride extends ImageItem {
     return ['display_default' => TRUE] + parent::defaultStorageSettings();
   }
 
+  public static function defaultFieldSettings() {
+    // Add default support for AVIF.
+    return ['file_extensions' => 'png gif jpg jpeg webp avif'] +
+      parent::defaultFieldSettings();
+  }
+
   /**
    * {@inheritdoc}
    */

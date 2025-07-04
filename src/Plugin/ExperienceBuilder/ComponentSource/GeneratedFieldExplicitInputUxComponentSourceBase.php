@@ -486,7 +486,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function getClientSideInfo(ComponentEntity $component): array {
     $component_plugin = $this->getSdcPlugin();
-    assert($component_plugin instanceof SdcPlugin);
     $prop_field_definitions = $component->getSettings()['prop_field_definitions'];
 
     $field_data = [];

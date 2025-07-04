@@ -19,6 +19,7 @@ use Symfony\Component\Routing\Route;
  *
  * @coversDefaultClass \Drupal\xb_oauth\Authentication\Provider\XbOauthAuthenticationProvider
  * @group xb_oauth
+ * @group #slow
  */
 class XbOauthAuthenticationProviderTest extends KernelTestBase {
 
@@ -63,7 +64,7 @@ class XbOauthAuthenticationProviderTest extends KernelTestBase {
    *   - Index 1: Route parameters
    *   - Index 2: Expected result of applies() method
    */
-  public function dataProviderRoutes(): array {
+  public static function dataProviderRoutes(): array {
     return [
       ['entity.component.audit', [], FALSE],
       ['entity.component.delete_form', [], FALSE],

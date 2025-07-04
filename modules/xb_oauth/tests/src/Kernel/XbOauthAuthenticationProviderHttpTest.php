@@ -24,6 +24,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * Tests API endpoints where the XB OAuth authentication provider is applied.
  *
  * @group xb_oauth
+ * @group #slow
  */
 class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
@@ -71,7 +72,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    *   - Index 3: HTTP method
    *   - Index 4: Request body data for POST/PATCH
    */
-  public function dataProviderRoutes(): array {
+  public static function dataProviderRoutes(): array {
     return [
       'INDEX js components' => ['experience_builder.api.config.list', [JavaScriptComponent::ENTITY_TYPE_ID], [], 'GET', []],
       'GET js component' => ['experience_builder.api.config.get', [JavaScriptComponent::ENTITY_TYPE_ID, 'test-code-component'], [], 'GET', []],
@@ -134,6 +135,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
   public function testRouteWithUserWithNoPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     // Create a user with no permissions.
     /** @var \Drupal\Core\Session\AccountInterface $user */
+    // @phpstan-ignore-next-line varTag.nativeType
     $user = $this->createUser();
     $this->setCurrentUser($user);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
@@ -159,6 +161,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    */
   public function testRouteWithUserWithPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     /** @var \Drupal\Core\Session\AccountInterface $user */
+    // @phpstan-ignore-next-line varTag.nativeType
     $user = $this->createUser($required_permissions);
     $this->setCurrentUser($user);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);

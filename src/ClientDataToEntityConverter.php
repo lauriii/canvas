@@ -357,6 +357,7 @@ class ClientDataToEntityConverter {
       }
     }
 
+    assert(!is_null($entity->id()));
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     assert($original_entity instanceof FieldableEntityInterface);
     // Filter out form_build_id, form_id and form_token.

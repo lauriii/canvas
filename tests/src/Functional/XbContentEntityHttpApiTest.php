@@ -237,6 +237,8 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
+   * @param list<string> $extraCacheContexts
+   * @param list<string> $extraCacheTags
    * @dataProvider metaOperationsProvider
    */
   public function testListMetaOperations(array $permissions, array $expectedLinks, array $extraCacheContexts = [], array $extraCacheTags = []): void {

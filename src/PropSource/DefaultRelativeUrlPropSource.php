@@ -23,6 +23,8 @@ use Drupal\experience_builder\PropShape\PropShape;
  * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
  * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
  * @internal
+ *
+ * @phpstan-import-type DefaultRelativeUrlPropSourceArray from PropSourceBase
  */
 final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
@@ -56,6 +58,8 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @return DefaultRelativeUrlPropSourceArray
    */
   public function toArray(): array {
     return [

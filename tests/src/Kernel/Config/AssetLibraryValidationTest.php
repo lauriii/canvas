@@ -11,7 +11,6 @@ use Drupal\experience_builder\Entity\AssetLibrary;
  * Tests validation of Asset Library entities.
  *
  * @group experience_builder
- * @group #slow
  */
 class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -191,7 +190,7 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
     parent::assertValidationErrors($expected_messages);
   }
 
-  public function testMachineNameLength(): void {
+  public function testMachineNameLength(string $prefix = ''): void {
     // \Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase::testMachineNameLength()
     // does not allow overriding the expected message for an invalid machine
     // name. Since we only allow 1 possible value it seems reasonable to skip this
