@@ -9,10 +9,7 @@ test.describe('Canary XB', () => {
     page,
     drupal,
   }) => {
-    await drupal.drush('pm:install experience_builder');
-    await drupal.drush(
-      "php-eval \"Drupal\\experience_builder\\Entity\\Page::create(['title' => 'Homepage', 'type' => 'xb_page', 'path' => ['alias' => '/homepage', 'langcode' => 'en']])->save();\"",
-    );
+    await drupal.setupMinimalXBTestSite();
     await drupal.loginAsAdmin();
     await page.goto('/homepage');
     /* eslint-disable no-useless-escape */
@@ -29,7 +26,7 @@ test.describe('Canary XB', () => {
     /* eslint-enable no-useless-escape */
   });
 
-  test('Layer and Components Panel', async ({ page, drupal }) => {
+  test('Layer and Components Panel', async ({ page, drupal, xBEditor }) => {
     await drupal.loginAsAdmin();
     await page.goto('/homepage');
     const consoleErrors = [];
@@ -50,7 +47,7 @@ test.describe('Canary XB', () => {
         }
       }
     });
-    await drupal.goToXBEditor();
+    await xBEditor.goToEditor();
     await expect(page.locator('[data-testid="xb-side-menu"]'))
       .toMatchAriaSnapshot(`
       - button "Add":

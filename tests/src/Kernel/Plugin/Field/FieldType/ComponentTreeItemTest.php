@@ -56,6 +56,9 @@ class ComponentTreeItemTest extends KernelTestBase {
     'system',
     'media',
     'xb_test_code_components',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -64,6 +67,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node_type');
@@ -369,10 +373,12 @@ class ComponentTreeItemTest extends KernelTestBase {
           'experience_builder.component.sdc.experience_builder.image',
           'experience_builder.component.sdc.xb_test_sdc.my-cta',
           'field.field.node.article.field_hero',
+          'image.style.xb_parametrized_width',
           'node.type.article',
         ],
         'content' => [],
         'module' => [
+          'file',
           'node',
         ],
         'theme' => [],
@@ -386,7 +392,7 @@ class ComponentTreeItemTest extends KernelTestBase {
               'inputs' => [
                 'image' => [
                   'sourceType' => 'dynamic',
-                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
                 ],
               ],
             ],
@@ -444,7 +450,7 @@ class ComponentTreeItemTest extends KernelTestBase {
                   'adapterInputs' => [
                     'image' => [
                       'sourceType' => 'dynamic',
-                      'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
                     ],
                     'imageStyle' => [
                       'sourceType' => 'static:field_item:string',

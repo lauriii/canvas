@@ -107,7 +107,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
       'sdc.xb_test_sdc.my-cta@e5ef92acda2ee2d1',
     );
     expect(updatedNode.slots[0].components[3].type).to.equal(
-      'sdc.experience_builder.image@02ac4f958c84990f',
+      'sdc.experience_builder.image@caab32397e0f3172',
     );
 
     // Check if model data is preserved

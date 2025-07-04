@@ -18,14 +18,15 @@ config:
       # This menu must exist so it can be exposed as a block component and used in our
       # default content.
       - system.menu.admin
-    # Import only the code components (JavaScriptComponent) config entities, not the corresponding Component config
-    # entities. Let those be auto-created, because the set of modules installed affects the generated
-    # `prop_field_definitions`.
-    xb_test_code_components:
-      - experience_builder.js_component.xb_test_code_components_using_imports
-      - experience_builder.js_component.xb_test_code_components_vanilla_image
-      - experience_builder.js_component.xb_test_code_components_with_no_props
-      - experience_builder.js_component.xb_test_code_components_with_props
+    # This module provides code component (JavaScriptComponent) config entities used by default content.
+    # TRICKY: just like all other types of components, code components get associated Component config
+    # entities. To provide a stable target for the default content (a predictable component_version), even
+    # after additional modules are installed that affects the Component config entities `prop_field_definitions`,
+    # but this Recipe does control what gets installed, so it is predictable. Installing modules that alter
+    # which field types are used to populate code component props would cause the component versions to change,
+    # but even that shouldn't break the default content included in this Recipe, because it'll just be pointing
+    # to "old" Component config entity versions.
+    xb_test_code_components: '*'
     # For the `field_xb_demo` field instance, populated by the default content in this recipe.
     xb_dev_standard:
       - field.storage.node.field_xb_demo

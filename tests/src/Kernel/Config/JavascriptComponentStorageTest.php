@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
@@ -43,6 +44,9 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     'options',
     'path',
     'link',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -52,6 +56,8 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installConfig(['system']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->installConfig(['experience_builder']);
   }
 
   /**

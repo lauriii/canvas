@@ -89,7 +89,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
         cardinality: $image_shape->cardinality,
         fieldWidget: 'media_library_widget',
         // @phpstan-ignore-next-line
-        fieldTypeProp: StructuredDataPropExpression::fromString("ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟alt,width↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟width,height↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟height}"),
+        fieldTypeProp: StructuredDataPropExpression::fromString("ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟alt,width↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟width,height↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟srcset_candidate_uri_template}"),
         fieldStorageSettings: [
           'target_type' => 'media',
         ],

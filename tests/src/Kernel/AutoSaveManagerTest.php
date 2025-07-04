@@ -80,6 +80,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     parent::setUp();
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
   }
 

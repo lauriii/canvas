@@ -67,6 +67,9 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     'datetime',
     'user',
     'xb_test_block',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -77,6 +80,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installSchema('user', 'users_data');
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
     // Set up a test user "bob"
     $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2]);

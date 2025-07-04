@@ -48,6 +48,9 @@ class ComponentTest extends KernelTestBase {
     'system',
     'user',
     'text',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -57,6 +60,7 @@ class ComponentTest extends KernelTestBase {
     parent::setUp();
     $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
     $this->repository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
+    $this->installConfig('experience_builder');
   }
 
   protected function midTestSetUp(): void {
@@ -109,12 +113,27 @@ class ComponentTest extends KernelTestBase {
     $this->assertArrayHasKey('sdc.experience_builder.image', $initial_components);
     $initial_component = $initial_components['sdc.experience_builder.image'];
     $this->assertSame('image', $initial_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    $initial_expected_version = 'a8c84fff36af8a5a';
+    $initial_expected_version = '3a3d5862c2731770';
     self::assertSame($initial_expected_version, $initial_component->getActiveVersion());
     self::assertSame([$initial_expected_version], $initial_component->getVersions());
-    self::assertSame(['module' => ['file', 'image']], $initial_component->getDependencies());
-    self::assertSame(['module' => ['file', 'image']], $initial_component->calculateDependencies()->getDependencies());
-    self::assertSame(['module' => ['file', 'image']], $initial_component->getVersionSpecificDependencies(VersionedConfigEntityInterface::ACTIVE_VERSION));
+    self::assertSame([
+      'config' => [
+        'image.style.xb_parametrized_width',
+      ],
+      'module' => ['file', 'image'],
+    ], $initial_component->getDependencies());
+    self::assertSame([
+      'config' => [
+        'image.style.xb_parametrized_width',
+      ],
+      'module' => ['file', 'image'],
+    ], $initial_component->calculateDependencies()->getDependencies());
+    self::assertSame([
+      'config' => [
+        'image.style.xb_parametrized_width',
+      ],
+      'module' => ['file', 'image'],
+    ], $initial_component->getVersionSpecificDependencies(VersionedConfigEntityInterface::ACTIVE_VERSION));
 
     // Then:
     // - uses `entity_reference` field type
@@ -125,11 +144,13 @@ class ComponentTest extends KernelTestBase {
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    $updated_expected_version = '02ac4f958c84990f';
-    self::assertSame('02ac4f958c84990f', $updated_component->getActiveVersion());
-    self::assertSame(['02ac4f958c84990f', 'a8c84fff36af8a5a'], $updated_component->getVersions());
+    $updated_expected_version = 'caab32397e0f3172';
+    self::assertSame('caab32397e0f3172', $updated_component->getActiveVersion());
+    self::assertSame(['caab32397e0f3172', '3a3d5862c2731770'], $updated_component->getVersions());
     self::assertSame([
       'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.xb_parametrized_width',
         'media.type.image',
       ],
       'module' => [
@@ -139,12 +160,20 @@ class ComponentTest extends KernelTestBase {
         'media_library',
       ],
     ], $updated_component->getDependencies());
-    self::assertSame(['module' => ['file', 'image']], $updated_component->getVersionSpecificDependencies($initial_expected_version));
     self::assertSame([
       'config' => [
+        'image.style.xb_parametrized_width',
+      ],
+      'module' => ['file', 'image'],
+    ], $updated_component->getVersionSpecificDependencies($initial_expected_version));
+    self::assertSame([
+      'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.xb_parametrized_width',
         'media.type.image',
       ],
       'module' => [
+        'file',
         'media',
         'media_library',
       ],
@@ -154,11 +183,13 @@ class ComponentTest extends KernelTestBase {
     // ::calculateDependencies() again causes ::getDependencies() to return only
     // the dependencies of THAT version. ⚠️
     self::assertTrue($updated_component->isLoadedVersionActiveVersion());
-    $updated_component->loadVersion('a8c84fff36af8a5a');
+    $updated_component->loadVersion('3a3d5862c2731770');
     self::assertFalse($updated_component->isLoadedVersionActiveVersion());
     $this->assertSame('image', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame([
       'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.xb_parametrized_width',
         'media.type.image',
       ],
       'module' => [
@@ -170,6 +201,8 @@ class ComponentTest extends KernelTestBase {
     ], $updated_component->getDependencies());
     self::assertSame([
       'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.xb_parametrized_width',
         'media.type.image',
       ],
       'module' => [
@@ -179,7 +212,7 @@ class ComponentTest extends KernelTestBase {
         'media_library',
       ],
     ], $updated_component->calculateDependencies()->getDependencies());
-    $updated_component->loadVersion('02ac4f958c84990f');
+    $updated_component->loadVersion('caab32397e0f3172');
     self::assertTrue($updated_component->isLoadedVersionActiveVersion());
 
     // Finally, because no component instances exist that use the old version,
@@ -195,13 +228,16 @@ class ComponentTest extends KernelTestBase {
     self::assertSame([$updated_expected_version], $updated_component->getVersions());
     self::assertSame([
       'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.xb_parametrized_width',
         'media.type.image',
       ],
-      'module' => ['media', 'media_library'],
+      'module' => ['file', 'media', 'media_library'],
     ], $updated_component->getDependencies());
   }
 
   public function testOperations(): void {
+    $this->installConfig('experience_builder');
     $list_builder = $this->container->get(EntityTypeManagerInterface::class)->getListBuilder(Component::ENTITY_TYPE_ID);
     \assert($list_builder instanceof EntityListBuilderInterface);
     $this->componentPluginManager->getDefinitions();

@@ -49,6 +49,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        deviceScaleFactor: 1,
         /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the preview canvas etc. */
         viewport: { width: 2560, height: 1440 },
       },
@@ -59,6 +60,7 @@ export default defineConfig({
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
+        deviceScaleFactor: 1,
         viewport: { width: 2560, height: 1440 },
       },
       dependencies: ['setup'],
@@ -68,6 +70,9 @@ export default defineConfig({
       name: 'webkit',
       use: {
         ...devices['Desktop Safari'],
+        // Explicitly set the device pixel ratio as webkit is 2 by default, and
+        // chromium and firefox are 1.
+        deviceScaleFactor: 1,
         viewport: { width: 2560, height: 1440 },
       },
       dependencies: ['setup'],

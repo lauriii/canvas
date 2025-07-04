@@ -24,7 +24,7 @@
                 {
                   "nodeType": "component",
                   "uuid": "static-image-udf7d",
-                  "type": "sdc.experience_builder.image@02ac4f958c84990f",
+                  "type": "sdc.experience_builder.image@caab32397e0f3172",
                   "slots": []
                 }
               ]
@@ -46,7 +46,7 @@
         {
           "nodeType": "component",
           "uuid": "static-image-static-imageStyle-something7d",
-          "type": "sdc.experience_builder.image@02ac4f958c84990f",
+          "type": "sdc.experience_builder.image@caab32397e0f3172",
           "slots": []
         },
         {
@@ -61,7 +61,7 @@
               "components": [
                 {
                   "nodeType": "component",
-                  "type": "sdc.experience_builder.my-section@02ac4f958c84990f",
+                  "type": "sdc.experience_builder.my-section@caab32397e0f3172",
                   "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
                   "slots": []
                 }

@@ -33,7 +33,7 @@ trait XBFieldTrait {
       self::TEST_IMAGE_UUID => $dynamic_image ? [
         'image' => [
           'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
         ],
       ] : [
         'image' => [
@@ -136,7 +136,7 @@ trait XBFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.experience_builder.image@02ac4f958c84990f',
+              'type' => 'sdc.experience_builder.image@caab32397e0f3172',
               'slots' => [],
             ],
             [
@@ -242,7 +242,7 @@ trait XBFieldTrait {
           'source' => [
             'image' => [
               'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             ],
           ],
         ] : [
@@ -258,7 +258,7 @@ trait XBFieldTrait {
             'image' => [
               'value' => (int) $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [

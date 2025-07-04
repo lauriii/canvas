@@ -41,6 +41,8 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
    */
   protected static $modules = [
     'node',
+    'ckeditor5',
+    'editor',
     'field',
     'filter',
     'text',
@@ -60,7 +62,10 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('filter');
+    $this->installConfig([
+      'experience_builder',
+      'filter',
+    ]);
     $this->installEntitySchema('user');
     $this->installEntitySchema('node_type');
     $this->installEntitySchema('node');
@@ -165,7 +170,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'inputs' => [
         'image' => [
           'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
+          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
         ],
       ],
     ]);
@@ -205,19 +210,32 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     self::assertSame([
       'module' => [
         'node',
+        'file',
         'node',
+        'file',
         'node',
+        'file',
         'node',
+        'file',
+        'node',
+        'file',
       ],
       'config' => [
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
+        'image.style.xb_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
+        'image.style.xb_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
+        'image.style.xb_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
+        'image.style.xb_parametrized_width',
+        'node.type.alpha',
+        'field.field.node.alpha.field_hero',
+        'image.style.xb_parametrized_width',
       ],
       'content' => [
         'file:file:' . $file_uuid,

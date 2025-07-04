@@ -1,9 +1,8 @@
-import { expect } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 import { exec, execDrush } from '../utilities/DrupalExec';
 import * as nodePath from 'node:path';
 import * as fs from 'node:fs';
 import { getModuleDir, getRootDir } from '../utilities/DrupalFilesystem';
-import { previewReady } from '../xbHelper';
 
 export class Drupal {
   readonly page: Page;
@@ -21,7 +20,12 @@ export class Drupal {
       value: encodeURIComponent(this.drupalSite.userAgent),
       url: this.drupalSite.url,
     };
-    await context.addCookies([simpletestCookie]);
+    const playwrightCookie = {
+      name: 'XB_PLAYWRIGHT',
+      value: 'true',
+      url: this.drupalSite.url,
+    };
+    await context.addCookies([simpletestCookie, playwrightCookie]);
   }
 
   hasDrush() {
@@ -53,6 +57,13 @@ export class Drupal {
     );
     await this.applyRecipe(
       `${moduleDir}/experience_builder/tests/fixtures/recipes/test_site`,
+    );
+  }
+
+  async setupMinimalXBTestSite() {
+    await this.installModules(['experience_builder']);
+    await this.drush(
+      "php-eval \"Drupal\\experience_builder\\Entity\\Page::create(['title' => 'Homepage', 'type' => 'xb_page', 'path' => ['alias' => '/homepage', 'langcode' => 'en']])->save();\"",
     );
   }
 
@@ -264,45 +275,63 @@ export class Drupal {
     );
   }
 
+  async addMedia(path: string, alt: string) {
+    await this.page
+      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
+      .first() // @todo shouldn't need this but XB is currently rendering two fields
+      .click();
+    await this.page
+      .locator(
+        'form[data-drupal-selector^="media-library-add-form-upload"] input[name="files[upload]"]',
+      )
+      .setInputFiles(nodePath.join(__dirname, path));
+
+    // It should be the following, but there's currently a bug where you can't enter alt text.
+    //await page.locator('input[name="media[0][fields][field_media_image][0][alt]"]').fill('A cute dog');
+    //await page.locator('.media-library-widget-modal button.form-submit').click();
+    await this.page
+      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
+      .evaluate((el, value) => {
+        el.value = value;
+      }, alt);
+    await this.page
+      .locator('.media-library-widget-modal button.form-submit')
+      .click();
+    await this.page
+      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
+      .evaluate((el) => {
+        el.setAttribute('aria-invalid', 'false');
+      });
+    await this.page
+      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
+      .evaluate((el, value) => {
+        el.value = value;
+      }, alt);
+    await this.page
+      .locator('.media-library-widget-modal button.form-submit')
+      .click();
+    // @todo select the item we just uploaded rather than the first.
+    await this.page
+      .locator(
+        '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
+      )
+      .first()
+      .setChecked(true, { force: true });
+    await this.page
+      .locator('.media-library-widget-modal button.form-submit')
+      .click();
+    await expect(
+      this.page.locator(
+        '[data-testid="xb-contextual-panel"] .js-media-library-item-preview img',
+      ),
+    ).toHaveAttribute('alt', alt);
+  }
+
   async getSettings() {
     const value = await this.page.evaluate(() => {
       return window.drupalSettings;
     });
     return value;
-  }
-
-  async getXBEditorPath() {
-    const bodyClass = await this.page.locator('body').getAttribute('class');
-    const hasXBPageClass = bodyClass?.includes('xb-page');
-    const drupalSettings = await this.getSettings();
-    if (hasXBPageClass) {
-      return `${drupalSettings.path.baseUrl}xb/xb_${drupalSettings.path.currentPath}`;
-    } else {
-      return `${drupalSettings.path.baseUrl}xb/${drupalSettings.path.currentPath}/editor`;
-    }
-  }
-
-  async waitForXBEditor() {
-    await expect(this.page.getByTestId('xb-contextual-panel')).toContainText(
-      'Title',
-      {
-        timeout: 15_000,
-      },
-    );
-    await expect(this.page.getByTestId('xb-primary-panel')).toContainText(
-      'Content',
-      {
-        timeout: 15_000,
-      },
-    );
-  }
-
-  async goToXBEditor() {
-    const path = await this.getXBEditorPath();
-    await this.page.goto(path);
-    await this.waitForXBEditor();
-    // Wait for the preview iframe and canvas to be ready
-    await previewReady(this.page);
   }
 
   normalizeAttribute(attribute: string) {

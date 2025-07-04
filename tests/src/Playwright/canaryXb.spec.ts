@@ -73,10 +73,10 @@ test.describe('Canary XB', () => {
     `);
   });
 
-  test('Experience Builder Layer Panel', async ({ page, drupal }) => {
+  test('Experience Builder Layer Panel', async ({ page, drupal, xBEditor }) => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
-    await drupal.goToXBEditor();
+    await xBEditor.goToEditor();
     const layerPanel = 'xpath=//*[@data-testid="xb-primary-panel"]';
     const layerPanelElement = await page.locator(layerPanel);
     await expect(layerPanelElement).toContainText('Two Column');

@@ -44,6 +44,16 @@ final class JavascriptComponentStorage extends XbAssetStorage {
     parent::doPostSave($entity, $update);
     \assert($entity instanceof JavascriptComponent);
     $this->activateBlockOverride($entity);
+    // @todo Fix upstream core bug in Recipes: it inconsistently claims to be
+    // syncing when installing modules, but not when installing configuration.
+    // Even though it is listed under `import`, and that should hence match the
+    // behavior of the /admin/config/development/configuration/single/import UI.
+    if (in_array('installRecipeConfig', array_column(debug_backtrace(), 'function'), TRUE)) {
+      // Assert the bug is still present. This will start failing as soon as the
+      // upstream bug is fixed.
+      assert(!$this->configInstaller->isSyncing());
+      return;
+    }
     if ($this->configInstaller->isSyncing()) {
       return;
     }

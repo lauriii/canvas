@@ -52,8 +52,8 @@ default:
       slot: column_one
       uuid: 348bfa10-af72-49cd-900b-084d617c87df
       component_id: sdc.experience_builder.image
-      component_version: 02ac4f958c84990f
-      inputs: '{"image":{"sourceType":"static:field_item:entity_reference","value":{"target_id":"1"},"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}}'
+      component_version: caab32397e0f3172
+      inputs: '{"image":{"sourceType":"static:field_item:entity_reference","value":{"target_id":"1"},"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one

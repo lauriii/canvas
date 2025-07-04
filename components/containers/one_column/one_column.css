@@ -2,7 +2,7 @@
   &.width-full {
     display: flex;
     overflow: visible;
-    flex-direction: row;
+    flex-direction: column;
     flex-wrap: nowrap;
     justify-content: space-between;
     width: 100vw;

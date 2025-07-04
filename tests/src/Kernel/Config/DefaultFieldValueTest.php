@@ -42,6 +42,9 @@ class DefaultFieldValueTest extends KernelTestBase {
     'options',
     'path',
     'media',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -49,6 +52,7 @@ class DefaultFieldValueTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');

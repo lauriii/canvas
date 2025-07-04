@@ -129,7 +129,7 @@ enum JsonSchemaType: string {
           'choices' => $schema['enum'],
         ], NULL),
         array_key_exists('pattern', $schema) && array_key_exists('format', $schema) => new DataTypeShapeRequirements([
-          JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
+          JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements($schema),
           // TRICKY: `pattern` in JSON schema requires no start/end delimiters,
           // but `preg_match()` in PHP does.
           // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
@@ -141,7 +141,7 @@ enum JsonSchemaType: string {
         // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
         // @see \Symfony\Component\Validator\Constraints\Regex
         array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/', $schema['pattern']) . '/']),
-        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements(),
+        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements($schema),
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To
         // ensure a good UX, Drupal interprets this as meaning "prose".
@@ -337,6 +337,9 @@ enum JsonSchemaType: string {
             'alt' => new FieldTypePropExpression('image', 'alt'),
             'width' => new FieldTypePropExpression('image', 'width'),
             'height' => new FieldTypePropExpression('image', 'height'),
+            // TRICKY: Additional computed property on image fields added by Experience Builder.
+            // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride
+            'srcSetCandidateTemplate' => new FieldTypePropExpression('image', 'srcset_candidate_uri_template'),
           ])),
           default => NULL,
         },

@@ -145,7 +145,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -283,7 +283,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
       'js.xb_test_code_components_vanilla_image' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_vanilla_image']),
+          ->setCacheTags([
+            'config:experience_builder.js_component.xb_test_code_components_vanilla_image',
+          ]),
         'attachments' => [
           'library' => [
             'experience_builder/astro_island.xb_test_code_components_vanilla_image',
@@ -520,13 +522,14 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
       ],
       'js.xb_test_code_components_vanilla_image' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+          'experience_builder.js_component.xb_test_code_components_vanilla_image',
+        ],
         'content' => [],
         'module' => [
           'file',
           'image',
-        ],
-        'config' => [
-          'experience_builder.js_component.xb_test_code_components_vanilla_image',
         ],
       ],
       'js.xb_test_code_components_with_no_props' => [
@@ -881,10 +884,16 @@ final class JsComponentTest extends ComponentSourceTestBase {
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
+                'srcsetCandidateTemplate' => [
+                  'type' => 'string',
+                  'title' => 'Image candidate string URL template for <img srcset>',
+                  'format' => 'uri-template',
+                  'x-required-variables' => ['width'],
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             'default_values' => [
               'source' => [],
               'resolved' => [

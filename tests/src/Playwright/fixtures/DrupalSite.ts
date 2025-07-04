@@ -1,6 +1,7 @@
 import { mergeTests } from '@playwright/test';
 import { test as base } from '@playwright/test';
 import { Drupal } from '../objects/Drupal';
+import { XBEditor } from '../objects/XBEditor';
 import { exec } from '../utilities/DrupalExec';
 import { hasDrush } from '../utilities/DrupalFilesystem';
 
@@ -63,6 +64,20 @@ const drupal = base.extend<DrupalObj>({
   ],
 });
 
+type XBEditorObj = {
+  xBEditor: XBEditor;
+};
+
+const xBEditor = base.extend<XBEditorObj>({
+  xBEditor: [
+    async ({ page }, use) => {
+      const xBEditor = new XBEditor({ page });
+      await use(xBEditor);
+    },
+    { auto: true },
+  ],
+});
+
 export const beforeAllTests = base.extend<{ forEachWorker: void }>({
   forEachWorker: [
     async ({ drupalSite }, use) => {
@@ -88,6 +103,7 @@ const beforeEachTest = base.extend<{ forEachTest: void }>({
 export const test = mergeTests(
   drupalSite,
   drupal,
+  xBEditor,
   beforeAllTests,
   beforeEachTest,
 );

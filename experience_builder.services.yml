@@ -85,6 +85,10 @@ services:
     class: Drupal\experience_builder\EventSubscriber\XbRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  experience_builder.image_style.route_alter:
+    class: Drupal\experience_builder\EventSubscriber\ImageStyleRoutesEventSubscriber
+    tags:
+      - { name: event_subscriber }
   Drupal\experience_builder\EventSubscriber\PreviewEnvelopeViewSubscriber: {}
   experience_builder.theme_negotiator.xb:
     class: Drupal\experience_builder\Theme\XBThemeNegotiator
@@ -105,6 +109,9 @@ services:
   Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer:
     tags:
       - { name: route_enhancer }
+  Drupal\experience_builder\Routing\ParametrizedImageStyleConverter:
+    tags:
+      - { name: paramconverter }
 
   # Access.
   Drupal\experience_builder\Access\XbHttpApiEligibleConfigEntityAccessCheck:

@@ -107,7 +107,9 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       'url' => FALSE,
     ],
     'float' => [],
-    'image' => [],
+    'image' => [
+      'srcset_candidate_uri_template' => FALSE,
+    ],
     'integer' => [],
     'link' => [
       // @todo Decide in https://www.drupal.org/project/experience_builder/issues/3512849 whether this is okay or not; if it is: document rationale here.

@@ -47,6 +47,9 @@ final class ContentTemplateTest extends KernelTestBase {
     'link',
     'file',
     'options',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -101,6 +104,7 @@ final class ContentTemplateTest extends KernelTestBase {
   public function testTreeKeyOrdering(): void {
     $this->installConfig('node');
     $this->createContentType(['type' => 'alpha']);
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
     $template = ContentTemplate::create([
       'content_entity_type_id' => 'node',

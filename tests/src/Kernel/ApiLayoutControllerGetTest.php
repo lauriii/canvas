@@ -308,7 +308,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.image@02ac4f958c84990f',
+                  'type' => 'sdc.experience_builder.image@caab32397e0f3172',
                   'name' => NULL,
                   'slots' => [],
                 ],
@@ -364,7 +364,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.image@02ac4f958c84990f',
+                  'type' => 'sdc.experience_builder.image@caab32397e0f3172',
                   'name' => 'Magnificent image!',
                   'slots' => [],
                 ],

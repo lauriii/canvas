@@ -137,19 +137,19 @@ class PropExpressionTest extends UnitTestCase {
       // Context: bundle of entity type, configurable field.
       ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
         [
-          'module' => ['node'],
+          'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
         [
-          'module' => ['node'],
+          'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
         [
-          'module' => ['node'],
+          'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image'],
         ],
       ],
@@ -168,7 +168,7 @@ class PropExpressionTest extends UnitTestCase {
       // representation.
       ['ℹ︎␜entity:node:article|news|product␝field_image|field_photo|field_product_packaging_photo␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article', 'product']), ['article' => 'field_image', 'news' => 'field_photo', 'product' => 'field_product_packaging_photo'], NULL, 'value'),
         [
-          'module' => ['node'],
+          'module' => ['node', 'file', 'file', 'file'],
           'config' => [
             'node.type.article',
             'node.type.news',
@@ -294,7 +294,7 @@ class PropExpressionTest extends UnitTestCase {
           'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
         ]),
         [
-          'module' => ['node', 'node'],
+          'module' => ['node', 'file', 'node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image', 'node.type.article', 'field.field.node.article.field_image'],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -354,7 +354,7 @@ class PropExpressionTest extends UnitTestCase {
           )
         ),
         [
-          'module' => ['image'],
+          'module' => ['image', 'file'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -386,7 +386,7 @@ class PropExpressionTest extends UnitTestCase {
           ),
         ),
         [
-          'module' => ['image'],
+          'module' => ['image', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -422,7 +422,7 @@ class PropExpressionTest extends UnitTestCase {
           'width' => new FieldTypePropExpression('image', 'width'),
         ]),
         [
-          'module' => ['image', 'image'],
+          'module' => ['image', 'file', 'image'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],

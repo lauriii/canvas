@@ -641,7 +641,7 @@ HTML,
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -655,7 +655,7 @@ HTML,
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -677,7 +677,7 @@ HTML,
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -691,7 +691,7 @@ HTML,
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -705,7 +705,7 @@ HTML,
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
       ],
@@ -844,6 +844,9 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-gallery' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
         'content' => [],
         'module' => [
           'core',
@@ -853,6 +856,9 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
         'content' => [],
         'module' => [
           'file',
@@ -861,6 +867,9 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
         'content' => [],
         'module' => [
           'core',
@@ -870,6 +879,9 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-optional-without-example' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
         'content' => [],
         'module' => [
           'file',
@@ -878,6 +890,9 @@ HTML,
         ],
       ],
       'sdc.xb_test_sdc.image-required-with-example' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
         'content' => [],
         'module' => [
           'file',
@@ -1091,11 +1106,17 @@ HTML,
                     'title' => 'Image height',
                     'type' => 'integer',
                   ],
+                  'srcsetCandidateTemplate' => [
+                    'type' => 'string',
+                    'title' => 'Image candidate string URL template for <img srcset>',
+                    'format' => 'uri-template',
+                    'x-required-variables' => ['width'],
+                  ],
                 ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             'sourceTypeSettings' => [
               'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
             ],
@@ -1160,10 +1181,16 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
+                'srcsetCandidateTemplate' => [
+                  'type' => 'string',
+                  'title' => 'Image candidate string URL template for <img srcset>',
+                  'format' => 'uri-template',
+                  'x-required-variables' => ['width'],
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1219,10 +1246,16 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
+                'srcsetCandidateTemplate' => [
+                  'type' => 'string',
+                  'title' => 'Image candidate string URL template for <img srcset>',
+                  'format' => 'uri-template',
+                  'x-required-variables' => ['width'],
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1268,10 +1301,16 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
+                'srcsetCandidateTemplate' => [
+                  'type' => 'string',
+                  'title' => 'Image candidate string URL template for <img srcset>',
+                  'format' => 'uri-template',
+                  'x-required-variables' => ['width'],
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
         'transforms' => [],
@@ -1310,10 +1349,16 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
+                'srcsetCandidateTemplate' => [
+                  'type' => 'string',
+                  'title' => 'Image candidate string URL template for <img srcset>',
+                  'format' => 'uri-template',
+                  'x-required-variables' => ['width'],
+                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1603,7 +1648,7 @@ HTML,
         'source' => [
           'image' => [
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
         ],
         'resolved' => [

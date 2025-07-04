@@ -45,8 +45,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
-    // Modules providing field types that the PropShapes are using.
+    // Modules providing field types and widgets that the PropShapes are using.
+    'ckeditor5',
     'datetime',
+    'editor',
     'image',
     'file',
     'filter',
@@ -61,10 +63,13 @@ class PropShapeRepositoryTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->container->get('theme_installer')->install(['stark']);
     // @see core/modules/system/config/install/core.date_format.html_date.yml
     // @see core/modules/system/config/install/core.date_format.html_datetime.yml
     // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeDefaultWidget::formElement()
     $this->installConfig(['system']);
+    // @see config/install/image.style.xb_parametrized_width.yml
+    $this->installConfig(['experience_builder']);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
   }
@@ -233,6 +238,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'alt' => new FieldTypePropExpression('image', 'alt'),
           'width' => new FieldTypePropExpression('image', 'width'),
           'height' => new FieldTypePropExpression('image', 'height'),
+          'srcSetCandidateTemplate' => new FieldTypePropExpression('image', 'srcset_candidate_uri_template'),
         ]),
         fieldWidget: 'image_image',
       ),
@@ -517,6 +523,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'alt' => new FieldTypePropExpression('image', 'alt'),
           'width' => new FieldTypePropExpression('image', 'width'),
           'height' => new FieldTypePropExpression('image', 'height'),
+          'srcSetCandidateTemplate' => new FieldTypePropExpression('image', 'srcset_candidate_uri_template'),
         ]),
         cardinality: 2,
         fieldWidget: 'image_image',

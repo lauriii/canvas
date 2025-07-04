@@ -104,7 +104,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
+        'componentType' => 'sdc.experience_builder.image@caab32397e0f3172',
       ],
     ];
     yield 'No such component in model' => [
@@ -112,7 +112,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
+        'componentType' => 'sdc.experience_builder.image@caab32397e0f3172',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
@@ -230,7 +230,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['source']['image']['value'] = $media->id();
     $updateImageClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.image@02ac4f958c84990f',
+      'componentType' => 'sdc.experience_builder.image@caab32397e0f3172',
       'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
     ] + $this->getPatchContentsDefaults([$node]);
     $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));

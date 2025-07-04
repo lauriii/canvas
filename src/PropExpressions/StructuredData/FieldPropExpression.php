@@ -149,7 +149,22 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
       $dependencies['config'][] = $config->getConfigDependencyName();
     }
 
-    return $dependencies;
+    // Calculate dependencies from the field item and its properties.
+    $field_item_class = $field_definition->getItemDefinition()->getClass();
+    assert(is_subclass_of($field_item_class, FieldItemInterface::class));
+    $instance_deps = $field_item_class::calculateDependencies($field_definition);
+    $storage_deps = $field_item_class::calculateStorageDependencies($field_definition->getFieldStorageDefinition());
+    $dependencies = NestedArray::mergeDeep(
+      $dependencies,
+      $instance_deps,
+      $storage_deps,
+    );
+    ksort($dependencies);
+    return array_map(static function ($values) {
+      $values = array_unique($values);
+      sort($values);
+      return $values;
+    }, $dependencies);
   }
 
   public function withDelta(int $delta): static {

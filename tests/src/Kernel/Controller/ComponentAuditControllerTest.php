@@ -59,6 +59,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
+    // Experience Builder configuration (creates the global AssetLibrary).
+    $this->installConfig('experience_builder');
     $this->generateComponentConfig();
 
     $this->container->get('theme_installer')->install(['stark']);
@@ -71,8 +73,6 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
-    // Experience Builder configuration (creates the global AssetLibrary).
-    $this->installConfig('experience_builder');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $this->createContentType(['name' => 'Article', 'type' => 'article']);

@@ -23,8 +23,16 @@ abstract class EcosystemSupportTestBase extends KernelTestBase {
   protected static $modules = [
     'system',
     'user',
+    'filter',
+    'ckeditor5',
+    'editor',
     'experience_builder',
   ];
+
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installConfig('experience_builder');
+  }
 
   public static function getUninstalledStableModulesWithPlugin(string $plugin_type_subdir): array {
     return array_keys(array_filter(

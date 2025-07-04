@@ -1,6 +1,5 @@
 import { test } from './fixtures/DrupalSite';
 import { expect } from '@playwright/test';
-import { openLibraryPanel } from './xbHelper';
 
 /**
  * This test suite checks that the Experience Builder UI shows/hides UI interface based on the permissions of users
@@ -11,12 +10,13 @@ test.describe('XB UI Permissions', () => {
   test('User with admin permissions can load XB UI and see lots of buttons', async ({
     page,
     drupal,
+    xBEditor,
   }) => {
     // Create a role with no permissions
     await drupal.setupXBTestSite();
     await drupal.loginAsAdmin();
     await page.goto('/first');
-    await drupal.goToXBEditor();
+    await xBEditor.goToEditor();
     await page.getByText('Two Column').click({ button: 'right' });
 
     const menu = page.getByRole('menu', {
@@ -52,7 +52,7 @@ test.describe('XB UI Permissions', () => {
     await page.locator('body').click(); // Dismiss the context menu
     await expect(contextMenu).not.toBeAttached();
 
-    await openLibraryPanel(page);
+    await xBEditor.openLibraryPanel();
     // Check that a button with the text "Add new" exists inside xb-primary-panel
     const primaryPanel = page.getByTestId('xb-primary-panel');
     await expect(
@@ -73,6 +73,7 @@ test.describe('XB UI Permissions', () => {
   test('User with no XB permissions can load XB UI', async ({
     page,
     drupal,
+    xBEditor,
   }) => {
     // Create a role with no (well, minimal) XB permissions
     await drupal.setupXBTestSite();
@@ -99,7 +100,7 @@ test.describe('XB UI Permissions', () => {
     await drupal.createUser(user);
     await drupal.login(user);
     await page.goto('/first');
-    await drupal.goToXBEditor();
+    await xBEditor.goToEditor();
 
     await page.getByText('Two Column').click({ button: 'right' });
     const menu = page.getByRole('menu', {
@@ -143,7 +144,7 @@ test.describe('XB UI Permissions', () => {
     await expect(contextMenu).not.toBeAttached();
 
     // Open the library panel
-    await openLibraryPanel(page);
+    await xBEditor.openLibraryPanel();
 
     // Check that a button with the text "Add new" does not exist inside xb-primary-panel
     const primaryPanel = page.getByTestId('xb-primary-panel');

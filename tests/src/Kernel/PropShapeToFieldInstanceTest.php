@@ -55,6 +55,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     'file',
     'image',
     'media',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -67,6 +70,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('media');
     $this->installEntitySchema('file');
+    $this->installConfig('experience_builder');
   }
 
   /**
@@ -290,9 +294,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:image␟image',
           ],
-          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           'instances' => [
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
           'adapter_matches_field_type' => [
             'image_apply_style' => [
@@ -301,7 +305,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
               'imageStyle' => NULL,
             ],
             'image_url_rel_to_abs' => [
-              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             ],
           ],
           'adapter_matches_instance' => [
@@ -310,7 +314,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
               'imageStyle' => [],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}'],
             ],
           ],
         ],
@@ -460,7 +464,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY',
           ],
-          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -845,9 +849,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image',
           ],
-          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+          'static prop source' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           'instances' => [
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
           'adapter_matches_field_type' => [
             'image_apply_style' => [
@@ -855,7 +859,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
               'imageStyle' => NULL,
             ],
             'image_url_rel_to_abs' => [
-              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+              'image' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
             ],
           ],
           'adapter_matches_instance' => [
@@ -864,7 +868,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
               'imageStyle' => [],
             ],
             'image_url_rel_to_abs' => [
-              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}'],
+              'image' => ['ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}'],
             ],
           ],
         ],

@@ -108,6 +108,9 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     'block',
     'datetime',
     'user',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -122,6 +125,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $this->renderer = $this->container->get(RendererInterface::class);
     $this->installEntitySchema('user');
     $this->installSchema('user', 'users_data');
+    $this->installConfig('experience_builder');
   }
 
   /**

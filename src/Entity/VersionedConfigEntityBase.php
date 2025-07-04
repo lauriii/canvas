@@ -153,7 +153,23 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    */
   public function set($property_name, $value) {
     if (!$this->isLoadedVersionActiveVersion() && !$this->isSyncing()) {
-      throw new \LogicException('Can only set values on the active version');
+      if (array_key_exists($this->getLoadedVersion(), $this->versioned_properties)) {
+        throw new \LogicException('Can only set values on the active version');
+      }
+      else {
+        // 💡Nobody should see this day-to-day, but while developing XB this
+        // helps pinpoint problems.
+        assert(!$this->isNew());
+        // @phpstan-ignore-next-line
+        $original_versions = $this->load($this->id())->getVersions();
+        throw new \LogicException(sprintf(
+          'Version history wipe detected! Original, %d version: [%s]. New, %d versions: [%s]. This is only possible if it was overwritten by a config install using ConfigEntityStorageInterface::updateFromStorageRecord(), typically through module installation.',
+          count($original_versions),
+          implode(', ', $original_versions),
+          count($this->getVersions()),
+          implode(', ', $this->getVersions()),
+        ));
+      }
     }
 
     // Not a versioned property: default logic.

@@ -8,7 +8,11 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 /**
  * Implements hook_install().
  */
-function experience_builder_install(): void {
+function experience_builder_install(bool $is_syncing): void {
+  if ($is_syncing) {
+    // Don't perform any actions if config is being synced.
+    return;
+  }
   // Ensure xb_stark is installed for the semi-coupled theme engine.
   // @see \Drupal\experience_builder\Theme\XBThemeNegotiator
   // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()

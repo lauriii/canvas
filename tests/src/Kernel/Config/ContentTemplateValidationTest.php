@@ -56,6 +56,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     'node',
     'options',
     'text',
+    'filter',
+    'ckeditor5',
+    'editor',
   ];
 
   /**
@@ -87,6 +90,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     $this->installEntitySchema('node');
     $this->installConfig('node');
+    $this->installConfig('experience_builder');
     $this->createContentType(['type' => 'alpha']);
     FieldStorageConfig::create([
       'field_name' => 'field_test',
@@ -333,14 +337,14 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '7240f848-ea70-4ad2-a9d6-3ab60cba4d78',
           'component_id' => 'sdc.experience_builder.image',
-          'component_version' => 'a8c84fff36af8a5a',
+          'component_version' => '3a3d5862c2731770',
           'inputs' => [
             'image' => [
               'sourceType' => 'adapter:image_apply_style',
               'adapterInputs' => [
                 'image' => [
                   'sourceType' => 'dynamic',
-                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
                 ],
                 'imageStyle' => [
                   'sourceType' => 'static:field_item:string',

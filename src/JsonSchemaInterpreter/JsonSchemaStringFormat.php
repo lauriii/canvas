@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\JsonSchemaInterpreter;
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\experience_builder\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
@@ -19,6 +20,9 @@ use Symfony\Component\Validator\Constraints\Ip;
 /**
  * @see https://json-schema.org/understanding-json-schema/reference/string#format
  * @see https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
+ *
+ * @phpstan-type JsonSchema array<string, mixed>
+ * @internal
  */
 enum JsonSchemaStringFormat: string {
   // Dates and times.
@@ -62,7 +66,11 @@ enum JsonSchemaStringFormat: string {
   // Regular expressions.
   case REGEX = 'regex'; // Since draft 7, ECMA262.
 
-  public function toDataTypeShapeRequirements(): DataTypeShapeRequirement {
+  /**
+   * @param JsonSchema $schema
+   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
+   */
+  public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement {
     return match($this) {
       // Built-in formats: dates and times.
       // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
@@ -97,7 +105,10 @@ enum JsonSchemaStringFormat: string {
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
-      static::URI_TEMPLATE => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
+      static::URI_TEMPLATE => match(array_key_exists('x-required-variables', $schema)) {
+        TRUE => new DataTypeShapeRequirement(UriTemplateWithVariablesConstraint::PLUGIN_ID, ['requiredVariables' => $schema['x-required-variables']]),
+        default => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
+      },
 
       // Built-in formats: JSON Pointer.
       // @see https://json-schema.org/understanding-json-schema/reference/string#json-pointer

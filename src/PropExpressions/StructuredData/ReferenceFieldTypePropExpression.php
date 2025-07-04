@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -52,7 +53,7 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
         ),
       ];
     }
-    return $dependencies;
+    return NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
   }
 
   public static function fromString(string $representation): static {
