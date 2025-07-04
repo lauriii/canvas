@@ -22,6 +22,15 @@ function xb_test_field_access_entity_field_access(string $operation, FieldDefini
       reason: 'You do not have permission to edit this field.'
     )->cachePerPermissions();
   }
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() == 'title'
+    && $operation == 'edit'
+  ) {
+    return AccessResult::forbiddenIf(
+      condition: !$account->hasPermission('edit xb page components'),
+      reason: 'You do not have permission to edit this field.'
+    )->cachePerPermissions();
+  }
 
   return AccessResult::neutral();
 }

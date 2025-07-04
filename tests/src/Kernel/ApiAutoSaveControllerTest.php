@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
@@ -58,6 +59,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    */
   protected static $modules = [
     'system',
+    'path_alias',
+    'path',
     'test_user_config',
   ];
 
@@ -67,6 +70,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig('system');
+    $this->installEntitySchema('path_alias');
     (new XBTestSetup())->setup();
   }
 
@@ -428,6 +432,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ]);
+    $node2->set('path', '/llama');
     $autoSave->saveEntity($node2);
 
     $code_component->set('name', 'New name');
@@ -660,6 +665,18 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertNotNull($page->id());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())->label());
 
+    // Try publishing something with a field change that we don't have access to.
+    $this->container->get('module_installer')->install(['xb_test_field_access']);
+    try {
+      $this->makePublishAllRequest();
+      $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
+    }
+    catch (CacheableAccessDeniedHttpException $exception) {
+      // Access denied as expected, the title listed must be the new one.
+      $this->assertSame('Unable to update field title for entity "The updated title.".', $exception->getMessage());
+    }
+    $this->container->get('module_installer')->uninstall(['xb_test_field_access']);
+
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -677,6 +694,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'status' => '1',
       ]
     );
+
+    // Cache tag invalidations require event subscribers to reach instantiated
+    // services. But this kernel test instantiated storages disconnected from
+    // the container. So: re-retrieve the storages completely anew.
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
+    $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
+    $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
+    $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
 
     $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());

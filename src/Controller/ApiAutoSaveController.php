@@ -10,9 +10,11 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -195,6 +197,39 @@ final class ApiAutoSaveController extends ApiControllerBase {
       else {
         assert($entity instanceof ContentEntityInterface);
 
+        $fields = $entity->getFieldDefinitions();
+        $entity_definition = $entity->getEntityType();
+        assert($entity_definition instanceof ContentEntityTypeInterface);
+        assert(!is_null($entity->id()));
+        $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
+        assert($original_entity instanceof FieldableEntityInterface);
+        foreach ($fields as $field_name => $field) {
+          $field_access = $entity->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
+          $original_field = $original_entity->get($field_name);
+
+          // We ignore those fields that didn't change. We also need to ignore
+          // field access for computed fields, because there
+          // is nothing to set, and some fields that will always deny access.
+          // We are protected because the entity validation will trigger errors
+          // if those were changed in an unexpected way.
+          // Status and published will be TRUE when publishing.
+          $ignore_field = $field->isComputed() || $original_field->equals($entity->get($field_name));
+          $keys = ['id', 'revision_id', 'uuid', 'langcode', 'status', 'published'];
+          $revision_keys = ['revision_created', 'revision_user'];
+          foreach ($keys as $key) {
+            $ignore_field |= $field_name === $entity_definition->getKey($key);
+          }
+          foreach ($revision_keys as $revision_key) {
+            $ignore_field |= $field_name === $entity_definition->getRevisionMetadataKey($revision_key);
+          }
+          if (!$ignore_field && $field_access->isForbidden()) {
+            throw new CacheableAccessDeniedHttpException(
+              (new CacheableMetadata())->addCacheableDependency($field_access),
+              sprintf('Unable to update field %s for entity "%s".', $field_name, $entity->label()),
+            );
+          }
+        }
+
         $use_existing_revision_id = AutoSaveManager::contentEntityIsConsideredNew($entity);
 
         if ($entity instanceof EntityPublishedInterface) {
@@ -209,7 +244,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         else {
           // Reset the revision ID.
           $entity->setNewRevision();
-          $revision_id_key = $entity->getEntityType()->getKey('revision');
+          $revision_id_key = $entity_definition->getKey('revision');
           \assert(\is_string($revision_id_key));
           $entity->set($revision_id_key, NULL);
         }
