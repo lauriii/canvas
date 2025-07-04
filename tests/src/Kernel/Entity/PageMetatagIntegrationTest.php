@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Entity;
 
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\EntityFormController;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\file\Entity\File;
@@ -12,6 +13,7 @@ use Drupal\media\Entity\Media;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @group experience_builder
@@ -151,7 +153,7 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
       'components' => [],
     ]);
     self::assertSaveWithoutViolations($page);
-    $sut = new EntityFormController();
+    $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class));
     $form = $sut->form(Page::ENTITY_TYPE_ID, $page, 'default');
     self::assertArrayHasKey('image', $form['seo_settings']);
     self::assertArrayHasKey('description', $form['seo_settings']);

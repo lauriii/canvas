@@ -154,6 +154,18 @@ describe('Multivalue widget drag and drop', () => {
     ]);
     confirmWeightSelectCount(4);
 
+    // Reloading should re-instate the previous form values.
+    cy.reload();
+    cy.previewReady();
+    confirmTextInputs([
+      'Marshmallow Coast',
+      'The Olivia Tremor Control',
+      'Neutral Milk Hotel',
+      'The Music Tapes',
+      // Reloading should append a new empty item.
+      '',
+    ]);
+
     // Ensure the drop target is in the viewport.
     cy.get('@unlimited-text').findAllByRole('textbox').eq(0).scrollIntoView();
     cy.get(
@@ -169,19 +181,20 @@ describe('Multivalue widget drag and drop', () => {
       'The Olivia Tremor Control',
       'The Music Tapes',
       'Neutral Milk Hotel',
+      '',
     ]);
-    confirmWeightSelectCount(4);
+    confirmWeightSelectCount(5);
 
     cy.findByText('Hide row weights').should('not.exist');
     cy.findByText('Show row weights').click();
     cy.findByText('Hide row weights').should('exist');
 
-    confirmWeightSelectCount(4, true);
+    confirmWeightSelectCount(5, true);
 
     cy.get('@unlimited-text')
       .get('[title="Change order"]')
       .should(($handles) => {
-        expect($handles).to.have.length(4);
+        expect($handles).to.have.length(5);
         $handles.each((index, handle) => {
           expect(
             Cypress.$(handle).is(':visible'),
