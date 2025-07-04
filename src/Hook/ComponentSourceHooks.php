@@ -111,7 +111,7 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
   #[Hook('js_settings_build')]
   public function jsSettingsBuild(array &$settings, AttachedAssetsInterface $assets): void {
     if (isset($settings[CodeComponentDataProvider::XB_DATA_KEY])) {
-      $settings[CodeComponentDataProvider::XB_DATA_KEY] = $this->codeComponentDataProvider->getPartialXbDataFromSettingsV0($settings);
+      $settings = $this->codeComponentDataProvider->getPartialXbDataFromSettingsV0($settings);
     }
   }
 

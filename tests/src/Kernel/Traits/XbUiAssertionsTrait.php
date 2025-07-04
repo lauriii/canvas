@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Traits;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\experience_builder\CodeComponentDataProvider;
 
 trait XbUiAssertionsTrait {
 
@@ -26,6 +27,18 @@ trait XbUiAssertionsTrait {
     self::assertEquals($entity_type, $this->drupalSettings['xb']['entityType']);
     self::assertEquals($entity_id, $this->drupalSettings['xb']['entity']);
     self::assertEquals($entity_type_keys, $this->drupalSettings['xb']['entityTypeKeys']);
+
+    // `drupalSettings.xbData.v0` must be unconditionally present: in case the
+    // user starts creating/editing code components.
+    self::assertArrayHasKey(CodeComponentDataProvider::XB_DATA_KEY, $this->drupalSettings);
+    self::assertArrayHasKey(CodeComponentDataProvider::V0, $this->drupalSettings[CodeComponentDataProvider::XB_DATA_KEY]);
+    self::assertSame([
+      'baseUrl',
+      'branding',
+      'breadcrumbs',
+      'pageTitle',
+    ], array_keys($this->drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]));
+    self::assertSame('This is a page title for testing purposes', $this->drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]['pageTitle']);
   }
 
 }

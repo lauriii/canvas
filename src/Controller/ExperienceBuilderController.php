@@ -110,6 +110,12 @@ HTML;
         'experience_builder/xb-ui',
         'experience_builder/extensions',
         ...$this->getTransformAssetLibraries(),
+        // `drupalSettings.xbData.v0` must be unconditionally present: in case
+        // the user starts creating/editing code components.
+        // This is also how draft/auto-save code components ensure all "xb data"
+        // is always available.
+        // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
+        'experience_builder/xbData.v0',
       ],
       'drupalSettings' => [
         'xb' => [
@@ -136,6 +142,25 @@ HTML;
             'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
           ],
           'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
+        ],
+        // Override actual `xbData` with dummy data for code component editor
+        // development purposes.
+        'xbData' => [
+          'v0' => [
+            'pageTitle' => 'This is a page title for testing purposes',
+            'breadcrumbs' => [
+              0 => [
+                'key' => '<front>',
+                'text' => 'Home',
+                'url' => \base_path(),
+              ],
+              1 => [
+                'key' => 'user.page',
+                'text' => 'My account',
+                'url' => \base_path() . 'user',
+              ],
+            ],
+          ],
         ],
       ],
       // Note: the tokens here are under our control, and this accepts no user

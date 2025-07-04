@@ -33,20 +33,6 @@ readonly final class CodeComponentDataProvider {
   ) {}
 
   /**
-   * Builds version 0 of the xbData array.
-   *
-   * @return array[]
-   */
-  public function getDrupalSettingsV0(): array {
-    return array_replace_recursive(
-      $this->getXbDataBaseUrlV0(),
-      $this->getXbDataBrandingV0(),
-      $this->getXbDataBreadcrumbsV0(),
-      $this->getXbDataPageTitleV0(),
-    );
-  }
-
-  /**
    * Returns the BaseUrl for V0 of drupalSettings.xbData.
    *
    * @return array[]
@@ -167,19 +153,28 @@ readonly final class CodeComponentDataProvider {
    */
   public function getPartialXbDataFromSettingsV0(array $settings): array {
     $xbData = [];
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['branding'])) {
-      $xbData = array_replace_recursive($xbData, $this->getXbDataBrandingV0());
-    }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['baseUrl'])) {
+
+    // Detect if the `experience_builder/xbData.v0` catch-all asset library is
+    // attached, which is used for both draft/auto-save components and the code
+    // component editor.
+    // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
+    $all_data = array_key_exists(self::V0, $settings[self::XB_DATA_KEY]) && $settings[self::XB_DATA_KEY][self::V0] === NULL;
+    if (isset($settings[self::XB_DATA_KEY][self::V0]['baseUrl']) || $all_data) {
       $xbData = array_replace_recursive($xbData, $this->getXbDataBaseUrlV0());
     }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['breadcrumbs'])) {
+    if (isset($settings[self::XB_DATA_KEY][self::V0]['branding']) || $all_data) {
+      $xbData = array_replace_recursive($xbData, $this->getXbDataBrandingV0());
+    }
+    if (isset($settings[self::XB_DATA_KEY][self::V0]['breadcrumbs']) || $all_data) {
       $xbData = array_replace_recursive($xbData, $this->getXbDataBreadcrumbsV0());
     }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['pageTitle'])) {
+    if (isset($settings[self::XB_DATA_KEY][self::V0]['pageTitle']) || $all_data) {
       $xbData = array_replace_recursive($xbData, $this->getXbDataPageTitleV0());
     }
-    return $xbData;
+    if (!empty($xbData)) {
+      $settings[self::XB_DATA_KEY] = $xbData;
+    }
+    return $settings;
   }
 
 }
