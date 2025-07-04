@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
 import type { XBComponent } from '@/types/Component';
-import type { Section } from '@/types/Section';
+import type { Pattern } from '@/types/Pattern';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 interface ComponentPreviewProps {
-  componentListItem: XBComponent | Section;
+  componentListItem: XBComponent | Pattern;
 }
 
 const drupalSettings = getDrupalSettings();

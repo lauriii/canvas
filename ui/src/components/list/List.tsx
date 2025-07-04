@@ -7,16 +7,16 @@ import { Box, Callout, Flex, Skeleton } from '@radix-ui/themes';
 import clsx from 'clsx';
 import ListItem from '@/components/list/ListItem';
 import type { ComponentsList } from '@/types/Component';
-import type { SectionsList } from '@/types/Section';
+import type { PatternsList } from '@/types/Pattern';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 
 export interface ListProps {
-  items: ComponentsList | SectionsList | undefined;
+  items: ComponentsList | PatternsList | undefined;
   isLoading: boolean;
   type:
     | LayoutItemType.COMPONENT
-    | LayoutItemType.SECTION
+    | LayoutItemType.PATTERN
     | LayoutItemType.DYNAMIC;
   label: string;
 }

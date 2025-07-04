@@ -51,7 +51,7 @@ const iconMap: PageType = {
   Page: <FileIcon />,
   ContentType: <StackIcon />,
   ComponentName: <CodeIcon />,
-  GlobalSectionName: <SectionIcon />,
+  GlobalPatternName: <SectionIcon />,
 };
 
 const xbSettings = getXbSettings();

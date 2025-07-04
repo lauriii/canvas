@@ -416,7 +416,7 @@ paths:
       description: TODO
       responses:
         '200':
-          description: Collection of Sections/Patterns
+          description: Collection of Patterns
           content:
             application/json:
               schema:
@@ -429,14 +429,14 @@ paths:
     post:
       description: TODO
       requestBody:
-        description: Create new Pattern/Section.
+        description: Create new Pattern.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/NewPattern'
             examples:
-              example with one section:
-                name: Section
+              example with one pattern:
+                name: Pattern
                 layout:
                   -
                     uuid: 0b755464-281c-4487-82a0-ece34a9b1121
@@ -457,11 +457,11 @@ paths:
                         expression: 'ℹ︎string␟value'
       responses:
         '201':
-          description: Successful save of Section/Pattern
+          description: Successful save of Pattern
           content:
             application/json:
               examples:
-                mySectionPattern:
+                myPattern:
                   value:
                     layoutModel:
                       layout:
@@ -475,8 +475,8 @@ paths:
                             Our mission is to deliver the best products and
                             services to our customers. We strive to exceed
                             expectations and continuously improve our offerings.
-                    name: Section
-                    id: section
+                    name: Pattern
+                    id: pattern
                     default_markup: >-
                       <!-- xb-start-0b755464-281c-4487-82a0-ece34a9b1121 --><div
                       class="my-section__wrapper">
@@ -502,7 +502,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PatternPreview'
         '409':
-          description: Section/Pattern with same ID already exists.
+          description: Pattern with same ID already exists.
           $ref: '#/components/responses/ClientErrorResponse'
         '422':
           description: Validation errors exist
@@ -515,7 +515,7 @@ paths:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: Individual Section/Pattern
+          description: Individual Pattern
           content:
             application/json:
               schema:
@@ -523,7 +523,7 @@ paths:
     patch:
       description: TODO
       requestBody:
-        description: Update specific Pattern/Section.
+        description: Update specific Pattern.
         required: true
         content:
           application/json:
@@ -533,18 +533,18 @@ paths:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: Individual Section/Pattern
+          description: Individual Pattern
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PatternPreview'
     delete:
-      description: Deletes a Section/Pattern.
+      description: Deletes a Pattern.
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '204':
-          description: Deleted individual Section/Pattern.
+          description: Deleted individual Pattern.
   /xb/api/v0/config/segment:
     description: Endpoint for managing Personalization Segments.
     get:
@@ -1959,7 +1959,7 @@ components:
           additionalProperties: false
         name:
           type: string
-          description: Human-readable Pattern/Section label
+          description: Human-readable Pattern label
         id:
           type: string
           description: The ID (possibly auto-generated from the given name).
@@ -1981,7 +1981,7 @@ components:
           description: The ID — if none is provided, this will be auto-generated from the given name.
         name:
           type: string
-          description: Human-readable Pattern/Section label
+          description: Human-readable Pattern label
         layout:
           type: array
           items:

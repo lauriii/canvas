@@ -4,22 +4,22 @@ import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch } from '@/app/hooks';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
-import type { Section } from '@/types/Section';
+import type { Pattern } from '@/types/Pattern';
 
-const SectionNode: React.FC<{
-  section: Section;
+const PatternNode: React.FC<{
+  pattern: Pattern;
   onMenuOpenChange: (open: boolean) => void;
   disabled: boolean;
 }> = (props) => {
-  const { section, onMenuOpenChange, disabled } = props;
+  const { pattern, onMenuOpenChange, disabled } = props;
   const dispatch = useAppDispatch();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     dispatch(
       setDialogWithDataOpen({
-        operation: 'deleteSectionConfirm',
-        data: section,
+        operation: 'deletePatternConfirm',
+        data: pattern,
       }),
     );
   };
@@ -31,11 +31,11 @@ const SectionNode: React.FC<{
   );
 
   return (
-    <ContextMenu.Root key={section.id} onOpenChange={onMenuOpenChange}>
+    <ContextMenu.Root key={pattern.id} onOpenChange={onMenuOpenChange}>
       <ContextMenu.Trigger>
         <SidebarNode
-          title={section.name}
-          variant="section"
+          title={pattern.name}
+          variant="pattern"
           disabled={disabled}
           dropdownMenuContent={
             <UnifiedMenu.Content menuType="dropdown">
@@ -57,4 +57,4 @@ const SectionNode: React.FC<{
   );
 };
 
-export default SectionNode;
+export default PatternNode;

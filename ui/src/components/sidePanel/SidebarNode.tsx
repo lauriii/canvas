@@ -23,7 +23,7 @@ const VARIANTS = {
   dynamicComponent: { icon: <ComponentBooleanIcon /> },
   page: { icon: <FileIcon /> },
   region: { icon: <CubeIcon /> },
-  section: { icon: <SectionIcon /> },
+  pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
 } as const;
 

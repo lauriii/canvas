@@ -118,12 +118,12 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                             disabled={!selection.consecutive}
                             onClick={() =>
                               alert(
-                                'Save as Section functionality will be implemented later',
+                                'Save as Pattern functionality will be implemented later',
                               )
                             }
                             className="xb-button"
                           >
-                            Save as Section
+                            Save as Pattern
                           </Button>
                         </Flex>
                         {!selection.consecutive && (

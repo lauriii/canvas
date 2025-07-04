@@ -253,9 +253,9 @@ See:
 - `\Drupal\experience_builder\Entity\Pattern`
 
 A `Pattern config entity` can be created by Ambitious Site Builders to accelerate the work of Content Creators: it
-contains a common `component` composition pattern, exposed as a "section" in the user interface.
+contains a common `component` composition pattern.
 
-When using a "section" (reusing a `Pattern config entity`), the `component tree` it contains at the time of using it is
+When using a pattern (reusing a `Pattern config entity`), the `component tree` it contains at the time of using it is
 _absorbed_ into the place where it is being used in an `XB field`. Hence any changes to a `Pattern config entity` will
 only be visible in any subsequent uses of it. (Similar to how Drupal Recipes behave.)
 

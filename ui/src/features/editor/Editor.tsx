@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
-import SectionDialogs from '@/features/section/SectionDialogs';
+import PatternDialogs from '@/features/pattern/PatternDialogs';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import styles from './Editor.module.css';
@@ -49,7 +49,7 @@ const Editor = () => {
       <Canvas />
       <ContextualPanel />
       <div className={styles.absoluteContainer}>
-        <SectionDialogs />
+        <PatternDialogs />
         <CodeComponentDialogs />
         <ExtensionDialog />
       </div>

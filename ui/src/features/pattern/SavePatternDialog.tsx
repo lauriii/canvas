@@ -13,7 +13,7 @@ import {
   findComponentByUuid,
   recurseNodes,
 } from '@/features/layout/layoutUtils';
-import { useSaveSectionMutation } from '@/services/sections';
+import { useSavePatternMutation } from '@/services/patterns';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { SerializedError } from '@reduxjs/toolkit';
 import useGetComponentName from '@/hooks/useGetComponentName';
@@ -41,25 +41,25 @@ function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
   }
 }
 
-const SaveSectionDialog: React.FC = () => {
-  const { saveAsSection } = useAppSelector(selectDialogOpen);
+const SavePatternDialog: React.FC = () => {
+  const { saveAsPattern } = useAppSelector(selectDialogOpen);
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
   const selectedNode = findComponentByUuid(layout, selectedComponent || '');
   const selectedComponentName = useGetComponentName(selectedNode);
-  const [sectionName, setSectionName] = useState('My section');
+  const [patternName, setPatternName] = useState('My pattern');
   const [
-    saveSection,
+    savePattern,
     { isLoading: isSaving, isSuccess, isError, error, reset },
-  ] = useSaveSectionMutation();
+  ] = useSavePatternMutation();
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
       open
-        ? dispatch(setDialogOpen('saveAsSection'))
-        : dispatch(setDialogClosed('saveAsSection'));
+        ? dispatch(setDialogOpen('saveAsPattern'))
+        : dispatch(setDialogClosed('saveAsPattern'));
       if (!open) {
         reset();
       }
@@ -69,7 +69,7 @@ const SaveSectionDialog: React.FC = () => {
 
   useEffect(() => {
     if (selectedComponent) {
-      setSectionName(`${selectedComponentName} section`);
+      setPatternName(`${selectedComponentName} pattern`);
     }
   }, [model, selectedComponent, selectedComponentName]);
 
@@ -92,20 +92,20 @@ const SaveSectionDialog: React.FC = () => {
       }
     });
 
-    saveSection({
+    savePattern({
       layout: [thisNode],
       model: modelsToSave,
-      name: sectionName,
+      name: patternName,
     });
-  }, [layout, model, saveSection, selectedComponent, sectionName]);
+  }, [layout, model, savePattern, selectedComponent, patternName]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSectionName(event.target.value);
+    setPatternName(event.target.value);
   };
 
   useEffect(() => {
     if (isSuccess) {
-      dispatch(setDialogClosed('saveAsSection'));
+      dispatch(setDialogClosed('saveAsPattern'));
     }
     if (isError) {
       console.error('Save failed', error);
@@ -118,14 +118,14 @@ const SaveSectionDialog: React.FC = () => {
 
   return (
     <Dialog
-      open={saveAsSection}
+      open={saveAsPattern}
       onOpenChange={handleOpenChange}
-      title="Add new section"
-      description={`Saving this configuration of "${selectedComponentName}" as a section allows it to be used again later and customized there without affecting other copies.`}
+      title="Add new pattern"
+      description={`Saving this configuration of "${selectedComponentName}" as a pattern allows it to be used again later and customized there without affecting other copies.`}
       error={
         isError
           ? {
-              title: 'Failed to save section',
+              title: 'Failed to save pattern',
               message: getErrorMessage(error),
               resetButtonText: 'Try again',
               onReset: handleSaveClick,
@@ -136,21 +136,21 @@ const SaveSectionDialog: React.FC = () => {
         cancelText: 'Cancel',
         confirmText: 'Add to library',
         onConfirm: handleSaveClick,
-        isConfirmDisabled: !sectionName.trim(),
+        isConfirmDisabled: !patternName.trim(),
         isConfirmLoading: isSaving,
       }}
     >
       <Flex direction="column" gap="2">
         <label>
-          <DialogFieldLabel htmlFor={'sectionName'}>
-            Section name
+          <DialogFieldLabel htmlFor={'patternName'}>
+            Pattern name
           </DialogFieldLabel>
           <TextField.Root
-            value={sectionName}
+            value={patternName}
             onChange={handleInputChange}
             placeholder="Enter a name"
-            id="sectionName"
-            name="sectionName"
+            id="patternName"
+            name="patternName"
             size="1"
           />
         </label>
@@ -159,4 +159,4 @@ const SaveSectionDialog: React.FC = () => {
   );
 };
 
-export default SaveSectionDialog;
+export default SavePatternDialog;

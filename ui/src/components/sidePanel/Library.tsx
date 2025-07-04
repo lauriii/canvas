@@ -4,7 +4,7 @@ import {
   AccordionDetails,
 } from '@/components/form/components/Accordion';
 import ComponentList from '@/components/list/ComponentList';
-import SectionList from '@/components/list/SectionList';
+import PatternList from '@/components/list/PatternList';
 import CodeComponentList from '@/features/code-editor/CodeComponentList';
 import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -38,14 +38,14 @@ const Library = () => {
       </Flex>
       <AccordionRoot value={openItems} onValueChange={() => setOpenLayoutItem}>
         <AccordionDetails
-          value={LayoutItemType.SECTION}
-          title="Sections"
-          onTriggerClick={() => onClickHandler(LayoutItemType.SECTION)}
+          value={LayoutItemType.PATTERN}
+          title="Patterns"
+          onTriggerClick={() => onClickHandler(LayoutItemType.PATTERN)}
           className={styles.accordionDetails}
           triggerClassName={styles.accordionDetailsTrigger}
         >
-          <ErrorBoundary title="An unexpected error has occurred while fetching sections.">
-            <SectionList />
+          <ErrorBoundary title="An unexpected error has occurred while fetching patterns.">
+            <PatternList />
           </ErrorBoundary>
         </AccordionDetails>
         <AccordionDetails

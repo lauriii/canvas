@@ -87,10 +87,10 @@ test.describe('Canary XB', () => {
           - img
         - button "Add new":
           - img
-        - button "Sections" [expanded]
-        - region "Sections":
+        - button "Patterns" [expanded]
+        - region "Patterns":
           - img
-          - paragraph: No items to show in Sections
+          - paragraph: No items to show in Patterns
         - button "Components" [expanded]
         - region "Components":
           - list:

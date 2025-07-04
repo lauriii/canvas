@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { XBComponent, JSComponent } from '@/types/Component';
-import type { Section } from '@/types/Section';
+import type { Pattern } from '@/types/Pattern';
 import { useState } from 'react';
 import clsx from 'clsx';
 import styles from '@/components/list/List.module.css';
@@ -9,7 +9,7 @@ import { Theme } from '@radix-ui/themes';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import {
   addNewComponentToLayout,
-  addNewSectionToLayout,
+  addNewPatternToLayout,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -19,15 +19,15 @@ import useComponentSelection from '@/hooks/useComponentSelection';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useDraggable } from '@dnd-kit/core';
-import SectionNode from '@/components/list/SectionNode';
+import PatternNode from '@/components/list/PatternNode';
 import { useParams } from 'react-router';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 
 const ListItem: React.FC<{
-  item: XBComponent | Section;
+  item: XBComponent | Pattern;
   type:
     | LayoutItemType.COMPONENT
-    | LayoutItemType.SECTION
+    | LayoutItemType.PATTERN
     | LayoutItemType.DYNAMIC;
 }> = (props) => {
   const { item, type } = props;
@@ -35,7 +35,7 @@ const ListItem: React.FC<{
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const layout = useAppSelector(selectLayout);
   const [previewingComponent, setPreviewingComponent] = useState<
-    XBComponent | Section
+    XBComponent | Pattern
   >();
   const {
     componentId: selectedComponent,
@@ -73,12 +73,12 @@ const ListItem: React.FC<{
             setSelectedComponent,
           ),
         );
-      } else if (type === 'section') {
+      } else if (type === 'pattern') {
         dispatch(
-          addNewSectionToLayout(
+          addNewPatternToLayout(
             {
               to: newPath,
-              layoutModel: (item as Section).layoutModel,
+              layoutModel: (item as Pattern).layoutModel,
             },
             setSelectedComponent,
           ),
@@ -87,17 +87,17 @@ const ListItem: React.FC<{
     }
   };
 
-  const handleMouseEnter = (component: XBComponent | Section) => {
+  const handleMouseEnter = (component: XBComponent | Pattern) => {
     if (!isMenuOpen) {
       setPreviewingComponent(component);
     }
   };
 
   const renderItem = () => {
-    if (type === 'section') {
+    if (type === 'pattern') {
       return (
-        <SectionNode
-          section={item as Section}
+        <PatternNode
+          pattern={item as Pattern}
           onMenuOpenChange={setIsMenuOpen}
           disabled={isDragging}
         />

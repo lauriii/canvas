@@ -1,4 +1,4 @@
-describe('Can save and load sections', () => {
+describe('Can save and load patterns', () => {
   before(() => {
     cy.drupalXbInstall();
   });
@@ -13,7 +13,7 @@ describe('Can save and load sections', () => {
   });
 
   it(
-    'Can create and add section',
+    'Can create and add pattern',
     // This test is as flaky as a croissant, give it 3 goes before failing the
     // whole build to save the DA some 💰️.
     { retries: { openMode: 0, runMode: 3 } },
@@ -24,7 +24,7 @@ describe('Can save and load sections', () => {
         .findByLabelText('Two Column')
         .realClick({ position: 'bottomRight' });
       cy.log(
-        'Save the entire node 1 layout as a section, so it can be added to a different node.',
+        'Save the entire node 1 layout as a pattern, so it can be added to a different node.',
       );
 
       // First remove the two image components because they will otherwise crash
@@ -44,32 +44,32 @@ describe('Can save and load sections', () => {
       cy.findByText('Delete').click();
       cy.waitForComponentNotInPreview('Image');
 
-      cy.clickOptionInContextMenuInLayers('Two Column', 0, 'Create section');
+      cy.clickOptionInContextMenuInLayers('Two Column', 0, 'Create pattern');
 
-      const sectionName = 'The Entire Node 1';
-      cy.findByLabelText('Section name').should(
+      const patternName = 'The Entire Node 1';
+      cy.findByLabelText('Pattern name').should(
         'have.value',
-        'Two Column section',
+        'Two Column pattern',
       );
 
-      cy.findByLabelText('Section name').click();
-      cy.findByLabelText('Section name').clear();
-      cy.findByLabelText('Section name').should('have.value', '');
-      cy.findByLabelText('Section name').type(`${sectionName}`);
-      cy.findByLabelText('Section name').should('have.value', sectionName);
+      cy.findByLabelText('Pattern name').click();
+      cy.findByLabelText('Pattern name').clear();
+      cy.findByLabelText('Pattern name').should('have.value', '');
+      cy.findByLabelText('Pattern name').type(`${patternName}`);
+      cy.findByLabelText('Pattern name').should('have.value', patternName);
 
       cy.findByText('Add to library').click();
       // The dialog should close
-      cy.findByLabelText('Section name').should('not.exist');
+      cy.findByLabelText('Pattern name').should('not.exist');
 
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').within(() => {
-        cy.findByText('Sections').click();
-        cy.findByText(sectionName).should('exist');
+        cy.findByText('Patterns').click();
+        cy.findByText(patternName).should('exist');
       });
       cy.get('.primaryPanelContent')
         .as('panel')
-        .should('contain.text', sectionName);
+        .should('contain.text', patternName);
 
       cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
       cy.get('#edit-title-0-value').should('exist');
@@ -90,22 +90,22 @@ describe('Can save and load sections', () => {
         '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.my-hero"]',
       ).should('have.length', 1);
 
-      // Add the section that was created earlier in this test.
+      // Add the pattern that was created earlier in this test.
       cy.openLibraryPanel();
-      cy.findByText('Sections').click();
+      cy.findByText('Patterns').click();
 
       cy.get('.primaryPanelContent').within(() => {
-        cy.findByText(sectionName).should('exist');
-        cy.findByText(sectionName).click();
+        cy.findByText(patternName).should('exist');
+        cy.findByText(patternName).click();
       });
 
-      // After adding the section, there should be four Hero components.
+      // After adding the pattern, there should be four Hero components.
       cy.get(
         '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.my-hero"]',
         { timeout: 10000 },
       ).should('have.length', 4);
 
-      // The Two Column component that is the top level element of the section
+      // The Two Column component that is the top level element of the pattern
       // should be the currently selected layer.
       cy.openLayersPanel();
       cy.findByTestId('xb-primary-panel').within(() => {

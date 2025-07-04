@@ -74,18 +74,18 @@ describe.skip('Component slots functionality', () => {
     cy.findByLabelText('Open add menu').click();
     cy.findByText('Default components').click();
 
-    cy.log('Drag a new Section from the component list into column 2');
+    cy.log('Drag a new Pattern from the component list into column 2');
     cy.getIframeBody()
       .findByText('This is column 2 content')
       .parent()
       .then(($dropTarget) => {
         cy.get('.MenubarSubContent').within(() => {
-          cy.findByText('Section').realDnd($dropTarget, { position: 'center' });
+          cy.findByText('Pattern').realDnd($dropTarget, { position: 'center' });
         });
       });
 
     cy.log(
-      'The default content in the 2nd slot of the 2nd Two Column component should now have been replaced with the Section component that was dragged from the component list which has default text of "Our Mission".',
+      'The default content in the 2nd slot of the 2nd Two Column component should now have been replaced with the Pattern component that was dragged from the component list which has default text of "Our Mission".',
     );
     cy.waitForElementContentNotInIframe('div', 'This is column 1 content');
     cy.waitForElementContentNotInIframe('div', 'This is column 2 content');

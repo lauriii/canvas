@@ -178,7 +178,7 @@ Cypress.Commands.add('drupalInstallModule', (modules, force, callback) => {
   cy.drupalLoginAsAdmin(() => {
     cy.drupalRelativeURL('/admin/modules');
 
-    // Open any collapsed sections in the modules page.
+    // Open any collapsed patterns in the modules page.
     cy.get(
       '[data-drupal-selector="system-modules"] > details > summary[aria-expanded="false"][aria-controls^="edit-modules"]',
     ).then(($closedDetails) => {

@@ -1,6 +1,6 @@
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 
-export interface Section {
+export interface Pattern {
   layoutModel: LayoutModelPiece;
   name: string;
   id: string;
@@ -10,7 +10,7 @@ export interface Section {
   js_footer: string;
 }
 
-// Type for the API response, an object keyed by section ID
-export interface SectionsList {
-  [key: string]: Section;
+// Type for the API response, an object keyed by pattern ID
+export interface PatternsList {
+  [key: string]: Pattern;
 }

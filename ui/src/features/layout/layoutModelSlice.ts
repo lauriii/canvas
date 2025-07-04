@@ -115,7 +115,7 @@ type AddNewNodePayload = {
   component: XBComponent;
 };
 
-type AddNewSectionPayload = {
+type AddNewPatternPayload = {
   to: number[] | undefined;
   layoutModel: LayoutModelPiece;
 };
@@ -497,8 +497,8 @@ export const addNewComponentToLayout =
     setSelectedComponent(uuid, updatedLayout);
   };
 
-export const addNewSectionToLayout =
-  (payload: AddNewSectionPayload, setSelectedComponent: Function): AppThunk =>
+export const addNewPatternToLayout =
+  (payload: AddNewPatternPayload, setSelectedComponent: Function): AppThunk =>
   (dispatch, getState) => {
     const uuid = uuidv4();
 
@@ -569,7 +569,7 @@ export const selectLayoutForRegion = createSelector(
 // can use it.
 const layoutUtils = {
   addNewComponentToLayout,
-  addNewSectionToLayout,
+  addNewPatternToLayout,
   selectLayoutForRegion,
 };
 setXbDrupalSetting('layoutUtils', layoutUtils);

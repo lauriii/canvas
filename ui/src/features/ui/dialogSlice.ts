@@ -1,26 +1,26 @@
 import { createAppSlice } from '@/app/createAppSlice';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { Section } from '@/types/Section';
+import type { Pattern } from '@/types/Pattern';
 
 export interface DialogSliceState {
-  saveAsSection: boolean;
+  saveAsPattern: boolean;
   extension: boolean;
-  deleteSectionConfirm: {
+  deletePatternConfirm: {
     open: boolean;
-    data: Section | {};
+    data: Pattern | {};
   };
 }
 
 const initialState: DialogSliceState = {
-  saveAsSection: false,
+  saveAsPattern: false,
   extension: false,
-  deleteSectionConfirm: {
+  deletePatternConfirm: {
     open: false,
     data: {},
   },
 };
 
-type UpdateDialogPayload = keyof Omit<DialogSliceState, 'deleteSectionConfirm'>;
+type UpdateDialogPayload = keyof Omit<DialogSliceState, 'deletePatternConfirm'>;
 
 type UpdateDialogWithDataPayload = {
   operation: keyof Omit<DialogSliceState, UpdateDialogPayload>;

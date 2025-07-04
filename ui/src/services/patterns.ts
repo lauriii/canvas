@@ -2,44 +2,44 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
-import type { SectionsList } from '@/types/Section';
+import type { PatternsList } from '@/types/Pattern';
 
-interface SaveSectionData extends LayoutModelPiece {
+interface SavePatternData extends LayoutModelPiece {
   name: string;
 }
 
 // Define a service using a base URL and expected endpoints
-export const sectionApi = createApi({
-  reducerPath: 'sectionsApi',
+export const patternApi = createApi({
+  reducerPath: 'patternsApi',
   baseQuery,
-  tagTypes: ['Sections'],
+  tagTypes: ['Patterns'],
   endpoints: (builder) => ({
-    getSections: builder.query<SectionsList, void>({
+    getPatterns: builder.query<PatternsList, void>({
       query: () => `/xb/api/v0/config/pattern`,
-      providesTags: () => [{ type: 'Sections', id: 'LIST' }],
+      providesTags: () => [{ type: 'Patterns', id: 'LIST' }],
     }),
-    saveSection: builder.mutation<{ html: string }, SaveSectionData>({
+    savePattern: builder.mutation<{ html: string }, SavePatternData>({
       query: (body) => ({
         url: '/xb/api/v0/config/pattern',
         method: 'POST',
         body,
       }),
-      invalidatesTags: () => [{ type: 'Sections', id: 'LIST' }],
+      invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
     }),
-    deleteSection: builder.mutation<void, string>({
+    deletePattern: builder.mutation<void, string>({
       query: (id) => ({
         url: `/xb/api/v0/config/pattern/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: () => [{ type: 'Sections', id: 'LIST' }],
+      invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
     }),
   }),
 });
 
-// Export hooks for usage in functional sections, which are
+// Export hooks for usage in functional patterns, which are
 // auto-generated based on the defined endpoints
 export const {
-  useGetSectionsQuery,
-  useSaveSectionMutation,
-  useDeleteSectionMutation,
-} = sectionApi;
+  useGetPatternsQuery,
+  useSavePatternMutation,
+  useDeletePatternMutation,
+} = patternApi;

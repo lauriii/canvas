@@ -66,8 +66,8 @@ export const Default: Story = {
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
-        title="Section"
-        variant="section"
+        title="Pattern"
+        variant="pattern"
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
@@ -112,8 +112,8 @@ export const Hovered: Story = {
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
-        title="Section"
-        variant="section"
+        title="Pattern"
+        variant="pattern"
         hovered
         dropdownMenuContent={dropdownMenuContent}
       />
@@ -162,8 +162,8 @@ export const Selected: Story = {
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
-        title="Section"
-        variant="section"
+        title="Pattern"
+        variant="pattern"
         selected
         dropdownMenuContent={dropdownMenuContent}
       />
@@ -214,8 +214,8 @@ export const SelectedAndHovered: Story = {
         dropdownMenuContent={dropdownMenuContent}
       />
       <SidebarNode
-        title="Section"
-        variant="section"
+        title="Pattern"
+        variant="pattern"
         selected
         hovered
         dropdownMenuContent={dropdownMenuContent}

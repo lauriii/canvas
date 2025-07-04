@@ -214,8 +214,8 @@ final class ComponentAuditController {
     return $this->createConfigTable(
       $component,
       Pattern::ENTITY_TYPE_ID,
-      $this->t('Section usages'),
-      $this->t('No sections usage detected.'),
+      $this->t('Pattern usages'),
+      $this->t('No patterns usage detected.'),
       $headers,
       function (Pattern $pattern): array {
         $row = [];

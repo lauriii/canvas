@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import List from '@/components/list/List';
-import { useGetSectionsQuery } from '@/services/sections';
+import { useGetPatternsQuery } from '@/services/patterns';
 import {
   LayoutItemType,
   selectUniqueListId,
 } from '@/features/ui/primaryPanelSlice';
 import { useAppSelector } from '@/app/hooks';
 
-const SectionList = () => {
-  const { data: sections, error, isLoading } = useGetSectionsQuery();
+const PatternList = () => {
+  const { data: patterns, error, isLoading } = useGetPatternsQuery();
   const { showBoundary } = useErrorBoundary();
   const id = useAppSelector(selectUniqueListId);
 
@@ -21,13 +21,13 @@ const SectionList = () => {
 
   return (
     <List
-      items={sections}
+      items={patterns}
       isLoading={isLoading}
-      type={LayoutItemType.SECTION}
-      label="Sections"
+      type={LayoutItemType.PATTERN}
+      label="Patterns"
       key={id}
     />
   );
 };
 
-export default SectionList;
+export default PatternList;

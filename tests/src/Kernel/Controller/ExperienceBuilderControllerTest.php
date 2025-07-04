@@ -213,7 +213,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ],
         [
           'globalRegions' => FALSE,
-          'sections' => FALSE,
+          'patterns' => FALSE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -227,7 +227,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ],
         [
           'globalRegions' => FALSE,
-          'sections' => FALSE,
+          'patterns' => FALSE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => TRUE,
@@ -241,7 +241,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ],
         [
           'globalRegions' => TRUE,
-          'sections' => TRUE,
+          'patterns' => TRUE,
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -256,7 +256,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ],
         [
           'globalRegions' => TRUE,
-          'sections' => TRUE,
+          'patterns' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
@@ -273,7 +273,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
         ],
         [
           'globalRegions' => TRUE,
-          'sections' => TRUE,
+          'patterns' => TRUE,
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
           'publishChanges' => TRUE,

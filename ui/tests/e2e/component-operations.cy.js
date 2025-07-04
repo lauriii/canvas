@@ -150,7 +150,7 @@ describe('Perform CRUD operations on components', () => {
           'Heading',
           'Image',
           'Hero',
-          'Section',
+          'Pattern',
           'One Column',
           'Shoe Badge',
           'Shoe Icon',

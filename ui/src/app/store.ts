@@ -29,7 +29,7 @@ import {
 import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
-import { sectionApi } from '@/services/sections';
+import { patternApi } from '@/services/patterns';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
@@ -125,7 +125,7 @@ const rootReducer = combineSlices(
       'pageData',
     ),
   },
-  sectionApi,
+  patternApi,
   assetLibraryApi,
   componentAndLayoutApi,
   previewApi,
@@ -193,7 +193,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     // and other useful features of `rtk-query`.
     middleware: (getDefaultMiddleware) => {
       return getDefaultMiddleware().concat(
-        sectionApi.middleware,
+        patternApi.middleware,
         assetLibraryApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,

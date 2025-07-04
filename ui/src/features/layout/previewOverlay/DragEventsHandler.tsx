@@ -19,7 +19,7 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addNewComponentToLayout,
-  addNewSectionToLayout,
+  addNewPatternToLayout,
   moveNode,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
@@ -34,7 +34,7 @@ import {
 } from '@/features/ui/uiSlice';
 import _ from 'lodash';
 import useComponentSelection from '@/hooks/useComponentSelection';
-import type { Section } from '@/types/Section';
+import type { Pattern } from '@/types/Pattern';
 import clsx from 'clsx';
 
 const DragEventsHandler: React.FC = () => {
@@ -184,12 +184,12 @@ const DragEventsHandler: React.FC = () => {
             setSelectedComponent,
           ),
         );
-      } else if (type === 'section') {
+      } else if (type === 'pattern') {
         dispatch(
-          addNewSectionToLayout(
+          addNewPatternToLayout(
             {
               to: dropPath,
-              layoutModel: (newItem as Section).layoutModel,
+              layoutModel: (newItem as Pattern).layoutModel,
             },
             setSelectedComponent,
           ),

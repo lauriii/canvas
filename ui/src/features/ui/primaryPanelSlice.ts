@@ -9,7 +9,7 @@ export interface PrimaryPanelState {
 }
 
 export enum LayoutItemType {
-  SECTION = 'section',
+  PATTERN = 'pattern',
   COMPONENT = 'component',
   DYNAMIC = 'dynamicComponent',
   CODE = 'code',

@@ -130,7 +130,7 @@ HTML;
           'xbModulePath' => $xb_module_path,
           'permissions' => [
             'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
-            'sections' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
+            'patterns' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
             'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
             'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
             'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),

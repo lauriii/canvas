@@ -121,13 +121,13 @@ export const ComponentContextMenuContent: React.FC<
     [dispatch, componentUuid],
   );
 
-  const handleCreateSectionClick = useCallback(
+  const handleCreatePatternClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
       e.stopPropagation();
       if (componentUuid !== selectedComponent) {
         setSelectedComponent(componentUuid);
       }
-      dispatch(setDialogOpen('saveAsSection'));
+      dispatch(setDialogOpen('saveAsPattern'));
     },
     [componentUuid, dispatch, selectedComponent, setSelectedComponent],
   );
@@ -187,8 +187,8 @@ export const ComponentContextMenuContent: React.FC<
         Paste
       </UnifiedMenu.Item>
       <UnifiedMenu.Separator />
-      <UnifiedMenu.Item onClick={handleCreateSectionClick}>
-        Create section
+      <UnifiedMenu.Item onClick={handleCreatePatternClick}>
+        Create pattern
       </UnifiedMenu.Item>
       <UnifiedMenu.Separator />
 
