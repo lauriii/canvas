@@ -3,6 +3,7 @@ import { exec, execDrush } from '../utilities/DrupalExec';
 import * as nodePath from 'node:path';
 import * as fs from 'node:fs';
 import { getModuleDir, getRootDir } from '../utilities/DrupalFilesystem';
+import type { DrupalSite } from '../fixtures/DrupalSite';
 
 export class Drupal {
   readonly page: Page;
@@ -286,30 +287,16 @@ export class Drupal {
       )
       .setInputFiles(nodePath.join(__dirname, path));
 
-    // It should be the following, but there's currently a bug where you can't enter alt text.
-    //await page.locator('input[name="media[0][fields][field_media_image][0][alt]"]').fill('A cute dog');
-    //await page.locator('.media-library-widget-modal button.form-submit').click();
+    // It should be possible to set the alt text with the following, but there's currently a bug
+    // await this.page.getByLabel('Alternative text').fill('A cute dog');
+    // instead we use the evaluate method to set the value directly.
     await this.page
       .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
-      .evaluate((el, value) => {
+      .evaluate((el: HTMLInputElement, value) => {
         el.value = value;
       }, alt);
-    await this.page
-      .locator('.media-library-widget-modal button.form-submit')
-      .click();
-    await this.page
-      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
-      .evaluate((el) => {
-        el.setAttribute('aria-invalid', 'false');
-      });
-    await this.page
-      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
-      .evaluate((el, value) => {
-        el.value = value;
-      }, alt);
-    await this.page
-      .locator('.media-library-widget-modal button.form-submit')
-      .click();
+
+    await this.page.getByRole('button', { name: 'Save', exact: true }).click();
     // @todo select the item we just uploaded rather than the first.
     await this.page
       .locator(
@@ -318,7 +305,7 @@ export class Drupal {
       .first()
       .setChecked(true, { force: true });
     await this.page
-      .locator('.media-library-widget-modal button.form-submit')
+      .getByRole('button', { name: 'Insert selected', exact: true })
       .click();
     await expect(
       this.page.locator(

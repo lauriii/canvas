@@ -26,7 +26,7 @@ test.describe('Responsive Image', () => {
       'A cute dog',
     );
     await page.waitForFunction(() => {
-      const frame = document.querySelector(
+      const frame: HTMLIFrameElement = document.querySelector(
         '[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]',
       );
       const img = frame?.contentWindow.document.querySelector('img.image');
@@ -61,7 +61,9 @@ test.describe('Responsive Image', () => {
     await previewIframe.locator('img.image').waitFor({ state: 'attached' });
     await page.waitForLoadState('networkidle');
     const src = previewIframe.locator('img.image');
-    const currentSrc = await src.evaluate((image) => image.currentSrc);
+    const currentSrc = await src.evaluate(
+      (image: HTMLImageElement) => image.currentSrc,
+    );
     await expect(currentSrc).toContain('gracie');
     await expect(currentSrc).toContain('/styles/xb_parametrized_width--');
   });

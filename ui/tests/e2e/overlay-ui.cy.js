@@ -23,6 +23,7 @@ describe('Experience Builder overlay UI interactions', () => {
       cy.log(
         'Selecting a "parent" component should show its label, but not the label(s) of its children',
       );
+      cy.findByTestId('scale-to-fit').click();
       cy.get('@desktopPreviewOverlay').within(() => {
         // For perf. reasons we only ever render one name tag at a time - because the name tag relies on checking
         // lots of global state e.g. hoveredComponent or isDragging - having a lot of rendered but invisible nameTags is bad.

@@ -5,7 +5,7 @@ import { XBEditor } from '../objects/XBEditor';
 import { exec } from '../utilities/DrupalExec';
 import { hasDrush } from '../utilities/DrupalFilesystem';
 
-type DrupalSite = {
+export type DrupalSite = {
   dbPrefix: string;
   userAgent: string;
   sitePath: string;
