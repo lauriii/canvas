@@ -50,7 +50,6 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   public function testEntityAccessRequired(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
     ]);
 
@@ -158,7 +157,6 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
    */
   public function test(bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
@@ -344,7 +342,6 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   public function testWithoutPageRegionPermission(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       'edit any article content',
     ]);

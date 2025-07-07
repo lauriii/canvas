@@ -13,6 +13,7 @@ use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -54,8 +55,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
-      'access administration pages',
       'administer themes',
+      Page::EDIT_PERMISSION,
       Component::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
@@ -118,11 +119,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     $pattern->save();
     // Get the pattern list the XB HTTP API should not return unpublished ones.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled pattern from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'config:experience_builder.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:experience_builder.pattern.disabled_pattern', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -229,11 +230,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame([], $body);
 
     // Create a Pattern via the XB HTTP API, correctly: 201.
@@ -399,12 +400,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/pattern/nested'), [], 204, NULL, NULL, NULL, NULL);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'user.roles:authenticated', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
     // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme', 'user.roles:authenticated'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:experience_builder.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_individual_body_normalization = $expected_pattern_normalization;
     $expected_individual_body_normalization['js_footer'] = str_replace('xb\/api\/config\/pattern', 'xb\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
     $this->assertSame($expected_individual_body_normalization, $individual_body);
@@ -452,7 +453,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame($expected_individual_body_normalization, $body);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'user.roles:authenticated', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:experience_builder.component.sdc.xb_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
@@ -461,7 +462,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     Pattern::load('testpatternpleaseignore')?->disable()->save();
     // Assert that it no longer shows in the list.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, [
-      'user.roles:authenticated',
+      'user.permissions',
     ], [
       'config:pattern_list',
       'http_response',
@@ -509,7 +510,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $jsComponent->save();
     // Get the Code Components list via the XB HTTP API should return
     // unpublished ones too.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'disabled_js_component' => [
         'machineName' => 'disabled_js_component',
@@ -530,7 +531,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
     $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/disabled_js_component');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'user.roles:authenticated'], ['config:experience_builder.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       'machineName' => 'disabled_js_component',
       'name' => 'Disabled JavaScript Component',
@@ -683,11 +684,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame([], $body);
 
     $dependency_component = JavaScriptComponent::create([
@@ -843,7 +844,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Admin should be able to get the Code Component from the XB HTTP API.
     $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/test');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'user.roles:authenticated'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_component, $body);
 
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
@@ -933,7 +934,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
-      'user.roles:authenticated',
     ], [
       'config:js_component_list',
       'http_response',
@@ -1029,7 +1029,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
-      'user.roles:authenticated',
     ], [
       'config:js_component_list',
       'http_response',
@@ -1075,7 +1074,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertCurrentAutoSave(404, NULL, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
     $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/js_component/test'), [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);
@@ -1117,11 +1116,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $library->save();
     // Get the Asset Libraries list via the XB HTTP API should not return
     // unpublished ones.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:xb_asset_library_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Admin should not be able to get disabled Asset Library from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 403, ['user.permissions'], ['4xx-response', 'config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [''],
     ], $body);
@@ -1203,7 +1202,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Admin should be able to get the Asset Library from the XB HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.roles:authenticated'], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:experience_builder.xb_asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($asset_library_to_send, $body);
 
     // Cannot delete the global library.
@@ -1214,16 +1213,16 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
     // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.roles:authenticated'], ['4xx-response', 'http_response'], 'MISS', NULL);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
     $this->assertSame([
       'errors' => [
-        "This route can only be accessed by authenticated users.",
+        'Requires >=1 content entity type with an XB field that can be created or edited.',
       ],
     ], $body);
 
     // Authenticated & authorized: 200, but empty list.
     $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
     // Send a POST request without the CSRF token.

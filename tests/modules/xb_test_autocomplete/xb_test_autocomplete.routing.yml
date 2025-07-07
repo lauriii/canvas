@@ -3,4 +3,4 @@ some.autocomplete.results:
   defaults:
     _controller: '\Drupal\xb_test_autocomplete\Controller\AutocompleteController::result'
   requirements:
-    _permission: 'access administration pages'
+    _xb_ui_access: 'TRUE'

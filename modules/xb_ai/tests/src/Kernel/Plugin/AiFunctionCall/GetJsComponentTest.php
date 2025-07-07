@@ -33,6 +33,8 @@ final class GetJsComponentTest extends KernelTestBase {
   protected static $modules = [
     'ai',
     'ai_agents',
+    'media',
+    'path',
     'experience_builder',
     'system',
     'user',
@@ -45,8 +47,8 @@ final class GetJsComponentTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
-    // Needs a logged-in user to access components.
-    $this->setUpCurrentUser([], []);
+    // Needs access to XB, permission to create code components is enough.
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION]);
   }
 
   /**

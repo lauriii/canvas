@@ -48,7 +48,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     (new XBTestSetup())->setup();
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
@@ -57,7 +56,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function testEntityAccessRequired(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
     ]);
 
@@ -79,7 +77,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function testNonEditAccessFieldsFiltered(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       'edit any article content',
     ]);
@@ -497,7 +494,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function testWithoutPageRegionPermission(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       'edit any article content',
     ]);
@@ -555,7 +551,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   public function testWithDraftCodeComponent(): void {
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       'edit any article content',
     ]);
@@ -843,7 +838,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   public function testInvalidFormValuesAreReturned(): void {
     $this->setUpCurrentUser([], [
       'administer nodes',
-      'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
@@ -877,7 +871,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   public function testUsersWithLesserPermissionsDoNotWipeValuesTheyCannotAccess(): void {
     $admin = $this->setUpCurrentUser([], [
       'administer nodes',
-      'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',
@@ -909,7 +902,6 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     // Now login as a user who cannot access that field.
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
       'edit any article content',

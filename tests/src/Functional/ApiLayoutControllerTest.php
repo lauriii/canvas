@@ -44,7 +44,6 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
    */
   public function testWithDraftCodeComponent(): void {
     $account = $this->createUser([
-      'access administration pages',
       'administer url aliases',
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer themes',

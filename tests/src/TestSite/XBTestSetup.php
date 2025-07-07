@@ -518,7 +518,6 @@ class XBTestSetup implements TestSetupInterface {
       'id' => 'xb',
       'label' => 'xb',
       'permissions' => [
-        'access administration pages',
         'access content',
         'administer media',
         'access media overview',

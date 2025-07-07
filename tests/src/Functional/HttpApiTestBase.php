@@ -150,7 +150,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     $this->assertNull($body);
 
     // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.roles:authenticated'], [$list_cache_tag, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [$list_cache_tag, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
     $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     $this->assertSame([], $individual_body);

@@ -23,6 +23,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Access\XbUiAccessCheck;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
@@ -38,7 +39,7 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
    * @covers ::checkAccess
    * @dataProvider viewPermissionProvider
    */
-  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $authenticated, string $permission, string $expectedAccessResult): void {
+  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $hasAccessToXb, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.roles:authenticated'])->willReturn(TRUE);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);
@@ -56,22 +57,26 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
       ->method('status');
     $configManager = $this->createMock(ConfigManagerInterface::class);
     $account = $this->createMock(AccountInterface::class);
-    $account->expects($this->never())->method('hasPermission')->willReturn(TRUE);
-    $account->expects($this->once())->method('isAuthenticated')->willReturn($authenticated);
     $language = $this->createMock(LanguageInterface::class);
     $language->expects($this->any())->method('getId')->willReturn('en');
     $entity->expects($this->any())->method('language')->willReturn($language);
+
+    $xbUiAccessCheck = $this->createMock(XbUiAccessCheck::class);
+    $xbUiAccessCheck->expects($this->once())
+      ->method('access')
+      ->willReturn($hasAccessToXb ? (new AccessResultAllowed())->addCacheContexts(['user.permissions']) : (new AccessResultNeutral())->addCacheContexts(['user.permissions']));
 
     $sut = new VisibleWhenDisabledXbConfigEntityAccessControlHandler(
       $entityType,
       $configManager,
       $this->createMock(EntityTypeManagerInterface::class),
+      $xbUiAccessCheck
     );
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'view', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
     assert($result instanceof RefinableCacheableDependencyInterface);
-    $this->assertSame(['user.roles:authenticated'], $result->getCacheContexts());
+    $this->assertSame(['user.permissions'], $result->getCacheContexts());
     $this->assertSame([], $result->getCacheTags());
     $this->assertSame(Cache::PERMANENT, $result->getCacheMaxAge());
   }
@@ -140,7 +145,8 @@ final class VisibleWhenDisabledXbConfigEntityAccessControlHandlerTest extends Un
     $sut = new VisibleWhenDisabledXbConfigEntityAccessControlHandler(
       $entityType,
       $configManager,
-      $entityTypeManager
+      $entityTypeManager,
+      $this->createMock(XbUiAccessCheck::class)
     );
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'delete', $account, TRUE);

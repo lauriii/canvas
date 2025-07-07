@@ -7,6 +7,7 @@ namespace Drupal\experience_builder;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
 use Drupal\Core\Theme\Component\ComponentValidator;
+use Drupal\experience_builder\Access\XbUiAccessCheck;
 use Drupal\experience_builder\Validation\UriFormatAwareFormatConstraint;
 use JsonSchema\Constraints\Factory;
 use JsonSchema\Validator;
@@ -23,6 +24,7 @@ class ExperienceBuilderServiceProvider extends ServiceProviderBase {
     assert(is_array($modules));
     if (array_key_exists('media_library', $modules)) {
       $container->register('experience_builder.media_library.opener', MediaLibraryXbPropOpener::class)
+        ->addArgument(new Reference(XbUiAccessCheck::class))
         ->addTag('media_library.opener');
     }
   }

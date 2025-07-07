@@ -38,6 +38,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     'system',
     'experience_builder',
     'media',
+    'path',
     'xb_oauth',
   ];
 
@@ -132,10 +133,12 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    * @dataProvider dataProviderRoutes
    */
   public function testRouteWithUserWithNoPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
-    // Create a user with no permissions.
+    // Create a user with the minimum permissions: we use Page:CREATE_PERMISSION
+    // for allowing `$user` to use XB, but not altering the
+    // `$required_permissions` argument.
     /** @var \Drupal\Core\Session\AccountInterface $user */
     // @phpstan-ignore-next-line varTag.nativeType
-    $user = $this->createUser();
+    $user = $this->createUser([Page::CREATE_PERMISSION]);
     $this->setCurrentUser($user);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
     if (!empty($required_permissions)) {
@@ -160,8 +163,10 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    */
   public function testRouteWithUserWithPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     /** @var \Drupal\Core\Session\AccountInterface $user */
+    // We need some XB-enabled content permission in every case for accessing
+    // XB URLs.
     // @phpstan-ignore-next-line varTag.nativeType
-    $user = $this->createUser($required_permissions);
+    $user = $this->createUser([Page::CREATE_PERMISSION, ...$required_permissions]);
     $this->setCurrentUser($user);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
     $response = $this->request($request);
@@ -190,7 +195,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
   public function testRouteWithTokenAndScopesWithNoPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     // Request an access token for a scope that gets created with permission
     // that is not sufficient for any of the operations.
-    $access_token = $this->requestAccessToken(['access content']);
+    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION]);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
     if (!empty($required_permissions)) {
       // Expect an exception because the scope doesn't provide the appropriate
@@ -215,9 +220,9 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     // Request an access token for scopes that get created with the required
     // permissions.
     // In case no permissions are required, we still need to pass a permission
-    // for a scope to be created, so use "access content" as a fallback.
-    $permissions = !empty($required_permissions) ? $required_permissions : ['access content'];
-    $access_token = $this->requestAccessToken($permissions);
+    // for a scope to be created, and some XB-enabled content permission for
+    // accessing any XB URL.
+    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION, ...$required_permissions]);
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
     $request->headers->set('Authorization', 'Bearer ' . $access_token);
     $response = $this->request($request);

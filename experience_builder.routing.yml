@@ -47,7 +47,7 @@ experience_builder.api.auto-save.get:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiAutoSaveController::get'
   requirements:
-    _permission: 'access administration pages'
+    _xb_ui_access: 'TRUE'
   methods: ['GET']
   options:
     _format: 'json'
@@ -157,7 +157,7 @@ experience_builder.api.config.get:
     xb_config_entity_type_id: '(pattern|js_component|xb_asset_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of XB-enabled
     # entity you're editing.
-    _user_is_logged_in: 'TRUE'
+    _xb_ui_access: 'TRUE'
   options:
     parameters:
       xb_config_entity:
@@ -180,7 +180,7 @@ experience_builder.api.config.list:
     xb_config_entity_type_id: '(component|pattern|js_component|xb_asset_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of XB-enabled
     # entity you're editing.
-    _user_is_logged_in: 'TRUE'
+    _xb_ui_access: 'TRUE'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/xb_oauth/README.md`.
     xb_external_api: true
@@ -362,7 +362,7 @@ experience_builder.api.log_error:
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ApiLogController'
   requirements:
-    _permission: 'access administration pages'
+    _xb_ui_access: 'TRUE'
   methods: ['POST']
   options:
     _format: 'json'

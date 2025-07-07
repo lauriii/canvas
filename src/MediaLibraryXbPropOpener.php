@@ -6,6 +6,7 @@ namespace Drupal\experience_builder;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Access\XbUiAccessCheck;
 use Drupal\media_library\MediaLibraryFieldWidgetOpener;
 use Drupal\media_library\MediaLibraryState;
 
@@ -20,7 +21,9 @@ use Drupal\media_library\MediaLibraryState;
  */
 final class MediaLibraryXbPropOpener extends MediaLibraryFieldWidgetOpener {
 
-  public function __construct() {}
+  public function __construct(
+    private readonly XbUiAccessCheck $xbUiAccessCheck,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -41,7 +44,7 @@ final class MediaLibraryXbPropOpener extends MediaLibraryFieldWidgetOpener {
     assert($state->isValidHash($state->getHash()));
     // Still, in case this URL is shared, still require that the current session
     // is for a user that has sufficient permissions to use XB.
-    return AccessResult::allowedIfHasPermission($account, 'access administration pages');
+    return $this->xbUiAccessCheck->access($account);
   }
 
 }

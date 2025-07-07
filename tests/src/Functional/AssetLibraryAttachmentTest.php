@@ -90,7 +90,6 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     // Case 2: An admin user should see the regular asset library on the regular
     // page also.
     $admin_user = $this->drupalCreateUser([
-      'access administration pages',
       'administer themes',
       Page::EDIT_PERMISSION,
     ]);

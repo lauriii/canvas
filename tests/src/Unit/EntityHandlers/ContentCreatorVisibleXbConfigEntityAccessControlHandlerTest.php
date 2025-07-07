@@ -21,6 +21,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Access\XbUiAccessCheck;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -38,11 +39,11 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
    * @covers ::checkAccess
    * @dataProvider viewPermissionProvider
    */
-  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $authenticated, string $permission, string $expectedAccessResult): void {
+  public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $hasAccessToXb, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
-    $cacheContextsManager->assertValidTokens(['user.roles:authenticated'])->willReturn(TRUE);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);
-    $cacheContextsManager->assertValidTokens(['user.roles:authenticated', 'context:one', 'context:two'])->willReturn(TRUE);
+    $cacheContextsManager->assertValidTokens(['context:one', 'context:two'])->willReturn(TRUE);
+    $cacheContextsManager->assertValidTokens(['user.permissions', 'context:one', 'context:two'])->willReturn(TRUE);
     $container = new ContainerBuilder();
     $container->set('cache_contexts_manager', $cacheContextsManager->reveal());
     \Drupal::setContainer($container);
@@ -53,7 +54,7 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
     $entityType->expects($this->never())->method('getAdminPermission')->willReturn($permission);
     $entity = $this->createMock(ConfigEntityInterface::class);
 
-    $entity->expects($authenticated ? $this->once() : $this->never())
+    $entity->expects($this->once())
       ->method('status')
       ->willReturn($status);
     $entity->expects($this->once())
@@ -67,13 +68,17 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
       ->willReturn(Cache::PERMANENT);
     $configManager = $this->createMock(ConfigManagerInterface::class);
     $account = $this->createMock(AccountInterface::class);
-    $account->expects($this->once())->method('isAuthenticated')->willReturn($authenticated);
     $account->expects($this->never())->method('hasPermission')->willReturn(TRUE);
     $language = $this->createMock(LanguageInterface::class);
     $language->expects($this->any())->method('getId')->willReturn('en');
     $entity->expects($this->any())->method('language')->willReturn($language);
 
-    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $this->prophesize(EntityTypeManagerInterface::class)->reveal());
+    $xbUiAccessCheck = $this->createMock(XbUiAccessCheck::class);
+    $xbUiAccessCheck->expects($this->once())
+      ->method('access')
+      ->willReturn($hasAccessToXb ? (new AccessResultAllowed())->addCacheContexts(['user.permissions']) : (new AccessResultNeutral())->addCacheContexts(['user.permissions']));
+
+    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $this->prophesize(EntityTypeManagerInterface::class)->reveal(), $xbUiAccessCheck);
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'view', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
@@ -135,7 +140,8 @@ final class ContentCreatorVisibleXbConfigEntityAccessControlHandlerTest extends 
       'provider' => 'experience_builder',
       'config_prefix' => 'component',
     ]));
-    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal());
+    $xbUiAccessCheck = $this->prophesize(XbUiAccessCheck::class);
+    $sut = new ContentCreatorVisibleXbConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal(), $xbUiAccessCheck->reveal());
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'delete', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);

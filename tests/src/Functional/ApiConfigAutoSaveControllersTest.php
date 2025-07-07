@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\XbAssetInterface;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -41,7 +42,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
-      'access administration pages',
+      Page::EDIT_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);

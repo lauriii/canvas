@@ -89,7 +89,6 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
     // Login as someone who can edit the page layout.
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       Page::CREATE_PERMISSION,
       Page::EDIT_PERMISSION,

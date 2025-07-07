@@ -106,7 +106,6 @@ final class ComponentAuditControllerTest extends KernelTestBase {
   public function testController(): void {
     $this->setUpCurrentUser(permissions: [
       'administer themes',
-      'access administration pages',
       Component::ADMIN_PERMISSION,
       Page::CREATE_PERMISSION,
       Page::EDIT_PERMISSION,

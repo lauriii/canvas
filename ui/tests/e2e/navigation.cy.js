@@ -196,8 +196,9 @@ describe('Navigation functionality', () => {
 
   it('Clicking the back button navigates to last visited page', () => {
     const BASE_URL = `${Cypress.config().baseUrl}/`;
-    const CONFIG_PAGE_URL = `${BASE_URL}admin/config`;
-    // visit the base URL
+    // TRICKY: use a query string rather than a path, because this test site has zero content on offer.
+    const LAST_VISITED_URL = `${BASE_URL}user/2?whatever`;
+    // Visit the base URL.
     cy.visit(BASE_URL);
 
     // Store the current URL
@@ -208,8 +209,8 @@ describe('Navigation functionality', () => {
       cy.url().should('eq', previousUrl);
     });
 
-    // visit the base URL
-    cy.visit(CONFIG_PAGE_URL);
+    // Ensure the "last visited URL" actually is what it is.
+    cy.visit(LAST_VISITED_URL);
 
     // Store the current URL
     cy.url().then((previousUrl) => {
@@ -218,7 +219,7 @@ describe('Navigation functionality', () => {
       cy.findByLabelText('Exit Experience Builder').should(
         'have.attr',
         'href',
-        CONFIG_PAGE_URL,
+        LAST_VISITED_URL,
       );
 
       cy.findByLabelText('Exit Experience Builder').click();

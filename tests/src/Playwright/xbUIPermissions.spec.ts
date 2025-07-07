@@ -81,7 +81,6 @@ test.describe('XB UI Permissions', () => {
     await drupal.addPermissions({
       role: 'xb_no_permissions',
       permissions: [
-        'access administration pages',
         'view the administration theme',
         'edit xb_page',
         'edit any page content',

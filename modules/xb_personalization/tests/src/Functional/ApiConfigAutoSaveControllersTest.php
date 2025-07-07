@@ -6,6 +6,7 @@ namespace Drupal\Tests\xb_personalization\Functional;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\Tests\experience_builder\Functional\HttpApiTestBase;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -41,7 +42,7 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
-      'access administration pages',
+      Page::EDIT_PERMISSION,
       Segment::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);

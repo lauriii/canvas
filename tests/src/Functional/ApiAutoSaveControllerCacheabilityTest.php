@@ -57,7 +57,6 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
    */
   public function testCaching(): void {
     $account1 = $this->createUser([
-      'access administration pages',
       'edit any article content',
     ]);
     self::assertInstanceOf(AccountInterface::class, $account1);

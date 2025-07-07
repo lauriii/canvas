@@ -123,6 +123,9 @@ services:
   Drupal\experience_builder\Access\ComponentTreeEditAccessCheck:
     tags:
       - { name: access_check, applies_to: _xb_component_tree_edit_access }
+  Drupal\experience_builder\Access\XbUiAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _xb_ui_access }
 
   # Twig.
   Drupal\experience_builder\Extension\XbTwigExtension:

@@ -234,7 +234,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     // If the client tries to update a field the user does not have access to edit, the field should remain unchanged.
-    $permissions = ['access administration pages'];
+    $permissions = [];
     if ($with_content_moderation) {
       $permissions[] = 'use editorial transition create_new_draft';
     }
@@ -393,7 +393,6 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     }
 
     $this->setUpCurrentUser([], [
-      'access administration pages',
       'administer url aliases',
       'edit any article content',
       'use editorial transition create_new_draft',

@@ -47,7 +47,6 @@ final class SegmentFormTest extends BrowserTestBase {
    */
   public function testCreatingSegment(): void {
     $admin_user = $this->drupalCreateUser([
-      'access administration pages',
       'administer site configuration',
       Segment::ADMIN_PERMISSION,
     ]);
