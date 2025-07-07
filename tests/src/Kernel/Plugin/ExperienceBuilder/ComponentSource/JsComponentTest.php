@@ -36,7 +36,6 @@ use Drupal\xb_test_code_components\Hook\IslandCastaway;
  *
  * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
  * @group experience_builder
- * @group #slow
  * @group JavaScriptComponents
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component

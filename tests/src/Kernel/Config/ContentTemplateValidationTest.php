@@ -20,7 +20,6 @@ use Drupal\xb_test_validation\Plugin\ExperienceBuilder\ComponentSource\InvalidSl
 
 /**
  * @group experience_builder
- * @group #slow
  */
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 

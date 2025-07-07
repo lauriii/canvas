@@ -14,7 +14,6 @@ use Drupal\TestTools\Random;
 
 /**
  * @group experience_builder
- * @group #slow
  */
 class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
 

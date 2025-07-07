@@ -41,7 +41,6 @@ use Twig\Error\SyntaxError;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
  * @group experience_builder
- * @group #slow
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
  */
 final class SingleDirectoryComponentTest extends ComponentSourceTestBase {

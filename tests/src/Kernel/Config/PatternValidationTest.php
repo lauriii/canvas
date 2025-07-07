@@ -13,7 +13,6 @@ use Drupal\TestTools\Random;
 
 /**
  * @group experience_builder
- * @group #slow
  */
 class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 

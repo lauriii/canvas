@@ -15,7 +15,6 @@ use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
  *
  * @group experience_builder
  * @group JavaScriptComponents
- * @group #slow
  */
 class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
 

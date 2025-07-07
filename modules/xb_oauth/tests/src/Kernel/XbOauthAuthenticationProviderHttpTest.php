@@ -24,7 +24,6 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * Tests API endpoints where the XB OAuth authentication provider is applied.
  *
  * @group xb_oauth
- * @group #slow
  */
 class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 

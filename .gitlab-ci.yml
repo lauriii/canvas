@@ -80,6 +80,7 @@ variables:
   # Set this as CI_PROJECT_NAME changes on forks.
   CI_PARENT_PROJECT_NAME: experience_builder
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
+  _CONCURRENCY_THREADS: '12'
 
 # This module wants to strictly comply with Drupal core's word use standards.
 cspell:

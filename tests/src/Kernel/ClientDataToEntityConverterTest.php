@@ -43,6 +43,7 @@ use Drupal\user\RoleInterface;
 
 /**
  * @group experience_builder
+ * @group #slow
  */
 class ClientDataToEntityConverterTest extends KernelTestBase {
 

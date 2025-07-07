@@ -19,7 +19,6 @@ use Symfony\Component\Routing\Route;
  *
  * @coversDefaultClass \Drupal\xb_oauth\Authentication\Provider\XbOauthAuthenticationProvider
  * @group xb_oauth
- * @group #slow
  */
 class XbOauthAuthenticationProviderTest extends KernelTestBase {
 

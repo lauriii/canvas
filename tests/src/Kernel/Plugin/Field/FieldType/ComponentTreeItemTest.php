@@ -23,7 +23,6 @@ use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
  * @group experience_builder
- * @group #slow
  */
 class ComponentTreeItemTest extends KernelTestBase {
 

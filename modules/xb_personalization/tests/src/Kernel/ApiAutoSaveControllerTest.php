@@ -28,7 +28,6 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @see \Drupal\Tests\experience_builder\Kernel\ApiAutoSaveControllerTest
  * @group experience_builder
  * @group xb_personalization
- * @group #slow
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
