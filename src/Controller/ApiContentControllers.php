@@ -382,10 +382,14 @@ final class ApiContentControllers {
       XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
       // @todo Fix when https://www.drupal.org/i/3503412 lands.
       // XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.api.homepage.post', 'op' => 'update'],
-      XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'update'],
+      XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'create'],
     ];
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
       $access = $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
+      if ($entity_operation === 'create') {
+        $access = $this->entityTypeManager->getAccessControlHandler($content_entity->getEntityTypeId())
+          ->createAccess(entity_bundle: $content_entity->bundle(), return_as_object: TRUE);
+      }
       assert($access instanceof AccessResult);
       if ($access->isAllowed()) {
         $links = $links->withLink(

@@ -113,7 +113,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
-          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
         ],
       ],
       // Page 2 has no path alias.
@@ -127,7 +126,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/2')->toString(),
-          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
         ],
       ],
       '3' => [
@@ -140,7 +138,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/3')->toString(),
-          XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
         ],
       ],
     ];
@@ -168,7 +165,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
           'links' => [
             // @todo https://www.drupal.org/i/3498525 should remove the hardcoded `xb_page` from these.
             XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
-            XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
           ],
         ],
       ],
@@ -264,24 +260,32 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public static function metaOperationsProvider(): array {
+    // All of them require Page::EDIT_PERMISSION, that's a requirement for the
+    // controller itself.
     return [
       'can edit' => [
         [Page::EDIT_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
-          XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
         ],
       ],
       'can edit and delete' => [
         [Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_DELETE => 'base:/xb/api/v0/content/xb_page/1',
+        ],
+      ],
+      'can create, edit and delete' => [
+        [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
+        [
+          XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
           XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
           XbUriDefinitions::LINK_REL_DELETE => 'base:/xb/api/v0/content/xb_page/1',
         ],
       ],
-      'can edit and create' => [
-        [Page::EDIT_PERMISSION, Page::CREATE_PERMISSION],
+      'can create and edit, with extra cache metadata' => [
+        [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
           XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
@@ -339,7 +343,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/2')->toString(),
-        XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
       ],
       $body['2']['links'],
       'Links for page 2 should not include delete operation, as it is set as homepage.'
@@ -349,7 +352,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
-        XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
         XbUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/xb/api/v0/content/xb_page/1')->toString(),
       ],
       $body['1']['links'],
@@ -360,7 +362,6 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/3')->toString(),
-        XbUriDefinitions::LINK_REL_DUPLICATE => Url::fromUri('base:/xb/api/v0/content/xb_page')->toString(),
         XbUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/xb/api/v0/content/xb_page/3')->toString(),
       ],
       $body['3']['links'],
@@ -442,7 +443,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     // Test that the data from the temp store is present.
     $this->assertEquals('Title from temp store (Copy)', $duplicate_2->label());
     $this->assertNotEmpty($auto_save_manager->getAutoSaveEntity($original));
-    // Autosaved data is empty on duplicate.
+    // Autosaved data is empty in duplicate.
     self::assertTrue($auto_save_manager->getAutoSaveEntity($duplicate_2)->isEmpty());
     self::assertNull($duplicate_2->get('path')->first()?->get('alias')->getValue());
   }
