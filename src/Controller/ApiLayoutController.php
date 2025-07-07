@@ -172,7 +172,7 @@ final class ApiLayoutController {
     // form element and avoids needing to smooth out the idiosyncrasies of each
     // widget's structure.
     // @see \Drupal\experience_builder\Controller\EntityFormController::form
-    return Query::parse(\http_build_query(\array_intersect_key($values, $entity->toArray())));
+    return Query::parse(\http_build_query($values));
   }
 
   private function addGlobalRegions(array $regions, array &$model, array &$layout, bool $includeAllRegions = FALSE): void {

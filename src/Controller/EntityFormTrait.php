@@ -62,7 +62,18 @@ trait EntityFormTrait {
     return $form_state;
   }
 
+  /**
+   * Filters form values to meaningful ones (that affect the edited entity).
+   *
+   * TRICKY: there are many modules that alter the node edit form but do not
+   * have an entity field for the storage of the value. For example core's
+   * "Create new revision" checkbox.
+   *
+   * @return array
+   */
   protected static function filterFormValues(array $values, array $form, ?FieldableEntityInterface $entity): array {
+    $is_root_call = $entity !== NULL;
+
     // Filter empty field items in multiple-cardinality field widgets: as many
     // single widget form elements are generated as the cardinality, but not
     // every field type's validation logic is robust enough to handle that.
@@ -70,7 +81,7 @@ trait EntityFormTrait {
     // such inappropriate validation errors.
     // @see \Drupal\Core\Field\WidgetBase::extractFormValues()
     // @see \Drupal\datetime\Plugin\Validation\Constraint\DateTimeFormatConstraintValidator::validate()
-    if ($entity) {
+    if ($is_root_call) {
       foreach (Element::children($form) as $field_name) {
         if ($entity->hasField($field_name)) {
           $field = $entity->get($field_name);
@@ -86,6 +97,9 @@ trait EntityFormTrait {
       }
     }
 
+    // Recursively filter away certain form values based on form item metadata:
+    // 1. those for inaccessible form items (#access)
+    // 2. those for unchecked checkboxes, because browsers treat these special
     foreach (Element::children($form) as $child) {
       $element = $form[$child];
       $values = self::filterFormValues($values, $element, NULL);
@@ -100,6 +114,21 @@ trait EntityFormTrait {
       if (($element['#type'] ?? NULL) === 'checkbox' && empty($element['#default_value']) && empty($element['#value'])) {
         NestedArray::unsetValue($values, $element['#parents']);
       }
+    }
+
+    // Recursively filter away certain form values based on form item name:
+    // 1. those for tracking the active vertical tab
+    // 2. those that are internal to Drupal's Form API infrastructure
+    if ($is_root_call) {
+      // @see \Drupal\Core\Render\Element\VerticalTabs::processVerticalTabs()
+      $active_tab_elements = \array_filter(\array_keys($values), static fn (string|int $key): bool => is_string($key) && \str_ends_with($key, '__active_tab'));
+      // @see \Drupal\Core\Form\FormBuilder
+      $values = array_diff_key($values, \array_flip(\array_merge($active_tab_elements, [
+        'form_build_id',
+        'form_token',
+        'submit',
+        'form_id',
+      ])));
     }
 
     return $values;

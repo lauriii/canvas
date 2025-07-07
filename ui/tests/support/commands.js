@@ -361,6 +361,16 @@ Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
   });
 });
 
+Cypress.Commands.add('setKeyValue', (collection, values) => {
+  cy.request({
+    method: 'POST',
+    url: `/xb-test/set-key-value/${collection}`,
+    body: values,
+  }).then((response) => {
+    expect(response.status).to.eq(200);
+  });
+});
+
 Cypress.Commands.add('drupalSession', () => {
   cy.visit('/', { failOnStatusCode: false }).then(() => {
     // With this cookie set, visits to the test site will be directed to a

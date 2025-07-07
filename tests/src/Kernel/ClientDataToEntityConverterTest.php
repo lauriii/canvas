@@ -10,6 +10,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiLayoutController;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
@@ -19,10 +20,11 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\experience_builder\ClientDataToEntityConverter;
+use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Controller\EntityFormTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Render\PreviewEnvelope;
@@ -32,14 +34,18 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
-use GuzzleHttp\Psr7\Query;
 use Drupal\user\RoleInterface;
+use Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks;
+use GuzzleHttp\Psr7\Query;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @group experience_builder
@@ -54,6 +60,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   use UserCreationTrait;
   use EntityFormTrait;
   use ContentModerationTestTrait;
+  use RequestTrait;
 
   private User $otherUser;
 
@@ -528,6 +535,57 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     assert($node instanceof Node);
     $this->assertSame(SAVED_NEW, $node->save());
     return $node;
+  }
+
+  public function testBooleanCheckboxesNotForBooleanField(): void {
+    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_article_fields']);
+    \Drupal::keyValue(XbTestArticleFieldsHooks::XB_STATE)->set(XbTestArticleFieldsHooks::GRAVY_STATE, TRUE);
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    $this->setupCurrentUser(permissions: [
+      'access administration pages',
+      'edit any article content',
+      'use editorial transition create_new_draft',
+      'use editorial transition publish',
+    ]);
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $url = Url::fromRoute('experience_builder.api.layout.get', [
+      'entity' => $node->id(),
+      'entity_type' => 'node',
+    ]);
+
+    // Originally the `No more gravy please` checkbox is checked.
+    $response = $this->request(Request::create($url->toString()));
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $json = \json_decode($response->getContent() ?: '', TRUE, \JSON_THROW_ON_ERROR);
+    self::assertEquals(TRUE, $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY]);
+    self::assertNull($autoSave->getAutoSaveEntity($node)->entity);
+    self::assertEquals('XB Needs This For The Time Being', $json['entity_form_fields']['title[0][value]']);
+
+    // Uncheck this checkbox. This should change the (auto-saved) entity title.
+    // @see \Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks::xbPageEntityGravyBuilder()
+    $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY] = FALSE;
+    unset($json['isNew'], $json['isPublished'], $json['html']);
+    $json += $this->getPostContentsDefaults($node);
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $autoSaveEntity = $autoSave->getAutoSaveEntity($node)->entity;
+    // @phpstan-ignore-next-line
+    self::assertInstanceOf(NodeInterface::class, $autoSaveEntity);
+    self::assertSame('Gravy!', $autoSaveEntity->label());
+
+    // Re-check it. This should change the (auto-saved) entity title again.
+    // @see \Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks::xbPageEntityGravyBuilder()
+    $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY] = TRUE;
+    unset($json['isNew'], $json['isPublished'], $json['html']);
+    $json += $this->getPostContentsDefaults($node);
+    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    $autoSaveEntity = $autoSave->getAutoSaveEntity($node)->entity;
+    // @phpstan-ignore-next-line
+    self::assertInstanceOf(NodeInterface::class, $autoSaveEntity);
+    self::assertSame('No more gravy', $autoSaveEntity->label());
   }
 
 }

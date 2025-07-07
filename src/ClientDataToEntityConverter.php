@@ -5,6 +5,7 @@ namespace Drupal\experience_builder;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\Core\Render\Element;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
@@ -155,16 +156,6 @@ class ClientDataToEntityConverter {
     // ['title' => ['value' => 'Node title']].
     // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
     \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
-    // Filter out form fields that are not entity fields except for form_* keys
-    // needed for form state.
-    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => (is_string($key) && $entity->hasField($key)) || \in_array($key, ['form_build_id', 'form_token', 'form_id']), ARRAY_FILTER_USE_KEY);
-    // Checkboxes are unique in that the browser doesn't submit a value when the
-    // field is unchecked. We need to remove these from the field values when
-    // that is the case.
-    $boolean_fields = \array_keys(\array_filter(
-      $entity->getFields(),
-      static fn (FieldItemListInterface $fieldItemList): bool => $fieldItemList->getFieldDefinition()->getType() === 'boolean'
-    ));
 
     // Form tokens are user session-specific. It may be that a user is
     // publishing an entity for another user. Therefore, we need to ensure that
@@ -194,14 +185,6 @@ class ClientDataToEntityConverter {
       }
     }
 
-    $entity_form_fields = \array_combine(\array_keys($entity_form_fields), \array_map(static fn (string|int $key): array|string =>
-      // Unchecked boolean checkboxes are expected to be set with value NULL. For a normal
-      // form submission, this is done for us by the Form Builder. But for a
-      // programmatic form submission, this needs to be done manually.
-      // @see \Drupal\Core\Form\FormBuilder::handleInputElement
-      (!\in_array($key, $boolean_fields, TRUE) || $entity_form_fields[$key] !== ['value' => '0']) ? $entity_form_fields[$key] : ['value' => NULL],
-      \array_keys($entity_form_fields),
-    ));
     $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $form_object->setEntity($entity);
     // Flag this as a programmatic build of the entity form - but do not flag
@@ -266,6 +249,41 @@ class ClientDataToEntityConverter {
         $this->formBuilder->setCache($ajax_form_build_id, $ajax_submitted_form, $form_state);
       }
     }
+
+    // 'Peek' at the form to work out any form fields that are booleans or buttons.
+    $peek_form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
+    $peek_form_state = $this->buildFormState($peek_form_object, $entity, 'default')
+      // Don't fetch any form values from the request
+      ->setUserInput([])
+      // Don't process any input or interfere with form caches.
+      ->setProcessInput(FALSE)
+      // Don't perform any submission logic.
+      ->setProgrammed(FALSE);
+    $peek_form = $this->formBuilder->buildForm($peek_form_object, $peek_form_state);
+
+    $buttons = array_merge(self::spotElementsByType($peek_form, 'button'), self::spotElementsByType($peek_form, 'submit'));
+    $entity_form_fields = array_diff_key($entity_form_fields, \array_flip($buttons));
+    // Checkboxes are unique in that the browser doesn't submit a value when the
+    // field is unchecked. We need to remove these from the field values when
+    // that is the case.
+    $checkboxes_parents = self::spotCheckboxesParents($peek_form);
+    $empty_checkboxes = \array_filter($checkboxes_parents, static fn (array $parents) => NestedArray::getValue($entity_form_fields, $parents) === '0');
+    foreach ($empty_checkboxes as $parents) {
+      $value = NestedArray::getValue($entity_form_fields, $parents);
+      // This covers NULL, FALSE, 0 and '0' by design.
+      if (empty($value)) {
+        // Unchecked checkboxes are expected to be set with value NULL. For a
+        // normal form submission, this is done for us by the Form Builder. But
+        // for a programmatic form submission, this needs to be done manually.
+        // @see \Drupal\Core\Form\FormBuilder::handleInputElement
+        NestedArray::setValue($entity_form_fields, $parents, NULL);
+      }
+    }
+
+    // Update the form values with unchecked checkboxes set to NULL and any
+    // buttons removed.
+    $form_state->setUserInput($entity_form_fields);
+
     $form = $this->formBuilder->buildForm($form_object, $form_state);
     $violations_list = new EntityConstraintViolationList($entity);
     $errors = $form_state->getErrors();
@@ -407,6 +425,33 @@ class ClientDataToEntityConverter {
       $values['form_id'] = $form['#form_id'];
     }
     return $values;
+  }
+
+  private static function spotCheckboxesParents(array $form): array {
+    $checkboxes = [];
+    foreach (Element::children($form) as $child) {
+      $element = $form[$child];
+      $checkboxes = \array_merge($checkboxes, self::spotCheckboxesParents($element));
+
+      if (($element['#type'] ?? NULL) === 'checkbox' && \array_key_exists('#parents', $element)) {
+        $checkboxes[] = $element['#parents'];
+      }
+    }
+
+    return $checkboxes;
+  }
+
+  private static function spotElementsByType(array $form, string $type): array {
+    $elements = [];
+    foreach (Element::children($form) as $child) {
+      $element = $form[$child];
+      $elements = \array_merge($elements, self::spotElementsByType($element, $type));
+
+      if (($element['#type'] ?? NULL) === $type && \array_key_exists('#name', $element)) {
+        $elements[] = $element['#name'];
+      }
+    }
+    return $elements;
   }
 
 }
