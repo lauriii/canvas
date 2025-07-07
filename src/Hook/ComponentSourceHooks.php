@@ -65,26 +65,9 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
 
   /**
    * Implements hook_config_schema_info_alter().
-   *
-   * For block components.
-   *
-   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
    */
   #[Hook('config_schema_info_alter')]
   public function configSchemaInfoAlter(array &$definitions): void {
-    // This allows these blocks to be placed for now, but really the schema
-    // should actually be FullyValidatable.
-    // @todo Fix this in core or solve this another way in https://www.drupal.org/project/experience_builder/issues/3484666
-    $types = [
-      'block.settings.system_menu_block:*',
-      'block.settings.views_block:*',
-    ];
-    foreach ($types as $type) {
-      if (isset($definitions[$type])) {
-        $definitions[$type]['constraints']['FullyValidatable'] = \NULL;
-      }
-    }
-
     // @todo Fix upstream.
     $definitions['field.value.boolean']['mapping']['value']['type'] = 'boolean';
   }
