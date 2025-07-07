@@ -668,15 +668,6 @@ experience_builder.compilable_code:
       type: text
       label: 'The compiled result'
 
-# @todo Remove when https://drupal.org/i/3516520 is fixed.
-field.value.language:
-  type: mapping
-  label: 'Default value'
-  mapping:
-    value:
-      type: string
-      label: 'Value'
-
 experience_builder.content_template.*.*.*:
   type: config_entity
   constraints:
