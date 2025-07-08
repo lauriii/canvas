@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\DataType;
 
-use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
@@ -28,7 +29,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
   label: new TranslatableMarkup("Component inputs"),
   description: new TranslatableMarkup("The input values for the components in a component tree: without structure"),
 )]
-final class ComponentInputs extends TypedData implements DependentPluginInterface {
+final class ComponentInputs extends TypedData implements ContentAwareDependentInterface {
 
   /**
    * The data value.
@@ -49,7 +50,7 @@ final class ComponentInputs extends TypedData implements DependentPluginInterfac
   /**
    * {@inheritdoc}
    */
-  public function calculateDependencies(?FieldableEntityInterface $host_entity = NULL) : array {
+  public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
     $dependencies = [];
     foreach ($this->getPropSources() as $prop_source) {
       $dependencies = NestedArray::mergeDeep($dependencies, $prop_source->calculateDependencies($host_entity));

@@ -36,6 +36,8 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
 
+  private const TEST_IMAGE_UUID = 'd650b614-3219-4842-9a1f-f9976bdc20be';
+
   /**
    * {@inheritdoc}
    */
@@ -165,7 +167,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       ],
     ]);
     $item_list->appendItem([
-      'uuid' => $uuid->generate(),
+      'uuid' => self::TEST_IMAGE_UUID,
       'component_id' => 'sdc.experience_builder.image',
       'inputs' => [
         'image' => [
@@ -241,6 +243,25 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
         'file:file:' . $file_uuid,
       ],
     ], $item_list->get(3)->get('inputs')->calculateDependencies($node));
+
+    // Prove it's possible to get the full list of content dependencies for a
+    // given component tree; this is necessary for e.g. default content.
+    $component_instances = iterator_to_array($item_list->componentTreeItemsIterator());
+    $component_instance_deps_by_uuid = array_filter(array_combine(
+      array_map(
+        fn (ComponentTreeItem $item) => $item->getUuid(),
+        $component_instances
+      ),
+      array_map(
+        fn (ComponentTreeItem $item) => $item->calculateFieldItemValueDependencies($node)['content'] ?? [],
+        $component_instances
+      ),
+    ));
+    self::assertSame([
+      self::TEST_IMAGE_UUID => [
+        'file:file:' . $file_uuid,
+      ],
+    ], $component_instance_deps_by_uuid);
   }
 
 }
