@@ -121,16 +121,6 @@ const derivedPropTypes = [
       enum: [],
     },
   },
-  {
-    type: 'listNumber' as const,
-    displayName: 'List: number',
-    derive: (prop: CodeComponentPropSerialized) =>
-      prop.type === 'number' && prop.enum && prop.enum.length > 0,
-    init: {
-      type: 'number',
-      enum: [],
-    },
-  },
 ];
 
 export default derivedPropTypes;

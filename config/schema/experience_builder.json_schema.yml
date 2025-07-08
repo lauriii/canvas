@@ -152,14 +152,8 @@ experience_builder.json_schema.prop.number:
         # Do not allow NULL.
         constraints:
           NotNull: ~
-    enum:
-      requiredKey: false
-      type: sequence
-      sequence:
-        type: float
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
+    # ⚠️ For now, XB does not support `enum` on `type: float` to match core and for better usability.
+    # @see https://www.drupal.org/project/experience_builder/issues/3534758
 
 # @see https://json-schema.org/understanding-json-schema/reference/boolean
 # ⚠️ No `enum` here, because that would make little sense: it would always be `enum: [true, false]`.

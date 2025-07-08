@@ -153,9 +153,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   /**
    * @testWith ["string", ["the answer", "Wim", "Sofie", "Jack"], null]
    *           ["integer", [42, 1988, 1992, 2024], null]
-   *           ["number", [3.14, 1.0], null]
    *           ["string", ["string", 42, 3.14], ["string", "42", "3.14"]]
-   *           ["number", [42, 0], [42.0, 0.0]]
    */
   public function testValidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $expected_typecasting): void {
     $this->entity->set('props', [
@@ -240,15 +238,25 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           '' => 'Prop "tested_enum_prop" has invalid example value: [] String value found, but an integer or an object is required',
         ],
       ],
+      // ⚠️ For now, XB does not support `enum` on `type: number` to match core and for better usability.
+      // @see https://www.drupal.org/project/experience_builder/issues/3534758
+      'Number' => [
+        'number',
+        [3.14, 1.0],
+        [],
+        [
+          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
+        ],
+      ],
       'Invalid number' => [
         'number',
         ['string', 42, 3.14, NULL],
-        [
-          '0' => 'This value should be of the correct primitive type.',
-          '3' => 'This value should not be null.',
-        ],
+        [],
         [
           '' => 'Prop "tested_enum_prop" has invalid example value: [] String value found, but a number or an object is required',
+          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
+          'props.tested_enum_prop.examples.0' => 'This value should be of the correct primitive type.',
+          'props.tested_enum_prop.examples.3' => 'This value should not be null.',
         ],
       ],
     ];

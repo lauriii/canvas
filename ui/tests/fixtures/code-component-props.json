@@ -89,22 +89,6 @@
       "derivedType": "listInteger"
     },
     {
-      "name": "Number list with no example value",
-      "type": "number",
-      "enum": ["1.1", "2.2", "3.3"],
-      "example": "",
-      "id": "ee5110ad-332b-48f4-b4c8-75e685bbe2ba",
-      "derivedType": "listNumber"
-    },
-    {
-      "name": "Number list with example value",
-      "type": "number",
-      "enum": ["1.1", "2.2", "3.3"],
-      "example": "2.2",
-      "id": "a411ac98-ab57-45f1-9b48-596fa1276f8e",
-      "derivedType": "listNumber"
-    },
-    {
       "name": "Formatted text with no example value",
       "type": "string",
       "example": "",
@@ -254,17 +238,6 @@
       "type": "integer",
       "enum": [1, 2, 3],
       "examples": [2]
-    },
-    "numberListWithNoExampleValue": {
-      "title": "Number list with no example value",
-      "type": "number",
-      "enum": [1.1, 2.2, 3.3]
-    },
-    "numberListWithExampleValue": {
-      "title": "Number list with example value",
-      "type": "number",
-      "enum": [1.1, 2.2, 3.3],
-      "examples": [2.2]
     },
     "formattedTextWithNoExampleValue": {
       "title": "Formatted text with no example value",

@@ -154,23 +154,11 @@ describe('Code editor utilities', () => {
       ]);
     });
 
-    it('of type number list', () => {
+    it('of type formatted text', () => {
       expect(
         serializeProps([
           deserializedPropsFixture[12],
           deserializedPropsFixture[13],
-        ]),
-      ).to.matchSerializedProps([
-        'numberListWithNoExampleValue',
-        'numberListWithExampleValue',
-      ]);
-    });
-
-    it('of type formatted text', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[14],
-          deserializedPropsFixture[15],
         ]),
       ).to.matchSerializedProps([
         'formattedTextWithNoExampleValue',
@@ -234,22 +222,13 @@ describe('Code editor utilities', () => {
       ).to.matchDeserializedProps([10, 11]);
     });
 
-    it('of type number list', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.numberListWithNoExampleValue,
-          serializedPropsFixture.numberListWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([12, 13]);
-    });
-
     it('of type formatted text', () => {
       expect(
         deserializeProps([
           serializedPropsFixture.formattedTextWithNoExampleValue,
           serializedPropsFixture.formattedTextWithExampleValue,
         ]),
-      ).to.matchDeserializedProps([14, 15]);
+      ).to.matchDeserializedProps([12, 13]);
     });
 
     it('of type image', () => {
@@ -258,7 +237,7 @@ describe('Code editor utilities', () => {
           serializedPropsFixture.imageWithNoExampleValue,
           serializedPropsFixture.imageWithExampleValue,
         ]),
-      ).to.matchDeserializedProps([16, 17]);
+      ).to.matchDeserializedProps([14, 15]);
     });
 
     it('of type link', () => {
@@ -269,7 +248,7 @@ describe('Code editor utilities', () => {
           serializedPropsFixture.fullUrlLinkWithNoExampleValue,
           serializedPropsFixture.fullUrlLinkWithExampleValue,
         ]),
-      ).to.matchDeserializedProps([18, 19, 20, 21]);
+      ).to.matchDeserializedProps([16, 17, 18, 19]);
     });
 
     // Backwards compatibility
@@ -280,7 +259,7 @@ describe('Code editor utilities', () => {
           serializedPropsFixture.deprecatedTextAreaWithNoExampleValue,
           serializedPropsFixture.deprecatedTextAreaWithExampleValue,
         ]),
-      ).to.matchDeserializedProps([22, 23]);
+      ).to.matchDeserializedProps([20, 21]);
     });
   });
 
@@ -320,8 +299,6 @@ describe('Code editor preview utilities', () => {
       textListWithExampleValue: 'In Progress',
       integerListWithNoExampleValue: 0,
       integerListWithExampleValue: 2,
-      numberListWithNoExampleValue: 0,
-      numberListWithExampleValue: 2.2,
       formattedTextWithNoExampleValue: '',
       formattedTextWithExampleValue:
         "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",

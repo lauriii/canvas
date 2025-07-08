@@ -821,24 +821,6 @@ describe('Component data / props in code editor', () => {
       ).to.deep.equal(['922']);
     });
 
-    // Change the type to List: number. The enum value should be removed.
-    cy.findByLabelText('Type').click();
-    cy.findByText('List: number').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
-    cy.wrap(store).then((store) => {
-      expect(
-        selectCodeComponentProperty('props')(store.getState())[0].enum,
-      ).to.deep.equal([]);
-    });
-    // Add an enum value.
-    cy.findByText('Add value').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('9.22');
-    cy.wrap(store).then((store) => {
-      expect(
-        selectCodeComponentProperty('props')(store.getState())[0].enum,
-      ).to.deep.equal(['9.22']);
-    });
-
     // Change the type to List: text. The enum value should be removed.
     cy.findByLabelText('Type').click();
     cy.findByText('List: text').click();

@@ -185,7 +185,6 @@ export default function Props() {
               );
             case 'listText':
             case 'listInteger':
-            case 'listNumber':
               return (
                 <FormPropTypeEnum
                   type={prop.type as 'string' | 'number' | 'integer'}
