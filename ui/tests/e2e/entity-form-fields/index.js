@@ -15,6 +15,7 @@ import * as field_xbt_daterange_datelist from './field_xbt_daterange_datelist.js
 import * as field_xbt_datetime_datelist from './field_xbt_datetime_datelist.js';
 import * as field_xbt_boolean_checkbox from './field_xbt_boolean_checkbox.js';
 import * as field_xbt_entity_ref_tags from './field_xbt_entity_ref_tags.js';
+import * as field_xbt_int from './field_xbt_integer.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -45,4 +46,5 @@ export default {
   field_xbt_entity_ref_tags,
   field_xbt_boolean_checkbox,
   field_xbt_textfield_multi,
+  field_xbt_int,
 };

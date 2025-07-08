@@ -21,6 +21,18 @@ const DrupalInput = ({
     case 'checkbox': {
       return <Checkbox attributes={attributes} />;
     }
+    case 'number':
+      // The a2p() process converts 'value to 'defaultValue', which is typically
+      // what React wants. Explicitly set value but don't cast empty/false-like
+      // values to an empty string.
+      return (
+        <TextField
+          attributes={{
+            ...a2p(attributes, {}, { skipAttributes: ['value'] }),
+            value: attributes.value,
+          }}
+        />
+      );
     case 'radio':
       return <DrupalRadioItem attributes={attributes} />;
     case 'hidden':

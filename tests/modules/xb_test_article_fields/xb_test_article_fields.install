@@ -74,6 +74,17 @@ function xb_test_article_fields_install(): void {
         'settings' => [],
       ],
     ],
+    'field_xbt_int' => [
+      'type' => 'integer',
+      'label' => 'XB Integer',
+      'settings' => [],
+      'widget' => [
+        'type' => 'number',
+        'settings' => [],
+      ],
+      // Default to zero.
+      'default_value' => [['value' => 0]],
+    ],
     'field_xbt_daterange_datelist' => [
       'type' => 'daterange',
       'label' => 'XB Date Range (Datelist)',

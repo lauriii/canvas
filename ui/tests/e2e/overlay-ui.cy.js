@@ -47,7 +47,7 @@ describe('Experience Builder overlay UI interactions', () => {
           .eq(1)
           .realHover({ scrollBehavior: 'center' });
         cy.findAllByTestId('xb-name-tag').should('have.length', 1);
-        cy.findByText('Image').should('be.visible');
+        cy.findAllByTestId('xb-name-tag').should('have.text', 'Image');
       });
     },
   );
