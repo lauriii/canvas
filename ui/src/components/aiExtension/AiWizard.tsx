@@ -88,6 +88,18 @@ function getHandlersForMessage(message: any) {
   return messageHandlers.filter((handler) => handler.canHandle(message));
 }
 
+const SESSION_STORAGE_KEY = 'aiWizardChatHistory';
+
+function loadChatHistory() {
+  const data = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
 const AiWizard = () => {
   const dispatch = useAppDispatch();
   const drupalSettings = getDrupalSettings();
@@ -103,6 +115,8 @@ const AiWizard = () => {
     Object.entries(model).map(([uuid, comp]) => [uuid, comp.resolved]),
   );
   const textPropsMapString = JSON.stringify(textPropsMap);
+  const [, setChatHistory] = useState(() => loadChatHistory());
+  let isComponentRendered = false;
 
   // Fetch CSRF token on mount.
   useEffect(() => {
@@ -138,11 +152,34 @@ const AiWizard = () => {
     [dispatch, createCodeComponent, navigate],
   );
 
-  // Set the AI response handler once token is ready.
+  useEffect(() => {
+    const chatEl = chatElementRef.current;
+    if (!chatEl) return;
+    const handler = (event: { detail: { message: any; isHistory: any } }) => {
+      const { message, isHistory } = event.detail;
+      if (!isHistory) {
+        const oldHistoryStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        const oldHistory = oldHistoryStr ? JSON.parse(oldHistoryStr) : [];
+        const updated = [...oldHistory, message];
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+      }
+    };
+    chatEl.addEventListener('message', handler);
+    return () => {
+      chatEl.removeEventListener('message', handler);
+    };
+  }, [csrfToken]);
+
+  // Set up the chat element to handle messages and history.
   useEffect(() => {
     if (chatElementRef.current && csrfToken) {
+      // Load chat history from sessionStorage.
+      chatElementRef.current.loadHistory = () => {
+        return loadChatHistory();
+      };
       // @todo figure out how to fix the issue of passing the
       //  selected components without refresh in https://www.drupal.org/i/3529328.
+      // Intercept and process AI responses.
       chatElementRef.current.responseInterceptor = (response: any) => {
         return receiveMessage(response);
       };
@@ -181,6 +218,14 @@ const AiWizard = () => {
             selected_component: codeComponentName,
             layout: textPropsMapString,
           },
+        }}
+        onComponentRender={() => {
+          if (!isComponentRendered) {
+            chatElementRef.current.clearMessages();
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            setChatHistory([]);
+            isComponentRendered = true;
+          }
         }}
         textInput={{
           placeholder: { text: 'Build me a ...' },
