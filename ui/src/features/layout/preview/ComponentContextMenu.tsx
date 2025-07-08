@@ -23,6 +23,7 @@ import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useNavigate } from 'react-router-dom';
+import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import PermissionCheck from '@/components/PermissionCheck';
 
 interface ComponentContextMenuProps {
@@ -206,9 +207,12 @@ export const ComponentContextMenuContent: React.FC<
           </UnifiedMenu.Item>
 
           <UnifiedMenu.Separator />
-          <UnifiedMenu.Item onClick={() => alert('Todo')}>
-            Move into
-          </UnifiedMenu.Item>
+          {components && Object.keys(components).length > 0 && (
+            <ComponentContextMenuMoveInto
+              component={component}
+              components={components}
+            />
+          )}
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>
       <PermissionCheck hasPermission="globalRegions">

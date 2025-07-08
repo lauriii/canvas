@@ -3,9 +3,11 @@ import { useCallback } from 'react';
 import type {
   LayoutChildNode,
   LayoutNode,
+  ComponentNode,
+  SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import type { XBComponent } from '@/types/Component';
-import { componentHasFieldData } from '@/types/Component';
+import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
+import type { ComponentsList } from '@/types/Component';
 
 const useGetComponentName = (
   node: LayoutChildNode | null,
@@ -13,45 +15,50 @@ const useGetComponentName = (
 ) => {
   const { data: components } = useGetComponentsQuery();
 
-  const findPresentationSlotName = (
-    slotName: string | undefined,
-    parentComponent: XBComponent,
-  ) => {
-    if (
-      slotName &&
-      componentHasFieldData(parentComponent) &&
-      parentComponent.metadata.slots
-    ) {
-      return parentComponent.metadata.slots[slotName].title;
+  // Helper to cast parentNode to ComponentNode if needed
+  const getParentComponentNode = (
+    parent: LayoutNode | null | undefined,
+  ): ComponentNode | null => {
+    if (parent && 'type' in parent) {
+      return parent as ComponentNode;
     }
-    return 'Slot';
+    return null;
+  };
+
+  // Helper to cast node to SlotNode if needed
+  const getSlotNode = (n: LayoutChildNode | null): SlotNode | null => {
+    if (n && n.nodeType === 'slot') {
+      return n as SlotNode;
+    }
+    return null;
+  };
+
+  // Helper to cast node to ComponentNode if needed
+  const getComponentNode = (
+    n: LayoutChildNode | null,
+  ): ComponentNode | null => {
+    if (n && n.nodeType === 'component') {
+      return n as ComponentNode;
+    }
+    return null;
   };
 
   const getName = useCallback(() => {
-    if (node === null) {
-      return '';
+    if (!node || !components) return '';
+    if (node.nodeType === 'component') {
+      return getDisplayNameForNode(
+        getComponentNode(node),
+        null,
+        components as ComponentsList,
+      );
+    } else if (node.nodeType === 'slot') {
+      return getDisplayNameForNode(
+        getSlotNode(node),
+        getParentComponentNode(parentNode),
+        components as ComponentsList,
+      );
     }
-    let name: string = node.nodeType;
-    if (components) {
-      if (node.nodeType === 'component') {
-        if (node.type) {
-          const [nodeType] = node.type.split('@');
-          name = components[nodeType]?.name || 'Component';
-        } else {
-          name = 'Component';
-        }
-      } else {
-        name = node.name || 'Slot';
-        if (parentNode && 'type' in parentNode) {
-          const [parentType] = (parentNode.type ?? '').split('@');
-          if (parentNode.type) {
-            const parentComponent = components?.[parentType];
-            name = findPresentationSlotName(node.name, parentComponent);
-          }
-        }
-      }
-    }
-    return name;
+    return '';
   }, [node, parentNode, components]);
 
   return getName();

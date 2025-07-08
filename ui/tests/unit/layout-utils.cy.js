@@ -6,6 +6,8 @@ import {
   findParentRegion,
   isChildNode,
   replaceUUIDsAndUpdateModel,
+  findParent,
+  findSiblings,
 } from '@/features/layout/layoutUtils';
 import layoutFixture from '../fixtures/layout-default.json';
 import regionsLayoutFixture from '../fixtures/layout-regions.json';
@@ -373,6 +375,66 @@ describe('replaceUUIDsAndUpdateModel', () => {
     it('should return true for empty array of UUIDs', () => {
       const result = areConsecutiveSiblings(regionsLayout.layout, []);
       expect(result).to.be.true;
+    });
+  });
+
+  describe('findParent', () => {
+    it('should return the region for a top-level component', () => {
+      const parent = findParent(
+        layout.layout,
+        'a7470350-deb2-4d9f-982c-464d356403d4',
+      );
+      expect(parent).to.have.property('id', 'content');
+    });
+
+    it('should return the slot for a component inside a slot', () => {
+      const parent = findParent(layout.layout, 'static-static-card1ab');
+      expect(parent).to.have.property(
+        'id',
+        'a7470350-deb2-4d9f-982c-464d356403d4/column_one',
+      );
+    });
+
+    it('should return null for a non-existent component', () => {
+      const parent = findParent(layout.layout, 'idontexist');
+      expect(parent).to.be.null;
+    });
+  });
+
+  describe('findSiblings', () => {
+    it('should return siblings in the same slot (excluding itself)', () => {
+      const siblings = findSiblings(layout.layout, 'static-static-card1ab');
+      expect(siblings).to.have.length(1);
+      expect(siblings[0].uuid).to.equal('static-image-udf7d');
+    });
+
+    it('should return siblings in the same region (excluding itself)', () => {
+      const siblings = findSiblings(
+        layout.layout,
+        'a7470350-deb2-4d9f-982c-464d356403d4',
+      );
+      expect(siblings).to.have.length(4);
+      expect(siblings.map((s) => s.uuid)).to.include('static-static-card2df');
+      expect(siblings.map((s) => s.uuid)).to.include('static-static-card3rr');
+      expect(siblings.map((s) => s.uuid)).to.include(
+        'static-image-static-imageStyle-something7d',
+      );
+      expect(siblings.map((s) => s.uuid)).to.include(
+        'ee07d472-a754-4427-b6d4-acfc6f92bbdc',
+      );
+    });
+
+    it('should return an empty array if no siblings exist (only child)', () => {
+      const siblings = findSiblings(
+        layout.layout,
+        '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
+      );
+      expect(siblings).to.have.length(0);
+    });
+
+    it('should return an empty array for a non-existent component', () => {
+      const siblings = findSiblings(layout.layout, 'idontexist');
+      expect(siblings).to.have.length(0);
     });
   });
 });

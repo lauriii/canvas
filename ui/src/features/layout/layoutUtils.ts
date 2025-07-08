@@ -10,6 +10,7 @@ import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
 import { setXbDrupalSetting } from '@/utils/drupal-globals';
 import { isConsecutive } from '@/utils/function-utils';
+import type { ComponentsList } from '@/types/Component';
 
 type NodeFunction = (
   node: ComponentNode,
@@ -616,6 +617,63 @@ export function isParentOf(
 }
 
 /**
+ * Get the immediate parent node of a component by UUID.
+ * @param regions - The root region nodes to search in
+ * @param uuid - UUID of the component to find the parent for
+ * @returns The parent node (RegionNode | SlotNode | ComponentNode) or null if not found
+ */
+export function findParent(
+  regions: Array<RegionNode>,
+  uuid: string,
+): RegionNode | SlotNode | ComponentNode | null {
+  // Check if component is directly in a region
+  for (const region of regions) {
+    for (const component of region.components) {
+      if (component.uuid === uuid) {
+        return region;
+      }
+    }
+  }
+  // Check if component is in a slot
+  let foundParent: SlotNode | null = null;
+  const checkSlot = (node: ComponentNode) => {
+    for (const slot of node.slots) {
+      for (const component of slot.components) {
+        if (component.uuid === uuid) {
+          foundParent = slot;
+          return;
+        }
+      }
+    }
+  };
+  for (const region of regions) {
+    recurseNodes(region, checkSlot);
+    if (foundParent) return foundParent;
+  }
+  return null;
+}
+
+/**
+ * Find the siblings of a component by UUID (excluding itself).
+ * @param nodes - The nodes to search in
+ * @param uuid - UUID of the component to find siblings for
+ * @returns Array of sibling ComponentNodes (with slots, excluding itself)
+ */
+export function findSiblings(
+  nodes: Array<RegionNode>,
+  uuid: string,
+): ComponentNode[] {
+  const parent = findParent(nodes, uuid);
+  if (!parent) return [];
+  let children: ComponentNode[] = [];
+  if ('components' in parent) {
+    children = parent.components;
+  }
+  // Only return sibling, and not itself
+  return children.filter((c) => c.uuid !== uuid);
+}
+
+/**
  * Find all parent node IDs leading to a node with the given UUID.
  * @param nodes - The nodes to search through.
  * @param targetUuid - The UUID of the node to find.
@@ -673,6 +731,41 @@ export function findNodeParents(
   return result;
 }
 
+/**
+ * Shared utility to get the display name for a component or slot node.
+ * @param node - The node (component or slot)
+ * @param parentComponentNode - The parent component node (for slots)
+ * @param componentsData - The components data from useGetComponentsQuery
+ * @returns The display name for the node
+ */
+export function getDisplayNameForNode(
+  node: ComponentNode | SlotNode | null,
+  parentComponentNode: ComponentNode | null | undefined,
+  componentsData: ComponentsList | undefined,
+): string {
+  if (!node) return '';
+  if ('type' in node) {
+    // ComponentNode
+    const [nodeType] = node.type.split('@');
+    return componentsData?.[nodeType]?.name || 'Component';
+  } else {
+    // SlotNode
+    if (parentComponentNode && parentComponentNode.type && node.name) {
+      const [parentType] = parentComponentNode.type.split('@');
+      const parentComponent = componentsData?.[parentType];
+      if (
+        parentComponent &&
+        'metadata' in parentComponent &&
+        parentComponent.metadata?.slots &&
+        parentComponent.metadata.slots[node.name]
+      ) {
+        return parentComponent.metadata.slots[node.name].title || node.name;
+      }
+    }
+    return node.name || 'Slot';
+  }
+}
+
 // Add the utils provided here to drupalSettings, so extensions have access to
 // them.
 const layoutUtils = {
@@ -694,5 +787,7 @@ const layoutUtils = {
   isParentOf,
   findParentInfo,
   areConsecutiveSiblings,
+  findParent,
+  findSiblings,
 };
 setXbDrupalSetting('layoutUtils', layoutUtils);
