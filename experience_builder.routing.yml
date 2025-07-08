@@ -85,9 +85,13 @@ experience_builder.api.config.auto-save.get.css:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss'
   requirements:
     _xb_http_eligible_config_entity: 'TRUE'
-    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
+    # Must be visible to anybody who can:
+    # - create/edit auto-saved ("draft") code components
+    # - see auto-saved ("draft") code components, i.e. anybody who can see any preview in the XB UI.
+    # @see \Drupal\experience_builder\Hook\ComponentSourceHooks::pageAttachments()
+    _xb_ui_access: 'TRUE'
   methods: ['GET']
   options:
     parameters:
@@ -101,9 +105,13 @@ experience_builder.api.config.auto-save.get.js:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs'
   requirements:
     _xb_http_eligible_config_entity: 'TRUE'
-    _entity_access: 'xb_config_entity.edit'
     # Allow a subset: those config entity types that implement XbAssetInterface.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
+    # Must be visible to anybody who can:
+    # - create/edit auto-saved ("draft") code components
+    # - see auto-saved ("draft") code components, i.e. anybody who can see any preview in the XB UI.
+    # @see \Drupal\experience_builder\Hook\ComponentSourceHooks::pageAttachments()
+    _xb_ui_access: 'TRUE'
   methods: ['GET']
   options:
     parameters:

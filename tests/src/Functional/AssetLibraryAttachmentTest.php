@@ -9,6 +9,7 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -39,9 +40,16 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $config->set('css.preprocess', FALSE);
     $config->save();
 
-    $regular_user = $this->drupalCreateUser(['access content']);
-    $this->assertInstanceOf(AccountInterface::class, $regular_user);
-    $this->drupalLogin($regular_user);
+    // Simulate 3 users:
+    // - visitor (end user)
+    // - content creator (able to modify >=1 entity with an XB field)
+    // - code component developer (without the ability to create content)
+    $visitor = $this->drupalCreateUser(['access content']);
+    $this->assertInstanceOf(AccountInterface::class, $visitor);
+    $content_creator = $this->drupalCreateUser([Page::EDIT_PERMISSION]);
+    $this->assertInstanceOf(AccountInterface::class, $content_creator);
+    $code_component_developer = $this->drupalCreateUser([JavaScriptComponent::ADMIN_PERMISSION]);
+    $this->assertInstanceOf(AccountInterface::class, $code_component_developer);
 
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
@@ -84,17 +92,13 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
       self::assertCount($is_preview ? 1 : 0, $crawler->filter('link[href^="' . $auto_save_css_path . '"]'));
       self::assertCount($is_preview ? 1 : 0, $crawler->filter('script[src^="' . $auto_save_js_path . '"]'));
     };
-    // Case 1: Regular page should use regular asset library.
+    // Case 1: Visitor on a regular page should use regular asset library.
+    $this->drupalLogin($visitor);
     $assert_library_global_library('/user', FALSE);
 
-    // Case 2: An admin user should see the regular asset library on the regular
-    // page also.
-    $admin_user = $this->drupalCreateUser([
-      'administer themes',
-      Page::EDIT_PERMISSION,
-    ]);
-    $this->assertInstanceOf(AccountInterface::class, $admin_user);
-    $this->drupalLogin($admin_user);
+    // Case 2: A content creator should see the regular asset library on the
+    // regular page also.
+    $this->drupalLogin($content_creator);
     $assert_library_global_library('/user', FALSE);
 
     $this->drupalGet($regular_css_path);
@@ -127,9 +131,48 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     // library if it exists.
     $assert_library_global_library('/xb/api/v0/layout/xb_page/' . $page->id(), TRUE);
 
-    // Case 5: Test that on regular page the user sees the regular version even
-    // if the auto-save version exists.
+    // Case 5: Test that on regular page the content creator sees the regular
+    // version even if the auto-save version exists.
     $assert_library_global_library('/user', FALSE);
+
+    // Case 6: Test that the auto-save version is accessible .
+    $assert_auto_save_access = function (string $path, bool $should_pass) use ($auto_save_js_path) {
+      $response = $this->drupalGet($path);
+      $parsed_response = json_decode($response, TRUE);
+
+      if (!$should_pass) {
+        $this->assertSession()->statusCodeEquals(403);
+        self::assertSame('Requires >=1 content entity type with an XB field that can be created or edited.', $parsed_response['errors'][0]);
+      }
+      else {
+        $this->assertSession()->statusCodeEquals(200);
+        if ($path == $auto_save_js_path) {
+          self::assertSame('console.log("Auto-save Content")', $response);
+        }
+        else {
+          self::assertSame('.auto-save-content{color:red}', $response);
+        }
+      }
+    };
+
+    // A visitor should not have access to the auto-saved assets and therefore
+    // get an error.
+    $this->drupalLogin($visitor);
+    $assert_auto_save_access($auto_save_js_path, FALSE);
+    $assert_auto_save_access($auto_save_css_path, FALSE);
+
+    // User with permission to create/edit code components should have access
+    // to the auto-saved assets.
+    $this->drupalLogin($code_component_developer);
+    $assert_auto_save_access($auto_save_js_path, TRUE);
+    $assert_auto_save_access($auto_save_css_path, TRUE);
+
+    // User with permission to access the XB UI (and hence is allowed to access
+    // previews, which in turns means they must be able to see auto-saved code
+    // components) should have access to the auto-saved assets.
+    $this->drupalLogin($content_creator);
+    $assert_auto_save_access($auto_save_js_path, TRUE);
+    $assert_auto_save_access($auto_save_css_path, TRUE);
   }
 
 }
