@@ -6,10 +6,13 @@ namespace Drupal\experience_builder\Hook;
 
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\node\Form\NodeRevisionRevertForm;
 
 /**
  * @file
@@ -21,6 +24,7 @@ class AutoSaveHooks {
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly RouteMatchInterface $currentRouteMatch,
   ) {
   }
 
@@ -38,10 +42,23 @@ class AutoSaveHooks {
   #[Hook('form_alter')]
   public function formAlter(array &$form, FormStateInterface $form_state, string $form_id): void {
     if (str_ends_with($form_id, '_revision_revert') || str_ends_with($form_id, '_revision_revert_confirm')) {
-      assert($form_state->getFormObject() instanceof EntityFormInterface);
-      $entity = $form_state->getFormObject()->getEntity();
+      $entity = NULL;
+      // NodeRevisionRevertForm doesn't implement EntityFormInterface.
+      if ($form_state->getFormObject() instanceof NodeRevisionRevertForm) {
+        $entity = $this->currentRouteMatch->getParameter('node_revision');
+      }
+      if ($form_state->getFormObject() instanceof EntityFormInterface) {
+        $entity = $form_state->getFormObject()->getEntity();
+      }
+      assert($entity instanceof RevisionableInterface);
       if (!$this->autoSaveManager->getAutoSaveEntity($entity)->isEmpty()) {
-        $form['actions']['submit']['#submit'][] = [self::class, 'revisionRevertSubmit'];
+        if (!empty($form['actions']['submit']['#submit'])) {
+          $form['actions']['submit']['#submit'][] = [self::class, 'revisionRevertSubmit'];
+        }
+        else {
+          $form['#submit'][] = [self::class, 'revisionRevertSubmit'];
+        }
+
         $form['xb_auto_save_warning'] = [
           '#theme' => 'status_messages',
           '#message_list' => [
@@ -64,8 +81,13 @@ class AutoSaveHooks {
    * Deletes the auto-saved version of the entity when reverting a revision.
    */
   public static function revisionRevertSubmit(array &$form, FormStateInterface $form_state): void {
-    assert($form_state->getFormObject() instanceof EntityFormInterface);
-    $entity = $form_state->getFormObject()->getEntity();
+    $entity = NULL;
+    if ($form_state->getFormObject() instanceof NodeRevisionRevertForm) {
+      $entity = \Drupal::routeMatch()->getParameter('node_revision');
+    }
+    if ($form_state->getFormObject() instanceof EntityFormInterface) {
+      $entity = $form_state->getFormObject()->getEntity();
+    }
     if ($entity instanceof EntityInterface) {
       // Delete the auto-saved version of the entity.
       \Drupal::service(AutoSaveManager::class)->delete($entity);
