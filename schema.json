@@ -228,16 +228,6 @@
         "poster": {
           "title": "Poster image URL",
           "$ref": "json-schema-definitions://experience_builder.module/image-uri"
-        },
-        "width": {
-          "title": "Intrinsic video width",
-          "type": "integer",
-          "minimum": 1
-        },
-        "height": {
-          "title": "Intrinsic video height",
-          "type": "integer",
-          "minimum": 1
         }
       }
     },
