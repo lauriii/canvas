@@ -23,6 +23,7 @@ import useCompileCss from '@/features/code-editor/hooks/useCompileCss';
 import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScript';
 import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
 import {
+  detectValidPropOrSlotChange,
   getJsForExampleSlotsOverridePreview,
   getJsForSlotsPreview,
 } from '@/features/code-editor/utils';
@@ -35,6 +36,10 @@ import {
   setPreviewCompiledJsForSlots,
   setStatus,
 } from '@/features/code-editor/codeEditorSlice';
+import type {
+  CodeComponentProp,
+  CodeComponentSlot,
+} from '@/types/CodeComponent';
 
 const useSourceCode = (requestedComponentId: string): void => {
   const dispatch = useAppDispatch();
@@ -66,6 +71,7 @@ const useSourceCode = (requestedComponentId: string): void => {
   const blockOverride = useAppSelector(
     selectCodeComponentProperty('blockOverride'),
   );
+  const props = useAppSelector(selectCodeComponentProperty('props'));
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
   const globalSourceCodeCSS = useAppSelector(
     selectGlobalAssetLibraryProperty(['css', 'original']),
@@ -95,15 +101,27 @@ const useSourceCode = (requestedComponentId: string): void => {
   const lastSourceCodeCSSRef = useRef<string>('');
   const lastGlobalSourceCodeCSSRef = useRef<string>('');
   const lastGlobalSourceCodeJSRef = useRef<string>('');
+  const lastPropsRef = useRef<CodeComponentProp[]>([]);
+  const lastSlotsRef = useRef<CodeComponentSlot[]>([]);
 
   // Set hasUnsavedChanges flag whenever source code changes
   useEffect(() => {
-    // @todo: Also check for props and slots changes in https://www.drupal.org/i/3525907.
+    const propsChanged = detectValidPropOrSlotChange(
+      props,
+      lastPropsRef.current,
+    );
+    const slotsChanged = detectValidPropOrSlotChange(
+      slots,
+      lastSlotsRef.current,
+    );
+
     const sourceCodeChanged =
       sourceCodeJS !== lastSourceCodeJSRef.current ||
       sourceCodeCSS !== lastSourceCodeCSSRef.current ||
       globalSourceCodeCSS !== lastGlobalSourceCodeCSSRef.current ||
-      globalSourceCodeJS !== lastGlobalSourceCodeJSRef.current;
+      globalSourceCodeJS !== lastGlobalSourceCodeJSRef.current ||
+      propsChanged ||
+      slotsChanged;
     if (
       requestedComponentId === componentId &&
       componentId &&
@@ -115,6 +133,8 @@ const useSourceCode = (requestedComponentId: string): void => {
       lastSourceCodeCSSRef.current = sourceCodeCSS;
       lastGlobalSourceCodeCSSRef.current = globalSourceCodeCSS;
       lastGlobalSourceCodeJSRef.current = globalSourceCodeJS;
+      lastPropsRef.current = props;
+      lastSlotsRef.current = slots;
     }
   }, [
     sourceCodeJS,
@@ -124,6 +144,8 @@ const useSourceCode = (requestedComponentId: string): void => {
     dispatch,
     globalSourceCodeCSS,
     globalSourceCodeJS,
+    props,
+    slots,
   ]);
 
   useEffect(() => {

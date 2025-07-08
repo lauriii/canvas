@@ -16,8 +16,16 @@ import {
   useUpdateAutoSaveMutation as useUpdateAutoSaveMutationAssetLibrary,
 } from '@/services/assetLibrary';
 import { compileCss } from 'tailwindcss-in-browser';
-import { initialState as codeEditorInitialState } from '@/features/code-editor/codeEditorSlice';
-import { setCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
+import {
+  addProp,
+  addSlot,
+  initialState as codeEditorInitialState,
+  removeProp,
+  removeSlot,
+  setCodeComponentProperty,
+  updateProp,
+  updateSlot,
+} from '@/features/code-editor/codeEditorSlice';
 import type { AppStore } from '@/app/store';
 
 vi.mock('@/services/componentAndLayout', async () => {
@@ -449,6 +457,134 @@ describe('useCodeEditor hook', () => {
     await act(async () => {
       vi.advanceTimersByTime(1500);
     });
+    expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
+  });
+
+  it('auto-saves on props change', async () => {
+    const [updateAutoSaveMutation] = useUpdateAutoSaveMutationCodeComponent();
+    await act(async () => {
+      renderHook(() => useCodeEditor(), {
+        wrapper: ({ children }) => (
+          <AppWrapper
+            store={store}
+            location="/code-editor/code/test_component"
+            path="/code-editor/code/:codeComponentId"
+          >
+            {children}
+          </AppWrapper>
+        ),
+      });
+    });
+
+    // No compiled JS to start with
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe('');
+    expect(updateAutoSaveMutation).not.toHaveBeenCalled();
+
+    // Create initial props
+    await act(async () => {
+      store.dispatch(addProp());
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    // Get the ID of the newly created prop.
+    const propId = store.getState().codeEditor.codeComponent.props[0].id;
+
+    // Check that auto-save was not called after adding a prop.
+    expect(updateAutoSaveMutation).not.toHaveBeenCalled();
+    (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
+
+    // Update prop you just added.
+    await act(async () => {
+      store.dispatch(
+        updateProp({
+          id: propId,
+          updates: { name: 'updatedPropName' },
+        }),
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    // Verify auto-save was called after prop update.
+    expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
+    (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
+
+    // Remove prop.
+    await act(async () => {
+      store.dispatch(removeProp({ propId: '1' }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    // Verify auto-save was called after prop is removed.
+    expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
+  });
+
+  it('auto-saves on slots change', async () => {
+    const [updateAutoSaveMutation] = useUpdateAutoSaveMutationCodeComponent();
+    await act(async () => {
+      renderHook(() => useCodeEditor(), {
+        wrapper: ({ children }) => (
+          <AppWrapper
+            store={store}
+            location="/code-editor/code/test_component"
+            path="/code-editor/code/:codeComponentId"
+          >
+            {children}
+          </AppWrapper>
+        ),
+      });
+    });
+
+    // No compiled JS to start with
+    expect(store.getState().codeEditor.codeComponent.compiledJs).toBe('');
+    expect(updateAutoSaveMutation).not.toHaveBeenCalled();
+
+    // Add a slot.
+    await act(async () => {
+      store.dispatch(addSlot());
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    // Get the ID of the newly created slot.
+    const slotId = store.getState().codeEditor.codeComponent.slots[0].id;
+
+    // Verify auto-save wasn't called after adding a slot.
+    expect(updateAutoSaveMutation).not.toHaveBeenCalledOnce();
+    (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
+
+    // Update the slot.
+    await act(async () => {
+      store.dispatch(
+        updateSlot({
+          id: slotId,
+          updates: { name: '<h1>hello</h1>' },
+        }),
+      );
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
+    (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mockClear();
+
+    // Remove slot.
+    await act(async () => {
+      store.dispatch(removeSlot({ slotId }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    // Verify auto-save was called after slot is removed.
     expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
   });
 });

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { camelCase } from 'lodash';
+import { camelCase, isEqual } from 'lodash';
 import getOverrideExampleData from '@/features/code-editor/component-data/getOverrideExampleData';
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
@@ -151,41 +151,44 @@ export function getJsForExampleSlotsOverridePreview(block: string) {
  * @returns The serialized props.
  */
 export function serializeProps(props: CodeComponentProp[]) {
-  return props.reduce(
-    (acc, prop) => {
-      const {
-        name,
-        type,
-        example,
-        enum: enumValues,
-        $ref,
-        format,
-        contentMediaType,
-        'x-formatting-context': xFormattingContext,
-      } = prop;
-      const isNumberType = ['integer', 'number'].includes(type);
-      const processed: CodeComponentPropSerialized = {
-        title: name,
-        type,
-        // The example is taken from the prop if it's a truthy value, or a
-        // boolean false value (which could be an example of a boolean prop).
-        ...((example || example === false) && {
-          examples: [isNumberType ? Number(example) : example],
-        }),
-        ...(enumValues && {
-          enum: isNumberType ? enumValues.map(Number) : enumValues,
-        }),
-        ...($ref && { $ref }),
-        ...(format && { format }),
-        ...(contentMediaType && { contentMediaType }),
-        ...(xFormattingContext && {
+  // Filter out props without a name since they are not valid yet.
+  return props
+    .filter((prop) => prop.name)
+    .reduce(
+      (acc, prop) => {
+        const {
+          name,
+          type,
+          example,
+          enum: enumValues,
+          $ref,
+          format,
+          contentMediaType,
           'x-formatting-context': xFormattingContext,
-        }),
-      };
-      return { ...acc, [getPropMachineName(name)]: processed };
-    },
-    {} as Record<string, CodeComponentPropSerialized>,
-  );
+        } = prop;
+        const isNumberType = ['integer', 'number'].includes(type);
+        const processed: CodeComponentPropSerialized = {
+          title: name,
+          type,
+          // The example is taken from the prop if it's a truthy value, or a
+          // boolean false value (which could be an example of a boolean prop).
+          ...((example || example === false) && {
+            examples: [isNumberType ? Number(example) : example],
+          }),
+          ...(enumValues && {
+            enum: isNumberType ? enumValues.map(Number) : enumValues,
+          }),
+          ...($ref && { $ref }),
+          ...(format && { format }),
+          ...(contentMediaType && { contentMediaType }),
+          ...(xFormattingContext && {
+            'x-formatting-context': xFormattingContext,
+          }),
+        };
+        return { ...acc, [getPropMachineName(name)]: processed };
+      },
+      {} as Record<string, CodeComponentPropSerialized>,
+    );
 }
 
 /**
@@ -260,19 +263,22 @@ export function deserializeProps(
  * @see ui/tests/unit/code-editor-utils.cy.jsx
  */
 export function serializeSlots(slots: CodeComponentSlot[]) {
-  return slots.reduce(
-    (acc, slot) => {
-      const { name, example } = slot;
-      return {
-        ...acc,
-        [getPropMachineName(name)]: {
-          title: name,
-          ...(example && { examples: [example] }),
-        },
-      };
-    },
-    {} as Record<string, CodeComponentSlotSerialized>,
-  );
+  // Filter out slots without a name since they are not valid yet.
+  return slots
+    .filter((slot) => slot.name)
+    .reduce(
+      (acc, slot) => {
+        const { name, example } = slot;
+        return {
+          ...acc,
+          [getPropMachineName(name)]: {
+            title: name,
+            ...(example && { examples: [example] }),
+          },
+        };
+      },
+      {} as Record<string, CodeComponentSlotSerialized>,
+    );
 }
 
 /**
@@ -342,4 +348,31 @@ export function formatToValidImportName(name: string): string {
     formatted = 'Component' + formatted;
   }
   return formatted;
+}
+
+/**
+ * Detects if there is a valid change in props or slots.
+ * Adding an item with an empty name is not considered a valid change.
+ */
+export function detectValidPropOrSlotChange(
+  current: CodeComponentProp[] | CodeComponentSlot[],
+  last: CodeComponentProp[] | CodeComponentSlot[],
+): boolean {
+  // If arrays are identical, no change
+  if (isEqual(current, last)) {
+    return false;
+  }
+
+  // Create a version of current without empty name items
+  const currentWithoutEmpty = current.filter((item) => item.name !== '');
+  const lastWithoutEmpty = last.filter((item) => item.name !== '');
+
+  // Check if the only difference is empty-named items
+  // by comparing the filtered current with last
+  if (isEqual(currentWithoutEmpty, lastWithoutEmpty)) {
+    return false;
+  }
+
+  // There are other changes besides empty-named items
+  return true;
 }

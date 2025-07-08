@@ -182,6 +182,8 @@ export const codeEditorSlice = createSlice({
           ...currentProp,
           ...updates,
         } as CodeComponentProp;
+        // Set auto-save to true when updating a prop.
+        state.status.needsAutoSave = true;
       }
     },
 
@@ -202,6 +204,8 @@ export const codeEditorSlice = createSlice({
         state.codeComponent.required = state.codeComponent.required.filter(
           (name) => name !== getPropMachineName(propToRemove.name),
         );
+        // Set auto-save to true when removing a prop.
+        state.status.needsAutoSave = true;
       }
     },
 
@@ -216,6 +220,8 @@ export const codeEditorSlice = createSlice({
       const props = state.codeComponent.props;
       const [removed] = props.splice(oldIndex, 1);
       props.splice(newIndex, 0, removed);
+      // Set auto-save to true when reordering a prop.
+      state.status.needsAutoSave = true;
     },
 
     toggleRequired: (
@@ -236,6 +242,8 @@ export const codeEditorSlice = createSlice({
       } else {
         state.codeComponent.required.push(propName);
       }
+      // Set auto-save to true when toggling required.
+      state.status.needsAutoSave = true;
     },
 
     addSlot: (state) => {
@@ -261,6 +269,8 @@ export const codeEditorSlice = createSlice({
           ...currentSlot,
           ...updates,
         } as CodeComponentSlot;
+        // Set auto-save to true when updating a slot.
+        state.status.needsAutoSave = true;
       }
     },
 
@@ -274,6 +284,8 @@ export const codeEditorSlice = createSlice({
       state.codeComponent.slots = state.codeComponent.slots.filter(
         (slot) => slot.id !== slotId,
       );
+      // Set auto-save to true when removing a slot.
+      state.status.needsAutoSave = true;
     },
 
     reorderSlots: (
@@ -287,6 +299,8 @@ export const codeEditorSlice = createSlice({
       const slots = state.codeComponent.slots;
       const [removed] = slots.splice(oldIndex, 1);
       slots.splice(newIndex, 0, removed);
+      // Set auto-save to true when reordering a slot.
+      state.status.needsAutoSave = true;
     },
 
     /**
