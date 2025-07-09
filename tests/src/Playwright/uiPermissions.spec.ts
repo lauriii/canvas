@@ -76,7 +76,6 @@ test.describe('XB UI Permissions', () => {
     xBEditor,
   }) => {
     // Create a role with no (well, minimal) XB permissions
-    await drupal.setupXBTestSite();
     await drupal.createRole({ name: 'xb_no_permissions' });
     await drupal.addPermissions({
       role: 'xb_no_permissions',

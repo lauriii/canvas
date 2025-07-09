@@ -13,7 +13,6 @@ class XbJsonApiClient extends JsonApiClient {
   constructor(baseUrl?: BaseUrl, options?: JsonApiClientOptions) {
     const clientOptions = {
       serializer: new Jsona(),
-      cache: createCache(),
       ...options,
     };
     try {

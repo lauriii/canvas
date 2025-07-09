@@ -238,8 +238,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $module_path),
         '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $module_path),
         '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $module_path),
-        '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/json-api-client.js', $module_path),
+        '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $module_path),
         'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $module_path),
+        '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js', $module_path),
+        '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js', $module_path),
         'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js', $module_path),
       ],
     ];

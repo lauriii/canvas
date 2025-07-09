@@ -27,7 +27,7 @@ export default function getStarterComponentTemplate(componentName: string) {
 // enabled.
 // https://project.pages.drupalcode.org/api_client/
 // You do not need to provide a baseUrl for the JsonApiClient, it will be
-// configured automatically, as well as deserialization and a default cache
+// configured automatically, as well as deserialization.
 //
 // import useSWR from "swr";
 // import { JsonApiClient } from "@drupal-api-client/json-api-client";
@@ -60,6 +60,31 @@ export default function getStarterComponentTemplate(componentName: string) {
 //     cache: undefined,
 //   }
 // );
+//
+// Utility functions for working with JSON:API and core APIs are available:
+//
+// Given a node returned from JSON:API, return either the path alias or fall back
+// to /node/x path.
+// import { getNodePath } from '@/lib/jsonapi-utils';
+// const articles = data.map(article => ({ ...article, _path: getPath(article) }));
+//
+// Sort menu items from jsonapi_menu_items module into a tree with additional
+// _children and _hasSubmenu properties.
+// import { sortMenu } from '@/lib/jsonapi-utils';
+//  const { data, error, isLoading } = useSWR(
+//    ['menu_items', 'main'],
+//    ([type, resourceId]) => client.getResource(type, resourceId),
+//  );
+//  const menu = sortMenu(data);
+//
+// or using core linkset instead:
+// import { sortMenu } from '@/lib/drupal-utils';
+// const { data, error, isLoading } = useSWR(
+// '/system/menu/main/linkset', async (url) => {
+//   const response = await fetch(url);
+//   return response.json();
+// });
+//  const menu = sortMenu(data);
 
 /**************
  * Components *

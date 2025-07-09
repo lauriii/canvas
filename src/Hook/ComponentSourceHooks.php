@@ -68,7 +68,7 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
    */
   #[Hook('config_schema_info_alter')]
   public function configSchemaInfoAlter(array &$definitions): void {
-    // @todo Fix upstream.
+    // @todo Remove this when https://www.drupal.org/project/drupal/issues/3534717 lands.
     $definitions['field.value.boolean']['mapping']['value']['type'] = 'boolean';
   }
 

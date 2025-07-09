@@ -4,7 +4,7 @@ import { test } from './fixtures/DrupalSite';
 /**
  * Tests installing Experience Builder.
  */
-test.describe('Canary XB', () => {
+test.describe('Canary XB Minimal', () => {
   test('Setup minimal test site with Experience Builder', async ({
     page,
     drupal,

@@ -1,12 +1,9 @@
 import useSWR from 'swr';
 import { JsonApiClient } from '@drupal-api-client/json-api-client';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
+import { getNodePath } from '@/lib/jsonapi-utils';
 
 const client = new JsonApiClient();
-
-const getPath = (node) =>
-  node.path?.alias ||
-  (node.drupal_internal__nid ? `/node/${node.drupal_internal__nid}` : '#');
 
 export default function ArticleTitles() {
   const { data, error, isLoading } = useSWR(
@@ -31,7 +28,7 @@ export default function ArticleTitles() {
       {data.map((article) => (
         <li key={article.id}>
           <a
-            href={getPath(article)}
+            href={getNodePath(article)}
             className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
           >
             {article.title}

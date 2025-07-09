@@ -9,10 +9,9 @@ export class XBEditor {
   }
 
   async getSettings() {
-    const value = await this.page.evaluate(() => {
+    return await this.page.evaluate(() => {
       return window.drupalSettings;
     });
-    return value;
   }
 
   async getEditorPath() {
@@ -30,55 +29,50 @@ export class XBEditor {
     await expect(this.page.getByTestId('xb-contextual-panel')).toContainText(
       'Title',
       {
-        timeout: 15_000,
+        timeout: 15000,
       },
     );
     await expect(this.page.getByTestId('xb-primary-panel')).toContainText(
       'Content',
       {
-        timeout: 15_000,
+        timeout: 15000,
       },
     );
-  }
 
-  /**
-   * Waits for the XB preview iframe to be initialized and active, and for the canvas to be ready.
-   * Mirrors the Cypress `previewReady` command.
-   *
-   * @returns Locator for the iframe element
-   */
-  async waitForPreviewReady() {
-    const iframeSelector =
-      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]';
+    await this.page.waitForFunction(
+      async () => {
+        const element = document.querySelector(
+          'iframe[data-xb-swap-active="true"]',
+        );
+        if (!element) return false;
 
-    // Wait for the canvas scaling container to be fully visible
-    await expect(this.page.locator('.xbCanvasScalingContainer')).toHaveCSS(
-      'opacity',
-      '1',
+        // Check if it's been stable for a short period
+        const currentValue = element.getAttribute('data-xb-swap-active');
+        if (currentValue !== 'true') return false;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Check again after the delay to confirm stability
+        return element.getAttribute('data-xb-swap-active') === 'true';
+      },
+      { timeout: 10000 },
     );
-    await expect(
-      this.page.locator('.xb--region-overlay__content'),
-    ).toBeAttached();
-    // The idea behind iframeSelector selector is that the data-xb-swap-active part ensures we are selecting the
-    // correct/visible iFrame (because there are two that swap back and forth). The
-    // data-test-xb-content-initialized="true" part ensures that XB has marked the iframe as ready.
-    await expect(this.page.locator(iframeSelector)).toBeAttached({
-      timeout: 10000,
-    });
-    await this.page.waitForFunction((selector) => {
-      const el = document.querySelector(selector) as HTMLIFrameElement;
-      return !!el && !!el.contentDocument;
-    }, iframeSelector);
 
-    return this.page.locator(iframeSelector);
+    await expect(
+      this.page.locator(
+        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="true"]',
+      ),
+    ).toHaveCSS('opacity', '1');
+    await expect(
+      this.page.locator(
+        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="false"]',
+      ),
+    ).toHaveCSS('opacity', '0');
   }
 
   async goToEditor() {
     const path = await this.getEditorPath();
     await this.page.goto(path);
     await this.waitForEditorUi();
-    // Wait for the preview iframe and canvas to be ready
-    await this.waitForPreviewReady(this.page);
   }
 
   /**
@@ -114,7 +108,7 @@ export class XBEditor {
   }
 
   async addComponent(componentId: string) {
-    this.openLibraryPanel();
+    await this.openLibraryPanel();
     const component = this.page.locator(
       `[data-xb-type="component"][data-xb-component-id="${componentId}"]`,
     );
@@ -148,6 +142,30 @@ export class XBEditor {
     await previewElement.waitFor({ state: 'attached' });
   }
 
+  async addCodeComponent(componentName: string, code: string) {
+    await this.openLibraryPanel();
+    await this.page
+      .locator('[data-testid="xb-primary-panel"]')
+      .getByText('Add new')
+      .click();
+    await this.page.fill('#componentName', componentName);
+    await this.page
+      .locator('.rt-BaseDialogContent button')
+      .getByText('Add')
+      .click();
+    await expect(
+      this.page.locator('[data-testid="xb-mosaic-container"]'),
+    ).toBeVisible();
+    const codeEditor = this.page.locator(
+      '.xb-mosaic-window-editor div[role="textbox"]',
+    );
+    await codeEditor.waitFor({ state: 'visible' });
+    await expect(codeEditor).toContainText('Available third party packages');
+    await codeEditor.selectText();
+    await this.page.keyboard.press('Delete');
+    await codeEditor.fill(code);
+  }
+
   async preview() {
     await this.page
       .locator('[data-testid="xb-topbar"]')
@@ -164,13 +182,5 @@ export class XBEditor {
       .contentFrame()
       .locator('main')
       .waitFor({ state: 'visible' });
-  }
-
-  /**
-   * Opens the Layers Panel by clicking the "Layers" button in the side menu.
-   */
-  async openLayersPanel(): Promise<void> {
-    await this.page.getByTestId('xb-side-menu').getByLabel('Layers').click();
-    await this.page;
   }
 }

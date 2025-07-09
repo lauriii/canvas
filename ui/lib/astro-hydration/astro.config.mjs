@@ -30,9 +30,11 @@ export default defineConfig({
               'tailwind-merge': 'tailwind-merge.js',
               'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
               'lib/astro-hydration/src/lib/utils.ts': 'util.js',
-              'lib/astro-hydration/src/lib/json-api-client.ts': 'json-api-client.js',
+              'lib/astro-hydration/src/lib/jsonapi-client.ts': 'jsonapi-client.js',
               'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
-              'lib/astro-hydration/src/lib/swr.ts': 'swr.js',
+              'lib/astro-hydration/src/lib/jsonapi-utils.ts': 'jsonapi-utils.js',
+              'lib/astro-hydration/src/lib/drupal-utils.ts': 'drupal-utils.js',
+              'lib/astro-hydration/src/lib/swr.ts': 'swr.js'
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {
               if (chunkInfo.facadeModuleId?.includes(`node_modules/${key}`)) {

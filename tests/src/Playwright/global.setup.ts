@@ -1,8 +1,9 @@
 import { test as setup } from '@playwright/test';
-import { getRootDir } from './utilities/DrupalFilesystem';
+import { getComposerDir, getRootDir } from './utilities/DrupalFilesystem';
+import { exec } from './utilities/DrupalExec';
 import { chmodSync, existsSync, mkdirSync } from 'node:fs';
 
-setup('create sites/simpletest folder', async () => {
+setup('Create sites/simpletest folder', async () => {
   const rootDir = getRootDir();
   const sitesDir = `${rootDir}/sites`;
   const simpletestDir = `${sitesDir}/simpletest`;
@@ -18,4 +19,9 @@ setup('create sites/simpletest folder', async () => {
       mode: 0o777,
     });
   }
+});
+
+setup('Add external composer dependencies', async () => {
+  const composerDir = await getComposerDir();
+  await exec('composer require drupal/jsonapi_menu_items -w', composerDir);
 });
