@@ -160,10 +160,22 @@ const AiWizard = () => {
         const response = await fetch('/admin/api/xb/token', {
           credentials: 'same-origin',
         });
+        if (!response.ok) {
+          throw new Error(
+            `HTTP error: ${response.status} ${response.statusText}`,
+          );
+        }
         const token = await response.text();
         setCsrfToken(token);
       } catch (error) {
         console.error('Failed to fetch CSRF token:', error);
+        const event = new CustomEvent('xb-csrf-token-error', {
+          detail: {
+            error,
+            time: new Date(),
+          },
+        });
+        window.dispatchEvent(event);
       }
     };
 
