@@ -1,0 +1,12 @@
+xb_ai.settings:
+  type: config_object
+  label: 'Experience Builder AI Settings'
+  mapping:
+    http_client_options:
+      type: mapping
+      label: 'HTTP Client Options'
+      mapping:
+        timeout:
+          type: integer
+          label: 'Timeout'
+          description: 'HTTP request timeout in seconds'

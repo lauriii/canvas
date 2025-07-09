@@ -123,7 +123,15 @@ final class XbBuilder extends ControllerBase {
         'message' => 'No default provider found.',
       ]);
     }
-    $agent->setAiProvider($this->providerService->createInstance($default['provider_id']));
+    $config = $this->config('xb_ai.settings');
+    $http_client_options = [
+      'timeout' => $config->get('http_client_options.timeout') ?? 60,
+    ];
+    $provider = $this->providerService->createInstance(
+      $default['provider_id'],
+      ['http_client_options' => $http_client_options]
+    );
+    $agent->setAiProvider($provider);
     $agent->setModelName($default['model_id']);
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
