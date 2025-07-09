@@ -13,6 +13,8 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\xb_ai\Plugin\AiFunctionCall\AddMetadata;
 use Drupal\xb_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\xb_ai\Plugin\AiFunctionCall\EditComponentJs;
+use Drupal\xb_ai\Plugin\AiFunctionCall\CreateFieldContent;
+use Drupal\xb_ai\Plugin\AiFunctionCall\EditFieldContent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -145,11 +147,14 @@ final class XbBuilder extends ControllerBase {
       $map = [
         EditComponentJs::class => ['js_structure', 'props_metadata'],
         CreateComponent::class => ['component_structure'],
+        CreateFieldContent:: class => ['created_content'],
+        EditFieldContent:: class => ['refined_text'],
         AddMetadata::class => ['metadata'],
       ];
       $plugins = [
         'ai_agents::ai_agent::experience_builder_component_agent',
         'ai_agents::ai_agent::experience_builder_metadata_generation_agent',
+        'ai_agents::ai_agent::experience_builder_title_generation_agent',
       ];
       if (!empty($tools)) {
         foreach ($tools as $tool) {

@@ -12,7 +12,6 @@ system_prompt: "☢️ ABSOLUTE HARD STOP RULE (CRITICAL):\r\n\r\n- Before actin
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:add_metadata': true
-  'ai_agent:get_entity_information': true
   'ai_agent:get_entity_field': true
 orchestration_agent: false
 triage_agent: false
@@ -21,15 +20,6 @@ default_information_tools: "get_entity_context:\r\n  label: 'Get entity context'
 tool_usage_limits:
   'ai_agent:add_metadata':
     metadata:
-      action: ''
-      hide_property: 0
-      values: ''
-  'ai_agent:get_entity_information':
-    entity_type:
-      action: ''
-      hide_property: 0
-      values: ''
-    entity_id:
       action: ''
       hide_property: 0
       values: ''
@@ -48,8 +38,6 @@ tool_usage_limits:
       values: ''
 tool_settings:
   'ai_agent:add_metadata':
-    return_directly: 0
-  'ai_agent:get_entity_information':
     return_directly: 0
   'ai_agent:get_entity_field':
     return_directly: 0

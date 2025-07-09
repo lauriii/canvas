@@ -9,11 +9,11 @@ use Symfony\Component\Yaml\Yaml;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 
 /**
- * Tests for the GetEntityInformation function call plugin.
+ * Tests for the CreateFieldContent function call plugin.
  *
  * @group xb_ai
  */
-final class GetEntityInformationTest extends KernelTestBase {
+final class CreateFieldContentTest extends KernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -43,30 +43,23 @@ final class GetEntityInformationTest extends KernelTestBase {
   }
 
   /**
-   * Test getting entity information with valid information.
+   * Test creating field content successfully.
    */
-  public function testGetEntityInformation(): void {
-    $tool = $this->functionCallManager->createInstance('ai_agent:get_entity_information');
+  public function testCreateFieldContent(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:create_field_content');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
-    $entity_type = 'node';
-    $entity_id = 42;
-    $selected_component = 'Hero component';
-    $layout = 'The layout for the page';
-    $tool->setContextValue('entity_type', $entity_type);
-    $tool->setContextValue('entity_id', $entity_id);
-    $tool->setContextValue('selected_component', $selected_component);
-    $tool->setContextValue('layout', $layout);
+    $tool->setContextValue('field_content', 'Hello World!');
+    $tool->setContextValue('field_name', 'field_title');
     $tool->execute();
     $result = $tool->getReadableOutput();
-
     $this->assertIsString($result);
+
     $parsed_result = Yaml::parse($result);
 
-    $this->assertEquals($entity_type, $parsed_result['entity_type']);
-    $this->assertEquals($entity_id, $parsed_result['entity_id']);
-    $this->assertEquals($selected_component, $parsed_result['selected_component']);
-    $this->assertEquals($layout, $parsed_result['layout']);
+    $this->assertArrayHasKey('created_content', $parsed_result);
+    $this->assertEquals('Hello World!', $parsed_result['created_content']);
+    $this->assertEquals('field_title', $parsed_result['field_name']);
   }
 
 }

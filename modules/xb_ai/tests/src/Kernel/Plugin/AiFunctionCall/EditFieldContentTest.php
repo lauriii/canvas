@@ -9,11 +9,11 @@ use Symfony\Component\Yaml\Yaml;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 
 /**
- * Tests for the GetEntityInformation function call plugin.
+ * Tests for the EditFieldContentTest function call plugin.
  *
  * @group xb_ai
  */
-final class GetEntityInformationTest extends KernelTestBase {
+final class EditFieldContentTest extends KernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -43,30 +43,27 @@ final class GetEntityInformationTest extends KernelTestBase {
   }
 
   /**
-   * Test getting entity information with valid information.
+   * Test editing field content successfully.
    */
-  public function testGetEntityInformation(): void {
-    $tool = $this->functionCallManager->createInstance('ai_agent:get_entity_information');
+  public function testEditFieldContent(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:edit_field_content');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
-    $entity_type = 'node';
-    $entity_id = 42;
-    $selected_component = 'Hero component';
-    $layout = 'The layout for the page';
-    $tool->setContextValue('entity_type', $entity_type);
-    $tool->setContextValue('entity_id', $entity_id);
-    $tool->setContextValue('selected_component', $selected_component);
-    $tool->setContextValue('layout', $layout);
+    $refined_content = [
+      'refined_text' => 'Hello World!',
+      'field_name' => 'field_title',
+    ];
+    $tool->setContextValue('text_value', $refined_content['refined_text']);
+    $tool->setContextValue('field_name', $refined_content['field_name']);
     $tool->execute();
     $result = $tool->getReadableOutput();
-
     $this->assertIsString($result);
+
     $parsed_result = Yaml::parse($result);
 
-    $this->assertEquals($entity_type, $parsed_result['entity_type']);
-    $this->assertEquals($entity_id, $parsed_result['entity_id']);
-    $this->assertEquals($selected_component, $parsed_result['selected_component']);
-    $this->assertEquals($layout, $parsed_result['layout']);
+    $this->assertArrayHasKey('refined_text', $parsed_result);
+    $this->assertArrayHasKey('field_name', $parsed_result);
+    $this->assertEquals($refined_content, $parsed_result);
   }
 
 }

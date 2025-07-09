@@ -65,6 +65,23 @@ const propsMetadataHandler = {
   },
 };
 
+const createdContentHandler = {
+  canHandle: (msg: any) => 'created_content' in msg && msg.created_content,
+  handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
+    const value = message.created_content;
+    dispatch(setUpdatePreview(true));
+    dispatch(setPageData({ 'title[0][value]': value }));
+  },
+};
+
+const editContentHandler = {
+  canHandle: (msg: any) => 'refined_text' in msg && msg.refined_text,
+  handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
+    const value = message.refined_text;
+    dispatch(setUpdatePreview(true));
+    dispatch(setPageData({ 'title[0][value]': value }));
+  },
+};
 const metadataHandler = {
   canHandle: (msg: any) => 'metadata' in msg && msg.metadata,
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
@@ -77,6 +94,8 @@ const metadataHandler = {
 };
 
 const messageHandlers = [
+  createdContentHandler,
+  editContentHandler,
   cssStructureHandler,
   jsStructureHandler,
   componentStructureHandler,
