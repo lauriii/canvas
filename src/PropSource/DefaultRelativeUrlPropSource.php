@@ -111,7 +111,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
     if (is_string($this->value)) {
       \assert(self::isUrlJsonSchema($this->jsonSchema));
       return $this->componentSource->rewriteExampleUrl($this->value);

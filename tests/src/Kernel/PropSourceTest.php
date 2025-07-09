@@ -215,7 +215,7 @@ class PropSourceTest extends KernelTestBase {
         }
       }
     }
-    $this->assertSame($expected_user_value, $prop_source_example->evaluate(User::create([])));
+    $this->assertSame($expected_user_value, $prop_source_example->evaluate(User::create([]), is_required: TRUE));
     // - the field type's item's raw value is minimized if it is single-property
     $this->assertSame($value, $prop_source_example->getValue());
   }
@@ -474,7 +474,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(FieldPropExpression::class, StructuredDataPropExpression::fromString($simple_example->asChoice()));
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame('John Doe', $simple_example->evaluate($user));
+    $this->assertSame('John Doe', $simple_example->evaluate($user, is_required: TRUE));
     // - calculate its dependencies
     $this->assertSame([
       'module' => [
@@ -502,13 +502,13 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     try {
-      $simple_example->evaluate($user);
+      $simple_example->evaluate($user, is_required: TRUE);
       self::fail('Should throw an exception.');
     }
     catch (\DomainException $e) {
       self::assertSame('`ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value` is an expression for entity type `node`, but the provided entity is of type `user`.', $e->getMessage());
     }
-    $this->assertSame('John Doe', $simple_example->evaluate($node));
+    $this->assertSame('John Doe', $simple_example->evaluate($node, is_required: TRUE));
     // - calculate its dependencies
     $this->assertSame([
       'module' => ['node'],
@@ -534,7 +534,7 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     try {
-      $simple_example->evaluate($user);
+      $simple_example->evaluate($user, is_required: TRUE);
       self::fail('Should throw an exception.');
     }
     catch (\DomainException $e) {
@@ -543,7 +543,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame([
       'human_id' => 'John Doe',
       'machine_id' => 1,
-    ], $simple_example->evaluate($node));
+    ], $simple_example->evaluate($node, is_required: TRUE));
     // - calculate its dependencies
     $this->assertSame([
       'module' => [
@@ -588,7 +588,7 @@ class PropSourceTest extends KernelTestBase {
       $this->expectExceptionMessage($expected_message);
     }
 
-    self::assertSame($expected_value, $dynamic_prop_source_delta_test->evaluate($user));
+    self::assertSame($expected_value, $dynamic_prop_source_delta_test->evaluate($user, is_required: TRUE));
   }
 
   /**
@@ -630,7 +630,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $simple_static_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame(1663, $simple_static_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+    $this->assertSame(1663, $simple_static_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
     self::assertSame([
       'module' => [
         'experience_builder',
@@ -674,7 +674,7 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
-    $this->assertSame(11874, $simple_dynamic_example->evaluate($user));
+    $this->assertSame(11874, $simple_dynamic_example->evaluate($user, is_required: TRUE));
     self::assertSame([
       'module' => [
         'experience_builder',
@@ -720,7 +720,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $complex_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713])));
+    $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
     self::assertSame([
       'module' => [
         'experience_builder',
@@ -813,7 +813,7 @@ class PropSourceTest extends KernelTestBase {
       'alt' => 'A good dog',
       'width' => 601,
       'height' => 402,
-    ], $source->evaluate(NULL));
+    ], $source->evaluate(NULL, is_required: TRUE));
     self::assertSame([
       'config' => ['experience_builder.component.sdc.xb_test_sdc.image-optional-with-example-and-additional-prop'],
     ], $source->calculateDependencies());

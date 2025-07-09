@@ -36,7 +36,9 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
     assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
     $dependencies = $this->referencer->calculateDependencies();
     if ($field_item_list !== NULL) {
-      $referenced_content_entities = Evaluator::evaluate($field_item_list, $this->referencer);
+      // ⚠️ Do not require values while calculating dependencies: this MUST not
+      // fail.
+      $referenced_content_entities = Evaluator::evaluate($field_item_list, $this->referencer, is_required: FALSE);
       $referenced_content_entities = match (gettype($referenced_content_entities)) {
         // Reference field containing nothing.
         'null' => [],

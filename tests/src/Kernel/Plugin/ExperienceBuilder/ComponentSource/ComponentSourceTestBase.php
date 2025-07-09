@@ -312,7 +312,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
           value: $client_side_info_for_prop['default_values']['resolved'],
           jsonSchema: $client_side_info_for_prop['jsonSchema'],
           componentId: $component->id(),
-        ))->evaluate(NULL);
+        ))->evaluate(NULL, is_required: TRUE);
 
         continue;
       }
@@ -328,7 +328,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         ],
       ])
         // Static prop sources can be evaluated without a host entity.
-        ->evaluate(NULL);
+        ->evaluate(NULL, is_required: TRUE);
     }
     return [GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME => $explicit_inputs];
   }

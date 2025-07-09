@@ -1583,7 +1583,7 @@ HTML,
     // Ensure the explicit input is valid; helps catch incorrect test cases that
     // could lead to misleading test results.
     foreach ($explicit_input['source'] as $prop_name => $prop_source_array) {
-      $resolved_source = PropSource::parse($prop_source_array)->evaluate(NULL);
+      $resolved_source = PropSource::parse($prop_source_array)->evaluate(NULL, is_required: TRUE);
       self::assertSame($resolved_source, $explicit_input['resolved'][$prop_name]);
     }
 

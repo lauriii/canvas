@@ -350,11 +350,11 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
     return match ($this->getCardinality()) {
       // @phpstan-ignore-next-line
-      1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression),
-      default => Evaluator::evaluate($this->fieldItemList->isEmpty() ? NULL : $this->fieldItemList, $this->expression)
+      1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression, $is_required),
+      default => Evaluator::evaluate($this->fieldItemList->isEmpty() ? NULL : $this->fieldItemList, $this->expression, $is_required)
     };
   }
 

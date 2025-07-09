@@ -200,7 +200,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       'resolved' => array_map(
       // @phpstan-ignore-next-line
         fn(array $prop_source): mixed => PropSource::parse($prop_source)
-          ->evaluate($entity),
+          ->evaluate($entity, is_required: FALSE),
         $values,
       ),
     ];
@@ -315,7 +315,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $resolvedInputValues = array_map(
       // @phpstan-ignore-next-line
         fn(array $prop_source): mixed => PropSource::parse($prop_source)
-          ->evaluate($entity),
+          ->evaluate($entity, is_required: FALSE),
         $inputValues,
       );
     }
@@ -548,7 +548,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // props, optional for all optional SDC props.
       $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name);
       if ($has_default_source_value) {
-        $default_resolved_value = $default_static_prop_source->evaluate(NULL);
+        $default_resolved_value = $default_static_prop_source->evaluate(NULL, is_required: FALSE);
       }
       // One special case: example values that require a Drupal entity to
       // exist. In these cases (for either required or optional SDC props),
@@ -593,7 +593,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           value: $default_resolved_value,
           jsonSchema: $field_data[$prop_name]['jsonSchema'],
           componentId: $component->id(),
-        ))->evaluate(NULL);
+        ))->evaluate(NULL, is_required: FALSE);
       }
 
       // Build transforms from widget metadata.
@@ -766,7 +766,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
     $props = [];
 
+    $required = $this->getExplicitInputDefinitions()['required'];
     foreach (($client_model['source'] ?? []) as $prop => $prop_source) {
+      $is_required = in_array($prop, $required, TRUE);
       // The client should always provide a resolved value when providing a
       // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;
@@ -784,7 +786,43 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $source = PropSource::parse($prop_source);
         // Make sure we can evaluate this prop source with the passed values.
         // @todo Pass the host entity in https://drupal.org/i/3513590
-        $source->evaluate(NULL);
+        $evaluated = $source->evaluate(NULL, $is_required);
+
+        // Optional component props that evaluate to NULL can be omitted:
+        // storing these would be a waste of storage space.
+        // ⚠️ Exception: a prop source that evaluates to `NULL` when an example
+        // value is present that cannot be stored as a value of the
+        // `StaticPropSource`.
+        // Note: such unstorable example values can also be for required props,
+        // in that case the ::evaluate() call above would've thrown an
+        // \OutOfRangeException.
+        if (!$is_required && $evaluated === NULL) {
+          // The component's own rendering would fall back to the default value,
+          // except that certain example values need pre-processing.
+          // @see \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource
+          // @see ::exampleValueRequiresEntity()
+          $example_value_requires_entity = $this->configuration['prop_field_definitions'][$prop]['default_value'] === [];
+          $component_plugin = $this->getSdcPlugin();
+          if ($example_value_requires_entity && array_key_exists(0, $component_plugin->metadata->schema['properties'][$prop]['examples'] ?? [])) {
+            // This will trigger the fallback to DefaultRelativeUrlPropSource in
+            // the catch below.
+            // @todo Make the flow clearer still.
+            throw new \OutOfRangeException();
+          }
+          continue;
+        }
+
+        // 💡 Automatically inform developers of missing client-side transforms,
+        // which is the most likely explanation for a value sent by the XB UI
+        // not being accepted by the field type. However, gracefully degrade and
+        // log a deprecation error.
+        // @see https://en.wikipedia.org/wiki/Robustness_principle
+        if ($source instanceof StaticPropSource && $source->fieldItemList->count() > 0 && $source->fieldItemList->isEmpty()) {
+          // @todo Investigate in https://www.drupal.org/project/experience_builder/issues/3535024, and preferably add extra guardrails and convert this to an exception
+          // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+          @trigger_error(sprintf('Client-side transformation for the `%s` prop failed: `%s` provided, but the %s data type logic considers it to be empty, hence indicating a mismatch.', $prop, json_encode($prop_value), $source->getSourceType()), E_USER_DEPRECATED);
+          continue;
+        }
       }
       catch (\OutOfRangeException | \OutOfBoundsException) {
         if (($violations === NULL ||

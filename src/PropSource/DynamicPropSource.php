@@ -68,11 +68,11 @@ final class DynamicPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
     if ($host_entity === NULL) {
       throw new MissingHostEntityException();
     }
-    return Evaluator::evaluate($host_entity, $this->expression);
+    return Evaluator::evaluate($host_entity, $this->expression, $is_required);
   }
 
   public function asChoice(): string {

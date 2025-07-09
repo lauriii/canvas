@@ -14,8 +14,8 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
 final class Evaluator {
 
-  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
-    $result = self::doEvaluate($entity_or_field, $expr);
+  public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): mixed {
+    $result = self::doEvaluate($entity_or_field, $expr, $is_required);
     // Compensate for DateTimeItemInterface::DATETIME_STORAGE_FORMAT not
     // including the trailing `Z`. In theory, this should always use an adapter.
     // But is the storage and complexity overhead of doing that worth that
@@ -36,14 +36,18 @@ final class Evaluator {
     return $result;
   }
 
-  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): mixed {
+  private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): mixed {
+    // Evaluating an expression when the evaluation context is NULL is
+    // impossible.
+    // @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::isSupported()
     if ($entity_or_field === NULL) {
-      // Entity is optional for reference fields: the reference may point to
-      // something or not.
-      if ($expr instanceof ReferenceFieldPropExpression) {
-        return NULL;
-      }
-      throw new \OutOfRangeException('No data provided to evaluate expression ' . (string) $expr);
+      return match ($is_required) {
+        // Optional value: the expression evaluates to NULL.
+        FALSE => NULL,
+        // Required value: the expression MUST not evaluate to NULL, but without
+        // data that is impossible. Throw exception that the caller MAY act on.
+        TRUE => throw new \OutOfRangeException('No data provided to evaluate expression ' . (string) $expr),
+      };
     }
 
     // Assert that the received entity or field meets the needs of the
@@ -60,7 +64,7 @@ final class Evaluator {
     // - evaluate each FieldItemInterface inside the list individually
     if ($entity_or_field instanceof FieldItemListInterface) {
       return array_map(
-        fn (FieldItemInterface $item) => self::evaluate($item, $expr),
+        fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required),
         iterator_to_array($entity_or_field),
       );
     }
@@ -76,13 +80,14 @@ final class Evaluator {
         FieldTypeObjectPropsExpression::class => array_combine(
           array_keys($expr->objectPropsToFieldTypeProps),
           array_map(
-            fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr),
+            fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
             $expr->objectPropsToFieldTypeProps
           )
         ),
         ReferenceFieldTypePropExpression::class => self::evaluate(
           $field->get($expr->referencer->propName)->getValue(),
-          $expr->referenced
+          $expr->referenced,
+          $is_required,
         ),
         default => throw new \LogicException('Unhandled expression type. ' . (string) $expr),
       };
@@ -128,13 +133,14 @@ final class Evaluator {
           return $result;
         })(),
         ReferenceFieldPropExpression::class => self::evaluate(
-          self::evaluate($entity, $expr->referencer),
-          $expr->referenced
+          self::evaluate($entity, $expr->referencer, $is_required),
+          $expr->referenced,
+          $is_required
         ),
         FieldObjectPropsExpression::class => array_combine(
           array_keys($expr->objectPropsToFieldProps),
           array_map(
-            fn(FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => self::evaluate($entity_or_field, $sub_expr),
+            fn(FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => self::evaluate($entity_or_field, $sub_expr, $is_required),
             $expr->objectPropsToFieldProps
           )
         ),
