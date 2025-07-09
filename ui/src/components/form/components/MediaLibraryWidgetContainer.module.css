@@ -102,6 +102,16 @@
         background-color: var(--blue-3);
       }
     }
+
+    /* Prevent interacting with the open button until ajax is ready */
+    [data-xb-media-library-open-button]:not([data-once="drupal-ajax"]) {
+      pointer-events: none;
+      color: var(--slate-11);
+      border-color: var(--slate-1);
+      background-color: var(--slate-3);
+      cursor: wait;
+    }
+
     /* Hide this div when there is no selection so it doesn't take up space */
     [data-xb-media-library-selection] {
       display: none;

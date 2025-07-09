@@ -10,13 +10,14 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import { FORM_TYPES } from '@/features/form/constants';
-import { setPageData } from '@/features/pageData/pageDataSlice';
+import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 
 const PageDataFormRenderer = () => {
   const { currentData, error, isFetching } = useGetPageDataFormQuery();
+  const pageData = useAppSelector(selectPageData);
   const { showBoundary } = useErrorBoundary();
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
@@ -28,6 +29,8 @@ const PageDataFormRenderer = () => {
   const formRef = useRef<HTMLDivElement>(null);
   useDrupalBehaviors(formRef, jsxFormContent);
 
+  const pageDataExists = !!Object.keys(pageData).length;
+
   useEffect(() => {
     if (error) {
       showBoundary(error);
@@ -35,7 +38,12 @@ const PageDataFormRenderer = () => {
   }, [error, showBoundary]);
 
   useEffect(() => {
-    if (!currentData) {
+    // If the HTML for the form has not yet loaded OR the JSON for the page data
+    // has not, don't render the form.
+    // Were we pulling this data *directly* from an API, doing this would be
+    // best accomplished by the isLoading property provided by RTK. This serves
+    // the same purpose without adding complexity to our reducers.
+    if (!currentData || !pageDataExists) {
       return;
     }
 
@@ -55,7 +63,7 @@ const PageDataFormRenderer = () => {
         )}
       </div>,
     );
-  }, [currentData]);
+  }, [currentData, pageDataExists]);
 
   useEffect(() => {
     const ajaxUpdateFormStateListener: (

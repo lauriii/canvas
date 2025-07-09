@@ -6,12 +6,12 @@ const Drupal = getDrupal();
 
 export function useDrupalBehaviors(
   ref: RefObject<HTMLElement>,
-  dependency: React.ReactNode,
+  dependency: React.ReactNode | null | HTMLDivElement,
 ) {
   useEffect(() => {
     let element: HTMLElement | null = null;
 
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (dependency && ref.current) {
         Drupal.attachBehaviors(ref.current);
         element = ref.current;
@@ -19,6 +19,7 @@ export function useDrupalBehaviors(
     });
 
     return () => {
+      clearTimeout(timeout);
       if (element) {
         Drupal.detachBehaviors(element);
       }
