@@ -118,6 +118,22 @@ const AiWizard = () => {
   const [, setChatHistory] = useState(() => loadChatHistory());
   let isComponentRendered = false;
 
+  // Create a ref to store current values for Deep Chat's connect prop.
+  // Accessing these ensures we're working with fresh values even after the Deep
+  // Chat component has been mounted.
+  const currentValuesRef = useRef({
+    codeComponentName,
+    textPropsMapString,
+  });
+
+  // Update the ref whenever tracked values change.
+  useEffect(() => {
+    currentValuesRef.current = {
+      codeComponentName,
+      textPropsMapString,
+    };
+  }, [codeComponentName, textPropsMapString]);
+
   // Fetch CSRF token on mount.
   useEffect(() => {
     const fetchToken = async () => {
@@ -146,7 +162,7 @@ const AiWizard = () => {
         }
         return { text: message.message };
       } catch (error) {
-        return { text: 'Something went wrong. Please try again.' };
+        return { error: 'Something went wrong. Please try again.' };
       }
     },
     [dispatch, createCodeComponent, navigate],
@@ -207,16 +223,40 @@ const AiWizard = () => {
           maxMessages: 5,
         }}
         connect={{
-          url: '/admin/api/xb/ai',
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': csrfToken,
-          },
-          additionalBodyProps: {
-            entity_type: drupalSettings.xb.entityType,
-            entity_id: drupalSettings.xb.entity,
-            selected_component: codeComponentName,
-            layout: textPropsMapString,
+          // Defining a handler instead of an object to ensure we can work with
+          // up-to-date data. Otherwise `connect.additionalBodyProps` captures
+          // the values at the time the component was mounted.
+          // @see https://deepchat.dev/docs/connect/#Handler
+          handler: async (body, signals) => {
+            try {
+              const response = await fetch('/admin/api/xb/ai', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({
+                  ...body,
+                  entity_type: drupalSettings.xb.entityType,
+                  entity_id: drupalSettings.xb.entity,
+                  selected_component:
+                    currentValuesRef.current.codeComponentName,
+                  layout: currentValuesRef.current.textPropsMapString,
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error. Status: ${response.status}`);
+              }
+
+              const data = await response.json();
+              signals.onResponse(data);
+            } catch (error) {
+              console.error('AI request failed:', error);
+              signals.onResponse({
+                error: 'Something went wrong. Please try again.',
+              });
+            }
           },
         }}
         onComponentRender={() => {
