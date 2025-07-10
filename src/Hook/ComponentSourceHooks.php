@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Hook;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
+use Drupal\Core\Asset\LibraryDependencyResolverInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -28,12 +30,14 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
   public function __construct(
     private RouteMatchInterface $routeMatch,
     private CodeComponentDataProvider $codeComponentDataProvider,
+    private LibraryDependencyResolverInterface $libraryDependencyResolver,
   ) {}
 
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('current_route_match'),
       $container->get(CodeComponentDataProvider::class),
+      $container->get(LibraryDependencyResolverInterface::class),
     );
   }
 
@@ -89,12 +93,44 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
   }
 
   /**
-   * Implements hook_js_settings_build().
+   * Implements hook_js_settings_alter().
    */
-  #[Hook('js_settings_build')]
-  public function jsSettingsBuild(array &$settings, AttachedAssetsInterface $assets): void {
-    if (isset($settings[CodeComponentDataProvider::XB_DATA_KEY])) {
-      $settings = $this->codeComponentDataProvider->getPartialXbDataFromSettingsV0($settings);
+  #[Hook('js_settings_alter')]
+  public function jsSettingsAlter(array &$settings, AttachedAssetsInterface $assets): void {
+    $path = [CodeComponentDataProvider::XB_DATA_KEY, CodeComponentDataProvider::V0];
+    $xbData = $settings[CodeComponentDataProvider::XB_DATA_KEY] ?? [];
+
+    // This is an oversight in core infra; this should not be necessary.
+    $all_attached_asset_libraries = $this->libraryDependencyResolver->getLibrariesWithDependencies($assets->getLibraries());
+
+    $all = in_array('experience_builder/xbData.v0', $all_attached_asset_libraries, TRUE);
+    if ($all || in_array('experience_builder/xbData.v0.baseUrl', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'baseUrl']) === NULL) {
+        $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataBaseUrlV0());
+      }
+    }
+    if ($all || in_array('experience_builder/xbData.v0.branding', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'branding', 'homeUrl']) === NULL) {
+        $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataBrandingV0());
+      }
+    }
+    if ($all || in_array('experience_builder/xbData.v0.breadcrumbs', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'breadcrumbs']) === NULL) {
+        $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataBreadcrumbsV0());
+      }
+    }
+    if ($all || in_array('experience_builder/xbData.v0.pageTitle', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'pageTitle']) === NULL) {
+        $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataPageTitleV0());
+      }
+    }
+    if (!empty($xbData)) {
+      ksort($xbData[CodeComponentDataProvider::V0]);
+      $settings[CodeComponentDataProvider::XB_DATA_KEY] = $xbData;
     }
   }
 

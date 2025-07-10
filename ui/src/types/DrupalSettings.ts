@@ -25,6 +25,22 @@ export interface DrupalSettings {
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
   };
+  xbData: {
+    v0: {
+      pageTitle: string;
+      branding: {
+        homeUrl: string;
+        siteName: string;
+        siteSlogan: string;
+      };
+      baseUrl: string;
+      breadcrumbs: Array<{
+        key: string;
+        text: string;
+        url: string;
+      }>;
+    };
+  };
   xbExtension: object;
   path: {
     baseUrl: string;

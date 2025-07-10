@@ -50,7 +50,14 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
 
     $drupalSettings = $this->getDrupalSettings();
     $this->assertArrayHasKey(CodeComponentDataProvider::XB_DATA_KEY, $drupalSettings);
-    self::assertSame(['branding'], array_keys($drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]));
+    self::assertSame([
+      'baseUrl' => \base_path(),
+      'branding' => [
+        'homeUrl' => '/user/login',
+        'siteName' => 'Drupal',
+        'siteSlogan' => '',
+      ],
+    ], $drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]);
   }
 
   /**

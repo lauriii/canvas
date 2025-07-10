@@ -40,11 +40,13 @@ readonly final class CodeComponentDataProvider {
   public function getXbDataBaseUrlV0(): array {
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
-    $request->getSchemeAndHttpHost();
 
     return [
       self::V0 => [
-        'baseUrl' => $request->getSchemeAndHttpHost(),
+        // Match `drupalSettings.path.baseUrl`: a root-relative base URL with a
+        // trailing slash.
+        // @see \Drupal\system\Hook\SystemHooks::jsSettingsAlter()
+        'baseUrl' => $request->getBaseUrl() . '/',
       ],
     ];
   }
@@ -119,62 +121,22 @@ readonly final class CodeComponentDataProvider {
     // Using the compiled variables because drupalSettings.xbData.v0 was not
     // reliable and we will always have the compiled variable.
     $map = [
-      '_drupalSettings_xbData_v0_baseUrl' => 'experience_builder/xbData.v0.baseUrl',
-      '_drupalSettings_xbData_v0_branding' => 'experience_builder/xbData.v0.branding',
-      '_drupalSettings_xbData_v0_breadcrumbs' => 'experience_builder/xbData.v0.breadcrumbs',
-      '_drupalSettings_xbData_v0_pageTitle' => 'experience_builder/xbData.v0.pageTitle',
+      'getSiteData' => [
+        'experience_builder/xbData.v0.baseUrl',
+        'experience_builder/xbData.v0.branding',
+      ],
+      'getPageData' => [
+        'experience_builder/xbData.v0.breadcrumbs',
+        'experience_builder/xbData.v0.pageTitle',
+      ],
     ];
     $libraries = [];
-    foreach ($map as $var => $library) {
+    foreach ($map as $var => $needed_libraries) {
       if (str_contains($jsCode, $var)) {
-        $libraries[] = $library;
+        $libraries = \array_merge($libraries, $needed_libraries);
       }
     }
-    if (!empty($libraries)) {
-      return $libraries;
-    }
-
-    // There is only drupalSettings.xbData?.v0 to load the whole library
-    if (preg_match('/_drupalSettings_xbData(_v0)?/', $jsCode)) {
-      return ['experience_builder/xbData.v0'];
-    }
-
-    return [];
-  }
-
-  /**
-   * Constructs a partial xbData array based on provided settings.
-   *
-   * @param array $settings
-   *   An associative array of settings containing xbData keys.
-   *
-   * @return array
-   *   A partially constructed xbData array with identified settings.
-   */
-  public function getPartialXbDataFromSettingsV0(array $settings): array {
-    $xbData = [];
-
-    // Detect if the `experience_builder/xbData.v0` catch-all asset library is
-    // attached, which is used for both draft/auto-save components and the code
-    // component editor.
-    // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
-    $all_data = array_key_exists(self::V0, $settings[self::XB_DATA_KEY]) && $settings[self::XB_DATA_KEY][self::V0] === NULL;
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['baseUrl']) || $all_data) {
-      $xbData = array_replace_recursive($xbData, $this->getXbDataBaseUrlV0());
-    }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['branding']) || $all_data) {
-      $xbData = array_replace_recursive($xbData, $this->getXbDataBrandingV0());
-    }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['breadcrumbs']) || $all_data) {
-      $xbData = array_replace_recursive($xbData, $this->getXbDataBreadcrumbsV0());
-    }
-    if (isset($settings[self::XB_DATA_KEY][self::V0]['pageTitle']) || $all_data) {
-      $xbData = array_replace_recursive($xbData, $this->getXbDataPageTitleV0());
-    }
-    if (!empty($xbData)) {
-      $settings[self::XB_DATA_KEY] = $xbData;
-    }
-    return $settings;
+    return $libraries;
   }
 
 }

@@ -41,8 +41,8 @@ const DataFetch = () => {
               <InfoCircledIcon />
             </Callout.Icon>
             <Callout.Text>
-              Fetch results from <code>useSWR()</code> calls in your code will
-              be shown here.
+              Results from <code>useSWR()</code> and data fetching with
+              <code>'@/lib/drupal-utils'</code> functions will be shown here.
             </Callout.Text>
           </Callout.Root>
         </Box>

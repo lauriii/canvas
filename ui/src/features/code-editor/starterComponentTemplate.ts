@@ -126,6 +126,20 @@ export default function getStarterComponentTemplate(componentName: string) {
 // @see https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html
 // The content is safe when processed through Drupal's filter system that is correctly configured.
 // @see https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security
+
+/**************
+ * Page data  *
+ **************/
+// You can access information about the current page with the getPageData utility
+// import { getPageData } from '@/lib/drupal-utils';
+// const { pageTitle, breadcrumbs } = getPageData();
+
+/**************
+ * Site data  *
+ **************/
+// You can access site information with the getSiteData utility
+// import { getSiteData } from '@/lib/drupal-utils';
+// const { siteName } = getSiteData().branding;
 import FormattedText from "@/lib/FormattedText";
 
 // Combine classes with the built-in cn() utility function.

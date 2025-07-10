@@ -363,7 +363,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/YGvFtlLffqZAsMISAt3KuDn0xYmGW3Pr-yWkDcS8_wg.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/4mmrh6rA0pHwhUlnqPevMaX0bGKNcokjoLC3VLBVXDY.js', $site_path),
               ],
             ],
           ],

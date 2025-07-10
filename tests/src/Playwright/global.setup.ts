@@ -22,6 +22,9 @@ setup('Create sites/simpletest folder', async () => {
 });
 
 setup('Add external composer dependencies', async () => {
+  if (process.env.DRUPAL_TEST_PLAYWRIGHT_SKIP_COMPOSER_DEPS) {
+    return;
+  }
   const composerDir = await getComposerDir();
   await exec('composer require drupal/jsonapi_menu_items -w', composerDir);
 });

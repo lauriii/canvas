@@ -61,3 +61,53 @@ export function sortMenu(linkset: Linkset) {
 
   return menu;
 }
+
+interface BreadcrumbLink {
+  key: string
+  text: string
+  url: string
+}
+
+interface PageData {
+  pageTitle: string
+  breadcrumbs: Array<BreadcrumbLink>
+}
+
+interface SiteData {
+  branding: {
+    homeUrl: string;
+    siteName: string;
+    siteSlogan: string;
+  }
+  baseUrl: string
+}
+
+export const getPageData = (): PageData => {
+  const pageData = {
+    pageTitle: window.drupalSettings?.xbData?.v0?.pageTitle || '',
+    breadcrumbs: window.drupalSettings?.xbData?.v0?.breadcrumbs || []
+  }
+  window.parent.postMessage({
+    type: '_xb_useswr_data_fetch',
+    id: 'getPageData()',
+    data: pageData,
+  });
+  return pageData;
+}
+
+export const getSiteData = (): SiteData => {
+  const siteData = {
+    branding: window.drupalSettings?.xbData?.v0?.branding || {
+      homeUrl: '',
+      siteName: '',
+      siteSlogan: '',
+    },
+    baseUrl: window.drupalSettings?.xbData?.v0?.baseUrl || '/'
+  }
+  window.parent.postMessage({
+    type: '_xb_useswr_data_fetch',
+    id: 'getSiteData()',
+    data: siteData,
+  });
+  return siteData;
+}
