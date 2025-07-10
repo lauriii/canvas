@@ -25,10 +25,13 @@ export default defineConfig({
             // Make sure the output chunks for dependencies have useful file
             // names so we can easily distinguish between them.
             const matches = {
+              'lib/astro-hydration/src/lib/jsx-runtime-default.js': 'jsx-runtime-default.js',
               clsx: 'clsx.js',
               'class-variance-authority': 'class-variance-authority.js',
               'tailwind-merge': 'tailwind-merge.js',
               'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
+              'lib/astro-hydration/src/lib/next-image-standalone.tsx': 'next-image-standalone.js',
+              'lib/astro-hydration/src/lib/use-image-loader.ts': 'use-image-loader.js',
               'lib/astro-hydration/src/lib/utils.ts': 'util.js',
               'lib/astro-hydration/src/lib/jsonapi-client.ts': 'jsonapi-client.js',
               'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
@@ -56,7 +59,7 @@ export default defineConfig({
         // in both code components and bundled packages.)
         // @see src/features/code-editor/Preview.tsx
         // @see src/Plugin/ExperienceBuilder/ComponentSource/JsComponent.php
-        external: ['react', 'react-dom', 'react-dom/client']
+        external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
       },
     },
   },

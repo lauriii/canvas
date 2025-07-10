@@ -37,6 +37,8 @@ export interface CodeComponentProp {
 
 export interface CodeComponentPropImageExample {
   src: string;
+  // @todo Delete the following line in https://drupal.org/i/3532718.
+  srcSetCandidateTemplate: string;
   width: number;
   height: number;
   alt: string;

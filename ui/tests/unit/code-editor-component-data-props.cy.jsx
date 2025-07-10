@@ -908,9 +908,11 @@ describe('Component data / props in code editor', () => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].example,
       ).to.deep.equal({
-        src: 'https://placehold.co/1200x900@2x.png',
-        width: 1200,
-        height: 900,
+        src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
+        // @todo Delete the following line in https://drupal.org/i/3532718.
+        srcSetCandidateTemplate: 'https://placehold.co/{width}x{height}@2x.png',
+        width: 800,
+        height: 600,
         alt: 'Example image placeholder',
       });
     });
@@ -982,9 +984,12 @@ describe('Component data / props in code editor', () => {
         {
           type: 'object',
           example: {
-            src: 'https://placehold.co/1200x900@2x.png',
-            width: 1200,
-            height: 900,
+            src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
+            // @todo Delete the following line in https://drupal.org/i/3532718.
+            srcSetCandidateTemplate:
+              'https://placehold.co/{width}x{height}@2x.png',
+            width: 800,
+            height: 600,
             alt: 'Example image placeholder',
           },
           format: undefined,
@@ -1031,9 +1036,12 @@ describe('Component data / props in code editor', () => {
         {
           type: 'object',
           example: {
-            src: 'https://placehold.co/1200x900@2x.png',
-            width: 1200,
-            height: 900,
+            src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
+            // @todo Delete the following line in https://drupal.org/i/3532718.
+            srcSetCandidateTemplate:
+              'https://placehold.co/{width}x{height}@2x.png',
+            width: 800,
+            height: 600,
             alt: 'Example image placeholder',
           },
           format: undefined,
@@ -1064,9 +1072,12 @@ describe('Component data / props in code editor', () => {
         {
           type: 'object',
           example: {
-            src: 'https://placehold.co/1920x1080@3x.png',
-            width: 1920,
-            height: 1080,
+            src: 'https://placehold.co/1280x720@3x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%403x.png',
+            // @todo Delete the following line in https://drupal.org/i/3532718.
+            srcSetCandidateTemplate:
+              'https://placehold.co/{width}x{height}@3x.png',
+            width: 1280,
+            height: 720,
             alt: 'Example image placeholder',
           },
           format: undefined,
@@ -1095,9 +1106,12 @@ describe('Component data / props in code editor', () => {
         {
           type: 'object',
           example: {
-            src: 'https://placehold.co/1920x1080@3x.png',
-            width: 1920,
-            height: 1080,
+            src: 'https://placehold.co/1280x720@3x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%403x.png',
+            // @todo Delete the following line in https://drupal.org/i/3532718.
+            srcSetCandidateTemplate:
+              'https://placehold.co/{width}x{height}@3x.png',
+            width: 1280,
+            height: 720,
             alt: 'Example image placeholder',
           },
           format: undefined,
@@ -1257,35 +1271,35 @@ describe('Component data / props in code editor', () => {
 
   it('parses the image prop example URL', () => {
     expect(
-      parseImageExampleSrc('https://placehold.co/800x600.png'),
+      parseImageExampleSrc('https://placehold.co/801x601.png'),
     ).to.deep.equal({
       aspectRatio: '4:3', // Fallback to default aspect ratio, size is not known.
       pixelDensity: '1x', // Matched from URL.
     });
 
     expect(
-      parseImageExampleSrc('https://placehold.co/800x600@2x.png'),
+      parseImageExampleSrc('https://placehold.co/801x601@2x.png'),
     ).to.deep.equal({
       aspectRatio: '4:3', // Fallback to default aspect ratio, size is not known.
       pixelDensity: '2x', // Exact match.
     });
 
     expect(
-      parseImageExampleSrc('https://placehold.co/1200x800@4x.png'),
+      parseImageExampleSrc('https://placehold.co/900x600@4x.png'),
     ).to.deep.equal({
       aspectRatio: '3:2',
       pixelDensity: '2x', // Fallback to default pixel density, density is not known.
     });
 
     expect(
-      parseImageExampleSrc('https://placehold.co/1200x800@2x.png'),
+      parseImageExampleSrc('https://placehold.co/900x600@2x.png'),
     ).to.deep.equal({
       aspectRatio: '3:2',
       pixelDensity: '2x',
     });
 
     expect(
-      parseImageExampleSrc('https://placehold.co/2100x900@3x.png'),
+      parseImageExampleSrc('https://placehold.co/1400x600@3x.png'),
     ).to.deep.equal({
       aspectRatio: '21:9',
       pixelDensity: '3x',

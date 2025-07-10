@@ -229,7 +229,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
         'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $module_path),
         'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $module_path),
-        'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $module_path),
+        'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js', $module_path),
         'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
         'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
         'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
@@ -237,6 +237,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $module_path),
         'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $module_path),
         '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $module_path),
+        'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $module_path),
+        '@/lib/use-image-loader' => \sprintf('%s/ui/lib/astro-hydration/dist/use-image-loader.js', $module_path),
         '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $module_path),
         '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $module_path),
         'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $module_path),
@@ -885,7 +887,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcsetCandidateTemplate' => [
+                'srcSetCandidateTemplate' => [
                   'type' => 'string',
                   'title' => 'Image candidate string URL template for <img srcset>',
                   'format' => 'uri-template',

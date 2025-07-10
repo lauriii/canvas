@@ -80,7 +80,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         // Map to XB generated libraries.
         preact: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/preact.module.js`,
         'preact/hooks': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
-        'react/jsx-runtime': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsxRuntime.module.js`,
+        'react/jsx-runtime': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsx-runtime-default.js`,
         react: `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
         'react-dom': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
         'react-dom/client': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
@@ -89,6 +89,8 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         'class-variance-authority': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/class-variance-authority.js`,
         'tailwind-merge': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/tailwind-merge.js`,
         '@/lib/FormattedText': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/FormattedText.js`,
+        'next-image-standalone': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/next-image-standalone.js`,
+        '@/lib/use-image-loader': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/use-image-loader.js`,
         '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
         '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
         '@drupal-api-client/json-api-client': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-client.js`,

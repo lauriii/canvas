@@ -132,7 +132,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = [
       'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $xb_path),
       'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $xb_path),
-      'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsxRuntime.module.js', $base_path, $xb_path),
+      'react/jsx-runtime' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js', $base_path, $xb_path),
       'react' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
       'react-dom' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
       'react-dom/client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/compat.module.js', $base_path, $xb_path),
@@ -140,6 +140,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       'class-variance-authority' => \sprintf('%s%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $base_path, $xb_path),
       'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
       '@/lib/FormattedText' => \sprintf('%s%s/ui/lib/astro-hydration/dist/FormattedText.js', $base_path, $xb_path),
+      'next-image-standalone' => \sprintf('%s%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $base_path, $xb_path),
+      '@/lib/use-image-loader' => \sprintf('%s%s/ui/lib/astro-hydration/dist/use-image-loader.js', $base_path, $xb_path),
       '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
       '@drupal-api-client/json-api-client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $base_path, $xb_path),
       'drupal-jsonapi-params' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $base_path, $xb_path),

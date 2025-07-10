@@ -86,6 +86,35 @@ export default function getStarterComponentTemplate(componentName: string) {
 // });
 //  const menu = sortMenu(data);
 
+/**********************
+ * Responsive images *
+ **********************/
+// A standalone version of next/image is available to output responsive images.
+// @see https://nextjs.org/docs/app/api-reference/components/image
+// @see https://www.npmjs.com/package/next-image-standalone
+// A loader function is also available to use with the Image component.
+// Example:
+//
+// import Image from "next-image-standalone";
+// import { useImageLoader } from "@/lib/use-image-loader";
+//
+// const Cover = ({ image }) => {
+//   const loader = useImageLoader(image.srcSetCandidateTemplate);
+//   return (
+//     <div>
+//       <Image
+//         src={image.src}
+//         alt={image.alt}
+//         width={image.width}
+//         height={image.height}
+//         loader={loader}
+//       />
+//     </div>
+//   );
+// };
+//
+// export default Cover;
+
 /**************
  * Components *
  **************/

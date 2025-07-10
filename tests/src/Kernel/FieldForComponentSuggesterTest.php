@@ -171,7 +171,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲experience_builder:image␟image' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}',
+            "Subset of this Foo's field_silly_image: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -441,7 +441,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}',
+            "Subset of this Foo's field_silly_image: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -451,7 +451,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_before_and_after: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcsetCandidateTemplate↠srcset_candidate_uri_template}',
+            "Subset of this Foo's field_before_and_after: entity, alt, width, height, srcset_candidate_uri_template (5 of 6 props — absent: title)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
 
           ],
           'adapters' => [],

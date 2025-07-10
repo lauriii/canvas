@@ -9,11 +9,13 @@
 const { ...preact } = await import('preact');
 const { ...preactCompat } = await import('preact/compat');
 const { ...preactHooks } = await import('preact/hooks');
-const { jsx, jsxs, Fragment } = await import('preact/jsx-runtime');
+const { ...jsxRuntime } = await import('@/lib/jsx-runtime-default');
 const { default: clsx } = await import('clsx');
 const { ...tailwindMerge } = await import('tailwind-merge');
 const { cva } = await import('class-variance-authority');
 const FormattedText = await import('@/lib/FormattedText');
+const Image = await import('@/lib/next-image-standalone');
+const { useImageLoader } = await import('@/lib/use-image-loader');
 const { cn } = await import('@/lib/utils');
 const { JsonApiClient } = await import('@/lib/jsonapi-client');
 const { DrupalJsonApiParams } = await import('@/lib/jsonapi-params');

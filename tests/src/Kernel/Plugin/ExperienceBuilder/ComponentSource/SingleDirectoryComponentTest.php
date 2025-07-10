@@ -1105,7 +1105,7 @@ HTML,
                     'title' => 'Image height',
                     'type' => 'integer',
                   ],
-                  'srcsetCandidateTemplate' => [
+                  'srcSetCandidateTemplate' => [
                     'type' => 'string',
                     'title' => 'Image candidate string URL template for <img srcset>',
                     'format' => 'uri-template',
@@ -1180,7 +1180,7 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcsetCandidateTemplate' => [
+                'srcSetCandidateTemplate' => [
                   'type' => 'string',
                   'title' => 'Image candidate string URL template for <img srcset>',
                   'format' => 'uri-template',
@@ -1245,7 +1245,7 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcsetCandidateTemplate' => [
+                'srcSetCandidateTemplate' => [
                   'type' => 'string',
                   'title' => 'Image candidate string URL template for <img srcset>',
                   'format' => 'uri-template',
@@ -1300,7 +1300,7 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcsetCandidateTemplate' => [
+                'srcSetCandidateTemplate' => [
                   'type' => 'string',
                   'title' => 'Image candidate string URL template for <img srcset>',
                   'format' => 'uri-template',
@@ -1348,7 +1348,7 @@ HTML,
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcsetCandidateTemplate' => [
+                'srcSetCandidateTemplate' => [
                   'type' => 'string',
                   'title' => 'Image candidate string URL template for <img srcset>',
                   'format' => 'uri-template',
