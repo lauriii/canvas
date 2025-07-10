@@ -173,9 +173,11 @@ export const ComponentContextMenuContent: React.FC<
     >
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
       {isCodeComponent && (
-        <UnifiedMenu.Item onClick={handleEditCodeClick}>
-          Edit code
-        </UnifiedMenu.Item>
+        <PermissionCheck hasPermission="codeComponents">
+          <UnifiedMenu.Item onClick={handleEditCodeClick}>
+            Edit code
+          </UnifiedMenu.Item>
+        </PermissionCheck>
       )}
       <UnifiedMenu.Separator />
 
