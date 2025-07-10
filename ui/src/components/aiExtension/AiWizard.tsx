@@ -425,153 +425,154 @@ const AiWizard = () => {
     }
   }, [csrfToken, receiveMessage]);
 
-  return csrfToken ? (
-    <Flex
-      direction="column"
-      align="stretch"
-      gap="4"
-      className={styles.aiWizard}
-    >
-      <Flex direction="column">
-        <Text size="3" weight="bold" color="blue">
-          Hello 👋
-        </Text>
-        <Text size="2" weight="bold">
-          How can I help you today?
-        </Text>
-      </Flex>
-      <DeepChat
-        ref={chatElementRef}
-        requestBodyLimits={{
-          maxMessages: 5,
-        }}
-        connect={{
-          // Defining a handler instead of an object to ensure we can work with
-          // up-to-date data. Otherwise `connect.additionalBodyProps` captures
-          // the values at the time the component was mounted.
-          // @see https://deepchat.dev/docs/connect/#Handler
-          handler: async (body, signals) => {
-            try {
-              const response = await fetch('/admin/api/xb/ai', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRF-Token': csrfToken,
-                },
-                body: JSON.stringify({
-                  ...body,
-                  entity_type: drupalSettings.xb.entityType,
-                  entity_id: drupalSettings.xb.entity,
-                  selected_component:
-                    currentValuesRef.current.codeComponentName,
-                  layout: currentValuesRef.current.textPropsMapString,
-                  active_component_uuid: selectedComponent ?? '',
-                  current_layout: transformLayout(),
-                }),
-              });
+  return (
+    csrfToken && (
+      <Flex
+        direction="column"
+        align="stretch"
+        gap="4"
+        className={styles.aiWizard}
+      >
+        <Flex direction="column">
+          <Text size="3" weight="bold" color="blue">
+            Hello 👋
+          </Text>
+          <Text size="2" weight="bold">
+            How can I help you today?
+          </Text>
+        </Flex>
+        <DeepChat
+          ref={chatElementRef}
+          requestBodyLimits={{
+            maxMessages: 5,
+          }}
+          connect={{
+            // Defining a handler instead of an object to ensure we can work with
+            // up-to-date data. Otherwise `connect.additionalBodyProps` captures
+            // the values at the time the component was mounted.
+            // @see https://deepchat.dev/docs/connect/#Handler
+            handler: async (body, signals) => {
+              try {
+                const response = await fetch('/admin/api/xb/ai', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                  },
+                  body: JSON.stringify({
+                    ...body,
+                    entity_type: drupalSettings.xb.entityType,
+                    entity_id: drupalSettings.xb.entity,
+                    selected_component:
+                      currentValuesRef.current.codeComponentName,
+                    layout: currentValuesRef.current.textPropsMapString,
+                    active_component_uuid: selectedComponent ?? '',
+                    current_layout: transformLayout(),
+                  }),
+                });
 
-              if (!response.ok) {
-                throw new Error(`HTTP error. Status: ${response.status}`);
+                if (!response.ok) {
+                  throw new Error(`HTTP error. Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                signals.onResponse(data);
+              } catch (error) {
+                console.error('AI request failed:', error);
+                signals.onResponse({
+                  error: 'Something went wrong. Please try again.',
+                });
               }
-
-              const data = await response.json();
-              signals.onResponse(data);
-            } catch (error) {
-              console.error('AI request failed:', error);
-              signals.onResponse({
-                error: 'Something went wrong. Please try again.',
-              });
+            },
+          }}
+          onComponentRender={() => {
+            if (!isComponentRendered) {
+              chatElementRef.current.clearMessages();
+              sessionStorage.removeItem(SESSION_STORAGE_KEY);
+              setChatHistory([]);
+              isComponentRendered = true;
             }
-          },
-        }}
-        onComponentRender={() => {
-          if (!isComponentRendered) {
-            chatElementRef.current.clearMessages();
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
-            setChatHistory([]);
-            isComponentRendered = true;
-          }
-        }}
-        textInput={{
-          placeholder: { text: 'Build me a ...' },
-          styles: {
-            container: {
-              height: '167px',
-              width: '100%',
-              padding: '8px',
-            },
-          },
-        }}
-        style={{
-          width: '283px',
-          height: '100%',
-          border: 'none',
-        }}
-        messageStyles={{
-          default: {
-            shared: {
-              bubble: {
+          }}
+          textInput={{
+            placeholder: { text: 'Build me a ...' },
+            styles: {
+              container: {
+                height: '167px',
                 width: '100%',
-                maxWidth: '100%',
-                color: '#1C2024',
-                fontSize: '14px',
-                fontWeight: '400',
-                lineHeight: '1.26',
                 padding: '8px',
-                textAlign: 'left',
               },
             },
-            user: {
-              bubble: {
-                backgroundColor: '#F0F0F3',
+          }}
+          style={{
+            width: '283px',
+            height: '100%',
+            border: 'none',
+          }}
+          messageStyles={{
+            default: {
+              shared: {
+                bubble: {
+                  width: '100%',
+                  maxWidth: '100%',
+                  color: '#1C2024',
+                  fontSize: '14px',
+                  fontWeight: '400',
+                  lineHeight: '1.26',
+                  padding: '8px',
+                  textAlign: 'left',
+                },
+              },
+              user: {
+                bubble: {
+                  backgroundColor: '#F0F0F3',
+                },
+              },
+              ai: {
+                bubble: {
+                  backgroundColor: 'white',
+                },
               },
             },
-            ai: {
-              bubble: {
-                backgroundColor: 'white',
+          }}
+          submitButtonStyles={{
+            disabled: {
+              container: {
+                default: {
+                  display: 'none',
+                },
               },
             },
-          },
-        }}
-        submitButtonStyles={{
-          disabled: {
-            container: {
-              default: {
-                display: 'none',
+            submit: {
+              container: {
+                default: {
+                  display: 'inherit',
+                  marginRight: '8px',
+                  marginBottom: '12px',
+                },
               },
-            },
-          },
-          submit: {
-            container: {
-              default: {
-                display: 'inherit',
-                marginRight: '8px',
-                marginBottom: '12px',
-              },
-            },
-            svg: {
-              content: `
+              svg: {
+                content: `
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
                   <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
                   <path fill-rule="evenodd" clip-rule="evenodd" d="M11.6228 6.28952C11.8311 6.08123 12.1688 6.08123 12.3771 6.28952L16.6438 10.5562C16.852 10.7645 16.852 11.1021 16.6438 11.3104C16.4355 11.5187 16.0978 11.5187 15.8894 11.3104L12.5333 7.95422V17.3333C12.5333 17.6278 12.2945 17.8666 12 17.8666C11.7054 17.8666 11.4666 17.6278 11.4666 17.3333V7.95422L8.11041 11.3104C7.90213 11.5187 7.56444 11.5187 7.35617 11.3104C7.14788 11.1021 7.14788 10.7645 7.35617 10.5562L11.6228 6.28952Z" fill="white"/>
                 </svg>
               `,
+              },
             },
-          },
-          stop: {
-            svg: {
-              content: `
+            stop: {
+              svg: {
+                content: `
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
                   <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
                   <path fill-rule="evenodd" clip-rule="evenodd" d="M6.1333 7.19997C6.1333 6.61087 6.61087 6.1333 7.19997 6.1333H16.8C17.3891 6.1333 17.8666 6.61087 17.8666 7.19997V16.8C17.8666 17.3891 17.3891 17.8666 16.8 17.8666H7.19997C6.61087 17.8666 6.1333 17.3891 6.1333 16.8V7.19997ZM16.8 7.19997H7.19997V16.8H16.8V7.19997Z" fill="white"/>
                 </svg>
               `,
+              },
             },
-          },
-        }}
-        auxiliaryStyle="
+          }}
+          auxiliaryStyle="
           #chat-view:has(#messages:empty) {
             display: block;
           }
@@ -591,10 +592,9 @@ const AiWizard = () => {
             font-size: var(--font-size-1);
           }
         "
-      />
-    </Flex>
-  ) : (
-    <p>Loading Experience Builder AI...</p>
+        />
+      </Flex>
+    )
   );
 };
 

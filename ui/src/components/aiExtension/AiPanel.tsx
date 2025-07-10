@@ -12,11 +12,16 @@ interface AiPanelProps {}
 
 const AiPanel: React.FC<AiPanelProps> = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);
-  if (!openItems.includes(LayoutItemType.AIWIZARD)) return null;
-
+  const isOpen = openItems.includes(LayoutItemType.AIWIZARD);
   return (
-    <Box className={styles.aiPanel} data-testid="xb-ai-panel">
-      <AiWizard />
+    <Box
+      className={styles.aiPanel}
+      data-open={!!isOpen}
+      data-testid="xb-ai-panel"
+    >
+      <div data-open={!!isOpen} className={styles.aiPanelContent}>
+        {isOpen && <AiWizard />}
+      </div>
     </Box>
   );
 };
