@@ -22,7 +22,9 @@ use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
@@ -90,6 +92,41 @@ final class ApiAutoSaveController extends ApiControllerBase {
         ], $unmatched_keys),
       ], status: Response::HTTP_CONFLICT);
     }
+    // If any JavaScriptComponents are being published ensure the global
+    // AssetLibrary is also being published.
+    // @todo Improve this in https://www.drupal.org/project/experience_builder/issues/3535038
+    $global_asset = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    if ($global_asset !== NULL) {
+      $global_asset_key = AutoSaveManager::getAutoSaveKey($global_asset);
+      if (\array_key_exists($global_asset_key, $all_auto_saves) && !\array_key_exists($global_asset_key, $expected_auto_saves)) {
+        // There are changes to the global asset library, but it is not being
+        // published. We need to ensure there are not code components being
+        // published.
+        foreach ($expected_auto_saves as $client_auto_save) {
+          if ($client_auto_save['entity_type'] === JavaScriptComponent::ENTITY_TYPE_ID) {
+            return new JsonResponse(data: [
+              'errors' => [
+                [
+                  'detail' => ErrorCodesEnum::GlobalAssetNotPublished->getMessage(),
+                  'source' => [
+                    'pointer' => $global_asset_key,
+                  ],
+                  'code' => ErrorCodesEnum::GlobalAssetNotPublished->value,
+                  'meta' => \array_intersect_key($all_auto_saves[$global_asset_key], \array_flip([
+                    'entity_type',
+                    'entity_id',
+                    'label',
+                  ])) + [
+                    self::AUTO_SAVE_KEY => $global_asset_key,
+                  ],
+                ],
+              ],
+            ], status: Response::HTTP_FAILED_DEPENDENCY);
+          }
+        }
+      }
+    }
+
     return NULL;
   }
 

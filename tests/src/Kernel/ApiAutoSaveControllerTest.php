@@ -834,4 +834,96 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     );
   }
 
+  /**
+   * Tests enforcement of global asset library publishing with code components.
+   *
+   * @covers ::validateExpectedAutoSaves
+   * @testWith [true, ["js_component:test-enforce-component", "xb_asset_library:global"], 200, "Successfully published 2 items."]
+   *           [true, ["js_component:test-enforce-component"], 424]
+   *           [false, ["js_component:test-enforce-component"], 200, "Successfully published 1 item."]
+   * @todo Adjust this in https://www.drupal.org/project/experience_builder/issues/3535038
+   */
+  public function testEnforceGlobalAssetPublish(bool $global_asset_library_auto_save_exists, array $auto_save_keys_to_publish, int $expected_status_code, ?string $expected_message = NULL): void {
+    $this->setUpCurrentUser(permissions: [
+      PageRegion::ADMIN_PERMISSION,
+      'edit any article content',
+      JavaScriptComponent::ADMIN_PERMISSION,
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = \Drupal::service(AutoSaveManager::class);
+
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'test-enforce-component',
+      'name' => 'Test Enforce Component',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("Test")',
+        'compiled' => 'console.log("Test")',
+      ],
+      'css' => [
+        'original' => '.test { display: none; }',
+        'compiled' => '.test{display:none;}',
+      ],
+    ]);
+    self::assertCount(0, $code_component->getTypedData()->validate());
+    $this->assertSame(SAVED_NEW, $code_component->save());
+
+    // Always create an auto-save for the code component, maybe make one for the
+    // global asset library.
+    $code_component->set('name', 'Updated Component Name');
+    $autoSave->saveEntity($code_component);
+    if ($global_asset_library_auto_save_exists) {
+      $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+      \assert($library instanceof AssetLibrary);
+      $library->set('css', [
+        'original' => '.test { display: block; }',
+        'compiled' => '.test{display:block;}',
+      ]);
+      $autoSave->saveEntity($library);
+    }
+
+    // Construct the request body to publish specified auto-saves, then send it.
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $publish_data = array_combine(
+      $auto_save_keys_to_publish,
+      array_map(
+        fn (string $auto_save_key) => $auto_save_data[$auto_save_key],
+        $auto_save_keys_to_publish
+      ),
+    );
+    $response = $this->makePublishAllRequest($publish_data);
+
+    self::assertSame($expected_status_code, $response->getStatusCode());
+    $json = json_decode($response->getContent() ?: '', TRUE);
+    if ($expected_status_code === 200) {
+      \assert(\is_string($expected_message));
+      self::assertSame(['message' => $expected_message], $json);
+    }
+    else {
+      \assert(\is_null($expected_message));
+      self::assertSame([
+        'errors' => [
+          [
+            'detail' => ErrorCodesEnum::GlobalAssetNotPublished->getMessage(),
+            'source' => [
+              'pointer' => AssetLibrary::ENTITY_TYPE_ID . ':' . AssetLibrary::GLOBAL_ID,
+            ],
+            'code' => ErrorCodesEnum::GlobalAssetNotPublished->value,
+            'meta' => [
+              'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
+              'entity_id' => AssetLibrary::GLOBAL_ID,
+              'label' => 'Global CSS',
+              ApiAutoSaveController::AUTO_SAVE_KEY => AssetLibrary::ENTITY_TYPE_ID . ':' . AssetLibrary::GLOBAL_ID,
+            ],
+          ],
+        ],
+      ], $json);
+    }
+  }
+
 }
