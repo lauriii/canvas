@@ -8,6 +8,7 @@ use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\Task\Task;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\xb_ai\Plugin\AiFunctionCall\AddMetadata;
@@ -15,6 +16,9 @@ use Drupal\xb_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\xb_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\xb_ai\Plugin\AiFunctionCall\CreateFieldContent;
 use Drupal\xb_ai\Plugin\AiFunctionCall\EditFieldContent;
+use Drupal\xb_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
+use Drupal\xb_ai\XbAiPageBuilderHelper;
+use Drupal\xb_ai\XbAiTempStore;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,14 +63,30 @@ final class XbBuilder extends ControllerBase {
   protected $csrfTokenGenerator;
 
   /**
+   * The XB AI page builder helper service.
+   *
+   * @var \Drupal\xb_ai\XbAiPageBuilderHelper
+   */
+  protected XbAiPageBuilderHelper $xbAiPageBuilderHelper;
+
+  /**
+   * The XB AI temp store service.
+   *
+   * @var \Drupal\xb_ai\XbAiTempStore
+   */
+  protected XbAiTempStore $xbAiTempStore;
+
+  /**
    * Constructs a new XbBuilder object.
    */
-  public function __construct(EntityTypeManagerInterface $entityTypeManager, AccountInterface $currentUser, AiProviderPluginManager $providerService, PluginManagerInterface $agentManager, CsrfTokenGenerator $csrfTokenGenerator) {
+  public function __construct(EntityTypeManagerInterface $entityTypeManager, AccountInterface $currentUser, AiProviderPluginManager $providerService, PluginManagerInterface $agentManager, CsrfTokenGenerator $csrfTokenGenerator, XbAiPageBuilderHelper $xbAiPageBuilderHelper, XbAiTempStore $xbAiTempStore) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
     $this->providerService = $providerService;
     $this->agentManager = $agentManager;
     $this->csrfTokenGenerator = $csrfTokenGenerator;
+    $this->xbAiPageBuilderHelper = $xbAiPageBuilderHelper;
+    $this->xbAiTempStore = $xbAiTempStore;
   }
 
   /**
@@ -79,6 +99,8 @@ final class XbBuilder extends ControllerBase {
       $container->get('ai.provider'),
       $container->get('plugin.manager.ai_agents'),
       $container->get('csrf_token'),
+      $container->get('xb_ai.page_builder_helper'),
+      $container->get('xb_ai.tempstore')
     );
   }
 
@@ -106,6 +128,20 @@ final class XbBuilder extends ControllerBase {
     // Add dynamic comments.
     $comments = [];
     $task_message = array_pop($prompt['messages']);
+
+    // Append the selected component to the task message if it exists.
+    if (!empty($prompt['active_component_uuid'])) {
+      $task_message['text'] .= ' selected_component_uuid:' . $prompt['active_component_uuid'];
+    }
+
+    // Store the current layout in the temp store. This will be later used by
+    // the ai agents.
+    // @see \Drupal\xb_ai\Plugin\AiFunctionCall\GetCurrentLayout.
+    $current_layout = $prompt['current_layout'] ?? '';
+    if (!empty($current_layout)) {
+      $this->xbAiTempStore->setData(XbAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($current_layout));
+    }
+
     $task = $prompt['messages'];
     foreach ($task as $message) {
       $comments[] = [
@@ -139,6 +175,7 @@ final class XbBuilder extends ControllerBase {
     $solvability = $agent->determineSolvability();
     $status = FALSE;
     $message = '';
+    $response = [];
     if ($solvability == AiAgentInterface::JOB_NOT_SOLVABLE) {
       $message = 'Something went wrong';
     }
@@ -185,6 +222,25 @@ final class XbBuilder extends ControllerBase {
                 }
               }
             }
+          }
+          elseif ($tool->getPluginId() === 'ai_agents::ai_agent::experience_builder_page_builder_agent') {
+            $tool_results_of_page_builder = $tool->getAgent()->getToolResults();
+            // The page builder uses a single tool: 'SetAIGeneratedComponentStructure'.
+            // This tool validates the component structure and converts the YAML input
+            // into a JSON representation of the component structure.
+            // The tool might be called multiple times if the AI returns an invalid structure.
+            // The final (valid) output is the one we want to use.
+            $last_tool_response = array_pop($tool_results_of_page_builder);
+            if (!$last_tool_response instanceof SetAIGeneratedComponentStructure) {
+              return new JsonResponse([
+                'status' => FALSE,
+                'message' => 'The AI Agent returned an unexpected response. Please try again.',
+              ]);
+            }
+            $response += Json::decode($last_tool_response->getReadableOutput());
+
+            // Clear the current layout from the temp store.
+            $this->xbAiTempStore->deleteData(XbAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }
       }

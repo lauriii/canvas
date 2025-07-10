@@ -64,7 +64,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
   /**
    * Load from dependency injection container.
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): FunctionCallInterface|static {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): FunctionCallInterface | static {
     $instance = new static(
       $configuration,
       $plugin_id,

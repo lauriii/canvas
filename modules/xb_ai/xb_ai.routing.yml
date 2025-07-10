@@ -12,3 +12,11 @@ xb_ai.csrf_token:
   requirements:
     _permission: 'use experience builder ai'
     _method: 'POST'
+
+xb_ai.component_description_settings:
+  path: '/admin/config/system/xb-ai-component-description-settings'
+  defaults:
+    _title: 'Xb AI Component Description Settings Form'
+    _form: 'Drupal\xb_ai\Form\XbAiComponentDescriptionSettingsForm'
+  requirements:
+    _permission: 'administer components'

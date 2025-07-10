@@ -1,0 +1,5 @@
+xb_ai.component_description_settings:
+  title: XB AI Component Description Settings
+  description: 'Update the descriptions of available components and their props and slots, for the AI page builder.'
+  parent: ai.admin_settings
+  route_name: xb_ai.component_description_settings

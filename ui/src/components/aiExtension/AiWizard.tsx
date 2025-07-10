@@ -10,7 +10,10 @@ import {
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 import { useNavigate } from 'react-router-dom';
-import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
+import {
+  useCreateCodeComponentMutation,
+  useGetComponentsQuery,
+} from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 import { Flex, Text } from '@radix-ui/themes';
 import type { CodeComponent } from '@/types/CodeComponent';
@@ -18,6 +21,11 @@ import { setPageData } from '@/features/pageData/pageDataSlice';
 import {
   selectModel,
   setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
+import type { XBComponent } from '@/types/Component';
+import type {
+  LayoutModelSliceState,
+  ComponentNode,
 } from '@/features/layout/layoutModelSlice';
 
 const simplePropertyHandler = (
@@ -93,6 +101,91 @@ const metadataHandler = {
   },
 };
 
+// Helper to delay the placement of components.
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const operationsHandler = {
+  canHandle: (msg: any) => 'operations' in msg && msg.operations,
+  handle: async ({
+    message,
+    dispatch,
+    availableComponents,
+    layoutUtils,
+    componentSelectionUtils,
+  }: {
+    message: any;
+    dispatch: any;
+    availableComponents: any;
+    layoutUtils: any;
+    componentSelectionUtils: any;
+  }) => {
+    // Logic for placing components (SDCs/Blocks/Code components) to the canvas.
+    for (const op of message.operations) {
+      // Only 'Add' operation is supported for now.
+      if (
+        op.operation === 'ADD' &&
+        op.components &&
+        Array.isArray(op.components) &&
+        availableComponents
+      ) {
+        for (const component of op.components) {
+          if (
+            component.id &&
+            component.nodePath &&
+            availableComponents[component.id]
+          ) {
+            let componentToUse: XBComponent = availableComponents[component.id];
+            if (component.fieldValues) {
+              // Create a copy of the component to set the field values
+              // as it is not possible to update the original component
+              // object directly.
+              const componentCopy = structuredClone(
+                availableComponents[component.id],
+              );
+              // Set the values to the props.
+              Object.entries(component.fieldValues).forEach(
+                ([fieldName, value]) => {
+                  const propSource = (componentCopy as any).propSources?.[
+                    fieldName
+                  ];
+                  if (propSource) {
+                    // Ensure default_values exists
+                    if (!propSource.default_values) {
+                      propSource.default_values = {};
+                    }
+                    // Ensure source exists and is an array
+                    if (!Array.isArray(propSource.default_values.source)) {
+                      propSource.default_values.source = [{}];
+                    }
+                    // Ensure the first element exists
+                    if (!propSource.default_values.source[0]) {
+                      propSource.default_values.source[0] = {};
+                    }
+                    // Now set the value
+                    propSource.default_values.source[0].value = value;
+                  }
+                },
+              );
+              componentToUse = componentCopy;
+            }
+            dispatch(
+              layoutUtils.addNewComponentToLayout(
+                {
+                  to: component.nodePath,
+                  component: componentToUse,
+                },
+                componentSelectionUtils.setSelectedComponent,
+              ),
+            );
+            // Wait for a second before placing the next component, for the UI to render the component.
+            await delay(1000);
+          }
+        }
+      }
+    }
+  },
+};
+
 const messageHandlers = [
   createdContentHandler,
   editContentHandler,
@@ -101,6 +194,7 @@ const messageHandlers = [
   componentStructureHandler,
   propsMetadataHandler,
   metadataHandler,
+  operationsHandler,
 ];
 
 function getHandlersForMessage(message: any) {
@@ -152,6 +246,72 @@ const AiWizard = () => {
       textPropsMapString,
     };
   }, [codeComponentName, textPropsMapString]);
+  // Access layoutUtils and componentSelectionUtils from drupalSettings.xb
+  const layoutUtils = drupalSettings.xb?.layoutUtils as any;
+  const componentSelectionUtils = drupalSettings.xb
+    ?.componentSelectionUtils as any;
+
+  // Get the current layout, selected component, and available components from Redux state
+  const theLayoutModel = useAppSelector(
+    (state) => state?.layoutModel?.present as LayoutModelSliceState,
+  );
+  const selectedComponent = useAppSelector(
+    (state) => state.ui.selection.items[0],
+  );
+  const { data: availableComponents } = useGetComponentsQuery();
+
+  // Helper to transform the current layout into a JSON representation.
+  const transformLayout = () => {
+    if (!theLayoutModel?.layout) return null;
+    const result: any = { layout: {} };
+    theLayoutModel.layout.forEach((region, regionIndex) => {
+      result.layout[region.id] = {
+        nodePathPrefix: [regionIndex],
+        components: [],
+      };
+      result.layout[region.id].components = processComponents(
+        region.components,
+      );
+    });
+    return result;
+  };
+
+  // Helper to recursively process components
+  const processComponents = (
+    components: ComponentNode[] | undefined,
+    parentPath: string[] = [],
+  ): any[] => {
+    if (!components) return [];
+    return components.map((component) => {
+      let nodePath: number[] | null = null;
+      try {
+        nodePath = layoutUtils.findNodePathByUuid(
+          theLayoutModel.layout,
+          component.uuid,
+        );
+      } catch (e) {
+        console.warn(`Could not find nodePath for ${component.uuid}`);
+      }
+      const transformedComponent: any = {
+        name: component.type?.split('@')[0],
+        uuid: component.uuid,
+        nodePath: nodePath,
+      };
+      // Handle slots if they exist
+      if (component.slots && component.slots.length > 0) {
+        transformedComponent.slots = {};
+        component.slots.forEach((slot) => {
+          transformedComponent.slots[slot.id] = {
+            components: processComponents(slot.components, [
+              ...parentPath,
+              component.uuid,
+            ]),
+          };
+        });
+      }
+      return transformedComponent;
+    });
+  };
 
   // Fetch CSRF token on mount.
   useEffect(() => {
@@ -186,17 +346,49 @@ const AiWizard = () => {
   const receiveMessage = useCallback(
     async (message: any) => {
       try {
-        const context = { message, dispatch, createCodeComponent, navigate };
         const handlers = getHandlersForMessage(message);
+        // If the handler is operationsHandler, do not await it here.
+        if (handlers.some((h) => h === operationsHandler)) {
+          // Show the message in the chat immediately.
+          setTimeout(() => {
+            // Do the async work in the background.
+            operationsHandler.handle({
+              message,
+              dispatch,
+              availableComponents,
+              layoutUtils,
+              componentSelectionUtils,
+            });
+          }, 0);
+          // Return the message to DeepChat so it is displayed immediately.
+          return { text: message.message };
+        }
+
+        // For other handlers, await as usual.
         for (const handler of handlers) {
-          await handler.handle(context);
+          await handler.handle({
+            message,
+            dispatch,
+            createCodeComponent,
+            navigate,
+            availableComponents,
+            layoutUtils,
+            componentSelectionUtils,
+          });
         }
         return { text: message.message };
       } catch (error) {
         return { error: 'Something went wrong. Please try again.' };
       }
     },
-    [dispatch, createCodeComponent, navigate],
+    [
+      dispatch,
+      createCodeComponent,
+      navigate,
+      availableComponents,
+      layoutUtils,
+      componentSelectionUtils,
+    ],
   );
 
   useEffect(() => {
@@ -273,6 +465,8 @@ const AiWizard = () => {
                   selected_component:
                     currentValuesRef.current.codeComponentName,
                   layout: currentValuesRef.current.textPropsMapString,
+                  active_component_uuid: selectedComponent ?? '',
+                  current_layout: transformLayout(),
                 }),
               });
 

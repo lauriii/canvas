@@ -1,0 +1,9 @@
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+  xb_ai.page_builder_helper:
+    class: Drupal\xb_ai\XbAiPageBuilderHelper
+  xb_ai.tempstore:
+    class: Drupal\xb_ai\XbAiTempStore
+  Drupal\Core\Cache\CacheBackendInterface: '@cache.default'
