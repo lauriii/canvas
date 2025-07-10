@@ -10,7 +10,6 @@ export interface Component {
   compiledJs?: string;
   sourceCodeCss?: string;
   compiledCss?: string;
-  blockOverride?: string | null;
   importedJsComponents: string[];
 }
 

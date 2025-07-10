@@ -4,7 +4,6 @@ status: true
 dependencies: {  }
 machineName: xb_test_code_components_vanilla_image
 name: Vanilla Image
-block_override: null
 required: {  }
 props:
   image:

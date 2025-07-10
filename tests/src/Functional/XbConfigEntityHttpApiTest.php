@@ -516,7 +516,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'machineName' => 'disabled_js_component',
         'name' => 'Disabled JavaScript Component',
         'status' => FALSE,
-        'blockOverride' => NULL,
         'props' => [],
         'required' => [],
         'slots' => [],
@@ -536,7 +535,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'machineName' => 'disabled_js_component',
       'name' => 'Disabled JavaScript Component',
       'status' => FALSE,
-      'blockOverride' => NULL,
       'props' => [],
       'required' => [],
       'slots' => [],
@@ -775,7 +773,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'machineName' => 'test',
       'name' => 'Test',
       'status' => FALSE,
-      'blockOverride' => NULL,
       'props' => [
         'string' => [
           'title' => 'Title',
@@ -995,15 +992,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Confirm that there STILL is an auto-save, and its `status` was updated!
     $expected_auto_save['status'] = TRUE;
     $this->assertCurrentAutoSave(200, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
-
-    // Modify a Code Component correctly, to test the highly experimental block
-    // override functionality: 200.
-    // ⚠️ This is highly experimental and *will* be refactored.
-    $code_component_to_send['blockOverride'] = 'system_branding_block';
-    $expected_component['blockOverride'] = 'system_branding_block';
-    $request_options[RequestOptions::JSON] = $code_component_to_send;
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
-    $this->assertSame($expected_component, $body);
 
     // Modify a Code Component correctly: 200.
     // ⚠️This is changing it from `exposed` → `internal`. This must cause the

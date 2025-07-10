@@ -18,8 +18,6 @@ import MissingDefaultExportMessage, {
 } from './errors/MissingDefaultExportMessage';
 import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import {
-  getExamplePropValuesForOverridePreview,
-  getExampleSlotNamesForOverridePreview,
   getImportsFromAst,
   getPropValuesForPreview,
   getSlotNamesForPreview,
@@ -42,9 +40,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const componentId = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
-  const blockOverride = useAppSelector(
-    selectCodeComponentProperty('blockOverride'),
-  );
   const sourceCodeJs = useAppSelector(
     selectCodeComponentProperty('sourceCodeJs'),
   );
@@ -66,9 +61,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [isJsImportError, setIsJsImportError] = useState(false);
-  const { data: codeComponents } = useGetCodeComponentsQuery({
-    override: false,
-  });
+  const { data: codeComponents } = useGetCodeComponentsQuery();
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
@@ -229,12 +222,8 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // being added to the iframe inline because of Content Security Policy (CSP)
     // restrictions.
     // @see ui/lib/code-editor-preview.js
-    const propValues = !blockOverride
-      ? getPropValuesForPreview(props)
-      : getExamplePropValuesForOverridePreview(blockOverride);
-    const slotNames = !blockOverride
-      ? getSlotNamesForPreview(slots)
-      : getExampleSlotNamesForOverridePreview(blockOverride);
+    const propValues = getPropValuesForPreview(props);
+    const slotNames = getSlotNamesForPreview(slots);
     // Remove the `xb` and `xbExtension` properties from `drupalSettings`.
     // They are only added for the XB UI, and are not available normally.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -258,7 +247,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       }),
     );
   }, [
-    blockOverride,
     compiledCss,
     compiledGlobalCss,
     compiledJs,

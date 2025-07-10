@@ -1,12 +1,8 @@
 import { Box, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
-import {
-  addDataFetch,
-  selectCodeComponentProperty,
-} from '@/features/code-editor/codeEditorSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { addDataFetch } from '@/features/code-editor/codeEditorSlice';
+import { useAppDispatch } from '@/app/hooks';
 import Props from '@/features/code-editor/component-data/Props';
 import Slots from '@/features/code-editor/component-data/Slots';
-import OverrideExampleData from '@/features/code-editor/component-data/OverrideExampleData';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import styles from './ComponentData.module.css';
 import DataFetch from '@/features/code-editor/component-data/DataFetch';
@@ -17,9 +13,6 @@ export default function ComponentData({
 }: {
   isLoading?: boolean;
 }) {
-  const blockOverride = useAppSelector(
-    selectCodeComponentProperty('blockOverride'),
-  );
   const dispatch = useAppDispatch();
 
   // Listen for messages from the code editor preview iframe.
@@ -69,26 +62,12 @@ export default function ComponentData({
               <Box px="4">
                 <Tabs.Content value="props">
                   <ErrorBoundary title="An unexpected error has occurred while displaying props.">
-                    {blockOverride ? (
-                      <OverrideExampleData
-                        block={blockOverride as string}
-                        type="props"
-                      />
-                    ) : (
-                      <Props />
-                    )}
+                    <Props />
                   </ErrorBoundary>
                 </Tabs.Content>
                 <Tabs.Content value="slots">
                   <ErrorBoundary title="An unexpected error has occurred while displaying slots.">
-                    {blockOverride ? (
-                      <OverrideExampleData
-                        block={blockOverride as string}
-                        type="slots"
-                      />
-                    ) : (
-                      <Slots />
-                    )}
+                    <Slots />
                   </ErrorBoundary>
                 </Tabs.Content>
                 <Tabs.Content value="data-fetch">

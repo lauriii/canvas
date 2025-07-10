@@ -155,17 +155,6 @@ There aren't any, because the validation logic for the `JavaScriptComponent conf
 `component` whose inputs XB cannot generate an input UX for: it imposes the same criteria as for `SDC` `component`s (see
 [section 3.1.2 above](#3.1.2)).
 
-#### 3.3.3 Block overrides ⚠️ warning: experimental!
-
-The `JavaScriptComponent config entity` has a special "block_override" property that, when set, enables the `component`
-declared in the entity to take over the rendering of the specified `Block` plugin ID.
-
-Mapping of block content into props and slots is done by specially named preprocess functions. The existing block plugin
-preprocess function is suffixed with "__as_js_component" and this is called after the other existing preprocess functions.
-
-The data output by each block plugin must currently be mapped on an individual basis. This feature is highly experimental
-and subject to change.
-
 ### 3.4 Fallback
 
 When one of a `Component` config entity's dependencies is removed, Drupal's config dependency API will call its `::onDependencyRemoval()`

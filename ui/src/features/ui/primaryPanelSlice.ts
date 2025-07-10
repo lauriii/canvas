@@ -13,7 +13,6 @@ export enum LayoutItemType {
   COMPONENT = 'component',
   DYNAMIC = 'dynamicComponent',
   CODE = 'code',
-  OVERRIDE = 'override',
   AIWIZARD = 'aiWizard',
   UNDEFINED = 'undefined',
 }

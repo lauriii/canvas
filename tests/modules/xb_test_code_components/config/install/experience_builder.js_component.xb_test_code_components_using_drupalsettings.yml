@@ -5,7 +5,6 @@ dependencies:
   enforced: {  }
 machineName: xb_test_code_components_using_drupalsettings
 name: 'Using drupalSettings'
-block_override: null
 required: {  }
 props: {  }
 slots: {  }

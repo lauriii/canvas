@@ -12,10 +12,6 @@ ini_set('assert.active', 1);
 
 use Drupal\Core\Render\Markup;
 
-// Hook implementations for specific areas:
-// @see docs/components.md, section 3.3.3
-require_once __DIR__ . '/experience_builder.block_overrides.inc';
-
 /**
  * Implements hook_preprocess_HOOK() for regions.
  *

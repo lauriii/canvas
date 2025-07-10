@@ -3,7 +3,6 @@ status: true
 dependencies: {  }
 machineName: xb_test_e2e_code_components_optional_image
 name: CC Optional Image
-block_override: null
 required: {  }
 props:
   image:

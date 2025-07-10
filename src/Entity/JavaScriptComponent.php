@@ -41,7 +41,6 @@ use Symfony\Component\Validator\ConstraintViolation;
   config_export: [
     'machineName',
     'name',
-    'block_override',
     'props',
     'required',
     'slots',
@@ -69,13 +68,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    * The human-readable label of the component.
    */
   protected ?string $name;
-
-  /**
-   * NULL or a block base plugin ID.
-   *
-   * ⚠️ This is highly experimental and *will* be refactored.
-   */
-  protected ?string $block_override;
 
   /**
    * The props of the component.
@@ -119,7 +111,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         'machineName' => $this->id(),
         'name' => (string) $this->label(),
         'status' => $this->status(),
-        'blockOverride' => $this->block_override,
         'props' => $this->props,
         'required' => $this->required,
         'slots' => $this->slots,
@@ -203,11 +194,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         'original' => $data['sourceCodeJs'] ?? '',
         'compiled' => $data['compiledJs'] ?? '',
       ]);
-    }
-
-    // ⚠️ This is highly experimental and *will* be refactored.
-    if (array_key_exists('blockOverride', $data)) {
-      $this->set('block_override', $data['blockOverride']);
     }
   }
 
@@ -301,41 +287,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    *   Component props.
    */
   public function getProps(): ?array {
-    if ($this->block_override) {
-      return self::getExperimentalHardcodedBlockProps($this->block_override);
-    }
     return $this->props;
-  }
-
-  /**
-   * ⚠️ This is highly experimental and *will* be refactored.
-   *
-   * This is here to satisfy the call from AstroIsland::preRenderIsland().
-   */
-  private function getExperimentalHardcodedBlockProps(string $override): ?array {
-    switch ($this->block_override) {
-      case 'system_branding_block':
-        return [
-          'homeUrl' => ['type' => 'string', 'format' => 'uri-reference'],
-          'logo' => ['type' => 'string', 'format' => 'uri-reference'],
-          'siteName' => ['type' => 'string'],
-        ];
-
-      case 'system_breadcrumb_block':
-        return [
-          'links' => ['type' => 'array'],
-        ];
-
-      case 'system_menu_block':
-        return [
-          'id' => ['type' => 'string'],
-          'links' => ['type' => 'array'],
-          'label' => ['type' => 'string'],
-        ];
-
-      default:
-        return $this->props;
-    }
   }
 
   /**

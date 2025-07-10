@@ -32,9 +32,7 @@ const CodeComponentImports = () => {
   const currentComponentId = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
-  const { data: codeComponents, error } = useGetCodeComponentsQuery({
-    override: false,
-  });
+  const { data: codeComponents, error } = useGetCodeComponentsQuery();
   const { showBoundary } = useErrorBoundary();
   const [importName, setImportName] = useState('');
   const [importSource, setImportSource] = useState('');

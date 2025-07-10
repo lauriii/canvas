@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { camelCase, isEqual } from 'lodash';
-import getOverrideExampleData from '@/features/code-editor/component-data/getOverrideExampleData';
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
 import type {
@@ -78,31 +77,6 @@ export function getSlotNamesForPreview(slots: CodeComponentSlot[]): string[] {
 }
 
 /**
- * Returns prop values for the code editor preview of an override.
- *
- * @see ui/src/features/code-editor/Preview.tsx
- *
- * @param block - The overridden block to get the prop values for.
- * @returns The prop values.
- */
-export function getExamplePropValuesForOverridePreview(block: string) {
-  return getOverrideExampleData(block, 'props') || {};
-}
-
-/**
- * Returns slot names for the code editor preview of an override.
- *
- * @see ui/src/features/code-editor/Preview.tsx
- *
- * @param block - The overridden block to get the slot names for.
- * @returns The slot names.
- */
-export function getExampleSlotNamesForOverridePreview(block: string) {
-  const data = getOverrideExampleData(block, 'slots');
-  return data ? Object.keys(data) : [];
-}
-
-/**
  * Returns JS for the code editor preview for slots.
  *
  * @see ui/src/features/code-editor/Preview.tsx
@@ -117,26 +91,6 @@ export function getJsForSlotsPreview(slots: CodeComponentSlot[]) {
       // Wrap the slot's example value in a function so that it can be
       // rendered by Preact.
       return `export function ${getPropMachineName(slot.name)}() { return (${slot.example as string});}`;
-    })
-    .join('\n');
-}
-
-/**
- * Returns JS for the code editor preview for example slots of an override.
- *
- * @see ui/src/features/code-editor/Preview.tsx
- *
- * @param block - The overridden block to get the JS for.
- * @returns The JS for the example slot.
- */
-export function getJsForExampleSlotsOverridePreview(block: string) {
-  const data = getOverrideExampleData(block, 'slots');
-  if (!data) {
-    return '';
-  }
-  return Object.keys(data)
-    .map((slot) => {
-      return `export function ${slot}() { return (${data[slot] as string});}`;
     })
     .join('\n');
 }

@@ -4,7 +4,6 @@ export interface CodeComponent {
   machineName: string;
   name: string;
   status: boolean;
-  blockOverride: string | null;
   props: CodeComponentProp[];
   required: string[];
   slots: any[];

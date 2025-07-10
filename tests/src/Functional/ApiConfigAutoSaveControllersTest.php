@@ -98,7 +98,6 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'machineName' => 'test',
           'name' => 'Test',
           'status' => FALSE,
-          'blockOverride' => NULL,
           'props' => [
             'string' => [
               'title' => 'Title',

@@ -17,10 +17,12 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\Component;
+use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
+use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
@@ -236,20 +238,48 @@ class XbPageVariantTest extends FunctionalTestBase {
     $assert_session->responseContains('rel="home">Drupal</a>');
     $assert_session->pageTextContains($slogan);
 
+    // @todo add test coverage installs a code component rendering `drupalSettings.xbData.v0.branding`.
     // 6. Creating an exposed JavaScriptComponent config entity that overrides
     // a placed `block`-sourced Component results in that block being rendered
     // using an Astro island.
-    $this->container->get(ModuleInstallerInterface::class)->install(['xb_dev_js_blocks']);
-    // @see tests/modules/xb_dev_js_blocks/config/install/experience_builder.js_component.site_branding.yml
+    $this->container->get(ModuleInstallerInterface::class)->install(['xb_test_e2e_code_components']);
+    // @see tests/modules/xb_test_e2e_code_components/config/install/experience_builder.js_component.site_branding.yml
     $branding_component = JavaScriptComponent::load('site_branding');
     assert($branding_component instanceof JavaScriptComponent);
+    $branding_component->enable()->save();
+    $matching_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($branding_component->id()));
+    \assert($matching_component instanceof ComponentInterface);
+    $tree = $pageRegion->getComponentTree();
+    // Replace the block item with a JS Component.
+    $index = $tree->getComponentTreeDeltaByUuid(self::UUID_BRANDING);
+    \assert($index !== NULL);
+    $tree->removeItem($index);
+    $tree->appendItem([
+      'uuid' => self::UUID_BRANDING,
+      'component_id' => 'js.site_branding',
+      'inputs' => [
+        'logo' => 'https://llama.land/icon-small.png',
+        'homeUrl' => 'https://llama.land',
+        'siteName' => 'Llama land',
+      ],
+    ]);
+    $tree->appendItem([
+      'uuid' => '257f06f0-898a-4d03-b4ed-9ad506d57630',
+      'parent_uuid' => self::UUID_BRANDING,
+      'slot' => 'siteSlogan',
+      'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+      'inputs' => [
+        'heading' => $slogan,
+      ],
+    ]);
+    $pageRegion->set('component_tree', $tree->getValue());
+    $pageRegion->save();
     $role = Role::load('anonymous');
     $this->assertInstanceOf(Role::class, $role);
     $this->assertPageDisplayVariant(
       XbPageVariant::class,
       Component::loadMultiple([
         'block.page_title_block',
-        'block.system_branding_block',
         'block.local_actions_block',
         'block.system_messages_block',
         'block.user_login_block',
@@ -257,6 +287,7 @@ class XbPageVariantTest extends FunctionalTestBase {
       ]),
       expected_additional_cache_tags: [
         ...$branding_component->getCacheTags(),
+        ...$matching_component->getCacheTags(),
       ],
       expected_additional_cache_contexts: ['route'],
     );
@@ -293,7 +324,6 @@ class XbPageVariantTest extends FunctionalTestBase {
       XbPageVariant::class,
       Component::loadMultiple([
         'block.page_title_block',
-        'block.system_branding_block',
         'block.local_actions_block',
         'block.system_messages_block',
         'block.user_login_block',
@@ -305,6 +335,7 @@ class XbPageVariantTest extends FunctionalTestBase {
         // the front page.
         // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::CACHE_TAG
         ...$branding_component->getCacheTags(),
+        ...$matching_component->getCacheTags(),
       ],
       expected_additional_cache_contexts: ['route'],
     );
@@ -478,7 +509,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     foreach ($expected_slots as $expected_slot_name => $expected_slot_contents) {
       assert($actual_slots[$slot_index] instanceof \DOMElement);
       $this->assertSame($expected_slot_name, $actual_slots[$slot_index]->getAttribute('data-astro-template'));
-      $this->assertSame($expected_slot_contents, $actual_slots[$slot_index]->textContent);
+      $this->assertSame($expected_slot_contents, \trim($actual_slots[$slot_index]->textContent));
       $slot_index++;
     }
   }

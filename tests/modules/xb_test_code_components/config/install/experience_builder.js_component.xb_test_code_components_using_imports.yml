@@ -8,7 +8,6 @@ dependencies:
       - experience_builder.js_component.xb_test_code_components_with_props
 machineName: xb_test_code_components_using_imports
 name: 'Component using imports'
-block_override: null
 required: {  }
 props: {  }
 slots: {  }

@@ -4,10 +4,33 @@ status: true
 dependencies: {}
 machineName: site_branding
 name: 'Site branding'
-block_override: system_branding_block
-required: {}
-props: {}
-slots: {}
+required:
+  - logo
+  - homeUrl
+  - siteName
+props:
+  logo:
+    type: string
+    format: uri
+    title: 'Logo URL'
+    examples:
+      - 'https://example.com/logo.png'
+  homeUrl:
+    type: string
+    format: uri
+    title: 'Home URL'
+    examples:
+      - 'https://example.com'
+  siteName:
+    type: string
+    title: 'Site name'
+    examples:
+      - 'https://example.com/logo.png'
+slots:
+  siteSlogan:
+    title: 'Site slogan'
+    examples:
+      - 'All the llamas you could ever ask for'
 js:
   original: |-
     const Branding = ({ homeUrl, logo, siteName, siteSlogan }) => {

@@ -183,7 +183,6 @@ export function downloadCommand(program: Command): void {
               required: component.required || [],
               props: component.props || {},
               slots: component.slots || {},
-              blockOverride: component.blockOverride || null,
               importedJsComponents: component.importedJsComponents || [],
             };
 

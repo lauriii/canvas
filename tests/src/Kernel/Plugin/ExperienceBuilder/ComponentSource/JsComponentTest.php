@@ -638,7 +638,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'status' => TRUE,
       'props' => [],
       'slots' => [],
-      'block_override' => NULL,
       'css' => [
         'original' => '.dependency { color: blue; }',
         'compiled' => '.dependency{color:blue;}',
@@ -656,7 +655,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'status' => TRUE,
       'props' => [],
       'slots' => [],
-      'block_override' => NULL,
       'css' => [
         'original' => '.dependency { color: blue; }',
         'compiled' => '.dependency{color:blue;}',
@@ -678,7 +676,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'status' => TRUE,
       'props' => [],
       'slots' => [],
-      'block_override' => NULL,
       'css' => [
         'original' => '',
         'compiled' => '',
@@ -704,7 +701,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
       ],
       'required' => ['title'],
       'slots' => [],
-      'block_override' => NULL,
       'css' => [
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',

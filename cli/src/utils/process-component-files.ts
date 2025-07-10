@@ -148,7 +148,6 @@ export function createComponentPayload(params: {
     compiledJs: compiledJs,
     sourceCodeCss: sourceCodeCss,
     compiledCss: compiledCss,
-    blockOverride: metadata.blockOverride || null,
     importedJsComponents: metadata.importedJsComponents || [],
   };
 }

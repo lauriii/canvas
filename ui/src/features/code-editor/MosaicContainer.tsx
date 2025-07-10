@@ -52,9 +52,6 @@ const MosaicContainer = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
-  const blockOverride = useAppSelector(
-    selectCodeComponentProperty('blockOverride'),
-  );
 
   const { isLoading } = useCodeEditor();
 
@@ -152,24 +149,23 @@ const MosaicContainer = () => {
                   renderToolbar={({ title }) => {
                     return (
                       <Box width="100%">
-                        {componentStatus === false &&
-                          blockOverride === null && (
-                            <Box px="4">
-                              <Box className={styles.addToComponentsButton}>
-                                <Button
-                                  onClick={() => {
-                                    dispatch(
-                                      openAddToComponentsDialog(
-                                        selectedComponent,
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  Add to components
-                                </Button>
-                              </Box>
+                        {componentStatus === false && (
+                          <Box px="4">
+                            <Box className={styles.addToComponentsButton}>
+                              <Button
+                                onClick={() => {
+                                  dispatch(
+                                    openAddToComponentsDialog(
+                                      selectedComponent,
+                                    ),
+                                  );
+                                }}
+                              >
+                                Add to components
+                              </Button>
                             </Box>
-                          )}
+                          </Box>
+                        )}
                         <div className="mosaic-window-title">
                           <span>{title}</span>
                         </div>
@@ -185,9 +181,7 @@ const MosaicContainer = () => {
                 <MosaicWindow<string>
                   className="xb-mosaic-window-component-data"
                   path={path}
-                  title={
-                    blockOverride ? 'Example component data' : 'Component data'
-                  }
+                  title="Component data"
                   draggable={false}
                 >
                   <ComponentData isLoading={isLoading} />

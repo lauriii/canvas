@@ -130,24 +130,11 @@ test.describe('Canary XB Minimal', () => {
           - paragraph: No items to show in Code components
         - button "Dynamic Components" [expanded]
         - region "Dynamic Components":
-          - button "Core dynamic components" [expanded]
-          - region "Core dynamic components":
-            - list:
-              - listitem:
-                - img
-                - text: Page title
-              - listitem:
-                - img
-                - text: Primary admin actions
-              - listitem:
-                - img
-                - text: Tabs
           - button "Forms dynamic components"
           - button "Lists (Views) dynamic components"
           - button "Menus dynamic components"
           - button "System dynamic components"
           - button "User dynamic components"
-        - button "Overrides"
       `);
     consoleErrors.forEach((consoleMessage) => {
       if (

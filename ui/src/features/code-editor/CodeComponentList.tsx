@@ -15,23 +15,12 @@ import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import styles from './CodeComponentList.module.css';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 
-const CodeComponentList = ({
-  type = 'code',
-}: {
-  type?: 'code' | 'override';
-}) => {
+const CodeComponentList = () => {
   const {
     data: codeComponents,
     error,
     isLoading,
-  } = useGetCodeComponentsQuery(
-    type !== 'override'
-      ? { status: false } // Internal code components.
-      : {
-          override: true,
-          status: true, // Overrides need to be exposed to be taken into account.
-        },
-  );
+  } = useGetCodeComponentsQuery({ status: false });
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
@@ -63,8 +52,7 @@ const CodeComponentList = ({
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text size="1">
-            No items to show in{' '}
-            {type === 'code' ? 'Code components' : 'Overrides'}
+            No items to show in Code components
           </Callout.Text>
         </Flex>
       </Callout.Root>
@@ -87,37 +75,33 @@ const CodeComponentList = ({
                   >
                     Edit
                   </UnifiedMenu.Item>
-                  {type !== 'override' && (
-                    <>
-                      <UnifiedMenu.Item
-                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                          e.stopPropagation();
-                          handleRenameClick(component);
-                        }}
-                      >
-                        Rename
-                      </UnifiedMenu.Item>
-                      {/* @todo: Add this item back in https://drupal.org/i/3524274.}
-                      {/*<UnifiedMenu.Item*/}
-                      {/*  onClick={(e: React.MouseEvent<HTMLDivElement>) => {*/}
-                      {/*    e.stopPropagation();*/}
-                      {/*    handleAddToComponentsClick(component);*/}
-                      {/*  }}*/}
-                      {/*>*/}
-                      {/*  Add to components*/}
-                      {/*</UnifiedMenu.Item>*/}
-                      <UnifiedMenu.Separator />
-                      <UnifiedMenu.Item
-                        color="red"
-                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                          e.stopPropagation();
-                          handleDeleteClick(component);
-                        }}
-                      >
-                        Delete
-                      </UnifiedMenu.Item>
-                    </>
-                  )}
+                  <UnifiedMenu.Item
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      e.stopPropagation();
+                      handleRenameClick(component);
+                    }}
+                  >
+                    Rename
+                  </UnifiedMenu.Item>
+                  {/* @todo: Add this item back in https://drupal.org/i/3524274.}
+                  {/*<UnifiedMenu.Item*/}
+                  {/*  onClick={(e: React.MouseEvent<HTMLDivElement>) => {*/}
+                  {/*    e.stopPropagation();*/}
+                  {/*    handleAddToComponentsClick(component);*/}
+                  {/*  }}*/}
+                  {/*>*/}
+                  {/*  Add to components*/}
+                  {/*</UnifiedMenu.Item>*/}
+                  <UnifiedMenu.Separator />
+                  <UnifiedMenu.Item
+                    color="red"
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      e.stopPropagation();
+                      handleDeleteClick(component);
+                    }}
+                  >
+                    Delete
+                  </UnifiedMenu.Item>
                 </>
               );
 

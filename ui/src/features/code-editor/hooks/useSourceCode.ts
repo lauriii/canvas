@@ -24,7 +24,6 @@ import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScr
 import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
 import {
   detectValidPropOrSlotChange,
-  getJsForExampleSlotsOverridePreview,
   getJsForSlotsPreview,
 } from '@/features/code-editor/utils';
 import {
@@ -67,9 +66,6 @@ const useSourceCode = (requestedComponentId: string): void => {
   );
   const sourceCodeCSS = useAppSelector(
     selectCodeComponentProperty('sourceCodeCss'),
-  );
-  const blockOverride = useAppSelector(
-    selectCodeComponentProperty('blockOverride'),
   );
   const props = useAppSelector(selectCodeComponentProperty('props'));
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
@@ -186,11 +182,7 @@ const useSourceCode = (requestedComponentId: string): void => {
       // Compile the component's JS code for previewing slot examples in the
       // code editor's preview.
       const { code: compiledJsForSlots, error: compiledJsForSlotsError } =
-        compileJavaScript(
-          !blockOverride
-            ? getJsForSlotsPreview(slots)
-            : getJsForExampleSlotsOverridePreview(blockOverride),
-        );
+        compileJavaScript(getJsForSlotsPreview(slots));
       // Compile the component's own CSS.
       const compiledCss = await transformCss(sourceCodeCSS);
 
@@ -256,7 +248,6 @@ const useSourceCode = (requestedComponentId: string): void => {
       }
     };
   }, [
-    blockOverride,
     buildTailwindCssFromClassNameCandidates,
     compileJavaScript,
     componentId,

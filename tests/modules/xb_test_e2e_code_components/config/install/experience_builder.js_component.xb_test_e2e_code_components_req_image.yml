@@ -3,7 +3,6 @@ status: true
 dependencies: {  }
 machineName: xb_test_e2e_code_components_req_image
 name: CC Required Image
-block_override: null
 required:
   - image
 props:
