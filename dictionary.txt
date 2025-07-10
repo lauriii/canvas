@@ -42,6 +42,7 @@ lightningcss
 Linkit
 Mautic
 metacharacter
+metatag
 microlink
 mymodule
 networkidle

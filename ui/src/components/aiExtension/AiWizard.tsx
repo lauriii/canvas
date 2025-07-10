@@ -516,6 +516,7 @@ const AiWizard = () => {
                 color: '#1C2024',
                 fontSize: '14px',
                 fontWeight: '400',
+                lineHeight: '1.26',
                 padding: '8px',
                 textAlign: 'left',
               },
@@ -573,6 +574,21 @@ const AiWizard = () => {
         auxiliaryStyle="
           #chat-view:has(#messages:empty) {
             display: block;
+          }
+          .text-message h1 {
+            font-size: var(--font-size-5);
+          }
+          .text-message h2 {
+            font-size: var(--font-size-4);
+          }
+          .text-message h3 {
+            font-size: var(--font-size-3);
+          }
+          .text-message h4 {
+            font-size: var(--font-size-2);
+          }
+          .text-message h5 {
+            font-size: var(--font-size-1);
           }
         "
       />
