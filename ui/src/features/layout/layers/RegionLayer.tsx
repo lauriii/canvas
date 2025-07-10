@@ -13,6 +13,9 @@ import {
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import RegionContextMenu, {
+  RegionContextMenuContent,
+} from '@/features/layout/preview/RegionContextMenu';
 
 const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
   region,
@@ -58,33 +61,46 @@ const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
     [dispatch],
   );
 
+  const variant: 'page' | 'region' = isPage ? 'page' : 'region';
+  const sidebarNodeProps = {
+    onDoubleClick: handleRegionClick,
+    onMouseDown: handleMouseDown,
+    onMouseOver: handleMouseOver,
+    onMouseOut: handleMouseOut,
+    draggable: false,
+    title: region.name,
+    variant,
+    open: region.id === focusedRegion,
+    hovered: isHovered,
+    'data-hovered': isHovered,
+    ...(region.id !== focusedRegion && {
+      dropdownMenuContent: (
+        <RegionContextMenuContent region={region} menuType="dropdown" />
+      ),
+    }),
+  };
+
   return (
     <Box>
-      <SidebarNode
-        onDoubleClick={handleRegionClick}
-        onMouseDown={handleMouseDown}
-        onMouseOver={handleMouseOver}
-        onMouseOut={handleMouseOut}
-        draggable={false}
-        title={region.name}
-        variant={isPage ? 'page' : 'region'}
-        open={region.id === focusedRegion}
-        hovered={isHovered}
-        data-hovered={isHovered}
-      />
-
-      {region.id === focusedRegion && (
-        <Box role="tree">
-          {region.components.map((component, index) => (
-            <ComponentLayer
-              index={index}
-              key={component.uuid}
-              component={component}
-              parentNode={region}
-              indent={1}
-            />
-          ))}
-        </Box>
+      {region.id === focusedRegion ? (
+        <>
+          <SidebarNode {...sidebarNodeProps} />
+          <Box role="tree">
+            {region.components.map((component, index) => (
+              <ComponentLayer
+                index={index}
+                key={component.uuid}
+                component={component}
+                parentNode={region}
+                indent={1}
+              />
+            ))}
+          </Box>
+        </>
+      ) : (
+        <RegionContextMenu region={region}>
+          <SidebarNode {...sidebarNodeProps} />
+        </RegionContextMenu>
       )}
     </Box>
   );

@@ -22,6 +22,7 @@ import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
 import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useParams } from 'react-router';
+import RegionContextMenu from '@/features/layout/preview/RegionContextMenu';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -100,6 +101,16 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
       onMouseOut={handleItemMouseOut}
       onDoubleClick={handleRegionDblClick}
     >
+      {!isPage && (
+        <RegionContextMenu region={region}>
+          <div
+            aria-label={`Global region ${region.name}`}
+            className={styles.regionItem}
+            data-xb-overlay="true"
+          />
+        </RegionContextMenu>
+      )}
+
       <div className={clsx(styles.xbNameTag)}>
         <RegionNameTag
           name={region.name}
@@ -107,6 +118,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
           nodeType={isPage ? 'page' : 'region'}
         />
       </div>
+
       {!disableRegion && (
         <>
           {layout.components.map((component, index) => (
