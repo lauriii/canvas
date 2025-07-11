@@ -15,7 +15,7 @@
         "webflo/drupal-finder": "^1.3.1",
         "devizzent/cebe-php-openapi": "^1.0.3",
         "drupal/metatag": "^2.1",
-        "drupal/ai_agents": "^1.1",
+        "drupal/ai_agents": "^1.1.1",
         "drupal/ai": "^1.1",
         "drupal/simple_oauth": "^6",
         "jangregor/phpstan-prophecy": "~1|~2"
