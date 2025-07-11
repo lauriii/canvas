@@ -19,6 +19,7 @@ use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -177,6 +178,37 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         array_map(fn (PropShape $shape) => $shape->schema, $prop_shapes),
       ),
     ];
+  }
+
+  /**
+   * @return array<int, array{'value': mixed, 'label': 'string'}>
+   *
+   * @see \experience_builder_load_allowed_values_for_component_prop()
+   * @todo Ensure that when XB adds translation support, that SDC `meta:enum`s are loaded from interface translation, and those for code components from config translation.
+   */
+  public function getOptionsForExplicitInputEnumProp(string $prop_name): array {
+    $explicit_input_definitions = $this->getExplicitInputDefinitions();
+    if (!array_key_exists($prop_name, $explicit_input_definitions['shapes'])) {
+      throw new \LogicException("`$prop_name` is not an explicit input prop on `{$this->getPluginId()}.{$this->getSdcPlugin()->getPluginId()}`.");
+    }
+
+    // Retrieve the JSON schema for this explicit input prop.
+    $schema = (new PropShape($explicit_input_definitions['shapes'][$prop_name]))->resolvedSchema;
+    if (!array_key_exists('enum', $schema)) {
+      throw new \LogicException("`enum` is missing for schema of `$prop_name` explicit input prop of `{$this->getPluginId()}.{$this->getSdcPlugin()->getPluginId()}`.");
+    }
+    // @todo Simplify in https://www.drupal.org/project/experience_builder/issues/3518247
+    $raw_schema = $this->getSdcPlugin()->metadata->schema['properties'][$prop_name] ?? [];
+    if (!array_key_exists('meta:enum', $schema)) {
+      if (!array_key_exists('meta:enum', $raw_schema)) {
+        throw new \LogicException("`meta:enum` is missing for schema of `$prop_name` explicit input prop of `{$this->getPluginId()}.{$this->getSdcPlugin()->getPluginId()}`.");
+      }
+      else {
+        $schema['meta:enum'] = $raw_schema['meta:enum'];
+      }
+    }
+
+    return $schema['meta:enum'];
   }
 
   /**
@@ -394,6 +426,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function buildConfigurationForm(
     array $form,
     FormStateInterface $form_state,
+    ?Component $component = NULL,
     string $component_instance_uuid = '',
     array $client_model = [],
     ?EntityInterface $entity = NULL,
@@ -444,7 +477,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
-      $widget = $source->getWidget($sdc_prop_name, $label, $field_widget_plugin_id);
+      assert($component instanceof Component);
+      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id);
       $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
@@ -579,7 +613,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see \Drupal\experience_builder\Form\ComponentInputsForm
       $field_data[$prop_name] = [
         'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
-        'jsonSchema' => $prop_shape->resolvedSchema,
+        'jsonSchema' => array_diff_key($prop_shape->resolvedSchema, array_flip(['meta:enum', 'x-translation-context'])),
       ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
       if ($default_resolved_value !== NULL) {
         $field_data[$prop_name]['default_values']['source'] = $default_source_value;

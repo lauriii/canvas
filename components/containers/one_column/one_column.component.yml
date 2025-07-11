@@ -16,6 +16,11 @@ props:
         - 'wide'
         - 'normal'
         - 'narrow'
+      meta:enum:
+        full: Full
+        wide: Wide
+        normal: Normal
+        narrow: Narrow
       examples: ['full', 'wide', 'normal', 'narrow']
 slots:
   content:

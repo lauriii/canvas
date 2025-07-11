@@ -221,7 +221,6 @@ class ComponentTreeItemListTest extends KernelTestBase {
     $generate_static_prop_source = function (string $label): string {
       return "Hello, $label!";
     };
-
     $empty_component_tree = [
       'value' => [],
       'expected_value' => [
@@ -714,14 +713,20 @@ HTML,
           'component_id' => 'js.my-cta',
           'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
           'slot' => 'the_body',
-          'inputs' => ['text' => $generate_static_prop_source('from a "code component"')],
+          'inputs' => [
+            'text' => $generate_static_prop_source('from a "code component"'),
+            'href' => 'https://example.com',
+          ],
         ],
         [
           'uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
           'component_id' => 'js.my-cta-with-auto-save',
           'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
           'slot' => 'the_body',
-          'inputs' => ['text' => $generate_static_prop_source('from a "auto-save code component"')],
+          'inputs' => [
+            'text' => $generate_static_prop_source('from a "auto-save code component"'),
+            'href' => 'https://example.com',
+          ],
         ],
         [
           'uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
@@ -785,11 +790,17 @@ HTML,
                             ],
                             '2f57ba57-f32a-4a7b-9896-9d1104b446f1' => [
                               'component' => 'js.my-cta',
-                              'props' => ['text' => 'Hello, from a "code component"!'],
+                              'props' => [
+                                'text' => 'Hello, from a "code component"!',
+                                'href' => 'https://example.com',
+                              ],
                             ],
                             'b4bc6c8f-66f7-458a-99a9-41c29b2801e7' => [
                               'component' => 'js.my-cta-with-auto-save',
-                              'props' => ['text' => 'Hello, from a "auto-save code component"!'],
+                              'props' => [
+                                'text' => 'Hello, from a "auto-save code component"!',
+                                'href' => 'https://example.com',
+                              ],
                             ],
                             '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97' => [
                               'component' => 'sdc.xb_test_sdc.props-no-slots',
@@ -1038,6 +1049,7 @@ HTML,
                                       '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js',
                                       '#props' => [
                                         'text' => 'Hello, from a "code component"!',
+                                        'href' => 'https://example.com',
                                         'xb_uuid' => '2f57ba57-f32a-4a7b-9896-9d1104b446f1',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
@@ -1110,6 +1122,7 @@ HTML,
                                       '#component_url' => '::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js',
                                       '#props' => [
                                         'text' => 'Hello, from a "auto-save code component"!',
+                                        'href' => 'https://example.com',
                                         'xb_uuid' => 'b4bc6c8f-66f7-458a-99a9-41c29b2801e7',
                                         'xb_slot_ids' => [],
                                         'xb_is_preview' => FALSE,
@@ -1205,13 +1218,13 @@ HTML,
         component-url="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
         ssr="" client="only"
         opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
         component-url="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
         ssr="" client="only"
         opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js" blocking="render"></script></astro-island><!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- xb-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
@@ -1349,13 +1362,13 @@ HTML,
         component-url="/xb/api/v0/auto-saves/js/js_component/my-cta"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;]}"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
         ssr="" client="only"
         opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></astro-island><!-- xb-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- xb-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><astro-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
         component-url="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
         component-export="default"
         renderer-url="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;]}"
+        props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
         ssr="" client="only"
         opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::XB_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/xb/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></astro-island><!-- xb-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- xb-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="xb_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- xb-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Hello, from slot &lt;LAST ONE&gt;!<!-- xb-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>

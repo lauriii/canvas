@@ -145,11 +145,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values' => [
-                ['value' => 'polite', 'label' => 'polite'],
-                ['value' => 'shouting', 'label' => 'shouting'],
-                ['value' => 'toddler on a sugar high', 'label' => 'toddler on a sugar high'],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ],
         ],

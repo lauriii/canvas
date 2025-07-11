@@ -297,7 +297,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         [
           'uuid' => XBTestSetup::UUID_TWO_COLUMN_UUID,
           'nodeType' => 'component',
-          'type' => 'sdc.experience_builder.two_column@e5ef92acda2ee2d1',
+          'type' => 'sdc.experience_builder.two_column@d99140cbd47c0b51',
           'name' => NULL,
           'slots' => [
             [
@@ -329,7 +329,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_ALL_SLOTS_EMPTY,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.one_column@f6a3a392e98e8342',
+                  'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
                   'name' => NULL,
                   'slots' => [
                     [

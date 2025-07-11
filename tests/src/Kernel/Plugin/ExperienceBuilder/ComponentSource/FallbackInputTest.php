@@ -177,16 +177,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
             'expression' => 'ℹ︎list_string␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'primary',
-                    'label' => 'primary',
-                  ],
-                  [
-                    'value' => 'secondary',
-                    'label' => 'secondary',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
           ],
@@ -196,36 +187,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
             'expression' => 'ℹ︎list_string␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'div',
-                    'label' => 'div',
-                  ],
-                  [
-                    'value' => 'h1',
-                    'label' => 'h1',
-                  ],
-                  [
-                    'value' => 'h2',
-                    'label' => 'h2',
-                  ],
-                  [
-                    'value' => 'h3',
-                    'label' => 'h3',
-                  ],
-                  [
-                    'value' => 'h4',
-                    'label' => 'h4',
-                  ],
-                  [
-                    'value' => 'h5',
-                    'label' => 'h5',
-                  ],
-                  [
-                    'value' => 'h6',
-                    'label' => 'h6',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
           ],
@@ -277,7 +239,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $new_model['source']['text']['value'] = 'New heading text';
     $response = $this->request(Request::create($api_endpoint_uri, method: 'PATCH', content: \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
+      'componentType' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
       'componentInstanceUuid' => $component_to_edit_uuid,
     ] + $this->getPatchContentsDefaults([$page]), JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());

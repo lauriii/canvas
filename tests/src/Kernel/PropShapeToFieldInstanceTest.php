@@ -878,6 +878,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲experience_builder:shoe_details␟expand_icon',
             '⿲experience_builder:shoe_details␟collapse_icon',
           ],
+          // As shoe-icon has a enum with an empty value, this won't be a valid
+          // source.
           'static prop source' => NULL,
           'instances' => [
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{label↠description}',
@@ -1036,6 +1038,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:shoe_icon␟size',
           ],
+          // As shoe-icon has a enum with an empty value, this won't be a valid
+          // source.
           'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],
@@ -1045,6 +1049,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲experience_builder:shoe_icon␟color',
           ],
+          // As shoe-icon has a enum with an empty value, this won't be a valid
+          // source.
           'static prop source' => NULL,
           'instances' => [],
           'adapter_matches_field_type' => [],

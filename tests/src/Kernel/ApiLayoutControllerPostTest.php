@@ -165,7 +165,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
                   'nodeType' => 'slot',
                 ],
               ],
-              'type' => 'sdc.experience_builder.one_column@f6a3a392e98e8342',
+              'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
               'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
             ],
           ],
@@ -183,24 +183,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
               'expression' => 'ℹ︎list_string␟value',
               'sourceTypeSettings' => [
                 'storage' => [
-                  'allowed_values' => [
-                    [
-                      'value' => 'full',
-                      'label' => 'full',
-                    ],
-                    [
-                      'value' => 'wide',
-                      'label' => 'wide',
-                    ],
-                    [
-                      'value' => 'normal',
-                      'label' => 'normal',
-                    ],
-                    [
-                      'value' => 'narrow',
-                      'label' => 'narrow',
-                    ],
-                  ],
+                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
                 ],
               ],
             ],
@@ -258,7 +241,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
+      'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
       'slots' => [],
     ];
     // And update the card model to use a URI reference.
@@ -320,7 +303,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][\key($highlightedRegion)]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
+      'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
       'slots' => [],
     ];
     $json += $this->getPostContentsDefaults($node);
@@ -470,11 +453,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values' => [
-                ['value' => 'polite', 'label' => 'polite'],
-                ['value' => 'shouting', 'label' => 'shouting'],
-                ['value' => 'toddler on a sugar high', 'label' => 'toddler on a sugar high'],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ],
         ],
@@ -535,16 +514,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'primary',
-                  'label' => 'primary',
-                ],
-                [
-                  'value' => 'secondary',
-                  'label' => 'secondary',
-                ],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ],
         ],
@@ -553,36 +523,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'div',
-                  'label' => 'div',
-                ],
-                [
-                  'value' => 'h1',
-                  'label' => 'h1',
-                ],
-                [
-                  'value' => 'h2',
-                  'label' => 'h2',
-                ],
-                [
-                  'value' => 'h3',
-                  'label' => 'h3',
-                ],
-                [
-                  'value' => 'h4',
-                  'label' => 'h4',
-                ],
-                [
-                  'value' => 'h5',
-                  'label' => 'h5',
-                ],
-                [
-                  'value' => 'h6',
-                  'label' => 'h6',
-                ],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ],
         ],

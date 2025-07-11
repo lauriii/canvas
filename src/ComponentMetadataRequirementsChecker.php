@@ -104,6 +104,34 @@ final class ComponentMetadataRequirementsChecker {
       if (!isset($prop['title'])) {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
       }
+      if (isset($prop['enum'], $prop['meta:enum'])) {
+        foreach ($prop['meta:enum'] as $meta_key => $meta_value) {
+          if (str_contains((string) $meta_key, ".")) {
+            $messages[] = \sprintf('The "meta:enum" keys for the "%s" prop enum cannot contain a dot. Offending key: "%s"', $prop_name, $meta_key);
+          }
+        }
+
+        // Ensure we replace dots with underscores when checking meta:enums.
+        $meta_enum_valid_keys = array_map(function ($key) {
+          if (is_numeric($key) && !is_int($key)) {
+            // Dots are not valid for config schema, so we need to replace any
+            // dot in the key with an underscore.
+            return (string) str_replace('.', '_', (string) $key);
+          }
+          return $key;
+        }, $prop['enum']);
+        $enum_keys_diff = \array_diff($meta_enum_valid_keys, \array_keys($prop['meta:enum']));
+        if (!empty($enum_keys_diff)) {
+          $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $enum_keys_diff));
+        }
+      }
+
+      // If messages is not empty, we should stop checking,
+      // because $prop_shape->getStorage() could trigger warnings.
+      if (!empty($messages)) {
+        continue;
+      }
+
       // Every prop must have a StorablePropShape.
       $component_prop_expression = new ComponentPropExpression($component_id, $prop_name);
       $prop_shape = $props_for_metadata[(string) $component_prop_expression];

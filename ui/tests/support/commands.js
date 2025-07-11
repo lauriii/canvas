@@ -10,7 +10,7 @@ const initializedReadyPreviewIframeSelector =
 
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
-    return `sudo -u ${Cypress.env('testWebserverUser')} ${command}`;
+    return `sudo -u ${Cypress.env('testWebserverUser')} -E ${command}`;
   }
   return command;
 };

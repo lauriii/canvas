@@ -6,33 +6,25 @@ namespace Drupal\Tests\experience_builder\Traits;
 
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Symfony\Component\Yaml\Yaml;
 
 trait CreateTestJsComponentTrait {
 
+  use CiModulePathTrait;
+
   private function createMyCtaComponentFromSdc(): void {
     // Create a "code component" that has the same explicit inputs as the
-    // `sdc_test:my-cta`.
-    $sdc_yaml = Yaml::parseFile(\DRUPAL_ROOT . '/core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml');
+    // `xb_sdc_test:my-cta`.
+    // @phpstan-ignore-next-line
+    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/my-cta/my-cta.component.yml');
     $props = array_diff_key(
       $sdc_yaml['props']['properties'],
       // SDC has special infrastructure for a prop named "attributes".
       array_flip(['attributes']),
     );
-    // The `sdc_test:my-cta` SDC does not actually meet the requirements.
-    $props['href']['examples'][] = 'https://example.com';
-    $props['target']['examples'] = ['_self', '_blank'];
-    // TRICKY: for a <select>, the empty string is not a valid choice; it's the
-    // equivalent of *not* choosing a value.
-    assert($props['target']['enum'][0] === '');
-    $props['target']['enum'][0] = '_self';
-    $props['target']['meta:enum']['_self'] = $props['target']['meta:enum'][''];
-    unset($props['target']['meta:enum']['']);
     // @todo Consider supporting this in https://www.drupal.org/i/3514672
     unset($props['target']['default']);
-    // @todo Remove these 2 in https://www.drupal.org/i/3516602
-    unset($props['target']['meta:enum']);
-    unset($props['target']['x-translation-context']);
     JavaScriptComponent::create([
       'uuid' => '83ba5c41-6d66-4e93-a55f-eb99702f5d5f',
       'machineName' => 'my-cta',

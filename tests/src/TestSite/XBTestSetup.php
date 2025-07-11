@@ -68,7 +68,15 @@ class XBTestSetup implements TestSetupInterface {
   use BlockCreationTrait;
   use CreateTestJsComponentTrait;
 
+  protected string $root;
+
   public function setup(): void {
+    // CreateTestJsComponentTrait requires having the $root set.
+    $container = \Drupal::getContainer();
+    $root = $container && $container->hasParameter('app.root') ? $container->getParameter('app.root') : DRUPAL_ROOT;
+    assert(is_string($root));
+    $this->root = $root;
+
     $module_installer = \Drupal::service('module_installer');
     $module_installer->install(['system', 'user']);
     $config_factory = \Drupal::configFactory();
@@ -230,28 +238,7 @@ class XBTestSetup implements TestSetupInterface {
             'expression' => 'ℹ︎list_integer␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 25,
-                    'label' => '25',
-                  ],
-                  [
-                    'value' => 33,
-                    'label' => '33',
-                  ],
-                  [
-                    'value' => 50,
-                    'label' => '50',
-                  ],
-                  [
-                    'value' => 66,
-                    'label' => '66',
-                  ],
-                  [
-                    'value' => 75,
-                    'label' => '75',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
           ],
@@ -315,24 +302,7 @@ class XBTestSetup implements TestSetupInterface {
             'expression' => 'ℹ︎list_string␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'full',
-                    'label' => 'full',
-                  ],
-                  [
-                    'value' => 'wide',
-                    'label' => 'wide',
-                  ],
-                  [
-                    'value' => 'normal',
-                    'label' => 'normal',
-                  ],
-                  [
-                    'value' => 'narrow',
-                    'label' => 'narrow',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
           ],

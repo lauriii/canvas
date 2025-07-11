@@ -29,6 +29,14 @@ props:
         - 'warning'
         - 'danger'
         - 'text'
+      meta:enum:
+        default: Default
+        primary: Primary
+        success: Success
+        neutral: Neutral
+        warning: Warning
+        danger: Danger
+        text: Text
       examples:
         [
           'default',
@@ -48,6 +56,10 @@ props:
         - 'small'
         - 'medium'
         - 'large'
+      meta:enum:
+        small: Small
+        medium: Medium
+        large: Large
       examples: ['small', 'medium', 'large']
     disabled:
       type: boolean
@@ -95,6 +107,11 @@ props:
         - '_parent'
         - '_self'
         - '_top'
+      meta:enum:
+        _blank: Blank
+        _parent: Parent
+        _self: Self
+        _top: Top
       examples: ['_blank', '_parent', '_self', '_top']
       # @todo this prop should only show in the form when href has a value
     rel:
@@ -123,5 +140,8 @@ props:
       enum:
         - 'prefix'
         - 'suffix'
+      meta:enum:
+        prefix: Prefix
+        suffix: Suffix
       examples: ['prefix', 'suffix']
       # @todo this prop should only show in the form when href has a value

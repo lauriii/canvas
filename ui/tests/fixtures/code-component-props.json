@@ -220,24 +220,44 @@
     "textListWithNoExampleValue": {
       "title": "Text list with no example value",
       "type": "string",
-      "enum": ["Not Started", "In Progress", "Completed"]
+      "enum": ["Not Started", "In Progress", "Completed"],
+      "meta:enum": {
+        "Not Started": "Not Started",
+        "In Progress": "In Progress",
+        "Completed": "Completed"
+      }
     },
     "textListWithExampleValue": {
       "title": "Text list with example value",
       "type": "string",
       "enum": ["Not Started", "In Progress", "Completed"],
-      "examples": ["In Progress"]
+      "examples": ["In Progress"],
+      "meta:enum": {
+        "Not Started": "Not Started",
+        "In Progress": "In Progress",
+        "Completed": "Completed"
+      }
     },
     "integerListWithNoExampleValue": {
       "title": "Integer list with no example value",
       "type": "integer",
-      "enum": [1, 2, 3]
+      "enum": [1, 2, 3],
+      "meta:enum": {
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
     },
     "integerListWithExampleValue": {
       "title": "Integer list with example value",
       "type": "integer",
       "enum": [1, 2, 3],
-      "examples": [2]
+      "examples": [2],
+      "meta:enum": {
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
     },
     "formattedTextWithNoExampleValue": {
       "title": "Formatted text with no example value",

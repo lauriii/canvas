@@ -27,6 +27,10 @@ props:
       enum:
         - _self
         - _blank
+      meta:enum:
+        _self: 'Open in same window'
+        _blank: 'Open in a new window'
+      x-translation-context: 'CTA Target'
     attributes:
       type: Drupal\Core\Template\Attribute
       name: Attributes

@@ -127,7 +127,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
-        'component_version' => '1b4f8df7c94d7e3c',
+        'component_version' => '9616e3c4ab9b4fce',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
@@ -180,7 +180,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
-        'component_version' => '1b4f8df7c94d7e3c',
+        'component_version' => '9616e3c4ab9b4fce',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
@@ -249,7 +249,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_HEADING_UUID,
-          'type' => 'sdc.experience_builder.heading@1b4f8df7c94d7e3c',
+          'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
           'slots' => [],
         ],
         [
@@ -282,16 +282,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
               'expression' => 'ℹ︎list_string␟value',
               'sourceTypeSettings' => [
                 'storage' => [
-                  'allowed_values' => [
-                    [
-                      'value' => 'primary',
-                      'label' => 'primary',
-                    ],
-                    [
-                      'value' => 'secondary',
-                      'label' => 'secondary',
-                    ],
-                  ],
+                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
                 ],
               ],
             ],
@@ -300,36 +291,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
               'expression' => 'ℹ︎list_string␟value',
               'sourceTypeSettings' => [
                 'storage' => [
-                  'allowed_values' => [
-                    [
-                      'value' => 'div',
-                      'label' => 'div',
-                    ],
-                    [
-                      'value' => 'h1',
-                      'label' => 'h1',
-                    ],
-                    [
-                      'value' => 'h2',
-                      'label' => 'h2',
-                    ],
-                    [
-                      'value' => 'h3',
-                      'label' => 'h3',
-                    ],
-                    [
-                      'value' => 'h4',
-                      'label' => 'h4',
-                    ],
-                    [
-                      'value' => 'h5',
-                      'label' => 'h5',
-                    ],
-                    [
-                      'value' => 'h6',
-                      'label' => 'h6',
-                    ],
-                  ],
+                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
                 ],
               ],
             ],

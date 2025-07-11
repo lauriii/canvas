@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
-// cspell:ignore Tilly anzut nhsy sxnz lffq
+// cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -145,6 +145,38 @@ final class JsComponentTest extends ComponentSourceTestBase {
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+          ],
+        ],
+      ],
+      'js.xb_test_code_components_with_enums' => [
+        'prop_field_definitions' => [
+          'favorite_color' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'red',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'size' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'small',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
           ],
         ],
       ],
@@ -301,6 +333,27 @@ final class JsComponentTest extends ComponentSourceTestBase {
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
                 'href' => \sprintf('/%s/files/astro-island/Ej9H8EwYfANZUT_jL84bUAXkK8F_p9-yZyj4Sxnz7C8.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
+      'js.xb_test_code_components_with_enums' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_with_enums']),
+        'attachments' => [
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_with_enums',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/S_GMOfXPnSsDMzuP0bw4pnXmP2SWPmsg4LgfkqNMzsI.js', $site_path),
               ],
             ],
           ],
@@ -533,6 +586,15 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'module' => [
           'file',
           'image',
+        ],
+      ],
+      'js.xb_test_code_components_with_enums' => [
+        'module' => [
+          'core',
+          'options',
+        ],
+        'config' => [
+          'experience_builder.js_component.xb_test_code_components_with_enums',
         ],
       ],
       'js.xb_test_code_components_with_no_props' => [
@@ -906,6 +968,71 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
         'transforms' => [],
       ],
+      'js.xb_test_code_components_with_enums' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="With enums"][props*="red"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'favorite_color' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                'red',
+                'green',
+                'blue',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'red',
+                ],
+              ],
+              'resolved' => 'red',
+            ],
+          ],
+          'size' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                'small',
+                'regular',
+                'large',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'small',
+                ],
+              ],
+              'resolved' => 'small',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'js.xb_test_code_components_with_no_props' => [
         'expected_output_selectors' => [
           'astro-island[opts*="With no props"][props="{}"]',
@@ -1215,6 +1342,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'type' => 'string',
           'title' => 'Text',
           'enum' => ['hello', 'goodbye'],
+          'meta:enum' => ['hello' => 'Hello!', 'goodbye' => 'Good bye!'],
         ],
       ],
       'required' => [],

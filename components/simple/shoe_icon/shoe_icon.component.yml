@@ -26,6 +26,16 @@ props:
         - 'rocket-takeoff-fill'
         - 'rocket-takeoff'
         - 'rocket'
+      meta:enum:
+        moon-stars-fill: 'Moon Stars (Filled)'
+        moon-stars: Moon Stars
+        star-fill: 'Star (Filled)'
+        star: Star
+        stars: Stars
+        rocket-fill: 'Rocket (Filled)'
+        rocket-takeoff-fill: 'Rocket Takeoff (Filled)'
+        rocket-takeoff: Rocket Takeoff
+        rocket: Rocket
       examples:
         [
           'moon-stars-fill',
@@ -56,6 +66,13 @@ props:
         - s
         - xs
         - xxs
+      meta:enum:
+        '': None
+        base: Base
+        l: Large
+        s: Small
+        xs: Extra-Small
+        xxs: Extra-Extra-Small
       examples: ['', 'base', 'l', 's', 'xs', 'xxs']
     color:
       type: string
@@ -76,6 +93,20 @@ props:
         - red
         - gold
         - green
+      meta:enum:
+        '': None
+        gray: Gray
+        primary: Primary
+        neutral-soft: Neutral Soft
+        neutral-medium: Neutral Medium
+        neutral-loud: Neutral Loud
+        primary-medium: Primary Medium
+        primary-loud: Primary Loud
+        black: Black
+        white: White
+        red: Red
+        gold: Gold
+        green: Green
       examples:
         [
           '',

@@ -14,6 +14,9 @@ props:
       enum:
         - 'horizontal'
         - 'vertical'
+      meta:enum:
+        horizontal: Horizontal
+        vertical: Vertical
       examples: ['horizontal', 'vertical']
 slots:
   content:

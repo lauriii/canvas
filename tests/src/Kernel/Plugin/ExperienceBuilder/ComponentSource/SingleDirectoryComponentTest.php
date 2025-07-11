@@ -94,6 +94,11 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $this->generateComponentConfig();
 
     self::assertSame([
+      'sdc.xb_test_sdc.component-mismatch-meta-enum' => [
+        'The "meta:enum" keys for the "style" prop enum cannot contain a dot. Offending key: "contains.dots"',
+        'The "meta:enum" keys for the "numbers" prop enum cannot contain a dot. Offending key: "3.14"',
+        'The values for the "numbers" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+      ],
       'sdc.xb_test_sdc.empty-enum' => [
         'Prop "pets" has an empty enum value.',
       ],
@@ -131,6 +136,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc'));
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc');
     self::assertSame([
+      'sdc.xb_test_sdc.component-no-meta-enum',
       'sdc.xb_test_sdc.crash',
       'sdc.xb_test_sdc.deprecated',
       'sdc.xb_test_sdc.experimental',
@@ -394,6 +400,19 @@ HTML,
           ],
         ],
       ],
+      'sdc.xb_test_sdc.component-no-meta-enum' => [
+        'cacheability' => $default_cacheability,
+        'html' => '<span  data-component-id="xb_test_sdc:component-no-meta-enum">
+It\'s me, and I\'m small!
+</span>
+',
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--component-no-meta-enum',
+            'core/components.xb_test_sdc--component-no-meta-enum',
+          ],
+        ],
+      ],
     ], $rendered);
   }
 
@@ -568,6 +587,20 @@ HTML,
 
   public static function getExpectedSettings(): array {
     return [
+      'sdc.xb_test_sdc.component-no-meta-enum' => [
+        'prop_field_definitions' => [
+          'style' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [0 => ['value' => 'small']],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
       'sdc.xb_test_sdc.crash' => [
         'prop_field_definitions' => [
           'crash' => [
@@ -609,10 +642,7 @@ HTML,
           'direction' => [
             'field_type' => 'list_string',
             'field_storage_settings' => [
-              'allowed_values' => [
-                ['value' => 'horizontal', 'label' => 'horizontal'],
-                ['value' => 'vertical', 'label' => 'vertical'],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
             'field_instance_settings' => [],
             'field_widget' => 'options_select',
@@ -728,16 +758,7 @@ HTML,
           'target' => [
             'field_type' => 'list_string',
             'field_storage_settings' => [
-              'allowed_values' => [
-                0 => [
-                  'value' => '_self',
-                  'label' => '_self',
-                ],
-                1 => [
-                  'value' => '_blank',
-                  'label' => '_blank',
-                ],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
             'field_instance_settings' => [],
             'field_widget' => 'options_select',
@@ -817,6 +838,13 @@ HTML,
    */
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
+      'sdc.xb_test_sdc.component-no-meta-enum' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.crash' => [
         'module' => [
           'core',
@@ -933,6 +961,40 @@ HTML,
    */
   public static function getExpectedClientSideInfo(): array {
     return [
+      'sdc.xb_test_sdc.component-no-meta-enum' => [
+        'expected_output_selectors' => [
+          'span:contains("me")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'style' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                'small',
+                'big',
+                'huge',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'small'],
+              ],
+              'resolved' => 'small',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'sdc.xb_test_sdc.crash' => [
         'expected_output_selectors' => [
           'h1:contains("test")',
@@ -1037,16 +1099,7 @@ HTML,
             'expression' => 'ℹ︎list_string␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  [
-                    'value' => 'horizontal',
-                    'label' => 'horizontal',
-                  ],
-                  [
-                    'value' => 'vertical',
-                    'label' => 'vertical',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
             'default_values' => [
@@ -1433,16 +1486,7 @@ HTML,
             'expression' => 'ℹ︎list_string␟value',
             'sourceTypeSettings' => [
               'storage' => [
-                'allowed_values' => [
-                  0 => [
-                    'value' => '_self',
-                    'label' => '_self',
-                  ],
-                  1 => [
-                    'value' => '_blank',
-                    'label' => '_blank',
-                  ],
-                ],
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
               ],
             ],
           ],

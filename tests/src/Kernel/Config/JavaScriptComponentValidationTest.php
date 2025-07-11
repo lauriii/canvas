@@ -143,17 +143,26 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     $this->assertValidationErrors($expected_validation_errors);
   }
 
+  public static function providerValidEnumsAndExamples(): \Generator {
+    yield 'string' => [
+      "string",
+      ["the answer", "Wim", "Sofie", "Jack"],
+      ["the answer" => "the answer", "Wim" => "Wim", "Sofie" => "Sofie", "Jack" => "Jack"],
+      NULL,
+    ];
+    yield 'integer' => ["integer", [42, 1988, 1992, 2024], ["42" => "42", "1988" => "1988", "1992" => "1992", "2024" => "2024"], NULL];
+  }
+
   /**
-   * @testWith ["string", ["the answer", "Wim", "Sofie", "Jack"], null]
-   *           ["integer", [42, 1988, 1992, 2024], null]
-   *           ["string", ["string", 42, 3.14], ["string", "42", "3.14"]]
+   * @dataProvider providerValidEnumsAndExamples
    */
-  public function testValidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $expected_typecasting): void {
+  public function testValidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, array $meta_enum, ?array $expected_typecasting): void {
     $this->entity->set('props', [
       'tested_enum_prop' => [
         'type' => $json_schema_type,
         'title' => "enum: $json_schema_type",
         'enum' => $enum_and_examples_both,
+        'meta:enum' => $meta_enum,
         'examples' => $enum_and_examples_both,
       ],
     ]);
@@ -166,20 +175,21 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     $expected = $expected_typecasting ?? $enum_and_examples_both;
 
     $this->assertSame($expected, $this->entity->get('props')['tested_enum_prop']['enum']);
+    $this->assertSame($meta_enum, $this->entity->get('props')['tested_enum_prop']['meta:enum']);
     $this->assertSame($expected, $this->entity->get('props')['tested_enum_prop']['examples']);
   }
 
   /**
    * @dataProvider providerInvalidEnumsAndExamples
    */
-  public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, array $indexed_validation_errors, array $expected_validation_errors = []): void {
+  public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $meta_enum, array $indexed_validation_errors, array $expected_validation_errors = []): void {
     $this->entity->set('props', [
-      'tested_enum_prop' => [
+      'tested_enum_prop' => array_merge([
         'type' => $json_schema_type,
         'title' => "enum: $json_schema_type",
         'enum' => $enum_and_examples_both,
         'examples' => $enum_and_examples_both,
-      ],
+      ], $meta_enum ? ['meta:enum' => $meta_enum] : []),
     ]);
 
     // The expected validation errors are keyed by the index whose value in the
@@ -190,6 +200,9 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     foreach ($indexed_validation_errors as $index => $validation_error) {
       $expected_validation_errors["props.tested_enum_prop.enum.$index"] = $validation_error;
       $expected_validation_errors["props.tested_enum_prop.examples.$index"] = $validation_error;
+    }
+    if ($meta_enum) {
+      $this->assertSame($meta_enum, $this->entity->get('props')['tested_enum_prop']['meta:enum']);
     }
     $this->assertValidationErrors($expected_validation_errors);
   }
@@ -217,18 +230,32 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       'Invalid string' => [
         'string',
         ['string', 42, 3.14, NULL],
+        NULL,
         ['3' => 'This value should not be null.'],
+        [
+          '' => [
+            // If not meta:enums are specified, they are generated, but number ones
+            // with decimals will be invalid.
+            'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
+            'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+          ],
+        ],
       ],
       'Invalid integer' => [
         'integer',
         ['string', 42, 3.14, NULL],
+        NULL,
         [
           '0' => 'This value should be of the correct primitive type.',
           '2' => 'This value should be of the correct primitive type.',
           '3' => 'This value should not be null.',
         ],
         [
-          '' => 'Prop "tested_enum_prop" has invalid example value: [] String value found, but an integer or an object is required',
+          '' => [
+            'Prop "tested_enum_prop" has invalid example value: [] String value found, but an integer or an object is required',
+            'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
+            'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+          ],
         ],
       ],
       // ⚠️ For now, XB does not support `enum` on `type: number` to match core and for better usability.
@@ -236,17 +263,27 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       'Number' => [
         'number',
         [3.14, 1.0],
+        NULL,
         [],
         [
+          '' => [
+            'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
+            'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+          ],
           'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
         ],
       ],
       'Invalid number' => [
         'number',
         ['string', 42, 3.14, NULL],
+        NULL,
         [],
         [
-          '' => 'Prop "tested_enum_prop" has invalid example value: [] String value found, but a number or an object is required',
+          '' => [
+            'Prop "tested_enum_prop" has invalid example value: [] String value found, but a number or an object is required',
+            'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
+            'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+          ],
           'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
           'props.tested_enum_prop.examples.0' => 'This value should be of the correct primitive type.',
           'props.tested_enum_prop.examples.3' => 'This value should not be null.',
@@ -288,6 +325,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         '$ref' => 'json-schema-definitions://experience_builder.module/image',
         'title' => $this->randomString(),
         'enum' => [NULL],
+        'meta:enum' => [NULL => 'Test'],
         'examples' => [
           [],
           NULL,
@@ -313,7 +351,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ]);
     $this->assertValidationErrors([
-      '' => "Prop \"some_object\" has invalid example value: [src] The property src is required\n[] Does not have a value in the enumeration [null]",
+      '' => 'Prop "some_object" has invalid example value: [src] The property src is required
+[] Does not have a value in the enumeration [null]',
       'props.some_object.enum.0' => 'This value should not be null.',
       'props.some_object.examples.0' => [
         'This value should not be blank.',
@@ -375,6 +414,11 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
                 'Click',
                 'Submit',
               ],
+              'meta:enum' => [
+                'Press' => 'Press',
+                'Click' => 'Click',
+                'Submit' => 'Submit',
+              ],
               'examples' => ['Press', 'Submit now'],
             ],
           ],
@@ -390,7 +434,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ],
         [
           '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-unknown-prop-type".',
-          'props.mixed_up_prop' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+          'props.mixed_up_prop' => [
+            "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+            "'meta:enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+          ],
           'props.mixed_up_prop.type' => 'The value you selected is not a valid choice.',
         ],
       ],
@@ -518,7 +565,12 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
                 'Click',
                 'Submit',
               ],
-              'examples' => ['Press', 'Submit now'],
+              'meta:enum' => [
+                'Press' => 'Press',
+                'Click' => 'Click',
+                'Submit' => 'Submit',
+              ],
+              'examples' => ['Press', 'Submit'],
             ],
           ],
           'slots' => [],
@@ -731,10 +783,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           ],
         ],
         [
-          '' => [
-            "Prop \"image\" has invalid example value: [text] The property text is required\n[element] The property element is required",
-            'Experience Builder does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/heading"}</code>.',
-          ],
+          '' => "Prop \"image\" has invalid example value: [text] The property text is required\n[element] The property element is required",
           'props.image.$ref' => 'The value you selected is not a valid choice.',
           'props.image.examples.0' => [
             "'text' is a required key.",

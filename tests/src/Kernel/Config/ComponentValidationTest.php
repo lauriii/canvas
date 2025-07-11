@@ -86,7 +86,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'xb_test_sdc:my-cta',
-      'active_version' => '95f7ef6a63ef6102',
+      'active_version' => 'b4cd62533ff9bd99',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -111,10 +111,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
                 // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
                 'field_type' => 'list_string',
                 'field_storage_settings' => [
-                  'allowed_values' => [
-                    ['value' => 'foo', 'label' => 'foo'],
-                    ['value' => 'bar', 'label' => 'bar'],
-                  ],
+                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
                 ],
                 // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget
                 'field_widget' => 'options_select',
@@ -205,7 +202,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 0048273ff5b255a8., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected cb29c15222ba9715., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
     }
 
     // Too little.
@@ -226,7 +223,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
     \assert($this->entity instanceof ComponentInterface);
     $this->entity->createVersion(
-      '95f7ef6a63ef6102'
+      'b4cd62533ff9bd99'
     )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
     // No validation errors even though the old 'abcdef12343fa3dc'
     // version is invalid.
@@ -584,6 +581,27 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       $expected_errors["versioned_properties.$expected_version.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
     }
     $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * @see \Drupal\experience_builder\ComponentMetadataRequirementsChecker::check()
+   */
+  public function testUnmatchedEnumAndMetaEnum(): void {
+    $component = Component::load('sdc.xb_test_sdc:component-mismatch-meta-enum');
+    $this->assertNull($component);
+    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('xb_test_sdc:component-mismatch-meta-enum'));
+    $component->setStatus(FALSE);
+    $this->assertEquals(SAVED_NEW, $component->save());
+    $component->setStatus(TRUE);
+    $this->entity = $component;
+    $this->assertValidationErrors([
+      'status' => [
+        'The component \'<em class="placeholder">sdc.xb_test_sdc.component-mismatch-meta-enum</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
+        'The "meta:enum" keys for the "style" prop enum cannot contain a dot. Offending key: "contains.dots"',
+        'The "meta:enum" keys for the "numbers" prop enum cannot contain a dot. Offending key: "3.14"',
+        'The values for the "numbers" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+      ],
+    ]);
   }
 
 }

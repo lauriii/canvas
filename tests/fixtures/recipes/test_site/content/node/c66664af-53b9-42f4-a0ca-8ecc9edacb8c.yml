@@ -45,7 +45,7 @@ default:
       slot: null
       uuid: 7480dded-2e3e-4425-82c3-3da911442040
       component_id: sdc.experience_builder.two_column
-      component_version: e5ef92acda2ee2d1
+      component_version: d99140cbd47c0b51
       inputs: '{"width":{"sourceType":"static:field_item:list_integer","value":50,"expression":"ℹ︎list_integer␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":25,"label":"25"},{"value":33,"label":"33"},{"value":50,"label":"50"},{"value":66,"label":"66"},{"value":75,"label":"75"}]}}}}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
@@ -73,7 +73,7 @@ default:
       slot: column_one
       uuid: 9fd85ace-6a33-421b-8237-3416fcf39c30
       component_id: sdc.experience_builder.one_column
-      component_version: f6a3a392e98e8342
+      component_version: 836c8835c850cdc5
       inputs: '{"width":{"sourceType":"static:field_item:list_string","value":"full","expression":"ℹ︎list_string␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":"full","label":"full"},{"value":"wide","label":"wide"},{"value":"normal","label":"normal"},{"value":"narrow","label":"narrow"}]}}}}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040

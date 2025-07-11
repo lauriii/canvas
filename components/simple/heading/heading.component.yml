@@ -21,6 +21,9 @@ props:
       enum:
         - primary
         - secondary
+      meta:enum:
+        primary: Primary
+        secondary: Secondary
       examples: [primary, secondary]
     element:
       $ref: json-schema-definitions://experience_builder.module/heading-element

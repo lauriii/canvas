@@ -8,7 +8,7 @@
         {
           "nodeType": "component",
           "uuid": "a7470350-deb2-4d9f-982c-464d356403d4",
-          "type": "sdc.experience_builder.two_column@e5ef92acda2ee2d1",
+          "type": "sdc.experience_builder.two_column@d99140cbd47c0b51",
           "slots": [
             {
               "nodeType": "slot",
@@ -52,7 +52,7 @@
         {
           "nodeType": "component",
           "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-          "type": "sdc.experience_builder.two_column@e5ef92acda2ee2d1",
+          "type": "sdc.experience_builder.two_column@d99140cbd47c0b51",
           "slots": [
             {
               "nodeType": "slot",
@@ -75,7 +75,7 @@
                 {
                   "nodeType": "component",
                   "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
-                  "type": "sdc.experience_builder.heading@1b4f8df7c94d7e3c",
+                  "type": "sdc.experience_builder.heading@9616e3c4ab9b4fce",
                   "slots": []
                 },
                 {

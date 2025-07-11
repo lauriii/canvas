@@ -544,7 +544,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.experience_builder.heading',
-        'component_version' => '1b4f8df7c94d7e3c',
+        'component_version' => '9616e3c4ab9b4fce',
         'inputs' => [
           'style' => 'flared',
           'element' => 'h3',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
@@ -340,7 +341,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.experience_builder.one_column@f6a3a392e98e8342',
+        'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];
@@ -366,24 +367,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values' => [
-                [
-                  'value' => 'full',
-                  'label' => 'full',
-                ],
-                [
-                  'value' => 'wide',
-                  'label' => 'wide',
-                ],
-                [
-                  'value' => 'normal',
-                  'label' => 'normal',
-                ],
-                [
-                  'value' => 'narrow',
-                  'label' => 'narrow',
-                ],
-              ],
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ],
         ],
@@ -743,6 +727,17 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'type' => 'number',
           'examples' => [3.14, 42],
         ],
+        // Enum with meta-enum, as this is not mandatory in SDC < 11.2, but it is in XB.
+        'enum' => [
+          'type' => 'string',
+          'title' => 'Enum',
+          'enum' => ['primary', 'secondary'],
+          'examples' => ['primary'],
+          'meta:enum' => [
+            'primary' => 'Primary',
+            'secondary' => 'Secondary',
+          ],
+        ],
       ],
       'slots' => [
         'test-slot' => [
@@ -794,6 +789,13 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
           'type' => 'number',
           'examples' => [3.14, 42],
         ],
+        'enum' => [
+          'title' => 'Enum',
+          'type' => 'string',
+          'examples' => ['primary'],
+          'enum' => ['primary', 'secondary'],
+          'meta:enum' => ['primary' => 'Primary', 'secondary' => 'Secondary'],
+        ],
       ],
       'required' => [
         'string',
@@ -843,6 +845,24 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $canonical_url = Url::fromUri('base:/xb/api/v0/config/js_component/test');
     $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_component, $body);
+
+    // Editing the previous JavaScriptComponent to PATCH `meta:enum`,
+    // which should be allowed.
+    $request_options[RequestOptions::JSON] = NestedArray::mergeDeep($code_component_to_send, [
+      'props' => [
+        'enum' => [
+          'meta:enum' => ['primary' => 'Primary Value', 'secondary' => 'Secondary Value'],
+        ],
+      ],
+    ]);
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertSame(NestedArray::mergeDeep($expected_component, [
+      'props' => [
+        'enum' => [
+          'meta:enum' => ['primary' => 'Primary Value', 'secondary' => 'Secondary Value'],
+        ],
+      ],
+    ]), $body);
 
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
     $request_options[RequestOptions::JSON] = [
@@ -961,6 +981,26 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_auto_save = $expected_component;
     $expected_auto_save['name'] = $auto_save_data['name'];
     $expected_auto_save['props']['string']['title'] = 'Title (new)';
+    // Expected component has the keys in the same order as the schema, because
+    // it is dealing with a saved component. For auto-saves the order of keys
+    // sent by the client is what we reflect back because the entity has not
+    // been saved or validated. Update the expected value so the order of keys
+    // matches what we sent.
+    $expected_auto_save['props']['enum'] = [
+      'type' => 'string',
+      'title' => 'Enum',
+      'enum' => [
+        'primary',
+        'secondary',
+      ],
+      'examples' => [
+        'primary',
+      ],
+      'meta:enum' => [
+        'primary' => 'Primary',
+        'secondary' => 'Secondary',
+      ],
+    ];
     unset($expected_auto_save['css'], $expected_auto_save['default_markup'], $expected_auto_save['js_footer'], $expected_auto_save['js_header']);
     $this->performAutoSave($auto_save_data, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 
@@ -1035,6 +1075,26 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_auto_save = $expected_component;
     $expected_auto_save['name'] = $auto_save_data['name'];
     $expected_auto_save['props']['string']['title'] = 'Title (new)';
+    // Expected component has the keys in the same order as the schema, because
+    // it is dealing with a saved component. For auto-saves the order of keys
+    // sent by the client is what we reflect back because the entity has not
+    // been saved or validated. Update the expected value so the order of keys
+    // matches what we sent.
+    $expected_auto_save['props']['enum'] = [
+      'type' => 'string',
+      'title' => 'Enum',
+      'enum' => [
+        'primary',
+        'secondary',
+      ],
+      'examples' => [
+        'primary',
+      ],
+      'meta:enum' => [
+        'primary' => 'Primary',
+        'secondary' => 'Secondary',
+      ],
+    ];
     unset($expected_auto_save['css'], $expected_auto_save['default_markup'], $expected_auto_save['js_footer'], $expected_auto_save['js_header']);
     $this->performAutoSave($auto_save_data, $expected_auto_save, JavaScriptComponent::ENTITY_TYPE_ID, 'test');
 

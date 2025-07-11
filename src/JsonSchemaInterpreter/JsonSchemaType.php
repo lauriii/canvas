@@ -269,10 +269,10 @@ enum JsonSchemaType: string {
           TRUE => NULL,
           FALSE => new StorablePropShape(
             shape: $shape,
-            fieldWidget: 'options_select',
             fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+            fieldWidget: 'options_select',
             fieldStorageSettings: [
-              'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
             ],
           ),
         },
@@ -293,8 +293,8 @@ enum JsonSchemaType: string {
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       JsonSchemaType::INTEGER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
-        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
+        array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldInstanceSettings: [
@@ -312,8 +312,8 @@ enum JsonSchemaType: string {
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       JsonSchemaType::NUMBER => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
-        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldWidget: 'options_select', fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldStorageSettings: [
-          'allowed_values' => array_map(fn ($v) => ['value' => $v, 'label' => (string) $v], $schema['enum']),
+        array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number', fieldStorageSettings: [

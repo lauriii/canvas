@@ -8,17 +8,39 @@
     "heading-element": {
       "title": "Heading element",
       "type": "string",
-      "enum": ["div", "h1", "h2", "h3", "h4", "h5", "h6"]
+      "enum": ["div", "h1", "h2", "h3", "h4", "h5", "h6"],
+      "meta:enum": {
+        "div": "Container",
+        "h1": "Header 1",
+        "h2": "Header 2",
+        "h3": "Header 3",
+        "h4": "Header 4",
+        "h5": "Header 5",
+        "h6": "Header 6"
+      }
     },
     "column-width": {
       "title": "Column Width",
       "type": "integer",
-      "enum": [25, 33, 50, 66, 75]
+      "enum": [25, 33, 50, 66, 75],
+      "meta:enum": {
+        "25": "25%",
+        "33": "33%",
+        "50": "50%",
+        "66": "66%",
+        "75": "75%"
+      }
     },
     "background-color": {
       "title": "Background Color",
       "type": "string",
-      "enum": ["", "primary", "secondary", "white"]
+      "enum": ["", "primary", "secondary", "white"],
+      "meta:enum": {
+        "": "None",
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "white": "White"
+      }
     },
     "date-range": {
       "title": "date range",
@@ -71,6 +93,10 @@
           "title": "Style",
           "description": "The heading style to use.",
           "enum": ["primary", "secondary"],
+          "meta:enum": {
+            "primary": "Primary",
+            "secondary": "Secondary"
+          },
           "examples": ["primary", "secondary"]
         },
         "element": {
@@ -78,6 +104,15 @@
           "title": "Element",
           "description": "The HTML element to use.",
           "enum": ["div", "h1", "h2", "h3", "h4", "h5", "h6"],
+          "meta:enum": {
+            "div": "Container",
+            "h1": "Header 1",
+            "h2": "Header 2",
+            "h3": "Header 3",
+            "h4": "Header 4",
+            "h5": "Header 5",
+            "h6": "Header 6"
+          },
           "examples": ["h1", "h2", "h3", "h4", "h5", "h6", "div"]
         }
       }
@@ -102,7 +137,7 @@
           "type": "string",
           "title": "Name",
           "description": "The badge’s theme variant.",
-          "default": "primary",
+          "default": "moon-stars-fill",
           "enum": [
             "moon-stars-fill",
             "moon-stars",
@@ -114,6 +149,17 @@
             "rocket-takeoff",
             "rocket"
           ],
+          "meta:enum": {
+            "moon-stars-fill": "Moon Stars (Filled)",
+            "moon-stars": "Moon Stars",
+            "star-fill": "Star (Filled)",
+            "star": "Star",
+            "stars": "Stars",
+            "rocket-fill": "Rocket (Filled)",
+            "rocket-takeoff-fill": "Rocket Takeoff (Filled)",
+            "rocket-takeoff": "Rocket Takeoff",
+            "rocket": "Rocket"
+          },
           "examples": [
             "moon-stars-fill",
             "moon-stars",
@@ -139,6 +185,14 @@
           "description": "The icon size.",
           "default": "",
           "enum": ["", "base", "l", "s", "xs", "xxs"],
+          "meta:enum": {
+            "": "None",
+            "base": "Base",
+            "l": "Large",
+            "s": "Small",
+            "xs": "Extra-Small",
+            "xxs": "Extra-Extra-Small"
+          },
           "examples": ["", "base", "l", "s", "xs", "xxs"]
         },
         "color": {
@@ -161,6 +215,21 @@
             "gold",
             "green"
           ],
+          "meta:enum": {
+            "": "None",
+            "gray": "Gray",
+            "primary": "Primary",
+            "neutral-soft": "Neutral Soft",
+            "neutral-medium": "Neutral Medium",
+            "neutral-loud": "Neutral Loud",
+            "primary-medium": "Primary Medium",
+            "primary-loud": "Primary Loud",
+            "black": "Black",
+            "white": "White",
+            "red": "Red",
+            "gold": "Gold",
+            "green": "Green"
+          },
           "examples": [
             "",
             "gray",

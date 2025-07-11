@@ -47,6 +47,9 @@ props:
       enum:
         - foo
         - bar
+      meta:enum:
+        foo: Foo
+        bar: Bar
       examples:
         - foo
     test_integer_enum:
@@ -55,6 +58,9 @@ props:
       enum:
         - 1
         - 2
+      meta:enum:
+        1: 1
+        2: 2
       examples:
         - 1
 

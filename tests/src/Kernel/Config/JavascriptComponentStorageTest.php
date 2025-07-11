@@ -152,10 +152,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $props['title']['type'] = 'array';
     $js_component->setProps($props);
     $this->assertSame([
-      '' => [
-        'Prop "title" has invalid example value: [] String value found, but an array or an object is required',
-        'Experience Builder does not know of a field type/widget to allow populating the <code>title</code> prop, with the shape <code>{"type":"array"}</code>.',
-      ],
+      '' => 'Prop "title" has invalid example value: [] String value found, but an array or an object is required',
       'props.title.type' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
 

@@ -184,7 +184,7 @@ class PropSourceTest extends KernelTestBase {
     // Ensure an unknown widget type is handled gracefully.
     $field_widgets['not_real'] = $field_widgets[NULL];
     foreach ($field_widgets as $widget_type => $expected_widget_class) {
-      $this->assertInstanceOf($expected_widget_class, $prop_source_example->getWidget('irrelevant-for-test', $this->randomString(), $widget_type));
+      $this->assertInstanceOf($expected_widget_class, $prop_source_example->getWidget('irrelevant-for-test', 'irrelevant-for-test', 'irrelevant-for-test', $this->randomString(), $widget_type));
     }
     if (NULL === $value) {
       $this->assertNull($expected_user_value);

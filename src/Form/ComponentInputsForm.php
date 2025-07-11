@@ -113,7 +113,7 @@ final class ComponentInputsForm extends FormBase {
     $parents = ['xb_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#component' => $component];
     $form['xb_component_props'][$component_instance_uuid] = $this->applyElementParents(
-      $component->getComponentSource()->buildConfigurationForm($sub_form, $form_state, $component_instance_uuid, $inputs, $entity, $component->get('settings')),
+      $component->getComponentSource()->buildConfigurationForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings')),
       $parents
     );
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];

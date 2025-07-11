@@ -72,7 +72,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '02f06f2a-c3af-4f71-8920-5f74169a88a5',
           'component_id' => 'sdc.experience_builder.heading',
-          'component_version' => '1b4f8df7c94d7e3c',
+          'component_version' => '9616e3c4ab9b4fce',
           'inputs' => [
             'text' => $generate_static_prop_source('heading level three'),
             'element' => [

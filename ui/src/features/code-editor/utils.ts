@@ -131,6 +131,12 @@ export function serializeProps(props: CodeComponentProp[]) {
           }),
           ...(enumValues && {
             enum: isNumberType ? enumValues.map(Number) : enumValues,
+            'meta:enum': Object.fromEntries(
+              enumValues.map((value) => [
+                value.replace('.', '_'),
+                isNumberType ? Number(value) : value,
+              ]),
+            ),
           }),
           ...($ref && { $ref }),
           ...(format && { format }),

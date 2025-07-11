@@ -114,7 +114,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '435d1d20-a697-4d36-9892-9d61c825c99c',
           'component_id' => 'sdc.xb_test_sdc.my-cta',
-          'component_version' => 'fa533ff8be5a1402',
+          'component_version' => '9454c3bca9bbbf4b',
           'inputs' => [
             'text' => [
               'sourceType' => 'static:field_item:string',
@@ -133,7 +133,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '57afe4ed-c593-4457-a741-2ac5053be928',
           'component_id' => 'js.my-cta',
-          'component_version' => 'dd3127c82cca2600',
+          'component_version' => '9454c3bca9bbbf4b',
           'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',

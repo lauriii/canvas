@@ -22,6 +22,12 @@ props:
         - 'neutral'
         - 'warning'
         - 'danger'
+      meta:enum:
+        primary: Primary
+        success: Success
+        neutral: Neutral
+        warning: Warning
+        danger: Danger
       examples: ['primary', 'success', 'neutral', 'warning', 'danger']
     pill:
       type: boolean

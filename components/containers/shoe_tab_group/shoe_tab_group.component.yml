@@ -21,12 +21,23 @@ props:
         - 'bottom'
         - 'start'
         - 'end'
+      meta:enum:
+        top: Top
+        bottom: Bottom
+        start: Start
+        end: End
       examples: ['top', 'bottom', 'start', 'end']
     activation:
       type: string
       title: Activation
       description: When set to auto, navigating tabs with the arrow keys will instantly show the corresponding tab panel. When set to manual, the tab will receive focus but will not show until the user presses space bar or enter.
       default: auto
+      enum:
+        - auto
+        - manual
+      meta:enum:
+        auto: Auto
+        manual: Manual
       examples: ['auto', 'manual']
     no_scroll:
       type: boolean

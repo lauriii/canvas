@@ -30,6 +30,7 @@ class PropSourceEndpointTest extends FunctionalTestBase {
   protected static $modules = [
     'experience_builder',
     'sdc_test_all_props',
+    'xb_test_sdc',
     // Validate that a single invalid SDC doesn't break the component list.
     'xb_broken_sdcs',
   ];

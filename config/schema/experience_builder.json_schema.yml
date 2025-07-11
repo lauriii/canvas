@@ -72,6 +72,18 @@ experience_builder.json_schema.prop.string:
         # Do not allow NULL.
         constraints:
           NotNull: ~
+    meta:enum:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: label
+        # Do not allow NULL.
+        constraints:
+          NotNull: ~
+    x-translation-context:
+      requiredKey: false
+      type: string
+      label: 'Translation context'
     format:
       requiredKey: false
       type: string
@@ -138,6 +150,18 @@ experience_builder.json_schema.prop.integer:
         # Do not allow NULL.
         constraints:
           NotNull: ~
+    meta:enum:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: label
+        # Do not allow NULL.
+        constraints:
+          NotNull: ~
+    x-translation-context:
+      requiredKey: false
+      type: string
+      label: 'Translation context'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#number
 experience_builder.json_schema.prop.number:
@@ -195,6 +219,14 @@ experience_builder.json_schema.prop.object:
           NotNull: ~
           NotBlank:
             allowNull: true
+    meta:enum:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: label
+        # Do not allow NULL.
+        constraints:
+          NotNull: ~
     '$ref':
       # ⚠️ Note the absence of `requiredKey: false` here: XB does not (yet) support arbitrary `type: object` shapes, so
       # `$ref` is actually REQUIRED for such props!
