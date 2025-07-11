@@ -239,6 +239,19 @@ paths:
           description: Invalid auto-save state.
         '200':
           description: Auto-save state updated successfully.
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
   /xb/api/v0/config/component:
     description: TODO
     get:

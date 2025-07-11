@@ -68,12 +68,20 @@ const useGetCodeEditorData = (
     skip:
       skip ||
       isLoadingGetAutoSaveCodeComponent ||
-      (isSuccessGetAutoSaveCodeComponent && !!dataGetAutoSaveCodeComponent),
+      (isSuccessGetAutoSaveCodeComponent &&
+        dataGetAutoSaveCodeComponent &&
+        ('data' in dataGetAutoSaveCodeComponent
+          ? !!dataGetAutoSaveCodeComponent.data
+          : !!dataGetAutoSaveCodeComponent)),
   });
 
   // Set the code component data in a local state.
   useEffect(() => {
-    setDataCodeComponent(dataGetAutoSaveCodeComponent || dataGetCodeComponent);
+    const autoSaveData =
+      dataGetAutoSaveCodeComponent && 'data' in dataGetAutoSaveCodeComponent
+        ? dataGetAutoSaveCodeComponent.data
+        : dataGetAutoSaveCodeComponent;
+    setDataCodeComponent(autoSaveData || dataGetCodeComponent);
   }, [dataGetAutoSaveCodeComponent, dataGetCodeComponent]);
 
   // Get the auto-saved data of the global asset library if it exists.
@@ -96,14 +104,20 @@ const useGetCodeEditorData = (
     skip:
       skip ||
       isLoadingGetAutoSaveAssetLibrary ||
-      (isSuccessGetAutoSaveAssetLibrary && !!dataGetAutoSaveAssetLibrary),
+      (isSuccessGetAutoSaveAssetLibrary &&
+        dataGetAutoSaveAssetLibrary &&
+        ('data' in dataGetAutoSaveAssetLibrary
+          ? !!dataGetAutoSaveAssetLibrary.data
+          : !!dataGetAutoSaveAssetLibrary)),
   });
 
   // Set the global asset library data in a local state.
   useEffect(() => {
-    setDataGlobalAssetLibrary(
-      dataGetAutoSaveAssetLibrary || dataGetAssetLibrary,
-    );
+    const autoSaveData =
+      dataGetAutoSaveAssetLibrary && 'data' in dataGetAutoSaveAssetLibrary
+        ? dataGetAutoSaveAssetLibrary.data
+        : dataGetAutoSaveAssetLibrary;
+    setDataGlobalAssetLibrary(autoSaveData || dataGetAssetLibrary);
   }, [dataGetAutoSaveAssetLibrary, dataGetAssetLibrary]);
 
   // Set the loading state in a local state.

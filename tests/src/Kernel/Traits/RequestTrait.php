@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Traits;
 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -44,6 +45,13 @@ trait RequestTrait {
     $http_kernel->terminate($request, $response);
 
     return $response;
+  }
+
+  protected static function decodeResponse(Response $response): array {
+    self::assertInstanceOf(JsonResponse::class, $response);
+    self::assertIsString($response->getContent());
+    self::assertJson($response->getContent());
+    return \json_decode($response->getContent(), TRUE);
   }
 
 }

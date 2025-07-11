@@ -6,14 +6,14 @@ import type {
   ErrorResponse,
   PendingChanges,
 } from '@/services/pendingChangesApi';
-import type { AutoSavesHash } from '@/types/AutoSaves';
+import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 export interface postPreviewSignalSliceState {
   postPreviewCompleted: boolean;
   previousPendingChanges?: PendingChanges;
   conflicts?: ConflictError[];
   errors?: ErrorResponse;
-  autoSavesHash: AutoSavesHash;
+  autoSavesHash: AutoSavesHashRecord;
   clientInstanceId: string;
 }
 
@@ -42,8 +42,18 @@ export const publishReviewSlice = createSlice({
     setErrors(state, action: PayloadAction<ErrorResponse | undefined>) {
       state.errors = action.payload;
     },
-    setAutoSavesHash(state, action: PayloadAction<AutoSavesHash>) {
+    setAutoSavesHash(state, action: PayloadAction<AutoSavesHashRecord>) {
       state.autoSavesHash = action.payload;
+    },
+    addOrUpdateAutoSavesHash(
+      state,
+      action: PayloadAction<AutoSavesHashRecord>,
+    ) {
+      // Merge new hashes into the existing state
+      state.autoSavesHash = {
+        ...state.autoSavesHash,
+        ...action.payload,
+      };
     },
   },
   selectors: {
@@ -59,7 +69,7 @@ export const publishReviewSlice = createSlice({
     selectErrors: (state): ErrorResponse | undefined => {
       return state?.errors;
     },
-    selectAutoSavesHash: (state): AutoSavesHash => {
+    selectAutoSavesHash: (state): AutoSavesHashRecord => {
       return state?.autoSavesHash;
     },
     selectClientInstanceId: (state): string => {
@@ -74,6 +84,7 @@ export const {
   setConflicts,
   setErrors,
   setAutoSavesHash,
+  addOrUpdateAutoSavesHash,
 } = publishReviewSlice.actions;
 
 export const {

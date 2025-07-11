@@ -102,6 +102,7 @@
 /src/AutoSave/
 /src/Hook/AutoSaveHooks.php
 /tests/**/*AutoSave*
+/tests/Kernel/AutoSave/
 
 # ⚠️
 # ⚠️ Highly experimental new concepts ⚠️

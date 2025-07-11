@@ -36,7 +36,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class ApiLayoutController {
 
-  use AutoSaveTrait;
+  use AutoSaveValidateTrait;
   use EntityFormTrait;
   private array $regions;
   private array $regionsClientSideIds;

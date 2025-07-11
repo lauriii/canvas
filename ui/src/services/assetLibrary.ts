@@ -1,11 +1,13 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery } from '@/services/baseQuery';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { AssetLibrary } from '@/types/CodeComponent';
+import type { AutoSavesHash } from '@/types/AutoSaves';
 
 export const assetLibraryApi = createApi({
   reducerPath: 'assetLibraryApi',
-  baseQuery,
+  baseQuery: baseQueryWithAutoSaves,
   tagTypes: ['AssetLibraries', 'AssetLibrariesAutoSave'],
   endpoints: (builder) => ({
     getAssetLibraries: builder.query<Record<string, AssetLibrary>, void>({
@@ -45,20 +47,35 @@ export const assetLibraryApi = createApi({
       }),
       invalidatesTags: [{ type: 'AssetLibraries', id: 'LIST' }],
     }),
-    getAutoSave: builder.query<AssetLibrary, string>({
+    getAutoSave: builder.query<
+      { data: AssetLibrary; autoSaves: AutoSavesHash },
+      string
+    >({
       query: (id) => `xb/api/v0/config/auto-save/xb_asset_library/${id}`,
       providesTags: (result, error, id) => [
         { type: 'AssetLibrariesAutoSave', id },
       ],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          const { data, meta } = await queryFulfilled;
+          const { autoSaves } = data;
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        } catch (err) {
+          console.error(err);
+        }
+      },
     }),
     updateAutoSave: builder.mutation<
       void,
-      { id: string; data: Partial<AssetLibrary> }
+      {
+        id: string;
+        data: Partial<AssetLibrary>;
+      }
     >({
       query: ({ id, data }) => ({
         url: `xb/api/v0/config/auto-save/xb_asset_library/${id}`,
         method: 'PATCH',
-        body: data,
+        body: { data },
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'AssetLibrariesAutoSave', id },

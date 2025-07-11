@@ -21,6 +21,8 @@ import {
   selectCodeComponentProperty,
   selectCodeComponentSerialized,
 } from '@/features/code-editor/codeEditorSlice';
+import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
+import ConflictWarning from '@/features/editor/ConflictWarning';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -52,8 +54,14 @@ const MosaicContainer = () => {
   const dispatch = useAppDispatch();
   const selectedComponent = useAppSelector(selectCodeComponentSerialized);
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
+  const latestError = useAppSelector(selectLatestError);
 
   const { isLoading } = useCodeEditor();
+
+  // Check for conflict errors (same as Editor.tsx)
+  if (latestError && latestError.status === '409') {
+    return <ConflictWarning />;
+  }
 
   const TabGroup = () => {
     function tabChangeHandler(selectedTab: string) {

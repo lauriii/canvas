@@ -827,8 +827,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExposedCodeComponents([], 'MISS', $request_options);
     $this->assertExposedCodeComponents([], 'HIT', $request_options);
     // Confirm no auto-save entity has been created.
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:experience_builder.js_component.another_component', 'config:experience_builder.js_component.test'], 'UNCACHEABLE (request policy)', 'HIT');
 
     // Creating a JavaScriptComponent with an already-in-use ID: 409.
     $request_options[RequestOptions::JSON] = $code_component_to_send;
@@ -1166,8 +1166,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     $this->assertSame($body, $asset_library_to_send);
     // Confirm no auto-save entity has been created.
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 204, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:experience_builder.xb_asset_library.global'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:experience_builder.xb_asset_library.global'], 'UNCACHEABLE (request policy)', 'HIT');
 
     // Modify the asset library: 200.
     $asset_library_to_send['label'] = 'Updated asset library label';

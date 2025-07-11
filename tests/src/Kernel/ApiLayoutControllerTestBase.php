@@ -10,10 +10,8 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
@@ -29,13 +27,6 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
   }
   use UserCreationTrait;
 
-  protected static function decodeResponse(Response $response): array {
-    self::assertInstanceOf(JsonResponse::class, $response);
-    self::assertIsString($response->getContent());
-    self::assertJson($response->getContent());
-    return \json_decode($response->getContent(), TRUE);
-  }
-
   /**
    * Unwrap the JSON response so we can perform assertions on it.
    */
@@ -47,16 +38,6 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
       $this->setRawContent($decodedResponse['html']);
     }
     return $response;
-  }
-
-  protected function assertRequestAutoSaveConflict(Request $request): void {
-    try {
-      $this->request($request);
-      $this->fail('Expected exception');
-    }
-    catch (ConflictHttpException $exception) {
-      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
-    }
   }
 
   /**

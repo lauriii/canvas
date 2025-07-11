@@ -47,3 +47,51 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     return defaultQuery(newArg, api, extraOptions);
   };
 };
+
+// Higher-order base query to inject the current autoSavesHash and clientInstanceId for all mutations (POST, PATCH, DELETE)
+// to allow the backend to recognize potential conflicts where the client is updating potentially out of date data.
+export const withAutoSavesInjection: (
+  baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
+) => BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = (
+  baseQuery,
+) => {
+  return (args, api, extraOptions) => {
+    if (typeof args === 'object') {
+      const { url } = args;
+      if (url && api.type === 'mutation') {
+        const state = api.getState() as RootState;
+        const { publishReview, configuration } = state;
+        const { entityType, entity } = configuration;
+        const autoSaveKey = url
+          .replace('{entity_type}', entityType)
+          .replace('{entity_id}', entity);
+
+        // We want to send back the specific autoSave hash for the particular URL being updated
+        const autoSaves =
+          autoSaveKey && publishReview.autoSavesHash[autoSaveKey]
+            ? publishReview.autoSavesHash[autoSaveKey]
+            : undefined;
+        return baseQuery(
+          {
+            ...args,
+            body: {
+              ...args.body,
+              ...(autoSaves && { autoSaves }),
+              clientInstanceId: publishReview.clientInstanceId,
+            },
+          },
+          api,
+          extraOptions,
+        );
+      }
+    }
+    return baseQuery(args, api, extraOptions);
+  };
+};
+
+// Export a baseQuery with autoSaves injection by default
+export const baseQueryWithAutoSaves: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = withAutoSavesInjection(baseQuery);

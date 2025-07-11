@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
@@ -13,6 +14,7 @@ use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Base class for functional tests of XB's internal HTTP API.
@@ -77,15 +79,31 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
    * Asserts the given data can be auto-saved (and retrieved) correctly.
    */
   protected function performAutoSave(array $data_to_auto_save, array $expected_auto_save_entity, string $entity_type_id, string $entity_id): void {
+    static $clientIdNumber = 0;
+    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
       ],
     ];
-    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
-    $request_options[RequestOptions::JSON] = $data_to_auto_save;
+    $getResponse = $this->makeApiRequest('GET', $auto_save_url, $request_options);
+    self::assertSame(Response::HTTP_OK, $getResponse->getStatusCode());
+    $decoded = json_decode((string) $getResponse->getBody(), associative: TRUE, flags: JSON_THROW_ON_ERROR);
+    self::assertArrayHasKey('autoSaves', $decoded);
+    $autoSaves = $decoded['autoSaves'];
+    $request_options[RequestOptions::JSON] = [
+      'data' => $data_to_auto_save,
+      'autoSaves' => $autoSaves,
+      // Use a unique client instance ID to ensure that auto-save hashes are
+      // always verified, except when we are explicitly testing using the same
+      // client.
+      // @see \Drupal\Tests\experience_builder\Kernel\AutoSave\AutoSaveConflictTestTrait::testOutdatedAutoSave()
+      // @see \Drupal\experience_builder\Controller\AutoSaveTrait::validateAutoSaves()
+      'clientInstanceId' => 'test-client-' . (++$clientIdNumber),
+    ];
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
-    $this->assertSame([], $patch_response);
+    $entity = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id)->load($entity_id);
+    self::assertSame($this->getClientAutoSaves([$entity]), $patch_response);
 
     $this->assertCurrentAutoSave(200, $expected_auto_save_entity, $entity_type_id, $entity_id);
   }
@@ -100,14 +118,25 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       ],
     ];
     $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
+    // Because the 'autoSaveStartingPoint`, which is returned from the
+    // $auto_save_url GET request, is created using the saved entity in addition
+    // to the auto-save entry we need to expect the cache tags of the entity.
+    // @see \Drupal\experience_builder\Controller\AutoSaveValidateTrait::getClientAutoSaveData()
+    $entity = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id)->load($entity_id);
+    $cacheTags = [AutoSaveManager::CACHE_TAG, 'http_response'];
+    if ($entity instanceof EntityInterface) {
+      $cacheTags = Cache::mergeTags($cacheTags, $entity->getCacheTags());
+    }
 
     // First GET request: auto-save retrieved successfully?
     // - 200 if there is a current auto-save
     // - 204 if there isn't one
     // - 404 if this entity does not exist (anymore)
     if ($expected_status_code < 400) {
-      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-      $this->assertSame($expected_auto_save, $auto_save_data);
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], $cacheTags, 'UNCACHEABLE (request policy)', 'MISS');
+      $this->assertIsArray($auto_save_data);
+      $this->assertArrayHasKey('data', $auto_save_data);
+      $this->assertSame($expected_auto_save, $auto_save_data['data']);
     }
     else {
       $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
@@ -116,8 +145,10 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     if ($expected_status_code < 400) {
       // Repeat the same request: same status code, but now is a Dynamic Page
       // Cache hit.
-      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
-      $this->assertSame($expected_auto_save, $auto_save_data);
+      $auto_save_data = $this->assertExpectedResponse('GET', $auto_save_url, $request_options, $expected_status_code, ['user.permissions'], $cacheTags, 'UNCACHEABLE (request policy)', 'HIT');
+      $this->assertIsArray($auto_save_data);
+      $this->assertArrayHasKey('data', $auto_save_data);
+      $this->assertSame($expected_auto_save, $auto_save_data['data']);
     }
 
     // The expected array must also match what the AutoSaveManager currently contains.

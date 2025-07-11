@@ -48,6 +48,7 @@ trait AutoSaveManagerTestTrait {
 
   /**
    * @see \Drupal\experience_builder\Controller\ApiLayoutController::getClientAutoSaveData()
+   * @todo Remove this method in in https://www.drupal.org/project/experience_builder/issues/3535458
    */
   protected function getClientAutoSaveData(EntityInterface $entity): array {
     $autoSaveManager = \Drupal::service(AutoSaveManager::class);
@@ -59,7 +60,7 @@ trait AutoSaveManagerTestTrait {
       $autoSaveStartRevision .= '-' . $entity->getChangedTime();
     }
     return [
-      'autoSaveRevision' => $autoSaveStartRevision,
+      'autoSaveStartingPoint' => $autoSaveStartRevision,
       'hash' => $autoSaveManager->getAutoSaveEntity($entity)->hash,
     ];
   }

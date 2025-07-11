@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery } from '@/services/baseQuery';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { ComponentsList, libraryTypes } from '@/types/Component';
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
@@ -8,7 +8,8 @@ import {
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
-import { setAutoSavesHash } from '@/components/review/PublishReview.slice';
+import type { AutoSavesHash } from '@/types/AutoSaves';
+import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 type getComponentsQueryOptions = {
   libraries: libraryTypes[];
@@ -20,12 +21,12 @@ type LayoutApiResponse = RootLayoutModel & {
   isNew: boolean;
   isPublished: boolean;
   html: string;
-  autoSaves: Record<string, string>;
+  autoSaves: AutoSavesHash;
 };
 
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
-  baseQuery,
+  baseQuery: baseQueryWithAutoSaves,
   tagTypes: ['Components', 'CodeComponents', 'CodeComponentAutoSave', 'Layout'],
   endpoints: (builder) => ({
     getComponents: builder.query<
@@ -49,10 +50,11 @@ export const componentAndLayoutApi = createApi({
         try {
           const {
             data: { entity_form_fields, html, autoSaves },
+            meta,
           } = await queryFulfilled;
           dispatch(setInitialPageData(entity_form_fields));
           dispatch(setHtml(html));
-          dispatch(setAutoSavesHash(autoSaves));
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           dispatch(setPageData({}));
         }
@@ -155,20 +157,37 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' },
       ],
     }),
-    getAutoSave: builder.query<CodeComponentSerialized, string>({
+    getAutoSave: builder.query<
+      { data: CodeComponentSerialized; autoSaves: AutoSavesHash },
+      string
+    >({
       query: (id) => `xb/api/v0/config/auto-save/js_component/${id}`,
       providesTags: (result, error, id) => [
         { type: 'CodeComponentAutoSave', id },
       ],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          const {
+            data: { autoSaves },
+            meta,
+          } = await queryFulfilled;
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        } catch (err) {
+          console.error(err);
+        }
+      },
     }),
     updateAutoSave: builder.mutation<
       void,
-      { id: string; data: Partial<CodeComponentSerialized> }
+      {
+        id: string;
+        data: Partial<CodeComponentSerialized>;
+      }
     >({
       query: ({ id, data }) => ({
         url: `xb/api/v0/config/auto-save/js_component/${id}`,
         method: 'PATCH',
-        body: data,
+        body: { data },
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'CodeComponentAutoSave', id },

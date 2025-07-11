@@ -1,11 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery as sharedBaseQuery } from '@/services/baseQuery';
-import type { BaseQueryFn } from '@reduxjs/toolkit/query';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import type { AutoSavesHash } from '@/types/AutoSaves';
-import {
-  setAutoSavesHash,
-  setPostPreviewCompleted,
-} from '@/components/review/PublishReview.slice';
+import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
@@ -16,6 +12,7 @@ import type { ConflictError } from '@/services/pendingChangesApi';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
+import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 type UpdateComponentResultType = {
   html: string;
@@ -31,29 +28,9 @@ type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
-const previewBaseQuery: BaseQueryFn = (args, api, extraOptions) => {
-  if (typeof args === 'object' && args.url?.startsWith('xb/api/v0/layout/')) {
-    const state = api.getState() as RootState;
-    const { publishReview } = state;
-    return sharedBaseQuery(
-      {
-        ...args,
-        body: {
-          ...args.body,
-          autoSaves: publishReview.autoSavesHash,
-          clientInstanceId: publishReview.clientInstanceId,
-        },
-      },
-      api,
-      extraOptions,
-    );
-  }
-  return sharedBaseQuery(args, api, extraOptions);
-};
-
 export const previewApi = createApi({
   reducerPath: 'previewApi',
-  baseQuery: previewBaseQuery,
+  baseQuery: baseQueryWithAutoSaves,
   endpoints: (builder) => ({
     postPreview: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
@@ -65,7 +42,7 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
+        const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -74,7 +51,7 @@ export const previewApi = createApi({
         );
         // Update our preview slice.
         dispatch(setHtml(html));
-        dispatch(setAutoSavesHash(autoSaves));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
     }),
@@ -88,7 +65,7 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
+        const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -96,7 +73,7 @@ export const previewApi = createApi({
           ]),
         );
         dispatch(setHtml(html));
-        dispatch(setAutoSavesHash(autoSaves));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
         dispatch(setLayoutModel({ layout, model, updatePreview: false }));

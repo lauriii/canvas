@@ -5,26 +5,38 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\XbAssetInterface;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
+  use AutoSaveValidateTrait;
+
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   public function get(XbHttpApiEligibleConfigEntityInterface $xb_config_entity): CacheableJsonResponse {
     $auto_save = $this->autoSaveManager->getAutoSaveEntity($xb_config_entity);
     \assert($auto_save->entity === NULL || $auto_save->entity instanceof XbHttpApiEligibleConfigEntityInterface);
     return (new CacheableJsonResponse(
-      data: $auto_save->entity?->normalizeForClientSide()->values,
-      status: $auto_save->isEmpty() ? Response::HTTP_NO_CONTENT : Response::HTTP_OK,
-    ))->addCacheableDependency($auto_save);
+      data: [
+        'data' => $auto_save->entity?->normalizeForClientSide()->values,
+        'autoSaves' => $this->getAutoSaveHashes([$xb_config_entity]),
+      ],
+      status: Response::HTTP_OK,
+    ))->addCacheableDependency($auto_save)
+      // The `autoSaveStartingPoint` value in `autoSaves` is computed using the
+      // config entity.
+      ->addCacheableDependency($xb_config_entity);
+
   }
 
   public function getCss(XbAssetInterface $xb_config_entity): Response {
@@ -59,10 +71,21 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   public function patch(Request $request, XbHttpApiEligibleConfigEntityInterface $xb_config_entity): JsonResponse {
     $decoded = self::decode($request);
+    if (!\array_key_exists('data', $decoded)) {
+      throw new BadRequestHttpException('Missing data');
+    }
+    if (!\array_key_exists('autoSaves', $decoded)) {
+      throw new BadRequestHttpException('Missing autoSaves');
+    }
+    if (!\array_key_exists('clientInstanceId', $decoded)) {
+      throw new BadRequestHttpException('Missing clientInstanceId');
+    }
+    $this->validateAutoSaves([$xb_config_entity], $decoded['autoSaves'], $decoded['clientInstanceId']);
+
     $auto_save_entity = $xb_config_entity::create($xb_config_entity->toArray());
-    $auto_save_entity->updateFromClientSide($decoded);
-    $this->autoSaveManager->saveEntity($auto_save_entity);
-    return new JsonResponse(status: Response::HTTP_OK);
+    $auto_save_entity->updateFromClientSide($decoded['data']);
+    $this->autoSaveManager->saveEntity($auto_save_entity, $decoded['clientInstanceId']);
+    return new JsonResponse(data: ['autoSaves' => $this->getAutoSaveHashes([$xb_config_entity])], status: Response::HTTP_OK);
   }
 
 }

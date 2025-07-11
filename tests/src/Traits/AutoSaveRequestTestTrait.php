@@ -9,6 +9,7 @@ use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 trait AutoSaveRequestTestTrait {
 
@@ -42,6 +43,16 @@ trait AutoSaveRequestTestTrait {
     $response = $this->request($request);
     assert($response instanceof JsonResponse);
     return $response;
+  }
+
+  protected function assertRequestAutoSaveConflict(Request $request): void {
+    try {
+      $this->request($request);
+      $this->fail('Expected exception');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+    }
   }
 
 }
