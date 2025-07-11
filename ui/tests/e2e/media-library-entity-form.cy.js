@@ -84,11 +84,44 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.log(`Iteration ${ix + 1}: Adding ${step.expectedAlt} complete`);
   });
 
+  // Add a new component which should trigger opening the component inputs form
+  // in the contextual panel.
+  cy.openLibraryPanel();
+  cy.get('.primaryPanelContent').should('contain.text', 'Components');
+  cy.get('.primaryPanelContent').findByText('Hero').click();
+  cy.findByTestId('xb-contextual-panel').should('exist');
+  cy.get(
+    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+  ).within(() => {
+    cy.findAllByLabelText('Heading').should('exist');
+  });
+  const lastStep = iterations.pop();
+
+  // Switch back to entity edit form.
+  cy.findByTestId('xb-contextual-panel--page-data').click();
+  // It can take a bit for the entity form to load, so let's give it a bit
+  // longer.
+  cy.get('@entityForm')
+    .findByAltText(lastStep.expectedAlt, { timeout: 10000 })
+    .should('exist');
+  cy.get('@entityForm')
+    .findByRole('button', { name: lastStep.removeAriaLabel })
+    .should('exist');
+
+  // Switch to full screen preview.
+  cy.findByText('Preview').click();
+  cy.findByText('Exit Preview').click();
+  cy.get('@entityForm')
+    .findByAltText(lastStep.expectedAlt, { timeout: 10000 })
+    .should('exist');
+  cy.get('@entityForm')
+    .findByRole('button', { name: lastStep.removeAriaLabel })
+    .should('exist');
+
   cy.publishAllPendingChanges(title);
 
   // Reload the page and ensure the saved value persists.
   cy.loadURLandWaitForXBLoaded({ ...loadOptions, clearAutoSave: false });
-  const lastStep = iterations.pop();
   // It can take a bit for the entity form to load, so let's give it a bit
   // longer.
   cy.get('@entityForm')

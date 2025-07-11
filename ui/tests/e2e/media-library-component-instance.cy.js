@@ -103,6 +103,34 @@ const testMediaLibraryInComponentInstanceForm = (
     ).should('exist');
     cy.waitForElementInIframe(`img[alt="${step.expectedAlt}"]`);
   });
+
+  const lastStep = iterations.pop();
+
+  // Switch back to entity edit form.
+  cy.findByTestId('xb-contextual-panel--page-data').click();
+  // Then back to the component.
+  cy.findByTestId('xb-contextual-panel--settings').click();
+  // Media entity value should persist.
+  cy.get(
+    `[class*="contextualPanel"] input[aria-label="${lastStep.removeAriaLabel}"]`,
+  ).should('exist');
+  cy.get(
+    `[class*="contextualPanel"] article .js-media-library-item-preview img[alt="${lastStep.expectedAlt}"]`,
+  ).should('exist');
+  cy.waitForElementInIframe(`img[alt="${lastStep.expectedAlt}"]`);
+
+  // Switch to full screen preview.
+  cy.findByText('Preview').click();
+  cy.findByText('Exit Preview').click();
+  cy.clickComponentInPreview('Image');
+  // Media entity value should persist.
+  cy.get(
+    `[class*="contextualPanel"] input[aria-label="${lastStep.removeAriaLabel}"]`,
+  ).should('exist');
+  cy.get(
+    `[class*="contextualPanel"] article .js-media-library-item-preview img[alt="${lastStep.expectedAlt}"]`,
+  ).should('exist');
+  cy.waitForElementInIframe(`img[alt="${lastStep.expectedAlt}"]`);
 };
 
 describe('Media Library component instance', () => {

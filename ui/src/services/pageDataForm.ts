@@ -7,6 +7,7 @@ import addAjaxPageState from '@/services/addAjaxPageState';
 export const pageDataFormApi = createApi({
   reducerPath: 'pageDataFormApi',
   baseQuery,
+  tagTypes: ['PageDataForm'],
   endpoints: (builder) => ({
     getPageDataForm: builder.query<string, void>({
       query: () => {
@@ -15,6 +16,7 @@ export const pageDataFormApi = createApi({
         };
       },
       transformResponse: processResponseAssets(),
+      providesTags: [{ type: 'PageDataForm', id: 'FORM' }],
     }),
   }),
 });

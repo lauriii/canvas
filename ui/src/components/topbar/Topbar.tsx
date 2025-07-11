@@ -11,6 +11,8 @@ import PageInfo from '../pageInfo/PageInfo';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
 import AIToggleButton from '@/components/aiExtension/AiToggleButton';
 import { getDrupalSettings } from '@/utils/drupal-globals';
+import { pageDataFormApi } from '@/services/pageDataForm';
+import { useAppDispatch } from '@/app/hooks';
 
 const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
 
@@ -18,6 +20,7 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.includes('/preview');
+  const dispatch = useAppDispatch();
 
   let hasAiExtensionAvailable = false;
 
@@ -28,6 +31,14 @@ const Topbar = () => {
 
   function handleChangeModeClick() {
     if (isPreview) {
+      // Fetch a new version of the page data form as it has been
+      // unmounted and the cached versions won't reflect any AJAX updates
+      // to the form.
+      dispatch(
+        pageDataFormApi.util.invalidateTags([
+          { type: 'PageDataForm', id: 'FORM' },
+        ]),
+      );
       navigate(`/editor`);
     } else {
       navigate(`/preview/full`);

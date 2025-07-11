@@ -13,13 +13,13 @@ import {
   Flex,
   Popover,
 } from '@radix-ui/themes';
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import useDebounce from '@/hooks/useDebounce';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { Link, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import Navigation from '@/components/navigation/Navigation';
@@ -42,6 +42,7 @@ import {
 } from '@/features/configuration/configurationSlice';
 import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
+import { pageDataFormApi } from '@/services/pageDataForm';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -63,6 +64,7 @@ const PageInfo = () => {
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
   const isCodeEditor = codeComponentName !== '';
   const layout = useAppSelector(selectLayout);
+  const dispatch = useAppDispatch();
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
   )?.name;
@@ -216,18 +218,28 @@ const PageInfo = () => {
           </Popover.Content>
         </Popover.Root>
       ) : (
-        <Link
+        <NavLink
           to={{
             pathname: '/editor',
           }}
           aria-label="Back to Content region"
+          onClick={() => {
+            // Fetch a new version of the page data form as it has been
+            // unmounted and the cached versions won't reflect any AJAX updates
+            // to the form.
+            dispatch(
+              pageDataFormApi.util.invalidateTags([
+                { type: 'PageDataForm', id: 'FORM' },
+              ]),
+            );
+          }}
         >
           <Badge color={isCodeEditor ? 'sky' : 'grass'} size="2">
             <ChevronLeftIcon />
             {isCodeEditor ? <CodeIcon /> : <CubeIcon />}
             {isCodeEditor ? codeComponentName : focusedRegionName}
           </Badge>
-        </Link>
+        </NavLink>
       )}
 
       <PageStatus />

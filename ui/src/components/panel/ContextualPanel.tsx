@@ -149,7 +149,11 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                     <Outlet />
                   </ErrorBoundary>
                 </Tabs.Content>
-                <Tabs.Content value={'pageData'}>
+                <Tabs.Content
+                  value={'pageData'}
+                  forceMount={true}
+                  hidden={activePanel !== 'pageData'}
+                >
                   <PageDataForm />
                 </Tabs.Content>
               </Box>
