@@ -477,7 +477,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $this->assertValidationErrors([
       'status' => [
         'The component \'<em class="placeholder">block.node_syndicate_block</em>\' cannot be enabled because it does not meet the requirements of Experience Builder.',
-        'Block plugin settings must be fully validatable',
+        'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425',
       ],
     ]);
   }

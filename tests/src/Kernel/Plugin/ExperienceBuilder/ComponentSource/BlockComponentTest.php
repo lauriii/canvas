@@ -70,7 +70,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
 
     self::assertSame([
       'block.xb_test_block_input_unvalidatable' => [
-        'Block plugin settings must be fully validatable',
+        'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425',
       ],
       'block.xb_test_block_requires_contexts' => [
         'Block plugins that require context values are not supported.',

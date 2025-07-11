@@ -430,7 +430,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
 
     $reasons = [];
     if (!empty($settings) && !$fullyValidatable) {
-      $reasons[] = 'Block plugin settings must be fully validatable';
+      $reasons[] = 'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425';
     }
 
     $plugin_definition = $block->getPluginDefinition();
