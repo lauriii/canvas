@@ -60,7 +60,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   public function testApiAutoSaveControllerGet(): void {
     $this->installConfig(['test_user_config']);
-    $permissions = [Page::EDIT_PERMISSION];
+    $permissions = [
+      Page::EDIT_PERMISSION,
+      // We need access to segments even for seeing there are changes.
+      Segment::ADMIN_PERMISSION,
+    ];
 
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);

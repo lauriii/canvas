@@ -176,7 +176,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         'label' => $entity->label(),
       ],
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], ['config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], [...$entity->getCacheTags(), 'config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', 'user:2'], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
     \assert(\is_array($body));
     self::assertArrayHasKey($id, $body);

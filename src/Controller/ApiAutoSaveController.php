@@ -134,9 +134,23 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * Gets the auto-saved changes.
    */
   public function get(): CacheableJsonResponse {
-    $all = $this->autoSaveManager->getAllAutoSaveList();
-    $userIds = \array_column($all, 'owner');
     $cache = new CacheableMetadata();
+
+    // Filter those the user has access to.
+    $filtered = \array_filter($this->autoSaveManager->getAllAutoSaveList(TRUE), function (array $item) use ($cache) {
+      assert($item['entity'] instanceof EntityInterface);
+      $access = $item['entity']->access('view label', return_as_object: TRUE);
+      // @todo This will result in the cache tag for this entity being returned
+      //   in the response even though the user does not have access to view the
+      //   entity. A less privileged user could still be able to determine that
+      //   the entity exists and has pending changes. Determine if we should
+      //   prevent this in https://drupal.org/i/3535355.
+      $cache->addCacheableDependency($item['entity']);
+      $cache->addCacheableDependency($access);
+      return $access->isAllowed();
+    });
+
+    $userIds = \array_column($filtered, 'owner');
     /** @var \Drupal\user\UserInterface[] $users */
     $users = $this->entityTypeManager->getStorage('user')->loadMultiple($userIds);
     foreach ($users as $uid => $user) {
@@ -154,7 +168,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // data sent to the client and back to the server. Also, 'client_id' is only
     // used to determine if the client has the latest changes when editing an
     // entity in Experience Builder and not needed for the publishing process.
-    $all = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'client_id', 'entity'])), $all);
+    $filtered = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'client_id', 'entity'])), $filtered);
 
     $withUserDetails = \array_map(fn(array $item) => [
       // @phpstan-ignore-next-line
@@ -169,7 +183,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         'uri' => NULL,
         'id' => $item['owner'],
       ],
-    ] + $item, $all);
+    ] + $item, $filtered);
     return (new CacheableJsonResponse($withUserDetails))->addCacheableDependency($cache->addCacheTags([AutoSaveManager::CACHE_TAG]));
   }
 

@@ -76,7 +76,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   public function testApiAutoSaveControllerGet(): void {
     $this->installConfig(['test_user_config']);
-    $permissions = [Page::EDIT_PERMISSION];
+    $permissions = [
+      Page::EDIT_PERMISSION,
+      // We need access to page regions even for seeing there are changes.
+      PageRegion::ADMIN_PERMISSION,
+    ];
     $anonAccountContent = Node::create([
       'type' => 'article',
       'title' => 'Anon, empty',
@@ -287,6 +291,119 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
+  public function testGetOmitsNotAccessibleEntities(): void {
+    $permissions = [
+      'create article content',
+      Page::EDIT_PERMISSION,
+    ];
+    $article = Node::create([
+      'type' => 'article',
+      'title' => 'Anon, empty',
+    ]);
+    $article->save();
+    \assert($article instanceof NodeInterface);
+    // Trigger a new hash.
+    $article->setRevisionUserId(2);
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->saveEntity($article);
+
+    $page = Page::load(2);
+    \assert($page instanceof Page);
+    // Trigger a new hash.
+    $page->set('title', 'New title');
+    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $autoSave->saveEntity($page);
+
+    $code_component = JavaScriptComponent::create(
+      [
+        'machineName' => 'test_code',
+        'name' => 'Test',
+        'status' => TRUE,
+        'props' => [
+          'text' => [
+            'type' => 'string',
+            'title' => 'Title',
+            'examples' => ['Press', 'Submit now'],
+          ],
+        ],
+        'slots' => [
+          'test-slot' => [
+            'title' => 'test',
+            'description' => 'Title',
+            'examples' => [
+              'Test 1',
+              'Test 2',
+            ],
+          ],
+        ],
+        'js' => [
+          'original' => 'console.log("Test")',
+          'compiled' => 'console.log("Test")',
+        ],
+        'css' => [
+          'original' => '.test { display: none; }',
+          'compiled' => '.test{display:none;}',
+        ],
+      ]
+    );
+    $this->assertSame(SAVED_NEW, $code_component->save());
+    $code_component->set('props', $code_component->get('props') + ['yeah' => 'this is not valid, but not validated either']);
+    $autoSave->saveEntity($code_component);
+
+    // Save a draft of the page region.
+    $region = PageRegion::createFromBlockLayout('stark')['stark.highlighted']->enable();
+    $region->save();
+    $regionData = [
+      'layout' => [
+        [
+          "nodeType" => "component",
+          "slots" => [],
+          "type" => "block.page_title_block@62af221149ae4887",
+          "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
+        ],
+      ],
+      'model' => [
+        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
+          "label" => "Page title",
+          "label_display" => "0",
+          "provider" => "core",
+        ],
+      ],
+    ];
+    $region = $region->forAutoSaveData($regionData, validate: TRUE);
+    $autoSave->saveEntity($region);
+
+    $user = $this->createUser($permissions);
+    assert($user instanceof AccountInterface);
+    $this->setCurrentUser($user);
+
+    $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
+    $response = $this->request($request);
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame([
+      'config:experience_builder.js_component.test_code',
+      'config:experience_builder.page_region.stark.highlighted',
+      'user:0',
+      'config:user.settings',
+      AutoSaveManager::CACHE_TAG,
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
+    self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
+    $content = \json_decode($response->getContent() ?: '{}', TRUE);
+    $anonContentIdentifier = \sprintf('node:%d:en', $article->id());
+    // Assert we get the keys of auto-save data that we can view (even if maybe
+    // we aren't allowed to update).
+    // We can view code components and contents, but not the page region entity.
+    self::assertEquals([
+      'js_component:test_code',
+      $anonContentIdentifier,
+      'xb_page:2:en',
+    ], \array_keys($content));
+  }
+
   public static function providerCases(): iterable {
     yield 'unauthorized, without global' => [FALSE, FALSE, "The 'publish auto-saves' permission is required."];
     yield 'authorized, without global' => [TRUE, FALSE, NULL];
@@ -308,7 +425,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $permissions = [
       PageRegion::ADMIN_PERMISSION,
-      'edit any article content',
+      // @todo 'bypass node access' is a very powerful permission and could have
+      //   side effects. Determine a way to give the user just the access they
+      //   need in https://drupal.org/i/3535354.
+      'bypass node access',
       Page::EDIT_PERMISSION,
     ];
     if ($authorized) {
@@ -474,11 +594,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
     // Grant that permission.
     $this->setUpCurrentUser(permissions: [
-      PageRegion::ADMIN_PERMISSION,
-      'edit any article content',
+      ...$permissions,
       JavaScriptComponent::ADMIN_PERMISSION,
-      Page::EDIT_PERMISSION,
-      AutoSaveManager::PUBLISH_PERMISSION,
     ]);
 
     $response = $this->makePublishAllRequest();
