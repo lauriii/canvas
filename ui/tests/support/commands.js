@@ -1164,11 +1164,16 @@ Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
   cy.get(`[data-region-name="${regionName}"]`).click();
 });
 Cypress.Commands.add('publishAllPendingChanges', (titles) => {
+  let titlesToMatch = titles;
+  if (!Array.isArray(titles)) {
+    titlesToMatch = [titles];
+  }
+  const changeCount = titlesToMatch.length;
   // Publish changes and make sure image persists.
   // Wait for any pending changes to refresh.
   cy.findByText(/Review \d+ change/, { timeout: 20000 }).should('exist');
   cy.get('button', { timeout: 250_000 })
-    .contains(/Review \d+ change/, { timeout: 250_000 })
+    .contains(`Review ${changeCount} change`, { timeout: 250_000 })
     .as('review');
   // We break this up to allow for the pending changes refresh which can disable
   // the button whilst it is loading.
@@ -1184,28 +1189,19 @@ Cypress.Commands.add('publishAllPendingChanges', (titles) => {
   // inside a should block.
   cy.get('@publishReview', { timeout: 15000 }).should(async (element) => {
     const container = element[0];
-    let titlesToMatch = titles;
-    if (!Array.isArray(titles)) {
-      titlesToMatch = [titles];
-    }
     const matchers = titlesToMatch.map((title) => {
       return async () => {
         const entity = await queries.findByText(container, title);
+        // We use the existence of the entity to confirm
         expect(entity).to.exist;
       };
     });
     await Promise.all(matchers);
-    const button = await queries.findByText(container, 'Publish all changes');
-    expect(button).to.exist;
-    Cypress.$(button).click();
-    const success = await queries.findByText(
-      container,
-      'All changes published!',
-    );
-    expect(success).to.exist;
-    const errors = await queries.queryByText(container, 'Errors');
-    expect(errors).not.to.exist;
   });
+  cy.findByTestId('xb-publish-review-select-all').click();
+  cy.findByText(`Publish ${changeCount} selected`).click();
+  cy.findByText('All changes published!').should('exist');
+  cy.findByText('Errors').should('not.exist');
 });
 
 Cypress.Commands.add('waitForWindowProcess', (conditionFn, options = {}) => {

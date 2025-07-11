@@ -1,0 +1,28 @@
+.changeRow {
+  padding-bottom: var(--space-1);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-1);
+}
+
+.changeRowRight {
+  color: var(--gray-10);
+}
+
+.avatar {
+  border: 1px solid var(--sky-11);
+}
+
+.changeRowRight button {
+  all: unset;
+}
+
+.changeIcon {
+  color: var(--purple-9);
+  width: 12px;
+  height: 12px;
+}
+
+.time {
+  color: var(--blue-9);
+}

@@ -1,64 +1,22 @@
-.content {
-   margin-top: var(--space-3);
-}
-
-.headingTitle {
-  font-size: var(--font-size-2);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-2);
-}
-
 .close {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 25px;
-  height: 25px;
   cursor: pointer;
 }
 
-.changeList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  a, .time {
+    color: var(--gray-10);
+  }
 }
 
-.changeRow {
-  padding-bottom: var(--space-4);
-  font-size: var(--font-size-1);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--line-height-1);
+.buttonBlue {
+  color: white !important;
+  background-color: var(--blue-9) !important;
 }
 
-.cmsIcon{
-  width: 15px;
-  height: 15px;
-  color: var(--gray-10);
-}
-
-.cubeIcon{
-  color: var(--grass-8);
-}
-
-.fileIcon{
-  color: var(--gray-10);
-}
-
-.codeIcon{
+.selectAll {
   color: var(--blue-9);
-}
-
-.changeRowRight {
-  color: var(--gray-10);
-}
-
-.avatar {
-  border: 1.5px solid var(--sky-11);
-}
-
-.changeRowRight button {
-  all: unset;
 }
 
 .loading {

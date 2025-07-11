@@ -863,10 +863,16 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node->setTitle('Updated Title');
     $autoSave->saveEntity($node);
 
+    $global = AssetLibrary::load('global');
+    \assert($global instanceof AssetLibrary);
+    $global->set('label', $this->randomMachineName());
+    $autoSave->saveEntity($global);
+
     // Verify auto-save data exists.
     $auto_save_data = $this->getAutoSaveStatesFromServer();
-    self::assertCount(1, $auto_save_data);
+    self::assertCount(2, $auto_save_data);
     self::assertArrayHasKey("node:{$node->id()}:en", $auto_save_data);
+    self::assertArrayHasKey(\sprintf('%s:global', AssetLibrary::ENTITY_TYPE_ID), $auto_save_data);
 
     $account = $this->createUser([]);
     \assert($account instanceof AccountInterface);
@@ -926,6 +932,20 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Valid DELETE request.
     $token_generator = $this->container->get(CsrfTokenGenerator::class);
     $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
+    $request->cookies->set($session_configuration['name'], 'ABCD');
+    $request->headers->set('X-CSRF-Token', $token_generator->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY));
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    self::assertSame(
+      ['message' => 'Auto-save data deleted successfully.'],
+      json_decode((string) $response->getContent(), TRUE)
+    );
+
+    $asset_library_url = Url::fromRoute('experience_builder.api.auto-save.delete', [
+      'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
+      'entity' => $global->id(),
+    ]);
+    $request = Request::create($asset_library_url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
     $request->cookies->set($session_configuration['name'], 'ABCD');
     $request->headers->set('X-CSRF-Token', $token_generator->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY));
     $response = $this->request($request);

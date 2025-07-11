@@ -22,6 +22,7 @@ diaclone
 drupalcode
 drupaldev
 drupalsettings
+druplicon
 endapply
 entityviewdisplay
 extralight
@@ -37,6 +38,7 @@ inwidget
 jangregor
 JSONified
 jsxs
+langcode
 leftbar
 lightningcss
 Linkit

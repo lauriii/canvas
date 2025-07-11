@@ -181,7 +181,19 @@ paths:
     description:  Interact with an auto-save entry for a particular entity
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
-      - $ref: '#/components/parameters/entityId'
+      - name: entityId
+        in: path
+        required: true
+        description: The entity ID
+        schema:
+          oneOf:
+            - type: string
+            - type: integer
+        examples:
+          contentEntity:
+            value: 42
+          configEntity:
+            value: my-super-component
     delete:
       description: Deletes an auto-save entry
       responses:

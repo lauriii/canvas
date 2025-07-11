@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { isEmpty } from 'lodash';
-import type { PendingChange } from '@/services/pendingChangesApi';
+import type { PendingChanges } from '@/services/pendingChangesApi';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { CONFLICT_CODE } from '@/services/pendingChangesApi';
 import {
   useGetAllPendingChangesQuery,
   usePublishAllPendingChangesMutation,
+  useDiscardPendingChangeMutation,
 } from '@/services/pendingChangesApi';
-import PublishReview, { IconType } from '@/components/review/PublishReview';
+import type { UnpublishedChange } from '@/types/Review';
+import PublishReview from '@/components/review/PublishReview';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectPreviousPendingChanges,
@@ -42,6 +43,8 @@ const UnpublishedChanges = () => {
   const errorResponse = useAppSelector(selectErrors);
   const [publishAllChanges, { isLoading: isPublishing }] =
     usePublishAllPendingChangesMutation();
+  const [discardChange, { isLoading: isDiscarding }] =
+    useDiscardPendingChangeMutation();
   const [pollingInterval, setPollingInterval] =
     useState<number>(REFETCH_INTERVAL_MS);
   const {
@@ -66,6 +69,17 @@ const UnpublishedChanges = () => {
       showBoundary(error);
     }
   }, [error, showBoundary]);
+
+  const unpublishedChanges: UnpublishedChange[] = useMemo(
+    () =>
+      Object.entries(changes || {})
+        .map(([pointer, change]) => ({
+          ...change,
+          pointer,
+        }))
+        .sort((a, b) => b.updated - a.updated),
+    [changes],
+  );
 
   const manualRefetch = useCallback(() => {
     // only refetch the list of pending changes if this entity is not already in the list.
@@ -93,14 +107,30 @@ const UnpublishedChanges = () => {
     }
   };
 
-  const onPublishClick = async () => {
-    if (changes) {
-      const isCurrentChanged = findInChanges(changes, entityId, entityType);
-      const changedCodeComponentIds = Object.values(changes)
+  const onPublishClick = async (selectedChanges: UnpublishedChange[]) => {
+    if (selectedChanges?.length) {
+      const changesToPublish = selectedChanges.reduce((acc, change) => {
+        acc[change.pointer] = {
+          entity_type: change.entity_type,
+          entity_id: change.entity_id,
+          data_hash: change.data_hash,
+          langcode: change.langcode,
+          owner: change.owner,
+          label: change.label,
+          updated: change.updated,
+        };
+        return acc;
+      }, {} as PendingChanges);
+      const isCurrentChanged = findInChanges(
+        changesToPublish,
+        entityId,
+        entityType,
+      );
+      const changedCodeComponentIds = Object.values(changesToPublish)
         .filter((change) => change.entity_type === 'js_component')
         .map((change) => change.entity_id);
 
-      await publishAllChanges(changes);
+      await publishAllChanges(changesToPublish);
 
       if (isCurrentChanged) {
         // Update the isPublished and isNew status.
@@ -173,20 +203,17 @@ const UnpublishedChanges = () => {
     }
   };
 
-  const getIconType = (entityType: string) => {
-    if (entityType === 'page_region') {
-      return IconType.CUBE;
-    }
-    if (entityType === 'xb_page') {
-      return IconType.FILE;
-    }
-    if (entityType === 'js_component') {
-      return IconType.JS_COMPONENT;
-    }
-    if (entityType === 'xb_asset_library') {
-      return IconType.ASSET_LIBRARY;
-    }
-    return IconType.CMS;
+  const onDiscardClick = async (selectedChange: UnpublishedChange) => {
+    if (!selectedChange) return;
+
+    await discardChange(selectedChange);
+
+    // The discardPendingChange mutation will automatically reload the page
+    // when it is successful, so there is nothing more to do here until a better
+    // solution is implemented.
+
+    // After discarding, refresh the list to ensure UI is up to date
+    refetch();
   };
 
   if (!isFetching && conflicts && conflicts.length) {
@@ -227,27 +254,16 @@ const UnpublishedChanges = () => {
     }, 100);
   }
 
-  const pendingChanges = !isEmpty(changes)
-    ? (Object.values(changes) as PendingChange[])
-    : [];
-
-  const changesWithIcon = pendingChanges
-    .map((change) => {
-      return {
-        ...change,
-        icon: getIconType(change.entity_type),
-      };
-    })
-    .sort((a, b) => b.updated - a.updated);
-
   return (
     <PublishReview
       isFetching={isFetching}
-      changes={changesWithIcon}
+      changes={unpublishedChanges}
       errors={errorResponse}
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
+      onDiscardClick={onDiscardClick}
       isPublishing={isPublishing}
+      isDiscarding={isDiscarding}
     />
   );
 };

@@ -68,7 +68,8 @@ test.describe('XB UI Permissions', () => {
     await expect(page.getByLabel('Sub-heading')).toBeAttached();
     await page.getByLabel('Sub-heading').fill('New Heading');
     await page.getByText('Review 1 change').click();
-    await expect(page.getByText('Publish all changes')).toBeAttached();
+    await page.getByTestId('xb-publish-review-select-all').click();
+    await expect(page.getByText('Publish 1 selected')).toBeAttached();
   });
   test('User with no XB permissions can load XB UI', async ({
     page,
@@ -160,8 +161,9 @@ test.describe('XB UI Permissions', () => {
 
     // A change to the page was made in the previous test, so it should be visible.
     await page.getByText('Review 1 change').click();
+    await page.getByTestId('xb-publish-review-select-all').click();
     // but the user should not be able to publish changes.
-    await expect(page.getByText('Publish all changes')).not.toBeAttached();
+    await expect(page.getByText('Publish 1 selected')).not.toBeAttached();
 
     // User without "administer components" should not be able to access the code editor.
     await page.goto('/xb/node/1/code-editor/code/foobar');

@@ -3,128 +3,140 @@ import {
   Button,
   Flex,
   Text,
-  Avatar,
-  Tooltip,
-  Callout,
   Heading,
   ScrollArea,
+  Checkbox,
+  Spinner,
 } from '@radix-ui/themes';
-import CmsIcon from '@assets/icons/cms.svg?react';
-import {
-  Cross2Icon,
-  CubeIcon,
-  FaceIcon,
-  FileIcon,
-  CodeIcon,
-} from '@radix-ui/react-icons';
-import { useState } from 'react';
+import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { useMemo, useState, useEffect } from 'react';
 import { Popover } from '@radix-ui/themes';
-import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
-import { kebabCase } from 'lodash';
-import Panel from '@/components/Panel';
 
 import styles from './PublishReview.module.css';
+import type { ErrorResponse } from '@/services/pendingChangesApi';
 import type {
-  ErrorResponse,
-  PendingChange,
-} from '@/services/pendingChangesApi';
+  UnpublishedChange,
+  UnpublishedChangeGroups,
+} from '@/types/Review';
 import ReviewErrors from '@/components/review/ReviewErrors';
-import clsx from 'clsx';
 import PermissionCheck from '@/components/PermissionCheck';
+import { Divider } from '@/features/code-editor/component-data/FormElement';
+import ChangeList from './changes/ChangeList';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
-export const DEFAULT_BUTTON_TEXT = 'Publish all changes';
-
-enum FallbackColor {
-  SKY = 'sky',
-  MINT = 'mint',
-  LIME = 'lime',
-  YELLOW = 'yellow',
-  AMBER = 'amber',
-  ORANGE = 'orange',
-  BRONZE = 'bronze',
-  JADE = 'jade',
-  CYAN = 'cyan',
-  INDIGO = 'indigo',
-  IRIS = 'iris',
-  VIOLET = 'violet',
-  PINK = 'pink',
-  RUBY = 'ruby',
-}
-
-export enum IconType {
-  CMS = 'cms',
-  JS_COMPONENT = 'js_component',
-  ASSET_LIBRARY = 'xb_asset_library',
-  CUBE = 'cube',
-  FILE = 'file',
-}
-
-type UnpublishedChange = PendingChange & {
-  icon: IconType;
-};
-
-export type UnpublishedChanges = UnpublishedChange[];
 
 interface PublishReviewProps {
   title?: string;
-  changes: UnpublishedChanges;
+  changes: UnpublishedChange[];
   errors?: ErrorResponse | undefined;
-  buttonText?: string;
-  onPublishClick: () => void;
+  onPublishClick: (selectedChanges: UnpublishedChange[]) => void;
+  onDiscardClick: (selectedChange: UnpublishedChange) => void;
+  onViewClick?: (change: UnpublishedChange) => void;
   onOpenChangeCallback: (open: boolean) => void;
   isPublishing: boolean;
+  isDiscarding: boolean;
   isFetching: boolean;
-}
-
-// @todo https://www.drupal.org/i/3501449 - this colour randomizer should be replaced with a proper solution
-const colors = Object.values(FallbackColor);
-const usernameColorMap: Map<number, FallbackColor> = new Map();
-// Initialize colorIndex with a random starting point
-let colorIndex = Math.floor(Math.random() * colors.length);
-
-/**
- * Function to get a consistent color for a given username
- * @param userId
- */
-function getAvatarInitialColor(userId: number): FallbackColor {
-  // Return the cached color if it exists
-  if (usernameColorMap.has(userId)) {
-    return usernameColorMap.get(userId)!;
-  }
-
-  const color = colors[colorIndex];
-  // Store the color in the map for future reference
-  usernameColorMap.set(userId, color);
-  // Increment the color index, wrapping around if necessary
-  colorIndex = (colorIndex + 1) % colors.length;
-
-  return color;
 }
 
 const PublishReview: React.FC<PublishReviewProps> = ({
   title = DEFAULT_TITLE,
   changes,
   errors,
-  buttonText = DEFAULT_BUTTON_TEXT,
   onPublishClick,
+  onDiscardClick,
+  onViewClick,
   onOpenChangeCallback,
-  isPublishing,
-  isFetching,
+  isPublishing = false,
+  isDiscarding = false,
+  isFetching = false,
 }) => {
+  // State to manage the open/close state of the popover
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  function triggerButtonText() {
-    if (!changes || changes.length === 0) {
-      return 'No changes';
+  // Single source to determine if something is happening
+  const isBusy = isPublishing || isDiscarding || isFetching;
+
+  // State to manage selected changes
+  const [selectedChanges, setSelectedChanges] = useState<UnpublishedChange[]>(
+    [],
+  );
+
+  // Memoize the selected changes to avoid unnecessary re-renders
+  const allSelected = useMemo(() => {
+    if (!changes?.length) return false;
+    return selectedChanges?.length === changes?.length ? true : 'indeterminate';
+  }, [changes, selectedChanges]);
+
+  // Used to display the `Published` state, which resets on new selections
+  const [hasPublished, setHasPublished] = useState<boolean>(false);
+  useEffect(() => {
+    if (!isPublishing) {
+      setHasPublished(true);
     }
-    if (changes.length === 1) {
-      return 'Review 1 change';
+  }, [isPublishing]);
+  useEffect(() => {
+    if (selectedChanges.length > 0) {
+      setHasPublished(false);
     }
+  }, [selectedChanges.length]);
+
+  // The trigger button text changes based on the pending changes
+  const triggerButtonText = useMemo(() => {
+    if (isFetching) return 'Please wait';
+    if (!changes?.length) return 'No changes';
+    if (changes.length === 1) return 'Review 1 change';
     return `Review ${changes.length} changes`;
-  }
+  }, [isFetching, changes]);
+
+  // The button caption changes based on the state of the review
+  const buttonText = useMemo(() => {
+    if (isPublishing) return 'Publishing';
+    if (isBusy) return 'Please wait';
+    if (hasPublished) return 'Published';
+    if (!changes?.length) return 'No changes available';
+    if (!selectedChanges?.length) return 'No items selected';
+    return `Publish ${selectedChanges.length} selected`;
+  }, [isPublishing, isBusy, hasPublished, changes, selectedChanges]);
+
+  const groups: UnpublishedChangeGroups = useMemo(() => {
+    if (!changes?.length) return {};
+    return changes.reduce((acc, change) => {
+      const key = change.entity_type ?? 'unknown';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(change);
+      return acc;
+    }, {} as UnpublishedChangeGroups);
+  }, [changes]);
+
+  // Remove selections if all are selected, otherwise select all
+  const handleSelectAll = () => {
+    if (isBusy) return;
+    if (allSelected === true) {
+      setSelectedChanges([]);
+    } else {
+      setSelectedChanges(changes);
+    }
+  };
+
+  // Publish the selected changes
+  const handlePublishClick = () => {
+    if (onPublishClick && selectedChanges?.length) {
+      onPublishClick(selectedChanges);
+      setSelectedChanges([]);
+    }
+  };
+
+  const handleDiscardClick = (change: UnpublishedChange) => {
+    setSelectedChanges(
+      selectedChanges.filter((c) => c.pointer !== change.pointer),
+    );
+    onDiscardClick(change);
+  };
 
   const onOpenChangeHandler = (open: boolean): void => {
+    setHasPublished(false);
     setIsOpen(open);
     onOpenChangeCallback(open);
   };
@@ -134,22 +146,23 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       <Popover.Trigger>
         <Button
           variant="solid"
-          disabled={!changes || !changes.length}
+          disabled={!changes?.length || isFetching}
           data-testid="xb-publish-review"
         >
-          {triggerButtonText()}
+          {triggerButtonText}
+          <Spinner loading={isFetching} />
         </Button>
       </Popover.Trigger>
       <Popover.Content
         asChild
         data-testid="xb-publish-reviews-content"
         width="100vw"
-        maxWidth="400px"
+        maxWidth="360px"
       >
-        <Panel className={clsx(styles.content, 'xb-app')}>
-          <Flex pb="2" align="center" justify="between" width="100%">
+        <Box p="0" m="0">
+          <Flex p="4" align="center" justify="between" width="100%">
             <Box>
-              <Heading as="h3" size="2" className={styles.headingTitle}>
+              <Heading as="h3" size="3" weight="medium">
                 {title}
               </Heading>
             </Box>
@@ -159,190 +172,76 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               </Popover.Close>
             </Box>
           </Flex>
-          <Box mr="-4">
+          <Divider />
+          <Box
+            p="4"
+            className={isBusy || !changes?.length ? styles.disabled : ''}
+          >
+            <Text as="label" size="1" className={styles.selectAll}>
+              <Flex align="center" gap="2">
+                <Checkbox
+                  id="select-all-changes"
+                  disabled={isBusy}
+                  checked={allSelected === true}
+                  onCheckedChange={handleSelectAll}
+                  size="1"
+                  aria-label="Select all changes"
+                  data-testid="xb-publish-review-select-all"
+                />
+                Select All
+              </Flex>
+            </Text>
+          </Box>
+          <Divider />
+          <Box p="4" className={isBusy ? styles.disabled : ''}>
+            <Text size="1">
+              {changes.length
+                ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
+                : 'All changes published!'}
+            </Text>
             <ScrollArea
               style={{ maxHeight: '380px', width: '100%' }}
               type="scroll"
             >
-              <Box pr="4" pt="2">
-                {(!changes || changes.length === 0) && (
-                  <Callout.Root color="green">
-                    <Callout.Icon>
-                      <FaceIcon />
-                    </Callout.Icon>
-                    <Callout.Text>All changes published!</Callout.Text>
-                  </Callout.Root>
-                )}
+              <Box pt="4">
                 {changes?.length > 0 && (
                   <>
-                    <ChangeList changes={changes} />
+                    <ChangeList
+                      groups={groups}
+                      isBusy={isBusy}
+                      selectedChanges={selectedChanges}
+                      setSelectedChanges={setSelectedChanges}
+                      onDiscardClick={handleDiscardClick}
+                      onViewClick={onViewClick}
+                    />
                     <ReviewErrors errorState={errors} />
                   </>
                 )}
               </Box>
             </ScrollArea>
           </Box>
+          <Divider />
           <PermissionCheck hasPermission="publishChanges">
-            <Flex justify="end" align="center" width="100%">
-              <Box mt="3">
-                <Button
-                  disabled={
-                    !onPublishClick ||
-                    isPublishing ||
-                    isFetching ||
-                    !changes ||
-                    !changes.length
-                  }
-                  variant="solid"
-                  onClick={onPublishClick}
-                >
-                  {isPublishing || isFetching ? (
-                    <span className={styles.loading}>
-                      {isPublishing ? 'Publishing' : 'Please wait'}
-                    </span>
-                  ) : (
-                    buttonText
-                  )}
-                </Button>
-              </Box>
+            <Flex p="4" justify="end" align="center" gap="2" width="100%">
+              <Button
+                className={
+                  isPublishing || hasPublished ? styles.buttonBlue : ''
+                }
+                disabled={!onPublishClick || isBusy || !selectedChanges?.length}
+                size="1"
+                variant="solid"
+                onClick={handlePublishClick}
+              >
+                {buttonText}
+                <Spinner loading={isPublishing}>
+                  {(isPublishing || hasPublished) && <CheckIcon />}
+                </Spinner>
+              </Button>
             </Flex>
           </PermissionCheck>
-        </Panel>
+        </Box>
       </Popover.Content>
     </Popover.Root>
-  );
-};
-
-const ChangeList = (props: { changes: UnpublishedChanges }) => {
-  const { changes } = props;
-
-  if (!changes?.length) return null;
-
-  return (
-    <ul className={styles.changeList} data-testid="pending-changes-list">
-      {changes.map((change: UnpublishedChange, index: number) => (
-        <ChangeRow
-          key={`${kebabCase(change.label + change.updated)}`}
-          change={change}
-          index={index}
-        />
-      ))}
-    </ul>
-  );
-};
-
-export const ChangeRow = (props: {
-  change: UnpublishedChange;
-  index: number;
-}) => {
-  const { change } = props;
-  const initial = change.owner.name.trim().charAt(0).toUpperCase();
-  const avatarColor = getAvatarInitialColor(change.owner.id);
-  const date = new Date(change.updated * 1000);
-  const color = change.hasConflict ? 'red' : undefined;
-  const weight = change.hasConflict ? 'bold' : 'regular';
-  return (
-    <li className={styles.changeRow} data-testid="pending-change-row">
-      <Flex as="div" direction="row" align="center" justify="between" gap="4">
-        <Flex as="div" direction="row" align="center" gap="2">
-          <ChangeIcon icon={change.icon} />
-          <Text color={color} weight={weight}>
-            {change.label}
-          </Text>
-        </Flex>
-        <Flex
-          as="div"
-          direction="row"
-          align="center"
-          gap="2"
-          className={styles.changeRowRight}
-        >
-          <Tooltip content={date.toLocaleString()}>
-            <Text>{getTimeAgo(change.updated)}</Text>
-          </Tooltip>
-          <Tooltip content={`By ${change.owner.name}`}>
-            <Box>
-              <Avatar
-                highContrast
-                size="1"
-                fallback={initial}
-                className={styles.avatar}
-                {...(change.owner.avatar
-                  ? { src: change.owner.avatar }
-                  : {
-                      style: {
-                        borderColor: `var(--${avatarColor}-11)`,
-                      },
-                      color: avatarColor,
-                    })}
-              />
-            </Box>
-          </Tooltip>
-        </Flex>
-      </Flex>
-    </li>
-  );
-};
-
-const ChangeIcon = (props: { icon: IconType }) => {
-  const { icon } = props;
-  if (icon === IconType.CMS) {
-    return <CmsIcon className={styles.cmsIcon} />;
-  }
-  if (icon === IconType.JS_COMPONENT) {
-    return <CodeIcon className={styles.codeIcon} />;
-  }
-  if (icon === IconType.ASSET_LIBRARY) {
-    return <CodeIcon className={styles.codeIcon} />;
-  }
-  if (icon === IconType.CUBE) {
-    return <CubeIcon className={styles.cubeIcon} />;
-  }
-  if (icon === IconType.FILE) {
-    return <FileIcon className={styles.fileIcon} />;
-  }
-  return '';
-};
-
-/*
-  We need to render change time as 1h ago or 8h ago or 20d ago
-  while the date-fns plugin outputs as about 1 hour ago or
-  8 hours ago or 20 days ago so preparing desired string
-  by removing/replacing some strings.
- */
-const getTimeAgo = (timestamp: number) => {
-  const dateInMilliseconds = timestamp * 1000;
-  const inputDate = new Date(dateInMilliseconds);
-
-  // Calculate the difference in months
-  const monthsDifference = differenceInMonths(new Date(), inputDate);
-
-  // If the date is older than 1 month, use "dd MMM" format
-  if (monthsDifference >= 1) {
-    // @todo Implement Drupal-Specific Date Formatting(https://www.drupal.org/project/experience_builder/issues/3493779)
-    return format(inputDate, 'd MMM');
-  }
-
-  const timeAgo = formatDistanceToNow(inputDate, { addSuffix: true });
-
-  // Define a mapping for units
-  const unitMappings: Record<string, string> = {
-    'less than a minute': 'a moment',
-    ' seconds': 's',
-    ' second': 's',
-    ' minutes': 'm',
-    ' minute': 'm',
-    ' hours': 'h',
-    ' hour': 'h',
-    ' days': 'd',
-    ' day': 'd',
-    ' month': 'mo',
-    'about ': '',
-  };
-
-  return timeAgo.replace(
-    new RegExp(Object.keys(unitMappings).join('|'), 'g'),
-    (matched) => unitMappings[matched],
   );
 };
 

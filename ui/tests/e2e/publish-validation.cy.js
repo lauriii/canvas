@@ -65,7 +65,8 @@ describe('Publish review functionality', () => {
       });
 
       cy.findByText('Review 2 changes').click();
-      cy.findByText('Publish all changes').click();
+      cy.findByTestId('xb-publish-review-select-all').click();
+      cy.findByText('Publish 2 selected').click();
       cy.findByTestId('xb-review-publish-errors').should('exist');
       cy.findByTestId('xb-review-publish-errors').should(($errorsContainer) => {
         expect($errorsContainer.find('h3')).to.include.text('Errors');
@@ -128,8 +129,9 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
     cy.findByTestId('xb-publish-reviews-content')
       .as('publishReview')
       .should('exist');
+    cy.findByTestId('xb-publish-review-select-all').click();
     cy.get('@publishReview')
-      .findByRole('button', { name: 'Publish all changes' })
+      .findByRole('button', { name: /Publish \d+ selected/ })
       .click();
     cy.get('@publishReview')
       .findByTestId('publish-error-detail')

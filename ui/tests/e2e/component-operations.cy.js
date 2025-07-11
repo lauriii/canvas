@@ -367,7 +367,11 @@ describe('Perform CRUD operations on components', () => {
       40000,
     );
 
-    cy.publishAllPendingChanges('XB Needs This For The Time Being');
+    cy.publishAllPendingChanges([
+      'XB Needs This For The Time Being',
+      'I am an empty node',
+    ]);
+
     cy.visit('/node/1');
     cy.get(
       'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',

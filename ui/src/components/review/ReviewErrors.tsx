@@ -93,7 +93,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
       {} as ErrorsByEntity,
     );
     return (
-      <Box data-testid="xb-review-publish-errors">
+      <Box data-testid="xb-review-publish-errors" maxWidth="360px">
         <Separator my="3" size="4" />
         <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
           <Collapsible.Trigger className={style.collapseButton}>

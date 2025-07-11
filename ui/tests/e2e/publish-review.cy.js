@@ -105,7 +105,8 @@ describe('Publish review functionality', () => {
       cy.findByText('Review 1 change').click();
 
       cy.findByTestId('xb-publish-reviews-content').within(() => {
-        cy.findByText('Publish all changes').should('not.exist');
+        cy.findByTestId('xb-publish-review-select-all').click();
+        cy.findByText(/Publish \d selected/).should('not.exist');
       });
     },
   );

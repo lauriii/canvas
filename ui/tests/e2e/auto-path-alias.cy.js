@@ -118,11 +118,12 @@ describe('Auto path alias generation', () => {
       cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
         timeout: 20000,
       }).should('exist');
-      cy.findByText('Review 2 changes', { timeout: 20000 }).click();
-      cy.findByText('Publish all changes').click();
-      cy.findByText('All changes published!', { timeout: 10000 }).should(
-        'exist',
-      );
+
+      cy.publishAllPendingChanges([
+        "Lauri's another page",
+        "Lauri's updated page",
+      ]);
+
       cy.get('[aria-label="Close"]').parent().click();
 
       cy.get('#edit-title-0-value').clear();
