@@ -22,8 +22,8 @@ const Breadcrumb = () => {
                 </>
               ) : (
                 <span className="inline-flex items-center truncate text-sm font-semibold text-gray-800 dark:text-neutral-200">
-                      {text}
-                    </span>
+                  {text}
+                </span>
               )}
               {index !== breadcrumbs.length - 1 && (
                 <svg

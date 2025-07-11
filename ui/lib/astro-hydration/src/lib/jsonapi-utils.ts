@@ -21,8 +21,10 @@ interface MenuItem {
  * @return string
  */
 export function getNodePath(node: Node) {
-  return node.path?.alias ||
-  (node.drupal_internal__nid ? `/node/${node.drupal_internal__nid}` : '#');
+  return (
+    node.path?.alias ||
+    (node.drupal_internal__nid ? `/node/${node.drupal_internal__nid}` : '#')
+  );
 }
 
 /**
@@ -38,7 +40,11 @@ export function sortMenu(menuItems: MenuItem[]) {
   const menu: MenuItem[] = [];
 
   menuItems.forEach((menuItem) => {
-    menuItemsMap.set(menuItem.id, { ...menuItem, _children: [], _hasSubmenu: false });
+    menuItemsMap.set(menuItem.id, {
+      ...menuItem,
+      _children: [],
+      _hasSubmenu: false,
+    });
   });
 
   menuItems.forEach((menuItem) => {

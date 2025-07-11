@@ -59,7 +59,15 @@ export default function Image(
         return src;
       }
     };
-    return <NextImage {...props} loader={defaultLoader} sizes={props.sizes || 'auto 100vw'} />;
+    return (
+      <NextImage
+        {...props}
+        loader={defaultLoader}
+        sizes={props.sizes || 'auto 100vw'}
+      />
+    );
   }
-  return <NextImage {...props} loader={loader} sizes={props.sizes || 'auto 100vw'} />;
+  return (
+    <NextImage {...props} loader={loader} sizes={props.sizes || 'auto 100vw'} />
+  );
 }

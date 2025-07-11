@@ -5,9 +5,7 @@ const PageTitle = () => {
   if (!pageTitle) {
     return null;
   }
-  return (
-    <h1>{pageTitle}</h1>
-  );
-}
+  return <h1>{pageTitle}</h1>;
+};
 
 export default PageTitle;

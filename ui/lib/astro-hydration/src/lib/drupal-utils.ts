@@ -30,7 +30,7 @@ export function sortMenu(linkset: Linkset) {
     return [];
   }
 
-  linkset.linkset[0].item.forEach(item => {
+  linkset.linkset[0].item.forEach((item) => {
     const hierarchyKey = item.hierarchy.join('|');
     menuItemsMap.set(hierarchyKey, {
       ...item,
@@ -40,7 +40,7 @@ export function sortMenu(linkset: Linkset) {
     });
   });
 
-  linkset.linkset[0].item.forEach(item => {
+  linkset.linkset[0].item.forEach((item) => {
     const hierarchyKey = item.hierarchy.join('|');
     const currentItem = menuItemsMap.get(hierarchyKey);
 
@@ -63,14 +63,14 @@ export function sortMenu(linkset: Linkset) {
 }
 
 interface BreadcrumbLink {
-  key: string
-  text: string
-  url: string
+  key: string;
+  text: string;
+  url: string;
 }
 
 interface PageData {
-  pageTitle: string
-  breadcrumbs: Array<BreadcrumbLink>
+  pageTitle: string;
+  breadcrumbs: Array<BreadcrumbLink>;
 }
 
 interface SiteData {
@@ -78,22 +78,22 @@ interface SiteData {
     homeUrl: string;
     siteName: string;
     siteSlogan: string;
-  }
-  baseUrl: string
+  };
+  baseUrl: string;
 }
 
 export const getPageData = (): PageData => {
   const pageData = {
     pageTitle: window.drupalSettings?.xbData?.v0?.pageTitle || '',
-    breadcrumbs: window.drupalSettings?.xbData?.v0?.breadcrumbs || []
-  }
+    breadcrumbs: window.drupalSettings?.xbData?.v0?.breadcrumbs || [],
+  };
   window.parent.postMessage({
     type: '_xb_useswr_data_fetch',
     id: 'getPageData()',
     data: pageData,
   });
   return pageData;
-}
+};
 
 export const getSiteData = (): SiteData => {
   const siteData = {
@@ -102,12 +102,12 @@ export const getSiteData = (): SiteData => {
       siteName: '',
       siteSlogan: '',
     },
-    baseUrl: window.drupalSettings?.xbData?.v0?.baseUrl || '/'
-  }
+    baseUrl: window.drupalSettings?.xbData?.v0?.baseUrl || '/',
+  };
   window.parent.postMessage({
     type: '_xb_useswr_data_fetch',
     id: 'getSiteData()',
     data: siteData,
   });
   return siteData;
-}
+};

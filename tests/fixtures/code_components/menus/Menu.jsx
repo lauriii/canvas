@@ -54,7 +54,9 @@ const MenuItems = ({ menu }) => {
 
   return (
     <div data-testid="menu">
-      <div className={`flex justify-end md:hidden ${open ? "absolute right-0" : ""}`}>
+      <div
+        className={`flex justify-end md:hidden ${open ? 'absolute right-0' : ''}`}
+      >
         <button
           type="button"
           className="relative flex size-9 items-center justify-center rounded-lg border border-gray-200 text-sm font-semibold text-gray-800 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none disabled:pointer-events-none cursor-pointer`"
@@ -110,7 +112,10 @@ const MenuItems = ({ menu }) => {
         role="navigation"
         aria-label="Main navigation"
       >
-        <ul className="flex flex-col gap-0.5 py-2 md:flex-row md:items-center md:justify-center md:gap-1 md:py-0" data-testid="menu-links">
+        <ul
+          className="flex flex-col gap-0.5 py-2 md:flex-row md:items-center md:justify-center md:gap-1 md:py-0"
+          data-testid="menu-links"
+        >
           {menu.map((menuItem) => {
             const menuKey = `menu-${menuItem.id}`;
             const isOpen = openSubmenus[menuKey];
@@ -127,7 +132,7 @@ const MenuItems = ({ menu }) => {
               >
                 <a
                   href={menuItem.url ?? menuItem.href ?? '#'}
-                  className={`p-2 text-sm text-blue-600 focus:text-blue-600 focus:outline-none dark:text-blue-500 dark:focus:text-blue-500 ${(window.parent.location.pathname === menuItem.url || window.parent.location.pathname === menuItem.href) ? "bg-blue-50 rounded" : ""}`}
+                  className={`p-2 text-sm text-blue-600 focus:text-blue-600 focus:outline-none dark:text-blue-500 dark:focus:text-blue-500 ${window.parent.location.pathname === menuItem.url || window.parent.location.pathname === menuItem.href ? 'bg-blue-50 rounded' : ''}`}
                   aria-expanded={menuItem._hasSubmenu ? isOpen : undefined}
                 >
                   {menuItem.title}
