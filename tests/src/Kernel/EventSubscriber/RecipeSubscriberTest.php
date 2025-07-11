@@ -112,4 +112,34 @@ final class RecipeSubscriberTest extends KernelTestBase {
     $this->assertSame('346210de-12d8-4d02-9db4-455f1bdd99f7', Media::load($media_id)?->uuid());
   }
 
+  public function testComponentConfigActions(): void {
+    $recipe = $this->createRecipe(<<<YAML
+name: Disable components
+type: Testing
+install:
+  - experience_builder
+  - stark
+  - xb_stark
+config:
+  import:
+    experience_builder: '*'
+  actions:
+    experience_builder.component.sdc.experience_builder.*:
+      disable: []
+YAML
+    );
+    RecipeRunner::processRecipe($recipe);
+
+    $components = Component::loadMultiple();
+    $this->assertNotEmpty($components);
+    // All Component config entities must be `status: true`, except this one.
+    self::assertGreaterThanOrEqual(2, count($components));
+    foreach ($components as $id => $component) {
+      $this->assertSame(
+        !str_contains($id, 'sdc.experience_builder.'),
+        $component->status(),
+      );
+    }
+  }
+
 }

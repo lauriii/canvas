@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Drupal\experience_builder\EventSubscriber;
 
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
+use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\DefaultContent\PreImportEvent;
 use Drupal\Core\Recipe\RecipeAppliedEvent;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -19,6 +21,11 @@ final class RecipeSubscriber implements EventSubscriberInterface {
    */
   private array $componentSources = [];
 
+  public function __construct(
+    #[Autowire(service: 'plugin.manager.config_action')]
+    private readonly ConfigActionManager $configActionManager,
+  ) {}
+
   public function addComponentSource(CachedDiscoveryInterface $discovery): void {
     $this->componentSources[] = $discovery;
   }
@@ -29,7 +36,7 @@ final class RecipeSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     return [
       PreImportEvent::class => 'ensureComponentsExist',
-      RecipeAppliedEvent::class => 'ensureComponentsExist',
+      RecipeAppliedEvent::class => 'onApply',
     ];
   }
 
@@ -44,6 +51,29 @@ final class RecipeSubscriber implements EventSubscriberInterface {
       // extant components).
       $source->clearCachedDefinitions();
       $source->getDefinitions();
+    }
+  }
+
+  /**
+   * Reacts when a recipe is applied.
+   *
+   * @param \Drupal\Core\Recipe\RecipeAppliedEvent $event
+   *   The event object.
+   */
+  public function onApply(RecipeAppliedEvent $event): void {
+    $this->ensureComponentsExist();
+
+    // Re-run any config actions that target Component entities.
+    $items = array_filter(
+      $event->recipe->config->config['actions'] ?? [],
+      // @see \Drupal\experience_builder\Entity\Component
+      fn (string $name): bool => str_starts_with($name, 'experience_builder.component.'),
+      ARRAY_FILTER_USE_KEY,
+    );
+    foreach ($items as $name => $actions) {
+      foreach ($actions as $action_id => $data) {
+        $this->configActionManager->applyAction($action_id, $name, $data);
+      }
     }
   }
 
