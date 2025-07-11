@@ -7,6 +7,8 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
@@ -172,6 +174,33 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         $region->save();
       }
     }
+
+    // Setup additional nesting of components.
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $tree = $node->get('field_xb_demo');
+    \assert($tree instanceof ComponentTreeItemList);
+    $static_image = $tree->getComponentTreeItemByUuid(XbTestSetup::UUID_STATIC_IMAGE);
+    \assert($static_image instanceof ComponentTreeItem);
+    $static_image->set('parent_uuid', XbTestSetup::UUID_ALL_SLOTS_EMPTY);
+    $static_image->set('slot', 'content');
+    // We need to make sure the delta order reflects that parents come before
+    // children otherwise this will happen on POST and create an auto-save entry.
+    $image_delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_STATIC_IMAGE);
+    $parent_delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_ALL_SLOTS_EMPTY);
+    \assert($image_delta !== NULL);
+    \assert($parent_delta !== NULL);
+    $values = $tree->getValue();
+    $values = [
+      ...\array_slice($values, 0, $image_delta),
+      ...\array_slice($values, $image_delta + 1, $parent_delta - $image_delta),
+      ...\array_slice($values, $image_delta, 1),
+      ...\array_slice($values, $parent_delta + 1),
+    ];
+    $node->set('field_xb_demo', $values);
+
+    $node->save();
+
     // Load the test data from the layout controller.
     $response = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'));
     $this->assertResponseAutoSaves($response, [Node::load(1)], $withGlobal);
@@ -223,6 +252,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     \assert($media instanceof MediaInterface);
 
     // Make sure the current value isn't the same media ID.
+    self::assertNotEmpty($model[XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
     self::assertNotEquals($media->id(), $model[XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
 
     // Now patch the layout.

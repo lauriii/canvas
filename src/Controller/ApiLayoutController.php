@@ -263,7 +263,7 @@ final class ApiLayoutController {
     $page_regions = PageRegion::loadForActiveThemeByClientSideId();
     if (!empty($page_regions)) {
       $regionForComponentId = $this->getRegionForComponentInstance($data['layout'], $componentInstanceUuid);
-      if ($regionForComponentId !== XbPageVariant::MAIN_CONTENT_REGION) {
+      if ($regionForComponentId !== XbPageVariant::MAIN_CONTENT_REGION && NULL !== $regionForComponentId) {
         if (!$page_regions[$regionForComponentId]->access('edit')) {
           throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $regionForComponentId));
         }
@@ -463,26 +463,54 @@ final class ApiLayoutController {
 
     // Validate that we have access to the page region of this component.
     $regions = PageRegion::loadForActiveTheme();
-    if (!empty($regions)) {
-      $layout_by_client_side_ids = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
-      $regionForComponent = array_filter($layout_by_client_side_ids, function ($item) use ($componentInstanceUuid) {
+    if (empty($regions)) {
+      return NULL;
+    }
+
+    $layout_by_client_side_ids = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
+    $regionForComponent = array_filter(
+      $layout_by_client_side_ids,
+      function ($item) use ($componentInstanceUuid) {
         foreach ($item['components'] as $componentData) {
-          if ($componentData['uuid'] === $componentInstanceUuid) {
+          if ($this->componentInstanceExistInComponentData($componentData, $componentInstanceUuid)) {
             return TRUE;
-          }
-          // Maybe it's not a component, but a slot inside a component.
-          foreach ($componentData['slots'] as $slotData) {
-            foreach ($slotData['components'] as $slotComponentData) {
-              if ($slotComponentData['uuid'] === $componentInstanceUuid) {
-                return TRUE;
-              }
-            }
           }
         }
         return FALSE;
-      });
+      }
+    );
+
+    // @todo Fix in https://drupal.org/i/3535435 (Review and remove NULL if necessary).
+    return (count($regionForComponent) === 1) ? (string) key($regionForComponent) : NULL;
+  }
+
+  /**
+   * Check if a componentUuid is present in a component or slot and its children.
+   *
+   * @param array $componentData
+   *   The component data array.
+   * @param string $componentInstanceUuid
+   *   The componentInstanceUuid to search.
+   *
+   * @return bool
+   */
+  private function componentInstanceExistInComponentData(array $componentData, string $componentInstanceUuid): bool {
+    if ($componentData['uuid'] === $componentInstanceUuid) {
+      // This is the successful _base case_ of this recursive function.
+      return TRUE;
     }
-    return (!empty($regions) && count($regionForComponent) === 1) ? (string) key($regionForComponent) : NULL;
+    foreach ($componentData['slots'] as $slotData) {
+      foreach ($slotData['components'] as $slotComponentData) {
+        if (!empty($slotComponentData['slots'])) {
+          if ($this->componentInstanceExistInComponentData($slotComponentData, $componentInstanceUuid)) {
+            // This maps the successful base case return. Otherwise, we must return nothing.
+            return TRUE;
+          }
+        }
+      }
+    }
+    // If nothing has found, the unsuccessful base case.
+    return FALSE;
   }
 
   /**
