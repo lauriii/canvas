@@ -18,6 +18,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
@@ -53,6 +54,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly AutoSaveManager $autoSaveManager,
     #[Autowire(service: 'logger.channel.experience_builder')]
     private readonly LoggerInterface $logger,
+    private readonly AccountInterface $currentUser,
   ) {}
 
   private static function validateExpectedAutoSaves(array $expected_auto_saves, array $all_auto_saves): ?JsonResponse {
@@ -280,7 +282,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
             );
           }
         }
-
         $use_existing_revision_id = AutoSaveManager::contentEntityIsConsideredNew($entity);
 
         if ($entity instanceof EntityPublishedInterface) {
@@ -298,6 +299,15 @@ final class ApiAutoSaveController extends ApiControllerBase {
           $revision_id_key = $entity_definition->getKey('revision');
           \assert(\is_string($revision_id_key));
           $entity->set($revision_id_key, NULL);
+        }
+        // Always set the revision user to the current user. Even though we
+        // might not be creating a new revision, this would only be in the case
+        // where this entity should be considered new, which means it has never
+        // published before in Experience Builder.
+        // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
+        if ($revision_user = $entity_definition->getRevisionMetadataKey('revision_user')) {
+          assert(is_string($revision_user));
+          $entity->set($revision_user, $this->currentUser->id());
         }
         $violations = $entity->validate();
         $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);

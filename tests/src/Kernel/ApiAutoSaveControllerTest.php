@@ -593,7 +593,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $this->assertSame(['user.permissions'], $exception->getCacheContexts());
     }
     // Grant that permission.
-    $this->setUpCurrentUser(permissions: [
+    $user = $this->setUpCurrentUser(permissions: [
       ...$permissions,
       JavaScriptComponent::ADMIN_PERMISSION,
     ]);
@@ -825,6 +825,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     assert($page instanceof Page);
     $this->assertTrue($page->isPublished());
     $this->assertSame('The updated title.', $page->label());
+    $this->assertSame($page->getRevisionUserId(), $user->id());
 
     $this->assertNotNull($code_component->id());
     $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
