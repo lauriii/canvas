@@ -870,6 +870,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($global);
 
     // Verify auto-save data exists.
+    // Set up a user that has 'view label' access to both entities.
+    $this->setUpCurrentUser(permissions: [
+      JavaScriptComponent::ADMIN_PERMISSION,
+    ]);
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     self::assertCount(2, $auto_save_data);
     self::assertArrayHasKey("node:{$node->id()}:en", $auto_save_data);
