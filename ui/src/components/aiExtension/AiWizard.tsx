@@ -434,7 +434,7 @@ const AiWizard = () => {
         className={styles.aiWizard}
       >
         <Flex direction="column">
-          <Text size="3" weight="bold" color="blue">
+          <Text size="3" weight="bold" style={{ color: 'var(--blue-9)' }}>
             Hello 👋
           </Text>
           <Text size="2" weight="bold">
@@ -443,6 +443,38 @@ const AiWizard = () => {
         </Flex>
         <DeepChat
           ref={chatElementRef}
+          images={{
+            files: {
+              acceptedFormats: '.jpg, .png, .jpeg',
+              // For now we just support uploading 1 image at a time
+              // if the user tries to upload another image the already
+              // added image is replaced.
+              maxNumberOfFiles: 1,
+            },
+            button: {
+              position: 'inside-left',
+              styles: {
+                container: {
+                  default: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: '8px',
+                    marginBottom: '12px',
+                    backgroundColor: '#F0F0F3',
+                  },
+                },
+                svg: {
+                  content: `
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="16" height="16" fill="white" fill-opacity="0.01"/>
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M8.53324 2.93324C8.53324 2.63869 8.29445 2.3999 7.9999 2.3999C7.70535 2.3999 7.46657 2.63869 7.46657 2.93324V7.46657H2.93324C2.63869 7.46657 2.3999 7.70535 2.3999 7.9999C2.3999 8.29445 2.63869 8.53324 2.93324 8.53324H7.46657V13.0666C7.46657 13.3611 7.70535 13.5999 7.9999 13.5999C8.29445 13.5999 8.53324 13.3611 8.53324 13.0666V8.53324H13.0666C13.3611 8.53324 13.5999 8.29445 13.5999 7.9999C13.5999 7.70535 13.3611 7.46657 13.0666 7.46657H8.53324V2.93324Z" fill="#60646C"/>
+                  </svg>
+                `,
+                },
+              },
+            },
+          }}
           requestBodyLimits={{
             maxMessages: 5,
           }}
@@ -453,13 +485,29 @@ const AiWizard = () => {
             // @see https://deepchat.dev/docs/connect/#Handler
             handler: async (body, signals) => {
               try {
-                const response = await fetch('/admin/api/xb/ai', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken,
-                  },
-                  body: JSON.stringify({
+                const hasFiles = body instanceof FormData;
+                let requestBody: FormData | string;
+                let headers: Record<string, string> = {
+                  'X-CSRF-Token': csrfToken,
+                };
+
+                if (hasFiles) {
+                  requestBody = body as FormData;
+                  requestBody.append(
+                    'entity_type',
+                    drupalSettings.xb.entityType,
+                  );
+                  requestBody.append('entity_id', drupalSettings.xb.entity);
+                  requestBody.append(
+                    'selected_component',
+                    currentValuesRef.current.codeComponentName,
+                  );
+                  requestBody.append(
+                    'layout',
+                    currentValuesRef.current.textPropsMapString,
+                  );
+                } else {
+                  requestBody = JSON.stringify({
                     ...body,
                     entity_type: drupalSettings.xb.entityType,
                     entity_id: drupalSettings.xb.entity,
@@ -468,9 +516,14 @@ const AiWizard = () => {
                     layout: currentValuesRef.current.textPropsMapString,
                     active_component_uuid: selectedComponent ?? '',
                     current_layout: transformLayout(),
-                  }),
+                  });
+                  headers['Content-Type'] = 'application/json';
+                }
+                const response = await fetch('/admin/api/xb/ai', {
+                  method: 'POST',
+                  headers,
+                  body: requestBody,
                 });
-
                 if (!response.ok) {
                   throw new Error(`HTTP error. Status: ${response.status}`);
                 }
@@ -496,10 +549,13 @@ const AiWizard = () => {
           textInput={{
             placeholder: { text: 'Build me a ...' },
             styles: {
+              text: {
+                padding: '16px',
+              },
               container: {
                 height: '167px',
                 width: '100%',
-                padding: '8px',
+                padding: '0 0 40px 0',
               },
             },
           }}
@@ -514,7 +570,7 @@ const AiWizard = () => {
                 bubble: {
                   width: '100%',
                   maxWidth: '100%',
-                  color: '#1C2024',
+                  color: 'var(--black-12)',
                   fontSize: '14px',
                   fontWeight: '400',
                   lineHeight: '1.26',
@@ -575,6 +631,9 @@ const AiWizard = () => {
           auxiliaryStyle="
           #chat-view:has(#messages:empty) {
             display: block;
+          }
+          #input:has(#file-attachment-container[style*='display: block']) {
+            margin-top: 40px;
           }
           .text-message h1 {
             font-size: var(--font-size-5);

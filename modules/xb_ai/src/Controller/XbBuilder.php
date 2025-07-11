@@ -4,13 +4,13 @@ namespace Drupal\xb_ai\Controller;
 
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\Task\Task;
-use Drupal\Component\Serialization\Json;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\xb_ai\Plugin\AiFunctionCall\AddMetadata;
 use Drupal\xb_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\xb_ai\Plugin\AiFunctionCall\EditComponentJs;
@@ -32,75 +32,28 @@ use Symfony\Component\Yaml\Yaml;
 final class XbBuilder extends ControllerBase {
 
   /**
-   * The AI provider service.
-   */
-  protected AiProviderPluginManager $providerService;
-
-  /**
-   * The AI agent plugin manager.
-   */
-  protected PluginManagerInterface $agentManager;
-
-  /**
-   * The entity type manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * The current user.
-   *
-   * @var \Drupal\Core\Session\AccountInterface
-   */
-  protected $currentUser;
-
-  /**
-   * The CSRF token generator.
-   *
-   * @var \Drupal\Core\Access\CsrfTokenGenerator
-   */
-  protected $csrfTokenGenerator;
-
-  /**
-   * The XB AI page builder helper service.
-   *
-   * @var \Drupal\xb_ai\XbAiPageBuilderHelper
-   */
-  protected XbAiPageBuilderHelper $xbAiPageBuilderHelper;
-
-  /**
-   * The XB AI temp store service.
-   *
-   * @var \Drupal\xb_ai\XbAiTempStore
-   */
-  protected XbAiTempStore $xbAiTempStore;
-
-  /**
    * Constructs a new XbBuilder object.
    */
-  public function __construct(EntityTypeManagerInterface $entityTypeManager, AccountInterface $currentUser, AiProviderPluginManager $providerService, PluginManagerInterface $agentManager, CsrfTokenGenerator $csrfTokenGenerator, XbAiPageBuilderHelper $xbAiPageBuilderHelper, XbAiTempStore $xbAiTempStore) {
-    $this->entityTypeManager = $entityTypeManager;
-    $this->currentUser = $currentUser;
-    $this->providerService = $providerService;
-    $this->agentManager = $agentManager;
-    $this->csrfTokenGenerator = $csrfTokenGenerator;
-    $this->xbAiPageBuilderHelper = $xbAiPageBuilderHelper;
-    $this->xbAiTempStore = $xbAiTempStore;
-  }
+  public function __construct(
+    protected AiProviderPluginManager $providerService,
+    protected PluginManagerInterface $agentManager,
+    protected CsrfTokenGenerator $csrfTokenGenerator,
+    protected XbAiPageBuilderHelper $xbAiPageBuilderHelper,
+    protected XbAiTempStore $xbAiTempStore,
+    protected FileSystemInterface $fileSystem,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_type.manager'),
-      $container->get('current_user'),
       $container->get('ai.provider'),
       $container->get('plugin.manager.ai_agents'),
       $container->get('csrf_token'),
       $container->get('xb_ai.page_builder_helper'),
-      $container->get('xb_ai.tempstore')
+      $container->get('xb_ai.tempstore'),
+      $container->get('file_system'),
     );
   }
 
@@ -118,7 +71,65 @@ final class XbBuilder extends ControllerBase {
 
     /** @var \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper $agent */
     $agent = $this->agentManager->createInstance('xb_ai_orchestrator');
-    $prompt = json_decode($request->getContent(), TRUE);
+    $contentType = $request->getContentTypeFormat();
+    $files = [];
+    if ($contentType === 'json') {
+      $prompt = Json::decode($request->getContent());
+    }
+    else {
+      $prompt = $request->request->all();
+      $files = $request->files->all();
+    }
+    // If $prompt['messages'] is missing or invalid, this code reconstructs it
+    // by scanning for keys named 'message <number>', and
+    // assembling them into an ordered 'messages' array, while cleaning up old keys
+    // as we use $prompt['messages'] for further processing .
+    if (!isset($prompt['messages']) || !is_array($prompt['messages'])) {
+      $messages = [];
+      $keys_to_remove = [];
+      foreach ($prompt as $key => $value) {
+        if (preg_match('/^message(\d+)$/', $key, $matches)) {
+          $num = (int) $matches[1];
+          $decoded = Json::decode($value);
+          if ($decoded !== NULL) {
+            $messages[$num] = $decoded;
+            $keys_to_remove[] = $key;
+          }
+        }
+      }
+      if (!empty($messages)) {
+        ksort($messages);
+        $prompt['messages'] = array_values($messages);
+        foreach ($keys_to_remove as $key) {
+          unset($prompt[$key]);
+        }
+      }
+    }
+    $file_entities = [];
+    foreach ($files as $file) {
+      $allowed_image_types = ['image/jpeg', 'image/png'];
+      $mime_type = $file->getClientMimeType();
+
+      if (!in_array($mime_type, $allowed_image_types, TRUE)) {
+        return new JsonResponse([
+          'status' => FALSE,
+          'message' => 'Only image files are allowed (jpeg, png, jpg).',
+        ]);
+      }
+      // Copy the file to the temp directory.
+      $tmp_name = 'temporary://' . $file->getClientOriginalName();
+      $this->fileSystem->copy($file->getPathname(), $tmp_name, FileExists::Replace);
+      // Create actual file entities.
+      $file = $this->entityTypeManager()->getStorage('file')->create([
+        'uid' => $this->currentUser()->id(),
+        'filename' => $file->getClientOriginalName(),
+        'uri' => $tmp_name,
+        'status' => 0,
+      ]);
+      $file->save();
+      $file_entities[] = $file;
+    }
+
     if (empty($prompt['messages'])) {
       return new JsonResponse([
         'status' => FALSE,
@@ -151,6 +162,9 @@ final class XbBuilder extends ControllerBase {
     }
     $task = new Task($task_message['text']);
     $agent->setTask($task);
+    if (!empty($file_entities)) {
+      $task->setFiles($file_entities);
+    }
     $task->setComments($comments);
     $default = $this->providerService->getDefaultProviderForOperationType('chat');
     if (!is_array($default) || empty($default['provider_id']) || empty($default['model_id'])) {
