@@ -86,6 +86,7 @@ const PageDataFormRenderer = () => {
       AJAX_UPDATE_FORM_STATE_EVENT,
       ajaxUpdateFormStateListener as unknown as EventListener,
     );
+
     return () => {
       document.removeEventListener(
         AJAX_UPDATE_FORM_STATE_EVENT,

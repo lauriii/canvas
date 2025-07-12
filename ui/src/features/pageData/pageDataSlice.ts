@@ -34,10 +34,38 @@ export const pageDataSlice = createSlice({
         };
       },
     ),
+    internalUpdateComplete: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        const { externalUpdates } = state;
+        if (externalUpdates && action.payload) {
+          return {
+            ...state,
+            externalUpdates: externalUpdates.filter(
+              (field: string) => action.payload !== field,
+            ),
+          };
+        }
+        return state;
+      },
+    ),
+    updatePageDataExternally: create.reducer(
+      (state, action: PayloadAction<Values>) => {
+        return {
+          ...state,
+          ...action.payload,
+          externalUpdates: Object.keys(action.payload),
+        };
+      },
+    ),
   }),
 });
 
-export const { setPageData, setInitialPageData } = pageDataSlice.actions;
+export const {
+  setPageData,
+  setInitialPageData,
+  internalUpdateComplete,
+  updatePageDataExternally,
+} = pageDataSlice.actions;
 
 export const pageDataReducer = pageDataSlice.reducer;
 

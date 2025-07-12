@@ -139,6 +139,13 @@ class AutoSaveManager implements EventSubscriberInterface {
       // compare against the save version.
       // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::getAutoSaveEntity().
       $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'changed');
+      // Similarly, we don't want to include the 'externalUpdates' field as it's
+      // not truly an entity field, but something used to track programmatic
+      // updates to the entity data in Redux.
+      // @todo We can probably remove this when we refactor the pageData slice
+      //   in https://drupal.org/i/3535569.
+      $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'externalUpdates');
+
     }
     foreach (\array_keys($fields) as $name) {
       $items = $entity->get($name);

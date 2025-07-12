@@ -17,7 +17,7 @@ import {
 import { getDrupalSettings } from '@/utils/drupal-globals';
 import { Flex, Text } from '@radix-ui/themes';
 import type { CodeComponent } from '@/types/CodeComponent';
-import { setPageData } from '@/features/pageData/pageDataSlice';
+import { updatePageDataExternally } from '@/features/pageData/pageDataSlice';
 import {
   selectModel,
   setUpdatePreview,
@@ -78,7 +78,7 @@ const createdContentHandler = {
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
     const value = message.created_content;
     dispatch(setUpdatePreview(true));
-    dispatch(setPageData({ 'title[0][value]': value }));
+    dispatch(updatePageDataExternally({ 'title[0][value]': value }));
   },
 };
 
@@ -87,7 +87,7 @@ const editContentHandler = {
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
     const value = message.refined_text;
     dispatch(setUpdatePreview(true));
-    dispatch(setPageData({ 'title[0][value]': value }));
+    dispatch(updatePageDataExternally({ 'title[0][value]': value }));
   },
 };
 const metadataHandler = {
@@ -96,7 +96,9 @@ const metadataHandler = {
     const value = JSON.parse(message.metadata);
     dispatch(setUpdatePreview(true));
     dispatch(
-      setPageData({ 'description[0][value]': value.metatag_description }),
+      updatePageDataExternally({
+        'description[0][value]': value.metatag_description,
+      }),
     );
   },
 };

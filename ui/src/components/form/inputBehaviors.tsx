@@ -33,7 +33,11 @@ import type { Attributes } from '@/types/DrupalAttribute';
 import Ajv from 'ajv';
 // @ts-ignore
 import addDraft2019 from 'ajv-formats-draft2019';
-import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectPageData,
+  setPageData,
+  internalUpdateComplete,
+} from '@/features/pageData/pageDataSlice';
 import type { FormId } from '@/features/form/formStateSlice';
 import { selectCurrentComponent } from '@/features/form/formStateSlice';
 import {
@@ -79,6 +83,7 @@ const InputBehaviorsCommon = ({
   OriginalInput,
   props,
   callbacks,
+  pageData,
 }: {
   OriginalInput: React.FC<InputProps>;
   props: {
@@ -94,6 +99,7 @@ const InputBehaviorsCommon = ({
     parseNewValue: (newValue: React.ChangeEvent) => any;
     validateNewValue: (e: React.ChangeEvent, newValue: any) => ValidationResult;
   };
+  pageData?: Record<string, any>;
 }) => {
   const { attributes, options, value, ...passProps } = props;
   const { commitFormState, parseNewValue, validateNewValue } = callbacks;
@@ -107,6 +113,28 @@ const InputBehaviorsCommon = ({
 
   const formId = attributes['data-form-id'] as FormId;
   const fieldName = (attributes.name || attributes['data-xb-name']) as string;
+
+  // @todo this is page data specific and should probably be moved to
+  //  EntityFormBehaviors in https://drupal.org/i/3535569.
+  const forceUpdateInputValue = async (
+    fieldName: string,
+    theNewValue: string,
+  ) => {
+    await internalUpdateComplete(fieldName);
+    setInputValue(theNewValue);
+  };
+
+  // @todo this is page data specific and should probably be moved to
+  //  EntityFormBehaviors in https://drupal.org/i/3535569.
+  if (
+    pageData &&
+    pageData?.externalUpdates &&
+    pageData.externalUpdates.includes(fieldName) &&
+    pageData[fieldName]
+  ) {
+    forceUpdateInputValue(fieldName, pageData[fieldName]);
+  }
+
   const fieldIdentifier = {
     formId,
     fieldName,
@@ -114,7 +142,6 @@ const InputBehaviorsCommon = ({
   const fieldError = useAppSelector((state) =>
     selectFieldError(state, fieldIdentifier),
   );
-
   // Include the input's default value in the form state on init - including
   // when an element is added via AJAX.
   const elementType = attributes.type || attributes['data-xb-type'];
@@ -505,9 +532,8 @@ const InputBehaviorsEntityForm = (
   );
 
   const { attributes } = props;
-
   const fieldName = attributes.name || attributes['data-xb-name'];
-  if (!['changed'].includes(fieldName)) {
+  if (!['changed', 'externalUpdates'].includes(fieldName)) {
     let newValue = pageData[fieldName] || null;
 
     if (attributes.name === 'form_build_id' && 'form_build_id' in formState) {
@@ -538,7 +564,9 @@ const InputBehaviorsEntityForm = (
   const formStateToStore = (newFormState: PropsValues) => {
     const values = Object.keys(newFormState).reduce(
       (acc: Record<string, any>, key) => {
-        if (!['changed', 'formId', 'formType'].includes(key)) {
+        if (
+          !['changed', 'formId', 'formType', 'externalUpdates'].includes(key)
+        ) {
           return { ...acc, [key]: newFormState[key] };
         }
         return acc;
@@ -583,6 +611,7 @@ const InputBehaviorsEntityForm = (
         parseNewValue,
         validateNewValue,
       }}
+      pageData={pageData}
     />
   );
 };
