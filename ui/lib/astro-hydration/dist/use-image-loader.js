@@ -1,0 +1,1 @@
+function g(e){return({width:i,imageProps:n})=>{let t=e;if(t.includes("{width}")&&(t=t.replace("{width}",i.toString())),t.includes("{height}")){const{width:r,height:h}=n,c=Math.round(i/(r/h));t=t.replace("{height}",c.toString())}return t}}export{g as useImageLoader};
