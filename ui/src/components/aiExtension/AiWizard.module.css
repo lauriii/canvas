@@ -21,3 +21,24 @@
   line-height: var(--line-height-2);
   margin: 0 var(--space-4) 0 var(--space-4);
 }
+
+.aiWizardTitleContainer {
+  position: relative;
+}
+.aiWizardTitle {
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-medium);
+}
+
+.aiWizardBeta {
+  color: var(--blue-9);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-medium);
+  position: absolute;
+  top: -8px;
+}
+
+.aiWizardSubtitle {
+  font-size: var(--font-size-2);
+  color: var(--Colors-Gray-11);
+}

@@ -27,6 +27,7 @@ import type {
   LayoutModelSliceState,
   ComponentNode,
 } from '@/features/layout/layoutModelSlice';
+import AiWelcome from '@assets/icons/ai-welcome.svg?react';
 
 const simplePropertyHandler = (
   property: string,
@@ -435,12 +436,20 @@ const AiWizard = () => {
         gap="4"
         className={styles.aiWizard}
       >
-        <Flex direction="column">
-          <Text size="3" weight="bold" style={{ color: 'var(--blue-9)' }}>
-            Hello 👋
-          </Text>
-          <Text size="2" weight="bold">
-            How can I help you today?
+        <Flex direction="column" align="center">
+          <Flex align="center">
+            <AiWelcome />
+          </Flex>
+          <Flex direction="row" align="center" gap="0">
+            <Box className={styles.aiWizardTitleContainer}>
+              <Text className={styles.aiWizardTitle}>
+                Experience Builder AI
+              </Text>
+              <Text className={styles.aiWizardBeta}>Beta</Text>
+            </Box>
+          </Flex>
+          <Text className={styles.aiWizardSubtitle}>
+            Hello, how can I help you today?
           </Text>
         </Flex>
         <DeepChat
