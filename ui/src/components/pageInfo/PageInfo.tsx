@@ -202,7 +202,6 @@ const PageInfo = () => {
                   onNewPage={handleNewPage}
                   onSearch={setSearchTerm}
                   onSelect={handleOnSelect}
-                  onRename={handleNonWorkingBtn}
                   onDuplicate={handleDuplication}
                   onSetHomepage={handleNonWorkingBtn}
                   onDelete={handleDeletePage}

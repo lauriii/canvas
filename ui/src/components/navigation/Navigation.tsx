@@ -24,13 +24,11 @@ import styles from './Navigation.module.css';
 import type { FormEvent } from 'react';
 
 const hasPermission = (
-  permission: 'rename' | 'edit' | 'duplicate' | 'homepage' | 'delete',
+  permission: 'edit' | 'duplicate' | 'homepage' | 'delete',
   item: ContentStub,
 ) => {
   const links = item.links || {};
   switch (permission) {
-    case 'rename':
-      return !!links['edit-form'];
     case 'edit':
       return !!links['edit-form'];
     case 'duplicate':
@@ -49,19 +47,6 @@ const hasPermission = (
 };
 
 // Helper functions to return JSX or null based on item links/permissions
-const renderRenameButton = (
-  item: ContentStub,
-  onRename?: (page: ContentStub) => void,
-) =>
-  hasPermission('edit', item) ? (
-    <DropdownMenu.Item
-      onClick={(event) => event.stopPropagation()}
-      onSelect={onRename ? () => onRename(item) : undefined}
-    >
-      Rename page
-    </DropdownMenu.Item>
-  ) : null;
-
 const renderDuplicateButton = (
   item: ContentStub,
   onDuplicate?: (page: ContentStub) => void,
@@ -175,7 +160,6 @@ const ContentGroup = ({
   title,
   items,
   onSelect,
-  onRename,
   onDuplicate,
   onSetHomepage,
   onDelete,
@@ -183,7 +167,6 @@ const ContentGroup = ({
   title: string;
   items: ContentStub[];
   onSelect?: (value: ContentStub) => void;
-  onRename?: (page: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
   onSetHomepage?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
@@ -254,7 +237,6 @@ const ContentGroup = ({
                     </IconButton>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content>
-                    {renderRenameButton(item, onRename)}
                     {renderDuplicateButton(item, onDuplicate)}
                     {renderSetAsHomepageButton(item, onSetHomepage)}
                     {renderDeleteButton(item, onDelete)}
@@ -276,7 +258,6 @@ const Navigation = ({
   onNewPage,
   onSearch,
   onSelect,
-  onRename,
   onDuplicate,
   onSetHomepage,
   onDelete,
@@ -287,7 +268,6 @@ const Navigation = ({
   onNewPage?: () => void;
   onSearch?: (value: string) => void;
   onSelect?: (value: ContentStub) => void;
-  onRename?: (page: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
   onSetHomepage?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
@@ -350,7 +330,6 @@ const Navigation = ({
             title="Pages"
             items={items}
             onSelect={onSelect}
-            onRename={onRename}
             onDuplicate={onDuplicate}
             onSetHomepage={onSetHomepage}
             onDelete={onDelete}

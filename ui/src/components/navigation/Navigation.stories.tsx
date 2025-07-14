@@ -183,7 +183,6 @@ export const Default: Story = {
     onNewPage: () => console.log('Creating new page'),
     onSearch: (query: string) => console.log('Searching for', query),
     onSelect: (value: ContentStub) => console.log('Selected', value),
-    onRename: (page: ContentStub) => console.log('Renamed', page),
     onDuplicate: (page: ContentStub) => console.log('Duplicated', page),
     onSetHomepage: (page: ContentStub) => console.log('Set as homepage', page),
     onDelete: (page: ContentStub) => console.log('Deleted', page),
