@@ -91,7 +91,6 @@ describe('Can save and load patterns', () => {
       ).should('have.length', 1);
 
       // Add the pattern that was created earlier in this test.
-      cy.openLibraryPanel();
       cy.findByText('Patterns').click();
 
       cy.get('.primaryPanelContent').within(() => {

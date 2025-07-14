@@ -187,7 +187,6 @@ describe('Prop types editing', () => {
     cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
-    cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.findByLabelText('String - Enum').should('have.value', '_none');
@@ -606,7 +605,6 @@ describe('Prop types editing', () => {
     cy.findByLabelText(labelText).clear({ force: true });
     cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
     cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
-    cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.waitForElementContentInIframe(

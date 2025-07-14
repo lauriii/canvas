@@ -22,7 +22,6 @@
 }
 
 .menuItem.active {
-  cursor: default;
   color: var(--blue-9);
   background-color: var(--gray-3);
 }

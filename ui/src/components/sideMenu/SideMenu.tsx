@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectActivePanel,
   setActivePanel,
+  unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 
 interface SideMenuButton {
@@ -14,7 +15,7 @@ interface SideMenuButton {
   id: string;
   icon: React.ReactNode;
   label: string;
-  onClick?: () => void;
+  enabled?: boolean;
 }
 interface SideMenuSeparator {
   type: 'separator';
@@ -33,17 +34,16 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
 
   const dispatch = useAppDispatch();
 
-  const handleAddClick = useCallback(() => {
-    dispatch(setActivePanel('library'));
-  }, [dispatch]);
-
-  const handleLayersClick = useCallback(() => {
-    dispatch(setActivePanel('layers'));
-  }, [dispatch]);
-
-  const handleExtensionsClick = useCallback(() => {
-    dispatch(setActivePanel('extensions'));
-  }, [dispatch]);
+  const handleMenuClick = useCallback(
+    (panelId: string) => {
+      if (activePanel === panelId) {
+        dispatch(unsetActivePanel());
+        return;
+      }
+      dispatch(setActivePanel(panelId));
+    },
+    [dispatch, activePanel],
+  );
 
   const menuItems: SideMenuItem[] = [
     {
@@ -51,14 +51,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'library',
       icon: <PlusIcon />,
       label: 'Add',
-      onClick: handleAddClick,
+      enabled: true,
     },
     {
       type: 'button',
       id: 'layers',
       icon: <LayersIcon />,
       label: 'Layers',
-      onClick: handleLayersClick,
+      enabled: true,
     },
     { type: 'separator' },
     {
@@ -66,6 +66,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'templates',
       icon: <FileTextIcon />,
       label: 'Templates are coming soon',
+      enabled: false,
     },
   ];
 
@@ -76,7 +77,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'extensions',
       icon: <ExtensionIcon />,
       label: 'Extensions',
-      onClick: handleExtensionsClick,
+      enabled: true,
     });
   }
 
@@ -90,9 +91,11 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
             <Button
               variant="ghost"
               color="gray"
-              disabled={!item.onClick}
-              className={`${styles.menuItem} ${item.onClick ? '' : styles.disabled} ${activePanel === item.id ? styles.active : ''}`}
-              onClick={item.onClick}
+              disabled={!item.enabled}
+              className={`${styles.menuItem} ${item.enabled ? '' : styles.disabled} ${activePanel === item.id ? styles.active : ''}`}
+              onClick={
+                item.enabled ? () => handleMenuClick(item.id) : undefined
+              }
               aria-label={item.label}
             >
               {item.icon}
