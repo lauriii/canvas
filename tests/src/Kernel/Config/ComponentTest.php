@@ -113,7 +113,7 @@ class ComponentTest extends KernelTestBase {
     $this->assertArrayHasKey('sdc.experience_builder.image', $initial_components);
     $initial_component = $initial_components['sdc.experience_builder.image'];
     $this->assertSame('image', $initial_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    $initial_expected_version = '3a3d5862c2731770';
+    $initial_expected_version = 'd3a3df7d7e68efc0';
     self::assertSame($initial_expected_version, $initial_component->getActiveVersion());
     self::assertSame([$initial_expected_version], $initial_component->getVersions());
     self::assertSame([
@@ -144,9 +144,9 @@ class ComponentTest extends KernelTestBase {
     $updated_component = Component::load('sdc.experience_builder.image');
     assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    $updated_expected_version = 'caab32397e0f3172';
-    self::assertSame('caab32397e0f3172', $updated_component->getActiveVersion());
-    self::assertSame(['caab32397e0f3172', '3a3d5862c2731770'], $updated_component->getVersions());
+    $updated_expected_version = 'c06e0be7dd131740';
+    self::assertSame('c06e0be7dd131740', $updated_component->getActiveVersion());
+    self::assertSame(['c06e0be7dd131740', 'd3a3df7d7e68efc0'], $updated_component->getVersions());
     self::assertSame([
       'config' => [
         'field.field.media.image.field_media_image',
@@ -183,7 +183,7 @@ class ComponentTest extends KernelTestBase {
     // ::calculateDependencies() again causes ::getDependencies() to return only
     // the dependencies of THAT version. ⚠️
     self::assertTrue($updated_component->isLoadedVersionActiveVersion());
-    $updated_component->loadVersion('3a3d5862c2731770');
+    $updated_component->loadVersion('d3a3df7d7e68efc0');
     self::assertFalse($updated_component->isLoadedVersionActiveVersion());
     $this->assertSame('image', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame([
@@ -212,7 +212,7 @@ class ComponentTest extends KernelTestBase {
         'media_library',
       ],
     ], $updated_component->calculateDependencies()->getDependencies());
-    $updated_component->loadVersion('caab32397e0f3172');
+    $updated_component->loadVersion('c06e0be7dd131740');
     self::assertTrue($updated_component->isLoadedVersionActiveVersion());
 
     // Finally, because no component instances exist that use the old version,

@@ -584,7 +584,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         ],
         'image' => [
           'sourceType' => 'static:field_item:entity_reference',
-          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+          'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
           'sourceTypeSettings' => [
             'storage' => ['target_type' => 'media'],
             'instance' => [
@@ -610,7 +610,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $module_path = \Drupal::service('extension.list.module')->getPath('experience_builder');
     $expected_preview_html = str_replace('XB/MODULE/PATH', $module_path, $expected_preview_html);
     \assert($reference_media->field_media_image->entity instanceof FileInterface);
-    $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->entity->createFileUrl(), $expected_preview_html);
+    // @phpstan-ignore-next-line
+    $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->src_with_alternate_widths, $expected_preview_html);
 
     unset($json['html'], $json['isPublished'], $json['isNew']);
     $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: json_encode($json, JSON_THROW_ON_ERROR)));

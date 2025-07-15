@@ -99,7 +99,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -135,7 +135,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -176,7 +176,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -226,7 +226,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
             'images' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -282,7 +282,7 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
             'images' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [

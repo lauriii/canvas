@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\BooleanCheckboxWidget;
@@ -12,6 +13,7 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
@@ -139,6 +141,15 @@ class PropSourceTest extends KernelTestBase {
       ],
     ]);
     $image2->save();
+
+    // Fixate the private key & hash salt to get predictable `itok`.
+    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
+    $settings_class = new \ReflectionClass(Settings::class);
+    $instance_property = $settings_class->getProperty('instance');
+    $settings = new Settings([
+      'hash_salt' => 'dynamic_image_style_hash_salt',
+    ]);
+    $instance_property->setValue(NULL, $settings);
   }
 
   /**
@@ -205,6 +216,7 @@ class PropSourceTest extends KernelTestBase {
       // Make it easier to write expectations containing root-relative URLs
       // pointing somewhere into the site-specific directory.
       $expected_user_value['src'] = str_replace('::SITE_DIR_BASE_URL::', \base_path() . $this->siteDirectory, $expected_user_value['src']);
+      $expected_user_value['src'] = str_replace(UrlHelper::encodePath('::SITE_DIR_BASE_URL::'), UrlHelper::encodePath(\base_path() . $this->siteDirectory), $expected_user_value['src']);
     }
     if (is_array($expected_user_value) && array_is_list($expected_user_value)) {
       foreach (array_keys($expected_user_value) as $i) {
@@ -212,6 +224,7 @@ class PropSourceTest extends KernelTestBase {
           // Make it easier to write expectations containing root-relative URLs
           // pointing somewhere into the site-specific directory.
           $expected_user_value[$i]['src'] = str_replace('::SITE_DIR_BASE_URL::', \base_path() . $this->siteDirectory, $expected_user_value[$i]['src']);
+          $expected_user_value[$i]['src'] = str_replace(UrlHelper::encodePath('::SITE_DIR_BASE_URL::'), UrlHelper::encodePath(\base_path() . $this->siteDirectory), $expected_user_value[$i]['src']);
         }
       }
     }
@@ -372,8 +385,8 @@ class PropSourceTest extends KernelTestBase {
         ],
       ],
       'value' => NULL,
-      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":null,"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}',
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":null,"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}',
       'field_widgets' => [
         NULL => EntityReferenceAutocompleteWidget::class,
         'media_library_widget' => MediaLibraryWidget::class,
@@ -409,21 +422,21 @@ class PropSourceTest extends KernelTestBase {
         ],
       ],
       'value' => [['target_id' => 2], ['target_id' => 1]],
-      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":[{"target_id":2},{"target_id":1}],"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image","anything_is_possible":"anything_is_possible"}}},"cardinality":5}}',
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}',
+      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":[{"target_id":2},{"target_id":1}],"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image","anything_is_possible":"anything_is_possible"}}},"cardinality":5}}',
       'field_widgets' => [
         NULL => EntityReferenceAutocompleteWidget::class,
         'media_library_widget' => MediaLibraryWidget::class,
       ],
       'expected_user_value' => [
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg',
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--{width}/public/image-3.jpg.webp?itok=6Jb0oZWl'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg',
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--{width}/public/image-2.jpg.webp?itok=dQpNrzPR'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,
@@ -771,11 +784,6 @@ class PropSourceTest extends KernelTestBase {
             'type' => 'integer',
             'title' => 'Image height',
           ],
-          "srcSetCandidateTemplate" => [
-            'type' => 'string',
-            'format' => 'uri-template',
-            'x-required-variables' => ['width'],
-          ],
         ],
       ],
       componentId: 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
@@ -784,7 +792,7 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
-    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"},"srcSetCandidateTemplate":{"type":"string","format":"uri-template","x-required-variables":["width"]}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
     $decoded = json_decode($json_representation, TRUE);
     // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
     // order for the JSON Schema definition it contains.

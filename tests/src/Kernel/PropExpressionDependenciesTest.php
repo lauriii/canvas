@@ -56,6 +56,11 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     'user',
     'file',
     'image',
+    'media',
+    'media_library',
+    'views',
+    // Ensure field type overrides are installed and hence testable.
+    'experience_builder',
   ];
 
   /**
@@ -68,6 +73,7 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     $this->installEntitySchema('taxonomy_term');
     $this->installEntitySchema('user');
     $this->installSchema('file', 'file_usage');
+    $this->installEntitySchema('media');
 
     // `article` node type.
     NodeType::create([
@@ -162,6 +168,13 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       $expression = $case[1];
       assert($expression instanceof StructuredDataPropExpressionInterface);
       $expected_dependencies = $case[2];
+      // Almost always, the content-aware dependencies are the same as the
+      // content-unaware ones, just with the `content` key-value pair omitted,
+      // if any.
+      $expected_content_unaware_dependencies = $case[3] ?? $expected_dependencies;
+      if (is_array($expected_content_unaware_dependencies)) {
+        $expected_content_unaware_dependencies = array_diff_key($expected_content_unaware_dependencies, array_flip(['content']));
+      }
 
       $test_case_precise_label = sprintf("%s (%s)", $test_case_label, (string) $expression);
 
@@ -204,7 +217,7 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       // a DynamicPropSource in a ContentTemplate: the content template applies
       // to many possible host entities, not any single one, so its
       // DynamicPropSources cannot possibly depend on any content entities.)
-      self::assertSame(array_diff_key($expected_dependencies, array_flip(['content'])), $expression->calculateDependencies(NULL), $test_case_precise_label);
+      self::assertSame($expected_content_unaware_dependencies, $expression->calculateDependencies(NULL), $test_case_precise_label);
     }
   }
 

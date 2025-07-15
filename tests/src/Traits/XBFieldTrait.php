@@ -33,7 +33,7 @@ trait XBFieldTrait {
       self::TEST_IMAGE_UUID => $dynamic_image ? [
         'image' => [
           'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+          'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
         ],
       ] : [
         'image' => [
@@ -136,7 +136,7 @@ trait XBFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.experience_builder.image@caab32397e0f3172',
+              'type' => 'sdc.experience_builder.image@c06e0be7dd131740',
               'slots' => [],
             ],
             [
@@ -204,7 +204,7 @@ trait XBFieldTrait {
           'source' => [
             'image' => [
               'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],
         ] : [
@@ -220,7 +220,7 @@ trait XBFieldTrait {
             'image' => [
               'value' => (int) $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [

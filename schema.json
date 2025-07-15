@@ -274,12 +274,6 @@
         "height": {
           "title": "Image height",
           "type": "integer"
-        },
-        "srcSetCandidateTemplate": {
-          "type": "string",
-          "title": "Image candidate string URL template for <img srcset>",
-          "format": "uri-template",
-          "x-required-variables": ["width"]
         }
       }
     },

@@ -15,6 +15,7 @@ final class ParametrizedImageStyleConverter implements ParamConverterInterface {
 
   // @todo Read this from third-party settings - https://drupal.org/i/3533563
   // @see config/install/image.style.xb_parametrized_width.yml
+  // @todo Fix hardcoding these widths in https://www.drupal.org/i/3533563.
   public const array ALLOWED_WIDTHS = [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840];
 
   /**

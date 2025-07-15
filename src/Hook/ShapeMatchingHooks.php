@@ -322,17 +322,13 @@ class ShapeMatchingHooks {
       Image::class => [
         'src' => new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression('entity_reference', 'entity'),
-          new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', \NULL, 'url')
-          )
+          // TRICKY: Additional computed property on image fields added by Experience Builder.
+          // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride
+          new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'src_with_alternate_widths'),
         ),
         'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'alt')),
         'width' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'width')),
         'height' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'height')),
-        // TRICKY: Additional computed property on image fields added by Experience Builder.
-        // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride
-        'srcSetCandidateTemplate' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'srcset_candidate_uri_template')),
       ],
       VideoFile::class => [
         'src' => new ReferenceFieldTypePropExpression(

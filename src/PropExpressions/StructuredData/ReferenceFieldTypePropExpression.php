@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\PropExpressions\StructuredData;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
@@ -73,6 +74,19 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
       throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->referencer->fieldType, $actual_field_type));
     }
     return TRUE;
+  }
+
+  /**
+   * @todo Consider adding such helpers to all StructuredDataPropExpressionInterface implementations?
+   * */
+  public function getFieldDefinition(): FieldDefinitionInterface {
+    if (!$this->referenced instanceof FieldPropExpression) {
+      throw new \LogicException('Not supported.');
+    }
+    // @phpstan-ignore-next-line
+    return $this->referenced->entityType
+      // @phpstan-ignore-next-line
+      ->getPropertyDefinition($this->referenced->fieldName);
   }
 
 }

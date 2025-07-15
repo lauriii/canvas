@@ -63,6 +63,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
       'inputs' => [
         'absence' => [
           'dynamic',
+          // @todo Allow adapters that consume a single shape and output that same single shape in https://www.drupal.org/project/experience_builder/issues/3536115
           'adapter',
         ],
         'presence' => NULL,

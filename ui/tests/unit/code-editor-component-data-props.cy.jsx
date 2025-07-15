@@ -909,8 +909,6 @@ describe('Component data / props in code editor', () => {
         selectCodeComponentProperty('props')(store.getState())[0].example,
       ).to.deep.equal({
         src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
-        // @todo Delete the following line in https://drupal.org/i/3532718.
-        srcSetCandidateTemplate: 'https://placehold.co/{width}x{height}@2x.png',
         width: 800,
         height: 600,
         alt: 'Example image placeholder',
@@ -985,9 +983,6 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: {
             src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
-            // @todo Delete the following line in https://drupal.org/i/3532718.
-            srcSetCandidateTemplate:
-              'https://placehold.co/{width}x{height}@2x.png',
             width: 800,
             height: 600,
             alt: 'Example image placeholder',
@@ -1037,9 +1032,6 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: {
             src: 'https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png',
-            // @todo Delete the following line in https://drupal.org/i/3532718.
-            srcSetCandidateTemplate:
-              'https://placehold.co/{width}x{height}@2x.png',
             width: 800,
             height: 600,
             alt: 'Example image placeholder',
@@ -1073,9 +1065,6 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: {
             src: 'https://placehold.co/1280x720@3x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%403x.png',
-            // @todo Delete the following line in https://drupal.org/i/3532718.
-            srcSetCandidateTemplate:
-              'https://placehold.co/{width}x{height}@3x.png',
             width: 1280,
             height: 720,
             alt: 'Example image placeholder',
@@ -1107,9 +1096,6 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: {
             src: 'https://placehold.co/1280x720@3x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%403x.png',
-            // @todo Delete the following line in https://drupal.org/i/3532718.
-            srcSetCandidateTemplate:
-              'https://placehold.co/{width}x{height}@3x.png',
             width: 1280,
             height: 720,
             alt: 'Example image placeholder',

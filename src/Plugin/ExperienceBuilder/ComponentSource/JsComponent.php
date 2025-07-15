@@ -141,7 +141,6 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $xb_path),
       '@/lib/FormattedText' => \sprintf('%s%s/ui/lib/astro-hydration/dist/FormattedText.js', $base_path, $xb_path),
       'next-image-standalone' => \sprintf('%s%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $base_path, $xb_path),
-      '@/lib/use-image-loader' => \sprintf('%s%s/ui/lib/astro-hydration/dist/use-image-loader.js', $base_path, $xb_path),
       '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $xb_path),
       '@drupal-api-client/json-api-client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $base_path, $xb_path),
       'drupal-jsonapi-params' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $base_path, $xb_path),

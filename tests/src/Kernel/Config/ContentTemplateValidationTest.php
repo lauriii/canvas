@@ -336,14 +336,14 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '7240f848-ea70-4ad2-a9d6-3ab60cba4d78',
           'component_id' => 'sdc.experience_builder.image',
-          'component_version' => '3a3d5862c2731770',
+          'component_version' => 'd3a3df7d7e68efc0',
           'inputs' => [
             'image' => [
               'sourceType' => 'adapter:image_apply_style',
               'adapterInputs' => [
                 'image' => [
                   'sourceType' => 'dynamic',
-                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
                 ],
                 'imageStyle' => [
                   'sourceType' => 'static:field_item:string',

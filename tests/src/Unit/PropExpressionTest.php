@@ -138,19 +138,19 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
         ],
       ],
 
@@ -174,8 +174,11 @@ class PropExpressionTest extends UnitTestCase {
             'node.type.news',
             'node.type.product',
             'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
             'field.field.node.news.field_photo',
+            'image.style.xb_parametrized_width',
             'field.field.node.product.field_product_packaging_photo',
+            'image.style.xb_parametrized_width',
           ],
         ],
       ],
@@ -295,7 +298,49 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         [
           'module' => ['node', 'file', 'node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'node.type.article', 'field.field.node.article.field_image'],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+          ],
+          'content' => ['file:file:some-image-uuid'],
+        ],
+      ],
+      [
+        'ℹ︎␜entity:node:article␝field_image␞␟{src↠src_with_alternate_widths,width↠width}',
+        new FieldObjectPropsExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, [
+          // SDC prop accepting an object, with >=1 mapped key-value pairs:
+          // 1. one (leaf) field property that is computed and has its own
+          // dependencies
+          'src' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'src_with_alternate_widths'),
+          // 2. one (leaf) field property
+          'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
+        ]),
+        [
+          'module' => ['node', 'file', 'file', 'node', 'file'],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+          ],
+          'content' => ['file:file:some-image-uuid'],
+        ],
+        [
+          'module' => ['node', 'file', 'node', 'file'],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+            'node.type.article',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+          ],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -323,6 +368,24 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
         [
           'module' => ['image'],
+        ],
+      ],
+      ['ℹ︎image␟src_with_alternate_widths', new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+        [
+          'module' => [
+            'image',
+            'image',
+            'file',
+            'image',
+          ],
+          'content' => [
+            'file:file:some-image-uuid',
+          ],
+        ],
+        [
+          'module' => [
+            'image',
+          ],
         ],
       ],
 

@@ -144,7 +144,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -270,7 +270,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $module_path),
         '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $module_path),
         'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $module_path),
-        '@/lib/use-image-loader' => \sprintf('%s/ui/lib/astro-hydration/dist/use-image-loader.js', $module_path),
         '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $module_path),
         '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $module_path),
         'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $module_path),
@@ -582,7 +581,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'image.style.xb_parametrized_width',
           'experience_builder.js_component.xb_test_code_components_vanilla_image',
         ],
-        'content' => [],
         'module' => [
           'file',
           'image',
@@ -945,16 +943,10 @@ final class JsComponentTest extends ComponentSourceTestBase {
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcSetCandidateTemplate' => [
-                  'type' => 'string',
-                  'title' => 'Image candidate string URL template for <img srcset>',
-                  'format' => 'uri-template',
-                  'x-required-variables' => ['width'],
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'default_values' => [
               'source' => [],
               'resolved' => [

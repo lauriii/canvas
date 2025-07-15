@@ -192,7 +192,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'field_widget' => 'media_library_widget',
       'default_value' => [],
-      'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+      'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
     ];
     try {
       $this->entity->createVersion('abcdef12343fa3dc')
@@ -202,7 +202,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected cb29c15222ba9715., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 922675dd0e16c16e., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
     }
 
     // Too little.

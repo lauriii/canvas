@@ -391,7 +391,7 @@ class ComponentTreeItemTest extends KernelTestBase {
               'inputs' => [
                 'image' => [
                   'sourceType' => 'dynamic',
-                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height}',
                 ],
               ],
             ],
@@ -449,7 +449,7 @@ class ComponentTreeItemTest extends KernelTestBase {
                   'adapterInputs' => [
                     'image' => [
                       'sourceType' => 'dynamic',
-                      'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
                     ],
                     'imageStyle' => [
                       'sourceType' => 'static:field_item:string',

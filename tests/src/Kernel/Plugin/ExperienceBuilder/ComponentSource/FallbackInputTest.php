@@ -149,7 +149,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
             'sourceType' => 'static:field_item:entity_reference',
             'value' => ['target_id' => $image->id()],
             // This expression resolves `src` to the image's public URL.
-            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
             'sourceTypeSettings' => [
               'storage' => ['target_type' => 'media'],
               'instance' => [

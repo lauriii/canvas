@@ -172,7 +172,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'inputs' => [
         'image' => [
           'sourceType' => 'dynamic',
-          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞␟value,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+          'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
         ],
       ],
     ]);
@@ -213,7 +213,6 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'module' => [
         'node',
         'file',
-        'node',
         'file',
         'node',
         'file',
@@ -223,9 +222,6 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
         'file',
       ],
       'config' => [
-        'node.type.alpha',
-        'field.field.node.alpha.field_hero',
-        'image.style.xb_parametrized_width',
         'node.type.alpha',
         'field.field.node.alpha.field_hero',
         'image.style.xb_parametrized_width',

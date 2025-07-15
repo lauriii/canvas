@@ -60,6 +60,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
    */
   protected static $modules = [
     'xb_test_sdc',
+    'image',
     'media',
     'node',
     'path',
@@ -110,6 +111,15 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       ],
       'sdc.xb_test_sdc.image-required-without-example' => [
         'Prop "image" is required, but does not have example value',
+      ],
+      'sdc.xb_test_sdc.image-srcset-candidate-template-uri' => [
+        // This test SDC does indeed not have a corresponding StaticPropSource,
+        // because its purpose is to test the ability for components to opt in
+        // to consuming additional computed properties on a field instance.
+        // See the `the image-srcset-candidate-template-uri component` test case
+        // in FieldForComponentSuggesterTest.
+        // @see \Drupal\Tests\experience_builder\Kernel\FieldForComponentSuggesterTest
+        'Experience Builder does not know of a field type/widget to allow populating the <code>srcSetCandidateTemplate</code> prop, with the shape <code>{"type":"string","format":"uri-template","x-required-variables":["width"]}</code>.',
       ],
       'sdc.xb_test_sdc.obsolete' => [
         'Component has "obsolete" status',
@@ -670,7 +680,7 @@ It\'s me, and I\'m small!
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -684,7 +694,7 @@ It\'s me, and I\'m small!
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -706,7 +716,7 @@ It\'s me, and I\'m small!
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -720,7 +730,7 @@ It\'s me, and I\'m small!
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -734,7 +744,7 @@ It\'s me, and I\'m small!
             // ⚠️ Empty default value.
             // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -874,7 +884,6 @@ It\'s me, and I\'m small!
         'config' => [
           'image.style.xb_parametrized_width',
         ],
-        'content' => [],
         'module' => [
           'core',
           'file',
@@ -886,7 +895,6 @@ It\'s me, and I\'m small!
         'config' => [
           'image.style.xb_parametrized_width',
         ],
-        'content' => [],
         'module' => [
           'file',
           'image',
@@ -897,7 +905,6 @@ It\'s me, and I\'m small!
         'config' => [
           'image.style.xb_parametrized_width',
         ],
-        'content' => [],
         'module' => [
           'core',
           'file',
@@ -909,7 +916,6 @@ It\'s me, and I\'m small!
         'config' => [
           'image.style.xb_parametrized_width',
         ],
-        'content' => [],
         'module' => [
           'file',
           'image',
@@ -920,7 +926,6 @@ It\'s me, and I\'m small!
         'config' => [
           'image.style.xb_parametrized_width',
         ],
-        'content' => [],
         'module' => [
           'file',
           'image',
@@ -1158,17 +1163,11 @@ It\'s me, and I\'m small!
                     'title' => 'Image height',
                     'type' => 'integer',
                   ],
-                  'srcSetCandidateTemplate' => [
-                    'type' => 'string',
-                    'title' => 'Image candidate string URL template for <img srcset>',
-                    'format' => 'uri-template',
-                    'x-required-variables' => ['width'],
-                  ],
                 ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'sourceTypeSettings' => [
               'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
             ],
@@ -1233,16 +1232,10 @@ It\'s me, and I\'m small!
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcSetCandidateTemplate' => [
-                  'type' => 'string',
-                  'title' => 'Image candidate string URL template for <img srcset>',
-                  'format' => 'uri-template',
-                  'x-required-variables' => ['width'],
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1298,16 +1291,10 @@ It\'s me, and I\'m small!
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcSetCandidateTemplate' => [
-                  'type' => 'string',
-                  'title' => 'Image candidate string URL template for <img srcset>',
-                  'format' => 'uri-template',
-                  'x-required-variables' => ['width'],
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1353,16 +1340,10 @@ It\'s me, and I\'m small!
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcSetCandidateTemplate' => [
-                  'type' => 'string',
-                  'title' => 'Image candidate string URL template for <img srcset>',
-                  'format' => 'uri-template',
-                  'x-required-variables' => ['width'],
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
         'transforms' => [],
@@ -1401,16 +1382,10 @@ It\'s me, and I\'m small!
                   'title' => 'Image height',
                   'type' => 'integer',
                 ],
-                'srcSetCandidateTemplate' => [
-                  'type' => 'string',
-                  'title' => 'Image candidate string URL template for <img srcset>',
-                  'format' => 'uri-template',
-                  'x-required-variables' => ['width'],
-                ],
               ],
             ],
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'default_values' => [
               'source' => [],
               'resolved' => [
@@ -1691,7 +1666,7 @@ It\'s me, and I\'m small!
         'source' => [
           'image' => [
             'sourceType' => 'static:field_item:image',
-            'expression' => 'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height,srcSetCandidateTemplate↠srcset_candidate_uri_template}',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
         'resolved' => [
@@ -1758,7 +1733,7 @@ It\'s me, and I\'m small!
         'sourceType' => 'static:field_item:entity_reference',
         'value' => ['target_id' => $image->id()],
         // This expression resolves `src` to the image's public URL.
-        'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+        'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
         'sourceTypeSettings' => [
           'storage' => ['target_type' => 'media'],
           'instance' => [

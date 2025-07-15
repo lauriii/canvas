@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\PropExpressions\StructuredData;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -112,7 +113,24 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
         default => NULL,
       };
       assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
-      $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definitions[$this->fieldName], $bundle));
+      $field_definition = $field_definitions[$this->fieldName];
+      $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definition, $bundle));
+
+      // Computed properties can have dependencies of their own.
+      if ($host_entity !== NULL) {
+        $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
+        if (!array_key_exists($this->propName, $property_definitions)) {
+          // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+          @trigger_error(sprintf('Property %s does not exist', $this->propName), E_USER_DEPRECATED);
+        }
+        elseif (is_a($property_definitions[$this->propName]->getClass(), DependentPluginInterface::class, TRUE)) {
+          assert($property_definitions[$this->propName]->isComputed());
+          foreach ($host_entity->get($this->fieldName) as $field_item) {
+            assert($field_item->get($this->propName) instanceof DependentPluginInterface);
+            $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($this->propName)->calculateDependencies());
+          }
+        }
+      }
     }
     else {
       assert(is_array($possible_bundles));

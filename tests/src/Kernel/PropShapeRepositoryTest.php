@@ -12,15 +12,12 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
@@ -223,14 +220,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=object&$ref=json-schema-definitions://experience_builder.module/image' => new StorablePropShape(
         shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
-          'src' => new ReferenceFieldTypePropExpression(
-            new FieldTypePropExpression('image', 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
-          ),
+          'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
           'width' => new FieldTypePropExpression('image', 'width'),
           'height' => new FieldTypePropExpression('image', 'height'),
-          'srcSetCandidateTemplate' => new FieldTypePropExpression('image', 'srcset_candidate_uri_template'),
         ]),
         fieldWidget: 'image_image',
       ),
@@ -501,14 +494,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2' => new StorablePropShape(
         shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
-          'src' => new ReferenceFieldTypePropExpression(
-            new FieldTypePropExpression('image', 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
-          ),
+          'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
           'width' => new FieldTypePropExpression('image', 'width'),
           'height' => new FieldTypePropExpression('image', 'height'),
-          'srcSetCandidateTemplate' => new FieldTypePropExpression('image', 'srcset_candidate_uri_template'),
         ]),
         cardinality: 2,
         fieldWidget: 'image_image',

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\Validation\Constraint;
 
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Utility\TypedDataHelper;
 
 trait ConfigComponentTreeTrait {
 
@@ -15,16 +15,9 @@ trait ConfigComponentTreeTrait {
    * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem
    */
   private function conjureFieldItemObject(array $value): ComponentTreeItem {
-    // @phpstan-ignore-next-line instanceof.alwaysTrue function.alreadyNarrowedType
-    assert($this->typedDataManager instanceof TypedDataManagerInterface);
-    $field_item_definition = $this->typedDataManager->createDataDefinition('field_item:component_tree');
-    $field_item = $this->typedDataManager->createInstance('field_item:component_tree', [
-      'name' => NULL,
-      'parent' => NULL,
-      'data_definition' => $field_item_definition,
-    ]);
-    $field_item->setValue($value);
+    $field_item = TypedDataHelper::conjureFieldItemObject(ComponentTreeItem::PLUGIN_ID);
     assert($field_item instanceof ComponentTreeItem);
+    $field_item->setValue($value);
     return $field_item;
   }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -25,6 +26,7 @@ use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
@@ -32,6 +34,8 @@ use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\PropSource;
 use Drupal\experience_builder\PropSource\PropSourceBase;
 use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\experience_builder\Utility\TypedDataHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -787,6 +791,21 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         foreach ($storable_prop_shape->fieldTypeProp->objectPropsToFieldTypeProps as $field_type_prop) {
           if ($field_type_prop instanceof ReferenceFieldTypePropExpression) {
             return TRUE;
+          }
+
+          // If this is a field property that computes the combination of
+          // multiple other field properties, then this property may actually
+          // also be relying on a (referenced) entity.
+          // @see \Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString
+          // @todo Consider dropping this in favor of adding adapter support in https://www.drupal.org/project/experience_builder/issues/3464003
+          if ($field_type_prop instanceof FieldTypePropExpression) {
+            $property = TypedDataHelper::conjureFieldItemObject($field_type_prop->fieldType)->getProperties(TRUE)[$field_type_prop->propName] ?? NULL;
+            assert($property !== NULL);
+            // Detect if this is a field property relying on other properties.
+            if (!$property instanceof DependentPluginInterface) {
+              continue;
+            }
+            return JsonSchemaFieldInstanceMatcher::propertyDependsOnReferencedEntity($property->getDataDefinition());
           }
         }
       }

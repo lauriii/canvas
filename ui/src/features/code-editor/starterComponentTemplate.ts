@@ -92,25 +92,14 @@ export default function getStarterComponentTemplate(componentName: string) {
 // A standalone version of next/image is available to output responsive images.
 // @see https://nextjs.org/docs/app/api-reference/components/image
 // @see https://www.npmjs.com/package/next-image-standalone
-// A loader function is also available to use with the Image component.
 // Example:
 //
 // import Image from "next-image-standalone";
-// import { useImageLoader } from "@/lib/use-image-loader";
 //
-// const Cover = ({ image }) => {
-//   const loader = useImageLoader(image.srcSetCandidateTemplate);
-//   return (
-//     <div>
-//       <Image
-//         src={image.src}
-//         alt={image.alt}
-//         width={image.width}
-//         height={image.height}
-//         loader={loader}
-//       />
-//     </div>
-//   );
+// // Make sure you have an image prop named "Photo".
+// const Cover = ({ photo }) => {
+//   const { src, alt, width, height } = photo;
+//   return <Image { ...{ src, alt, width, height } } />;
 // };
 //
 // export default Cover;

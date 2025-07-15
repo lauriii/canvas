@@ -129,8 +129,6 @@ export default function FormPropTypeImage({
         updates: {
           example: {
             src: `${IMAGE_SERVICE_URL}${aspectRatioData.width}x${aspectRatioData.height}${pixelDensitySuffix}.png?alternateWidths=${encodeURIComponent(alternateWidths)}`,
-            // @todo Delete the following line in https://drupal.org/i/3532718.
-            srcSetCandidateTemplate: alternateWidths,
             width: aspectRatioData.width,
             height: aspectRatioData.height,
             alt: 'Example image placeholder',

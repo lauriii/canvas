@@ -31,7 +31,6 @@ export default defineConfig({
               'tailwind-merge': 'tailwind-merge.js',
               'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
               'lib/astro-hydration/src/lib/next-image-standalone.tsx': 'next-image-standalone.js',
-              'lib/astro-hydration/src/lib/use-image-loader.ts': 'use-image-loader.js',
               'lib/astro-hydration/src/lib/utils.ts': 'util.js',
               'lib/astro-hydration/src/lib/jsonapi-client.ts': 'jsonapi-client.js',
               'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',

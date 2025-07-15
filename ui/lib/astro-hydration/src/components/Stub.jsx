@@ -15,7 +15,6 @@ const { ...tailwindMerge } = await import('tailwind-merge');
 const { cva } = await import('class-variance-authority');
 const FormattedText = await import('@/lib/FormattedText');
 const Image = await import('@/lib/next-image-standalone');
-const { useImageLoader } = await import('@/lib/use-image-loader');
 const { cn } = await import('@/lib/utils');
 const { JsonApiClient } = await import('@/lib/jsonapi-client');
 const { DrupalJsonApiParams } = await import('@/lib/jsonapi-params');

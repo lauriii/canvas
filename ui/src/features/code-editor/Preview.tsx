@@ -83,7 +83,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         'tailwind-merge': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/tailwind-merge.js`,
         '@/lib/FormattedText': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/FormattedText.js`,
         'next-image-standalone': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/next-image-standalone.js`,
-        '@/lib/use-image-loader': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/use-image-loader.js`,
         '@/lib/utils': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
         '@/components/': Drupal.url('xb/api/v0/auto-saves/js/js_component/'),
         '@drupal-api-client/json-api-client': `${XB_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-client.js`,

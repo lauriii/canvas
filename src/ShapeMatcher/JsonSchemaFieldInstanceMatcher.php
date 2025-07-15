@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\ShapeMatcher;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
@@ -36,6 +37,9 @@ use Drupal\experience_builder\Plugin\AdapterManager;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
@@ -385,21 +389,7 @@ final class JsonSchemaFieldInstanceMatcher {
           // Only follow entity references, as deep as specified.
           // @see ::findFieldTypeStorageCandidates()
           if ($property_definition instanceof DataReferenceDefinitionInterface && is_a($property_definition->getClass(), EntityReference::class, TRUE)) {
-            $target = $property_definition->getTargetDefinition();
-            assert($target instanceof EntityDataDefinitionInterface);
-            // When referencing an entity, enrich the EntityDataDefinition with
-            // constraints that are imposed by the entity reference field, to
-            // narrow the matching.
-            // @todo Generalize this so it works for all entity reference field types that do not allow *any* entity of the target entity type to be selected
-            if (is_a($field_definition->getItemDefinition()->getClass(), FileItem::class, TRUE)) {
-              $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
-                'name' => $field_definition->getName(),
-                'parent' => NULL,
-                'data_definition' => $field_definition->getItemDefinition(),
-              ]);
-              assert($field_item instanceof FileItem);
-              $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
-            }
+            $target = $this->getConstrainedTargetDefinition($field_definition, $property_definition);
 
             // Matches in $target:
             // - both base + bundle fields if <=1 bundle is specified
@@ -438,18 +428,42 @@ final class JsonSchemaFieldInstanceMatcher {
           }
         }
         else {
-          $entity_constraints = $entity_data_definition->getConstraints();
-          if (!empty($entity_constraints)) {
+          // Extra care is necessary when matching properties on File entities:
+          // any properties on the `uri` field is crucial for shape matching
+          // against the expected *type* of file.
+          // @todo Refactor or ideally remove in https://www.drupal.org/project/experience_builder/issues/3530351.
+
+          // A property in a File entity's URI field.
+          $is_file_uri_field = $entity_data_definition->getEntityTypeId() === 'file'
+            && is_a($field_definition->getItemDefinition()->getClass(), FileUriItem::class, TRUE);
+
+          // Any computed field property that depends on an entity reference
+          // may be pointing to a File entity's URI field.
+          $depends_on_file_uri_field = $property_definition->isComputed()
+            && self::propertyDependsOnReferencedEntity($property_definition)
+            // @phpstan-ignore-next-line argument.type
+            && is_a(self::getReferenceDependency($property_definition)->getFieldDefinition()->getItemDefinition()->getClass(), FileUriItem::class, TRUE);
+
+          // If either of those are true, the File entity's `FileExtension`
+          // constraint must be reflected at the field property level to allow
+          // for correct shape matching.
+          $file_entity_constraints = match (TRUE) {
+            $is_file_uri_field => $entity_data_definition->getConstraints(),
+            // @phpstan-ignore-next-line argument.type
+            $depends_on_file_uri_field => $this->getConstrainedTargetDefinition($field_definition, self::getReferenceDependency($property_definition))->getConstraints(),
+            default => [],
+          };
+          if (!empty($file_entity_constraints)) {
             // Transform an entity-level `FileExtension` constraint to
             // corresponding property-level constraint.
             // @see \Drupal\file\Plugin\Validation\Constraint\FileExtensionConstraintValidator
-            if (array_key_exists('FileExtension', $entity_data_definition->getConstraints()) && is_a($field_definition->getItemDefinition()->getClass(), FileUriItem::class, TRUE)) {
+            if (array_key_exists('FileExtension', $file_entity_constraints)) {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
               $transformed_property_data_definition = clone $property_definition;
               // JSON schema does not support case-insensitive matching (?i)! https://json-schema.org/understanding-json-schema/reference/regular_expressions
               // But we can bypass it with a regexp without modifiers.
-              $ci_extensions = $this->buildCaseInsensitiveExtensionRegex($entity_constraints['FileExtension']['extensions']);
+              $ci_extensions = $this->buildCaseInsensitiveExtensionRegex($file_entity_constraints['FileExtension']['extensions']);
               $trailing_uri_regex_pattern = '\.(' . $ci_extensions . ')(\?.*)?(#.*)?$';
               // If a `Regex` constraint exists, expand it to also match the trailing part.
               // @todo verify the regex constraint currently only matches the leading part.
@@ -494,6 +508,14 @@ final class JsonSchemaFieldInstanceMatcher {
             $property_name,
             $field_item,
           );
+          // 💡 Debugging tip: put a conditional breakpoint here when figuring
+          // out why a particular field instance prop is not being matched, use
+          // a condition like
+          // @code
+          // (string) $current_entity_field_prop == 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths'
+          // @endcode
+          // And add a test case to FieldForComponentSuggesterTest::provider(),
+          // that will allow hitting this point in seconds.
           if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
             $matches[] = $current_entity_field_prop;
           }
@@ -806,6 +828,68 @@ final class JsonSchemaFieldInstanceMatcher {
    */
   public function findAdaptersByMatchingOutput(array $schema): array {
     return $this->adapterManager->getDefinitionsByOutputSchema($schema);
+  }
+
+  private function getConstrainedTargetDefinition(FieldDefinitionInterface $field_definition, ReferenceFieldTypePropExpression|DataReferenceDefinitionInterface $expr_or_property_definition): EntityDataDefinitionInterface {
+    if ($expr_or_property_definition instanceof ReferenceFieldTypePropExpression) {
+      $expr = $expr_or_property_definition;
+      $field_properties = $field_definition->getFieldStorageDefinition()
+        ->getPropertyDefinitions();
+      $property_definition = $field_properties[$expr->referencer->propName];
+    }
+    else {
+      $property_definition = $expr_or_property_definition;
+    }
+    assert($property_definition instanceof DataReferenceDefinitionInterface);
+    assert(is_a($property_definition->getClass(), EntityReference::class, TRUE));
+
+    $target = $property_definition->getTargetDefinition();
+    assert($target instanceof EntityDataDefinitionInterface);
+    // When referencing an entity, enrich the EntityDataDefinition with
+    // constraints that are imposed by the entity reference field, to
+    // narrow the matching.
+    // @todo Generalize this so it works for all entity reference field types that do not allow *any* entity of the target entity type to be selected
+    if (is_a($field_definition->getItemDefinition()->getClass(), FileItem::class, TRUE)) {
+      $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
+        'name' => $field_definition->getName(),
+        'parent' => NULL,
+        'data_definition' => $field_definition->getItemDefinition(),
+      ]);
+      assert($field_item instanceof FileItem);
+      $target->addConstraint('FileExtension', $field_item->getUploadValidators()['FileExtension']);
+    }
+    return $target;
+  }
+
+  public static function propertyDependsOnReferencedEntity(DataDefinitionInterface $data_definition): bool {
+    return self::getReferenceDependency($data_definition) !== NULL;
+  }
+
+  private static function getReferenceDependency(DataDefinitionInterface $data_definition): ?ReferenceFieldTypePropExpression {
+    assert(!str_starts_with($data_definition->getDataType(), 'field_item:'));
+
+    if (!$data_definition->isReadOnly() && is_a($data_definition->getClass(), DependentPluginInterface::class, TRUE)) {
+      return NULL;
+    }
+
+    // Find StructuredDataPropExpressions in the property's settings.
+    $settings = $data_definition->getSettings();
+    $found_expressions = [];
+    array_walk_recursive($settings, function ($current) use (&$found_expressions) {
+      if (is_string($current) && str_starts_with($current, StructuredDataPropExpressionInterface::PREFIX)) {
+        $found_expressions[] = $current;
+      }
+    });
+
+    // Check if >=1 relies on an entity reference.
+    foreach ($found_expressions as $found_expression) {
+      $expression = StructuredDataPropExpression::fromString($found_expression);
+      if ($expression instanceof ReferenceFieldTypePropExpression) {
+        return $expression;
+      }
+    }
+
+    return NULL;
   }
 
 }

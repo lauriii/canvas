@@ -64,7 +64,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => '993cf84a-df55-41c6-bda9-a8bb616a48d0',
             'component_id' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
-            'component_version' => '271408b1d62d660b',
+            'component_version' => '602623740c98a6cf',
             'inputs' => [
               'heading' => [
                 'sourceType' => 'static:field_item:string',

@@ -132,7 +132,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
-        'component_version' => 'caab32397e0f3172',
+        'component_version' => 'c06e0be7dd131740',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -185,7 +185,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.experience_builder.image',
-        'component_version' => 'caab32397e0f3172',
+        'component_version' => 'c06e0be7dd131740',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -255,7 +255,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_IMAGE_UUID,
-          'type' => 'sdc.experience_builder.image@caab32397e0f3172',
+          'type' => 'sdc.experience_builder.image@c06e0be7dd131740',
           'slots' => [],
         ],
         [
@@ -310,7 +310,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
             'image' => [
               'value' => $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height,srcSetCandidateTemplate↝entity␜␜entity:media:image␝field_media_image␞␟srcset_candidate_uri_template}',
+              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
