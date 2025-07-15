@@ -22,6 +22,7 @@ import ReviewErrors from '@/components/review/ReviewErrors';
 import PermissionCheck from '@/components/PermissionCheck';
 import { Divider } from '@/features/code-editor/component-data/FormElement';
 import ChangeList from './changes/ChangeList';
+import clsx from 'clsx';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 
@@ -35,7 +36,8 @@ interface PublishReviewProps {
   onOpenChangeCallback: (open: boolean) => void;
   isPublishing: boolean;
   isDiscarding: boolean;
-  isFetching: boolean;
+  isFetching: boolean; // indicates if the list of autosaved changes is being fetched
+  isUpdating: boolean; // indicates if the preview is being updated
 }
 
 const PublishReview: React.FC<PublishReviewProps> = ({
@@ -49,12 +51,13 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   isPublishing = false,
   isDiscarding = false,
   isFetching = false,
+  isUpdating = false,
 }) => {
   // State to manage the open/close state of the popover
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   // Single source to determine if something is happening
-  const isBusy = isPublishing || isDiscarding || isFetching;
+  const isBusy = isUpdating || isPublishing || isDiscarding || isFetching;
 
   // State to manage selected changes
   const [selectedChanges, setSelectedChanges] = useState<UnpublishedChange[]>(
@@ -82,11 +85,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   // The trigger button text changes based on the pending changes
   const triggerButtonText = useMemo(() => {
-    if (isFetching) return 'Please wait';
     if (!changes?.length) return 'No changes';
     if (changes.length === 1) return 'Review 1 change';
     return `Review ${changes.length} changes`;
-  }, [isFetching, changes]);
+  }, [changes]);
 
   // The button caption changes based on the state of the review
   const buttonText = useMemo(() => {
@@ -136,6 +138,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   };
 
   const onOpenChangeHandler = (open: boolean): void => {
+    if (isFetching) return;
     setHasPublished(false);
     setIsOpen(open);
     onOpenChangeCallback(open);
@@ -146,11 +149,14 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       <Popover.Trigger>
         <Button
           variant="solid"
-          disabled={!changes?.length || isFetching}
+          disabled={!changes?.length || isBusy}
           data-testid="xb-publish-review"
+          className={clsx(styles.triggerButton, {
+            [styles.disableClick]: isBusy,
+            [styles.noChanges]: !changes?.length,
+          })}
         >
           {triggerButtonText}
-          <Spinner loading={isFetching} />
         </Button>
       </Popover.Trigger>
       <Popover.Content

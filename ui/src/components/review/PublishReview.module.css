@@ -2,9 +2,19 @@
   cursor: pointer;
 }
 
-.disabled {
-  opacity: 0.5;
+.triggerButton[disabled]:not(.noChanges) {
+  color: white !important;
+  background-color: var(--blue-9) !important;
+}
+
+.disableClick {
+  cursor: wait !important;
   pointer-events: none;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
   a, .time {
     color: var(--gray-10);
   }

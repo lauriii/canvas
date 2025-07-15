@@ -32,7 +32,9 @@ const Preview: React.FC<PreviewProps> = () => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const selectedComponentId = selectedComponent || 'noop';
   const entity_form_fields = useAppSelector(selectPageData);
-  const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation();
+  const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation({
+    fixedCacheKey: 'canvasPreview',
+  });
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponentId),
   );

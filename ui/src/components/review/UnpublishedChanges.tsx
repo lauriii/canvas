@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import type { PendingChanges } from '@/services/pendingChangesApi';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -24,16 +24,17 @@ import {
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
 import { findInChanges } from '@/utils/function-utils';
-import {
-  selectLayout,
-  selectModel,
-  setUpdatePreview,
-} from '@/features/layout/layoutModelSlice';
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import {
   selectPageData,
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
 import { contentApi } from '@/services/content';
+import {
+  usePostPreviewMutation,
+  useUpdateComponentMutation,
+} from '@/services/preview';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 
 const REFETCH_INTERVAL_MS = 10000;
 
@@ -41,10 +42,17 @@ const UnpublishedChanges = () => {
   const previousPendingChanges = useAppSelector(selectPreviousPendingChanges);
   const conflicts = useAppSelector(selectConflicts);
   const errorResponse = useAppSelector(selectErrors);
+  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const [publishAllChanges, { isLoading: isPublishing }] =
     usePublishAllPendingChangesMutation();
   const [discardChange, { isLoading: isDiscarding }] =
     useDiscardPendingChangeMutation();
+  const [, { isLoading: isUpdatingComponent }] = useUpdateComponentMutation({
+    fixedCacheKey: selectedComponent,
+  });
+  const [, { isLoading: isUpdatingPreview }] = usePostPreviewMutation({
+    fixedCacheKey: 'canvasPreview',
+  });
   const [pollingInterval, setPollingInterval] =
     useState<number>(REFETCH_INTERVAL_MS);
   const {
@@ -60,9 +68,10 @@ const UnpublishedChanges = () => {
   const entityType = useAppSelector(selectEntityType);
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
-  const layout = useAppSelector(selectLayout);
-  const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
+
+  // If either the selected component or the preview layout is being updated, disable the Publish button.
+  const isUpdating = isUpdatingComponent || isUpdatingPreview;
 
   useEffect(() => {
     if (error) {
@@ -80,18 +89,6 @@ const UnpublishedChanges = () => {
         .sort((a, b) => b.updated - a.updated),
     [changes],
   );
-
-  const manualRefetch = useCallback(() => {
-    // only refetch the list of pending changes if this entity is not already in the list.
-    if (changes && !findInChanges(changes, entityId, entityType)) {
-      refetch();
-    }
-  }, [changes, entityId, entityType, refetch]);
-
-  // if the layout, model or form fields change, immediately check for pending changes
-  useEffect(() => {
-    manualRefetch();
-  }, [layout, model, entity_form_fields, manualRefetch]);
 
   useEffect(() => {
     if (previousPendingChanges) refetch();
@@ -256,6 +253,7 @@ const UnpublishedChanges = () => {
 
   return (
     <PublishReview
+      isUpdating={isUpdating}
       isFetching={isFetching}
       changes={unpublishedChanges}
       errors={errorResponse}
