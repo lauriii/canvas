@@ -34,15 +34,18 @@ export const pageDataSlice = createSlice({
         };
       },
     ),
-    internalUpdateComplete: create.reducer(
+    externalUpdateComplete: create.reducer(
       (state, action: PayloadAction<string>) => {
         const { externalUpdates } = state;
         if (externalUpdates && action.payload) {
+          const updatedExternalUpdates = externalUpdates.filter(
+            (field: string) => {
+              return action.payload !== field;
+            },
+          );
           return {
             ...state,
-            externalUpdates: externalUpdates.filter(
-              (field: string) => action.payload !== field,
-            ),
+            externalUpdates: updatedExternalUpdates,
           };
         }
         return state;
@@ -50,10 +53,11 @@ export const pageDataSlice = createSlice({
     ),
     updatePageDataExternally: create.reducer(
       (state, action: PayloadAction<Values>) => {
+        const externalUpdates = state?.externalUpdates || [];
         return {
           ...state,
           ...action.payload,
-          externalUpdates: Object.keys(action.payload),
+          externalUpdates: [...externalUpdates, ...Object.keys(action.payload)],
         };
       },
     ),
@@ -63,8 +67,8 @@ export const pageDataSlice = createSlice({
 export const {
   setPageData,
   setInitialPageData,
-  internalUpdateComplete,
   updatePageDataExternally,
+  externalUpdateComplete,
 } = pageDataSlice.actions;
 
 export const pageDataReducer = pageDataSlice.reducer;

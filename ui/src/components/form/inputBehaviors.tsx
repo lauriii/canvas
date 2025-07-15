@@ -36,7 +36,7 @@ import addDraft2019 from 'ajv-formats-draft2019';
 import {
   selectPageData,
   setPageData,
-  internalUpdateComplete,
+  externalUpdateComplete,
 } from '@/features/pageData/pageDataSlice';
 import type { FormId } from '@/features/form/formStateSlice';
 import { selectCurrentComponent } from '@/features/form/formStateSlice';
@@ -116,11 +116,19 @@ const InputBehaviorsCommon = ({
 
   // @todo this is page data specific and should probably be moved to
   //  EntityFormBehaviors in https://drupal.org/i/3535569.
-  const forceUpdateInputValue = async (
-    fieldName: string,
-    theNewValue: string,
-  ) => {
-    await internalUpdateComplete(fieldName);
+  const forceUpdateInputValue = (fieldName: string, theNewValue: string) => {
+    dispatch(externalUpdateComplete(fieldName));
+    const syntheticEvent = {
+      target: {
+        name: fieldName,
+        value: theNewValue,
+      },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+    // Ignore TS to avoid adding several properties that are not needed for the
+    // way that the onChange handler is used.
+    // @ts-ignore
+    attributes?.onChange?.(syntheticEvent);
     setInputValue(theNewValue);
   };
 
@@ -132,7 +140,9 @@ const InputBehaviorsCommon = ({
     pageData.externalUpdates.includes(fieldName) &&
     pageData[fieldName]
   ) {
-    forceUpdateInputValue(fieldName, pageData[fieldName]);
+    setTimeout(() => {
+      forceUpdateInputValue(fieldName, pageData[fieldName]);
+    });
   }
 
   const fieldIdentifier = {
