@@ -636,9 +636,7 @@ playwright:
     - !reference [ .drupal ]
   script:
     - npm install
-    ## This is also running eslint and prettier, but it currently only applies
-    ## to the Playwright tests so we might as well run it here.
-    - npx npm-run-all --continue-on-error --parallel test:*
+    - npx npm-run-all --continue-on-error --parallel test:playwright
   after_script:
     - mkdir -p $CI_PROJECT_DIR/logs
     - cp -R /var/log/apache2 $CI_PROJECT_DIR/logs/apache2
@@ -656,3 +654,20 @@ playwright:
     reports:
       junit:
         - test-results/playwright.xml
+
+playwright code style:
+  stage: validate
+  image: node:20-alpine
+  allow_failure: false
+  needs: []
+  rules:
+    - *is-push-rule
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - tests/src/Playwright/*
+        - tests/src/Playwright/**/*
+    - *manual-rule
+  script:
+    - npm ci
+    - npm run test:eslint
+    - npm run test:prettier
