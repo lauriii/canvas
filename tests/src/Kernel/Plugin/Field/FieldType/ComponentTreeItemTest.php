@@ -9,6 +9,7 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -71,6 +72,73 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema('node_type');
     $this->installEntitySchema('node');
+  }
+
+  /**
+   * @covers ::setValue
+   * @covers ::onChange
+   */
+  public function testSetValue(): void {
+    $this->generateComponentConfig();
+    $component = Component::load('sdc.xb_test_sdc.props-slots');
+    assert($component !== NULL);
+
+    // The test Component has a single version; create a second version.
+    self::assertCount(1, $component->getVersions());
+    $settings = $component->getSettings();
+    $settings['prop_field_definitions']['heading']['default_value'][0]['value'] = 'Updated example value 👋';
+    $component->createVersion('a9ff855f3d425e0d')
+      ->setSettings($settings)
+      ->save();
+    $violations = $component->getTypedData()->validate();
+    self::assertSame([], self::violationsToArray($violations));
+    self::assertCount(2, $component->getVersions());
+
+    // A helper method to set 2 instances of the exact same component to two
+    // different versions, and assert that this is A) valid, B) successful.
+    $set_values = function (ComponentTreeItemList $item_list) use ($component) {
+      $inputs = [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'This is really tricky for a first-timer …',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ];
+      $item_list->setValue([
+        [
+          'uuid' => '947c196f-f108-43fd-a446-03a08100d571',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          // ⚠️ Note the absence of a component version!
+          'inputs' => $inputs,
+        ],
+        [
+          'uuid' => '947c196f-f108-43fd-a446-03a08100d572',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_version' => $component->getVersions()[1],
+          'inputs' => $inputs,
+        ],
+      ]);
+      $violations = $item_list->validate();
+      self::assertSame([], self::violationsToArray($violations));
+      self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(0));
+      self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(1));
+      self::assertSame($component->getActiveVersion(), $item_list->get(0)->getComponentVersion());
+      self::assertSame($component->getVersions()[0], $item_list->get(0)->getComponentVersion());
+      self::assertSame($component->getVersions()[1], $item_list->get(1)->getComponentVersion());
+    };
+
+    // Create a component tree item list using the oldest version; then try
+    // editing it. The component version should not change.
+    $component_tree = $this->createDanglingComponentTreeItemList();
+
+    // Iteration 1: populate the empty component tree item list.
+    self::assertTrue($component_tree->isEmpty());
+    $set_values($component_tree);
+
+    // Iteration 2: check idempotency — setting the same values should yield the
+    // same result. Anything else would be data loss.
+    self::assertFalse($component_tree->isEmpty());
+    $set_values($component_tree);
   }
 
   /**
