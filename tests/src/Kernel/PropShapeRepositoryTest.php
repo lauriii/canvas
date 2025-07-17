@@ -12,12 +12,15 @@ use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
@@ -226,6 +229,17 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'height' => new FieldTypePropExpression('image', 'height'),
         ]),
         fieldWidget: 'image_image',
+      ),
+      'type=object&$ref=json-schema-definitions://experience_builder.module/video' => new StorablePropShape(
+        new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+          'src' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          ),
+        ]),
+        fieldInstanceSettings: ['file_extensions' => 'mp4'],
+        fieldWidget: 'file_generic',
       ),
       'type=string&$ref=json-schema-definitions://experience_builder.module/heading-element' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'enum' => ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']]),
@@ -516,7 +530,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       'type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),
-      'type=object&$ref=json-schema-definitions://experience_builder.module/video' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::DURATION->value]),
       'type=string&format=hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::HOSTNAME->value]),
       'type=string&format=idn-hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IDN_HOSTNAME->value]),

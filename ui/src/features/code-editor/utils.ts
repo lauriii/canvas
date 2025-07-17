@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { camelCase, isEqual } from 'lodash';
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
+import { getXbModuleBaseUrl } from '@/utils/drupal-globals';
 
 import type {
   CodeComponentProp,
@@ -11,8 +12,10 @@ import type {
   CodeComponentPropImageExample,
   CodeComponent,
   CodeComponentSerialized,
+  CodeComponentPropVideoExample,
 } from '@/types/CodeComponent';
 import type { File } from '@babel/types';
+import { CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 
 export function getPropMachineName(name: string) {
   return camelCase(name);
@@ -119,15 +122,23 @@ export function serializeProps(props: CodeComponentProp[]) {
           format,
           contentMediaType,
           'x-formatting-context': xFormattingContext,
+          derivedType,
         } = prop;
         const isNumberType = ['integer', 'number'].includes(type);
+        const isVideo = derivedType === 'video';
         const processed: CodeComponentPropSerialized = {
           title: name,
           type,
           // The example is taken from the prop if it's a truthy value, or a
           // boolean false value (which could be an example of a boolean prop).
           ...((example || example === false) && {
-            examples: [isNumberType ? Number(example) : example],
+            examples: [
+              isNumberType
+                ? Number(example)
+                : isVideo && typeof example === 'object'
+                  ? serializeVideoSrc(example as CodeComponentPropVideoExample)
+                  : example,
+            ],
           }),
           ...(enumValues && {
             enum: isNumberType ? enumValues.map(Number) : enumValues,
@@ -178,9 +189,15 @@ export function deserializeProps(
       'x-formatting-context': xFormattingContext,
     } = prop;
     let example: CodeComponentProp['example'] = '';
+    const derivedType =
+      derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
+    const isVideo = derivedType == 'video';
+
     if (examples?.length) {
       if (type === 'object') {
-        example = examples[0] as unknown as CodeComponentPropImageExample;
+        example = examples[0] as unknown as
+          | CodeComponentPropImageExample
+          | CodeComponentPropVideoExample;
       } else if (type === 'boolean') {
         example = examples[0] as unknown as boolean;
       } else {
@@ -188,14 +205,14 @@ export function deserializeProps(
       }
     }
 
-    const derivedType =
-      derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
-
     const deserializedProp = {
       id: uuidv4(),
       name: title,
       type,
-      example,
+      example:
+        isVideo && typeof example === 'object'
+          ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
+          : example,
       ...(enumValues && { enum: enumValues.map(String) }),
       ...($ref && { $ref }),
       ...(format && { format }),
@@ -335,4 +352,27 @@ export function detectValidPropOrSlotChange(
 
   // There are other changes besides empty-named items
   return true;
+}
+
+function serializeVideoSrc(example: CodeComponentPropVideoExample) {
+  const allowedExamplesForServer = Object.values(CONFIG_EXAMPLE_URLS);
+  for (const allowedPath of allowedExamplesForServer) {
+    if (example.src.endsWith(allowedPath as string)) {
+      return { ...example, src: allowedPath as string };
+    }
+  }
+  // If no match, return the original.
+  return example;
+}
+
+function deserializeVideoSrc(example: CodeComponentPropVideoExample) {
+  const moduleBaseUrl = getXbModuleBaseUrl();
+  const configExampleUrls = Object.values(CONFIG_EXAMPLE_URLS);
+  for (const configUrl of configExampleUrls) {
+    if (example.src.includes(configUrl)) {
+      const pathForPreview = `${moduleBaseUrl}${configUrl}`;
+      return { ...example, src: pathForPreview as string };
+    }
+  }
+  return example;
 }

@@ -28,6 +28,7 @@ vi.mock('@/utils/drupal-globals', () => ({
       };
     }
   },
+  getXbModuleBaseUrl: () => '/modules/contrib/experience_builder',
 }));
 
 vi.mock('@swc/wasm-web', () => ({

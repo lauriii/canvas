@@ -29,11 +29,13 @@ import {
 import type {
   CodeComponentProp,
   CodeComponentPropImageExample,
+  CodeComponentPropVideoExample,
 } from '@/types/CodeComponent';
 import { getPropMachineName } from '@/features/code-editor/utils';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
+import FormPropTypeVideo from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 
 export default function Props() {
   const dispatch = useAppDispatch();
@@ -171,6 +173,15 @@ export default function Props() {
                 <FormPropTypeImage
                   id={prop.id}
                   example={prop.example as CodeComponentPropImageExample}
+                  isDisabled={componentStatus}
+                  required={required.includes(propName)}
+                />
+              );
+            case 'video':
+              return (
+                <FormPropTypeVideo
+                  id={prop.id}
+                  example={prop.example as CodeComponentPropVideoExample}
                   isDisabled={componentStatus}
                   required={required.includes(propName)}
                 />

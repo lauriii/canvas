@@ -13,6 +13,7 @@ use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
@@ -26,6 +27,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\media\Entity\MediaType;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -53,6 +55,11 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   protected static $modules = [
     'xb_test_code_components',
+    // For testing a code component using the "video" prop shape.
+    'field',
+    'media_library',
+    'views',
+    'xb_test_video_fixture',
   ];
 
   /**
@@ -62,6 +69,26 @@ final class JsComponentTest extends ComponentSourceTestBase {
     parent::setUp();
     $this->assetResolver = $this->container->get(AssetResolverInterface::class);
     $this->codeComponentDataProvider = $this->container->get(CodeComponentDataProvider::class);
+
+    // For testing a code component using the "video" prop shape.
+    $this->installEntitySchema('media');
+    $this->installEntitySchema('field_storage_config');
+    $this->installEntitySchema('field_config');
+    $media_type = MediaType::create([
+      'id' => 'video',
+      'label' => 'Video',
+      'source' => 'video_file',
+    ]);
+    $media_type->save();
+    $source_field = $media_type->getSource()->createSourceField($media_type);
+    // @phpstan-ignore-next-line
+    $source_field->getFieldStorageDefinition()->save();
+    $source_field->save();
+    $media_type
+      ->set('source_configuration', [
+        'source_field' => $source_field->getName(),
+      ])
+      ->save();
   }
 
   protected function generateComponentConfig(): void {
@@ -128,6 +155,51 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
   public static function getExpectedSettings(): array {
     return [
+      'js.xb_test_code_components_captioned_video' => [
+        'prop_field_definitions' => [
+          'caption' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              ['value' => 'A video'],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'displayWidth' => [
+            'field_type' => 'list_integer',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              ['value' => 400],
+            ],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
+          'video' => [
+            'field_type' => 'entity_reference',
+            'field_storage_settings' => [
+              'target_type' => 'media',
+            ],
+            'field_instance_settings' => [
+              'handler' => 'default:media',
+              'handler_settings' => [
+                'target_bundles' => [
+                  'video' => 'video',
+                ],
+              ],
+            ],
+            'field_widget' => 'media_library_widget',
+            // ⚠️ Empty default value.
+            // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:video␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url}',
+          ],
+        ],
+      ],
       'js.xb_test_code_components_using_drupalsettings' => [
         'prop_field_definitions' => [],
       ],
@@ -280,6 +352,29 @@ final class JsComponentTest extends ComponentSourceTestBase {
     ];
 
     $this->assertEquals([
+      'js.xb_test_code_components_captioned_video' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags([
+            'config:experience_builder.js_component.xb_test_code_components_captioned_video',
+          ]),
+        'attachments' => [
+          'library' => [
+            'experience_builder/astro_island.xb_test_code_components_captioned_video',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/1PcAZQSkckmMSZ3XOvm8e4GTnc7DaSei5KVZ6t-eKG8.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
       'js.xb_test_code_components_using_imports' => [
         'cacheability' => (clone $default_cacheability)
           ->setCacheTags([
@@ -560,12 +655,80 @@ final class JsComponentTest extends ComponentSourceTestBase {
     }
   }
 
+  public function testRewriteExampleUrl(): void {
+    self::assertNull(Component::load('js.xb_test_code_components_captioned_video'));
+    $this->generateComponentConfig();
+    $video_component = Component::load('js.xb_test_code_components_captioned_video');
+    // @phpstan-ignore-next-line staticMethod.impossibleType
+    self::assertInstanceOf(ComponentInterface::class, $video_component);
+
+    $source = $video_component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    // Assert that the two example videos XB ships with are rewritten to include
+    // the relative path on the current site.
+    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('experience_builder');
+    self::assertSame(\base_path() . $module_path . JsComponent::EXAMPLE_VIDEO_HORIZONTAL, $source->rewriteExampleUrl(JsComponent::EXAMPLE_VIDEO_HORIZONTAL));
+    self::assertSame(\base_path() . $module_path . JsComponent::EXAMPLE_VIDEO_VERTICAL, $source->rewriteExampleUrl(JsComponent::EXAMPLE_VIDEO_VERTICAL));
+
+    // Assert that full URLs are left alone.
+    self::assertSame('https://www.example.com/', $source->rewriteExampleUrl('https://www.example.com/'));
+
+    // Assert that any other `/ui/assets/…` URL is disallowed, not even one to
+    // the containing directory.
+    // Rationale: avoid security concerns by not relying on file_exists(),
+    // potential bypasses of that, and instead only have 2 allowed examples.
+    try {
+      self::assertSame('/ui/assets/videos', dirname(JsComponent::EXAMPLE_VIDEO_VERTICAL));
+      $source->rewriteExampleUrl('/ui/assets/videos');
+      $this->fail();
+    }
+    catch (\InvalidArgumentException $e) {
+      self::assertSame('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.', $e->getMessage());
+    }
+
+    // Assert that neither a prefix nor a suffix is tolerated: only these exact
+    // 2 strings are allowed.
+    // Rationale: configuration management DX is degraded if the example is
+    // environment-dependent (Drupal served from root vs subdir, XB module
+    // installation location).
+    try {
+      $source->rewriteExampleUrl('/subdir' . JsComponent::EXAMPLE_VIDEO_VERTICAL);
+      $this->fail();
+    }
+    catch (\InvalidArgumentException $e) {
+      self::assertSame('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.', $e->getMessage());
+    }
+    try {
+      $source->rewriteExampleUrl(JsComponent::EXAMPLE_VIDEO_VERTICAL . '?foo=bar');
+      $this->fail();
+    }
+    catch (\InvalidArgumentException $e) {
+      self::assertSame('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.', $e->getMessage());
+    }
+  }
+
   /**
    * @covers ::calculateDependencies()
    * @depends testDiscovery
    */
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
+      'js.xb_test_code_components_captioned_video' => [
+        'config' => [
+          'field.field.media.video.field_media_video_file',
+          'media.type.video',
+          'experience_builder.js_component.xb_test_code_components_captioned_video',
+        ],
+        'content' => [],
+        'module' => [
+          'core',
+          'file',
+          'media',
+          'media_library',
+          'options',
+        ],
+      ],
       'js.xb_test_code_components_using_drupalsettings' => [
         'config' => [
           'experience_builder.js_component.xb_test_code_components_using_drupalsettings',
@@ -888,6 +1051,95 @@ final class JsComponentTest extends ComponentSourceTestBase {
    */
   public static function getExpectedClientSideInfo(): array {
     return [
+      'js.xb_test_code_components_captioned_video' => [
+        'expected_output_selectors' => [
+          'astro-island[opts*="Captioned video"][props*="bird_vertical"]',
+          'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'video' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'video',
+              'type' => 'object',
+              'required' => ['src'],
+              'properties' => [
+                'src' => [
+                  'title' => 'Video URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Mm][Pp]4)(\?.*)?(#.*)?$',
+                ],
+                'poster' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:entity_reference',
+            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:video␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url}',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'target_type' => 'media',
+              ],
+              'instance' => [
+                'handler' => 'default:media',
+                'handler_settings' => [
+                  'target_bundles' => [
+                    'video' => 'video',
+                  ],
+                ],
+              ],
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => rtrim(\base_path(), '/') . self::getCiModulePath() . '/ui/assets/videos/bird_vertical.mp4',
+                'poster' => 'https://placehold.co/1080x1920.png?text=Vertical',
+              ],
+            ],
+          ],
+          'displayWidth' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'integer',
+              'enum' => [200, 300, 400, 500],
+            ],
+            'sourceType' => 'static:field_item:list_integer',
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 400],
+              ],
+              'resolved' => 400,
+            ],
+          ],
+          'caption' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'A video'],
+              ],
+              'resolved' => 'A video',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'js.xb_test_code_components_using_drupalsettings' => [
         'expected_output_selectors' => [
           'astro-island[opts*="Using drupalSettings"][props="{}"]',

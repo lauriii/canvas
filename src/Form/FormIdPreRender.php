@@ -29,6 +29,16 @@ final class FormIdPreRender {
     return $element;
   }
 
+  #[TrustedCallback]
+  public static function addRequiredAttributesToChildren(array $element): array {
+    $element = self::addFormId($element);
+    $element['#attributes']['data-ajax'] = TRUE;
+    foreach (Element::children($element) as $key) {
+      $element[$key] = self::addRequiredAttributesToChildren($element[$key]);
+    }
+    return $element;
+  }
+
   /**
    * Adds a data-ajax attribute to elements.
    *
@@ -42,6 +52,13 @@ final class FormIdPreRender {
     $element['#attributes']['data-ajax'] = TRUE;
     // @todo Rename to xb-data-form-id in https://drupal.org/i//3517029.
     $element['#attributes']['data-form-id'] = $form_id;
+    // We can't add an element pre render callback without first ensuring the
+    // defaults have been added.
+    if (isset($element['#type']) && empty($element['#defaults_loaded']) && ($info = \Drupal::service('plugin.manager.element_info')->getInfo($element['#type']))) {
+      // Add in any default pre-render callbacks.
+      $element['#pre_render'] = $info['#pre_render'] ?? [];
+    }
+    $element['#pre_render'][] = [FormIdPreRender::class, 'addRequiredAttributesToChildren'];
     foreach (Element::children($element) as $key) {
       self::addAjaxAttribute($element[$key], $form_id);
     }

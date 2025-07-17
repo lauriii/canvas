@@ -1,4 +1,5 @@
 /* cspell:ignore Mycomponentname HelloWorldexample */
+import { describe, it, expect } from 'vitest';
 import {
   deserializeProps,
   serializeProps,
@@ -6,10 +7,10 @@ import {
   deserializeSlots,
   getPropValuesForPreview,
   formatToValidImportName,
+  getImportsFromAst,
 } from '@/features/code-editor/utils';
-import fixtureProps from '../fixtures/code-component-props.json';
-import fixtureSlots from '../fixtures/code-component-slots.json';
-import { getImportsFromAst } from '@/features/code-editor/utils';
+import fixtureProps from '@tests/fixtures/code-component-props.json';
+import fixtureSlots from '@tests/fixtures/code-component-slots.json';
 import { parse } from '@babel/parser';
 
 const {
@@ -23,45 +24,38 @@ const {
 } = fixtureSlots;
 
 /**
- * Asserts that serialized props match the expected fixtures.
- *
- * @param {string[]} fixtureKeys - The keys from the fixture to match.
+ * Custom matcher for serialized props
  */
-chai.Assertion.addMethod('matchSerializedProps', function (fixtureKeys) {
+function matchSerializedProps(received, fixtureKeys) {
   const expected = {};
   fixtureKeys.forEach((prop) => {
     expected[prop] = serializedPropsFixture[prop];
   });
-  this.assert(
-    chai.util.eql(this._obj, expected),
-    'expected #{this} to match serialized props #{exp}',
-    'expected #{this} to not match serialized props #{exp}',
-    expected,
-  );
-});
+
+  expect(received).toEqual(expected);
+}
 
 /**
- * Asserts that deserialized props match the expected fixtures.
- *
- * @param {number[]} props - The indices from the fixture to match.
+ * Custom matcher for deserialized props
  */
-chai.Assertion.addMethod('matchDeserializedProps', function (props) {
-  // Deserialized props should be an array.
-  new chai.Assertion(this._obj).to.be.an('array');
+function matchDeserializedProps(received, propIndices) {
+  // Deserialized props should be an array
+  expect(Array.isArray(received)).toBe(true);
 
-  // Get the expected values from the fixture using the provided indices.
+  // Get the expected values from the fixture using the provided indices
   const expected = [];
-  props.forEach((index) => {
+  propIndices.forEach((index) => {
     expected.push(deserializedPropsFixture[index]);
   });
 
-  // Check that each deserialized prop has an `id` key with a string in it.
-  this._obj.forEach((prop) => {
-    new chai.Assertion(prop).to.have.property('id').that.is.a('string');
+  // Check that each deserialized prop has an `id` key with a string in it
+  received.forEach((prop) => {
+    expect(prop).toHaveProperty('id');
+    expect(typeof prop.id).toBe('string');
   });
 
   // Compare the rest of the props by removing IDs first
-  const actualWithoutIds = this._obj.map((prop) => {
+  const actualWithoutIds = received.map((prop) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = prop;
     return rest;
@@ -72,95 +66,83 @@ chai.Assertion.addMethod('matchDeserializedProps', function (props) {
     return rest;
   });
 
-  this.assert(
-    chai.util.eql(actualWithoutIds, expectedWithoutIds),
-    `expected ${JSON.stringify(actualWithoutIds, null, 2)} to match deserialized props ${JSON.stringify(expectedWithoutIds, null, 2)}`,
-    `expected ${JSON.stringify(actualWithoutIds, null, 2)} to not match deserialized props ${JSON.stringify(expectedWithoutIds, null, 2)}`,
-    expectedWithoutIds,
-  );
-});
+  expect(actualWithoutIds).toEqual(expectedWithoutIds);
+}
 
 describe('Code editor utilities', () => {
   describe('serialize props', () => {
     it('of type text', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[0],
-          deserializedPropsFixture[1],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[0],
+        deserializedPropsFixture[1],
+      ]);
+      matchSerializedProps(result, [
         'stringWithNoExampleValue',
         'stringWithExampleValue',
       ]);
     });
 
     it('of type integer', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[2],
-          deserializedPropsFixture[3],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[2],
+        deserializedPropsFixture[3],
+      ]);
+      matchSerializedProps(result, [
         'integerWithNoExampleValue',
         'integerWithExampleValue',
       ]);
     });
 
     it('of type number', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[4],
-          deserializedPropsFixture[5],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[4],
+        deserializedPropsFixture[5],
+      ]);
+      matchSerializedProps(result, [
         'numberWithNoExampleValue',
         'numberWithExampleValue',
       ]);
     });
 
     it('of type boolean', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[6],
-          deserializedPropsFixture[7],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[6],
+        deserializedPropsFixture[7],
+      ]);
+      matchSerializedProps(result, [
         'booleanWithExampleValueTrue',
         'booleanWithExampleValueFalse',
       ]);
     });
 
     it('of type text list', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[8],
-          deserializedPropsFixture[9],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[8],
+        deserializedPropsFixture[9],
+      ]);
+      matchSerializedProps(result, [
         'textListWithNoExampleValue',
         'textListWithExampleValue',
       ]);
     });
 
     it('of type integer list', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[10],
-          deserializedPropsFixture[11],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[10],
+        deserializedPropsFixture[11],
+      ]);
+      matchSerializedProps(result, [
         'integerListWithNoExampleValue',
         'integerListWithExampleValue',
       ]);
     });
 
     it('of type formatted text', () => {
-      expect(
-        serializeProps([
-          deserializedPropsFixture[12],
-          deserializedPropsFixture[13],
-        ]),
-      ).to.matchSerializedProps([
+      const result = serializeProps([
+        deserializedPropsFixture[12],
+        deserializedPropsFixture[13],
+      ]);
+      matchSerializedProps(result, [
         'formattedTextWithNoExampleValue',
         'formattedTextWithExampleValue',
       ]);
@@ -169,114 +151,113 @@ describe('Code editor utilities', () => {
 
   describe('deserialize props', () => {
     it('of type text', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.stringWithNoExampleValue,
-          serializedPropsFixture.stringWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([0, 1]);
+      const result = deserializeProps([
+        serializedPropsFixture.stringWithNoExampleValue,
+        serializedPropsFixture.stringWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [0, 1]);
     });
 
     it('of type integer', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.integerWithNoExampleValue,
-          serializedPropsFixture.integerWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([2, 3]);
+      const result = deserializeProps([
+        serializedPropsFixture.integerWithNoExampleValue,
+        serializedPropsFixture.integerWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [2, 3]);
     });
 
     it('of type number', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.numberWithNoExampleValue,
-          serializedPropsFixture.numberWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([4, 5]);
+      const result = deserializeProps([
+        serializedPropsFixture.numberWithNoExampleValue,
+        serializedPropsFixture.numberWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [4, 5]);
     });
 
     it('of type boolean', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.booleanWithExampleValueTrue,
-          serializedPropsFixture.booleanWithExampleValueFalse,
-        ]),
-      ).to.matchDeserializedProps([6, 7]);
+      const result = deserializeProps([
+        serializedPropsFixture.booleanWithExampleValueTrue,
+        serializedPropsFixture.booleanWithExampleValueFalse,
+      ]);
+      matchDeserializedProps(result, [6, 7]);
     });
 
     it('of type text list', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.textListWithNoExampleValue,
-          serializedPropsFixture.textListWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([8, 9]);
+      const result = deserializeProps([
+        serializedPropsFixture.textListWithNoExampleValue,
+        serializedPropsFixture.textListWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [8, 9]);
     });
 
     it('of type integer list', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.integerListWithNoExampleValue,
-          serializedPropsFixture.integerListWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([10, 11]);
+      const result = deserializeProps([
+        serializedPropsFixture.integerListWithNoExampleValue,
+        serializedPropsFixture.integerListWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [10, 11]);
     });
 
     it('of type formatted text', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.formattedTextWithNoExampleValue,
-          serializedPropsFixture.formattedTextWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([12, 13]);
+      const result = deserializeProps([
+        serializedPropsFixture.formattedTextWithNoExampleValue,
+        serializedPropsFixture.formattedTextWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [12, 13]);
     });
 
     it('of type image', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.imageWithNoExampleValue,
-          serializedPropsFixture.imageWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([14, 15]);
+      const result = deserializeProps([
+        serializedPropsFixture.imageWithNoExampleValue,
+        serializedPropsFixture.imageWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [14, 15]);
+    });
+
+    it('of type video', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.videoWithNoExampleValue,
+        serializedPropsFixture.videoWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [22, 23]);
     });
 
     it('of type link', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.relativePathLinkWithNoExampleValue,
-          serializedPropsFixture.relativePathLinkWithExampleValue,
-          serializedPropsFixture.fullUrlLinkWithNoExampleValue,
-          serializedPropsFixture.fullUrlLinkWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([16, 17, 18, 19]);
+      const result = deserializeProps([
+        serializedPropsFixture.relativePathLinkWithNoExampleValue,
+        serializedPropsFixture.relativePathLinkWithExampleValue,
+        serializedPropsFixture.fullUrlLinkWithNoExampleValue,
+        serializedPropsFixture.fullUrlLinkWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [16, 17, 18, 19]);
     });
 
     // Backwards compatibility
     // @see https://www.drupal.org/i/3520843
     it('of type deprecated text area - backwards compatibility', () => {
-      expect(
-        deserializeProps([
-          serializedPropsFixture.deprecatedTextAreaWithNoExampleValue,
-          serializedPropsFixture.deprecatedTextAreaWithExampleValue,
-        ]),
-      ).to.matchDeserializedProps([20, 21]);
+      const result = deserializeProps([
+        serializedPropsFixture.deprecatedTextAreaWithNoExampleValue,
+        serializedPropsFixture.deprecatedTextAreaWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [20, 21]);
     });
   });
 
   it('serialize slots', () => {
-    expect(serializeSlots(deserializedSlotsFixture)).to.deep.equal(
+    expect(serializeSlots(deserializedSlotsFixture)).toEqual(
       serializedSlotsFixture,
     );
   });
 
   it('deserialize slots', () => {
     const result = deserializeSlots(serializedSlotsFixture);
-    expect(result).to.be.an('array');
+    expect(Array.isArray(result)).toBe(true);
     result.forEach((slot, index) => {
-      expect(slot).to.have.property('id').that.is.a('string');
-      // Compare the slot without the `id` key to the expected fixture.
+      expect(slot).toHaveProperty('id');
+      expect(typeof slot.id).toBe('string');
+      // Compare the slot without the `id` key to the expected fixture
       const withoutId = { ...slot, id: undefined };
-      expect(withoutId).to.deep.equal({
+      expect(withoutId).toEqual({
         ...deserializedSlotsFixture[index],
         id: undefined,
       });
@@ -286,7 +267,7 @@ describe('Code editor utilities', () => {
 
 describe('Code editor preview utilities', () => {
   it('extracts values from props for preview', () => {
-    expect(getPropValuesForPreview(deserializedPropsFixture)).to.deep.equal({
+    expect(getPropValuesForPreview(deserializedPropsFixture)).toEqual({
       stringWithNoExampleValue: '',
       stringWithExampleValue: 'Experience Builder',
       integerWithNoExampleValue: 0,
@@ -318,12 +299,17 @@ describe('Code editor preview utilities', () => {
       deprecatedTextAreaWithNoExampleValue: '',
       deprecatedTextAreaWithExampleValue:
         "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+      videoWithNoExampleValue: '',
+      videoWithExampleValue: {
+        src: '/modules/contrib/experience_builder/ui/assets/videos/mountain_wide.mp4',
+        poster: 'https://placehold.co/1920x1080.png?text=Horizontal',
+      },
     });
   });
 
   it('handles empty props when extracting values for preview', () => {
     const result = getPropValuesForPreview([]);
-    expect(result).to.deep.equal({});
+    expect(result).toEqual({});
   });
 });
 
@@ -337,7 +323,7 @@ describe('getImportsFromAst', () => {
     `;
     const ast = parse(code, { sourceType: 'module' });
     const result = getImportsFromAst(ast);
-    expect(result).to.deep.equal([
+    expect(result).toEqual([
       'react',
       'react',
       '@/components/MyComponent',
@@ -354,7 +340,7 @@ describe('getImportsFromAst', () => {
     `;
     const ast = parse(code, { sourceType: 'module' });
     const result = getImportsFromAst(ast, '@/components/');
-    expect(result).to.deep.equal(['MyComponent', 'MyComponent2']);
+    expect(result).toEqual(['MyComponent', 'MyComponent2']);
   });
 
   it('should return an empty array if no imports match the scope', () => {
@@ -364,54 +350,53 @@ describe('getImportsFromAst', () => {
     `;
     const ast = parse(code, { sourceType: 'module' });
     const result = getImportsFromAst(ast, '@/components/');
-    expect(result).to.deep.equal([]);
+    expect(result).toEqual([]);
   });
 
   it('should handle an empty AST gracefully', () => {
     const ast = parse('', { sourceType: 'module' });
     const result = getImportsFromAst(ast);
-
-    expect(result).to.deep.equal([]);
+    expect(result).toEqual([]);
   });
 });
 
 describe('formatToValidImportName', () => {
   it('should handle basic strings', () => {
-    expect(formatToValidImportName('hello world')).to.equal('HelloWorld');
-    expect(formatToValidImportName('my component')).to.equal('MyComponent');
-    expect(formatToValidImportName('mixedCase component')).to.equal(
+    expect(formatToValidImportName('hello world')).toBe('HelloWorld');
+    expect(formatToValidImportName('my component')).toBe('MyComponent');
+    expect(formatToValidImportName('mixedCase component')).toBe(
       'MixedCaseComponent',
     );
-    expect(formatToValidImportName('CamelCase example')).to.equal(
+    expect(formatToValidImportName('CamelCase example')).toBe(
       'CamelCaseExample',
     );
   });
 
   it('should handle special characters', () => {
-    expect(formatToValidImportName('hello-world!')).to.equal('Helloworld');
-    expect(formatToValidImportName('my@component*name')).to.equal(
+    expect(formatToValidImportName('hello-world!')).toBe('Helloworld');
+    expect(formatToValidImportName('my@component*name')).toBe(
       'Mycomponentname',
     );
-    expect(
-      formatToValidImportName('special_chars & symbols    & space'),
-    ).to.equal('SpecialCharsSymbolsSpace');
-    expect(formatToValidImportName('hello_world-example')).to.equal(
+    expect(formatToValidImportName('special_chars & symbols    & space')).toBe(
+      'SpecialCharsSymbolsSpace',
+    );
+    expect(formatToValidImportName('hello_world-example')).toBe(
       'HelloWorldexample',
     );
-    expect(formatToValidImportName('\ttabbed\nwords')).to.equal('TabbedWords');
+    expect(formatToValidImportName('\ttabbed\nwords')).toBe('TabbedWords');
   });
 
   it('should handle numbers', () => {
-    expect(formatToValidImportName('foo123')).to.equal('Foo123');
-    expect(formatToValidImportName('hello 42 world')).to.equal('Hello42World');
+    expect(formatToValidImportName('foo123')).toBe('Foo123');
+    expect(formatToValidImportName('hello 42 world')).toBe('Hello42World');
     // Starts with a number.
-    expect(formatToValidImportName('123test')).to.equal('Component123test');
-    expect(formatToValidImportName('42 foo')).to.equal('Component42Foo');
+    expect(formatToValidImportName('123test')).toBe('Component123test');
+    expect(formatToValidImportName('42 foo')).toBe('Component42Foo');
   });
 
   it('should handle empty or invalid inputs', () => {
-    expect(formatToValidImportName('')).to.equal('');
-    expect(formatToValidImportName(null)).to.equal('');
-    expect(formatToValidImportName('!@#$%^&*()')).to.equal('');
+    expect(formatToValidImportName('')).toBe('');
+    expect(formatToValidImportName(null)).toBe('');
+    expect(formatToValidImportName('!@#$%^&*()')).toBe('');
   });
 });

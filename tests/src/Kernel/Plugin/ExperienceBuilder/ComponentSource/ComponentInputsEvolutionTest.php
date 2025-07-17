@@ -104,7 +104,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
 
     $uuid = \Drupal::service(UuidInterface::class);
 
-    // Create an item for the component in it's current form.
+    // Create an item for the component in its current form.
     $items = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $first_uuid = $uuid->generate();
     $original_version = $component->getActiveVersion();
@@ -117,10 +117,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         // version.
         'inputs' => [
           'heading' => 'mirror my melody',
-          'subheading' => '',
-          'cta1' => '',
           'cta1href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
-          'cta2' => '',
         ],
       ],
     ]);
@@ -203,10 +200,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         'component_id' => $component->id(),
         'inputs' => [
           'heading' => 'mirror my melody',
-          'subheading' => '',
-          'cta1' => '',
           'cta1href' => 'http://arachnophobia.com/',
-          'cta2' => '',
         ],
       ],
     ]);
@@ -288,10 +282,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         'component_id' => $component->id(),
         'inputs' => [
           'heading' => 'mirror my melody',
-          'subheading' => '',
-          'cta1' => '',
           'cta1href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
-          'cta2' => '',
         ],
       ],
     ]);

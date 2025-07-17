@@ -27,7 +27,6 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\Generated
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\KernelTests\KernelTestBase;
@@ -308,12 +307,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
           continue;
         }
 
-        $explicit_inputs[$sdc_prop_name] = (new DefaultRelativeUrlPropSource(
-          value: $client_side_info_for_prop['default_values']['resolved'],
-          jsonSchema: $client_side_info_for_prop['jsonSchema'],
-          componentId: $component->id(),
-        ))->evaluate(NULL, is_required: TRUE);
-
+        $explicit_inputs[$sdc_prop_name] = $client_side_info_for_prop['default_values']['resolved'];
         continue;
       }
 

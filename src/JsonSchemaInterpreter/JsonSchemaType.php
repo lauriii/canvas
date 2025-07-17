@@ -6,12 +6,15 @@ namespace Drupal\experience_builder\JsonSchemaInterpreter;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 
 /**
  * Interprets JSON schema types (with type-specific constraints) to Typed Data.
@@ -325,7 +328,7 @@ enum JsonSchemaType: string {
       JsonSchemaType::OBJECT => match (TRUE) {
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-          // @see media_library_storage_prop_shape_alter()
+          // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
           // @todo Try decorating with adapter in https://www.drupal.org/project/experience_builder/issues/3536115.
           'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             // TRICKY: Additional computed property on image fields added by Experience Builder.
@@ -344,6 +347,19 @@ enum JsonSchemaType: string {
             'width' => new FieldTypePropExpression('image', 'width'),
             'height' => new FieldTypePropExpression('image', 'height'),
           ])),
+          // @see \Drupal\file\Plugin\Field\FieldType\FileItem
+          // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+          'json-schema-definitions://experience_builder.module/video' => new StorablePropShape(
+            shape: $shape,
+            fieldWidget: 'file_generic',
+            fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+              'src' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+              ),
+            ]),
+            fieldInstanceSettings: ['file_extensions' => 'mp4'],
+          ),
           default => NULL,
         },
         default => NULL,

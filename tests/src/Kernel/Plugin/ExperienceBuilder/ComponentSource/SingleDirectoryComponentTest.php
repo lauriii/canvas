@@ -1667,6 +1667,7 @@ It\'s me, and I\'m small!
           'image' => [
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'value' => NULL,
           ],
         ],
         'resolved' => [

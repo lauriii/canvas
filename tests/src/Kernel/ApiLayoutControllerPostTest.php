@@ -575,7 +575,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         'heading' => 'Heading the right direction?',
         // Resolved will default to the default resolved values.
         // @see addNewComponentToLayout reducer in typescript code.
-        'image' => $client_side['propSources']['image']['default_values']['resolved'] ?? NULL,
+        'image' => \str_contains($sdc, 'required')
+          ? $reference_media->id()
+          : ($client_side['propSources']['image']['default_values']['resolved'] ?? NULL),
       ],
       'source' => [
         'heading' => [

@@ -13,11 +13,12 @@ namespace Drupal\Tests\experience_builder\Kernel\EcosystemSupport;
  */
 final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
-  public const COMPLETION = 0.4642857142857143;
+  public const COMPLETION = 0.5;
   public const SUPPORTED = [
     'boolean_checkbox',
     'datetime_default',
     'email_default',
+    'file_generic',
     'image_image',
     'link_default',
     'media_library_widget',

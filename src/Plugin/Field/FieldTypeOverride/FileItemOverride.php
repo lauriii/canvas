@@ -15,6 +15,7 @@ use Drupal\media\Entity\MediaType;
 
 /**
  * @todo Fix upstream.
+ * @property null|string|int $target_id
  */
 class FileItemOverride extends FileItem {
 
@@ -27,12 +28,25 @@ class FileItemOverride extends FileItem {
     return $properties;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function isEmpty(): bool {
+    // Also treat '' as empty. The client-side transform we apply for the
+    // file_generic widget reads the value of the hidden `fids` field. This
+    // field contains an empty string when the value is removed. We could cast
+    // this to NULL with a client-side transform but NULL values don't trigger
+    // a state update in the page builder, so that would prevent any change at
+    // all from being detected and sent to the back-end.
+    return ($this->target_id === '') || parent::isEmpty();
+  }
+
   public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
     // FileItem::generateSampleValue() creates File entity with hardcoded .txt
     // .extension, media:video requires .mp4 extension for video_file source.
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     // @todo Remove once https://www.drupal.org/project/drupal/issues/2550977 is in
-    if ($field_definition->getTargetEntityTypeId() === 'media' && !empty($field_definition->getTargetBundle()) && MediaType::load($field_definition->getTargetBundle())->getSource()->getPluginId() === 'video_file') {
+    if ($field_definition->getSetting('file_extensions') == 'mp4' || $field_definition->getTargetEntityTypeId() === 'media' && !empty($field_definition->getTargetBundle()) && MediaType::load($field_definition->getTargetBundle())->getSource()->getPluginId() === 'video_file') {
       $random = new Random();
       $settings = $field_definition->getSettings();
 

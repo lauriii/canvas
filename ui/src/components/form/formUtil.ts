@@ -444,13 +444,31 @@ export function getPropsValues(
       propFieldData?.jsonSchema?.format;
 
     // If the value is an empty string in a required field, do not store.
-    const emptyRequired = value === '' && propFieldData?.required;
+    const emptyRequired =
+      value === '' &&
+      propFieldData?.required &&
+      // But not if we expect an object.
+      propFieldData?.jsonSchema?.type !== 'object';
 
     if (emptyOptionalWithFormatRequirements || emptyRequired) {
       delete propsValues[fieldName as keyof PropsValues];
       const resolved = { ...selectedModel.resolved };
       delete resolved[fieldName as keyof ComponentModel['resolved']];
       selectedModel.resolved = resolved;
+    }
+
+    if (
+      value === '' &&
+      propFieldData?.jsonSchema?.type === 'object' &&
+      propFieldData?.required &&
+      component
+    ) {
+      // '' is an empty value, but we require a valid object here, so we
+      // fall back to the default value.
+      propsValues[fieldName as keyof PropsValues] =
+        component.propSources[
+          fieldName as keyof PropsValues
+        ].default_values.resolved;
     }
   });
 

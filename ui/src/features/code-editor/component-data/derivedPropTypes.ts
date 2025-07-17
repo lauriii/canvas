@@ -75,6 +75,16 @@ const derivedPropTypes = [
     },
   },
   {
+    type: 'video' as const,
+    displayName: 'Video',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'object' && prop.$ref?.includes('video'),
+    init: {
+      type: 'object',
+      $ref: 'json-schema-definitions://experience_builder.module/video',
+    },
+  },
+  {
     type: 'boolean' as const,
     displayName: 'Boolean',
     derive: (prop: CodeComponentPropSerialized) => prop.type === 'boolean',

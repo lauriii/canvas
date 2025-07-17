@@ -176,8 +176,26 @@
       "derivedType": "formattedText",
       "contentMediaType": "text/html",
       "x-formatting-context": "block"
+    },
+    {
+      "name": "Video with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://experience_builder.module/video",
+      "example": "",
+      "id": "12af6543-df85-4e6f-9054-8b6617b02c25",
+      "derivedType": "video"
+    },
+    {
+      "name": "Video with example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://experience_builder.module/video",
+      "example": {
+        "src": "/modules/contrib/experience_builder/ui/assets/videos/mountain_wide.mp4",
+        "poster": "https://placehold.co/1920x1080.png?text=Horizontal"
+      },
+      "id": "4ea2a14d-7828-467c-a505-063f006f1ebf",
+      "derivedType": "video"
     }
-
   ],
   "serialized": {
     "stringWithNoExampleValue": {
@@ -320,7 +338,20 @@
       "type": "string",
       "examples": ["Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged."],
       "$ref": "json-schema-definitions://experience_builder.module/textarea"
+    },
+    "videoWithNoExampleValue": {
+      "title": "Video with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://experience_builder.module/video"
+    },
+    "videoWithExampleValue": {
+      "title": "Video with example value",
+      "type": "object",
+      "examples": [{
+        "src": "/ui/assets/videos/mountain_wide.mp4",
+        "poster": "https://placehold.co/1920x1080.png?text=Horizontal"
+      }],
+      "$ref": "json-schema-definitions://experience_builder.module/video"
     }
-
   }
 }

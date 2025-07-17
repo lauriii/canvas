@@ -11,6 +11,7 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\experience_builder\Attribute\ComponentSource;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\AutoSaveEntity;
@@ -37,6 +38,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase implements UrlRewriteInterface {
 
   public const SOURCE_PLUGIN_ID = 'js';
+
+  public const EXAMPLE_VIDEO_HORIZONTAL = '/ui/assets/videos/mountain_wide.mp4';
+  public const EXAMPLE_VIDEO_VERTICAL = '/ui/assets/videos/bird_vertical.mp4';
 
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
@@ -360,11 +364,25 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   public function rewriteExampleUrl(string $url): string {
+    // Allow any fully qualified URL.
     $parsed_url = parse_url($url);
     \assert(\is_array($parsed_url));
     if (array_intersect_key($parsed_url, array_flip(['scheme', 'host']))) {
       return $url;
     }
+
+    // Allow the example URL to be one of the hardcoded relative URLs, and
+    // rewrite them to operational root-relative URLs.
+    // Only allow precise matches for both DX and security reasons.
+    $example_videos = [
+      self::EXAMPLE_VIDEO_HORIZONTAL,
+      self::EXAMPLE_VIDEO_VERTICAL,
+    ];
+    if (in_array($url, $example_videos, TRUE)) {
+      $file_path = $this->extensionPathResolver->getPath('module', 'experience_builder') . $url;
+      return Url::fromUri('base:/' . $file_path)->toString();
+    }
+
     throw new \InvalidArgumentException('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.');
   }
 

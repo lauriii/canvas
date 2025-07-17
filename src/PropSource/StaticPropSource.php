@@ -232,6 +232,15 @@ final class StaticPropSource extends PropSourceBase {
   public function withValue(mixed $value): static {
     $field_item_list = clone $this->fieldItemList;
     $field_item_list->setValue($value);
+
+    // Detect values considered empty by the field type, and abort early.
+    $before = $field_item_list->count();
+    $field_item_list->filterEmptyItems();
+    $after = $field_item_list->count();
+    if ($before !== $after) {
+      throw new \LogicException(sprintf('%s called with invalid value for field type %s.', __METHOD__, $this->fieldItemList->getFieldDefinition()->getItemDefinition()->getDataType()));
+    }
+
     return new StaticPropSource(
       $field_item_list,
       $this->expression,
@@ -455,8 +464,12 @@ final class StaticPropSource extends PropSourceBase {
     // prevent the field widget plugin from being able to modify this
     // StaticPropSource's field item list by reference.
     $field = clone $this->fieldItemList;
+    // Remove empty or invalid items.
+    $field->filterEmptyItems();
     // Widgets assume there is at least one field item present for editing.
-    $field->appendItem();
+    if ($field->count() === 0) {
+      $field->appendItem();
+    }
     // Most widgets do not need an entity context, but some do:
     // @see \Drupal\file\Plugin\Field\FieldWidget\FileWidget
     // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget
