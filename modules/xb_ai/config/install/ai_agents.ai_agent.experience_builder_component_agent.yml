@@ -78,8 +78,8 @@ secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:edit_component_js': true
   'ai_agent:create_component': true
-  'ai_agent:get_js_component': true
   'ai_agent:get_props_type': true
+  'ai_agent:get_js_component': true
 tool_settings:
   'ai_agent:edit_component_js':
     return_directly: 0
@@ -92,7 +92,13 @@ tool_settings:
 orchestration_agent: false
 triage_agent: true
 max_loops: 10
-default_information_tools: "get_prop_context:\r\n  label: 'Get props context'\r\n  description: 'This context information is for experience builder prop types'\r\n  tool: 'ai_agent:get_props_type'\r\n  parameters:\r\n    derived_proptypes: '[xb_ai:derived_proptypes]'\r\n"
+default_information_tools: |
+  get_prop_context:
+    label: 'Get props context'
+    description: 'This context information is for experience builder prop types'
+    tool: 'ai_agent:get_props_type'
+    parameters:
+      derived_proptypes: '[xb_ai:derived_proptypes]'
 tool_usage_limits:
   'ai_agent:edit_component_js':
     javascript:
