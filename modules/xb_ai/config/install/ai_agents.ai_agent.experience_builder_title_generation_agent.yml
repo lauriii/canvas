@@ -46,19 +46,27 @@ tools:
   'ai_agent:create_field_content': true
   'ai_agent:get_entity_field': true
 tool_settings:
-  'ai_agent:create_field_content':
-    return_directly: 0
   'ai_agent:edit_field_content':
+    return_directly: 0
+  'ai_agent:create_field_content':
     return_directly: 0
   'ai_agent:get_entity_field':
     return_directly: 0
 orchestration_agent: false
 triage_agent: false
 max_loops: 5
-default_information_tools: "get_entity_context:\r\n  label: 'Get entity context'\r\n  description: 'This context information is passed to all other tools used by this agent'\r\n  tool: 'ai_agent:get_entity_information'\r\n  parameters:\r\n    entity_type: '[xb_ai:entity_type]'\r\n    entity_id: '[xb_ai:entity_id]'\r\n    layout: '[xb_ai:layout]'\r\n"
+default_information_tools: |
+  get_entity_context:
+    label: 'Get entity context'
+    description: 'This context information is passed to all other tools used by this agent'
+    tool: 'ai_agent:get_entity_information'
+    parameters:
+      entity_type: '[xb_ai:entity_type]'
+      entity_id: '[xb_ai:entity_id]'
+      layout: '[xb_ai:layout]'
 tool_usage_limits:
-  'ai_agent:create_field_content':
-    field_content:
+  'ai_agent:edit_field_content':
+    text_value:
       action: ''
       hide_property: 0
       values: ''
@@ -66,8 +74,8 @@ tool_usage_limits:
       action: ''
       hide_property: 0
       values: ''
-  'ai_agent:edit_field_content':
-    text_value:
+  'ai_agent:create_field_content':
+    field_content:
       action: ''
       hide_property: 0
       values: ''

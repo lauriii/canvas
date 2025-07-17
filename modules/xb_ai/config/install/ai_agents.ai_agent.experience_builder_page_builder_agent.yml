@@ -111,7 +111,17 @@ tool_settings:
 orchestration_agent: false
 triage_agent: false
 max_loops: 10
-default_information_tools: "current_layout:\r\n  label: 'Current layout'\r\n  description: 'The current layout of the page is:'\r\n  tool: 'xb_ai:get_current_layout'\r\n  parameters: {  }\r\navailable_components:\r\n  label: 'Available components'\r\n  description: 'These are the Components available to use'\r\n  tool: 'xb_ai:get_component_context'\r\n  parameters: {  }\r\n"
+default_information_tools: |
+  current_layout:
+    label: 'Current layout'
+    description: 'The current layout of the page is:'
+    tool: 'xb_ai:get_current_layout'
+    parameters: {  }
+  available_components:
+    label: 'Available components'
+    description: 'These are the Components available to use'
+    tool: 'xb_ai:get_component_context'
+    parameters: {  }
 tool_usage_limits:
   'xb_ai:set_component_structure':
     component_structure:

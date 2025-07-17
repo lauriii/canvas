@@ -68,7 +68,15 @@ tool_settings:
 orchestration_agent: false
 triage_agent: false
 max_loops: 5
-default_information_tools: "get_entity_context:\r\n  label: 'Get entity context'\r\n  description: 'This context information is passed to all other tools used by this agent'\r\n  tool: 'ai_agent:get_entity_information'\r\n  parameters:\r\n    entity_type: '[xb_ai:entity_type]'\r\n    entity_id: '[xb_ai:entity_id]'\r\n    layout: '[xb_ai:layout]'\r\n"
+default_information_tools: |
+  get_entity_context:
+    label: 'Get entity context'
+    description: 'This context information is passed to all other tools used by this agent'
+    tool: 'ai_agent:get_entity_information'
+    parameters:
+      entity_type: '[xb_ai:entity_type]'
+      entity_id: '[xb_ai:entity_id]'
+      layout: '[xb_ai:layout]'
 tool_usage_limits:
   'ai_agent:add_metadata':
     metadata:
