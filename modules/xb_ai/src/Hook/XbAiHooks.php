@@ -43,6 +43,10 @@ class XbAiHooks {
             'name' => $this->t('Layout'),
             'description' => $this->t('Returns the current page layout value passed to the AI Agent.'),
           ],
+          'derived_proptypes' => [
+            'name' => $this->t('derived Proptypes'),
+            'description' => $this->t('Returns the proptypes available in experience builder.'),
+          ],
         ],
       ],
     ];
@@ -72,6 +76,10 @@ class XbAiHooks {
 
           case 'layout':
             $replacements[$original] = !empty($data['layout']) ? $data['layout'] : NULL;
+            break;
+
+          case 'derived_proptypes':
+            $replacements[$original] = !empty($data['derived_proptypes']) ? $data['derived_proptypes'] : NULL;
             break;
         }
       }

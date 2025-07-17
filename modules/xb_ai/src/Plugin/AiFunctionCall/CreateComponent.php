@@ -108,11 +108,17 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
     if (is_array($props_array)) {
       foreach ($props_array as $prop) {
         if (!empty($prop['id']) && !empty($prop['name']) && !empty($prop['type']) && !empty($prop['example'])) {
-          $transformed_props[$prop['id']] = [
+          $transformed = [
             'title' => $prop['name'],
             'type' => $prop['type'],
             'examples' => [$prop['example']],
           ];
+          foreach (['format', '$ref', 'enum'] as $optional) {
+            if (isset($prop[$optional])) {
+              $transformed[$optional] = $prop[$optional];
+            }
+          }
+          $transformed_props[$prop['id']] = $transformed;
         }
       }
     }

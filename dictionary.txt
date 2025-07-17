@@ -106,3 +106,4 @@ Deepchat
 interactable
 nodepath
 nodepaths
+proptypes

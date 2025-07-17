@@ -17,16 +17,10 @@ system_prompt: |-
   Props directive:
   - When creating or editing a component, always include props in the component function signature if they are required to control behavior, structure, or display.
   - Always use human readable "name" for any props instead of machine names.
-  - In addition to including props in the component, always provide a separate JSON object describing the props using the following structure for each prop:
-  {
-    "id": "",
-    "name": "",
-    "type": "string",
-    "example": "",
-    "format": null,
-    "$ref": null,
-    "derivedType": "text"
-  }
+  - For creating the props use the values of example prop types that already exists in experience builder as example from *derived_proptypes* context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
+  - For link props type we use relative url's so the example values must be relative strings not complete url and also without trailing slash.
+  - Take the suitable structure which closely matches the props type that you create.
+
   - The id can be the same as the prop name or a UUID if needed.
   - Always provide this props metadata JSON as a separate part of the response alongside the updated JS/CSS code.
   - This metadata should reflect all props defined in the component function signature.
@@ -85,6 +79,7 @@ tools:
   'ai_agent:edit_component_js': true
   'ai_agent:create_component': true
   'ai_agent:get_js_component': true
+  'ai_agent:get_props_type': true
 tool_settings:
   'ai_agent:edit_component_js':
     return_directly: 0
@@ -92,10 +87,12 @@ tool_settings:
     return_directly: 0
   'ai_agent:get_js_component':
     return_directly: 0
+  'ai_agent:get_props_type':
+    return_directly: 0
 orchestration_agent: false
 triage_agent: true
 max_loops: 10
-default_information_tools: 'null'
+default_information_tools: "get_prop_context:\r\n  label: 'Get props context'\r\n  description: 'This context information is for experience builder prop types'\r\n  tool: 'ai_agent:get_props_type'\r\n  parameters:\r\n    derived_proptypes: '[xb_ai:derived_proptypes]'\r\n"
 tool_usage_limits:
   'ai_agent:edit_component_js':
     javascript:
@@ -125,6 +122,11 @@ tool_usage_limits:
       values: ''
   'ai_agent:get_js_component':
     component_name:
+      action: ''
+      hide_property: 0
+      values: ''
+  'ai_agent:get_props_type':
+    derived_proptypes:
       action: ''
       hide_property: 0
       values: ''

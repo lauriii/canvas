@@ -28,6 +28,7 @@ import type {
   ComponentNode,
 } from '@/features/layout/layoutModelSlice';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
+import fixtureProps from '../../../../modules/xb_ai/src/PropsSchema.json';
 
 const simplePropertyHandler = (
   property: string,
@@ -527,6 +528,7 @@ const AiWizard = () => {
                     layout: currentValuesRef.current.textPropsMapString,
                     active_component_uuid: selectedComponent ?? '',
                     current_layout: transformLayout(),
+                    derived_proptypes: fixtureProps,
                   });
                   headers['Content-Type'] = 'application/json';
                 }
