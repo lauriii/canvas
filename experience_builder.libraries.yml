@@ -1,12 +1,13 @@
 xb-ui:
-  version: 1.0
   header: true
   js:
     ui/dist/assets/index.js:
       attributes: { type: module }
+      preprocess: false
+      minified: true
   css:
     theme:
-      ui/dist/assets/index.css: {}
+      ui/dist/assets/index.css: { preprocess: false, minified: true }
   dependencies:
     - core/drupal
     - core/drupalSettings

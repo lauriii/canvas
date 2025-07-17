@@ -24,6 +24,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
@@ -42,6 +43,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
   use CiModulePathTrait;
   use UserCreationTrait;
   use ComponentTreeItemListInstantiatorTrait;
+  use CacheBustingTrait;
 
   /**
    * {@inheritdoc}
@@ -83,6 +85,9 @@ class ComponentTreeItemListTest extends KernelTestBase {
    * @dataProvider provider
    */
   public function testHydrationAndRendering(array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
+    // We need to force the cache busting query to ensure we use it correctly.
+    $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
+
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
     $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');
     \assert(\method_exists($list_definition, 'setCardinality'));
@@ -1003,23 +1008,23 @@ HTML,
                                       ],
                                       '#import_maps' => [
                                         ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
-                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
-                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js', $path),
-                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
-                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
-                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
-                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $path),
-                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $path),
-                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
-                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $path),
-                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $path),
-                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js', $path),
-                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js', $path),
-                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js', $path),
+                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
+                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
+                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
+                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
+                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
+                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
+                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
+                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
+                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
+                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
+                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
+                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
                                         ],
                                       ],
                                       '#attached' => [
@@ -1028,14 +1033,14 @@ HTML,
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                           [
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                         ],
@@ -1075,23 +1080,23 @@ HTML,
                                       ],
                                       '#import_maps' => [
                                         ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $path),
-                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $path),
-                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js', $path),
-                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $path),
-                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $path),
-                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $path),
-                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $path),
-                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $path),
-                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $path),
-                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $path),
-                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $path),
-                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $path),
-                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js', $path),
-                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js', $path),
-                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js', $path),
+                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
+                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
+                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
+                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
+                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
+                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
+                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
+                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
+                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
+                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
+                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
+                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
                                         ],
                                       ],
                                       '#attached' => [
@@ -1100,14 +1105,14 @@ HTML,
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $path),
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                           [
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $path),
+                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                         ],

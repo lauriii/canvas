@@ -27,6 +27,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\Tests\experience_builder\Kernel\Traits\CacheBustingTrait;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
@@ -47,6 +48,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
   use CiModulePathTrait;
   use UserCreationTrait;
   use CrawlerTrait;
+  use CacheBustingTrait;
 
   protected readonly AssetResolverInterface $assetResolver;
   protected readonly CodeComponentDataProvider $codeComponentDataProvider;
@@ -286,6 +288,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
   public function testRenderComponentLive(array $component_ids): void {
     $this->assertNotEmpty($component_ids);
 
+    // We need to force the cache busting query to ensure we use it correctly.
+    $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
+
     $rendered = $this->renderComponentsLive(
       $component_ids,
       get_default_input: [__CLASS__, 'getDefaultInputForGeneratedInputUx'],
@@ -318,36 +323,36 @@ final class JsComponentTest extends ComponentSourceTestBase {
         [
           'rel' => 'modulepreload',
           'fetchpriority' => 'high',
-          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js', $module_path),
+          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $module_path),
         ],
       ],
       [
         [
           'rel' => 'modulepreload',
           'fetchpriority' => 'high',
-          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js', $module_path),
+          'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $module_path),
         ],
       ],
     ];
     $default_imports = [
       ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-        'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js', $module_path),
-        'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js', $module_path),
-        'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js', $module_path),
-        'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
-        'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
-        'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js', $module_path),
-        'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js', $module_path),
-        'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $module_path),
-        'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $module_path),
-        '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js', $module_path),
-        'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $module_path),
-        '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js', $module_path),
-        '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $module_path),
-        'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $module_path),
-        '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js', $module_path),
-        '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js', $module_path),
-        'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js', $module_path),
+        'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $module_path),
+        'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $module_path),
+        'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $module_path),
+        'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $module_path),
+        'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $module_path),
+        'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $module_path),
+        'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js?2.1.0-alpha3', $module_path),
+        'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $module_path),
+        'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $module_path),
+        '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $module_path),
+        'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $module_path),
+        '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js?2.1.0-alpha3', $module_path),
+        '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $module_path),
+        'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $module_path),
+        '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $module_path),
+        '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $module_path),
+        'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $module_path),
       ],
     ];
 
@@ -402,7 +407,6 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'import_maps' => $default_imports + [
             ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [
               \sprintf('/%s/files/astro-island/1Dq8BIqr4CMOA9RWhpbDNM4mjbvezQDq0mKKzO7iEmw.js', $site_path) => [
-
                 '@/components/xb_test_code_components_with_no_props' => \sprintf('/%s/files/astro-island/axL0zkV0Jlcf3zuQfhx8HWxySMYQVoAZLwgGK-dxXWU.js', $site_path),
                 '@/components/xb_test_code_components_with_props' => \sprintf('/%s/files/astro-island/AFWyiY79ad8_Hbz1qqKz97PSpKgNHSYCcwBWz8QRChU.js', $site_path),
               ],
@@ -530,6 +534,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
    *           [true, true, "draft", ["experience_builder__auto_save"]]
    */
   public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $additional_expected_cache_tags, array $component_ids): void {
+    // We need to force the cache busting query to ensure we use it correctly.
+    $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
+
     $this->generateComponentConfig();
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component) {
       assert($component instanceof Component);

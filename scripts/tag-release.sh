@@ -34,19 +34,26 @@ if [[ $(node --version) != v20.* ]]; then
   echo "This script requires NodeJS v20."
   exit 1
 fi
+npm version $TAG --allow-same-version --no-git-tag-version
 npm ci
 npm run build
 cd ..
 
 echo "${WHITE_ON_BLUE}[3/5] Committing built UI …${NC}"
 # TRICKY: `-f` to force it even if it's listed in .gitignore.
-git add -f ui/dist ui/lib/astro-hydration/dist
+git add -f ui/package.json ui/package-lock.json ui/dist ui/lib/astro-hydration/dist
 # Similar to core: https://git.drupalcode.org/project/drupal/-/commit/b33c9280991c437a3fa05dec941c54bca0ddb7d8
 git commit -q -m "Experience Builder $TAG"
 git tag "$TAG" HEAD
 echo "  ℹ️  ${GREEN}$TAG tag created locally.${NC}"
 
 echo "${WHITE_ON_BLUE}[4/5] Removing built UI …${NC}"
+cd ui
+# @see \Drupal\experience_builder\Version
+# @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoAlter()
+npm version "0.0.0" --allow-same-version --no-git-tag-version
+cd ..
+git add -f ui/package.json ui/package-lock.json
 git rm -rfq ui/dist ui/lib/astro-hydration/dist
 # Similar to core: https://git.drupalcode.org/project/drupal/-/commit/f30549fbdd5ebfb2b338c3bbcfda36ac0bf1ca9d
 git commit -q -m "Back to dev."

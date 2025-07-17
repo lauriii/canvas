@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource;
 
+use Drupal\Core\Asset\AssetQueryStringInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
@@ -25,6 +26,7 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
 use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\experience_builder\Version;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -45,6 +47,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
   protected FileUrlGeneratorInterface $fileUrlGenerator;
+  protected Version $version;
+  protected AssetQueryStringInterface $assetQueryString;
   protected ?JavaScriptComponent $jsComponent = NULL;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -52,6 +56,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $instance->extensionPathResolver = $container->get(ExtensionPathResolver::class);
     $instance->autoSaveManager = $container->get(AutoSaveManager::class);
     $instance->fileUrlGenerator = $container->get(FileUrlGeneratorInterface::class);
+    $instance->version = $container->get(Version::class);
+    $instance->assetQueryString = $container->get(AssetQueryStringInterface::class);
     return $instance;
   }
 
@@ -152,11 +158,25 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       '@/lib/drupal-utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/drupal-utils.js', $base_path, $xb_path),
       'swr' => \sprintf('%s%s/ui/lib/astro-hydration/dist/swr.js', $base_path, $xb_path),
     ];
+    // We need a cache-busting query string for the browser to not use cached
+    // files after installing an update.
+    $version = $this->version->getVersion();
+    // If version is 0.0.0, use the AssetQueryStringInterface service to improve
+    // DX: avoid the need to do a hard refresh or wipe the browser cache.
+    $query_string = $version === '0.0.0' ? $this->assetQueryString->get() : $version;
+    foreach ($import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] as &$asset) {
+      $asset .= '?' . $query_string;
+    }
 
+    // For scoped dependencies we don't need cache-busting query strings, as
+    // those are already busted by its content-dependent filename: when the
+    // code component changes, so does the filename.
+    // @see \Drupal\experience_builder\Entity\XbAssetLibraryTrait::getJsPath()
     $scoped_map = $this->getScopedDependencies($component, $autoSave, $isPreview);
     if (count($scoped_map) > 0) {
       $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = $scoped_map;
     }
+
     $build['#attached']['library'] = \array_merge($build['#attached']['library'], $this->getDependencyLibraries($component, $autoSave, $isPreview));
 
     if (\count($build['#attached']['library']) === 0) {
@@ -172,7 +192,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         [
           'rel' => 'modulepreload',
           'fetchpriority' => 'high',
-          'href' => $url,
+          'href' => $url . '?' . $query_string,
         ],
       ];
     }

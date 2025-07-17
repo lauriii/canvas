@@ -17,6 +17,7 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Version;
 
 /**
  * Defines a class for library hooks.
@@ -31,6 +32,7 @@ final class LibraryHooks {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly ThemeHandlerInterface $themeHandler,
     private readonly ModuleExtensionList $moduleExtensionList,
+    private readonly Version $version,
   ) {
   }
 
@@ -38,7 +40,7 @@ final class LibraryHooks {
    * Implements hook_library_info_alter().
    */
   #[Hook('library_info_alter')]
-  public function extensionPathsLibraryInfoAlter(array &$libraries, string $extension): void {
+  public function libraryInfoAlter(array &$libraries, string $extension): void {
     // Find all libraries that specify xbExtension in drupalSettings and provide
     // default values and image paths.
     foreach ($libraries as &$library) {
@@ -76,7 +78,18 @@ final class LibraryHooks {
     if ($extension === 'navigation') {
       $libraries['internal.navigation']['dependencies'][] = 'experience_builder/navigation.xb.override';
     }
-
+    if ($extension === 'experience_builder') {
+      $version = $this->version->getVersion();
+      // Only add the version for tagged releases. If version is not present,
+      // AssetQueryStringInterface is used automatically.
+      if ($version !== '0.0.0') {
+        // For astro.client and astro.hydration we don't use their versions, but
+        // the XB UI version.
+        $libraries['astro.client']['version'] = $this->version->getVersion();
+        $libraries['astro.hydration']['version'] = $this->version->getVersion();
+        $libraries['xb-ui']['version'] = $this->version->getVersion();
+      }
+    }
   }
 
   /**

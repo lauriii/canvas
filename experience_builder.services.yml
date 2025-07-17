@@ -61,6 +61,7 @@ services:
     parent: tempstore.shared
   Drupal\experience_builder\Storage\ComponentTreeLoader: {}
   Drupal\experience_builder\CodeComponentDataProvider: {}
+  Drupal\experience_builder\Version: {}
 
   # Event subscribers.
   experience_builder.openapi.http_request_validator.subscriber:
