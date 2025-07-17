@@ -88,7 +88,11 @@ export const pendingChangesApi = createApi({
               'getAllPendingChanges',
               undefined,
               (draft) => {
-                return {};
+                // Remove only the changes that were successfully published
+                Object.keys(body).forEach((key) => {
+                  delete draft[key];
+                });
+                return draft;
               },
             ),
           );

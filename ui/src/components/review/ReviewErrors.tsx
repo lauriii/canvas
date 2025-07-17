@@ -93,32 +93,42 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
       {} as ErrorsByEntity,
     );
     return (
-      <Box data-testid="xb-review-publish-errors" maxWidth="360px">
+      <Box
+        data-testid="xb-review-publish-errors"
+        maxWidth="360px"
+        className={style.reviewErrors}
+      >
         <Separator my="3" size="4" />
-        <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
-          <Collapsible.Trigger className={style.collapseButton}>
-            <Flex gap="2" mb="1" align="center">
-              <ExclamationTriangleIcon color="red" width="12" height="12" />
-              <Heading as="h3" size="1" mb="0">
-                {errorState.errors.length} Errors
-              </Heading>
-              <ChevronDownIcon
-                className={clsx(style.chevron, !isOpen && style.closed)}
-              />
-            </Flex>
-          </Collapsible.Trigger>
+        <Box px="4" pb="2">
+          <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
+            <Collapsible.Trigger className={style.collapseButton}>
+              <Flex gap="2" mb="1" align="center">
+                <ExclamationTriangleIcon color="red" width="12" height="12" />
+                <Heading as="h3" size="1" mb="0">
+                  {errorState.errors.length} Error
+                  {errorState.errors.length > 1 ? 's' : ''}
+                </Heading>
+                <ChevronDownIcon
+                  className={clsx(style.chevron, !isOpen && style.closed)}
+                />
+              </Flex>
+            </Collapsible.Trigger>
 
-          <Collapsible.Content
-            forceMount
-            className={clsx(detailsStyle.content, detailsStyle.detailsContent)}
-          >
-            {Object.values(errorsByEntity).map(
-              (errorGroup: EntityError[], ix: number) => (
-                <ErrorGroup key={ix} errorGroup={errorGroup} />
-              ),
-            )}
-          </Collapsible.Content>
-        </Collapsible.Root>
+            <Collapsible.Content
+              forceMount
+              className={clsx(
+                detailsStyle.content,
+                detailsStyle.detailsContent,
+              )}
+            >
+              {Object.values(errorsByEntity).map(
+                (errorGroup: EntityError[], ix: number) => (
+                  <ErrorGroup key={ix} errorGroup={errorGroup} />
+                ),
+              )}
+            </Collapsible.Content>
+          </Collapsible.Root>
+        </Box>
       </Box>
     );
   }

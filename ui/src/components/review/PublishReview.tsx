@@ -73,10 +73,11 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   // Used to display the `Published` state, which resets on new selections
   const [hasPublished, setHasPublished] = useState<boolean>(false);
   useEffect(() => {
-    if (!isPublishing) {
+    if (!isPublishing && !errors?.errors?.length) {
       setHasPublished(true);
+      setSelectedChanges([]);
     }
-  }, [isPublishing]);
+  }, [isPublishing, errors]);
   useEffect(() => {
     if (selectedChanges.length > 0) {
       setHasPublished(false);
@@ -126,7 +127,6 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   const handlePublishClick = () => {
     if (onPublishClick && selectedChanges?.length) {
       onPublishClick(selectedChanges);
-      setSelectedChanges([]);
     }
   };
 
@@ -199,17 +199,19 @@ const PublishReview: React.FC<PublishReviewProps> = ({
             </Text>
           </Box>
           <Divider />
-          <Box p="4" className={isBusy ? styles.disabled : ''}>
-            <Text size="1">
-              {changes.length
-                ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
-                : 'All changes published!'}
-            </Text>
+          <Box className={isBusy ? styles.disabled : ''}>
+            <Box px="4" pt="4">
+              <Text size="1">
+                {changes.length
+                  ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
+                  : 'All changes published!'}
+              </Text>
+            </Box>
             <ScrollArea
               style={{ maxHeight: '380px', width: '100%' }}
               type="scroll"
             >
-              <Box pt="4">
+              <Box px="4" pt="4">
                 {changes?.length > 0 && (
                   <>
                     <ChangeList
@@ -220,10 +222,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       onDiscardClick={handleDiscardClick}
                       onViewClick={onViewClick}
                     />
-                    <ReviewErrors errorState={errors} />
                   </>
                 )}
               </Box>
+              <ReviewErrors errorState={errors} />
             </ScrollArea>
           </Box>
           <Divider />

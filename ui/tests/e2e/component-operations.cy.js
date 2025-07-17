@@ -314,27 +314,19 @@ describe('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components.
-    cy.screenshot('1_before-delete-image-1');
     cy.clickComponentInPreview('Image');
     cy.realPress('{del}');
-    cy.screenshot('2_after-delete-image-1');
-    cy.screenshot('3_before-delete-image-2');
     cy.clickComponentInPreview('Image');
     cy.realPress('{del}');
-    cy.screenshot('4_after-delete-image-2');
 
     cy.waitForComponentNotInPreview('Image');
-    cy.screenshot('5_after-deletes-and-iframe-wait');
 
     cy.openLibraryPanel();
-    cy.screenshot('6_panel-opened');
 
     cy.get('.primaryPanelContent').findByText('Image').click();
-    cy.screenshot('7-clicked-on-image');
 
     cy.intercept('POST', '**/xb/api/v0/layout/node/1').then(cy.log);
 
-    cy.screenshot('before-assert-1');
     // Check the default image src is set.
     cy.waitForElementInIframe(
       'img[src*="/experience_builder/components/image/600x400.png"]',
@@ -359,12 +351,9 @@ describe('Perform CRUD operations on components', () => {
       .findByText('XB test SDC with optional image and heading')
       .click();
 
-    cy.screenshot('before-assert-2');
     // Check the default image src is set.
     cy.waitForElementInIframe(
-      'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
-      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
-      40000,
+      'img[src*="/image-optional-with-example-and-additional-prop/gracie.jpg"]',
     );
 
     cy.publishAllPendingChanges([
@@ -374,7 +363,7 @@ describe('Perform CRUD operations on components', () => {
 
     cy.visit('/node/1');
     cy.get(
-      'img[src*="/experience_builder/tests/modules/xb_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg"]',
+      'img[src*="/image-optional-with-example-and-additional-prop/gracie.jpg"]',
     ).should('exist');
   });
 });

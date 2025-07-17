@@ -1,3 +1,7 @@
+.reviewErrors {
+  background-color: var(--amber-2);
+}
+
 .collapseButton {
   display: flex;
   cursor: pointer;
