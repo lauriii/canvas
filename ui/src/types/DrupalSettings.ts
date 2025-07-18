@@ -39,6 +39,9 @@ export interface DrupalSettings {
         text: string;
         url: string;
       }>;
+      jsonapiSettings: null | {
+        apiPrefix: string;
+      };
     };
   };
   xbExtension: object;

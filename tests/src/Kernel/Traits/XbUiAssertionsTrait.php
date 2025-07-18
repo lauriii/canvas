@@ -36,6 +36,7 @@ trait XbUiAssertionsTrait {
       'baseUrl',
       'branding',
       'breadcrumbs',
+      'jsonapiSettings',
       'pageTitle',
     ], array_keys($this->drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]));
     self::assertSame('This is a page title for testing purposes', $this->drupalSettings[CodeComponentDataProvider::XB_DATA_KEY][CodeComponentDataProvider::V0]['pageTitle']);

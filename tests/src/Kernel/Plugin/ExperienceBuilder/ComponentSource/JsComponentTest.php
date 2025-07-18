@@ -17,6 +17,10 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\Tests\experience_builder\Kernel\Traits\CacheBustingTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -27,11 +31,7 @@ use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsCompone
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\Tests\experience_builder\Kernel\Traits\CacheBustingTrait;
 use Drupal\media\Entity\MediaType;
-use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\xb_test_code_components\Hook\IslandCastaway;
 
 /**
@@ -202,7 +202,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
           ],
         ],
       ],
-      'js.xb_test_code_components_using_drupalsettings' => [
+      'js.xb_test_code_components_using_drupalsettings_get_site_data' => [
         'prop_field_definitions' => [],
       ],
       'js.xb_test_code_components_using_imports' => [
@@ -500,12 +500,12 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'import_maps' => $default_imports,
         ],
       ],
-      'js.xb_test_code_components_using_drupalsettings' => [
+      'js.xb_test_code_components_using_drupalsettings_get_site_data' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_using_drupalsettings']),
+          ->setCacheTags(['config:experience_builder.js_component.xb_test_code_components_using_drupalsettings_get_site_data']),
         'attachments' => [
           'library' => [
-            'experience_builder/astro_island.xb_test_code_components_using_drupalsettings',
+            'experience_builder/astro_island.xb_test_code_components_using_drupalsettings_get_site_data',
             ...$default_libraries,
           ],
           'html_head_link' => [
@@ -514,7 +514,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
               [
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
-                'href' => \sprintf('/%s/files/astro-island/4mmrh6rA0pHwhUlnqPevMaX0bGKNcokjoLC3VLBVXDY.js', $site_path),
+                'href' => \sprintf('/%s/files/astro-island/Bqd05shWDg_CVBJn_oQu0IFbb8Cz27jiqEZcqqAPfr8.js', $site_path),
               ],
             ],
           ],
@@ -736,9 +736,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
           'options',
         ],
       ],
-      'js.xb_test_code_components_using_drupalsettings' => [
+      'js.xb_test_code_components_using_drupalsettings_get_site_data' => [
         'config' => [
-          'experience_builder.js_component.xb_test_code_components_using_drupalsettings',
+          'experience_builder.js_component.xb_test_code_components_using_drupalsettings_get_site_data',
         ],
       ],
       'js.xb_test_code_components_using_imports' => [
@@ -1147,9 +1147,9 @@ final class JsComponentTest extends ComponentSourceTestBase {
         ],
         'transforms' => [],
       ],
-      'js.xb_test_code_components_using_drupalsettings' => [
+      'js.xb_test_code_components_using_drupalsettings_get_site_data' => [
         'expected_output_selectors' => [
-          'astro-island[opts*="Using drupalSettings"][props="{}"]',
+          'astro-island[opts*="Using drupalSettings getSiteData"][props="{}"]',
           'script[blocking="render"][src*="/ui/lib/astro-hydration/dist/client.js"]',
         ],
         'source' => 'Code component',

@@ -29,14 +29,14 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    * @covers \Drupal\experience_builder\CodeComponentDataProvider::getRequiredXbDataLibraries
    * @covers \Drupal\experience_builder\CodeComponentDataProvider::getPartialXbDataFromSettingsV0
    */
-  public function testV0UsingDrupalSettings(): void {
+  public function testV0UsingDrupalSettingsGetSiteData(): void {
     $page = Page::create([
       'title' => 'Test page',
       'type' => 'page',
       'components' => [
         [
           'uuid' => XBTestSetup::UUID_COMPONENT_SDC,
-          'component_id' => 'js.xb_test_code_components_using_drupalsettings',
+          'component_id' => 'js.xb_test_code_components_using_drupalsettings_get_site_data',
         ],
       ],
     ]);
@@ -51,7 +51,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
     $drupalSettings = $this->getDrupalSettings();
     $this->assertArrayHasKey(CodeComponentDataProvider::XB_DATA_KEY, $drupalSettings);
     self::assertSame([
-      'baseUrl' => \base_path(),
+      'baseUrl' => \Drupal::request()->getSchemeAndHttpHost() . \Drupal::request()->getBaseUrl(),
       'branding' => [
         'homeUrl' => '/user/login',
         'siteName' => 'Drupal',

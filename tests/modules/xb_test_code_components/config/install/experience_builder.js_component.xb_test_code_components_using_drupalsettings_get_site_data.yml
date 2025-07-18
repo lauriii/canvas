@@ -3,8 +3,8 @@ langcode: en
 status: true
 dependencies:
   enforced: {  }
-machineName: xb_test_code_components_using_drupalsettings
-name: 'Using drupalSettings'
+machineName: xb_test_code_components_using_drupalsettings_get_site_data
+name: 'Using drupalSettings getSiteData'
 required: {  }
 props: {  }
 slots: {  }
@@ -12,24 +12,24 @@ js:
   original: |-
     import { getSiteData } from '@/lib/drupal-utils';
 
-    const WithDrupalSettings = () => {
+    const WithDrupalSettingsSiteData = () => {
      const {homeUrl} = getSiteData().branding;
      return (
       <div>{homeUrl}</div>
      );
     };
 
-    export default WithDrupalSettings;
+    export default WithDrupalSettingsSiteData;
   compiled: |
     import { jsx as _jsx } from "react/jsx-runtime";
     import { getSiteData } from '@/lib/drupal-utils';
-    const WithDrupalSettings = ()=>{
+    const WithDrupalSettingsSiteData = ()=>{
         const { homeUrl } = getSiteData().branding;
         return /*#__PURE__*/ _jsx("div", {
             children: homeUrl
         });
     };
-    export default WithDrupalSettings;
+    export default WithDrupalSettingsSiteData;
 css:
   original: ''
   compiled: ''

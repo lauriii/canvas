@@ -9,6 +9,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
@@ -30,6 +31,7 @@ readonly final class CodeComponentDataProvider {
     private RouteMatchInterface $routeMatch,
     private TitleResolverInterface $titleResolver,
     private ChainBreadcrumbBuilderInterface $breadcrumbManager,
+    private ContainerInterface $container,
   ) {}
 
   /**
@@ -43,10 +45,13 @@ readonly final class CodeComponentDataProvider {
 
     return [
       self::V0 => [
-        // Match `drupalSettings.path.baseUrl`: a root-relative base URL with a
-        // trailing slash.
+        // ⚠️ Not the same as `drupalSettings.path.baseUrl` nor Symfony's
+        // definition of a base URL.
+        // JavaScript tools like @drupal-api-client/json-api-client usually need
+        // a full absolute URL.
+        // @see \Symfony\Component\HttpFoundation\Request::getBaseUrl()
         // @see \Drupal\system\Hook\SystemHooks::jsSettingsAlter()
-        'baseUrl' => $request->getBaseUrl() . '/',
+        'baseUrl' => $request->getSchemeAndHttpHost() . $request->getBaseUrl(),
       ],
     ];
   }
@@ -108,6 +113,35 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
+   * Returns settings for using JSON:API for V0 of drupalSettings.xbData.
+   *
+   * @return array
+   */
+  public function getXbDataJsonApiSettingsV0(): array {
+    if (!$this->container->hasParameter('jsonapi.base_path')) {
+      // If the `jsonapi.base_path` service parameter is not available, it means
+      // the JSON:API module is not installed.
+      // In contrast to the other settings, this may hence not change the
+      // placeholder values in `experience_builder/xbData.v0.jsonapiSettings` at
+      // all.
+      return [
+        self::V0 => [
+          'jsonapiSettings' => NULL,
+        ],
+      ];
+    }
+    $jsonapi_base_path = $this->container->getParameter('jsonapi.base_path');
+    \assert(is_string($jsonapi_base_path));
+    return [
+      self::V0 => [
+        'jsonapiSettings' => [
+          'apiPrefix' => ltrim($jsonapi_base_path, '/'),
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Parses the js code and attach the associated library.
    *
    * @param string $jsCode
@@ -118,8 +152,6 @@ readonly final class CodeComponentDataProvider {
    */
   public static function getRequiredXbDataLibraries(string $jsCode): array {
     // @todo Improve how is this being done https://drupal.org/i/3533458
-    // Using the compiled variables because drupalSettings.xbData.v0 was not
-    // reliable and we will always have the compiled variable.
     $map = [
       'getSiteData' => [
         'experience_builder/xbData.v0.baseUrl',
@@ -128,6 +160,10 @@ readonly final class CodeComponentDataProvider {
       'getPageData' => [
         'experience_builder/xbData.v0.breadcrumbs',
         'experience_builder/xbData.v0.pageTitle',
+      ],
+      '@drupal-api-client/json-api-client' => [
+        'experience_builder/xbData.v0.baseUrl',
+        'experience_builder/xbData.v0.jsonapiSettings',
       ],
     ];
     $libraries = [];

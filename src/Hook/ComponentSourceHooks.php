@@ -128,6 +128,12 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
         $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataPageTitleV0());
       }
     }
+    if ($all || in_array('experience_builder/xbData.v0.jsonapiSettings', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'jsonapiSettings']) === NULL) {
+        $xbData = array_replace_recursive($xbData, $this->codeComponentDataProvider->getXbDataJsonApiSettingsV0());
+      }
+    }
     if (!empty($xbData)) {
       ksort($xbData[CodeComponentDataProvider::V0]);
       $settings[CodeComponentDataProvider::XB_DATA_KEY] = $xbData;

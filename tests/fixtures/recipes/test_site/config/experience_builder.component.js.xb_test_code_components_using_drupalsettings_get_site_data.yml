@@ -3,7 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
-    - experience_builder.js_component.xb_test_code_components_using_drupalsettings
+    - experience_builder.js_component.xb_test_code_components_using_drupalsettings_get_site_data
 active_version: 8fe3be948e0194e1
 versioned_properties:
   active:
@@ -11,9 +11,9 @@ versioned_properties:
       prop_field_definitions: {  }
     fallback_metadata:
       slot_definitions: {  }
-label: 'Using drupalSettings'
-id: js.xb_test_code_components_using_drupalsettings
+label: 'Using drupalSettings getSiteData'
+id: js.xb_test_code_components_using_drupalsettings_get_site_data
 provider: null
 source: js
-source_local_id: xb_test_code_components_using_drupalsettings
+source_local_id: xb_test_code_components_using_drupalsettings_get_site_data
 category: '@todo'

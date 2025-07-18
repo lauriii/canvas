@@ -156,6 +156,7 @@ xbData.v0:
     - experience_builder/xbData.v0.branding
     - experience_builder/xbData.v0.breadcrumbs
     - experience_builder/xbData.v0.pageTitle
+    - experience_builder/xbData.v0.jsonapiSettings
   drupalSettings:
     xbData:
       v0: null
@@ -194,3 +195,11 @@ xbData.v0.pageTitle:
     xbData:
       v0:
         pageTitle: null
+
+xbData.v0.jsonapiSettings:
+  dependencies:
+    - core/drupalSettings
+  drupalSettings:
+    xbData:
+      v0:
+        jsonapiSettings: null
