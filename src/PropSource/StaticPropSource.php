@@ -229,16 +229,35 @@ final class StaticPropSource extends PropSourceBase {
     );
   }
 
-  public function withValue(mixed $value): static {
+  /**
+   * @param mixed $value
+   *   The value to initialize the field item list with.
+   * @param bool $allow_empty
+   *   By default, no empty values are allowed, because they're pointless to
+   *   store in a StaticPropSource.
+   *   In very specific circumstances, this may be acceptable and even necessary
+   *   though:
+   *   - when validating
+   *   - when loading stored data (a field type might change its logic for what
+   *     it considers empty)
+   *   - when *previewing* the user input, which may be "mid-input" and hence in
+   *     a temporarily empty state.
+   *   Validation will prevent empty values from being stored.
+   *
+   * @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
+   */
+  public function withValue(mixed $value, bool $allow_empty = FALSE): static {
     $field_item_list = clone $this->fieldItemList;
     $field_item_list->setValue($value);
 
-    // Detect values considered empty by the field type, and abort early.
-    $before = $field_item_list->count();
-    $field_item_list->filterEmptyItems();
-    $after = $field_item_list->count();
-    if ($before !== $after) {
-      throw new \LogicException(sprintf('%s called with invalid value for field type %s.', __METHOD__, $this->fieldItemList->getFieldDefinition()->getItemDefinition()->getDataType()));
+    if (!$allow_empty) {
+      // Detect values considered empty by the field type, and abort early.
+      $before = $field_item_list->count();
+      $field_item_list->filterEmptyItems();
+      $after = $field_item_list->count();
+      if ($before !== $after) {
+        throw new \LogicException(sprintf('%s called with invalid value for field type %s.', __METHOD__, $this->fieldItemList->getFieldDefinition()->getItemDefinition()->getDataType()));
+      }
     }
 
     return new StaticPropSource(

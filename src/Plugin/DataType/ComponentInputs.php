@@ -162,7 +162,11 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
             : NULL;
           // If it indeed was a collapsed StaticPropSource, un-collapse it.
           if ($parsed_default_prop_source instanceof StaticPropSource) {
-            yield "name" => $parsed_default_prop_source->withValue($raw_prop_source);
+            // When looking at stored data, we must treat user data that we once
+            // accepted (or are in the process of validating) with the utmost
+            // respect.
+            // @see https://en.wikipedia.org/wiki/Robustness_principle
+            yield "name" => $parsed_default_prop_source->withValue($raw_prop_source, allow_empty: TRUE);
           }
         }
         catch (\LogicException) {

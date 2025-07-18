@@ -22,6 +22,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceBase;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\Component as ComponentEntity;
+use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\MissingHostEntityException;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
@@ -281,14 +282,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $model = $explicit_input;
 
     foreach ($explicit_input['resolved'] as $prop_name => $value) {
-      // @see getPropsValues() in formUtil.ts for the equivalent empty string
-      // comparison.
-      if ((\is_scalar($value) && (string) $value === '')) {
-        // Don't send empty values. This is consistent with
-        // syncPropSourcesToResolvedValues in the type-script code.
-        unset($model['source'][$prop_name], $model['resolved'][$prop_name]);
-        continue;
-      }
       // Undo what ::clientModelToInput() and ::getExplicitInput() did: restore
       // the `source` to pass the necessary information to the client that
       // \Drupal\experience_builder\Form\ComponentInputsForm expects (and hence
@@ -918,12 +911,28 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           continue;
         }
 
+        // Required string component props that evaluate to '' must be retained:
+        // while the empty string is NOT considered a valid value, this is the
+        // fallback behavior XB opts for to enhance the user experience: it
+        // allows a component to render even at the point in time where a
+        // Content Author has *emptied* the string input, as they're thinking
+        // about what string they do want.
+        // ⚠️ This won't work for components whose logic specifically checks for
+        // an empty string and refuses to render then.
+        // @todo Expand to support multiple-cardinality.
+        if ($required && $evaluated === '' && $this->getExplicitInputDefinitions()['shapes'][$prop]['type'] === JsonSchemaType::STRING->value) {
+          // Confirm that *if* this weren't special-cased, that this would
+          // indeed enter the next branch, which would cause it to be skipped.
+          // @todo Consider adding a new `GracefulDegradationPropSource` to
+          // encapsulate this similarly to `DefaultRelativeUrlPropSource`.
+          assert(!$source instanceof StaticPropSource || ($source->fieldItemList->count() > 0 && $source->fieldItemList->isEmpty()));
+        }
         // 💡 Automatically inform developers of missing client-side transforms,
         // which is the most likely explanation for a value sent by the XB UI
         // not being accepted by the field type. However, gracefully degrade and
         // log a deprecation error.
         // @see https://en.wikipedia.org/wiki/Robustness_principle
-        if ($source instanceof StaticPropSource && $source->fieldItemList->count() > 0 && $source->fieldItemList->isEmpty()) {
+        elseif ($source instanceof StaticPropSource && $source->fieldItemList->count() > 0 && $source->fieldItemList->isEmpty()) {
           // @todo Investigate in https://www.drupal.org/project/experience_builder/issues/3535024, and preferably add extra guardrails and convert this to an exception
           // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
           @trigger_error(sprintf('Client-side transformation for the `%s` prop failed: `%s` provided, but the %s data type logic considers it to be empty, hence indicating a mismatch.', $prop, json_encode($prop_value), $source->getSourceType()), E_USER_DEPRECATED);
@@ -1022,7 +1031,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   private function uncollapse(mixed $value, string $prop_name): PropSourceBase {
     if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
-      return $this->getDefaultStaticPropSource($prop_name)->withValue($value);
+      return $this->getDefaultStaticPropSource($prop_name)->withValue($value, allow_empty: TRUE);
     }
     // phpcs:ignore
     /** @var PropSourceArray $value */

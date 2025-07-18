@@ -276,7 +276,22 @@ const InputBehaviorsCommon = ({
 
       // Check if the input is valid before continuing.
       if (e.target instanceof HTMLInputElement && !e.target.reportValidity()) {
-        return;
+        const inputElement = e.target;
+        const requiredAndOnlyProblemIsEmpty =
+          inputElement.required &&
+          Object.keys(inputElement.validity).every(
+            (validityProperty: string) =>
+              ['valid', 'valueMissing'].includes(validityProperty)
+                ? inputElement.validity[validityProperty as keyof ValidityState]
+                : !inputElement.validity[
+                    validityProperty as keyof ValidityState
+                  ],
+          );
+        // We will return early unless the only problem caught by native
+        // validation is a required field that is empty.
+        if (!requiredAndOnlyProblemIsEmpty) {
+          return;
+        }
       }
 
       if (

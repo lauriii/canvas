@@ -44,6 +44,58 @@ describe('Perform CRUD operations on components', () => {
     cy.drupalUninstall();
   });
 
+  it('Can handle empty heading prop in hero component', () => {
+    // Load the page and add hero component
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.openLibraryPanel();
+    cy.get('.primaryPanelContent').findByText('Hero').click();
+
+    // Wait for hero to be added and default content to appear
+    cy.waitForElementContentInIframe(
+      'h1.my-hero__heading',
+      'There goes my hero',
+    );
+    cy.waitForElementContentInIframe(
+      'p.my-hero__subheading',
+      'Watch him as he goes!',
+    );
+
+    // Clear the heading field
+    cy.findByLabelText('Heading').type('{selectall}{del}');
+
+    // Verify preview still loads and heading is empty
+    cy.waitForElementContentNotInIframe(
+      'h1.my-hero__heading',
+      'There goes my hero',
+    );
+    cy.waitForElementContentInIframe(
+      'p.my-hero__subheading',
+      'Watch him as he goes!',
+    );
+
+    // Refresh page
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2', clearAutoSave: false });
+    cy.clickComponentInPreview('Hero');
+
+    // Verify preview still loads and heading is empty.
+    cy.waitForElementContentInIframe(
+      'p.my-hero__subheading',
+      'Watch him as he goes!',
+    );
+    cy.waitForElementContentNotInIframe(
+      'h1.my-hero__heading',
+      'There goes my hero',
+    );
+
+    // Verify heading input is still empty
+    cy.findByLabelText('Heading').should('have.value', '');
+
+    // Add new heading text and verify preview updates,
+    const newHeading = 'New Hero Heading';
+    cy.findByLabelText('Heading').type(newHeading);
+    cy.waitForElementContentInIframe('h1.my-hero__heading', newHeading);
+  });
+
   it('Should be able to blur autocomplete without problems. See #3519734', () => {
     cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
     cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
