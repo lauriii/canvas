@@ -427,9 +427,6 @@ CLI:
     - cd cli
     - npm ci
     - npm run build
-  artifacts:
-    paths:
-      - cli/node_modules
 
 CLI eslint:
   stage: validate
@@ -443,7 +440,8 @@ CLI eslint:
     - *manual-rule
   script:
     - cd cli
-    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/cli-eslint-junit.xml --max-warnings=0
+    - npm ci
+    - npx eslint --format=junit --output-file=$CI_PROJECT_DIR/cli-eslint-junit.xml --max-warnings=0
   artifacts:
     expose_as: junit
     expire_in: 6 mos
@@ -467,6 +465,7 @@ CLI vitest:
     - *manual-rule
   script:
     - cd cli
+    - npm ci
     - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/cli-vitest-junit.xml
   artifacts:
     expose_as: junit
@@ -727,6 +726,6 @@ pages-publish:
     ASTRO_BASE: /$CI_PROJECT_NAME/
   script:
     - npm ci
-    - npm run build --workspace=docs --base /$CI_PROJECT_NAME --site https://project.pages.drupalcode.org
+    - npm run build --workspace=docs
   pages:
     publish: docs/user/dist
