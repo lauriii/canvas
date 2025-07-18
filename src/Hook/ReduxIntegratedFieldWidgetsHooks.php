@@ -245,6 +245,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         // part of a Formatted Text component and not an isolated select.
         // Include the #name and #id render array properties as name and id
         // attributes.
+        \assert(\is_iterable($element['format']['format']['#attributes']));
         $element['value']['#attributes']['data-xb-format-select-attributes'] = Json::encode([...$element['format']['format']['#attributes'], 'name' => $element['format']['format']['#name'], 'id' => $element['format']['format']['#id']]);
         if (isset($element['format']['format']['#options'])) {
           // Serialize the list of available text formats to pass via attribute.
