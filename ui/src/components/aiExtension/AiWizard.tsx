@@ -382,7 +382,11 @@ const AiWizard = () => {
         }
         return { text: message.message };
       } catch (error) {
-        return { error: 'Something went wrong. Please try again.' };
+        console.error('AI response processing failed:', error);
+        return {
+          text: 'An error occurred while processing your request. Please try again.',
+          role: 'error',
+        };
       }
     },
     [
@@ -419,12 +423,6 @@ const AiWizard = () => {
       // Load chat history from sessionStorage.
       chatElementRef.current.loadHistory = () => {
         return loadChatHistory();
-      };
-      // @todo figure out how to fix the issue of passing the
-      //  selected components without refresh in https://www.drupal.org/i/3529328.
-      // Intercept and process AI responses.
-      chatElementRef.current.responseInterceptor = (response: any) => {
-        return receiveMessage(response);
       };
     }
   }, [csrfToken, receiveMessage]);
@@ -542,11 +540,13 @@ const AiWizard = () => {
                 }
 
                 const data = await response.json();
-                signals.onResponse(data);
+                const processedMessage = await receiveMessage(data);
+                signals.onResponse(processedMessage);
               } catch (error) {
                 console.error('AI request failed:', error);
                 signals.onResponse({
-                  error: 'Something went wrong. Please try again.',
+                  text: 'An error occurred while processing your request. Please try again.',
+                  role: 'error',
                 });
               }
             },
@@ -599,6 +599,11 @@ const AiWizard = () => {
               ai: {
                 bubble: {
                   backgroundColor: 'white',
+                },
+              },
+              error: {
+                bubble: {
+                  color: '#FF3333',
                 },
               },
             },
