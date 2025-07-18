@@ -297,7 +297,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         [
           'uuid' => XBTestSetup::UUID_TWO_COLUMN_UUID,
           'nodeType' => 'component',
-          'type' => 'sdc.experience_builder.two_column@d99140cbd47c0b51',
+          'type' => 'sdc.xb_test_sdc.two_column@d99140cbd47c0b51',
           'name' => NULL,
           'slots' => [
             [
@@ -308,14 +308,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.image@c06e0be7dd131740',
+                  'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
                   'name' => NULL,
                   'slots' => [],
                 ],
@@ -329,7 +329,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_ALL_SLOTS_EMPTY,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
+                  'type' => 'sdc.xb_test_sdc.one_column@836c8835c850cdc5',
                   'name' => NULL,
                   'slots' => [
                     [
@@ -350,21 +350,21 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.experience_builder.image@c06e0be7dd131740',
+                  'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
                   'name' => 'Magnificent image!',
                   'slots' => [],
                 ],

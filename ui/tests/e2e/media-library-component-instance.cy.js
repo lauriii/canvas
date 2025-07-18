@@ -190,7 +190,7 @@ describe('Media Library component instance', () => {
 
       cy.get('.primaryPanelContent').findByText('Image').click();
       cy.get(
-        '.previewOverlay [data-xb-component-id="sdc.experience_builder.image"]',
+        '.previewOverlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
       ).should('have.length', 2);
       cy.clickComponentInPreview('Image', 0);
       cy.waitForAjax();

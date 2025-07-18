@@ -143,8 +143,8 @@ class PropSourceEndpointTest extends FunctionalTestBase {
     $data = array_intersect_key(
       $data,
       [
-        'sdc.experience_builder.image' => TRUE,
-        'sdc.experience_builder.my-hero' => TRUE,
+        'sdc.xb_test_sdc.image' => TRUE,
+        'sdc.xb_test_sdc.my-hero' => TRUE,
         'sdc.sdc_test_all_props.all-props' => TRUE,
         'js.my-cta' => TRUE,
       ],

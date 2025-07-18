@@ -603,7 +603,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node2->set('field_xb_demo', [
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.experience_builder.heading',
+        'component_id' => 'sdc.xb_test_sdc.heading',
         'component_version' => '9616e3c4ab9b4fce',
         'inputs' => [
           'style' => 'flared',
@@ -890,7 +890,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertNodeValues(
       $node2,
       [
-        'sdc.experience_builder.heading',
+        'sdc.xb_test_sdc.heading',
         'block.system_branding_block',
       ],
       \array_intersect_key($this->getValidConvertedInputs(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),

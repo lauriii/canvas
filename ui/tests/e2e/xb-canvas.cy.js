@@ -20,7 +20,7 @@ describe('Experience Builder canvas controls/navigation', () => {
 
     // Hover over a component to trigger the outline and get its bounding rect.
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
+      .find('[data-component-id="xb_test_sdc:my-hero"] h1')
       .first()
       .then(($h1) => {
         const element = $h1;
@@ -55,7 +55,7 @@ describe('Experience Builder canvas controls/navigation', () => {
 
     // Re-hover over the component after zoom change and get its new bounding rect.
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
+      .find('[data-component-id="xb_test_sdc:my-hero"] h1')
       .first()
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover');
@@ -98,7 +98,7 @@ describe('Experience Builder canvas controls/navigation', () => {
 
     // Re-hover over the component again after zoom-out.
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
+      .find('[data-component-id="xb_test_sdc:my-hero"] h1')
       .first()
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover', { force: true });

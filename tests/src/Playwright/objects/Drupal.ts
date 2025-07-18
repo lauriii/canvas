@@ -62,7 +62,7 @@ export class Drupal {
   }
 
   async setupMinimalXBTestSite() {
-    await this.installModules(['experience_builder']);
+    await this.installModules(['experience_builder', 'xb_test_sdc']);
     await this.drush(
       "php-eval \"Drupal\\experience_builder\\Entity\\Page::create(['title' => 'Homepage', 'type' => 'xb_page', 'path' => ['alias' => '/homepage', 'langcode' => 'en']])->save();\"",
     );

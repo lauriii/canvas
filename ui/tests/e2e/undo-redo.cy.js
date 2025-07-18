@@ -20,7 +20,7 @@ describe('Undo/Redo functionality', () => {
 
     // Check there are three heroes initially.
     cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
@@ -34,7 +34,7 @@ describe('Undo/Redo functionality', () => {
     cy.wait('@getPreview');
 
     cy.getIframeBody().find(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -45,7 +45,7 @@ describe('Undo/Redo functionality', () => {
 
     // Assert that the component was deleted from the layout.
     cy.getIframeBody().find(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
@@ -57,7 +57,7 @@ describe('Undo/Redo functionality', () => {
 
     // Assert that the component was again added to the layout.
     cy.getIframeBody().find(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },

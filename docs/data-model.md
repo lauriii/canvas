@@ -328,7 +328,7 @@ instance` specified by the Content Creator:
   "nodeType": "component",
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
   "name": "Most Important Heading",
-  "type": "sdc.experience_builder.heading@1b4f8df7c94d7e3c",
+  "type": "sdc.xb_test_sdc.heading@1b4f8df7c94d7e3c",
   "slots": []
 }
 ```
@@ -338,7 +338,7 @@ An example simple `component instance` of a `component` with a single `component
 {
   "nodeType": "component",
   "id": "177122af-1679-4ee4-b700-dcf5ab376c4a",
-  "type": "sdc.experience_builder.one_column@f6a3a392e98e8342",
+  "type": "sdc.xb_test_sdc.one_column@f6a3a392e98e8342",
   "slots": [
     {
       "id": "177122af-1679-4ee4-b700-dcf5ab376c4a/content",
@@ -434,7 +434,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618",
-          "type": "sdc.experience_builder.two_column@e5ef92acda2ee2d1",
+          "type": "sdc.xb_test_sdc.two_column@e5ef92acda2ee2d1",
           "slots": [
             {
               "nodeType": "slot",
@@ -443,13 +443,13 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "e8ecc571-0221-40d8-9ab2-262389fabd58",
-                  "type": "sdc.experience_builder.heading@1b4f8df7c94d7e3c",
+                  "type": "sdc.xb_test_sdc.heading@1b4f8df7c94d7e3c",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "id": "baf231e8-b214-4e3e-93d3-5d3f03a1eae9",
-                  "type": "sdc.experience_builder.druplicon@some-version-string",
+                  "type": "sdc.xb_test_sdc.druplicon@some-version-string",
                   "slots": []
                 }
               ]
@@ -461,7 +461,7 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "39648574-b937-4a5a-b1b2-9db0f30ae315",
-                  "type": "sdc.experience_builder.one_column@f6a3a392e98e8342",
+                  "type": "sdc.xb_test_sdc.one_column@f6a3a392e98e8342",
                   "slots": [
                     {
                       "nodeType": "slot",
@@ -470,7 +470,7 @@ A complete example, with three `region node`s:
                         {
                           "nodeType": "component",
                           "id": "a1cfa9f1-0088-45d9-b837-39571485b75e",
-                          "type": "sdc.experience_builder.my-hero",
+                          "type": "sdc.xb_test_sdc.my-hero",
                           "slots": []
                         }
                       ]

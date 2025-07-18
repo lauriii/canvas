@@ -11,7 +11,7 @@ describe('Multi-select components', () => {
 
     // Make sure we have multiple components visible for testing
     cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.be.at.least(
           2,

@@ -133,6 +133,16 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.props-no-title' => [
         'Prop "heading" must have title',
       ],
+      'sdc.xb_test_sdc.shoe_button' => [
+        'Experience Builder does not know of a field type/widget to allow populating the <code>icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+      ],
+      'sdc.xb_test_sdc.shoe_details' => [
+        'Experience Builder does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://experience_builder.module/shoe-icon"}</code>.',
+      ],
+      'sdc.xb_test_sdc.shoe_icon' => [
+        'Prop "size" has an empty enum value.',
+        'Prop "color" has an empty enum value.',
+      ],
       'sdc.xb_test_sdc.slots-no-title' => [
         'Slot "the_footer" must have title',
       ],
@@ -149,17 +159,29 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.component-no-meta-enum',
       'sdc.xb_test_sdc.crash',
       'sdc.xb_test_sdc.deprecated',
+      'sdc.xb_test_sdc.druplicon',
       'sdc.xb_test_sdc.experimental',
       'sdc.xb_test_sdc.grid-container',
+      'sdc.xb_test_sdc.heading',
+      'sdc.xb_test_sdc.image',
       'sdc.xb_test_sdc.image-gallery',
       'sdc.xb_test_sdc.image-optional-with-example',
       'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
       'sdc.xb_test_sdc.image-optional-without-example',
       'sdc.xb_test_sdc.image-required-with-example',
       'sdc.xb_test_sdc.my-cta',
+      'sdc.xb_test_sdc.my-hero',
+      'sdc.xb_test_sdc.my-section',
+      'sdc.xb_test_sdc.one_column',
       'sdc.xb_test_sdc.props-no-slots',
       'sdc.xb_test_sdc.props-slots',
+      'sdc.xb_test_sdc.shoe_badge',
+      'sdc.xb_test_sdc.shoe_tab',
+      'sdc.xb_test_sdc.shoe_tab_group',
+      'sdc.xb_test_sdc.shoe_tab_panel',
       'sdc.xb_test_sdc.sparkline',
+      'sdc.xb_test_sdc.two_column',
+      'sdc.xb_test_sdc.video',
     ], $auto_created_components);
 
     return array_combine($auto_created_components, $auto_created_components);
@@ -423,25 +445,226 @@ It\'s me, and I\'m small!
           ],
         ],
       ],
+      'sdc.xb_test_sdc.druplicon' => [
+        'html' => <<<HTML
+ <!-- sourced from https://www.drupal.org/about/media-kit/logos -->
+ <svg enable-background="new 0 0 755 826" viewBox="0 0 755 826" xmlns="http://www.w3.org/2000/svg"><title>Druplicon</title><path d="m539.2 167.8c-39.8-24.8-77.2-34.5-114.8-59.2-23.2-15.8-55.5-53.2-82.5-85.5-5.2 51.8-21 72.8-39 87.8-38.2 30-62.2 39-95.2 57-27.8 14.2-178.5 104.2-178.5 297.7s162.8 336 343.5 336 337.5-131.2 337.5-330-147-288.8-171-303.8z" fill="#00598e"/><path d="m478.2 633.5c12 0 24.8.8 33.8 6.8s14.2 19.5 17.2 27 0 12-6 15c-5.2 3-6 1.5-11.2-8.2s-9.8-19.5-36-19.5-34.5 9-47.2 19.5-17.2 14.2-21.8 8.2-3-12 5.2-19.5 21.8-19.5 34.5-24.8 19.5-4.5 31.5-4.5z" fill="#fff"/><path d="m353.8 719c15 12 37.5 21.8 85.5 21.8s81.7-13.6 96.7-24.8c6.8-5.2 9.8-.8 10.5 2.2s2.2 7.5-3 12.8c-3.8 3.8-38.2 27.8-78.8 31.5s-95.2 6-128.2-24c-5.2-5.2-3.8-12.8 0-15.8s6.8-5.2 11.2-5.2 3.8 0 6.1 1.5z" fill="#fff"/><path d="m170 662c57-.8 67.5-10.5 117.8-33 271.5-121.5 321.8-232.5 331.5-258s24-66.8 9-112.5c-2.9-8.8-5-15.9-6.5-21.6-36.1-40.3-71.9-62.4-82.7-69.1-39-24.8-77.3-34.5-114.8-59.2-23.2-15-55.5-53.2-82.5-85.5-5.2 51.8-20.2 73.5-39 87.8-38.2 30-62.2 39-95.2 57-27.8 14.9-178.6 104.1-178.6 297.6 0 61.8 16.6 118.4 45.1 166.8l7.4-.3c15.7 14.2 40.5 30.8 88.5 30z" fill="#0073ba"/><path d="m539 167.8c-39-24.8-77.2-34.5-114.8-59.2-23.2-15-55.5-53.2-82.5-85.5-5.2 51.8-20.2 73.5-39 87.8-38.2 30-62.2 39-95.2 57-27.7 14.9-178.5 104.1-178.5 297.6 0 61.8 16.6 118.4 45.1 166.8 60.7 103.2 175.4 169.2 298.4 169.2 180.8 0 337.5-131.2 337.5-330 0-109.1-44.3-185.5-88.3-234.6-36.1-40.4-71.9-62.4-82.7-69.1zm91.2 87.7c49.2 61.6 74.2 134.2 74.2 216 0 47.4-9 92.2-26.8 133.2-16.9 38.8-41.2 73.2-72.3 102.3-61.5 57.4-144.1 89-232.7 89-43.8 0-86.8-8.4-127.8-24.9-40.3-16.2-76.5-39.4-107.8-69-66.1-62.4-102.4-146.4-102.4-236.6 0-80.3 26.1-151.7 77.5-212.2 39.3-46.2 81.7-71.8 98-80.6 8-4.3 15.4-8.2 22.6-11.9 22.6-11.6 44-22.6 73.4-45.6 15.7-11.9 32.4-30.8 39.5-78.7 24.8 29.5 53.5 62.6 75.5 76.8 19.5 12.9 39.5 21.9 58.8 30.6 18.3 8.2 37.2 16.8 55.9 28.7 0 0 .7.4.7.4 54.9 34.1 84.1 70.6 93.7 82.5z" fill="#004975"/><path d="m345.5 38c10.5 30.8 9 46.5 9 53.2s-3.8 24.8-15.8 33.8c-5.2 3.8-6.8 6.8-6.8 7.5 0 3 6.8 5.2 6.8 12 0 8.2-3.8 24.8-43.5 64.5s-96.8 75-141 96.8-65.2 20.2-71.2 9.7 2.2-33.8 30-64.5 115.5-75 115.5-75l109.5-76.5 6-29.2" fill="#93c5e4"/><path d="m345.5 37.2c-6.8 49.5-21.8 64.5-42 80.2-33.8 25.5-66.8 41.2-74.2 45-19.5 9.8-90 48.8-126.8 105-11.2 17.2 0 24 2.2 25.5s27.8 4.5 82.5-28.5 78.8-52.4 109.6-84.6c16.5-17.2 18.8-27 18.8-31.5 0-5.2-3.8-7.5-9.8-9-3-.8-3.8-2.2 0-4.5s19.4-9.8 23.2-12.8 21.8-15 22.5-34.5-.7-33-6-50.3z" fill="#fff"/><path d="m176.8 582.5c.8-58.5 55.5-113.2 124.5-114 87.8-.8 148.5 87 192.8 86.2 37.5-.8 109.5-74.2 144.8-74.2 37.5 0 48 39 48 62.2s-7.5 65.2-25.5 91.5-29.2 36-50.2 34.5c-27-2.2-81-86.2-115.5-87.8-43.5-1.5-138 90.8-212.2 90.8-45 0-58.5-6.8-73.5-16.5-22.8-15.7-34-39.7-33.2-72.7z" fill="#fff"/><path d="m628.2 258.5c15 45.8.8 87-9 112.5s-60 136.5-331.5 258c-50.2 22.5-60.8 32.2-117.8 33-48 .8-72.8-15.8-88.5-30l-7.4.3c60.7 103.2 175.4 169.2 298.4 169.2 180.8 0 337.5-131.2 337.5-330 0-109.1-44.3-185.5-88.3-234.6 1.6 5.7 3.8 12.8 6.6 21.6z" fill="none"/></svg>\n
+ HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--druplicon',
+            'core/components.xb_test_sdc--druplicon',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.heading' => [
+        'html' => <<<HTML
+<h1  data-component-id="xb_test_sdc:heading" class="primary">A heading element</h1>\n
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--heading',
+            'core/components.xb_test_sdc--heading',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.image' => [
+        'html' => '
+<img
+  class="image"
+  src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/image/600x400.png"
+    alt="Boring placeholder"
+  width="600"
+  height="400"
+  loading="lazy"
+/>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--image',
+            'core/components.xb_test_sdc--image',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.my-hero' => [
+        'html' => <<<HTML
+<div  data-component-id="xb_test_sdc:my-hero" class="my-hero__container">
+  <h1 class="my-hero__heading">There goes my hero</h1>
+  <p class="my-hero__subheading">Watch him as he goes!</p>
+  <div class="my-hero__actions">
+    <a href="https://example.com" class="my-hero__cta my-hero__cta--primary">View</a>
+    <button class="my-hero__cta">Click</button>
+  </div>
+</div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--my-hero',
+            'core/components.xb_test_sdc--my-hero',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.my-section' => [
+        'html' => <<<HTML
+<h2 class="my-section__h2">Our Mission</h2>
+<div class="my-section__wrapper">
+  <div class="my-section__content-wrapper">
+    <p class="my-section__paragraph">
+      Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.
+    </p>
+    <p class="my-section__paragraph">
+      Join us on our journey to innovation and excellence. Your satisfaction is our priority.
+    </p>
+  </div>
+  <div class="my-section__image-wrapper">
+    <img alt="Placeholder Image" class="my-section__img" width="500" height="500" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAH0CAYAAADL1t+KAAAAAXNSR0IArs4c6QAAIABJREFUeF7t3QnT9ETVBuBBXHAF3HBDFsFdBP3//8AN3ABRBAUUV1BxRb46T9VQeZuemczMCUfOd6WKKotn5nT66pZ7knSS277zne+8sbMRIECAAAEC72iB2wT6O3r87DwBAgQIELgREOgmAgECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4QIECAAIEGAgK9wSDqAgECBAgQEOjmAAECBAgQaCAg0BsMoi4QIECAAAGBbg4Q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">
+  </div>
+</div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--my-section',
+            'core/components.xb_test_sdc--my-section',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.one_column' => [
+        'html' => <<<HTML
+<div  data-component-id="xb_test_sdc:one_column" class="width-full">
+      The contents of the example block
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--one_column',
+            'core/components.xb_test_sdc--one_column',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.two_column' => [
+        'html' => <<<HTML
+<div  data-component-id="xb_test_sdc:two_column">
+          <div class="column-one width-25">
+        The contents of the one column.
+
+      </div>
+              <div class="column-two width-75">
+        The contents of the two column.
+
+      </div>
+    </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--two_column',
+            'core/components.xb_test_sdc--two_column',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_badge' => [
+        'html' => '<sl-badge
+   data-component-id="xb_test_sdc:shoe_badge" data-component-variant="primary"
+  variant="primary"
+   pulse    pill >
+      The contents of the example block
+  </sl-badge>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--shoe_badge',
+            'core/components.xb_test_sdc--shoe_badge',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab' => [
+        'html' => '<sl-tab  data-component-id="xb_test_sdc:shoe_tab"
+panel="tab_1">
+  Tab 1
+</sl-tab>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--shoe_tab',
+            'core/components.xb_test_sdc--shoe_tab',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_group' => [
+        'html' => '<sl-tab-group  data-component-id="xb_test_sdc:shoe_tab_group"
+placement="top"
+activation="auto">
+  <div slot="nav">
+          </div>
+
+
+</sl-tab-group>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--shoe_tab_group',
+            'core/components.xb_test_sdc--shoe_tab_group',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_panel' => [
+        'html' => '<sl-tab-panel  data-component-id="xb_test_sdc:shoe_tab_panel"
+  name="tab_name"  >  </sl-tab-panel>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--shoe_tab_panel',
+            'core/components.xb_test_sdc--shoe_tab_panel',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.video' => [
+        'html' => '<video controls poster="https://example.com/600x400.png" width="">
+  <source src="https://media.istockphoto.com/id/1340051874/video/aerial-top-down-view-of-a-container-cargo-ship.mp4?s=mp4-640x640-is&amp;k=20&amp;c=5qPpYI7TOJiOYzKq9V2myBvUno6Fq2XM3ITPGFE8Cd8=">
+</video>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--video',
+            'core/components.xb_test_sdc--video',
+          ],
+        ],
+      ],
     ], $rendered);
   }
 
   public function testRewriteExampleUrl(): void {
-    $plugin = \Drupal::service(ComponentPluginManager::class)->createInstance('experience_builder:image');
+    $plugin = \Drupal::service(ComponentPluginManager::class)->createInstance('xb_test_sdc:image');
     $component = SingleDirectoryComponent::createConfigEntity($plugin);
     $source = $component->getComponentSource();
     self::assertInstanceOf(SingleDirectoryComponent::class, $source);
 
     // Assert that existing files are rewritten to include the module path.
-    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('experience_builder');
-    self::assertStringEndsWith($module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('600x400.png'));
-    self::assertStringEndsWith($module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('/600x400.png'));
-    self::assertStringEndsWith($module_path . '/tests/fixtures/600x400.png', $source->rewriteExampleUrl('../../tests/fixtures/600x400.png'));
+    $xb_test_sdc_module_path = \Drupal::service(ModuleExtensionList::class)->getPath('xb_test_sdc');
+
+    self::assertStringEndsWith($xb_test_sdc_module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('600x400.png'));
+    self::assertStringEndsWith($xb_test_sdc_module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('/600x400.png'));
+    self::assertStringEndsWith('/tests/fixtures/600x400.png', $source->rewriteExampleUrl('../../tests/fixtures/600x400.png'));
 
     // Assert that non-existing links have a leading slash but do not include the module nor SDC path.
     $url = $source->rewriteExampleUrl('test/path');
     self::assertStringEndsWith('/test/path', $url);
-    self::assertStringNotContainsString($module_path, $url);
+    self::assertStringNotContainsString($xb_test_sdc_module_path, $url);
     self::assertStringNotContainsString('components', $url);
 
     // Assert that non-existing links with a leading slash are not doubled.
@@ -635,6 +858,9 @@ It\'s me, and I\'m small!
           ],
         ],
       ],
+      'sdc.xb_test_sdc.druplicon' => [
+        'prop_field_definitions' => [],
+      ],
       'sdc.xb_test_sdc.experimental' => [
         'prop_field_definitions' => [
           'text' => [
@@ -658,6 +884,62 @@ It\'s me, and I\'m small!
             'field_widget' => 'options_select',
             'default_value' => [0 => ['value' => 'horizontal']],
             'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.heading' => [
+        'prop_field_definitions' => [
+          'element' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'h1',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'style' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'primary',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'text' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'A heading element',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.image' => [
+        'prop_field_definitions' => [
+          'image' => [
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
         ],
       ],
@@ -789,6 +1071,107 @@ It\'s me, and I\'m small!
           ],
         ],
       ],
+      'sdc.xb_test_sdc.my-hero' => [
+        'prop_field_definitions' => [
+          'cta1' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'View',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'cta1href' => [
+            'field_type' => 'link',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'title' => 0,
+            ],
+            'field_widget' => 'link_default',
+            'default_value' => [
+              0 => [
+                'uri' => 'https://example.com',
+                'options' => [],
+              ],
+            ],
+            'expression' => 'ℹ︎link␟url',
+          ],
+          'cta2' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Click',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'heading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'There goes my hero',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'subheading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Watch him as he goes!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.my-section' => [
+        'prop_field_definitions' => [
+          'text' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.one_column' => [
+        'prop_field_definitions' => [
+          'width' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'full',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
       'sdc.xb_test_sdc.props-no-slots' => [
         'prop_field_definitions' => [
           'heading' => [
@@ -809,6 +1192,168 @@ It\'s me, and I\'m small!
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'There goes my hero']],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_badge' => [
+        'prop_field_definitions' => [
+          'pill' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => [
+              0 => [
+                'value' => TRUE,
+              ],
+            ],
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'pulse' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => [
+              0 => [
+                'value' => TRUE,
+              ],
+            ],
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'variant' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'primary',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab' => [
+        'prop_field_definitions' => [
+          'active' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'closable' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'disabled' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'label' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Tab 1',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'panel' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'tab_1',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_group' => [
+        'prop_field_definitions' => [
+          'activation' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'auto',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'no_scroll' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => [
+              0 => [
+                'value' => FALSE,
+              ],
+            ],
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'placement' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'top',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_panel' => [
+        'prop_field_definitions' => [
+          'active' => [
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'name' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'tab_name',
+              ],
+            ],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -836,6 +1381,49 @@ It\'s me, and I\'m small!
               8 => ['value' => 9],
             ],
             'expression' => 'ℹ︎integer␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.two_column' => [
+        'prop_field_definitions' => [
+          'width' => [
+            'field_type' => 'list_integer',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 25,
+              ],
+            ],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.video' => [
+        'prop_field_definitions' => [
+          'display_width' => [
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'min' => 1,
+              'max' => NULL,
+            ],
+            'field_widget' => 'number',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎integer␟value',
+          ],
+          'video' => [
+            'field_type' => 'file',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'file_extensions' => 'mp4',
+            ],
+            'field_widget' => 'file_generic',
+            'default_value' => [],
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
           ],
         ],
       ],
@@ -867,6 +1455,11 @@ It\'s me, and I\'m small!
           'xb_test_sdc',
         ],
       ],
+      'sdc.xb_test_sdc.druplicon' => [
+        'module' => [
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.experimental' => [
         'module' => [
           'core',
@@ -877,6 +1470,23 @@ It\'s me, and I\'m small!
         'module' => [
           'core',
           'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.heading' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.image' => [
+        'config' => [
+          0 => 'image.style.xb_parametrized_width',
+        ],
+        'module' => [
+          'file',
+          'image',
           'xb_test_sdc',
         ],
       ],
@@ -940,6 +1550,26 @@ It\'s me, and I\'m small!
           'xb_test_sdc',
         ],
       ],
+      'sdc.xb_test_sdc.my-hero' => [
+        'module' => [
+          'core',
+          'link',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.my-section' => [
+        'module' => [
+          'core',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.one_column' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.props-no-slots' => [
         'module' => [
           'core',
@@ -952,10 +1582,51 @@ It\'s me, and I\'m small!
           'xb_test_sdc',
         ],
       ],
+      'sdc.xb_test_sdc.shoe_badge' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab' => [
+        'module' => [
+          'core',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_group' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_panel' => [
+        'module' => [
+          'core',
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.sparkline' => [
         'module' => [
           'core',
           'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.two_column' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.video' => [
+        'content' => [],
+        'module' => [
+          0 => 'core',
+          1 => 'file',
+          2 => 'xb_test_sdc',
         ],
       ],
     ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
@@ -1049,6 +1720,15 @@ It\'s me, and I\'m small!
         ],
         'transforms' => [],
       ],
+      'sdc.xb_test_sdc.druplicon' => [
+        'expected_output_selectors' => [
+          'svg',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'transforms' => [],
+      ],
       'sdc.xb_test_sdc.experimental' => [
         'expected_output_selectors' => [
           'h1:contains("Experimental SDC component")',
@@ -1112,6 +1792,143 @@ It\'s me, and I\'m small!
                 0 => ['value' => 'horizontal'],
               ],
               'resolved' => 'horizontal',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.heading' => [
+        'expected_output_selectors' => [
+          'h1:contains("A heading element")',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'text' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'A heading element',
+                ],
+              ],
+              'resolved' => 'A heading element',
+            ],
+          ],
+          'style' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'primary',
+                1 => 'secondary',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'primary',
+                ],
+              ],
+              'resolved' => 'primary',
+            ],
+          ],
+          'element' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'Heading element',
+              'type' => 'string',
+              'enum' => [
+                0 => 'div',
+                1 => 'h1',
+                2 => 'h2',
+                3 => 'h3',
+                4 => 'h4',
+                5 => 'h5',
+                6 => 'h6',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'h1',
+                ],
+              ],
+              'resolved' => 'h1',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.image' => [
+        'expected_output_selectors' => [
+          'img',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'image' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/image/600x400.png',
+                'alt' => 'Boring placeholder',
+                'width' => 600,
+                'height' => 400,
+              ],
             ],
           ],
         ],
@@ -1468,6 +2285,180 @@ It\'s me, and I\'m small!
         ],
         'transforms' => [],
       ],
+      'sdc.xb_test_sdc.my-hero' => [
+        'expected_output_selectors' => [
+          'h1:contains("There goes my hero")',
+          'p:contains("Watch him as he goes!")',
+          'div[data-component-id="xb_test_sdc:my-hero"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'There goes my hero',
+                ],
+              ],
+              'resolved' => 'There goes my hero',
+            ],
+          ],
+          'subheading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Watch him as he goes!',
+                ],
+              ],
+              'resolved' => 'Watch him as he goes!',
+            ],
+          ],
+          'cta1' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'View',
+                ],
+              ],
+              'resolved' => 'View',
+            ],
+          ],
+          'cta1href' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'format' => 'uri',
+            ],
+            'sourceType' => 'static:field_item:link',
+            'expression' => 'ℹ︎link␟url',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'title' => 0,
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'uri' => 'https://example.com',
+                  'options' => [],
+                ],
+              ],
+              'resolved' => 'https://example.com',
+            ],
+          ],
+          'cta2' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Click',
+                ],
+              ],
+              'resolved' => 'Click',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.my-section' => [
+        'expected_output_selectors' => [
+          'h2:contains("Our Mission")',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'text' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'minLength' => 2,
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.',
+                ],
+              ],
+              'resolved' => 'Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.one_column' => [
+        'expected_output_selectors' => [
+          'div[data-component-id="xb_test_sdc:one_column"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'content' => [
+              'title' => 'Content',
+              'description' => 'The contents of the column.',
+            ],
+          ],
+        ],
+        'propSources' => [
+          'width' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'full',
+                1 => 'wide',
+                2 => 'normal',
+                3 => 'narrow',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'full',
+                ],
+              ],
+              'resolved' => 'full',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'sdc.xb_test_sdc.props-no-slots' => [
         'expected_output_selectors' => [
           'h1:contains("There goes my hero")',
@@ -1545,6 +2536,287 @@ It\'s me, and I\'m small!
         ],
         'transforms' => [],
       ],
+      'sdc.xb_test_sdc.shoe_badge' => [
+        'expected_output_selectors' => [
+          'sl-badge[data-component-variant="primary"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'content' => [
+              'title' => 'Content',
+              'description' => 'The contents of the badge.',
+              'examples' => [
+                0 => 'Badge',
+              ],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'variant' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'primary',
+                1 => 'success',
+                2 => 'neutral',
+                3 => 'warning',
+                4 => 'danger',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'primary',
+                ],
+              ],
+              'resolved' => 'primary',
+            ],
+          ],
+          'pill' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => TRUE,
+                ],
+              ],
+              'resolved' => TRUE,
+            ],
+          ],
+          'pulse' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => TRUE,
+                ],
+              ],
+              'resolved' => TRUE,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.shoe_tab' => [
+        'expected_output_selectors' => [
+          'sl-tab[data-component-id="xb_test_sdc:shoe_tab"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'label' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Tab 1',
+                ],
+              ],
+              'resolved' => 'Tab 1',
+            ],
+          ],
+          'panel' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'tab_1',
+                ],
+              ],
+              'resolved' => 'tab_1',
+            ],
+          ],
+          'active' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'closable' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+          'disabled' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_group' => [
+        'expected_output_selectors' => [
+          'sl-tab-group[data-component-id="xb_test_sdc:shoe_tab_group"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'tabs' => [
+              'title' => 'Tab Nav',
+              'description' => 'The tabs.',
+            ],
+            'tab_panels' => [
+              'title' => 'Tab Panels',
+              'description' => 'The tab panels.',
+            ],
+          ],
+        ],
+        'propSources' => [
+          'placement' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'top',
+                1 => 'bottom',
+                2 => 'start',
+                3 => 'end',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'top',
+                ],
+              ],
+              'resolved' => 'top',
+            ],
+          ],
+          'activation' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'auto',
+                1 => 'manual',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'auto',
+                ],
+              ],
+              'resolved' => 'auto',
+            ],
+          ],
+          'no_scroll' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => FALSE,
+                ],
+              ],
+              'resolved' => FALSE,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.shoe_tab_panel' => [
+        'expected_output_selectors' => [
+          'sl-tab-panel[data-component-id="xb_test_sdc:shoe_tab_panel"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'content' => [
+              'title' => 'Tab Content',
+              'description' => 'The contents of the tab.',
+              'examples' => [
+                0 => '<p>This is tab content</p>',
+              ],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'name' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'tab_name',
+                ],
+              ],
+              'resolved' => 'tab_name',
+            ],
+          ],
+          'active' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'boolean',
+            ],
+            'sourceType' => 'static:field_item:boolean',
+            'expression' => 'ℹ︎boolean␟value',
+          ],
+        ],
+        'transforms' => [],
+      ],
       'sdc.xb_test_sdc.sparkline' => [
         'expected_output_selectors' => [
           'div.sparkline-container > svg > polygon[points="0,20 0,7.5 12.5,5 25,2.5 37.5,0 50,17.5 62.5,20 75,6.25 87.5,5.75 100,5.25 100,20"]',
@@ -1589,6 +2861,128 @@ It\'s me, and I\'m small!
         ],
         'transforms' => [],
       ],
+      'sdc.xb_test_sdc.two_column' => [
+        'expected_output_selectors' => [
+          'div[data-component-id="xb_test_sdc:two_column"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'column_one' => [
+              'title' => 'Column One',
+              'description' => 'The contents of the first column.',
+              'examples' => [
+                0 => '<p>This is column 1 content</p>',
+              ],
+            ],
+            'column_two' => [
+              'title' => 'Column Two',
+              'description' => 'The contents of the second column.',
+              'examples' => [
+                0 => '<p>This is column 2 content</p>',
+              ],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'width' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'Column Width',
+              'type' => 'integer',
+              'enum' => [
+                0 => 25,
+                1 => 33,
+                2 => 50,
+                3 => 66,
+                4 => 75,
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_integer',
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 25,
+                ],
+              ],
+              'resolved' => 25,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.video' => [
+        'expected_output_selectors' => [
+          'video[poster="https://example.com/600x400.png"]',
+          'video > source[src="https://media.istockphoto.com/id/1340051874/video/aerial-top-down-view-of-a-container-cargo-ship.mp4?s=mp4-640x640-is&k=20&c=5qPpYI7TOJiOYzKq9V2myBvUno6Fq2XM3ITPGFE8Cd8="]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'video' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'video',
+              'type' => 'object',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Video URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Mm][Pp]4)(\?.*)?(#.*)?$',
+                ],
+                'poster' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:file',
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'file_extensions' => 'mp4',
+              ],
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://media.istockphoto.com/id/1340051874/video/aerial-top-down-view-of-a-container-cargo-ship.mp4?s=mp4-640x640-is&k=20&c=5qPpYI7TOJiOYzKq9V2myBvUno6Fq2XM3ITPGFE8Cd8=',
+                'poster' => 'https://example.com/600x400.png',
+              ],
+            ],
+          ],
+          'display_width' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'integer',
+              'minimum' => 1,
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'min' => 1,
+                'max' => NULL,
+              ],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
     ];
   }
 
@@ -1617,13 +3011,13 @@ It\'s me, and I\'m small!
 
   public static function explicitsInputsProvider(): \Generator {
     yield 'image' => [
-      'sdc.experience_builder.image',
+      'sdc.xb_test_sdc.image',
       [
         'source' => [
           'image' => [
             'sourceType' => 'default-relative-url',
             'value' => [
-              'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+              'src' => '/modules/contrib/xb_test_sdc/components/image/600x400.png',
               'alt' => 'Boring placeholder',
               'width' => 600,
               'height' => 400,
@@ -1650,12 +3044,12 @@ It\'s me, and I\'m small!
                 'src',
               ],
             ],
-            'componentId' => 'sdc.experience_builder.image',
+            'componentId' => 'sdc.xb_test_sdc.image',
           ],
         ],
         'resolved' => [
           'image' => [
-            'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+            'src' => '/modules/contrib/xb_test_sdc/components/image/600x400.png',
             'alt' => 'Boring placeholder',
             'width' => 600,
             'height' => 400,
@@ -1672,7 +3066,7 @@ It\'s me, and I\'m small!
         ],
         'resolved' => [
           'image' => [
-            'src' => '/modules/contrib/experience_builder/components/image/600x400.png',
+            'src' => '/modules/contrib/xb_test_sdc/components/image/600x400.png',
             'alt' => 'Boring placeholder',
             'width' => 600,
             'height' => 400,
@@ -1691,7 +3085,7 @@ It\'s me, and I\'m small!
     $this->installEntitySchema('media');
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     /** @var \Drupal\experience_builder\Entity\ComponentInterface */
-    return Component::load('sdc.experience_builder.image');
+    return Component::load('sdc.xb_test_sdc.image');
   }
 
   protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {

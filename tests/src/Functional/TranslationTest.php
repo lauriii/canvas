@@ -33,6 +33,7 @@ class TranslationTest extends FunctionalTestBase {
    */
   protected static $modules = [
     'experience_builder',
+    'xb_test_sdc',
     'content_translation',
     'language',
   ];
@@ -142,7 +143,7 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('The French title', (string) $translated_node->getTitle());
 
     $this->drupalGet($original_node->toUrl());
-    $hero_component = $assert_session->elementExists('css', '[data-component-id="experience_builder:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="xb_test_sdc:my-hero"]');
 
     // Confirm the translated property is not on the page anywhere.
     $assert_session->pageTextNotContains('bonjour');
@@ -151,12 +152,12 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('hello, new world!', $hero_component->find('css', 'h1')?->getText());
     // Confirm the heading has been removed from display. This was changed on
     // the default translation.
-    $assert_session->elementsCount('css', '[data-component-id="experience_builder:heading"]', 0);
+    $assert_session->elementsCount('css', '[data-component-id="xb_test_sdc:heading"]', 0);
 
     $this->drupalGet($translated_node->toUrl());
     $assert_session->elementTextEquals('css', '#block-stark-page-title h1', 'The French title');
 
-    $hero_component = $assert_session->elementExists('css', '[data-component-id="experience_builder:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="xb_test_sdc:my-hero"]');
     if ($field_is_translatable) {
       // If the field is translatable updating inputs in the default translation
       // should not have updated the French translation.
@@ -174,7 +175,7 @@ class TranslationTest extends FunctionalTestBase {
     // expectation.
     $assert_session->elementsCount(
       'css',
-      '[data-component-id="experience_builder:heading"]',
+      '[data-component-id="xb_test_sdc:heading"]',
       $expect_component_removed_on_translation ? 0 : 1
     );
 

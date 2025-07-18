@@ -93,7 +93,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     ])->setDefaultValue([
       [
         'uuid' => 'bd4ae317-3f4d-4b82-a3ca-452d916ae715',
-        'component_id' => 'sdc.experience_builder.druplicon',
+        'component_id' => 'sdc.xb_test_sdc.druplicon',
         'component_version' => '8fe3be948e0194e1',
         'inputs' => [],
       ],
@@ -130,7 +130,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $page1->get('components')->setValue([
       [
         'uuid' => 'component-sdc',
-        'component_id' => 'sdc.experience_builder.druplicon',
+        'component_id' => 'sdc.xb_test_sdc.druplicon',
         'inputs' => [],
       ],
     ]);
@@ -143,7 +143,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $node1->get('field_xb_test')->setValue([
       [
         'uuid' => 'component-sdc',
-        'component_id' => 'sdc.experience_builder.druplicon',
+        'component_id' => 'sdc.xb_test_sdc.druplicon',
         'inputs' => [],
       ],
     ]);
@@ -191,7 +191,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $this->assertTableCellContains('table-content', 3, 6, '✔');
     $this->assertTableCellContains('table-content', 3, 7, '✔');
 
-    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.experience_builder.druplicon'])->toString();
+    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.xb_test_sdc.druplicon'])->toString();
     $response = $this->request(Request::create($audit_url));
     assert($response instanceof HtmlResponse);
     $this->assertSame([

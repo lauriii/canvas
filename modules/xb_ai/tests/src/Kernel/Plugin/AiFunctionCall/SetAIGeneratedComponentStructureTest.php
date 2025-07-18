@@ -81,7 +81,7 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 reference_nodepath: [0, 0, 1, 0]
 placement: 'below'
 components:
-  - sdc.experience_builder.card:
+  - sdc.xb_test_sdc.card:
       props:
         title: 'Test Card'
         content: 'Test content'
@@ -91,11 +91,11 @@ YAML;
     $mock_helper->expects($this->once())
       ->method('extractComponentIds')
       ->with($this->callback(fn($arg) => is_array($arg)))
-      ->willReturn(['sdc.experience_builder.card']);
+      ->willReturn(['sdc.xb_test_sdc.card']);
 
     $mock_helper->expects($this->once())
       ->method('validateComponentsInAiResponse')
-      ->with(['sdc.experience_builder.card']);
+      ->with(['sdc.xb_test_sdc.card']);
 
     $expected_output = [
       'operations' => [
@@ -103,7 +103,7 @@ YAML;
           'operation' => 'ADD',
           'components' => [
             [
-              'id' => 'sdc.experience_builder.card',
+              'id' => 'sdc.xb_test_sdc.card',
               'nodePath' => [0, 0, 1, 1],
               'fieldValues' => [
                 'title' => 'Test Card',
@@ -160,7 +160,7 @@ YAML;
 reference_nodepath: [0, 1, 2]  # Invalid because it has an odd number of elements
 placement: 'below'
 components:
-  - id: 'sdc.experience_builder.card'
+  - id: 'sdc.xb_test_sdc.card'
     name: 'Card'
 YAML;
 
@@ -183,7 +183,7 @@ YAML;
     $invalid_yaml = <<<YAML
 reference_nodepath: [0, 0]
 components:
-  - id: 'sdc.experience_builder.card'
+  - id: 'sdc.xb_test_sdc.card'
     name: 'Card'
     props:
       title: 'Test Card'
@@ -247,12 +247,12 @@ YAML;
 reference_nodepath: [0, 4, 0, 3, 1, 0]
 placement: above
 components:
-  - sdc.experience_builder.card:
+  - sdc.xb_test_sdc.card:
       props:
         title: 'Card with nested content'
       slots:
         content:
-          - sdc.experience_builder.text:
+          - sdc.xb_test_sdc.text:
               props:
                 text: 'Nested text component'
 YAML;
@@ -261,11 +261,11 @@ YAML;
     $mock_helper->expects($this->once())
       ->method('extractComponentIds')
       ->with($this->callback(fn($arg) => is_array($arg)))
-      ->willReturn(['sdc.experience_builder.card', 'sdc.experience_builder.text']);
+      ->willReturn(['sdc.xb_test_sdc.card', 'sdc.xb_test_sdc.text']);
 
     $mock_helper->expects($this->once())
       ->method('validateComponentsInAiResponse')
-      ->with(['sdc.experience_builder.card', 'sdc.experience_builder.text']);
+      ->with(['sdc.xb_test_sdc.card', 'sdc.xb_test_sdc.text']);
 
     $expected_output = [
       'operations' => [
@@ -273,12 +273,12 @@ YAML;
           'operation' => 'ADD',
           'components' => [
             [
-              'id' => 'sdc.experience_builder.card',
+              'id' => 'sdc.xb_test_sdc.card',
               'nodePath' => [0, 4, 0, 3, 1, 0],
               'fieldValues' => ['title' => 'Card with nested content'],
             ],
             [
-              'id' => 'sdc.experience_builder.text',
+              'id' => 'sdc.xb_test_sdc.text',
               'nodePath' => [0, 4, 0, 3, 1, 0, 0, 0],
               'fieldValues' => ['text' => 'Nested text component'],
             ],

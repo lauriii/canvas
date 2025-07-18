@@ -165,7 +165,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
                   'nodeType' => 'slot',
                 ],
               ],
-              'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
+              'type' => 'sdc.xb_test_sdc.one_column@836c8835c850cdc5',
               'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
             ],
           ],
@@ -241,7 +241,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
+      'type' => 'sdc.xb_test_sdc.heading@9616e3c4ab9b4fce',
       'slots' => [],
     ];
     // And update the card model to use a URI reference.
@@ -303,7 +303,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][\key($highlightedRegion)]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
+      'type' => 'sdc.xb_test_sdc.heading@9616e3c4ab9b4fce',
       'slots' => [],
     ];
     $json += $this->getPostContentsDefaults($node);
@@ -363,7 +363,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['layout'][1]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.experience_builder.heading',
+      'type' => 'sdc.xb_test_sdc.heading',
       'slots' => [],
     ];
     $json += $this->getPostContentsDefaults($node);

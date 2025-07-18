@@ -126,12 +126,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertSame([
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.experience_builder.heading',
+        'component_id' => 'sdc.xb_test_sdc.heading',
         'component_version' => '9616e3c4ab9b4fce',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
-        'component_id' => 'sdc.experience_builder.image',
+        'component_id' => 'sdc.xb_test_sdc.image',
         'component_version' => 'c06e0be7dd131740',
       ],
       [
@@ -164,8 +164,8 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertNodeValues(
       $node1,
       [
-        'sdc.experience_builder.heading',
-        'sdc.experience_builder.image',
+        'sdc.xb_test_sdc.heading',
+        'sdc.xb_test_sdc.image',
         'block.system_branding_block',
         'sdc.xb_test_sdc.props-slots',
       ],
@@ -179,12 +179,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertSame([
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.experience_builder.heading',
+        'component_id' => 'sdc.xb_test_sdc.heading',
         'component_version' => '9616e3c4ab9b4fce',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
-        'component_id' => 'sdc.experience_builder.image',
+        'component_id' => 'sdc.xb_test_sdc.image',
         'component_version' => 'c06e0be7dd131740',
       ],
       [
@@ -249,13 +249,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_HEADING_UUID,
-          'type' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
+          'type' => 'sdc.xb_test_sdc.heading@9616e3c4ab9b4fce',
           'slots' => [],
         ],
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_IMAGE_UUID,
-          'type' => 'sdc.experience_builder.image@c06e0be7dd131740',
+          'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
           'slots' => [],
         ],
         [

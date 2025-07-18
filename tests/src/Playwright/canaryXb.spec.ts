@@ -10,7 +10,7 @@ test.describe('Canary XB', () => {
     await page.goto('/first');
     await expect(
       page
-        .locator('xpath=//*[@data-component-id="experience_builder:my-hero"]')
+        .locator('xpath=//*[@data-component-id="xb_test_sdc:my-hero"]')
         .first(),
     ).toMatchAriaSnapshot(`
     - heading "meow!" [level=1]

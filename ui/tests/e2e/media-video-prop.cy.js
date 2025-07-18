@@ -20,7 +20,7 @@ describe('Media Library', () => {
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.get(
-      '.previewOverlay [data-xb-component-id="sdc.experience_builder.video"]',
+      '.previewOverlay [data-xb-component-id="sdc.xb_test_sdc.video"]',
     ).should('have.length', 2);
     cy.clickComponentInPreview('Video', 0);
     cy.waitForAjax();

@@ -44,7 +44,7 @@ describe('Component transforms', () => {
 
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      `div[data-component-id="experience_builder:my-hero"] a[href="${newUri}"]`,
+      `div[data-component-id="xb_test_sdc:my-hero"] a[href="${newUri}"]`,
       linkText,
     );
   });

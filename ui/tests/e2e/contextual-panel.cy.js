@@ -58,7 +58,7 @@ describe('Contextual panel', () => {
   it('should duplicate the element on clicking the "Duplicate" button', () => {
     cy.loadURLandWaitForXBLoaded();
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:two_column"]')
+      .find('[data-component-id="xb_test_sdc:two_column"]')
       .should('have.length', 1);
 
     // Right-click on the element that should trigger the context menu
@@ -168,7 +168,7 @@ describe('Contextual panel', () => {
 
     // Make note of the number of Hero components currently in the preview.
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"]')
+      .find('[data-component-id="xb_test_sdc:my-hero"]')
       .its('length')
       .then((count) => {
         cy.wrap(count).as('initialHeroCount');
@@ -195,7 +195,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="experience_builder:my-hero"]')
+        .find('[data-component-id="xb_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -204,7 +204,7 @@ describe('Contextual panel', () => {
     cy.get('@componentFormHeading').type('New heading text');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      'div[data-component-id="experience_builder:my-hero"] h1',
+      'div[data-component-id="xb_test_sdc:my-hero"] h1',
       'New heading text',
     );
 
@@ -230,7 +230,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="experience_builder:my-hero"]')
+        .find('[data-component-id="xb_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -249,7 +249,7 @@ describe('Contextual panel', () => {
     cy.get('@componentFormCTA1Text').type('Example link');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      'div[data-component-id="experience_builder:my-hero"] a',
+      'div[data-component-id="xb_test_sdc:my-hero"] a',
       'Example link',
     );
     cy.getIframeBody()
@@ -259,7 +259,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="experience_builder:my-hero"]')
+        .find('[data-component-id="xb_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -274,7 +274,7 @@ describe('Contextual panel', () => {
     cy.get('.primaryPanelContent').findByText('Heading').click();
     // Check if heading component has been added in the preview
     cy.waitForElementContentInIframe(
-      'h1[data-component-id="experience_builder:heading"]',
+      'h1[data-component-id="xb_test_sdc:heading"]',
       'A heading element',
     );
     // Find added Heading component above and click on it

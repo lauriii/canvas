@@ -164,13 +164,13 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     $single_propless_component_client_json = $valid_client_json;
-    $component = Component::load('sdc.experience_builder.druplicon');
+    $component = Component::load('sdc.xb_test_sdc.druplicon');
     $propless_uuid = '4ad36179-a9bd-4bc8-8a4a-241e73dbed25';
     $single_propless_component_client_json['layout']['components'] = [
       [
         'nodeType' => 'component',
         'uuid' => $propless_uuid,
-        'type' => 'sdc.experience_builder.druplicon@8fe3be948e0194e1',
+        'type' => 'sdc.xb_test_sdc.druplicon@8fe3be948e0194e1',
         'slots' => [],
       ],
     ];

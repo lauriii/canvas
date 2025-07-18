@@ -15,7 +15,7 @@ default:
       value: Homepage
   components:
     - uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
-      component_id: sdc.experience_builder.two_column
+      component_id: sdc.xb_test_sdc.two_column
       inputs:
         width:
           sourceType: 'static:field_item:list_integer'

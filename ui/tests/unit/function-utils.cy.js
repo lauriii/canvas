@@ -19,7 +19,7 @@ const pageHTML = `<!DOCTYPE html>
                     <div class="block__content">
                         <div data-xb-uuid="content" data-xb-region="content">
                             <!-- xb-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91 -->
-                            <div data-component-id="experience_builder:my-hero"
+                            <div data-component-id="xb_test_sdc:my-hero"
                                  class="my-hero__container">
                                 <h1 class="my-hero__heading">
                                     <!-- xb-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/heading -->
@@ -65,9 +65,9 @@ const pageHTML = `<!DOCTYPE html>
                                 </div>
                             </div>
                             <!-- xb-end-3c88f148-94e2-47c1-b734-24b5017e9e60 -->
-                            <!-- xb-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><div data-component-id="experience_builder:two_column" data-xb-uuid="ad3eff8e-2180-4be1-a60f-df3f2c5ac393">
+                            <!-- xb-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><div data-component-id="xb_test_sdc:two_column" data-xb-uuid="ad3eff8e-2180-4be1-a60f-df3f2c5ac393">
           <div class="column-one width-25" data-xb-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one">
-            <!-- xb-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one --><!-- xb-start-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><h1 data-component-id="experience_builder:heading" class="primary" data-xb-uuid="9bee944d-a92d-42b9-a0ae-abae0080cdfa">A heading element</h1>
+            <!-- xb-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one --><!-- xb-start-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><h1 data-component-id="xb_test_sdc:heading" class="primary" data-xb-uuid="9bee944d-a92d-42b9-a0ae-abae0080cdfa">A heading element</h1>
 <!-- xb-end-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><!-- xb-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one -->
         </div>
 
@@ -75,7 +75,7 @@ const pageHTML = `<!DOCTYPE html>
             <!-- xb-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two --><p>This is column 2 content</p><!-- xb-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two -->
         </div>
     </div>
-<!-- xb-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- xb-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="experience_builder:one_column" class="width-full" data-xb-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-xb-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
+<!-- xb-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- xb-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="xb_test_sdc:one_column" class="width-full" data-xb-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-xb-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
       <!-- xb-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
   </div>
 <!-- xb-end-49132256-b0c2-4753-9800-fdc147fafae8 --></div>
@@ -106,23 +106,19 @@ describe('mapComponents', () => {
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393': {
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         elements: [
-          doc.querySelector(
-            '[data-component-id="experience_builder:two_column"]',
-          ),
+          doc.querySelector('[data-component-id="xb_test_sdc:two_column"]'),
         ],
       },
       '9bee944d-a92d-42b9-a0ae-abae0080cdfa': {
         componentUuid: '9bee944d-a92d-42b9-a0ae-abae0080cdfa',
         elements: [
-          doc.querySelector('[data-component-id="experience_builder:heading"]'),
+          doc.querySelector('[data-component-id="xb_test_sdc:heading"]'),
         ],
       },
       '49132256-b0c2-4753-9800-fdc147fafae8': {
         componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
         elements: [
-          doc.querySelector(
-            '[data-component-id="experience_builder:one_column"]',
-          ),
+          doc.querySelector('[data-component-id="xb_test_sdc:one_column"]'),
         ],
       },
     };

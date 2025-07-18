@@ -48,6 +48,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
+    'xb_test_sdc',
     // Modules providing field types and widgets that the PropShapes are using.
     'ckeditor5',
     'datetime',
@@ -93,7 +94,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         // make sense.
         if ($prop_shape->schema['type'] === 'object' && !array_key_exists('$ref', $prop_shape->schema) && empty($prop_shape->schema['properties'] ?? [])) {
           // @see core/modules/system/tests/modules/sdc_test/components/array-to-object/array-to-object.component.yml
-          assert($component->getPluginId() === 'sdc_test:array-to-object');
+          // @see tests/modules/xb_test_sdc/components/props-invalid-shapes/props-invalid-shapes.component.yml
+          assert($component->getPluginId() === 'sdc_test:array-to-object' || $component->getPluginId() === 'xb_test_sdc:props-invalid-shapes');
           continue;
         }
 
@@ -103,8 +105,11 @@ class PropShapeRepositoryTest extends KernelTestBase {
     ksort($unique_prop_shapes);
     $unique_prop_shapes = array_values($unique_prop_shapes);
     $this->assertEquals([
+      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100, 'minItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
@@ -128,20 +133,27 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'invalid']),
       new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
+      new PropShape(['type' => 'string', 'enum' => ['', 'dog', 'cat', 'fish', 'rabbit']]),
       new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
+      new PropShape(['type' => 'string', 'enum' => ['7', '3.14']]),
       new PropShape(['type' => 'string', 'enum' => ['_blank', '_parent', '_self', '_top']]),
+      new PropShape(['type' => 'string', 'enum' => ['_self', '_blank']]),
       new PropShape(['type' => 'string', 'enum' => ['auto', 'manual']]),
       new PropShape(['type' => 'string', 'enum' => ['default', 'primary', 'success', 'neutral', 'warning', 'danger', 'text']]),
       new PropShape(['type' => 'string', 'enum' => ['foo', 'bar']]),
       new PropShape(['type' => 'string', 'enum' => ['full', 'wide', 'normal', 'narrow']]),
+      new PropShape(['type' => 'string', 'enum' => ['horizontal', 'vertical']]),
       new PropShape(['type' => 'string', 'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket']]),
       new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary', 'tertiary']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'success', 'neutral', 'warning', 'danger']]),
+      new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge']]),
+      new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge', 'contains.dots']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'medium', 'large']]),
       new PropShape(['type' => 'string', 'enum' => ['top', 'bottom', 'start', 'end']]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::DATE->value]),
@@ -162,6 +174,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI->value]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_REFERENCE->value]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value]),
+      new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::URI_TEMPLATE->value, 'x-required-variables' => ['width']]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UUID->value]),
       new PropShape(['type' => 'string', 'minLength' => 2]),
     ], $unique_prop_shapes);
@@ -516,6 +529,68 @@ class PropShapeRepositoryTest extends KernelTestBase {
         cardinality: 2,
         fieldWidget: 'image_image',
       ),
+      'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']]),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
+          'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+          'alt' => new FieldTypePropExpression('image', 'alt'),
+          'width' => new FieldTypePropExpression('image', 'width'),
+          'height' => new FieldTypePropExpression('image', 'height'),
+        ]),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        fieldWidget: 'image_image',
+      ),
+      'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        cardinality: 100,
+        fieldWidget: 'number',
+        fieldStorageSettings: NULL,
+        fieldInstanceSettings: [
+          'min' => -100,
+          'max' => 100,
+        ],
+      ),
+      'type=string&enum[0]=7&enum[1]=3.14' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'enum' => ['7', '3.14']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=_self&enum[1]=_blank' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'enum' => ['_self', '_blank']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=horizontal&enum[1]=vertical' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'enum' => ['horizontal', 'vertical']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=small&enum[1]=big&enum[2]=huge' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=small&enum[1]=big&enum[2]=huge&enum[3]=contains.dots' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge', 'contains.dots']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
     ];
   }
 
@@ -567,6 +642,26 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'gold',
           'green',
         ],
+      ]),
+      'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100&minItems=2' => new PropShape([
+        'type' => 'array',
+        'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100],
+        'maxItems' => 100,
+        'minItems' => 2,
+      ]),
+      'type=string&contentMediaType=text/html&x-formatting-context=invalid' => new PropShape([
+        'type' => 'string',
+        'contentMediaType' => 'text/html',
+        'x-formatting-context' => 'invalid',
+      ]),
+      'type=string&enum[0]=&enum[1]=dog&enum[2]=cat&enum[3]=fish&enum[4]=rabbit' => new PropShape([
+        'type' => 'string',
+        'enum' => ['', 'dog', 'cat', 'fish', 'rabbit'],
+      ]),
+      'type=string&format=uri-template&x-required-variables[0]=width' => new PropShape([
+        'type' => 'string',
+        'format' => JsonSchemaStringFormat::URI_TEMPLATE->value,
+        'x-required-variables' => ['width'],
       ]),
     ];
   }

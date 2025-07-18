@@ -153,7 +153,7 @@ describe.skip('Drag and drop functionality in the Layers menu', () => {
     cy.log('Image component exists in the column_two slot in the overlay UI');
     // Ensure there is only one Image in each preview and we didn't clone it or anything!
     cy.get(
-      '#xbPreviewOverlay .xb--viewport-overlay [aria-label="Column Two (Two Column)"] [data-xb-component-id="sdc.experience_builder.image"]',
+      '#xbPreviewOverlay .xb--viewport-overlay [aria-label="Column Two (Two Column)"] [data-xb-component-id="sdc.xb_test_sdc.image"]',
     ).should('have.length', 2);
   });
 

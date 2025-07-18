@@ -15,7 +15,7 @@ test.describe('Responsive Image', () => {
     await drupal.loginAsAdmin();
     await page.goto('/homepage');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent('sdc.experience_builder.image');
+    await xBEditor.addComponent('sdc.xb_test_sdc.image');
 
     const frame = page
       .locator('[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]')

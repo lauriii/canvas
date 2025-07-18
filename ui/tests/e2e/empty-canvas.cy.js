@@ -28,20 +28,16 @@ describe('Empty canvas', () => {
     // in the canvas.
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
 
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
       'not.exist',
     );
     cy.openLibraryPanel();
 
     // This is the component to be dragged in.
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'exist',
-    );
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
 
     cy.waitForElementInIframe('.xb--region-empty-placeholder');
-    cy.get(
-      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-    ).realClick();
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
 
     cy.log('The hero component is now in the iframe');
 
@@ -52,7 +48,7 @@ describe('Empty canvas', () => {
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-component-id="experience_builder:my-hero"]').should(
+      cy.get('[data-component-id="xb_test_sdc:my-hero"]').should(
         'have.length',
         1,
       );
@@ -77,21 +73,17 @@ describe('Empty canvas', () => {
     // in the canvas.
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
 
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
       'not.exist',
     );
     cy.openLibraryPanel();
 
     // This is the component to be dragged in.
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'exist',
-    );
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
 
     cy.waitForElementInIframe('.xb--region-empty-placeholder');
 
-    cy.get(
-      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-    ).realClick();
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
 
     cy.log('The hero component is now in the iframe');
 
@@ -102,7 +94,7 @@ describe('Empty canvas', () => {
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-component-id="experience_builder:my-hero"]').should(
+      cy.get('[data-component-id="xb_test_sdc:my-hero"]').should(
         'have.length',
         1,
       );

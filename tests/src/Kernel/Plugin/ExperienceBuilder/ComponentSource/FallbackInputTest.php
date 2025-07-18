@@ -109,9 +109,9 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
    *           [false]
    */
   public function testFallbackInputCanBeRecovered(bool $publish = FALSE): void {
-    $component_to_recover = Component::load('sdc.experience_builder.image');
+    $component_to_recover = Component::load('sdc.xb_test_sdc.image');
     \assert($component_to_recover instanceof ComponentInterface);
-    $component_to_edit = Component::load('sdc.experience_builder.heading');
+    $component_to_edit = Component::load('sdc.xb_test_sdc.heading');
     \assert($component_to_edit instanceof ComponentInterface);
     // Create a tree containing two components, one that will be forced to a
     // fallback and then be recovered. One that we will edit.
@@ -239,7 +239,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $new_model['source']['text']['value'] = 'New heading text';
     $response = $this->request(Request::create($api_endpoint_uri, method: 'PATCH', content: \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.experience_builder.heading@9616e3c4ab9b4fce',
+      'componentType' => 'sdc.xb_test_sdc.heading@9616e3c4ab9b4fce',
       'componentInstanceUuid' => $component_to_edit_uuid,
     ] + $this->getPatchContentsDefaults([$page]), JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());

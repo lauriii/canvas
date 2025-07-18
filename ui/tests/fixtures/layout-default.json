@@ -8,7 +8,7 @@
         {
           "nodeType": "component",
           "uuid": "a7470350-deb2-4d9f-982c-464d356403d4",
-          "type": "sdc.experience_builder.two_column@d99140cbd47c0b51",
+          "type": "sdc.xb_test_sdc.two_column@d99140cbd47c0b51",
           "slots": [
             {
               "nodeType": "slot",
@@ -24,7 +24,7 @@
                 {
                   "nodeType": "component",
                   "uuid": "static-image-udf7d",
-                  "type": "sdc.experience_builder.image@c06e0be7dd131740",
+                  "type": "sdc.xb_test_sdc.image@c06e0be7dd131740",
                   "slots": []
                 }
               ]
@@ -46,13 +46,13 @@
         {
           "nodeType": "component",
           "uuid": "static-image-static-imageStyle-something7d",
-          "type": "sdc.experience_builder.image@c06e0be7dd131740",
+          "type": "sdc.xb_test_sdc.image@c06e0be7dd131740",
           "slots": []
         },
         {
           "nodeType": "component",
           "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-          "type": "sdc.experience_builder.two_column@d99140cbd47c0b51",
+          "type": "sdc.xb_test_sdc.two_column@d99140cbd47c0b51",
           "slots": [
             {
               "nodeType": "slot",
@@ -61,7 +61,7 @@
               "components": [
                 {
                   "nodeType": "component",
-                  "type": "sdc.experience_builder.my-section@c06e0be7dd131740",
+                  "type": "sdc.xb_test_sdc.my-section@c06e0be7dd131740",
                   "uuid": "6f3224e2-cb61-46e4-a9e4-35b4d18f0a82",
                   "slots": []
                 }
@@ -75,13 +75,13 @@
                 {
                   "nodeType": "component",
                   "uuid": "3b709ed2-99d3-4db2-869d-ca426f69fbb9",
-                  "type": "sdc.experience_builder.heading@9616e3c4ab9b4fce",
+                  "type": "sdc.xb_test_sdc.heading@9616e3c4ab9b4fce",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "uuid": "eaa37ee1-7d50-4041-b04c-c80bdbac3412",
-                  "type": "sdc.experience_builder.my-hero@060b3f2620eb7f36",
+                  "type": "sdc.xb_test_sdc.my-hero@060b3f2620eb7f36",
                   "slots": []
                 }
               ]

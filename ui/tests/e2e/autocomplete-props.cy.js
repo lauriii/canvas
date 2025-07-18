@@ -43,7 +43,7 @@ describe('Prop with autocomplete', () => {
       .click();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -69,7 +69,7 @@ describe('Prop with autocomplete', () => {
     cy.waitFor('@patchPreview');
 
     cy.waitForElementContentInIframe(
-      '[data-component-id="experience_builder:my-hero"] a[href*="/the-one-with-a-block"]',
+      '[data-component-id="xb_test_sdc:my-hero"] a[href*="/the-one-with-a-block"]',
       'View',
     );
   });

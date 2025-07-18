@@ -258,7 +258,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'component_tree' => [
         [
           'uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac',
-          'component_id' => 'sdc.experience_builder.druplicon',
+          'component_id' => 'sdc.xb_test_sdc.druplicon',
           'component_version' => '8fe3be948e0194e1',
           'inputs' => [],
         ],
@@ -335,7 +335,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         ],
         [
           'uuid' => '7240f848-ea70-4ad2-a9d6-3ab60cba4d78',
-          'component_id' => 'sdc.experience_builder.image',
+          'component_id' => 'sdc.xb_test_sdc.image',
           'component_version' => 'd3a3df7d7e68efc0',
           'inputs' => [
             'image' => [

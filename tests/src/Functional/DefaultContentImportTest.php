@@ -18,7 +18,7 @@ class DefaultContentImportTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['experience_builder', 'xb_test_sdc'];
 
   /**
    * {@inheritdoc}

@@ -31,13 +31,13 @@ describe('Can save and load patterns', () => {
       // due to the test not creating them in a way that allows the media entity
       // to be found based on filename.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
+        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
       )
         .first()
         .trigger('contextmenu');
       cy.findByText('Delete').click();
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
+        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
       )
         .first()
         .trigger('contextmenu');
@@ -76,18 +76,16 @@ describe('Can save and load patterns', () => {
       cy.waitForElementContentNotInIframe('div', 'There goes my hero');
       cy.openLibraryPanel();
 
-      cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
+      cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
         'exist',
       );
 
-      cy.get(
-        '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-      ).realClick();
+      cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
       cy.waitForElementContentInIframe('div', 'There goes my hero');
 
       // There should be one Hero added.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.my-hero"]',
+        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.my-hero"]',
       ).should('have.length', 1);
 
       // Add the pattern that was created earlier in this test.
@@ -100,7 +98,7 @@ describe('Can save and load patterns', () => {
 
       // After adding the pattern, there should be four Hero components.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.my-hero"]',
+        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.my-hero"]',
         { timeout: 10000 },
       ).should('have.length', 4);
 

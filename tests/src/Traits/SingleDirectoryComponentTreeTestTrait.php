@@ -52,7 +52,7 @@ trait SingleDirectoryComponentTreeTestTrait {
         [
           [
             "uuid" => 'd0fb26bf-bc83-428c-a4bb-bea5ea43ffe7',
-            "component_id" => "sdc.experience_builder.druplicon",
+            "component_id" => "sdc.xb_test_sdc.druplicon",
             'component_version' => '8fe3be948e0194e1',
             'inputs' => [],
           ],

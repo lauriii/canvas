@@ -44,21 +44,21 @@ default:
       parent_uuid: null
       slot: null
       uuid: 7480dded-2e3e-4425-82c3-3da911442040
-      component_id: sdc.experience_builder.two_column
+      component_id: sdc.xb_test_sdc.two_column
       component_version: d99140cbd47c0b51
       inputs: '{"width":{"sourceType":"static:field_item:list_integer","value":50,"expression":"ℹ︎list_integer␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":25,"label":"25"},{"value":33,"label":"33"},{"value":50,"label":"50"},{"value":66,"label":"66"},{"value":75,"label":"75"}]}}}}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 348bfa10-af72-49cd-900b-084d617c87df
-      component_id: sdc.experience_builder.image
+      component_id: sdc.xb_test_sdc.image
       component_version: c06e0be7dd131740
       inputs: '{"image":{"sourceType":"static:field_item:entity_reference","value":{"target_id":"1"},"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 0a476da3-8daa-4409-85a8-ef7c2ed5ee5f
-      component_id: sdc.experience_builder.my-hero
+      component_id: sdc.xb_test_sdc.my-hero
       component_version: 2cfc93f0259bf3ee
       inputs: '{"heading":{"sourceType":"static:field_item:string","value":"meow!","expression":"ℹ︎string␟value"},"subheading":{"sourceType":"static:field_item:string","value":"this is a hero","expression":"ℹ︎string␟value"},"cta1":{"sourceType":"static:field_item:string","value":"View","expression":"ℹ︎string␟value"},"cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https://drupal.org","options":[]},"expression":"ℹ︎link␟url","sourceTypeSettings":{"instance":{"title":0}}},"cta2":{"sourceType":"static:field_item:string","value":"Click","expression":"ℹ︎string␟value"}}'
     -
@@ -72,7 +72,7 @@ default:
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 9fd85ace-6a33-421b-8237-3416fcf39c30
-      component_id: sdc.experience_builder.one_column
+      component_id: sdc.xb_test_sdc.one_column
       component_version: 836c8835c850cdc5
       inputs: '{"width":{"sourceType":"static:field_item:list_string","value":"full","expression":"ℹ︎list_string␟value","sourceTypeSettings":{"storage":{"allowed_values":[{"value":"full","label":"full"},{"value":"wide","label":"wide"},{"value":"normal","label":"normal"},{"value":"narrow","label":"narrow"}]}}}}'
     -
@@ -86,6 +86,6 @@ default:
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_two
       uuid: a9727e4b-42a7-4621-a502-be43cab1e20a
-      component_id: sdc.experience_builder.my-hero
+      component_id: sdc.xb_test_sdc.my-hero
       component_version: 2cfc93f0259bf3ee
       inputs: '{"heading":{"sourceType":"static:field_item:string","value":"hello, world!","expression":"ℹ︎string␟value"},"subheading":{"sourceType":"static:field_item:string","value":"protect yourself from dangerous cats","expression":"ℹ︎string␟value"},"cta1":{"sourceType":"static:field_item:string","value":"Yes","expression":"ℹ︎string␟value"},"cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https://drupal.org","options":[]},"expression":"ℹ︎link␟url","sourceTypeSettings":{"instance":{"title":0}}},"cta2":{"sourceType":"static:field_item:string","value":"No thanks","expression":"ℹ︎string␟value"}}'

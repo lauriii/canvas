@@ -30,7 +30,7 @@ describe('Publish review functionality', () => {
         // to be found based on filename.
         if (path === 'xb/node/1') {
           cy.get(
-            '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
+            '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
           )
             .first()
             .trigger('contextmenu', {
@@ -42,7 +42,7 @@ describe('Publish review functionality', () => {
             scrollBehavior: false,
           });
           cy.get(
-            '.xb--viewport-overlay [data-xb-component-id="sdc.experience_builder.image"]',
+            '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
           )
             .first()
             .trigger('contextmenu', {

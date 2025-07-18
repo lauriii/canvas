@@ -229,7 +229,7 @@ class XBTestSetup implements TestSetupInterface {
     }
     $items = [
       [
-        'component_id' => 'sdc.experience_builder.two_column',
+        'component_id' => 'sdc.xb_test_sdc.two_column',
         'uuid' => self::UUID_TWO_COLUMN_UUID,
         'inputs' => [
           'width' => [
@@ -247,7 +247,7 @@ class XBTestSetup implements TestSetupInterface {
       [
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
-        'component_id' => 'sdc.experience_builder.image',
+        'component_id' => 'sdc.xb_test_sdc.image',
         'uuid' => self::UUID_STATIC_IMAGE,
         'inputs' => [
           'image' => $static_image_prop_source,
@@ -256,7 +256,7 @@ class XBTestSetup implements TestSetupInterface {
       [
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
-        'component_id' => 'sdc.experience_builder.my-hero',
+        'component_id' => 'sdc.xb_test_sdc.my-hero',
         'uuid' => self::UUID_STATIC_CARD1,
         'inputs' => [
           'heading' => [
@@ -294,7 +294,7 @@ class XBTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_one',
         'uuid' => self::UUID_ALL_SLOTS_EMPTY,
-        'component_id' => 'sdc.experience_builder.one_column',
+        'component_id' => 'sdc.xb_test_sdc.one_column',
         'inputs' => [
           'width' => [
             'sourceType' => 'static:field_item:list_string',
@@ -312,7 +312,7 @@ class XBTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_two',
         'uuid' => self::UUID_STATIC_CARD2,
-        'component_id' => 'sdc.experience_builder.my-hero',
+        'component_id' => 'sdc.xb_test_sdc.my-hero',
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -326,7 +326,7 @@ class XBTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_two',
         'uuid' => self::UUID_STATIC_CARD3,
-        'component_id' => 'sdc.experience_builder.my-hero',
+        'component_id' => 'sdc.xb_test_sdc.my-hero',
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -342,7 +342,7 @@ class XBTestSetup implements TestSetupInterface {
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_two',
         'uuid' => self::UUID_ADAPTED_IMAGE,
-        'component_id' => 'sdc.experience_builder.image',
+        'component_id' => 'sdc.xb_test_sdc.image',
         'inputs' => [
           'image' => [
             'sourceType' => 'adapter:image_apply_style',

@@ -57,6 +57,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     'experience_builder',
     'link',
     'options',
+    'xb_test_sdc',
   ];
 
   /**
@@ -130,7 +131,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     // Create test data.
     $item_list->appendItem([
       'uuid' => $uuid->generate(),
-      'component_id' => 'sdc.experience_builder.heading',
+      'component_id' => 'sdc.xb_test_sdc.heading',
       'inputs' => [
         'text' => [
           'sourceType' => 'static:field_item:string',
@@ -150,7 +151,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs::getPropSources()
     $item_list->appendItem([
       'uuid' => $uuid->generate(),
-      'component_id' => 'sdc.experience_builder.heading',
+      'component_id' => 'sdc.xb_test_sdc.heading',
       'inputs' => [
         'text' => 'Test Title',
         'element' => 'h1',
@@ -158,7 +159,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     ]);
     $item_list->appendItem([
       'uuid' => $uuid->generate(),
-      'component_id' => 'sdc.experience_builder.heading',
+      'component_id' => 'sdc.xb_test_sdc.heading',
       'inputs' => [
         'heading' => [
           'sourceType' => 'dynamic',
@@ -168,7 +169,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     ]);
     $item_list->appendItem([
       'uuid' => self::TEST_IMAGE_UUID,
-      'component_id' => 'sdc.experience_builder.image',
+      'component_id' => 'sdc.xb_test_sdc.image',
       'inputs' => [
         'image' => [
           'sourceType' => 'dynamic',

@@ -71,7 +71,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
         [
           'uuid' => '02f06f2a-c3af-4f71-8920-5f74169a88a5',
-          'component_id' => 'sdc.experience_builder.heading',
+          'component_id' => 'sdc.xb_test_sdc.heading',
           'component_version' => '9616e3c4ab9b4fce',
           'inputs' => [
             'text' => $generate_static_prop_source('heading level three'),
@@ -109,7 +109,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       [
         'config' => [
           'experience_builder.component.block.local_tasks_block',
-          'experience_builder.component.sdc.experience_builder.heading',
+          'experience_builder.component.sdc.xb_test_sdc.heading',
           'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
         ],
         'module' => [
@@ -121,7 +121,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     $this->assertSame([
       'config' => [
         'experience_builder.component.block.local_tasks_block',
-        'experience_builder.component.sdc.experience_builder.heading',
+        'experience_builder.component.sdc.xb_test_sdc.heading',
         'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
       ],
       'module' => [
@@ -209,7 +209,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => '62602a53-de40-4e33-aad5-241a7cf74499',
-          'component_id' => 'sdc.experience_builder.druplicon',
+          'component_id' => 'sdc.xb_test_sdc.druplicon',
           'component_version' => '8fe3be948e0194e1',
           'inputs' => [],
         ],

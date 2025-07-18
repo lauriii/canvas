@@ -199,7 +199,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       'uuid' => 'static-image-udf7d',
       // This is intentionally missing a version AND a non-existent component to
       // confirm that auto-saves do not perform validation.
-      'type' => 'sdc.experience_builder.static_image',
+      'type' => 'sdc.xb_test_sdc.static_image',
       'slots' => [],
     ];
     $this->assertAutoSaveCreated($xb_page, $matching_client_data, $new_component_client_data);
@@ -317,7 +317,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $new_component_client_data['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => 'static-image-udf7d',
-      'type' => 'sdc.experience_builder.static_image',
+      'type' => 'sdc.xb_test_sdc.static_image',
       'slots' => [],
     ];
     $this->assertAutoSaveCreated($node, $matching_client_data, $new_component_client_data);

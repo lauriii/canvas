@@ -39,6 +39,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     'xb_test_sdc',
     // The module providing the sample SDC to test all JSON schema types.
     'sdc_test_all_props',
+    'xb_test_sdc',
     // All other core modules providing field types.
     'comment',
     'datetime',
@@ -167,10 +168,10 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
 
   public static function provider(): \Generator {
     yield 'the image component' => [
-      'experience_builder:image',
+      'xb_test_sdc:image',
       'entity:node:foo',
       [
-        '⿲experience_builder:image␟image' => [
+        '⿲xb_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [
             "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -184,10 +185,10 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     ];
 
     yield 'the image component — free of context' => [
-      'experience_builder:image',
+      'xb_test_sdc:image',
       NULL,
       [
-        '⿲experience_builder:image␟image' => [
+        '⿲xb_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [],
           'adapters' => [

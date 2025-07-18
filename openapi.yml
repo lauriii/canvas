@@ -466,7 +466,7 @@ paths:
                   -
                     uuid: 0b755464-281c-4487-82a0-ece34a9b1121
                     nodeType: component
-                    type: sdc.experience_builder.my-section@05bd00d2c481f924
+                    type: sdc.xb_test_sdc.my-section@05bd00d2c481f924
                     slots: [ ]
                 model:
                   0b755464-281c-4487-82a0-ece34a9b1121:
@@ -492,7 +492,7 @@ paths:
                       layout:
                         - uuid: 0b755464-281c-4487-82a0-ece34a9b1121
                           nodeType: component
-                          type: sdc.experience_builder.my-section
+                          type: sdc.xb_test_sdc.my-section
                           slots: []
                       model:
                         0b755464-281c-4487-82a0-ece34a9b1121:

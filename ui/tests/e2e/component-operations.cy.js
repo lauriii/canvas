@@ -51,13 +51,9 @@ describe('Perform CRUD operations on components', () => {
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
     cy.openLibraryPanel();
 
-    cy.get('[data-xb-component-id="sdc.experience_builder.my-hero"]').should(
-      'exist',
-    );
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
 
-    cy.get(
-      '[data-xb-component-id="sdc.experience_builder.my-hero"]',
-    ).realClick();
+    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     const headType = 'Head is different';
     const subType = 'Sub also experienced change';
@@ -66,11 +62,11 @@ describe('Perform CRUD operations on components', () => {
     cy.findByLabelText('Heading').should('have.value', headType);
     cy.findByLabelText('Sub-heading').should('have.value', subType);
     cy.waitForElementContentInIframe(
-      '[data-component-id="experience_builder:my-hero"] h1',
+      '[data-component-id="xb_test_sdc:my-hero"] h1',
       headType,
     );
     cy.waitForElementContentInIframe(
-      '[data-component-id="experience_builder:my-hero"] p',
+      '[data-component-id="xb_test_sdc:my-hero"] p',
       subType,
     );
 
@@ -88,11 +84,11 @@ describe('Perform CRUD operations on components', () => {
     cy.wait(1000);
 
     cy.waitForElementContentInIframe(
-      '[data-component-id="experience_builder:my-hero"] h1',
+      '[data-component-id="xb_test_sdc:my-hero"] h1',
       headType,
     );
     cy.waitForElementContentInIframe(
-      '[data-component-id="experience_builder:my-hero"] p',
+      '[data-component-id="xb_test_sdc:my-hero"] p',
       subType,
     );
 
@@ -105,16 +101,14 @@ describe('Perform CRUD operations on components', () => {
     cy.get('h1').should(($h1) => {
       expect($h1.text()).to.include('XB Needs This');
     });
-    cy.get('[data-component-id="experience_builder:my-hero"] h1').should(
-      ($h1) => {
-        expect($h1.text()).to.include('hello, world!');
-      },
-    );
+    cy.get('[data-component-id="xb_test_sdc:my-hero"] h1').should(($h1) => {
+      expect($h1.text()).to.include('hello, world!');
+    });
     cy.get(
-      '[data-component-id="experience_builder:my-hero"] a[href="https://drupal.org"]',
+      '[data-component-id="xb_test_sdc:my-hero"] a[href="https://drupal.org"]',
     ).should.exist;
     cy.get(
-      '[data-component-id="experience_builder:my-hero"] a[href="https://drupal.org"] ~ button',
+      '[data-component-id="xb_test_sdc:my-hero"] a[href="https://drupal.org"] ~ button',
     ).should.exist;
   });
 
@@ -123,17 +117,14 @@ describe('Perform CRUD operations on components', () => {
 
     // Confirm that some elements in the default layout are present in the
     // default iframe (lg).
-    cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"] h1',
-      (h1s) => {
-        expect(h1s.length).to.equal(3);
-        h1s.forEach((h1, index) =>
-          expect(h1.textContent).to.equal(
-            index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
-          ),
-        );
-      },
-    );
+    cy.testInIframe('[data-component-id="xb_test_sdc:my-hero"] h1', (h1s) => {
+      expect(h1s.length).to.equal(3);
+      h1s.forEach((h1, index) =>
+        expect(h1.textContent).to.equal(
+          index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
+        ),
+      );
+    });
 
     cy.openLibraryPanel();
     // Confirm the Library panel is open by checking if a component is visible.
@@ -174,7 +165,7 @@ describe('Perform CRUD operations on components', () => {
     let lgPreviewRect = {};
     // Enter the iframe to find an element in the preview iframe and hover over it.
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:my-hero"] h1')
+      .find('[data-component-id="xb_test_sdc:my-hero"] h1')
       .first()
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover');
@@ -212,7 +203,7 @@ describe('Perform CRUD operations on components', () => {
 
     // Check there are three heroes initially.
     cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
@@ -227,7 +218,7 @@ describe('Perform CRUD operations on components', () => {
     cy.get('.primaryPanelContent').findByText('Hero').click();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.testInIframe(
-      '[data-component-id="experience_builder:my-hero"]',
+      '[data-component-id="xb_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -268,7 +259,7 @@ describe('Perform CRUD operations on components', () => {
     cy.getAllComponentsInPreview('Hero').should('have.length', 2);
 
     cy.getIframeBody()
-      .find('[data-component-id="experience_builder:two_column"]')
+      .find('[data-component-id="xb_test_sdc:two_column"]')
       .should('have.length', 1);
 
     // Deleting from the content menu.
@@ -329,7 +320,7 @@ describe('Perform CRUD operations on components', () => {
 
     // Check the default image src is set.
     cy.waitForElementInIframe(
-      'img[src*="/experience_builder/components/image/600x400.png"]',
+      'img[src*="/xb_test_sdc/components/image/600x400.png"]',
       '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
       40000,
     );

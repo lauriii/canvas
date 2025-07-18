@@ -112,7 +112,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'component_tree' => [
           [
             'uuid' => '75144f9b-1bfc-4874-b848-b5889f066217',
-            'component_id' => 'sdc.experience_builder.druplicon',
+            'component_id' => 'sdc.xb_test_sdc.druplicon',
             'component_version' => '8fe3be948e0194e1',
             'inputs' => [],
           ],
@@ -341,7 +341,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.experience_builder.one_column@836c8835c850cdc5',
+        'type' => 'sdc.xb_test_sdc.one_column@836c8835c850cdc5',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];
