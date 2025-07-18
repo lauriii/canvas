@@ -165,13 +165,15 @@ final class AstroIsland extends RenderElementBase {
    * @return string
    */
   protected static function generateTemplate(array $slot_names): string {
+    $has_slots = !empty($slot_names);
     $template = '<astro-island uid="{{ __aie_uuid }}"
-        component-url="{{ __aie_component_url }}"
-        component-export="default"
-        renderer-url="{{ __aie_renderer }}"
-        props="{{ __aie_props }}"
-        ssr="" client="only"
-        opts="{{ __aie_opts }}">';
+      component-url="{{ __aie_component_url }}"
+      component-export="default"'
+      . ($has_slots ? ' await-children=""' : '') . '
+      renderer-url="{{ __aie_renderer }}"
+      props="{{ __aie_props }}"
+      ssr="" client="only"
+      opts="{{ __aie_opts }}">';
 
     // Reduce layout shift by blocking further document rendering until the
     // renderer-url and component-url scripts are loaded, so that fetching them
