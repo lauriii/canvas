@@ -15,3 +15,11 @@
 /.gitlab-ci-local/
 /_drupal/
 /logs/
+
+# User Documentation
+# build output
+/docs/user/dist/
+# generated types
+/docs/user/.astro/
+# dependencies
+/docs/user/node_modules/

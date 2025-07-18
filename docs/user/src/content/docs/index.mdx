@@ -1,0 +1,23 @@
+---
+title: Experience Builder
+description: Build on Drupal Experience Builder with standard React and JavaScript using our developer features.
+template: splash
+hero:
+  tagline: Build on Drupal Experience Builder with standard React and JavaScript using our developer features. Get started with our docs and guides below.
+  image:
+    file: ../../assets/images/druplicon.svg
+  actions:
+    - text: drupal.org project
+      link: https://drupal.org/project/experience_builder
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Code components"
+    href={`${import.meta.env.BASE_URL}/code-components`.replace(/^\/\//, '/')}
+  />
+</CardGrid>

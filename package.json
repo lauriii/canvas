@@ -7,10 +7,14 @@
     "doc": "docs",
     "test": "tests"
   },
+  "workspaces": [
+    "cli",
+    "docs/user"
+  ],
   "scripts": {
     "test:playwright": "playwright install && playwright test -x",
-    "test:eslint": "eslint tests/src/Playwright playwright.config.ts eslint.config.mjs",
-    "test:prettier": "prettier --ignore-path .gitignore tests/src/Playwright playwright.config.ts eslint.config.mjs --check",
+    "test:eslint": "eslint tests/src/Playwright playwright.config.ts eslint.config.mjs docs/user",
+    "test:prettier": "prettier --ignore-path .gitignore tests/src/Playwright playwright.config.ts eslint.config.mjs docs/user --check",
     "test": "npx npm-run-all --parallel --continue-on-error test:*"
   },
   "repository": {
@@ -20,6 +24,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/compat": "^1.3.1",
     "@eslint/js": "^9.26.0",
     "@playwright/test": "^1.51.1",
     "@types/node": "^22.14.0",

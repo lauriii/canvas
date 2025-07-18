@@ -160,7 +160,9 @@ export class XBEditor {
       '.xb-mosaic-window-editor div[role="textbox"]',
     );
     await codeEditor.waitFor({ state: 'visible' });
-    await expect(codeEditor).toContainText('Available third party packages');
+    await expect(codeEditor).toContainText(
+      'for documentation on how to build a code component',
+    );
     await codeEditor.selectText();
     await this.page.keyboard.press('Delete');
     await codeEditor.fill(code);

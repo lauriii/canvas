@@ -671,3 +671,62 @@ playwright code style:
     - npm ci
     - npm run test:eslint
     - npm run test:prettier
+
+# User facing documentation.
+pages-mr:
+  image: node:22
+  stage: publish
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "docs/user/**/*"
+  variables:
+    ASTRO_SITE: https://$CI_PAGES_HOSTNAME
+    ASTRO_BASE: /$CI_PROJECT_NAME/mr-$CI_MERGE_REQUEST_IID/
+  script:
+    - npm ci
+    - npm run build --workspace=docs
+  pages:
+    publish: docs/user/dist
+    path_prefix: "mr-$CI_MERGE_REQUEST_IID"
+    expire_in: 1 month
+  environment:
+    name: pages/mr-$CI_MERGE_REQUEST_IID
+    url: $CI_PAGES_URL
+    on_stop: stop-pages-mr
+
+stop-pages-mr:
+  stage: publish
+  needs: []
+  rules:
+    # Branch merge.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_MERGE_REQUEST_IID
+      changes:
+        - "docs/user/**/*"
+    # Branch deletion.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BEFORE_SHA != "0000000000000000000000000000000000000000" && $CI_COMMIT_SHA == "0000000000000000000000000000000000000000"
+      changes:
+        - "docs/user/**/*"
+  script:
+    - echo "Stopping pages deployment for MR $CI_MERGE_REQUEST_IID"
+  environment:
+    name: pages/mr-$CI_MERGE_REQUEST_IID
+    action: stop
+
+pages-publish:
+  image: node:22
+  stage: publish
+  needs: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "docs/user/**/*"
+  variables:
+    ASTRO_SITE: https://$CI_PAGES_HOSTNAME
+    ASTRO_BASE: /$CI_PROJECT_NAME/
+  script:
+    - npm ci
+    - npm run build --workspace=docs --base /$CI_PROJECT_NAME --site https://project.pages.drupalcode.org
+  pages:
+    publish: docs/user/dist

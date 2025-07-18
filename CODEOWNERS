@@ -1,8 +1,9 @@
 # @see https://docs.gitlab.com/ee/user/project/codeowners/reference.html
 
-[project metadata][3] @balintbrews @bnjmnm @f.mazeikis @hooroomoo @jessebaker @lauriii @tedbow @wimleers
+[project metadata][3] @balintbrews @bnjmnm @f.mazeikis @hooroomoo @jessebaker @lauriii @tedbow @wimleers @larowlan @justafish
 /*.info.yml
 /composer.json
+/docs/user/
 
 
 #
