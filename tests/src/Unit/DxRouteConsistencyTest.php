@@ -92,7 +92,10 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       ));
 
       // No need to resolve: add the operations for the route.
-      if (empty($static_path_part_requirements) || str_starts_with($original_path, '/xb/api/v0/config/auto-save')) {
+      // Unlike other paths documented in openapi.yml, the openapi.yml does not
+      // have a separate paths for each of the possible config entity types for
+      // `xb_config_entity_type_id` under `requirements`.
+      if (empty($static_path_part_requirements) || $original_path === '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}') {
         $operations = [...$operations, ...$operations_for_route];
         continue;
       }
@@ -138,6 +141,8 @@ final class DxRouteConsistencyTest extends UnitTestCase {
    * - in the openapi.yml file are intended for human readers that do not need
    *   to know Drupal internals
    * So: strip their contents to allow for simple comparisons.
+   * For example, both `/xb/api/some/path/{id1}/{id2}` and
+   * `/xb/api/some/path/{id1}` become `/xb/api/some/path/{}`.
    */
   private static function ignoreDynamicPathPartNames(array $array_with_paths_as_keys): array {
     return array_combine(

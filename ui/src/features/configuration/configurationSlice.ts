@@ -9,6 +9,7 @@ export interface AppConfiguration {
   isNew: boolean;
   isPublished: boolean;
   devMode: boolean;
+  homepagePath?: string;
 }
 
 export const initialState: AppConfiguration = {
@@ -30,10 +31,13 @@ export const configurationSlice = createSlice({
         ...action.payload,
       }),
     ),
+    setHomepagePath: create.reducer((state, action: PayloadAction<string>) => {
+      state.homepagePath = action.payload;
+    }),
   }),
 });
 
-export const { setConfiguration } = configurationSlice.actions;
+export const { setConfiguration, setHomepagePath } = configurationSlice.actions;
 
 export default configurationSlice.reducer;
 export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;
@@ -43,3 +47,5 @@ export const selectEntityType = (state: RootState) =>
 export const selectEntityId = (state: RootState) => state.configuration.entity;
 
 export const selectDevMode = (state: RootState) => state.configuration.devMode;
+export const selectHomepagePath = (state: RootState) =>
+  state.configuration.homepagePath;

@@ -911,6 +911,7 @@ paths:
                     - path
                     - autoSaveLabel
                     - autoSavePath
+                    - internalPath
                     - links
                   properties:
                     id:
@@ -930,6 +931,9 @@ paths:
                       type: string
                       nullable: true
                       description: The auto-save path.
+                    internalPath:
+                      type: string
+                      description: The internal path for the page.
                     links:
                       type: object
                       description: The operation links.
@@ -1459,6 +1463,55 @@ paths:
                   error:
                     type: string
                     description: Error description
+  /xb/api/v0/staged-update/auto-save:
+    description: Auto-save endpoints for staged config updates.
+    post:
+      description: Creates an auto-save entry for a staged config update.
+      requestBody:
+        description: Creates auto-save entry for config entity
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  schema:
+                    $ref: '#/components/schemas/StagedConfigUpdate'
+                clientInstanceId:
+                  type: string
+                  description: Client instance ID for the auto-save entry
+            examples:
+              stagedConfigUpdate:
+                value:
+                  data:
+                    id: "xb_set_homepage"
+                    label: "Change the site name"
+                    target: "system.site"
+                    actions:
+                      - name: "simpleConfigUpdate"
+                        input:
+                          name: "My awesome site"
+      responses:
+        '201':
+          description: Auto-save entry created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request - missing data or clientInstanceId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    examples:
+                      - Missing data
+                      - Missing clientInstanceId
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
@@ -2019,6 +2072,38 @@ components:
             - layout
             - model
         - $ref: '#/components/schemas/Pattern'
+    StagedConfigUpdate:
+      title: Staged Config Update
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - target
+        - actions
+      properties:
+        id:
+          type: string
+          description: The staged config update ID.
+          example: 'xb_set_homepage'
+        label:
+          type: string
+          description: Human-readable label for the staged config update.
+        target:
+          type: string
+          description: The staged config update target.
+        actions:
+          type: array
+          description: The staged config update actions.
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: The action name.
+              input:
+                type: object
+                description: The action input.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     FormResponse:
@@ -2161,3 +2246,4 @@ components:
               clientInstanceId:
                 type: string
                 description: Client instance ID for the layout preview
+

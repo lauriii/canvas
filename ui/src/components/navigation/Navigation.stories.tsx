@@ -16,6 +16,7 @@ const items: ContentStub[] = [
   {
     title: 'Alpha',
     path: '/alpha',
+    internalPath: '/page/1',
     id: 1,
     status: true,
     autoSaveLabel: '',
@@ -32,6 +33,7 @@ const items: ContentStub[] = [
   {
     title: 'Bravo',
     path: '/bravo',
+    internalPath: '/page/2',
     id: 2,
     status: true,
     autoSaveLabel: '',
@@ -48,6 +50,7 @@ const items: ContentStub[] = [
   {
     title: 'Charlie',
     path: '/charlie',
+    internalPath: '/page/3',
     id: 3,
     status: false,
     autoSaveLabel: '',
@@ -64,6 +67,7 @@ const items: ContentStub[] = [
   {
     title: 'Delta',
     path: '/delta',
+    internalPath: '/page/4',
     id: 4,
     status: false,
     autoSaveLabel: '',
@@ -80,6 +84,7 @@ const items: ContentStub[] = [
   {
     title: 'Echo',
     path: '/echo',
+    internalPath: '/page/5',
     id: 5,
     status: true,
     autoSaveLabel: '',
@@ -96,6 +101,7 @@ const items: ContentStub[] = [
   {
     title: 'Foxtrot',
     path: '/foxtrot',
+    internalPath: '/page/6',
     id: 6,
     status: true,
     autoSaveLabel: '',
@@ -112,6 +118,7 @@ const items: ContentStub[] = [
   {
     title: 'Golf',
     path: '/golf',
+    internalPath: '/page/7',
     id: 7,
     status: false,
     autoSaveLabel: '',
@@ -128,6 +135,7 @@ const items: ContentStub[] = [
   {
     title: 'Hotel',
     path: '/hotel',
+    internalPath: '/page/8',
     id: 8,
     status: true,
     autoSaveLabel: '',
@@ -144,6 +152,7 @@ const items: ContentStub[] = [
   {
     title: 'India',
     path: '/india',
+    internalPath: '/page/9',
     id: 9,
     status: false,
     autoSaveLabel: '',
@@ -160,6 +169,7 @@ const items: ContentStub[] = [
   {
     title: 'Juliet',
     path: '/juliet',
+    internalPath: '/page/10',
     id: 10,
     status: true,
     autoSaveLabel: '',

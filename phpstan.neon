@@ -35,6 +35,8 @@ parameters:
         class: Drupal\experience_builder\Entity\PageRegion
       pattern:
         class: Drupal\experience_builder\Entity\Pattern
+      staged_config_update:
+        class: Drupal\experience_builder\Entity\StagedConfigUpdate
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics

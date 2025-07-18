@@ -217,7 +217,12 @@ final class ApiContentControllers {
       'id' => (int) $content_entity->id(),
       'title' => $content_entity->label(),
       'status' => $content_entity->isPublished(),
+      // The processed path, which has gone through outbound path processors. It
+      // may not be the same as the entity's canonical link template.
       'path' => $generated_url->getGeneratedUrl(),
+      // The internal path, which has not been processed and is the entity's
+      // canonical link template.
+      'internalPath' => '/' . $content_entity->toUrl()->getInternalPath(),
       'autoSaveLabel' => $autoSaveEntity?->label(),
       'autoSavePath' => $autoSavePath,
       // @see https://jsonapi.org/format/#document-links
@@ -380,8 +385,12 @@ final class ApiContentControllers {
     $possible_operations = [
       XbUriDefinitions::LINK_REL_DELETE => ['route_name' => 'experience_builder.api.content.delete', 'op' => 'delete'],
       XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
-      // @todo Fix when https://www.drupal.org/i/3503412 lands.
-      // XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.api.homepage.post', 'op' => 'update'],
+      // Setting the homepage is a staged configuration update, the UI will
+      // call `experience_builder.api.config.post` but for the access check
+      // use the content entity's access.
+      // Conceptually, this is an operation on the content entity, so expose it
+      // as a non-standard link operation.
+      XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
       XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'create'],
     ];
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {

@@ -142,6 +142,7 @@ HTML;
             'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
           ],
           'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
+          'homepagePath' => $this->configFactory->get('system.site')->get('page.front'),
         ],
         // Override actual `xbData` with dummy data for code component editor
         // development purposes.

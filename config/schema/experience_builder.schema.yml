@@ -766,3 +766,48 @@ experience_builder.content_template.*.*.*:
           # @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidSlotNameConstraint::VALID_NAME
           pattern: '/^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/'
           message: "%value is not a valid exposed slot name."
+
+experience_builder.staged_config_update.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'ID'
+    label:
+      type: required_label
+      label: 'Label'
+    target:
+      # We do not use `machine_name` since config entities have `.` in their IDs.
+      type: string
+      label: 'Target'
+      constraints:
+        NotBlank: [ ]
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
+        #   fixed in core.
+        BetterConfigExists:
+          prefix: ''
+    actions:
+      type: sequence
+      label: 'Actions'
+      sequence:
+        type: mapping
+        mapping:
+          name:
+            type: string
+            label: 'Action'
+            constraints:
+              NotBlank: [ ]
+              PluginExists:
+                manager: plugin.manager.config_action
+                interface: 'Drupal\Core\Config\Action\ConfigActionPluginInterface'
+          input:
+            # Config actions have no schema defined for their input.
+            type: ignore
+            label: 'Input'
+            constraints:
+              NotBlank: [ ]

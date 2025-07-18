@@ -14,6 +14,7 @@ import {
   Component1Icon,
   CodeIcon,
   DotsVerticalIcon,
+  HomeIcon,
 } from '@radix-ui/react-icons';
 import { useCallback, useMemo } from 'react';
 import styles from './ChangeRow.module.css';
@@ -29,6 +30,10 @@ const ChangeIcon = (props: { entityType: string }) => {
       return <CodeIcon className={styles.changeIcon} />;
     case 'page_region':
       return <CubeIcon className={styles.changeIcon} />;
+    case 'staged_config_update':
+      // Currently the only staged config update supported is setting
+      // the homepage.
+      return <HomeIcon className={styles.changeIcon} />;
     default:
       return <FileIcon className={styles.changeIcon} />;
   }

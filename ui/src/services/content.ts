@@ -1,6 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from '@/services/baseQuery';
 import type { ContentStub } from '@/types/Content';
+import type { StagedConfig } from '@/types/Config';
+import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 
 export interface ContentListResponse {
   [key: string]: ContentStub;
@@ -29,7 +31,7 @@ export interface ContentListParams {
 export const contentApi = createApi({
   reducerPath: 'contentApi',
   baseQuery,
-  tagTypes: ['Content'],
+  tagTypes: ['Content', 'StagedConfig'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentStub[], ContentListParams>({
       query: ({ entityType, search }) => {
@@ -66,6 +68,39 @@ export const contentApi = createApi({
       }),
       invalidatesTags: [{ type: 'Content', id: 'LIST' }],
     }),
+    getStagedConfig: builder.query<StagedConfig, string>({
+      query: (entityId) => ({
+        url: `/xb/api/v0/config/auto-save/staged_config_update/${entityId}`,
+        method: 'GET',
+      }),
+      transformErrorResponse: (response) => {
+        // This is added to prevent logging 404 errors to the console. Right now,
+        // we don't care if there is no staged config for homepage. That may change in the future.
+        if (response.status === 404) {
+          // @todo: But maybe the backend should return an empty 200 instead like it does if
+          //    there are no existing code components?
+          return;
+        }
+        // For other errors, let RTK Query handle them normally
+        return response;
+      },
+      providesTags: (_result, _error, entityId) => [
+        { type: 'StagedConfig', id: entityId },
+      ],
+    }),
+    setStagedConfig: builder.mutation<void, StagedConfig>({
+      query: (body) => ({
+        url: `/xb/api/v0/staged-update/auto-save`,
+        method: 'POST',
+        body,
+      }),
+      // Hardcode HOMEPAGE_CONFIG_ID for now, as it is the only config we handle right now.
+      // In the future we can generalize this.
+      invalidatesTags: [
+        { type: 'StagedConfig', id: HOMEPAGE_CONFIG_ID },
+        { type: 'Content', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -73,4 +108,6 @@ export const {
   useGetContentListQuery,
   useDeleteContentMutation,
   useCreateContentMutation,
+  useGetStagedConfigQuery,
+  useSetStagedConfigMutation,
 } = contentApi;

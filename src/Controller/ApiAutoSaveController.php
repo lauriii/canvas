@@ -26,6 +26,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\StagedConfigUpdate;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
@@ -245,6 +246,9 @@ final class ApiAutoSaveController extends ApiControllerBase {
         if ($violations->count() > 0) {
           $violationSets[] = new EntityConstraintViolationList($entity, $violations);
           continue;
+        }
+        if ($entity instanceof StagedConfigUpdate) {
+          $entity->applyUpdateOnSave();
         }
       }
       else {

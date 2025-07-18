@@ -432,6 +432,7 @@ class ApiContentControllersListTest extends KernelTestBase {
       'id' => (int) $entity->id(),
       'title' => $entity->label(),
       'status' => $entity->isPublished(),
+      'internalPath' => '/' . $entity->toUrl()->getInternalPath(),
       'path' => $entity->toUrl()->toString(),
     ];
   }

@@ -10,6 +10,8 @@ use Drupal\Core\Entity\EntityCreateAccessCheck;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\experience_builder\Entity\StagedConfigUpdate;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -24,7 +26,7 @@ final class XbEntityCreateAccessCheck extends EntityCreateAccessCheck implements
   /**
    * {@inheritdoc}
    */
-  public function access(Route $route, RouteMatchInterface $route_match, AccountInterface $account): AccessResultInterface {
+  public function access(Route $route, RouteMatchInterface $route_match, AccountInterface $account, ?Request $request = NULL): AccessResultInterface {
     [$entity_type, $bundle] = explode(':', $route->getRequirement($this->requirementsKey) . ':');
 
     // Allow dynamic entity types.
@@ -45,7 +47,15 @@ final class XbEntityCreateAccessCheck extends EntityCreateAccessCheck implements
         return AccessResult::neutral(sprintf("Could not find '%s' request argument, therefore cannot check create access.", $bundle));
       }
     }
-    return $this->entityTypeManager->getAccessControlHandler($entity_type)->createAccess($bundle, $account, [], TRUE);
+
+    $create_access_context = [];
+    // Pass the target config (e.g. `node.type.article` or `system.site`) as
+    // context for the create access logic of staged config updates.
+    if ($entity_type === StagedConfigUpdate::ENTITY_TYPE_ID) {
+      $create_access_context['target'] = (json_decode($request?->getContent() ?? '{}', TRUE) ?? [])['data']['target'] ?? FALSE;
+    }
+
+    return $this->entityTypeManager->getAccessControlHandler($entity_type)->createAccess($bundle, $account, $create_access_context, TRUE);
   }
 
 }

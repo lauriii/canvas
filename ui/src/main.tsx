@@ -51,6 +51,7 @@ const appConfiguration: AppConfiguration = {
   entityType: xbSettings.entityType || 'node',
   entity: xbSettings.entity || '1',
   devMode: xbSettings.devMode || false,
+  homepagePath: xbSettings.homepagePath,
 };
 
 const isAjaxing = () =>

@@ -275,3 +275,21 @@ If a `ContentTemplate` is used for rendering a content entity, then `hook_entity
 
 ⚠️ Still to be built:
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
+
+### 3.6 `StagedConfigUpdate` config entity
+
+See:
+- `\Drupal\experience_builder\Entity\StagedConfigUpdate`
+
+A `StagedConfigUpdate` config entity allows modifying site configuration in a way that is not immediately applied,
+but staged until published. This allows for configuration changes to be made in a controlled manner. The config entity
+is never stored in the active configuration, but is only stored in auto-save data. That means it cannot be exported. See
+`\Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage` for implementation that leverages the `AutoSaveManager`
+as storage backend.
+
+The `StagedConfigUpdate` specifies the configuration object it targets and has a series of configuration actions that
+are executed once published. This occurs when the entity is changed from `status: false` to `status: true`. See
+`\Drupal\experience_builder\Controller\ApiAutoSaveController::post` and `\Drupal\experience_builder\Entity\StagedConfigUpdate::applyUpdateOnSave`.
+
+Any user of the XB UI can create `StagedConfigUpdate`s, as long as they can update the target configuration (simple
+configuration such as `system.site`, or a config entity such as `node.type.article`).

@@ -508,6 +508,7 @@ class XBTestSetup implements TestSetupInterface {
         'post comments',
         'administer permissions',
         PageRegion::ADMIN_PERMISSION,
+        'administer site configuration',
       ],
     ]);
     $xb_role->save();

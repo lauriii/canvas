@@ -113,7 +113,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/1')->toString(),
         ],
+        'internalPath' => '/page/1',
       ],
       // Page 2 has no path alias.
       '2' => [
@@ -126,7 +128,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/2')->toString(),
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/2')->toString(),
         ],
+        'internalPath' => '/page/2',
       ],
       '3' => [
         'id' => 3,
@@ -138,7 +142,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         'links' => [
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/3')->toString(),
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/3')->toString(),
         ],
+        'internalPath' => '/page/3',
       ],
     ];
     $this->assertEquals(
@@ -165,7 +171,9 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
           'links' => [
             // @todo https://www.drupal.org/i/3498525 should remove the hardcoded `xb_page` from these.
             XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
+            XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/1')->toString(),
           ],
+          'internalPath' => '/page/1',
         ],
       ],
       $search_body
@@ -267,12 +275,14 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         [Page::EDIT_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/xb/xb_page/1',
         ],
       ],
       'can edit and delete' => [
         [Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/xb/xb_page/1',
           XbUriDefinitions::LINK_REL_DELETE => 'base:/xb/api/v0/content/xb_page/1',
         ],
       ],
@@ -280,6 +290,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/xb/xb_page/1',
           XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
           XbUriDefinitions::LINK_REL_DELETE => 'base:/xb/api/v0/content/xb_page/1',
         ],
@@ -288,6 +299,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
         [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION],
         [
           XbUriDefinitions::LINK_REL_EDIT => 'base:/xb/xb_page/1',
+          XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/xb/xb_page/1',
           XbUriDefinitions::LINK_REL_DUPLICATE => 'base:/xb/api/v0/content/xb_page',
         ],
         ['headers:X-Something'],
@@ -343,6 +355,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/2')->toString(),
+        XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/2')->toString(),
       ],
       $body['2']['links'],
       'Links for page 2 should not include delete operation, as it is set as homepage.'
@@ -352,6 +365,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/1')->toString(),
+        XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/1')->toString(),
         XbUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/xb/api/v0/content/xb_page/1')->toString(),
       ],
       $body['1']['links'],
@@ -363,6 +377,7 @@ final class XbContentEntityHttpApiTest extends HttpApiTestBase {
       [
         XbUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/xb/xb_page/3')->toString(),
         XbUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/xb/api/v0/content/xb_page/3')->toString(),
+        XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/xb/xb_page/3')->toString(),
       ],
       $body['3']['links'],
       'Links for page 3 should include delete operation.'

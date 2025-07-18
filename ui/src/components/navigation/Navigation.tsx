@@ -19,9 +19,12 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
   ChevronDownIcon,
+  HomeIcon,
 } from '@radix-ui/react-icons';
 import styles from './Navigation.module.css';
 import type { FormEvent } from 'react';
+import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+import { useAppSelector } from '@/app/hooks';
 
 const hasPermission = (
   permission: 'edit' | 'duplicate' | 'homepage' | 'delete',
@@ -63,46 +66,17 @@ const renderDuplicateButton = (
 const renderSetAsHomepageButton = (
   item: ContentStub,
   onSetHomepage?: (page: ContentStub) => void,
+  homepagePath?: string,
 ) =>
-  hasPermission('homepage', item) ? (
+  hasPermission('homepage', item) && item.internalPath !== homepagePath ? (
     <>
       <DropdownMenu.Separator />
-      <AlertDialog.Root>
-        <AlertDialog.Trigger>
-          <DropdownMenu.Item
-            onClick={(event) => event.stopPropagation()}
-            onSelect={(event) => event.preventDefault()}
-          >
-            Set as homepage
-          </DropdownMenu.Item>
-        </AlertDialog.Trigger>
-        <AlertDialog.Content>
-          <AlertDialog.Title>Set {item.title} as homepage</AlertDialog.Title>
-          <AlertDialog.Description size="2">
-            This action will set the selected page as homepage. This action
-            cannot be undone.
-          </AlertDialog.Description>
-          <Flex gap="3" mt="4" justify="end">
-            <AlertDialog.Cancel>
-              <Button variant="soft" color="gray">
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action>
-              <DropdownMenu.Item
-                onClick={(event) => event.stopPropagation()}
-                onSelect={() =>
-                  onSetHomepage ? onSetHomepage(item) : undefined
-                }
-              >
-                <Button variant="solid" color="blue">
-                  Set as homepage
-                </Button>
-              </DropdownMenu.Item>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      <DropdownMenu.Item
+        onClick={(event) => event.stopPropagation()}
+        onSelect={onSetHomepage ? () => onSetHomepage(item) : undefined}
+      >
+        Set as homepage
+      </DropdownMenu.Item>
     </>
   ) : null;
 
@@ -171,6 +145,7 @@ const ContentGroup = ({
   onSetHomepage?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
 }) => {
+  const homepagePath = useAppSelector(selectHomepagePath);
   if (items.length === 0) {
     return (
       <Callout.Root size="1" color="gray" data-testid="xb-navigation-results">
@@ -213,7 +188,11 @@ const ContentGroup = ({
                 onClick={onSelect ? () => onSelect(item) : undefined}
               >
                 <Box px="3">
-                  <FileIcon />
+                  {item.internalPath === homepagePath ? (
+                    <HomeIcon />
+                  ) : (
+                    <FileIcon />
+                  )}
                 </Box>
                 <Flex flexGrow="1" align="center">
                   <Text as="span" size="1">
@@ -238,7 +217,11 @@ const ContentGroup = ({
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content>
                     {renderDuplicateButton(item, onDuplicate)}
-                    {renderSetAsHomepageButton(item, onSetHomepage)}
+                    {renderSetAsHomepageButton(
+                      item,
+                      onSetHomepage,
+                      homepagePath,
+                    )}
                     {renderDeleteButton(item, onDelete)}
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>
