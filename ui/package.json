@@ -7,7 +7,7 @@
     "lib/astro-hydration",
     "../cli"
   ],
-  "version": "0.0.0",
+  "version": "0.7.0-alpha1",
   "engines": {
     "node": "^20.0.0"
   },
