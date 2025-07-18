@@ -156,18 +156,41 @@ export function calculateBoundingRect(
       return;
     }
 
-    // elements that are display: contents; (e.g <astro-*> elements) take on the size of their children so in that case,
-    // we add the direct children to the array instead.
-    const style = window.getComputedStyle(el);
-    if (style.display === 'contents') {
-      expandedElements.push(
-        ...Array.from(el.children).filter(
-          (child): child is HTMLElement => child.nodeType === Node.ELEMENT_NODE,
-        ),
-      );
-    } else {
-      expandedElements.push(el);
+    function collectElementsWithCalculableSize(
+      el: HTMLElement,
+      expandedElements: HTMLElement[],
+    ) {
+      const style = window.getComputedStyle(el);
+      if (style.display !== 'contents') {
+        expandedElements.push(el);
+        return;
+      }
+      // If the element is display: contents; we need to look at its children to find the first child that has a calculable size.
+      // Recursively traverse down children looking for the first child that is not display: contents or until finding
+      // multiple children (which suggests we are not dealing with <astro-*> elements and have traversed into the component markup itself).
+      if (el.children.length === 1) {
+        const onlyChild = el.children[0];
+        if (onlyChild.nodeType === Node.ELEMENT_NODE) {
+          collectElementsWithCalculableSize(
+            onlyChild as HTMLElement,
+            expandedElements,
+          );
+          return;
+        }
+      } else if (el.children.length > 1) {
+        expandedElements.push(
+          ...Array.from(el.children).filter(
+            (child): child is HTMLElement =>
+              child.nodeType === Node.ELEMENT_NODE,
+          ),
+        );
+        return;
+      }
     }
+
+    // Elements that are display: contents; (e.g <astro-*> elements) take on the size of their children, so in that case,
+    // we add the first children we find that are not display: contents to the array instead.
+    collectElementsWithCalculableSize(el, expandedElements);
   });
 
   const tops: number[] = [];

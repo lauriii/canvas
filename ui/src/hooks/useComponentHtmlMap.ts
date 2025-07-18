@@ -6,6 +6,10 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
   const { updateRegionsMap, updateComponentsMap, updateSlotsMap } =
     useDataToHtmlMapUpdater();
 
+  const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
+    'template[data-astro-template]',
+  ).length;
+
   useEffect(() => {
     const iframeDocument = iframe?.contentDocument;
     if (!iframeDocument || !iframeDocument.body) {
@@ -14,5 +18,11 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
     updateRegionsMap(mapRegions(iframeDocument));
     updateComponentsMap(mapComponents(iframeDocument));
     updateSlotsMap(mapSlots(iframeDocument));
-  }, [iframe, updateComponentsMap, updateRegionsMap, updateSlotsMap]);
+  }, [
+    iframe,
+    updateComponentsMap,
+    updateRegionsMap,
+    updateSlotsMap,
+    pendingTemplates,
+  ]);
 }
