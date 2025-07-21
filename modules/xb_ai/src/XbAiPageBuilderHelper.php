@@ -552,6 +552,8 @@ class XbAiPageBuilderHelper {
           'description' => $prop_name,
           'type' => $prop_details['jsonSchema']['type'],
           'default' => $prop_details['default_values']['resolved'] ?? '',
+          'format' => $prop_details['jsonSchema']['format'] ?? '',
+          'enum' => $prop_details['jsonSchema']['enum'] ?? '',
         ];
       }
     }
