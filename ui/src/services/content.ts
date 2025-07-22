@@ -73,17 +73,6 @@ export const contentApi = createApi({
         url: `/xb/api/v0/config/auto-save/staged_config_update/${entityId}`,
         method: 'GET',
       }),
-      transformErrorResponse: (response) => {
-        // This is added to prevent logging 404 errors to the console. Right now,
-        // we don't care if there is no staged config for homepage. That may change in the future.
-        if (response.status === 404) {
-          // @todo: But maybe the backend should return an empty 200 instead like it does if
-          //    there are no existing code components?
-          return;
-        }
-        // For other errors, let RTK Query handle them normally
-        return response;
-      },
       providesTags: (_result, _error, entityId) => [
         { type: 'StagedConfig', id: entityId },
       ],

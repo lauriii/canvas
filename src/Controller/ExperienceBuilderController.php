@@ -104,8 +104,9 @@ HTML;
     $dev_mode = $this->moduleHandler->moduleExists('xb_dev_mode');
     // ⚠️ This is highly experimental and *will* be refactored.
     $ai_extension_available = $this->moduleHandler->moduleExists('xb_ai');
+    $system_site_config = $this->configFactory->get('system.site');
 
-    return (new HtmlResponse($this->buildHtml()))->setAttachments([
+    return (new HtmlResponse($this->buildHtml()))->addCacheableDependency($system_site_config)->setAttachments([
       'library' => [
         'experience_builder/xb-ui',
         'experience_builder/extensions',
@@ -142,7 +143,7 @@ HTML;
             'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
           ],
           'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
-          'homepagePath' => $this->configFactory->get('system.site')->get('page.front'),
+          'homepagePath' => $system_site_config->get('page.front'),
         ],
         // Override actual `xbData` with dummy data for code component editor
         // development purposes.

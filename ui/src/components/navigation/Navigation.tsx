@@ -187,7 +187,7 @@ const ContentGroup = ({
                 flexGrow="1"
                 onClick={onSelect ? () => onSelect(item) : undefined}
               >
-                <Box px="3">
+                <Box px="3" pt="1">
                   {item.internalPath === homepagePath ? (
                     <HomeIcon />
                   ) : (

@@ -133,6 +133,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       'theme',
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
+      'config:system.site',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -193,6 +194,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       'theme',
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
+      'config:system.site',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -313,6 +315,7 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
       'theme',
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
+      'config:system.site',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }

@@ -47,6 +47,7 @@ import {
 import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
 import { pageDataFormApi } from '@/services/pageDataForm';
+import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -87,6 +88,7 @@ const PageInfo = () => {
     data: pageItems,
     isLoading: isPageItemsLoading,
     error: pageItemsError,
+    isSuccess: isGetPageItemsSuccess,
   } = useGetContentListQuery({
     // @todo Generalize in https://www.drupal.org/i/3498525
     entityType: 'xb_page',
@@ -103,17 +105,50 @@ const PageInfo = () => {
       isSuccess: isCreateContentSuccess,
     },
   ] = useCreateContentMutation();
-  const { data: homepageConfig, isSuccess } =
-    useGetStagedConfigQuery(HOMEPAGE_CONFIG_ID);
   const homepagePath = useAppSelector(selectHomepagePath);
+  const [homepageStagedUpdateExists, setHomepageStagedUpdateExists] =
+    useState<boolean>(false);
+  const { data: changesData, isSuccess: getChangesSuccess } =
+    useGetAllPendingChangesQuery();
+  const { data: homepageConfig, isSuccess: isGetStagedUpdateSuccess } =
+    useGetStagedConfigQuery(HOMEPAGE_CONFIG_ID, {
+      // Only fetch the homepage staged config if it exists to avoid
+      // unnecessary API calls that return 404s.
+      skip: !homepageStagedUpdateExists,
+    });
+  const [isCurrentPageHomepage, setIsCurrentPageHomepage] =
+    useState<boolean>(false);
 
   useEffect(() => {
-    if (isSuccess) {
+    if (isGetPageItemsSuccess) {
+      // Check if the current page is the homepage.
+      const homepage = pageItems.find(
+        (page) => page.internalPath === homepagePath,
+      );
+      setIsCurrentPageHomepage(
+        entityType === 'xb_page' && entityId === String(homepage?.id),
+      );
+    }
+  }, [entityId, entityType, homepagePath, isGetPageItemsSuccess, pageItems]);
+
+  // Check if the homepage staged update exists in the current auto-save.
+  useEffect(() => {
+    if (getChangesSuccess) {
+      const containsHomepageConfig = Object.prototype.hasOwnProperty.call(
+        changesData,
+        `staged_config_update:${HOMEPAGE_CONFIG_ID}`,
+      );
+      setHomepageStagedUpdateExists(containsHomepageConfig);
+    }
+  }, [changesData, getChangesSuccess]);
+
+  useEffect(() => {
+    if (isGetStagedUpdateSuccess) {
       dispatch(
         setHomepagePath(homepageConfig.data.actions[0].input['page.front']),
       );
     }
-  }, [dispatch, homepageConfig?.data, isSuccess]);
+  }, [dispatch, homepageConfig?.data, isGetStagedUpdateSuccess]);
 
   function handleNewPage() {
     createContent({
@@ -232,7 +267,7 @@ const PageInfo = () => {
               data-testid="xb-navigation-button"
             >
               <Flex gap="2" align="center">
-                {iconMap['Page']}
+                {isCurrentPageHomepage ? iconMap['Homepage'] : iconMap['Page']}
                 {title}
                 <ChevronDownIcon />
               </Flex>
