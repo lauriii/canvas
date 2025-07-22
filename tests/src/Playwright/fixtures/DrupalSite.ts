@@ -41,7 +41,7 @@ const drupalSite = base.extend<DrupalSiteInstall>({
             return Promise.resolve('');
           }
           return await exec(
-            `php core/scripts/test-site.php tear-down --no-interaction --db-url ${process.env.DRUPAL_TEST_DB_URL}-${workerInfo.workerIndex} ${installData.db_prefix}`,
+            `php core/scripts/test-site.php tear-down --no-interaction --db-url ${process.env.DRUPAL_TEST_DB_URL} ${installData.db_prefix}`,
           );
         },
       });

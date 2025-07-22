@@ -1,15 +1,22 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures/DrupalSite';
+import { Drupal } from './objects/Drupal';
 
 /**
  * Tests installing Experience Builder.
  */
+
 test.describe('Canary XB Minimal', () => {
-  test('Setup minimal test site with Experience Builder', async ({
-    page,
-    drupal,
-  }) => {
-    await drupal.setupMinimalXBTestSite();
+  test.beforeAll(
+    'Setup minimal test site with Experience Builder',
+    async ({ browser, drupalSite }) => {
+      const page = await browser.newPage();
+      const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.setupMinimalXBTestSite();
+    },
+  );
+
+  test('View homepage', async ({ page, drupal }) => {
     await drupal.loginAsAdmin();
     await page.goto('/homepage');
     /* eslint-disable no-useless-escape */

@@ -1,12 +1,21 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures/DrupalSite';
+import { Drupal } from './objects/Drupal';
 
 /**
  * Tests installing Experience Builder.
  */
 test.describe('Canary XB', () => {
-  test('Setup test site with Experience Builder', async ({ page, drupal }) => {
-    await drupal.setupXBTestSite();
+  test.beforeAll(
+    'Setup test site with Experience Builder',
+    async ({ browser, drupalSite }) => {
+      const page = await browser.newPage();
+      const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.setupXBTestSite();
+    },
+  );
+
+  test('Setup test site with Experience Builder', async ({ page }) => {
     await page.goto('/first');
     await expect(
       page

@@ -1,16 +1,21 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures/DrupalSite';
+import { Drupal } from './objects/Drupal';
 
 /**
  * Tests the correct size of image is fetched.
  */
 test.describe('Responsive Image', () => {
-  test('Setup minimal test site with Experience Builder', async ({
-    drupal,
-  }) => {
-    await drupal.applyRecipe(`core/recipes/image_media_type`);
-    await drupal.setupMinimalXBTestSite();
-  });
+  test.beforeAll(
+    'Setup test site with Experience Builder',
+    async ({ browser, drupalSite }) => {
+      const page = await browser.newPage();
+      const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.applyRecipe(`core/recipes/image_media_type`);
+      await drupal.setupMinimalXBTestSite();
+    },
+  );
+
   test('Test responsive image', async ({ page, drupal, xBEditor }) => {
     await drupal.loginAsAdmin();
     await page.goto('/homepage');

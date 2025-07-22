@@ -2,17 +2,24 @@ import { expect } from '@playwright/test';
 import { test } from './fixtures/DrupalSite';
 import { getModuleDir } from './utilities/DrupalFilesystem';
 import { readFile } from 'fs/promises';
+import { Drupal } from './objects/Drupal';
 /**
  * Tests global elements.
  */
 
 test.describe('Global elements', () => {
-  test('Setup test site with Experience Builder', async ({ drupal }) => {
-    await drupal.setupXBTestSite();
-  });
+  test.beforeAll(
+    'Setup test site with Experience Builder',
+    async ({ browser, drupalSite }) => {
+      const page = await browser.newPage();
+      const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.setupMinimalXBTestSite();
+    },
+  );
+
   test('Page title', async ({ page, xBEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/first');
+    await page.goto('/homepage');
     await xBEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
@@ -31,9 +38,10 @@ test.describe('Global elements', () => {
       }),
     ).toBeVisible();
   });
+
   test('Site branding', async ({ page, xBEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/first');
+    await page.goto('/homepage');
     await xBEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
@@ -49,9 +57,10 @@ test.describe('Global elements', () => {
     // @see \Drupal\Core\Command\InstallCommand::configure
     await expect(preview.getByRole('link', { name: 'Drupal' })).toBeVisible();
   });
+
   test('Breadcrumbs', async ({ page, xBEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/first');
+    await page.goto('/homepage');
     await xBEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
