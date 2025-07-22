@@ -68,6 +68,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
   public const EXPLICIT_INPUT_NAME = 'props';
 
+  /**
+   * @var array<string, \Drupal\experience_builder\PropSource\StaticPropSource> */
+  private array $defaultStaticPropSources = [];
+  /**
+   * @var array<string, \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource> */
+  private array $defaultRelativeUrlPropSources = [];
+  protected ?SdcPlugin $componentPlugin = NULL;
+
   public function __construct(
     array $configuration,
     string $plugin_id,
@@ -141,6 +149,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *   The prop source object.
    */
   private function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name = TRUE): StaticPropSource {
+    if (\array_key_exists($prop_name, $this->defaultStaticPropSources)) {
+      return $this->defaultStaticPropSources[$prop_name];
+    }
     assert(isset($this->configuration['prop_field_definitions']));
     assert(is_array($this->configuration['prop_field_definitions']));
     $component_schema = $this->getSdcPlugin()->metadata->schema ?? [];
@@ -163,19 +174,26 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $sdc_prop_source['sourceTypeSettings']['cardinality'] = $this->configuration['prop_field_definitions'][$prop_name]['cardinality'];
     }
 
-    return StaticPropSource::parse($sdc_prop_source);
+    $static_prop_source = StaticPropSource::parse($sdc_prop_source);
+    $this->defaultStaticPropSources[$prop_name] = $static_prop_source;
+    return $static_prop_source;
   }
 
   private function getDefaultRelativeUrlPropSource(string $component_id, string $prop_name): DefaultRelativeUrlPropSource {
+    if (\array_key_exists($prop_name, $this->defaultRelativeUrlPropSources)) {
+      return $this->defaultRelativeUrlPropSources[$prop_name];
+    }
     $component_plugin = $this->getSdcPlugin();
     assert(array_key_exists(0, $component_plugin->metadata->schema['properties'][$prop_name]['examples'] ?? []));
-    return new DefaultRelativeUrlPropSource(
-      // @phpstan-ignore-next-line offsetAccess.notFound
+    $default_relative_url_prop_source = new DefaultRelativeUrlPropSource(
+    // @phpstan-ignore-next-line offsetAccess.notFound
       value: $component_plugin->metadata->schema['properties'][$prop_name]['examples'][0],
       // @phpstan-ignore-next-line offsetAccess.notFound
       jsonSchema: PropShape::normalize($component_plugin->metadata->schema['properties'][$prop_name])->resolvedSchema,
       componentId: $component_id,
     );
+    $this->defaultRelativeUrlPropSources[$prop_name] = $default_relative_url_prop_source;
+    return $default_relative_url_prop_source;
   }
 
   public function getSlotDefinitions(): array {

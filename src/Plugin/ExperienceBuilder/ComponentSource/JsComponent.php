@@ -65,7 +65,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * {@inheritdoc}
    */
   protected function getSdcPlugin(): SdcPlugin {
-    return self::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
+    if ($this->componentPlugin === NULL) {
+      // Statically cache the loaded plugin.
+      $this->componentPlugin = self::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
+    }
+    return $this->componentPlugin;
   }
 
   /**
@@ -262,6 +266,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public static function createConfigEntity(JavaScriptComponent $js_component): ComponentInterface {
     try {
+      // Create a new instance and bypass the statically cached componentPlugin
+      // property.
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
@@ -314,6 +320,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $component->set($label_key, $js_component->label());
     $component->setStatus($js_component->status());
     try {
+      // Create a new instance and bypass the statically cached componentPlugin
+      // property.
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
@@ -355,6 +363,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public function checkRequirements(): void {
     $js_component = $this->getJavaScriptComponent();
     try {
+      // Create a new instance and bypass the statically cached componentPlugin
+      // property.
       $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     }
     catch (InvalidComponentException $e) {
@@ -365,6 +375,10 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
   /**
    * Any valid JavaScript Component config entity can be mapped to SDC metadata.
+   *
+   * Bypasses the statically cached componentPlugin property. Should be called
+   * during config entity creation and updating to ensure a fresh version is
+   * generated. For run-time code, use ::getSdcPlugin instead.
    *
    * @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator::validate
    */

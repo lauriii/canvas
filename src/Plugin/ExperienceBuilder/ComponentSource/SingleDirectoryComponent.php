@@ -122,7 +122,11 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     if (is_null($this->configuration['local_source_id'])) {
       throw new ComponentDoesNotMeetRequirementsException(['Component has no valid source plugin_id value.']);
     }
-    return $this->componentPluginManager->find($this->configuration['local_source_id']);
+    if ($this->componentPlugin === NULL) {
+      // Statically cache the loaded plugin.
+      $this->componentPlugin = $this->componentPluginManager->find($this->configuration['local_source_id']);
+    }
+    return $this->componentPlugin;
   }
 
   /**
