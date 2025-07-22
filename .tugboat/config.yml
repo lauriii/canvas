@@ -26,7 +26,8 @@ services:
           composer require \
             drupal/experience_builder \
             drupal/demo_design_system \
-            drupal/components
+            drupal/components \
+            drupal/default_content
 
           # Install Drupal on the site.
           rm -f $DRUPAL_DOCROOT/sites/default/settings.php
@@ -53,7 +54,8 @@ services:
             experience_builder \
             xb_dev_standard \
             media_library \
-            components
+            components \
+            default_content
 
           # Enable starshot_demo theme.
           vendor/bin/drush --yes theme:enable starshot_demo
@@ -76,7 +78,8 @@ services:
           composer update --with-all-dependencies \
             drupal/experience_builder \
             drupal/demo_design_system \
-            drupal/components
+            drupal/components \
+            drupal/default_content
           # Run Drupal updates
           vendor/bin/drush --yes updb
           vendor/bin/drush cache:rebuild
