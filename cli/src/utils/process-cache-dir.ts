@@ -8,6 +8,7 @@ export const XB_CACHE_DIR = path.join(os.homedir(), '.xb');
 
 // Download the JS source of all code components into a local directory: ~/.xb
 export async function downloadJsSourceFromXB(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   componentsToDownload: Record<string, any>,
 ) {
   for (const key in componentsToDownload) {

@@ -1,26 +1,24 @@
 {
-  "name": "@drupal/experience_builder-cli",
-  "version": "0.0.0",
-  "description": "CLI tool for managing Experience Builder components",
+  "name": "@drupal/xb-cli",
+  "description": "CLI tool for managing Drupal Experience Builder code components",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://git.drupalcode.org/project/experience_builder.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/experience_builder",
   "main": "dist/index.js",
   "bin": {
     "xb": "./dist/index.js"
   },
   "type": "module",
-  "workspaces": [
-    "../ui"
-  ],
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "prettier:fix": "prettier . --write --config ../.prettierrc.json",
-    "prettier:check": "prettier . --check --config ../.prettierrc.json",
-    "lint:eslint": "eslint . --max-warnings=0",
-    "lint": "npm run lint:eslint",
-    "lint:fix": "eslint --fix .",
+    "build": "NODE_ENV=production tsup",
+    "dev": "NODE_ENV=development tsup --watch",
+    "test:vitest": "vitest run",
+    "watch:test": "vitest watch",
+    "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "type-check": "tsc --noEmit --pretty"
   },
   "files": [

@@ -4,7 +4,9 @@ export interface Component {
   status: boolean;
   framework?: 'react' | 'vue' | 'unknown';
   required?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   slots?: Record<string, any>;
   sourceCodeJs?: string;
   compiledJs?: string;
@@ -24,4 +26,10 @@ export interface AssetLibrary {
     original: string;
     compiled: string;
   };
+}
+
+export interface Metadata {
+  name: string;
+  machineName: string;
+  slots: object;
 }

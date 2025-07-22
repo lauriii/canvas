@@ -8,6 +8,7 @@ import { getConfig, setConfig } from '../config.js';
 interface ScaffoldOptions {
   name?: string;
   dir?: string;
+  verbose?: boolean;
 }
 
 // @todo: Support non-interactive scaffold if user passes all necessary args in.
@@ -17,7 +18,7 @@ interface ScaffoldOptions {
 export function scaffoldCommand(program: Command): void {
   program
     .command('scaffold')
-    .description('Create a new React component for Experience Builder')
+    .description('create a new code component scaffold for Experience Builder')
     .option(
       '-n, --name <n>',
       'Component name (used for directory and metadata)',
@@ -26,12 +27,14 @@ export function scaffoldCommand(program: Command): void {
       '-d, --dir <directory>',
       'Component directory to create component in',
     )
+    .option('--verbose', 'Enable verbose output')
     .action(async (options: ScaffoldOptions) => {
       p.intro('Experience Builder Component Scaffold');
 
       try {
         // Update config with CLI options
         if (options.dir) setConfig({ componentDir: options.dir });
+        if (options.verbose) setConfig({ verbose: options.verbose });
         const config = getConfig();
         const baseDir = config.componentDir;
 
@@ -68,7 +71,7 @@ export function scaffoldCommand(program: Command): void {
           // Get template directory path
           const templateDir = path.join(
             path.dirname(new URL(import.meta.url).pathname),
-            '../templates/hello-world',
+            'templates/hello-world',
           );
 
           // List template files
@@ -91,7 +94,7 @@ export function scaffoldCommand(program: Command): void {
           // Copy and process each template file
           for (const file of files) {
             const srcPath = path.join(templateDir, file);
-            let destPath = path.join(componentDir, file);
+            const destPath = path.join(componentDir, file);
 
             // Read template content
             let content = await fs.readFile(srcPath, 'utf-8');

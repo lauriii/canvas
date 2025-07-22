@@ -16,7 +16,14 @@ export async function findComponentDirectories(
     );
 
     // Convert to array
-    const componentDirs = Array.from(uniqueDirs).sort();
+    let componentDirs = Array.from(uniqueDirs).sort();
+
+    // Remove SDCs
+    let sdcs = await glob(`${baseDir}/**/*.twig`);
+    sdcs = sdcs.map((sdc) => path.dirname(sdc));
+    componentDirs = componentDirs.filter(
+      (componentDir) => !sdcs.includes(componentDir),
+    );
 
     return componentDirs;
   } catch (error) {

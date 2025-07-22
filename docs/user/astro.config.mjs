@@ -38,6 +38,10 @@ export default defineConfig({
               label: 'Responsive images',
               slug: 'code-components/responsive-images',
             },
+            {
+              label: 'CLI tool',
+              slug: 'code-components/cli-tool',
+            },
           ],
         },
       ],

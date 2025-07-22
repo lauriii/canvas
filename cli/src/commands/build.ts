@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { setConfig } from '../config.js';
+import { ensureConfig, setConfig } from '../config.js';
 import { buildComponent } from '../utils/build.js';
 import { reportResults } from '../utils/report-results';
 import type { Result } from '../types/Result.js';
@@ -12,6 +12,10 @@ interface BuildOptions {
   dir?: string;
   all?: boolean;
   tailwind?: boolean;
+  clientId?: string;
+  clientSecret?: string;
+  siteUrl?: string;
+  verbose?: boolean;
 }
 
 /**
@@ -20,13 +24,17 @@ interface BuildOptions {
 export function buildCommand(program: Command): void {
   program
     .command('build')
-    .description('Build local components and Tailwind CSS')
+    .description('build local components and Tailwind CSS assets')
     .option(
       '-d, --dir <directory>',
       'Component directory to build the components in',
     )
     .option('--all', 'Build all components')
     .option('--no-tailwind', 'Skip Tailwind CSS building')
+    .option('--client-id <id>', 'Client ID')
+    .option('--client-secret <secret>', 'Client Secret')
+    .option('--site-url <url>', 'Site URL')
+    .option('--verbose', 'Enable verbose output')
     .action(async (options: BuildOptions) => {
       p.intro('Experience Builder Component Build');
 
@@ -34,6 +42,14 @@ export function buildCommand(program: Command): void {
       const skipTailwind = !options.tailwind;
 
       if (options.dir) setConfig({ componentDir: options.dir });
+      if (options.clientId) setConfig({ clientId: options.clientId });
+      if (options.clientSecret)
+        setConfig({ clientSecret: options.clientSecret });
+      if (options.siteUrl) setConfig({ siteUrl: options.siteUrl });
+      if (options.verbose) setConfig({ verbose: true });
+      if (!skipTailwind) {
+        await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
+      }
 
       // Select components to build
       const selectedComponents = await selectLocalComponents(
@@ -55,14 +71,18 @@ export function buildCommand(program: Command): void {
       for (const componentDir of selectedComponents) {
         results.push(await buildComponent(componentDir));
       }
+
       s1.stop(
         chalk.green(
           `Processed ${selectedComponents.length} ${componentLabelPluralized}`,
         ),
       );
-
       // Report component build results
       reportResults(results, 'Built components', 'Component');
+      if (results.map((result) => result.success).includes(false)) {
+        process.exit(1);
+      }
+
       if (skipTailwind) {
         p.log.info('Skipping Tailwind CSS build');
       } else {
@@ -80,6 +100,10 @@ export function buildCommand(program: Command): void {
 
         // Report Tailwind CSS results in separate table
         reportResults([tailwindResult], 'Built assets', 'Asset');
+
+        if (!tailwindResult.success) {
+          return process.exit(1);
+        }
       }
 
       p.outro(`📦 Build completed`);

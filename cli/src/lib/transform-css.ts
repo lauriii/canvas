@@ -41,7 +41,7 @@ async function transformCss(
   function transform(code: Buffer | Uint8Array) {
     return lightningCssTransform({
       filename: 'input.css',
-      code: code as any,
+      code: code,
       minify,
       drafts: {
         customMedia: true,

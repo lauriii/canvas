@@ -19,13 +19,14 @@ interface DownloadOptions {
   dir?: string;
   component?: string;
   all?: boolean; // Download all components
+  verbose?: boolean;
 }
 
 // @todo: Support non-interactive download if user passes all necessary args in.
 export function downloadCommand(program: Command): void {
   program
     .command('download')
-    .description('Download components from Experience Builder')
+    .description('download components to your local filesystem')
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
@@ -33,6 +34,7 @@ export function downloadCommand(program: Command): void {
     .option('-d, --dir <directory>', 'Component directory')
     .option('-c, --component <name>', 'Specific component to download')
     .option('--all', 'Download all components')
+    .option('--verbose', 'Enable verbose output')
     .action(async (options: DownloadOptions) => {
       p.intro('Experience Builder Component Download');
 
@@ -45,6 +47,7 @@ export function downloadCommand(program: Command): void {
         if (options.dir) setConfig({ componentDir: options.dir });
         if (options.all) setConfig({ all: options.all });
         if (options.scope) setConfig({ scope: options.scope });
+        if (options.verbose) setConfig({ verbose: true });
         // Ensure all required config is present
         await ensureConfig([
           'siteUrl',
@@ -120,7 +123,7 @@ export function downloadCommand(program: Command): void {
             componentsToDownload = components;
           } else {
             componentsToDownload = Object.fromEntries(
-              Object.entries(components).filter(([_, component]) =>
+              Object.entries(components).filter(([, component]) =>
                 (selectedComponents as string[]).includes(
                   component.machineName,
                 ),

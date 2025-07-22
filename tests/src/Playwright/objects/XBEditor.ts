@@ -1,5 +1,6 @@
 // cspell:ignore networkidle
-import { expect, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 export class XBEditor {
   readonly page: Page;

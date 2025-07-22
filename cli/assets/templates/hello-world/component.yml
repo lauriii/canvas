@@ -9,7 +9,7 @@ props:
       title: Greeting
       description: The greeting to display
       examples:
-       - Hello World
+        - Hello World
     cta:
       type: string
       title: CTA display text

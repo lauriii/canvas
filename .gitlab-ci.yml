@@ -138,22 +138,6 @@ cspell:
       - ui/tests/fixtures/**/*
     when: on_success
 
-.CLI-files-change-rule: &CLI-files-change-rule
-  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    changes:
-      - cli/package.json
-      - cli/**/*.js
-      - cli/**/*.ts
-      - cli/**/*.tsx
-      - cli/tsconfig.json
-
-.CLI-HTTP-API-change-rule: &CLI-HTTP-API-change-rule
-  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    changes:
-      - openapi.yml
-      - src/Entity/JavaScriptComponent.php
-      - src/Controller/ApiConfigControllers.php
-
 # Helper to setup a Drupal installation
 #
 # This should be quite fast with a warm cache, and is only used by one job
@@ -352,7 +336,7 @@ eslint:
   # This module wants to strictly comply with eslint.
   allow_failure: false
   before_script:
-    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI eslint` and `CLI eslint` jobs below.
+    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI eslint` job below.
     - rm -rf ui
     - rm -rf tests/src/Playwright playwright.config.ts eslint.config.mjs
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
@@ -413,69 +397,6 @@ UI eslint:
       - ui-eslint-junit.xml
     reports:
       junit: ui-eslint-junit.xml
-
-CLI:
-  stage: build
-  image: node:20-alpine
-  needs: []
-  rules:
-    - *is-push-rule
-    - *CLI-files-change-rule
-    - *CLI-HTTP-API-change-rule
-    - *manual-rule
-  script:
-    - cd cli
-    - npm ci
-    - npm run build
-
-CLI eslint:
-  stage: validate
-  image: node:20-alpine
-  allow_failure: false
-  needs:
-    - CLI
-  rules:
-    - *is-push-rule
-    - *CLI-files-change-rule
-    - *manual-rule
-  script:
-    - cd cli
-    - npm ci
-    - npx eslint --format=junit --output-file=$CI_PROJECT_DIR/cli-eslint-junit.xml --max-warnings=0
-  artifacts:
-    expose_as: junit
-    expire_in: 6 mos
-    when: always
-    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
-    paths:
-      - cli-eslint-junit.xml
-    reports:
-      junit: cli-eslint-junit.xml
-
-CLI vitest:
-  stage: test
-  image: node:20-alpine
-  allow_failure: false
-  needs:
-    - CLI
-  rules:
-    - *is-push-rule
-    - *CLI-files-change-rule
-    - *CLI-HTTP-API-change-rule
-    - *manual-rule
-  script:
-    - cd cli
-    - npm ci
-    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/cli-vitest-junit.xml
-  artifacts:
-    expose_as: junit
-    expire_in: 6 mos
-    when: always
-    name: artifacts-$CI_PIPELINE_ID-$CI_JOB_NAME_SLUG
-    paths:
-      - cli-vitest-junit.xml
-    reports:
-      junit: cli-vitest-junit.xml
 
 vitest:
   stage: test
@@ -606,6 +527,18 @@ cypress unit:
     paths:
       - "docs/diagrams/*.md"
 
+# This is the lint job for packages that are under the root package.json and
+# workspace.
+# @todo migrate the ui/ packages to the top level workspace now that we can get
+# around the GitLab issues.
+lint (frontend):
+  stage: validate
+  needs: []
+  image: node:24
+  script:
+    - npm ci
+    - npm run lint
+
 playwright:
   stage: test
   needs: []
@@ -634,8 +567,8 @@ playwright:
   before_script:
     - !reference [ .drupal ]
   script:
-    - npm install
-    - npx npm-run-all --continue-on-error --parallel test:playwright
+    - npm ci
+    - npm run test:playwright
   after_script:
     - mkdir -p $CI_PROJECT_DIR/logs
     - cp -R /var/log/apache2 $CI_PROJECT_DIR/logs/apache2
@@ -654,22 +587,48 @@ playwright:
       junit:
         - test-results/playwright.xml
 
-playwright code style:
-  stage: validate
-  image: node:20-alpine
-  allow_failure: false
+CLI Test:
+  stage: test
   needs: []
   rules:
-    - *is-push-rule
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - tests/src/Playwright/*
-        - tests/src/Playwright/**/*
-    - *manual-rule
+    - changes:
+        - "cli/**/*"
+        - package.json
+        - package-lock.json
+        - openapi.yml
+        - src/Entity/JavaScriptComponent.php
+        - src/Controller/ApiConfigControllers.php
+    - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
+  before_script:
+    mkdir -p test-results
+  script:
+    - npm audit --audit-level=moderate --production
+    - npm ci
+    - npm run test --workspace=cli
+    - npm run build --workspace=cli
+    - npm version 0.0.1 --workspace=cli
+    - npm pack --pack-destination=test-results --workspace=cli
+  artifacts:
+    expose_as: 'CLI package'
+    when: always
+    expire_in: 6 mos
+    paths:
+      - test-results/
+
+CLI Publish:
+  stage: publish
+  needs:
+    - lint (frontend)
+    - CLI Test
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
+  before_script:
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
   script:
     - npm ci
-    - npm run test:eslint
-    - npm run test:prettier
+    - npm run build --workspace=cli
+    - npm version $(echo ${CI_COMMIT_TAG} | cut -c5-) --workspace=cli
+    - npm publish --access public --workspace=cli
 
 # User facing documentation.
 pages-mr:

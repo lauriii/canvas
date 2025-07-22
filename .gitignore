@@ -11,6 +11,11 @@
 /blob-report/
 /playwright/.cache/
 
+# CLI
+/cli/dist/
+/cli/.env
+/cli/node_modules/
+
 # GitLab CI
 /.gitlab-ci-local/
 /_drupal/

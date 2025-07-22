@@ -34,7 +34,7 @@ interface UploadOptions {
 export function uploadCommand(program: Command): void {
   program
     .command('upload')
-    .description('Upload components to Experience Builder')
+    .description('build and upload local components and global CSS assets')
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
@@ -153,8 +153,11 @@ async function getBuildAndUploadResults(
     const message = 'All component builds failed.';
     p.note(chalk.red(message));
   }
-  let spinner: any;
-  spinner = p.spinner();
+  const spinner: {
+    start: (msg?: string) => void;
+    stop: (msg?: string, code?: number) => void;
+    message: (msg?: string) => void;
+  } = p.spinner();
   spinner.start('Uploading components');
 
   // Only upload the successfully built components.
@@ -201,7 +204,7 @@ async function getBuildAndUploadResults(
       try {
         await apiService.getComponent(machineName);
         componentExists = true;
-      } catch (error) {
+      } catch {
         // Component does not exist, will create new.
       }
 

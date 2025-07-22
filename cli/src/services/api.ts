@@ -34,6 +34,23 @@ export class ApiService {
       },
       // Allow longer timeout for uploads
       timeout: 30000,
+      transformResponse: [
+        (data) => {
+          const forbidden = ['Fatal error'];
+
+          // data comes as string, check it directly
+          if (data.includes && forbidden.some((str) => data.includes(str))) {
+            throw new Error(data);
+          }
+
+          // Parse JSON if it's a string (default axios behavior)
+          try {
+            return JSON.parse(data);
+          } catch {
+            return data;
+          }
+        },
+      ],
     });
   }
 
@@ -169,7 +186,7 @@ export class ApiService {
     }
   }
 
-  private handleApiError(error: any): void {
+  private handleApiError(error: Error): void {
     const config = getConfig();
     const verbose = config.verbose;
 
@@ -296,7 +313,7 @@ export function createApiService(): Promise<ApiService> {
 
   if (!config.siteUrl) {
     throw new Error(
-      'Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --url.',
+      'Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --site-url.',
     );
   }
 
