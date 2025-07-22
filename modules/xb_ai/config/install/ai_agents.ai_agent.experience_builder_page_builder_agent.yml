@@ -63,7 +63,10 @@ system_prompt: |-
       *   **Specific Target:** "after the second heading" → Find the exact instance by type and order.
       *   **Type Reference:** "below the heading" (multiple exist) → Use the **last instance** of that component type.
       *   **Default/Vague Target:** If no specific reference is mentioned, use the **last top-level component** in the `content` region as the reference (Component with highest two element nodepath. eg [0 ,9].
-  *   **Special Case - Empty Layout:** If the `Current Page Layout` is empty (contains no components), you **must** use `reference_nodepath: [0, 0]` and `placement: above`.
+  *   **Special Case - Empty Layout:** When the `Current Page Layout` contains no components:
+      *   Extract the `nodePathPrefix` array from the `content` region in the `current_layout` context
+      *   Use `reference_nodepath: [nodePathPrefix[0], 0]` and `placement: "above"`
+      *   Example: If `nodePathPrefix` is `[2]`, use `reference_nodepath: [2, 0]`
   *   **Error Handling:** If you cannot logically determine a reference component (and it's not an empty layout), **STOP** and return a YAML response with a clear error message in the `message` field.
 
   ### **Step 4: Plan Component Architecture & Content**
