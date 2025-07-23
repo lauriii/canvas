@@ -68,7 +68,7 @@ experience_builder.api.config.auto-save.get:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::get'
   requirements:
     _xb_http_eligible_config_entity: 'TRUE'
-    _entity_access: 'xb_config_entity.edit'
+    _entity_access: 'xb_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library|staged_config_update)'
@@ -125,7 +125,7 @@ experience_builder.api.config.auto-save.patch:
     _controller: 'Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::patch'
   requirements:
     _xb_http_eligible_config_entity: 'TRUE'
-    _entity_access: 'xb_config_entity.edit'
+    _entity_access: 'xb_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API, `Pattern` config entities do
     # not (yet) support auto-save.
     xb_config_entity_type_id: '(js_component|xb_asset_library)'
