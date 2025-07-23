@@ -342,6 +342,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'REQUIRED, type=string' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string',
+            '⿲xb_test_sdc:attributes␟not_attributes',
             '⿲xb_test_sdc:heading␟text',
             '⿲xb_test_sdc:my-hero␟heading',
             '⿲xb_test_sdc:shoe_details␟summary',

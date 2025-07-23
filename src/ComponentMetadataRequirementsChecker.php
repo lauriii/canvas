@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\experience_builder;
 
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
@@ -51,7 +52,7 @@ final class ComponentMetadataRequirementsChecker {
     $props_for_metadata = PropShape::getComponentPropsForMetadata($component_id, $metadata);
     $validator = new Validator();
     foreach ($metadata->schema['properties'] as $prop_name => $prop) {
-      if ($prop_name === 'attributes') {
+      if (in_array(Attribute::class, $prop['type'], TRUE)) {
         continue;
       }
 

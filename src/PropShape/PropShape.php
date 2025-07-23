@@ -90,12 +90,14 @@ final class PropShape {
     /** @var array<string, mixed> $component_schema */
     $component_schema = $metadata->schema;
     foreach ($component_schema['properties'] ?? [] as $prop_name => $prop_schema) {
-      // TRICKY: `attributes` is a special case — it is kind of a reserved
-      // prop.
+      // TRICKY: `Attribute`-typed props are a special case that we need to ignore.
+      // Even more TRICKY, `attributes` named prop is even a more special case —
+      // as it's initialized by default.
       // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
       // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
-      if ($prop_name === 'attributes') {
-        assert($prop_schema['type'][0] === Attribute::class);
+      // @see `xb_test_sdc:attributes` component template as an example for
+      // how to initialize the `Attribute`-typed prop.
+      if (in_array(Attribute::class, $prop_schema['type'], TRUE)) {
         continue;
       }
 
