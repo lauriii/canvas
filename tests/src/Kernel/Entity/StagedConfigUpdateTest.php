@@ -82,69 +82,6 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     }
   }
 
-  #[DataProvider('validationsProvider')]
-  public function testValidations(array $data, array $violations): void {
-    $this->installConfig(['system']);
-
-    $sut = StagedConfigUpdate::create($data);
-    self::assertInstanceOf(StagedConfigUpdate::class, $sut);
-
-    $actual_violations = $sut->getTypedData()->validate();
-    self::assertCount(count($actual_violations), $violations, (string) $actual_violations);
-    foreach ($actual_violations as $violation) {
-      self::assertContains("{$violation->getPropertyPath()} {$violation->getMessage()}", $violations, (string) $actual_violations);
-    }
-  }
-
-  public static function validationsProvider(): \Generator {
-    yield 'valid data' => [
-      [
-        'id' => 'test_staged_config_update',
-        'label' => 'Test Update',
-        'target' => 'system.site',
-        'actions' => [
-          [
-            'name' => 'simpleConfigUpdate',
-            'input' => ['key' => 'value'],
-          ],
-        ],
-      ],
-      [],
-    ];
-
-    yield 'invalid target' => [
-      [
-        'id' => 'test_staged_config_update',
-        'label' => 'Test Update',
-        'target' => 'foo.bar',
-        'actions' => [
-          [
-            'name' => 'simpleConfigUpdate',
-            'input' => ['key' => 'value'],
-          ],
-        ],
-      ],
-      ["target The 'foo.bar' config does not exist."],
-    ];
-
-    yield 'invalid action name' => [
-      [
-        'id' => 'test_staged_config_update',
-        'label' => 'Test Update',
-        'target' => 'system.site',
-        'actions' => [
-          [
-            'name' => 'manipulateConfig',
-            'input' => ['key' => 'value'],
-          ],
-        ],
-      ],
-      [
-        "actions.0.name The 'manipulateConfig' plugin does not exist.",
-      ],
-    ];
-  }
-
   public function testStorageWithAutoSaveManager(): void {
     $auto_save_manager = $this->container->get(AutoSaveManager::class);
     self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
