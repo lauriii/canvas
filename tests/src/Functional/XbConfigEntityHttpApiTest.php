@@ -1382,4 +1382,57 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     );
   }
 
+  public function testComponent(): void {
+    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
+      // SDC `noUi` handling didn't happen before Drupal core 11.3, so disable
+      // the `noUi` component.
+      $no_ui_component = Component::load('sdc.xb_test_sdc.no-ui-sdc');
+      assert($no_ui_component instanceof Component);
+      $no_ui_component->setStatus(FALSE)->save();
+    }
+
+    $expected_contexts = [
+      'languages:language_content',
+      'languages:language_interface',
+      'route',
+      'theme',
+      'url.path',
+      'url.query_args',
+      'user.node_grants:view',
+      'user.permissions',
+      'user.roles:authenticated',
+      // The user_login_block is rendered as the anonymous user because for the
+      // authenticated user it is empty.
+      // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
+      'user.roles:anonymous',
+    ];
+    $expected_cache_tags = [
+      'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
+      'config:component_list',
+      'config:core.extension',
+      'config:node_type_list',
+      'config:system.menu.account',
+      'config:system.menu.admin',
+      'config:system.menu.footer',
+      'config:system.menu.main',
+      'config:system.menu.tools',
+      'config:system.site',
+      'config:system.theme',
+      'config:views.view.content_recent',
+      'config:views.view.who_s_new',
+      'http_response',
+      'local_task',
+      'node_list',
+      'user:1',
+      'user:2',
+      'user_list',
+    ];
+
+    $this->drupalLogin($this->httpApiUser);
+    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), [], 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
+    self:self::assertNotNull($body);
+    // Assert `noUi` flagged components aren't listed.
+    $this->assertArrayNotHasKey('sdc.xb_test_sdc.no-ui-sdc', $body);
+  }
+
 }

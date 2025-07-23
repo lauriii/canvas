@@ -87,6 +87,10 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
           $reasons[$component_id][] = 'Component has "obsolete" status';
           $component->disable();
         }
+        if (isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE) {
+          $reasons[$component_id][] = 'Component flagged "noUi".';
+          $component->disable();
+        }
       }
       else {
         try {

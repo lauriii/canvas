@@ -76,6 +76,7 @@ For an `SDC` to be compatible/eligible for use in XB, it:
 - MUST have only props for whose `prop shape`s a `static prop source` can be found (see the [`XB Shape Matching into Field
   Types` doc, section 3.1.2.b](shape-matching-into-field-types.md#3.1.2.b).
 - MUST not have `status` value `obsolete`
+- MUST not have `noUi` value `true`
 - SHOULD have a `category`; if not specified, the fallback value "Other" will be used
 
 These checks are implemented in `\Drupal\experience_builder\ComponentMetadataRequirementsChecker`.

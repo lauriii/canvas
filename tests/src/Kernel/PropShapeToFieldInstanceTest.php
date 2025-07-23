@@ -345,6 +345,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲xb_test_sdc:attributes␟not_attributes',
             '⿲xb_test_sdc:heading␟text',
             '⿲xb_test_sdc:my-hero␟heading',
+            '⿲xb_test_sdc:no-ui-sdc␟text',
             '⿲xb_test_sdc:shoe_details␟summary',
             '⿲xb_test_sdc:shoe_tab␟label',
             '⿲xb_test_sdc:shoe_tab␟panel',
