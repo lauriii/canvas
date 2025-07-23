@@ -20,6 +20,7 @@ use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\Controller\ApiContentControllers;
+use Drupal\experience_builder\Entity\StagedConfigUpdate;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -334,11 +335,24 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
   }
 
+  public function onXbConfigDelete(ConfigCrudEvent $event): void {
+    $autoSaveEntities = $this->getAllAutoSaveList(TRUE);
+    $autoSaveEntities = array_filter($autoSaveEntities, fn($entityData) => $entityData['entity'] instanceof StagedConfigUpdate);
+    foreach ($autoSaveEntities as $autoSaveEntity) {
+      $staged_config_update = $autoSaveEntity['entity'];
+      assert($staged_config_update instanceof StagedConfigUpdate);
+      if ($staged_config_update->getTarget() === $event->getConfig()->getName()) {
+        $this->delete($staged_config_update);
+      }
+    }
+  }
+
   /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
     $events[ConfigEvents::SAVE][] = ['onXbConfigEntitySave'];
+    $events[ConfigEvents::DELETE][] = ['onXbConfigDelete'];
     return $events;
   }
 

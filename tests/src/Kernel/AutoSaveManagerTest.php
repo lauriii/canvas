@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel;
 
+use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -398,6 +399,14 @@ class AutoSaveManagerTest extends KernelTestBase {
         'input' => ['page.front' => '/home'],
       ],
     ], $list['staged_config_update:xb_set_homepage']['data']['actions']);
+
+    // On config delete, auto-saved staged config updates targeting that config
+    // should be deleted. In the current state, that's everything.
+    $config_manager = $this->container->get(ConfigManagerInterface::class);
+    assert($config_manager instanceof ConfigManagerInterface);
+    $config_manager->getConfigFactory()->getEditable('system.site')->delete();
+    $list = $sut->getAllAutoSaveList();
+    self::assertEmpty($list);
   }
 
 }
