@@ -11,6 +11,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -26,6 +27,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Entity\StagedConfigUpdate;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
@@ -36,6 +38,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Handles retrieval and publication of auto-saved changes.
@@ -192,6 +196,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
 
   /**
    * Publishes the auto-saved changes.
+   *
+   * @throws \Exception
    */
   public function post(Request $request): JsonResponse {
     $client_auto_saves = \json_decode($request->getContent(), TRUE);
@@ -313,6 +319,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
           assert(is_string($revision_user));
           $entity->set($revision_user, $this->currentUser->id());
         }
+        // Even though we will validate each entity individually before it is
+        // saved to ensure the data is still valid after other entities have been
+        // saved, we should still validate here before we save any entities to
+        // avoid saving any entities if any are invalid. This is to avoid, when
+        // possible, any side effects of saving entities that cannot be undone
+        // by rolling back the database transaction, such as sending emails.
         $violations = $entity->validate();
         $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);
         foreach ($form_violations as $form_violation) {
@@ -321,14 +333,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
           $violations->add($form_violation);
         }
         if ($violations->count() > 0) {
-          // Violations for XB field inputs should show against the 'model'
-          // property.
-          $map = \array_reduce(
-            \array_keys(\array_filter($entity->getFields(), static fn(FieldItemListInterface $field): bool => $field->getItemDefinition()->getClass() === ComponentTreeItem::class)),
-            static fn (array $carry, string $field_name): array => [...$carry, ...[$field_name . '.0.inputs' => 'model']],
-            []
-          );
-          $violationSets[] = self::translateConstraintPropertyPathsAndRoot($map, EntityConstraintViolationList::fromCoreConstraintViolationList($violations));
+          $violationSets[] = self::getViolationSetsFromPropertyPathsAndRoot($entity, $violations);
           continue;
         }
       }
@@ -340,12 +345,32 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
 
     // Either everything must be published, or nothing at all.
+    $lastEntityEvaluated = NULL;
     try {
       $transaction = $this->database->startTransaction();
       foreach ($entities as $entity) {
+        $lastEntityEvaluated = $entity;
+        // Even though the entities are being validated before, there is a
+        // possibility where, when multiple entities are being saved together,
+        // the first entity collides with some of the following entities. So
+        // we need to validate right before saving the entity.
+        self::ensureEntityIsValid($entity);
         $entity->save();
+      }
+      foreach ($entities as $entity) {
         $this->autoSaveManager->delete($entity);
       }
+    }
+    catch (ConstraintViolationException $e) {
+      if (isset($transaction)) {
+        $transaction->rollBack();
+      }
+      $violationList = $e->getConstraintViolationList();
+      \assert(count($violationList) > 0);
+      $violationList = self::getViolationSetsFromPropertyPathsAndRoot($lastEntityEvaluated, $violationList);
+      $violationsResponse = self::createJsonResponseFromViolationSets($violationList);
+      assert($violationsResponse instanceof JsonResponse);
+      return $violationsResponse;
     }
     catch (\Exception $e) {
       if (isset($transaction)) {
@@ -391,6 +416,58 @@ final class ApiAutoSaveController extends ApiControllerBase {
       return $this->fileUrlGenerator->generateString($uri);
     }
     return $imageStyle->buildUrl($uri);
+  }
+
+  /**
+   * Validate different types of entities and throw an exception if there are violations.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to validate.
+   *
+   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   */
+  private static function ensureEntityIsValid(EntityInterface $entity): void {
+    $violations = new ConstraintViolationList();
+    if ($entity instanceof ConfigEntityInterface) {
+      $violations->addAll($entity->getTypedData()->validate());
+    }
+    elseif ($entity instanceof ContentEntityInterface) {
+      $violations->addAll($entity->validate());
+    }
+    if (count($violations) > 0) {
+      throw new ConstraintViolationException($violations);
+    }
+  }
+
+  public static function getViolationSetsFromPropertyPathsAndRoot(
+    FieldableEntityInterface|ConfigEntityInterface $entity,
+    ConstraintViolationListInterface|EntityConstraintViolationListInterface $violations,
+  ): ConstraintViolationListInterface {
+    // Config entities doesn't have fields.
+    if ($entity instanceof ConfigEntityInterface) {
+      return $violations;
+    }
+    // Violations for XB field inputs should show against the 'model'
+    // property.
+    $map = \array_reduce(
+      \array_keys(
+        \array_filter(
+          $entity->getFields(),
+          static fn(FieldItemListInterface $field
+          ): bool => $field->getItemDefinition()->getClass(
+            ) === ComponentTreeItem::class
+        )
+      ),
+      static fn(array $carry, string $field_name): array => [
+        ...$carry,
+        ...[$field_name . '.0.inputs' => 'model'],
+      ],
+      []
+    );
+    return self::translateConstraintPropertyPathsAndRoot(
+      $map,
+      ($violations instanceof EntityConstraintViolationListInterface) ? EntityConstraintViolationList::fromCoreConstraintViolationList($violations) : $violations,
+    );
   }
 
 }

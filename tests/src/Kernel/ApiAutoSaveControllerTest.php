@@ -8,6 +8,7 @@ use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
@@ -464,6 +465,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   public function testPost(bool $authorized, bool $withGlobal, ?string $expected_403_message): void {
     $this->setUpImages();
     $this->assertSiteHomepage('/user/login');
+    $this->container->get(ModuleInstallerInterface::class)->install(['xb_test_validation']);
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
@@ -947,6 +949,48 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Ensure that after the nodes have been published their auto-save data is
     // removed.
     $this->assertNoAutoSaveData();
+
+    // Now save both nodes with the same titles and expect to fail. To avoid
+    // affecting other tests the validator will only be applied to if the title
+    // contains the string 'unique!'.
+    // @see \Drupal\xb_test_validation\Plugin\Validation\Constraint\UniqueTitleConstraintValidator
+    $node1_auto_save_key = 'node:' . $node1->id() . ':en';
+    $node1->set('title', 'I am not unique!');
+    $autoSave->saveEntity($node1);
+    $node2_auto_save_key = 'node:' . $node2->id() . ':en';
+    $node2->set('title', 'I am not unique!');
+    // Remove the invalid prop set above.
+    $node2->set('field_xb_demo', []);
+    $autoSave->saveEntity($node2);
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([
+      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
+      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
+    ]);
+    $decoded = self::decodeResponse($response);
+    $this->assertSame(
+      [
+        'errors' => [
+          [
+            'detail' => 'A content item with Title <em class="placeholder">I am not unique!</em> already exists.',
+            'source' => [
+              'pointer' => 'title',
+            ],
+          ],
+        ],
+      ],
+      $decoded,
+    );
+
+    // All should be good now.
+    $autoSave->saveEntity($node1->set('title', 'I am unique!'));
+    $autoSave->saveEntity($node2->set('title', 'I am different!'));
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([
+      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
+      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
+    ]);
+    $this->assertSame(['message' => 'Successfully published 2 items.'], self::decodeResponse($response));
   }
 
   /**
