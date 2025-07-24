@@ -154,9 +154,9 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $response = $this->request(Request::create($audit_url));
     assert($response instanceof HtmlResponse);
     $this->assertSame([
+      'theme',
       'user.roles:authenticated',
       'languages:language_interface',
-      'theme',
       'user.permissions',
       'url.query_args:_wrapper_format',
     ], $response->getCacheableMetadata()->getCacheContexts());
@@ -195,9 +195,9 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $response = $this->request(Request::create($audit_url));
     assert($response instanceof HtmlResponse);
     $this->assertSame([
+      'theme',
       'user.roles:authenticated',
       'languages:language_interface',
-      'theme',
       'user.permissions',
       'url.query_args:_wrapper_format',
     ], $response->getCacheableMetadata()->getCacheContexts());

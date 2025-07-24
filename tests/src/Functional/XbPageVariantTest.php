@@ -116,8 +116,11 @@ class XbPageVariantTest extends FunctionalTestBase {
       'js_components' => [],
     ], $this->getRenderedComponentInstances());
 
-    // 4. Experience Builder module installed: nothing changes.
+    // 4. Experience Builder module installed: nothing changes, except the
+    //    conditional attaching of the global asset library, which adds the
+    //    `route.name` cache context.
     // @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant
+    // @see \Drupal\experience_builder\Hook\ComponentSourceHooks::pageAttachments
     $this->container->get(ModuleInstallerInterface::class)->install([
       'experience_builder',
       // Install module that provides test SDCs.
@@ -126,7 +129,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     Role::load('xbpageadmin')?->grantPermission(Page::EDIT_PERMISSION)->save();
     $this->rebuildContainer();
     $this->generateComponentConfig();
-    $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
+    $this->assertPageDisplayVariant(BlockPageVariant::class, [$block], expected_additional_cache_contexts: ['route.name']);
     $this->assertSame([
       'blocks' => [$block->id()],
       'js_components' => [],
@@ -388,7 +391,7 @@ class XbPageVariantTest extends FunctionalTestBase {
     // 8. If all Experience Builder PageRegion config entities are disabled,
     // BlockPageVariant is used once again.
     $pageRegion->disable()->save();
-    $this->assertPageDisplayVariant(BlockPageVariant::class, [$block]);
+    $this->assertPageDisplayVariant(BlockPageVariant::class, [$block], expected_additional_cache_contexts: ['route.name']);
     $this->assertSame([
       'blocks' => [$block->id()],
       'js_components' => [],

@@ -8,10 +8,12 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
 use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeCommonElements;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\Entity\AssetLibrary;
 use Drupal\experience_builder\Plugin\ComponentPluginManager;
@@ -31,6 +33,8 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
     private RouteMatchInterface $routeMatch,
     private CodeComponentDataProvider $codeComponentDataProvider,
     private LibraryDependencyResolverInterface $libraryDependencyResolver,
+    private ThemeManagerInterface $themeManager,
+    private ConfigFactoryInterface $configFactory,
   ) {}
 
   public static function create(ContainerInterface $container): self {
@@ -38,6 +42,8 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
       $container->get('current_route_match'),
       $container->get(CodeComponentDataProvider::class),
       $container->get(LibraryDependencyResolverInterface::class),
+      $container->get(ThemeManagerInterface::class),
+      $container->get(ConfigFactoryInterface::class),
     );
   }
 
@@ -85,9 +91,22 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
    */
   #[Hook('page_attachments')]
   public function pageAttachments(array &$page): void {
+    // Early return when on a page that does not use the default theme.
+    // TRICKY: no cacheability metadata needed for `system.theme` because it has
+    // special handling.
+    // @see \Drupal\system\SystemConfigSubscriber::onConfigSave()
+    $page['#cache']['contexts'][] = 'theme';
+    $default_theme = $this->configFactory->get('system.theme')->get('default');
+    if ($this->themeManager->getActiveTheme($this->routeMatch)->getName() !== $default_theme) {
+      return;
+    }
+
     $route = $this->routeMatch->getRouteObject();
     assert($route instanceof Route);
     $is_preview = $route->getOption('_xb_use_template_draft') === TRUE;
+    // TRICKY: the `route` cache context varies also by route parameters, that
+    // is unnecessary here, because this only varies by route definition.
+    $page['#cache']['contexts'][] = 'route.name';
     // @phpstan-ignore-next-line
     $page['#attached']['library'][] = AssetLibrary::load(AssetLibrary::GLOBAL_ID)->getAssetLibrary($is_preview);
   }
