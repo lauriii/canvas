@@ -325,6 +325,15 @@ final class StaticPropSource extends PropSourceBase {
     $stored_value = $sdc_prop_source['value'];
     $field_item_list->setValue($stored_value);
 
+    // Detect values considered empty by the field type, and abort early.
+    // @see \Drupal\experience_builder\PropSource\StaticPropSource::withValue()
+    $before = $field_item_list->count();
+    $field_item_list->filterEmptyItems();
+    $after = $field_item_list->count();
+    if ($before !== $after) {
+      throw new \LengthException('Field item list length is a lie, because it contains items considered empty by the field type. This is acceptable when previewing and auto-saving, but unacceptable when saving.');
+    }
+
     // Single-cardinality StaticPropSources MUST store only a single value, in
     // minimal representation.
     $storage_definition = $field_item_list->getFieldDefinition();

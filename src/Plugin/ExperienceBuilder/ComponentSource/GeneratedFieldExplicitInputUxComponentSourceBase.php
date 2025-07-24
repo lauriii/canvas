@@ -368,6 +368,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           \assert(\array_key_exists('expression', $raw_prop_source) && \array_key_exists('value', $raw_prop_source) && \array_key_exists('sourceType', $raw_prop_source));
           StaticPropSource::isMinimalRepresentation($raw_prop_source);
         }
+        catch (\LengthException $e) {
+          // During previews, empty values are intentionally allowed. Those must
+          // be filtered away when validating, which then in turn MAY trigger an
+          // error from ComponentValidator::validateProps() — if this is for a
+          // required prop.
+          // In other words: let a prop source being emptier than it portrays
+          // result in the appropriate validation errors at the component level.
+          // @see \Drupal\experience_builder\PropSource\StaticPropSource::withValue(allow_empty: TRUE)
+          // @todo Expand to support multiple-cardinality.
+          unset($inputValues[$component_prop_name]);
+          continue;
+        }
         catch (\LogicException $e) {
           $violations->add(new ConstraintViolation(
             sprintf("For component `%s`, prop `%s`, an invalid field property value was detected: %s.",

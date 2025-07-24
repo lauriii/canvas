@@ -608,7 +608,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'inputs' => [
           'style' => 'flared',
           'element' => 'h3',
-          'text' => $this->randomMachineName(),
+          'text' => '',
         ],
       ],
     ]);
@@ -724,6 +724,22 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
+    // Before publishing empty string properties are unset to enforce the
+    // 'required' validation.
+    // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::unsetEmptyProps()
+    $errors[] = [
+      'detail' => 'The property text is required.',
+      'source' => [
+        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.text',
+      ],
+      'meta' => [
+        'entity_type' => 'node',
+        'entity_id' => $node2->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $node2_original_title,
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
+      ],
+    ];
     $errors[] = [
       'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
       'source' => [
@@ -814,13 +830,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
     self::assertEquals([
       'errors' => [
-      [
-        'detail' => ErrorCodesEnum::UnexpectedItemInPublishRequest->getMessage(),
-        'source' => [
-          'pointer' => $extra_key,
+        [
+          'detail' => ErrorCodesEnum::UnexpectedItemInPublishRequest->getMessage(),
+          'source' => [
+            'pointer' => $extra_key,
+          ],
+          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
         ],
-        'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-      ],
       ],
     ], \json_decode($response->getContent() ?: '', TRUE, flags: JSON_THROW_ON_ERROR));
 
