@@ -47,7 +47,7 @@ trait ComponentTreeItemListInstantiatorTrait {
   /**
    * @phpstan-param ComponentTreeItemListArray $tree
    *
-   * @phpstan-return array<string, ComponentTreeItemArray>
+   * @return array<string, ComponentTreeItemArray>
    *
    * @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::constructDepthFirstGraph()
    */
@@ -56,10 +56,33 @@ trait ComponentTreeItemListInstantiatorTrait {
     // First construct a graph so we can order the component instances (i.e.
     // items in a ComponentTreeItemList) based on their depth.
     foreach ($tree as $value) {
-      $parent_and_slot_reference = \sprintf('%s:%s', $value['parent_uuid'] ?? NULL, $value['slot'] ?? NULL);
       \assert(\array_key_exists('uuid', $value));
-      $graph[$parent_and_slot_reference]['edges'][$value['uuid']] = TRUE;
-      $graph[$value['uuid']]['edges'][$parent_and_slot_reference] = TRUE;
+      $uuid = $value['uuid'];
+      if (!\array_key_exists($uuid, $graph)) {
+        // Create the initial entry for this item in the graph.
+        $graph[$uuid] = [
+          // Children that reference this item.
+          'edges' => [],
+          // UUIDs of children keyed by slot name.
+          'slot_children' => [],
+        ];
+      }
+      $slot = $value['slot'] ?? NULL;
+      if ($slot !== NULL) {
+        // Store the slot this item is in.
+        $graph[$uuid]['slot'] = $slot;
+      }
+      if (\array_key_exists('parent_uuid', $value) && $value['parent_uuid'] !== NULL) {
+        $parent_uuid = $value['parent_uuid'];
+        // Flag this item as a child of its parent.
+        $graph[$parent_uuid]['edges'][$uuid] = TRUE;
+        if ($slot !== NULL) {
+          // And the slot that it lives in.
+          $graph[$parent_uuid]['slot_children'][$slot][] = $uuid;
+          // And the delta position it has in this slot.
+          $graph[$uuid]['delta'] = \count($graph[$parent_uuid]['slot_children'][$slot]) - 1;
+        }
+      }
     }
 
     // Then sort the graph.
@@ -67,44 +90,51 @@ trait ComponentTreeItemListInstantiatorTrait {
     \uasort($sorted_graph, SortArray::sortByWeightElement(...));
 
     // Keep track of the component items by their UUID.
+    /** @var array<string, ComponentTreeItemArray> $tree */
     $uuid_lookup = \array_combine(\array_column($tree, 'uuid'), $tree);
     $keyed_tree = [];
     $parent_key_lookup = [];
 
     // Loop over each vertex in the graph and construct a keyed array.
-    foreach ($sorted_graph as $vertex_key => $graph) {
-      if (!\str_contains($vertex_key, ':')) {
-        // Ignore reverse lookups entries.
+    $outer_delta = 0;
+    foreach ($sorted_graph as $uuid => $graph) {
+      // If this UUID is not in the lookup, it could mean that there is an
+      // invalid parent_uuid, but that parent item does not exist in the tree.
+      // Validation doesn't happen until after this, so we can't rely on it here.
+      if (!\array_key_exists($uuid, $uuid_lookup)) {
         continue;
       }
-      [$parent_uuid] = \explode(':', $vertex_key, 2);
-      foreach (\array_keys($graph['edges']) as $delta => $edge) {
-        // Get the component tree item (component instance) for this edge.
-        $item = $uuid_lookup[$edge];
-
-        // Build a key based on:
-        // - the parent key
-        // - the slot name
-        // - this item's delta in the slot.
-        // We implode the keys with ':' rather than '.' because '.' has special
-        // meaning in the config API.
-        $key = \implode(':', \array_filter([
-          $parent_key_lookup[$parent_uuid] ?? NULL,
-          $item['slot'] ?? NULL,
-          $delta,
-        ], static fn (string|int|null $key_part) => $key_part !== NULL));
-
-        // Keep track of this item's key so any children can use it to construct
-        // their key.
-        $parent_key_lookup[$edge] = $key;
-
-        // Store the component tree item (component instance) against its key.
-        $keyed_tree[$key] = $item;
+      // Grab our item from the lookup.
+      $item = $uuid_lookup[$uuid];
+      if (!\array_key_exists('slot', $graph)) {
+        // This is a top level slot, so we key by the outer-delta.
+        $keyed_tree[(string) $outer_delta] = $item;
+        // Record the key of this component for child components to use when
+        // constructing their key.
+        $parent_key_lookup[$uuid] = (string) $outer_delta;
+        // Increment the delta so the next component with no parent appears in
+        // sequence.
+        $outer_delta++;
+        continue;
       }
+      \assert(\array_key_exists('reverse_paths', $graph));
+      $parents = \array_keys($graph['reverse_paths']);
+      \assert(\count($parents) > 0);
+      // The parent UUID is the first item in the reverse path.
+      $parent_uuid = \reset($parents);
+      // Start with the key of our parent.
+      $key = $parent_key_lookup[$parent_uuid] ?? '';
+      // Then append the slot and our relative position (delta) in the slot.
+      $key .= ':' . $graph['slot'] . ':' . $graph['delta'];
+      // Store this key for any children to retrieve.
+      $parent_key_lookup[$uuid] = $key;
+      // Add this component to the keyed tree.
+      $keyed_tree[$key] = $item;
     }
 
     // Order the items by the key.
     \ksort($keyed_tree);
+    /** @var array<string, ComponentTreeItemArray> */
     return $keyed_tree;
   }
 
