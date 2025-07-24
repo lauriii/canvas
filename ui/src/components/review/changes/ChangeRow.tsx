@@ -20,9 +20,16 @@ import { useCallback, useMemo } from 'react';
 import styles from './ChangeRow.module.css';
 import type { UnpublishedChange } from '@/types/Review';
 import { getAvatarInitialColor, getTimeAgo } from '../utils';
+import { useAppSelector } from '@/app/hooks';
+import { selectHomepagePath } from '@/features/configuration/configurationSlice';
 
-const ChangeIcon = (props: { entityType: string }) => {
-  const { entityType } = props;
+const ChangeIcon = (props: {
+  entityType: string;
+  entityId: string | number;
+}) => {
+  const { entityType, entityId } = props;
+  const homepagePath = useAppSelector(selectHomepagePath);
+
   switch (entityType) {
     case 'js_component':
       return <Component1Icon className={styles.changeIcon} />;
@@ -34,6 +41,12 @@ const ChangeIcon = (props: { entityType: string }) => {
       // Currently the only staged config update supported is setting
       // the homepage.
       return <HomeIcon className={styles.changeIcon} />;
+    case 'xb_page':
+      if (homepagePath === `/page/${entityId}`) {
+        return <HomeIcon className={styles.changeIcon} />;
+      } else {
+        return <FileIcon className={styles.changeIcon} />;
+      }
     default:
       return <FileIcon className={styles.changeIcon} />;
   }
@@ -91,7 +104,12 @@ const ChangeRow = ({
               onCheckedChange={handleChangeSelection}
               checked={isSelected}
             />
-            <ChangeIcon entityType={change.entity_type} />
+            <Box pt="1">
+              <ChangeIcon
+                entityType={change.entity_type}
+                entityId={change.entity_id}
+              />
+            </Box>
             {change.label}
           </Flex>
         </Text>

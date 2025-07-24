@@ -43,11 +43,12 @@ import {
   selectEntityType,
   selectHomepagePath,
   setHomepagePath,
+  extractHomepagePathFromStagedConfig,
+  selectHomepageStagedConfigExists,
 } from '@/features/configuration/configurationSlice';
 import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
 import { pageDataFormApi } from '@/services/pageDataForm';
-import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 
 interface PageType {
   [key: string]: ReactElement;
@@ -106,15 +107,14 @@ const PageInfo = () => {
     },
   ] = useCreateContentMutation();
   const homepagePath = useAppSelector(selectHomepagePath);
-  const [homepageStagedUpdateExists, setHomepageStagedUpdateExists] =
-    useState<boolean>(false);
-  const { data: changesData, isSuccess: getChangesSuccess } =
-    useGetAllPendingChangesQuery();
+  const homepageStagedConfigExists = useAppSelector(
+    selectHomepageStagedConfigExists,
+  );
   const { data: homepageConfig, isSuccess: isGetStagedUpdateSuccess } =
     useGetStagedConfigQuery(HOMEPAGE_CONFIG_ID, {
       // Only fetch the homepage staged config if it exists to avoid
       // unnecessary API calls that return 404s.
-      skip: !homepageStagedUpdateExists,
+      skip: !homepageStagedConfigExists,
     });
   const [isCurrentPageHomepage, setIsCurrentPageHomepage] =
     useState<boolean>(false);
@@ -131,24 +131,13 @@ const PageInfo = () => {
     }
   }, [entityId, entityType, homepagePath, isGetPageItemsSuccess, pageItems]);
 
-  // Check if the homepage staged update exists in the current auto-save.
-  useEffect(() => {
-    if (getChangesSuccess) {
-      const containsHomepageConfig = Object.prototype.hasOwnProperty.call(
-        changesData,
-        `staged_config_update:${HOMEPAGE_CONFIG_ID}`,
-      );
-      setHomepageStagedUpdateExists(containsHomepageConfig);
-    }
-  }, [changesData, getChangesSuccess]);
-
   useEffect(() => {
     if (isGetStagedUpdateSuccess) {
       dispatch(
-        setHomepagePath(homepageConfig.data.actions[0].input['page.front']),
+        setHomepagePath(extractHomepagePathFromStagedConfig(homepageConfig)),
       );
     }
-  }, [dispatch, homepageConfig?.data, isGetStagedUpdateSuccess]);
+  }, [dispatch, homepageConfig, isGetStagedUpdateSuccess]);
 
   function handleNewPage() {
     createContent({

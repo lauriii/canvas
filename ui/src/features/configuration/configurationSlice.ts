@@ -1,6 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
+import type { StagedConfig } from '@/types/Config';
 
 export interface AppConfiguration {
   baseUrl: string;
@@ -10,6 +11,7 @@ export interface AppConfiguration {
   isPublished: boolean;
   devMode: boolean;
   homepagePath?: string;
+  homepageStagedConfigExists?: boolean;
 }
 
 export const initialState: AppConfiguration = {
@@ -19,6 +21,7 @@ export const initialState: AppConfiguration = {
   isNew: true,
   isPublished: false,
   devMode: false,
+  homepageStagedConfigExists: false,
 };
 
 export const configurationSlice = createSlice({
@@ -34,10 +37,19 @@ export const configurationSlice = createSlice({
     setHomepagePath: create.reducer((state, action: PayloadAction<string>) => {
       state.homepagePath = action.payload;
     }),
+    setHomepageStagedConfigExists: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.homepageStagedConfigExists = action.payload;
+      },
+    ),
   }),
 });
 
-export const { setConfiguration, setHomepagePath } = configurationSlice.actions;
+export const {
+  setConfiguration,
+  setHomepagePath,
+  setHomepageStagedConfigExists,
+} = configurationSlice.actions;
 
 export default configurationSlice.reducer;
 export const selectBaseUrl = (state: RootState) => state.configuration.baseUrl;
@@ -49,3 +61,13 @@ export const selectEntityId = (state: RootState) => state.configuration.entity;
 export const selectDevMode = (state: RootState) => state.configuration.devMode;
 export const selectHomepagePath = (state: RootState) =>
   state.configuration.homepagePath;
+
+export const selectHomepageStagedConfigExists = (state: RootState) =>
+  state.configuration.homepageStagedConfigExists;
+
+// Helper to extract homepage path from staged config structure.
+export const extractHomepagePathFromStagedConfig = (
+  config: StagedConfig,
+): string => {
+  return config.data.actions[0].input['page.front'];
+};

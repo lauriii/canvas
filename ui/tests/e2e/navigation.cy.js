@@ -3,6 +3,9 @@ const navigationContentTestId = 'xb-navigation-content';
 const navigationResultsTestId = 'xb-navigation-results';
 const navigationNewButtonTestId = 'xb-navigation-new-button';
 const navigationNewPageButtonTestId = 'xb-navigation-new-page-button';
+// @see import { HomeIcon } from '@radix-ui/react-icons';
+const radixHomeIconDValue =
+  'M7.07926 0.222253C7.31275 -0.007434 7.6873 -0.007434 7.92079 0.222253L14.6708 6.86227C14.907 7.09465 14.9101 7.47453 14.6778 7.71076C14.4454 7.947 14.0655 7.95012 13.8293 7.71773L13 6.90201V12.5C13 12.7761 12.7762 13 12.5 13H2.50002C2.22388 13 2.00002 12.7761 2.00002 12.5V6.90201L1.17079 7.71773C0.934558 7.95012 0.554672 7.947 0.32229 7.71076C0.0899079 7.47453 0.0930283 7.09465 0.32926 6.86227L7.07926 0.222253ZM7.50002 1.49163L12 5.91831V12H10V8.49999C10 8.22385 9.77617 7.99999 9.50002 7.99999H6.50002C6.22388 7.99999 6.00002 8.22385 6.00002 8.49999V12H3.00002V5.91831L7.50002 1.49163ZM7.00002 12H9.00002V8.99999H7.00002V12Z';
 
 describe('Navigation functionality', () => {
   before(() => {
@@ -204,11 +207,6 @@ describe('Navigation functionality', () => {
       cy.intercept('POST', '**/xb/api/v0/staged-update/auto-save').as(
         'setHomepage',
       );
-      cy.intercept(
-        'GET',
-        '**/xb/api/v0/config/auto-save/staged_config_update/*',
-        'getHomepage',
-      );
       cy.log('loaded xb/xb_page/4');
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByTestId(navigationContentTestId)
@@ -239,29 +237,23 @@ describe('Navigation functionality', () => {
       cy.contains('button', 'Delete page').click();
       // Wait for the DELETE request to be made and assert it
       cy.wait('@deletePage').its('response.statusCode').should('eq', 204);
+      cy.log('Deleted Untitled page');
       // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
       cy.wait('@getList').its('response.statusCode').should('eq', 200);
       cy.url().should('not.contain', '/xb/xb_page/4');
 
       // Confirm we are now on the homepage.
       cy.url().should('contain', '/xb/xb_page/1');
-      cy.findByTestId(navigationButtonTestId).click();
-      cy.findByTestId(navigationContentTestId)
+      cy.log('loaded xb/xb_page/1');
+      cy.findByTestId(navigationButtonTestId)
         .should('exist')
-        .and('contain.text', 'Homepage')
-        .and('not.contain.text', 'Untitled page');
-      cy.get('[data-xb-page-id="1"]').realHover();
-      cy.findByLabelText('Page options for Homepage').click();
-      // The page set as Homepage should not have the "Set as homepage" option anymore.
-      cy.findByRole('menuitem', {
-        name: 'Set as homepage',
-        exact: false,
-      }).should('not.exist');
-      // The page set as Homepage should not have the "Delete page" option anymore.
-      cy.findByRole('menuitem', {
-        name: 'Delete page',
-        exact: false,
-      }).should('not.exist');
+        .and('have.text', 'Homepage')
+        .and('be.enabled');
+
+      // Check that the home icon is present in the navigation button.
+      cy.findByTestId(navigationButtonTestId)
+        .find('svg path')
+        .should('have.attr', 'd', radixHomeIconDValue);
     },
   );
 
@@ -299,4 +291,76 @@ describe('Navigation functionality', () => {
       cy.url().should('eq', previousUrl);
     });
   });
+
+  it(
+    'Publish the homepage staged update and confirm the homepage icon is present even after page refresh',
+    { retries: { openMode: 0, runMode: 3 } },
+    () => {
+      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1' });
+      cy.intercept('POST', '**/xb/api/v0/auto-saves/publish').as(
+        'publishChanges',
+      );
+      cy.findByTestId(navigationButtonTestId)
+        .should('exist')
+        .and('have.text', 'Homepage')
+        .and('be.enabled');
+      cy.findByTestId(navigationButtonTestId).click();
+      cy.findByTestId(navigationContentTestId)
+        .should('exist')
+        .and('contain.text', 'Homepage')
+        .and('not.contain.text', 'Untitled page');
+      cy.get('[data-xb-page-id="1"]').realHover();
+      cy.findByLabelText('Page options for Homepage').click();
+      // The page set as Homepage should not have the "Set as homepage" option anymore.
+      cy.findByRole('menuitem', {
+        name: 'Set as homepage',
+        exact: false,
+      }).should('not.exist');
+      // We still expect to see the "Delete page" option since the homepage staged update is not published yet.
+      cy.findByRole('menuitem', {
+        name: 'Delete page',
+        exact: false,
+      }).should('exist');
+      cy.get('html').click();
+
+      // Publish the homepage staged update.
+      cy.findByText('Review 1 change').click();
+      cy.findByTestId('xb-publish-reviews-content').within(() => {
+        cy.findByText('Update homepage').click();
+        cy.findByText(/Publish \d selected/).click();
+      });
+      cy.wait('@publishChanges').its('response.statusCode').should('eq', 200);
+      cy.log('Published homepage staged update');
+
+      // Refresh the page to ensure the update persists.
+      cy.reload();
+
+      cy.findByTestId(navigationButtonTestId)
+        .should('exist')
+        .and('contain.text', 'Homepage');
+
+      // Check that the home icon is present in the navigation button.
+      cy.findByTestId(navigationButtonTestId)
+        .find('svg path')
+        .should('have.attr', 'd', radixHomeIconDValue);
+      cy.findByTestId(navigationButtonTestId).click();
+      // Check that the home icon is present in the page menu item.
+      cy.get('[data-xb-page-id="1"]')
+        .find('svg path')
+        .should('have.attr', 'd', radixHomeIconDValue);
+      cy.get('[data-xb-page-id="1"]').realHover();
+      cy.findByLabelText('Page options for Homepage').click();
+
+      // The page set as homepage should not have the "Set as homepage" option anymore.
+      cy.findByRole('menuitem', {
+        name: 'Set as homepage',
+        exact: false,
+      }).should('not.exist');
+      // Deleting the homepage with the staged update published is not allowed.
+      cy.findByRole('menuitem', {
+        name: 'Delete page',
+        exact: false,
+      }).should('not.exist');
+    },
+  );
 });
