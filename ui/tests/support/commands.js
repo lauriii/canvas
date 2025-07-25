@@ -1163,46 +1163,51 @@ Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
   cy.findByText('Move to global region').click();
   cy.get(`[data-region-name="${regionName}"]`).click();
 });
-Cypress.Commands.add('publishAllPendingChanges', (titles) => {
-  let titlesToMatch = titles;
-  if (!Array.isArray(titles)) {
-    titlesToMatch = [titles];
-  }
-  const changeCount = titlesToMatch.length;
-  // Publish changes and make sure image persists.
-  // Wait for any pending changes to refresh.
-  cy.findByText(/Review \d+ change/, { timeout: 20000 }).should('exist');
-  cy.get('button', { timeout: 20000 })
-    .contains(`Review ${changeCount} change`, { timeout: 20000 })
-    .as('review');
-  // We break this up to allow for the pending changes refresh which can disable
-  // the button whilst it is loading.
-  cy.get('@review').click();
-  // Enable extended debug output from failed publishing.
-  cy.intercept('**/xb/api/v0/auto-saves/publish');
-  cy.findByTestId('xb-publish-reviews-content')
-    .as('publishReview')
-    .should('exist');
-  // We put the whole publish review step in a single should so it can be
-  // retried as a group. Unfortunately this requires dropping down to raw
-  // testing library queries because you can't make use of cypress commands
-  // inside a should block.
-  cy.get('@publishReview', { timeout: 15000 }).should(async (element) => {
-    const container = element[0];
-    const matchers = titlesToMatch.map((title) => {
-      return async () => {
-        const entity = await queries.findByText(container, title);
-        // We use the existence of the entity to confirm
-        expect(entity).to.exist;
-      };
+Cypress.Commands.add(
+  'publishAllPendingChanges',
+  (titles, expectNoErrors = true) => {
+    let titlesToMatch = titles;
+    if (!Array.isArray(titles)) {
+      titlesToMatch = [titles];
+    }
+    const changeCount = titlesToMatch.length;
+    // Publish changes and make sure image persists.
+    // Wait for any pending changes to refresh.
+    cy.findByText(/Review \d+ change/, { timeout: 20000 }).should('exist');
+    cy.get('button', { timeout: 20000 })
+      .contains(`Review ${changeCount} change`, { timeout: 20000 })
+      .as('review');
+    // We break this up to allow for the pending changes refresh which can disable
+    // the button whilst it is loading.
+    cy.get('@review').click();
+    // Enable extended debug output from failed publishing.
+    cy.intercept('**/xb/api/v0/auto-saves/publish');
+    cy.findByTestId('xb-publish-reviews-content')
+      .as('publishReview')
+      .should('exist');
+    // We put the whole publish review step in a single should so it can be
+    // retried as a group. Unfortunately this requires dropping down to raw
+    // testing library queries because you can't make use of cypress commands
+    // inside a should block.
+    cy.get('@publishReview', { timeout: 15000 }).should(async (element) => {
+      const container = element[0];
+      const matchers = titlesToMatch.map((title) => {
+        return async () => {
+          const entity = await queries.findByText(container, title);
+          // We use the existence of the entity to confirm
+          expect(entity).to.exist;
+        };
+      });
+      await Promise.all(matchers);
     });
-    await Promise.all(matchers);
-  });
-  cy.findByTestId('xb-publish-review-select-all').click();
-  cy.findByText(`Publish ${changeCount} selected`).click();
-  cy.findByText('All changes published!').should('exist');
-  cy.findByText('Errors').should('not.exist');
-});
+    cy.findByTestId('xb-publish-review-select-all').click();
+    cy.findByText(`Publish ${changeCount} selected`).click();
+    if (expectNoErrors) {
+      cy.findByText('All changes published!').should('exist');
+      cy.findByText('Errors').should('not.exist');
+    }
+  },
+);
 
 Cypress.Commands.add('waitForWindowProcess', (conditionFn, options = {}) => {
   const defaultOptions = {

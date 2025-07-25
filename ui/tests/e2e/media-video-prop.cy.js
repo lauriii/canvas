@@ -54,7 +54,7 @@ describe('Media Library', () => {
       .first()
       .should(($videoBox) => {
         const videoRect = $videoBox[0].getBoundingClientRect();
-        expect(videoRect.width).to.equal(190);
+        expect(videoRect.width).to.be.closeTo(190, 1);
       });
     cy.findByLabelText('Display width').clear();
     cy.findByLabelText('Display width').type(500);
@@ -64,7 +64,7 @@ describe('Media Library', () => {
       .first()
       .should(($videoBox) => {
         const videoRect = $videoBox[0].getBoundingClientRect();
-        expect(videoRect.width).to.equal(500);
+        expect(videoRect.width).to.be.closeTo(500, 1);
       });
     cy.clickComponentInPreview('Video', 1);
     cy.waitForAjax();

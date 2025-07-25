@@ -7,12 +7,17 @@ import {
   Text,
 } from '@radix-ui/themes';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { ExclamationTriangleIcon, FileIcon } from '@radix-ui/react-icons';
+import {
+  ExclamationTriangleIcon,
+  FileIcon,
+  OpenInNewWindowIcon,
+} from '@radix-ui/react-icons';
 import style from '@/components/review/ReviewErrors.module.css';
 import detailsStyle from '@/components/form/components/AccordionAndDetails.module.css';
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 import { useState } from 'react';
 import clsx from 'clsx';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 interface ReviewErrorsProps {
   errorState: ErrorResponse | undefined;
@@ -22,8 +27,13 @@ interface EntityError {
   detail: string;
   meta?: {
     label?: string;
+    entity_type?: string;
+    entity_id?: string | number;
   };
   entityLabel: string;
+  source: {
+    pointer?: string;
+  };
 }
 
 interface ErrorsByEntity {
@@ -34,11 +44,16 @@ interface ErrorGroupProps {
   errorGroup: EntityError[];
 }
 
+const baseUrl = getBaseUrl();
+
 const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
   const [isOpen, setIsOpen] = useState(true);
-
   return (
-    <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible.Root
+      data-testid="error-details"
+      open={isOpen}
+      onOpenChange={setIsOpen}
+    >
       <Collapsible.Trigger className={style.collapseButton}>
         <Flex px="1" py="2" gap="2" align="center">
           <FileIcon width="12" height="12" className={style.labelIcon} />
@@ -56,16 +71,57 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
         forceMount
         className={clsx(detailsStyle.content, detailsStyle.detailsContent)}
       >
-        {errorGroup.map((error: EntityError, ix: number) => (
-          <Flex px="5" py="1" gap="2" align="start" key={ix}>
-            <Flex pt="2.5px">
-              <ExclamationTriangleIcon color="red" width="12" height="12" />
+        {errorGroup.map((error: EntityError, ix: number) => {
+          let componentId = '';
+          let errorPath =
+            error?.meta?.entity_type &&
+            error?.meta?.entity_id &&
+            `${baseUrl}xb/${error.meta.entity_type}/${error.meta.entity_id}/editor`;
+
+          if (typeof error?.source?.pointer === 'string') {
+            const sourcePointerParts = error.source.pointer.split('.');
+            // Find the UUID in the pointer.
+            componentId = sourcePointerParts
+              .reverse()
+              .filter((part) =>
+                part.match(
+                  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/,
+                ),
+              )?.[0];
+          }
+
+          if (errorPath && componentId) {
+            errorPath = `${errorPath}/component/${componentId}`;
+          }
+
+          return (
+            <Flex px="5" py="1" gap="2" align="start" key={ix}>
+              <Flex pt="2.5px">
+                <ExclamationTriangleIcon color="red" width="12" height="12" />
+              </Flex>
+              <Text size="1" data-testid="publish-error-detail">
+                {error.detail}{' '}
+                {errorPath && (
+                  <a
+                    data-testid="publish-error-link"
+                    href={errorPath}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {
+                      <OpenInNewWindowIcon
+                        color="blue"
+                        width="16"
+                        height="16"
+                        style={{ position: 'relative', top: '4px' }}
+                      />
+                    }
+                  </a>
+                )}
+              </Text>
             </Flex>
-            <Text size="1" data-testid="publish-error-detail">
-              {error.detail}
-            </Text>
-          </Flex>
-        ))}
+          );
+        })}
       </Collapsible.Content>
     </Collapsible.Root>
   );
