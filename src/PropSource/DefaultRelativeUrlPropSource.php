@@ -150,10 +150,10 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       return FALSE;
     }
     return in_array($property_definition['format'] ?? '', [
-      JsonSchemaStringFormat::URI->value,
-      JsonSchemaStringFormat::URI_REFERENCE->value,
-      JsonSchemaStringFormat::IRI->value,
-      JsonSchemaStringFormat::IRI_REFERENCE->value,
+      JsonSchemaStringFormat::Uri->value,
+      JsonSchemaStringFormat::UriReference->value,
+      JsonSchemaStringFormat::Iri->value,
+      JsonSchemaStringFormat::IriReference->value,
     ]);
   }
 

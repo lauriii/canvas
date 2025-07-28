@@ -149,7 +149,7 @@ final class PropShape {
 
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
     // those too.
-    if ($normalized_prop_schema['type'] === JsonSchemaType::OBJECT->value && array_key_exists('properties', $normalized_prop_schema)) {
+    if ($normalized_prop_schema['type'] === JsonSchemaType::Object->value && array_key_exists('properties', $normalized_prop_schema)) {
       $normalized_prop_schema['properties'] = array_map(
         fn (array $prop_schema) => self::normalizePropSchema($prop_schema),
         $normalized_prop_schema['properties'],

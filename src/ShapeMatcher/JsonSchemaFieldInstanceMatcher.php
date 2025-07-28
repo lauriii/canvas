@@ -145,7 +145,7 @@ final class JsonSchemaFieldInstanceMatcher {
       is_array($schema['type']) ? $schema['type'][0] : $schema['type']
     );
 
-    if ($primitive_type !== JsonSchemaType::OBJECT) {
+    if ($primitive_type !== JsonSchemaType::Object) {
       throw new \LogicException();
     }
 
@@ -181,7 +181,7 @@ final class JsonSchemaFieldInstanceMatcher {
    * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
-    if ($primitive_type === JsonSchemaType::ARRAY) {
+    if ($primitive_type === JsonSchemaType::Array) {
       assert(is_array($schema));
       // Drupal core's Field API only supports specifying "required or not",
       // and required means ">=1 value". There's no (native) ability to
@@ -609,13 +609,13 @@ final class JsonSchemaFieldInstanceMatcher {
     }
 
     $field_primitive_types = match (TRUE) {
-      is_a($data_type_class, StringData::class, TRUE) => [JsonSchemaType::STRING],
-      is_a($data_type_class, TextProcessed::class, TRUE) => [JsonSchemaType::STRING],
+      is_a($data_type_class, StringData::class, TRUE) => [JsonSchemaType::String],
+      is_a($data_type_class, TextProcessed::class, TRUE) => [JsonSchemaType::String],
       // TRICKY: JSON Schema's `type: number` accepts both integers and floats,
       // but `type: `integer` accepts only integers.
-      is_a($data_type_class, IntegerData::class, TRUE) => [JsonSchemaType::INTEGER, JsonSchemaType::NUMBER],
-      is_a($data_type_class, FloatData::class, TRUE) => [JsonSchemaType::NUMBER],
-      is_a($data_type_class, BooleanData::class, TRUE) => [JsonSchemaType::BOOLEAN],
+      is_a($data_type_class, IntegerData::class, TRUE) => [JsonSchemaType::Integer, JsonSchemaType::Number],
+      is_a($data_type_class, FloatData::class, TRUE) => [JsonSchemaType::Number],
+      is_a($data_type_class, BooleanData::class, TRUE) => [JsonSchemaType::Boolean],
       // @todo object + array
       // - for object: initially support only a single level of nesting, then we can expect HERE a ComplexDataInterface with only primitives underneath (hence all leaves)
       // - for array: ListDefinitionInterface

@@ -56,12 +56,12 @@ use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
  * @internal
  */
 enum JsonSchemaType: string {
-  case STRING = 'string';
-  case NUMBER = 'number';
-  case INTEGER = 'integer';
-  case OBJECT = 'object';
-  case ARRAY = 'array';
-  case BOOLEAN = 'boolean';
+  case String = 'string';
+  case Number = 'number';
+  case Integer = 'integer';
+  case Object = 'object';
+  case Array = 'array';
+  case Boolean = 'boolean';
 
   public function isScalar(): bool {
     return match ($this) {
@@ -70,7 +70,7 @@ enum JsonSchemaType: string {
       // - "primitives" in Drupal Typed data terminology.
       // @see https://www.php.net/manual/en/function.is-scalar.php
       // @see \Drupal\Core\TypedData\PrimitiveInterface
-      self::STRING, self::NUMBER, self::INTEGER, self::BOOLEAN => TRUE,
+      self::String, self::Number, self::Integer, self::Boolean => TRUE,
       // Another subset of the "primitive types" in JSON schema are:
       // - "non-scalar values" in PHP terminology, specifically "iterable"
       // - "traversable" in Drupal Typed Data terminology, specifically "lists"
@@ -80,7 +80,7 @@ enum JsonSchemaType: string {
       // @see \Drupal\Core\TypedData\ListInterface
       // @see \Drupal\Core\TypedData\ComplexDataInterface
       // @see \Drupal\Core\TypedData\TraversableTypedDataInterface
-      self::ARRAY, self::OBJECT => FALSE,
+      self::Array, self::Object => FALSE,
     };
   }
 
@@ -107,14 +107,14 @@ enum JsonSchemaType: string {
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
       // There cannot possibly be any additional validation for booleans.
-      JsonSchemaType::BOOLEAN => FALSE,
+      JsonSchemaType::Boolean => FALSE,
 
       // The `string` JSON schema type
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-      JsonSchemaType::STRING => match (TRUE) {
+      JsonSchemaType::String => match (TRUE) {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
         // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
@@ -155,7 +155,7 @@ enum JsonSchemaType: string {
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       // phpcs:enable
-      JsonSchemaType::INTEGER, JsonSchemaType::NUMBER => match (TRUE) {
+      JsonSchemaType::Integer, JsonSchemaType::Number => match (TRUE) {
         array_key_exists('enum', $schema) => new DataTypeShapeRequirement('Choice', [
           'choices' => $schema['enum'],
         ], NULL),
@@ -172,7 +172,7 @@ enum JsonSchemaType: string {
         TRUE => FALSE,
       },
 
-      JsonSchemaType::OBJECT, JsonSchemaType::ARRAY => (function () {
+      JsonSchemaType::Object, JsonSchemaType::Array => (function () {
         throw new \LogicException('@see ::computeStorablePropShape() and ::recurseJsonSchema()');
       })(),
     };
@@ -201,7 +201,7 @@ enum JsonSchemaType: string {
     // value fields:
     // - `type: array` -> FieldItemListInterface object, with cardinality >1
     // - `items: { type: … }` -> FieldItemInterface object of some field type
-    if ($this === JsonSchemaType::ARRAY) {
+    if ($this === JsonSchemaType::Array) {
       // Drupal core's Field API only supports specifying "required or not",
       // and required means ">=1 value". There's no (native) ability to
       // configure a minimum number of values for a field. Plus, JSON schema
@@ -244,14 +244,14 @@ enum JsonSchemaType: string {
 
     return match ($this) {
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\BooleanItem
-      JsonSchemaType::BOOLEAN => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
+      JsonSchemaType::Boolean => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('boolean', 'value'), fieldWidget: 'boolean_checkbox'),
 
       // The `string` JSON schema type
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `minLength` and `maxLength`: https://json-schema.org/understanding-json-schema/reference/string#length
       // - `pattern`: https://json-schema.org/understanding-json-schema/reference/string#regexp
       // - `format`: https://json-schema.org/understanding-json-schema/reference/string#format and https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-      JsonSchemaType::STRING => match (TRUE) {
+      JsonSchemaType::String => match (TRUE) {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
         array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
@@ -291,7 +291,7 @@ enum JsonSchemaType: string {
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
-      JsonSchemaType::INTEGER => match (TRUE) {
+      JsonSchemaType::Integer => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
@@ -310,7 +310,7 @@ enum JsonSchemaType: string {
       // - `enum`: https://json-schema.org/understanding-json-schema/reference/enum
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
-      JsonSchemaType::NUMBER => match (TRUE) {
+      JsonSchemaType::Number => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
@@ -325,7 +325,7 @@ enum JsonSchemaType: string {
         TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number'),
       },
 
-      JsonSchemaType::OBJECT => match (TRUE) {
+      JsonSchemaType::Object => match (TRUE) {
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
           // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()

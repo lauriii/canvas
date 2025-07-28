@@ -40,7 +40,7 @@ final class StorablePropShape {
     //   field type — necessary for the `entity_reference` field type
     public readonly ?array $fieldInstanceSettings = NULL,
   ) {
-    if ($this->shape->resolvedSchema['type'] === JsonSchemaType::ARRAY->value) {
+    if ($this->shape->resolvedSchema['type'] === JsonSchemaType::Array->value) {
       match ($this->cardinality) {
         NULL => throw new \LogicException('Array prop shapes MUST have a cardinality.'),
         0 => throw new \OutOfRangeException('Nonsensical cardinality of zero for an array prop shape.'),

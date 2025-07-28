@@ -68,8 +68,8 @@ class ShapeMatchingHooks {
     // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
     // unknown reasons. Do it defensively, to not break when this changes.
     if (!isset($definitions['Hostname'])) {
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::HOSTNAME
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IDN_HOSTNAME
+      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Hostname
+      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IdnHostname
       $definitions['Hostname'] = [
         'label' => 'Hostname',
         'class' => Hostname::class,
@@ -77,8 +77,8 @@ class ShapeMatchingHooks {
         'provider' => 'core',
         'id' => 'Hostname',
       ];
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IPV4
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IPV6
+      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv4
+      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv6
       $definitions['Ip'] = [
         'label' => 'IP address',
         'class' => Ip::class,

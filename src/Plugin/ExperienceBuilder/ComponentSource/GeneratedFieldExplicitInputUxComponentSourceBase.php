@@ -950,7 +950,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // ⚠️ This won't work for components whose logic specifically checks for
         // an empty string and refuses to render then.
         // @todo Expand to support multiple-cardinality.
-        if ($required && $evaluated === '' && $this->getExplicitInputDefinitions()['shapes'][$prop]['type'] === JsonSchemaType::STRING->value) {
+        if ($required && $evaluated === '' && $this->getExplicitInputDefinitions()['shapes'][$prop]['type'] === JsonSchemaType::String->value) {
           // Confirm that *if* this weren't special-cased, that this would
           // indeed enter the next branch, which would cause it to be skipped.
           // @todo Consider adding a new `GracefulDegradationPropSource` to
