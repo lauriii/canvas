@@ -41,6 +41,8 @@ function useSyncIframeHeightToContent(
         if (iframeContentDoc) {
           const iframeHTML = iframeContentDoc.documentElement;
 
+          // initially set the iFrame height to the height passed in to the hook
+          iframe.style.height = height + 'px';
           iframeHTML.style.overflow = 'hidden';
           // Set up a MutationObserver to watch for changes in the content of the iframe
           mutationObserverRef.current = new MutationObserver(resizeIframe);
@@ -57,12 +59,54 @@ function useSyncIframeHeightToContent(
           // to an ever-increasing iFrame height!
           const elements: NodeListOf<HTMLElement> =
             iframeHTML.querySelectorAll('*');
+
+          const previewIframe = document.querySelector(
+            'iframe[data-xb-swap-active="true"]',
+          ) as HTMLIFrameElement | null;
+          const multipliers = [1, 3, 8];
+          const heightRatios = new WeakMap<HTMLElement, number[]>();
+
+          // Set the iframe to multiple heights, then check every element to see
+          // if its height increases at the same ratio as the iframe. In those
+          // instances, the element height is likely styled with VH units, and
+          // will require special handling inside in the elements.forEach found
+          // after this block.
+          multipliers.forEach((multi) => {
+            iframe.style.height = height * multi + 'px';
+            iframe.style.overflow = 'visible';
+            elements.forEach((element) => {
+              const ratios: number[] = heightRatios.get(element) || [];
+              if (element.clientHeight > 10) {
+                ratios.push(Math.floor(element.clientHeight / multi));
+                heightRatios.set(element, ratios);
+              }
+            });
+          });
+          iframe.style.height = '';
+          iframe.style.overflow = '';
+
           elements.forEach((element) => {
-            if (element.style.height.endsWith('vh')) {
-              const vhValue = parseFloat(element.style.height);
-              const newHeight = (vhValue / 100) * height;
-              element.style.maxHeight = newHeight + 'px';
-              resizeIframe();
+            if (previewIframe) {
+              // These height ratios were determined in the prior forEach block,
+              // and are used to identify element heights with VH units.
+              const ratios: Number[] = heightRatios.get(element) || [];
+
+              // If the element height consistently changed at the same ratio
+              // as the container iframe (all 3 numbers in ratios are the same),
+              // we can use the value in the ratios map to set a max height and
+              // avoid infinitely growing vh elements.
+              if (
+                !['HTML', 'BODY'].includes(element.tagName) &&
+                ratios.length === multipliers.length &&
+                ratios.every((ratio) => ratio === ratios[0])
+              ) {
+                const maxHeight = ratios[0];
+                element.style.maxHeight = maxHeight ? `${maxHeight}px` : '';
+                element.setAttribute(
+                  'data-xb-preview-max-height',
+                  `${maxHeight}`,
+                );
+              }
             }
           });
 
