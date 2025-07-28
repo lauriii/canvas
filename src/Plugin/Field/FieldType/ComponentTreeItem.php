@@ -361,6 +361,13 @@ class ComponentTreeItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
+  public static function mainPropertyName() {
+    return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isEmpty() {
     // If either `uuid` or `inputs` is set, consider this not empty
     return $this->get('uuid')->getValue() === NULL || $this->get('inputs')->getValue() === NULL;
