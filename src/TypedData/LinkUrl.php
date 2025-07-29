@@ -23,9 +23,22 @@ final class LinkUrl extends StringData implements UriInterface {
     $item = $this->getParent();
     \assert($item instanceof LinkItemInterface);
     $uri = $item->get('uri')->getValue();
-    if (\parse_url($uri, PHP_URL_SCHEME) === NULL) {
-      // We cannot use Url::fromUri without a scheme, return the URI as is.
+    if (empty($uri)) {
       return $uri;
+    }
+    if (in_array($uri, ['<nolink>', '<none>', '<button>'], TRUE)) {
+      $uri = 'route:' . $uri;
+      $item->set('uri', $uri);
+    }
+    elseif (\parse_url($uri, PHP_URL_SCHEME) === NULL) {
+      if (str_starts_with($uri, '<front>')) {
+        $uri = '/' . substr($uri, strlen('<front>'));
+      }
+      if (!str_starts_with($uri, '/')) {
+        return $uri;
+      }
+      // We cannot use Url::fromUri without a scheme, use internal scheme.
+      $item->set('uri', 'internal:' . $uri);
     }
     return $item->getUrl()->toString();
   }
