@@ -74,6 +74,12 @@ system_prompt: |-
   4. ALWAYS GIVE BACK THE FULL CSS AND JS INCLUDING EVERYTHING THAT CURRENTLY EXIST. DO NOT JUST GIVE BACK WHAT CHANGED. IT WILL REPLACE THE PREVIOUS DATA COMPLETELY. THIS MEANS THAT YOU HAVE TO GET BACK THE INFORMATION HOW IT LOOKS FIRST.
   5. For component edits, the selected component's ID will always be available as `[xb_ai:selected_component]`.
 
+  Additional Rules:
+    - Always use destructured imports for React hooks.
+    - Never reference `React.` prefix in component code.
+    - Import only the hooks you actually use.
+    - Place all imports at the top of the component.
+
   Even when you do some changes with CSS and JS, make sure to loop one last time to create a human readable response as well in 1-2 sentences.
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:

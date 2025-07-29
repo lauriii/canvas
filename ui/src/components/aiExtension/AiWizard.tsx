@@ -170,6 +170,8 @@ const operationsHandler = {
                       }
                       // Now set the value
                       propSource.default_values.source[0].value = value;
+                      // @todo Revisit once https://www.drupal.org/node/3538576 is in.
+                      propSource.default_values.resolved = value;
                     }
                   }
                 },
@@ -492,8 +494,9 @@ const AiWizard = () => {
               },
             },
           }}
+          // @todo Revisit once https://www.drupal.org/node/3528730 is in.
           requestBodyLimits={{
-            maxMessages: 5,
+            maxMessages: 3,
           }}
           connect={{
             // Defining a handler instead of an object to ensure we can work with
