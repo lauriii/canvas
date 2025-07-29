@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Random;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
@@ -16,9 +18,13 @@ use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\Pattern;
+use Drupal\node\Entity\Node;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\CreateTestJsComponentTrait;
+use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +38,10 @@ use Symfony\Component\HttpFoundation\Response;
 class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use GenerateComponentConfigTrait;
   use OpenApiSpecTrait;
+  use AssertPageCacheContextsAndTagsTrait;
+  use CreateTestJsComponentTrait;
 
   /**
    * {@inheritdoc}
@@ -41,6 +50,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     'block',
     'experience_builder',
     'xb_test_sdc',
+    // Validate that a single invalid SDC doesn't break the component list.
+    'xb_broken_sdcs',
     'node',
     'field',
     'text',
@@ -64,7 +75,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
-    $this->createContentType(['type' => 'article']);
   }
 
   /**
@@ -1143,7 +1153,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
     $library->delete();
-    $this->assertAuthenticationAndAuthorization('xb_asset_library', FALSE);
+    $this->assertAuthenticationAndAuthorization(AssetLibrary::ENTITY_TYPE_ID, FALSE);
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/v0/config/xb_asset_library");
@@ -1384,7 +1394,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // present, the test will fail. This array is used to add those additional expected cache tags.
     $expected_cache_tags = \array_values(Cache::mergeTags($expected_cache_tags, \array_values($additional_expected_cache_tags)));
     $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), $request_options, 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
-    self:self::assertNotNull($body);
+    self::assertNotNull($body);
     $component_config_entity_ids = array_keys($body);
     self::assertSame(
       $expected,
@@ -1393,6 +1403,22 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testComponent(): void {
+    $this->container->get('theme_installer')->install(['stark', 'olivero']);
+
+    // Ensure we have an interesting set of Component config entities: the ones
+    // provided by the modules & themes, including:
+    self::assertNotEmpty(Component::loadMultiple());
+    // - one that (intentionally) fails to render
+    self::assertInstanceOf(ComponentInterface::class, Component::load('sdc.xb_broken_sdcs.invalid-filter'));
+    // - one that was installed but explicitly disabled.
+    self::assertTrue(Component::load('block.system_menu_block.tools')?->status());
+    Component::load('block.system_menu_block.tools')->disable()->save();
+    self::assertFalse(Component::load('block.system_menu_block.tools')->status());
+    // - one that does not originate from any extension, but is a code component
+    //   created from scratch and exposed as a Component
+    $this->createMyCtaComponentFromSdc();
+
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3537695
     if (version_compare(\Drupal::VERSION, '11.3', '<')) {
       // SDC `noUi` handling didn't happen before Drupal core 11.3, so disable
       // the `noUi` component.
@@ -1401,31 +1427,19 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       $no_ui_component->setStatus(FALSE)->save();
     }
 
-    $expected_contexts = [
-      'languages:language_content',
-      'languages:language_interface',
-      'route',
-      'theme',
-      'url.path',
-      'url.query_args',
-      'user.node_grants:view',
-      'user.permissions',
-      'user.roles:authenticated',
-      // The user_login_block is rendered as the anonymous user because for the
-      // authenticated user it is empty.
-      // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
-      'user.roles:anonymous',
-    ];
-    $expected_cache_tags = [
+    $page = $this->getSession()->getPage();
+    $this->drupalLogin($this->httpApiUser);
+    $this->drupalGet('xb/api/v0/config/component');
+
+    $expected_tags = [
       'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
       'config:component_list',
       'config:core.extension',
-      'config:node_type_list',
+      'config:experience_builder.js_component.my-cta',
       'config:system.menu.account',
       'config:system.menu.admin',
       'config:system.menu.footer',
       'config:system.menu.main',
-      'config:system.menu.tools',
       'config:system.site',
       'config:system.theme',
       'config:views.view.content_recent',
@@ -1436,13 +1450,102 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'user:1',
       'user:2',
       'user_list',
+      AutoSaveManager::CACHE_TAG,
     ];
 
-    $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/component'), [], 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', 'MISS');
-    self:self::assertNotNull($body);
-    // Assert `noUi` flagged components aren't listed.
-    $this->assertArrayNotHasKey('sdc.xb_test_sdc.no-ui-sdc', $body);
+    $expected_contexts = [
+      'languages:language_content',
+      'route',
+      'url.path',
+      'url.query_args',
+      'user.node_grants:view',
+      'user.roles:authenticated',
+      // The user_login_block is rendered as the anonymous user because for the
+      // authenticated user it is empty.
+      // @see \Drupal\experience_builder\Controller\ApiComponentsController::getCacheableClientSideInfo()
+      'user.roles:anonymous',
+    ];
+
+    // 1. Test basic functionality.
+    $this->assertSame(200, $this->getSession()->getStatusCode(), match($this->getSession()->getStatusCode()) {
+      // Show the fatal error message in the failing test output.
+      // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
+      500 => json_decode($page->getContent())->message,
+      default => $page->getContent(),
+    });
+    $this->assertCacheTags($expected_tags, FALSE);
+    $this->assertCacheContexts($expected_contexts);
+    $this->assertDynamicPageCacheAccelerated(maxAge: '-1 (Permanent)');
+    $data = Json::decode($page->getText());
+    self::assertGreaterThanOrEqual(45, count($data));
+    // Any `noUi`-flagged SDC does not appear.
+    self::assertArrayNotHasKey('sdc.xb_test_sdc.no-ui-sdc', $data);
+    // The disabled block component does not appear.
+    self::assertArrayNotHasKey('block.system_menu_block.tools', $data);
+    // The freshly created code component does appear.
+    self::assertArrayHasKey('js.my-cta', $data);
+
+    // 2. Test results depending on the default theme.
+    // Stark has no SDCs.
+    $this->assertSame('stark', $this->config('system.theme')->get('default'));
+    $this->assertArrayNotHasKey('sdc.olivero.teaser', $data);
+    // Olivero does have an SDC, and it's enabled, but it is omitted because the
+    // default theme is Stark.
+    $this->assertInstanceOf(Component::class, Component::load('sdc.olivero.teaser'));
+    $this->assertTrue(Component::load('sdc.olivero.teaser')->status());
+    $this->assertSame('olivero', Component::load('sdc.olivero.teaser')->get('provider'));
+    // Change the default theme from Stark to Olivero, and observe the impact on
+    // the list of Components returned.
+    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'olivero')->save();
+    $this->rebuildAll();
+    $this->drupalGet('xb/api/v0/config/component');
+    $this->assertDynamicPageCacheAccelerated(maxAge: '-1 (Permanent)');
+    $data = Json::decode($page->getText());
+    // Olivero does have an SDC!
+    $this->assertSame('olivero', $this->config('system.theme')->get('default'));
+    $this->assertArrayHasKey('sdc.olivero.teaser', $data);
+
+    // 3. Test that good cacheability is guaranteed.
+    // As soon as the "recent content" block has any nodes to list, due to its
+    // use of the `timestamp_ago` formatter, its cacheability is too low to be
+    // acceptable for Dynamic Page Cache.
+    // Due to the performance-critical nature of this particular route, and it
+    // being acceptable that previews of components do NOT have the same
+    // freshness requirements, the server-side logic should impose a minimum
+    // cache life time of 1 hour.
+    // @see \Drupal\experience_builder\Controller\ApiConfigControllers::list()
+    // @see https://www.drupal.org/project/experience_builder/issues/3484671#comment-15848590
+    self::assertStringContainsString('No content available.', \json_decode($page->getContent(), TRUE)['block.views_block.content_recent-block_1']['default_markup']);
+    $random = new Random();
+    Node::create([
+      'type' => 'article',
+      'title' => 'Jack is ' . $random->word(10),
+    ])->save();
+    $this->drupalGet('xb/api/v0/config/component');
+    $this->assertDynamicPageCacheAccelerated(maxAge: '3600');
+    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1']), FALSE);
+    $this->assertCacheContexts($expected_contexts);
+    $recent_content_preview = \json_decode($page->getContent(), TRUE)['block.views_block.content_recent-block_1']['default_markup'];
+    self::assertStringNotContainsString('No content available.', $recent_content_preview);
+    self::assertStringContainsString('Jack', $recent_content_preview);
+    self::assertStringContainsString('seconds ago', $recent_content_preview);
+  }
+
+  private function assertDynamicPageCacheAccelerated(?string $maxAge = NULL): void {
+    // Ensure the response is cached by Dynamic Page Cache (because this is a
+    // complex response), but not by Page Cache (because it should not be
+    // available to anonymous users).
+    if ($maxAge) {
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', $maxAge);
+    }
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'MISS');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
+    $this->getSession()->reload();
+    if ($maxAge) {
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Max-Age', $maxAge);
+    }
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
   }
 
 }
