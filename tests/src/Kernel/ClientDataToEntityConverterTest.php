@@ -445,18 +445,43 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertTrue((!$test_node->access('edit')) && $test_node->get('title')->access('edit'));
   }
 
+  /**
+   * Tests that the 'changed' field from the client ignored.
+   *
+   * \Drupal\experience_builder\ClientDataToEntityConverter::convert() will
+   * automatically update the `changed` field because it creates a form object
+   * submits the form.
+   *
+   * @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime
+   * @see ClientDataToEntityConverter::checkPatchFieldAccess
+   */
+  public function testClientChangedTimeIgnored(): void {
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    \Drupal::keyValue('xb_test_time')->set('request_time', TestTime::$requestTime);
+    $client_json = $this->getValidClientJson(FALSE);
+    // Ensure the server will ignore the value in the 'changed' field by sending
+    // a non-int value.
+    $client_json['entity_form_fields']['changed'] = 'Hammer Time!';
+    $node = $this->assertConvert($client_json, [], 'The updated title.');
+    self::assertCount(0, $autoSave->getEntityFormViolations($node));
+    self::assertEquals(TestTime::$requestTime, $node->getChangedTime());
+
+    // Ensure we can send the exact value that 'changed' field will be updated to.
+    $client_json['entity_form_fields']['changed'] = TestTime::$requestTime;
+    $node = $this->assertConvert($client_json, [], 'The updated title.');
+    self::assertCount(0, $autoSave->getEntityFormViolations($node));
+    self::assertEquals(TestTime::$requestTime, $node->getChangedTime());
+
+    // Ensure we can send any int.
+    $client_json['entity_form_fields']['changed'] = 42;
+    $node = $this->assertConvert($client_json, [], 'The updated title.');
+    self::assertCount(0, $autoSave->getEntityFormViolations($node));
+    self::assertEquals(TestTime::$requestTime, $node->getChangedTime());
+  }
+
   protected function assertConvert(array $client_json, array $expected_errors, string $expected_title, ?Node $node = NULL): NodeInterface {
     $node = $node ?? $this->createTestNode();
-    // \Drupal\experience_builder\ClientDataToEntityConverter::convert() will
-    // automatically update the `changed` field because it creates a form object
-    // submits the form. We ensure the request time will be greater than the original
-    // node 'changed' time.
-    // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime().
-    // @see \Drupal\experience_builder\ClientDataToEntityConverter::checkPatchFieldAccess().
-    TestTime::$offset += 1;
-    $original_node_changed = $node->getChangedTime();
-    // Set entity fields to ensure the client will be able to send unchanged
-    // fields.
     $form = \Drupal::entityTypeManager()->getFormObject($node->getEntityTypeId(), 'default');
     $form_state = $this->buildFormState($form, $node, 'default');
     \Drupal::formBuilder()->buildForm($form, $form_state);
@@ -480,7 +505,6 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       // If no violations occurred, the node should be valid.
       $this->assertCount(0, $node->validate());
       $this->assertSame(SAVED_UPDATED, $node->save());
-      $this->assertGreaterThan($original_node_changed, $node->getChangedTime());
     }
     catch (ConstraintViolationException $e) {
       $violations = $e->getConstraintViolationList();
@@ -623,13 +647,14 @@ class TestTime extends Time {
    *
    * @var int
    */
-  public static int $offset = 0;
+  public static int $requestTime = 123456789;
 
   /**
    * {@inheritdoc}
    */
   public function getRequestTime() {
-    return parent::getRequestTime() + static::$offset;
+    return static::$requestTime;
   }
 
 }
+

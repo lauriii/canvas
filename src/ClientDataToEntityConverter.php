@@ -19,7 +19,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormState;
-use Drupal\Core\TypedData\Plugin\DataType\Timestamp;
 use Drupal\experience_builder\Controller\ClientServerConversionTrait;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
@@ -148,6 +147,23 @@ class ClientDataToEntityConverter {
   }
 
   private function setEntityFields(FieldableEntityInterface $entity, array $entity_form_fields): array {
+    $expect_form_to_update_changed = FALSE;
+    if ($entity instanceof EntityChangedInterface && $entity->hasField('changed')) {
+      // TRICKY: We call `$form_object->submitForm($form, $form_state);` which
+      // unless overridden by the form class will call
+      // \Drupal\Core\Entity\ContentEntityForm::submitForm() then
+      // \Drupal\Core\Entity\ContentEntityForm::updateChangedTime() then
+      // call \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
+      // We do not support the client sending 'changed' as it will be set by
+      // the entity form logic. Allowing the client to set 'changed' could lead
+      // to inconsistencies in the entity's changed time, as different edits
+      // could be done on different clients and some edits may be done outside
+      // Experience Builder which would use timestamps provided by the server.
+      // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
+      // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime()
+      unset($entity_form_fields['changed']);
+      $expect_form_to_update_changed = TRUE;
+    }
     // Create a form state from the received entity fields.
     $form_state = new FormState();
     $form_state->set('entity', $entity);
@@ -333,8 +349,11 @@ class ClientDataToEntityConverter {
     // And retrieve the updated entity.
     $updated_entity = $form_object->getEntity();
     \assert($updated_entity instanceof FieldableEntityInterface);
-    $form_updated_changed_field = FALSE;
-    foreach (\array_intersect_key($updated_entity->getFields(), $entity_form_fields) as $name => $items) {
+    $fields_to_update = \array_intersect_key(
+      $updated_entity->getFields(),
+      $entity_form_fields + ($expect_form_to_update_changed ? ['changed' => NULL] : [])
+    );
+    foreach ($fields_to_update as $name => $items) {
       // For any form elements that yielded validation errors, revert back to
       // the value from the original entity. We do this on a per-delta basis to
       // ensure new valid deltas or any valid changes to existing deltas are
@@ -352,27 +371,6 @@ class ClientDataToEntityConverter {
         }
       }
       $entity->set($name, $new_value);
-      // TRICKY: We call `$form_object->submitForm($form, $form_state);` which will most likely call
-      // . \Drupal\Core\Entity\ContentEntityForm::submitForm() which will call
-      // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
-      // \Drupal\Core\Field\ChangedFieldItemList::hasAffectingChanges accounts for this
-      // by always returning FALSE. But we can't use `hasAffectingChanges` for checking equality
-      // when considering field access because other modules might allow other changes.
-      // We need to remember if the 'changed' field was updated in the form. If it was, we
-      // can skip checking access to the field because we know it was updated by the form
-      // not the client input, and we want to keep the change the form made. This also
-      // allows us to check access in the edge case where the entity form has overridden
-      // \Drupal\Core\Form\FormInterface::submitForm() to not call
-      // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
-      // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime()
-      // @see \Drupal\Core\Field\ChangedFieldItemList::hasAffectingChanges()
-      if ($entity instanceof EntityChangedInterface && $name === 'changed') {
-        $changed_timestamp = $items->first()?->get('value');
-        assert($changed_timestamp instanceof Timestamp);
-        $changed_timestamp_int = $changed_timestamp->getCastedValue();
-        assert(is_int($changed_timestamp_int));
-        $form_updated_changed_field = $changed_timestamp_int !== ((int) $entity_form_fields['changed']);
-      }
     }
 
     assert(!is_null($entity->id()));
@@ -380,13 +378,9 @@ class ClientDataToEntityConverter {
     assert($original_entity instanceof FieldableEntityInterface);
     // Filter out form_build_id, form_id and form_token.
     $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
-    // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField()
-    // but with the additional special-casing for `changed`.
+    // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField().
     foreach ($entity_form_fields as $field_name => $field_value) {
       \assert(\is_string($field_name));
-      if ($field_name === 'changed' && $form_updated_changed_field) {
-        continue;
-      }
       try {
         $original_field = $original_entity->get($field_name);
         // The field value on `$entity` will have been set in the call to
