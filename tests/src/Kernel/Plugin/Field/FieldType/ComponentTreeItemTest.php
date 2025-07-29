@@ -8,6 +8,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -245,7 +246,7 @@ class ComponentTreeItemTest extends KernelTestBase {
         'slot' => 'the_body',
         'uuid' => $child_uuid,
         'component_id' => 'sdc.xb_test_sdc.props-no-slots',
-        'component_version' => 'hah',
+        'component_version' => VersionedConfigEntityBase::ACTIVE_VERSION,
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -259,7 +260,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     $violations = $item_list->validate();
     $this->assertSame([
       '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
-      '1.component_version' => "'hah' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: '95f4f1d5ee47663b'.",
+      '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-no-slots'. Available versions: '95f4f1d5ee47663b'.",
     ], self::violationsToArray($violations));
   }
 

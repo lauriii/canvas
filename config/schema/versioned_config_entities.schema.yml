@@ -10,24 +10,16 @@ versioned_config_entity:
     active_version:
       type: string
       label: 'Active version'
-      # @todo Uncomment this once XB requires Drupal >=11.2
-      #constraints:
-      #  AtLeastOneOf:
-      #    constraints:
-      #      - Choice:
-      #        # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
-      #        choices:
-      #          - active
-      #      - SequenceKeyExists:
-      #          propertyPathToSequence: 'versioned_properties'
-      #          message: '%value is not an existing version.'
     versioned_properties:
       label: 'Version history of versioned config entity properties; keys must be version identifiers.'
       type: sequence
       # Sequence keys:
       # - MUST be version identifiers
       # - MUST contain the `active_version`.
-      # - the order SHOULD be reverse chronological: the first one is the newest version, the last one is the oldest
+      # - the order SHOULD be reverse chronological: the first one is the newest version and is always named `active`,
+      # the last one is the oldest
+      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::createVersion()
+      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
       orderby: ~
       sequence:
         label: 'Version-specific properties (keys are versions)'
@@ -38,3 +30,13 @@ versioned_config_entity:
         SequenceKeysMatchRegex:
           pattern: '/^[a-z0-9]{3,}$/'
           message: "The %value key is not a valid version."
+        # @todo Uncomment this in https://www.drupal.org/project/experience_builder/issues/3526703
+        #AtLeastOneOf:
+        #  constraints:
+        #    - Choice:
+        #      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
+        #      choices:
+        #        - active
+        #    - SequenceKeysMatchRegex:
+        #        pattern: '/^[a-z0-9]{3,}$/'
+        #        message: "The %value key is not a valid version."
