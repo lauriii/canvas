@@ -604,4 +604,21 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     ]);
   }
 
+  public function testInvalidWidgetSettings(): void {
+    assert($this->entity instanceof Component);
+    $settings = $this->entity->getSettings();
+    assert($settings['prop_field_definitions']['text']['default_value'] !== NULL);
+    $settings['prop_field_definitions']['text']['default_value'] = NULL;
+
+    try {
+      $this->entity->createVersion(
+        '9704fc9dd83ff450'
+      )->setSettings($settings)->save();
+
+    }
+    catch (SchemaIncompleteException $e) {
+      self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [versioned_properties.active.settings.prop_field_definitions] The required SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Title&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;text&lt;/em&gt;) must not be null.', $e->getMessage());
+    }
+  }
+
 }

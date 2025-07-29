@@ -375,6 +375,7 @@ experience_builder.component_source_settings.sdc:
     prop_field_definitions:
       constraints:
         KeyForEverySdcProp: "%parent.%parent.%parent.%parent.source_local_id"
+        NotNullValueForEveryRequiredSdcProp: '%parent.%parent.%parent.%parent.source_local_id'
 
 # Every ComponentSource plugin MUST define two config schema types:
 # 1. One for the ComponentSource-specific per-Component config entity local/intra-source ID: typically a plugin ID or a
