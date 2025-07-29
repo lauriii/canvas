@@ -33,3 +33,7 @@ js:
 css:
   original: ''
   compiled: ''
+dataDependencies:
+  drupalSettings:
+    - v0.baseUrl
+    - v0.branding

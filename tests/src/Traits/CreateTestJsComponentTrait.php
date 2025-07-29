@@ -34,6 +34,7 @@ trait CreateTestJsComponentTrait {
       'required' => $sdc_yaml['props']['required'],
       'js' => ['original' => '', 'compiled' => ''],
       'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
     ])->save();
   }
 
@@ -46,6 +47,7 @@ trait CreateTestJsComponentTrait {
       'uuid' => 'b4bc6c8f-66f7-458a-99a9-41c74b2801e7',
       'machineName' => 'my-cta-with-auto-save',
       'name' => 'My Code Component with Auto-Save',
+      'dataDependencies' => [],
     ] + array_diff_key($my_cta->toArray(), array_flip(['uuid'])));
     $my_cta_with_auto_save->save();
 
@@ -109,6 +111,7 @@ export default function TestCodeComponent({ heading, content }) {
 JSX
       ],
       'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
     ])->save();
   }
 

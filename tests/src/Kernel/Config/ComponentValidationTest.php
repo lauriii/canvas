@@ -254,6 +254,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'required' => $sdc_yaml['props']['required'],
       'js' => ['original' => '', 'compiled' => ''],
       'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
     ])->save();
     assert($this->entity instanceof Component);
     $this->entity = Component::create([
@@ -527,6 +528,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $violations = $js_component_with_invalid_slot->getTypedData()->validate();
     if ($is_invalid) {

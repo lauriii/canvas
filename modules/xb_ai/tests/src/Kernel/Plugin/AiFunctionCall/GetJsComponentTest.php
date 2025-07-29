@@ -76,6 +76,7 @@ final class GetJsComponentTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $component->save();
 

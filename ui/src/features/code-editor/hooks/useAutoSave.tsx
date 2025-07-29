@@ -66,6 +66,9 @@ const useAutoSave = (requestedComponentId: string): void => {
   const props = useAppSelector(selectCodeComponentProperty('props'));
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
   const required = useAppSelector(selectCodeComponentProperty('required'));
+  const dataDependencies = useAppSelector(
+    selectCodeComponentProperty('dataDependencies'),
+  );
 
   const globalSourceCodeCss = useAppSelector(
     selectGlobalAssetLibraryProperty(['css', 'original']),
@@ -129,14 +132,15 @@ const useAutoSave = (requestedComponentId: string): void => {
           status: componentStatusRef.current,
           name: componentNameRef.current,
           machineName: componentId,
-          sourceCodeJs: sourceCodeJs,
-          sourceCodeCss: sourceCodeCss,
-          compiledJs: compiledJs,
-          compiledCss: compiledCss,
+          sourceCodeJs,
+          sourceCodeCss,
+          compiledJs,
+          compiledCss,
           props: serializeProps(props),
           slots: serializeSlots(slots),
           required,
           importedJsComponents: importedJsComponentsRef.current,
+          dataDependencies,
         },
       });
     }, 1000);
@@ -155,6 +159,7 @@ const useAutoSave = (requestedComponentId: string): void => {
     slots,
     sourceCodeCss,
     sourceCodeJs,
+    dataDependencies,
     updateCodeComponent,
   ]);
 

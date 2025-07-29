@@ -167,6 +167,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'original' => '.test { display: none; }',
           'compiled' => '.test{display:none;}',
         ],
+        'dataDependencies' => [],
       ]
     );
     $this->assertSame(SAVED_NEW, $code_component->save());
@@ -377,6 +378,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'original' => '.test { display: none; }',
           'compiled' => '.test{display:none;}',
         ],
+        'dataDependencies' => [],
       ]
     );
     $this->assertSame(SAVED_NEW, $code_component->save());
@@ -533,6 +535,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
       ],
+      'dataDependencies' => [],
     ]);
     $this->assertSame(SAVED_NEW, $code_component->save());
 
@@ -1160,6 +1163,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
       ],
+      'dataDependencies' => [],
     ]);
     self::assertCount(0, $code_component->getTypedData()->validate());
     $this->assertSame(SAVED_NEW, $code_component->save());

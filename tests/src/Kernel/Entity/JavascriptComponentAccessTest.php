@@ -69,6 +69,7 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     self::assertCount(0, $js_component->getTypedData()->validate());
     $js_component->save();

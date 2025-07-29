@@ -89,6 +89,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'compiledJs' => 'console.log("Test")',
           'compiledCss' => '.test{display:none;}',
           'importedJsComponents' => [],
+          'dataDependencies' => [],
         ],
         [
           'sourceCodeCss' => '.test { display: none; }/**/',
@@ -129,6 +130,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'sourceCodeCss' => '.test { display: none; }/**/',
           'compiledJs' => 'console.log("Test")',
           'compiledCss' => '.test{display:none;}/**/',
+          'dataDependencies' => [],
         ],
         ['compiledJs'],
         ['compiledCss'],

@@ -50,3 +50,4 @@ js:
 css:
   original: 'div { font-weight: bold; }'
   compiled: 'div{font-weight:bold;}'
+dataDependencies: []

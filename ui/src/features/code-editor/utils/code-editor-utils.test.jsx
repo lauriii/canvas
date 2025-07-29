@@ -8,6 +8,7 @@ import {
   getPropValuesForPreview,
   formatToValidImportName,
   getImportsFromAst,
+  getDataDependenciesFromAst,
 } from '@/features/code-editor/utils';
 import fixtureProps from '@tests/fixtures/code-component-props.json';
 import fixtureSlots from '@tests/fixtures/code-component-slots.json';
@@ -357,6 +358,69 @@ describe('getImportsFromAst', () => {
     const ast = parse('', { sourceType: 'module' });
     const result = getImportsFromAst(ast);
     expect(result).toEqual([]);
+  });
+});
+
+describe('getDataDependenciesFromAst', () => {
+  it('should detect needed drupalSettings when using getSiteData and getPageData', () => {
+    const code = `
+      // Random import.
+      import useSWR from 'swr';
+      // Irrelevant import from drupal-utils, no drupalSettings
+      import { sortMenu as drupalSortMenu } from '@/lib/drupal-utils';
+      // Things we care about.
+      import {
+      // With different local identifier.
+        getSiteData as iCanHazSiteData,
+        getPageData
+      } from '@/lib/drupal-utils';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: [
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.breadcrumbs',
+        'v0.pageTitle',
+      ],
+    });
+  });
+
+  it('should detect needed drupalSettings when using JsonApiClient', () => {
+    const code = `
+      // Random import.
+      import useSWR from 'swr';
+      // JsonApiClient
+      import { JsonApiClient } from '@drupal-api-client/json-api-client';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: ['v0.baseUrl', 'v0.jsonapiSettings'],
+    });
+  });
+
+  it('should detect needed drupalSettings when using both getSiteData and JsonApiClient, and should prevent duplicates', () => {
+    const code = `
+      // Random import.
+      import useSWR from 'swr';
+      // JsonApiClient, which depends on v0.baseUrl
+      import { JsonApiClient } from '@drupal-api-client/json-api-client';
+      // getSiteData, which also depends on v0.baseUrl
+      import { getSiteData } from '@/lib/drupal-utils';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: ['v0.baseUrl', 'v0.jsonapiSettings', 'v0.branding'],
+    });
+  });
+
+  it('should handle an empty AST gracefully', () => {
+    const ast = parse('', { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({});
   });
 });
 

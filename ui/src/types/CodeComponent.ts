@@ -1,5 +1,11 @@
 import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
+export interface DataFetch {
+  id: string;
+  data: any;
+  error: boolean;
+}
+
 export interface CodeComponent {
   machineName: string;
   name: string;
@@ -12,13 +18,22 @@ export interface CodeComponent {
   compiledJs: string;
   compiledCss: string;
   importedJsComponents: string[];
-  dataFetches: { [key: string]: any };
+  dataFetches: {
+    [key: string]: DataFetch;
+  };
+  dataDependencies: DataDependencies;
+}
+
+export interface DataDependencies {
+  drupalSettings?: Array<string>;
+  urls?: Array<string>;
 }
 
 export interface CodeComponentSerialized
   extends Omit<CodeComponent, 'props' | 'slots'> {
   props: Record<string, CodeComponentPropSerialized>;
   slots: Record<string, CodeComponentSlotSerialized>;
+  dataDependencies: DataDependencies;
 }
 
 export interface CodeComponentProp {

@@ -79,6 +79,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $this->assertGeneratedFiles($js_component);
   }
@@ -119,6 +120,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $this->assertSame([
       '' => 'Prop "title" is required, but does not have example value',

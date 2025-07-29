@@ -41,6 +41,7 @@ const AddCodeComponentDialog = () => {
       compiledJs: '',
       compiledCss: '',
       importedJsComponents: [],
+      dataDependencies: {},
     });
   };
 

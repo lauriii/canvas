@@ -53,6 +53,7 @@ export const initialState: CodeEditorState = {
     compiledCss: '',
     importedJsComponents: [],
     dataFetches: {},
+    dataDependencies: {},
   },
   globalAssetLibrary: {
     id: 'global',
@@ -405,6 +406,7 @@ export const selectCodeComponentSerialized = createSelector(
     compiledCss: codeComponent.compiledCss,
     importedJsComponents: codeComponent.importedJsComponents,
     dataFetches: codeComponent.dataFetches,
+    dataDependencies: codeComponent.dataDependencies,
   }),
 );
 

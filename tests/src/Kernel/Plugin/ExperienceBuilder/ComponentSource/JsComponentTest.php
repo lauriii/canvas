@@ -876,6 +876,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => 'console.log("nested dependency loaded");',
         'compiled' => 'console.log("nested dependency loaded");',
       ],
+      'dataDependencies' => [],
     ]);
     $nested_dependency_js_component->save();
     // Create a dependency component first
@@ -893,6 +894,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => 'console.log("dependency loaded");',
         'compiled' => 'console.log("dependency loaded");',
       ],
+      'dataDependencies' => [],
     ]);
     $dependency_js_component->save();
     $js_component_data = $dependency_js_component->normalizeForClientSide()->values;
@@ -914,6 +916,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => 'console.log("dependency with no css loaded");',
         'compiled' => 'console.log("dependency with no css loaded");',
       ],
+      'dataDependencies' => [],
     ]);
     $dependency_js_component_without_css->save();
 
@@ -939,6 +942,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => 'console.log( "hey" );',
         'compiled' => 'console.log("hey");',
       ],
+      'dataDependencies' => [],
     ]);
     // Add the dependency through client API.
     $js_component_data = $js_component->normalizeForClientSide()->values;
@@ -1387,6 +1391,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->enable()->save();
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
@@ -1411,6 +1416,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->enable()->save();
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
@@ -1456,6 +1462,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->enable()->save();
   }
@@ -1484,6 +1491,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $violations = $js_component->getTypedData()->validate();
     self::assertCount(0, $violations);
@@ -1606,6 +1614,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->enable()->save();
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);

@@ -108,8 +108,14 @@ export class XBEditor {
     }
   }
 
-  async addComponent(componentId: string) {
-    await this.openLibraryPanel();
+  async addComponent(
+    componentId: string,
+    openLibrary: boolean = true,
+    hasInputs: boolean = true,
+  ) {
+    if (openLibrary) {
+      await this.openLibraryPanel();
+    }
     const component = this.page.locator(
       `[data-xb-type="component"][data-xb-component-id="${componentId}"]`,
     );
@@ -132,10 +138,12 @@ export class XBEditor {
       ),
     ]);
 
-    const formElement = this.page.locator(
-      'form[data-form-id="component_inputs_form"]',
-    );
-    await formElement.waitFor({ state: 'visible' });
+    if (hasInputs) {
+      const formElement = this.page.locator(
+        'form[data-form-id="component_inputs_form"]',
+      );
+      await formElement.waitFor({ state: 'visible' });
+    }
 
     const previewElement = this.page.locator(
       `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
@@ -185,5 +193,32 @@ export class XBEditor {
       .contentFrame()
       .locator('main')
       .waitFor({ state: 'visible' });
+  }
+
+  async publishAllChanges(expectedTitles: string[] = []) {
+    await this.page
+      .getByRole('button', { name: /Review \d+ changes?/ })
+      .click();
+    await expect(async () => {
+      await this.page.getByLabel('Select all changes', { exact: true }).click();
+      if (expectedTitles.length > 0) {
+        await Promise.all(
+          expectedTitles.map(async (title: string) =>
+            expect(
+              await this.page.getByLabel(`Select change ${title}`),
+            ).toBeChecked(),
+          ),
+        );
+      }
+      await this.page
+        .getByRole('button', { name: /Publish \d+ selected?/ })
+        .click();
+      await expect(this.page.getByText('All changes published!')).toBeVisible();
+    }).toPass({
+      // Probe, wait 1s, probe, wait 2s, probe, wait 10s, probe, wait 10s, probe
+      intervals: [1_000, 2_000, 10_000],
+      // Fail after a minute of trying.
+      timeout: 60_000,
+    });
   }
 }

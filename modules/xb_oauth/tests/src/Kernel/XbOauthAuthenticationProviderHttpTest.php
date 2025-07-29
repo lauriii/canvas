@@ -91,6 +91,7 @@ class XbOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
           'compiledJs' => '// Compiled JS',
           'compiledCss' => '/* Compiled CSS */',
           'importedJsComponents' => [],
+          'dataDependencies' => [],
         ],
       ],
       'PATCH js component' => [

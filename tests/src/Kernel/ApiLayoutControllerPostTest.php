@@ -401,6 +401,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
         'original' => '',
         'compiled' => '',
       ],
+      'dataDependencies' => [],
     ];
     $code_component = JavaScriptComponent::create($saved_component_values);
     $code_component->save();

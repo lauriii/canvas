@@ -28,6 +28,7 @@ final class AutoSaveConflictJavaScriptComponentTest extends AutoSaveConflictConf
       'compiledJs' => '',
       'compiledCss' => '',
       'importedJsComponents' => [],
+      'dataDependencies' => [],
     ]);
     $this->entity->save();
   }

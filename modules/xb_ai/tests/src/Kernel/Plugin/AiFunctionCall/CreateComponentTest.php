@@ -123,6 +123,7 @@ final class CreateComponentTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test { display: none; }',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->save();
 

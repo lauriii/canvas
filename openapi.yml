@@ -373,6 +373,7 @@ paths:
                 compiledJs: 'console.log("Test");'
                 compiledCss: '.test{display:none;}'
                 importedJsComponents: []
+                dataDependencies: []
       responses:
         '201':
           description: Successful creation of individual Code Component
@@ -1650,6 +1651,17 @@ components:
           type: string
         compiledCss:
           type: string
+        dataDependencies:
+          type: object
+          schema:
+            urls:
+              type: array
+              items:
+                type: string
+            drupalSettings:
+              type: array
+              items:
+                type: string
     NewCodeComponent:
       type: object
       allOf:
@@ -1658,6 +1670,7 @@ components:
             - machineName
             - status
             - importedJsComponents
+            - dataDependencies
         - $ref: '#/components/schemas/CodeComponent'
         - properties:
             # `importedJsComponents` will be required if `sourceCodeJs` or

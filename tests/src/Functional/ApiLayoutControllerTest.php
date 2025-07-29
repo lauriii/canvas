@@ -80,6 +80,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
         'original' => '.foo{color:red}',
         'compiled' => '.foo{color:red}',
       ],
+      'dataDependencies' => [],
     ];
     $code_component = JavaScriptComponent::create($saved_component_values);
     $code_component->save();

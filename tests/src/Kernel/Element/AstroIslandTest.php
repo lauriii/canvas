@@ -91,6 +91,7 @@ final class AstroIslandTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => $css,
       ],
+      'dataDependencies' => [],
     ]);
     $component->save();
 
@@ -196,6 +197,7 @@ final class AstroIslandTest extends KernelTestBase {
         // Whitespace only CSS should be ignored.
         'compiled' => "\n  \n",
       ],
+      'dataDependencies' => [],
     ]);
     $component->save();
 

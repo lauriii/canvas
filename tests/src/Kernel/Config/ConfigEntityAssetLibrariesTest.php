@@ -88,6 +88,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
         'original' => '',
         'compiled' => '',
       ],
+      'dataDependencies' => [],
     ]);
     $js_component->save();
     // And an asset library.

@@ -259,6 +259,7 @@ class AutoSaveManagerTest extends KernelTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
       ],
+      'dataDependencies' => [],
     ]);
     $this->assertSame(SAVED_NEW, $js_component->save());
     $js_component_matching_client_data = $js_component->normalizeForClientSide()->values;

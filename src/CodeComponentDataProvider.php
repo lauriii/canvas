@@ -151,28 +151,8 @@ readonly final class CodeComponentDataProvider {
    *   The array of the drupalSettings libraries.
    */
   public static function getRequiredXbDataLibraries(string $jsCode): array {
-    // @todo Improve how is this being done https://drupal.org/i/3533458
-    $map = [
-      'getSiteData' => [
-        'experience_builder/xbData.v0.baseUrl',
-        'experience_builder/xbData.v0.branding',
-      ],
-      'getPageData' => [
-        'experience_builder/xbData.v0.breadcrumbs',
-        'experience_builder/xbData.v0.pageTitle',
-      ],
-      '@drupal-api-client/json-api-client' => [
-        'experience_builder/xbData.v0.baseUrl',
-        'experience_builder/xbData.v0.jsonapiSettings',
-      ],
-    ];
-    $libraries = [];
-    foreach ($map as $var => $needed_libraries) {
-      if (str_contains($jsCode, $var)) {
-        $libraries = \array_merge($libraries, $needed_libraries);
-      }
-    }
-    return $libraries;
+    @trigger_error('Calling ' . __METHOD__ . '() is deprecated in experience_builder:0.7.3-alpha1 and will be removed from experience_builder:1.0.0. There is no replacement. See https://www.drupal.org/node/3538276', E_USER_DEPRECATED);
+    return [];
   }
 
 }

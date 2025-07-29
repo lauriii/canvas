@@ -490,6 +490,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'compiled' => '',
       ],
       'importedJsComponents' => [],
+      'dataDependencies' => [],
     ]);
     $jsComponent->save();
     // Get the Code Components list via the XB HTTP API should return
@@ -507,6 +508,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'sourceCodeCss' => '',
         'compiledJs' => '',
         'compiledCss' => '',
+        'dataDependencies' => [],
         'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
         'css' => '',
         'js_header' => '',
@@ -526,6 +528,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'sourceCodeCss' => '',
       'compiledJs' => '',
       'compiledCss' => '',
+      'dataDependencies' => [],
       'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
       'css' => '',
       'js_header' => '',
@@ -553,6 +556,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'compiledJs' => NULL,
       'compiledCss' => NULL,
       'importedJsComponents' => [],
+      'dataDependencies' => [],
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
@@ -588,6 +592,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'compiledJs' => '',
       'compiledCss' => '',
       'importedJsComponents' => [],
+      'dataDependencies' => [],
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
@@ -622,6 +627,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'compiledJs' => '',
       'compiledCss' => '',
       'importedJsComponents' => [],
+      'dataDependencies' => [],
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
@@ -653,6 +659,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'compiledJs' => '',
       'compiledCss' => '',
       'importedJsComponents' => ['missing'],
+      'dataDependencies' => [],
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
@@ -687,6 +694,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
         'original' => '.test { display: none; }',
         'compiled' => '.test{display:none;}',
       ],
+      'dataDependencies' => [],
     ]);
     $this->assertSame(SAVED_NEW, $dependency_component->save());
     $expected_dependency_component = $dependency_component->normalizeForClientSide()->values +
@@ -757,6 +765,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'compiledJs' => 'console.log("Test")',
       'compiledCss' => '.test{display:none;}',
       'importedJsComponents' => ['another_component'],
+      'dataDependencies' => [],
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
@@ -818,6 +827,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'sourceCodeCss' => '.test { display: none; }',
       'compiledJs' => 'console.log("Test")',
       'compiledCss' => '.test{display:none;}',
+      'dataDependencies' => [],
       'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
       'css' => '',
       'js_header' => '',

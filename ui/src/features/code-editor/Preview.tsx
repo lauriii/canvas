@@ -18,6 +18,7 @@ import MissingDefaultExportMessage, {
 } from './errors/MissingDefaultExportMessage';
 import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import {
+  getDataDependenciesFromAst,
   getImportsFromAst,
   getPropValuesForPreview,
   getSlotNamesForPreview,
@@ -173,8 +174,12 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       // ex. [ 'my_button', 'my_heading']
       const scope = '@/components/';
       const imports = getImportsFromAst(ast, scope);
+      const dataDependencies = getDataDependenciesFromAst(ast);
       dispatch(clearDataFetches());
       dispatch(setCodeComponentProperty(['importedJsComponents', imports]));
+      dispatch(
+        setCodeComponentProperty(['dataDependencies', dataDependencies]),
+      );
       setIsJsImportError(false);
       if (imports.length > 0) {
         imports.map((importName) => {
