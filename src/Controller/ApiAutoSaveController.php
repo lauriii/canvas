@@ -458,9 +458,17 @@ final class ApiAutoSaveController extends ApiControllerBase {
             ) === ComponentTreeItem::class
         )
       ),
+      // We need our map to have one entry for each delta in the field item
+      // list.
       static fn(array $carry, string $field_name): array => [
         ...$carry,
-        ...[$field_name . '.0.inputs' => 'model'],
+        ...\array_combine(
+          // Key the map by the field name for each delta.
+          // e.g. field_xb_demo.0.inputs
+          \array_map(static fn (int|string $delta) => \sprintf('%s.%d.inputs', $field_name, (int) $delta), \array_keys($entity->get($field_name)->getValue())),
+          // And map this to 'model'.
+          \array_fill(0, $entity->get($field_name)->count(), 'model'),
+        ),
       ],
       []
     );

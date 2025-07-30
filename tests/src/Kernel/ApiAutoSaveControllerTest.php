@@ -616,6 +616,15 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'text' => '',
         ],
       ],
+      [
+        'uuid' => 'af42c3b3-6d62-4ea8-ad07-670c7b9ccf75',
+        'component_id' => 'sdc.xb_test_sdc.heading',
+        'component_version' => '9616e3c4ab9b4fce',
+        'inputs' => [
+          // Missing input for required `element` prop.
+          'text' => 'Crumbling castle',
+        ],
+      ],
     ]);
     $node2->set('path', '/llama');
     $autoSave->saveEntity($node2);
@@ -759,6 +768,19 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
+      'detail' => 'The property element is required.',
+      'source' => [
+        'pointer' => 'model.af42c3b3-6d62-4ea8-ad07-670c7b9ccf75.element',
+      ],
+      'meta' => [
+        'entity_type' => 'node',
+        'entity_id' => $node2->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $node2_original_title,
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
+      ],
+    ];
+    $errors[] = [
       'detail' => 'This value should not be null.',
       'source' => [
         'pointer' => 'css.original',
@@ -796,6 +818,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Fix the errors.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
+    $validClientJson['model']['af42c3b3-6d62-4ea8-ad07-670c7b9ccf75']['resolved']['element'] = 'h3';
     // Auto-save node 2 with only the heading.
     unset($validClientJson['model'][self::TEST_IMAGE_UUID]);
     unset($validClientJson['layout'][0]['components'][1]);
