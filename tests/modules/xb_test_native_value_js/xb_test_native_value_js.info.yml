@@ -1,0 +1,6 @@
+name: 'Test updating form via DOM value property'
+type: module
+dependencies:
+  - experience_builder:experience_builder
+  - experience_builder:xb_test_state_api
+package: Testing
