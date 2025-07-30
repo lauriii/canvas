@@ -200,17 +200,18 @@ const PublishReview: React.FC<PublishReviewProps> = ({
           </Box>
           <Divider />
           <Box className={isBusy ? styles.disabled : ''}>
-            <Box px="4" pt="4">
-              <Text size="1">
-                {changes.length
-                  ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
-                  : 'All changes published!'}
-              </Text>
-            </Box>
             <ScrollArea
               style={{ maxHeight: '380px', width: '100%' }}
               type="scroll"
             >
+              <ReviewErrors errorState={errors} />
+              <Box px="4" pt="4">
+                <Text size="1">
+                  {changes.length
+                    ? `${selectedChanges.length} of ${changes?.length ?? 0} changes selected`
+                    : 'All changes published!'}
+                </Text>
+              </Box>
               <Box px="4" pt="4">
                 {changes?.length > 0 && (
                   <>
@@ -225,7 +226,6 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   </>
                 )}
               </Box>
-              <ReviewErrors errorState={errors} />
             </ScrollArea>
           </Box>
           <Divider />

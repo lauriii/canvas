@@ -154,8 +154,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
         maxWidth="360px"
         className={style.reviewErrors}
       >
-        <Separator my="3" size="4" />
-        <Box px="4" pb="2">
+        <Box px="4" pb="2" pt="5">
           <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
             <Collapsible.Trigger className={style.collapseButton}>
               <Flex gap="2" mb="1" align="center">
@@ -185,6 +184,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
             </Collapsible.Content>
           </Collapsible.Root>
         </Box>
+        <Separator my="3" size="4" />
       </Box>
     );
   }
