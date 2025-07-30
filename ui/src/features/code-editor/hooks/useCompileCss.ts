@@ -19,7 +19,7 @@ const useCompileCss = (): {
   buildTailwindCssFromClassNameCandidates: (
     classNameCandidates: string[],
     configurationCss: string,
-  ) => Promise<string>;
+  ) => Promise<{ css: string; error?: string }>;
 } => ({
   /**
    * Extracts class names candidates from markup.
@@ -47,12 +47,21 @@ const useCompileCss = (): {
    */
   buildTailwindCssFromClassNameCandidates: useCallback(
     async (classNameCandidates: string[], configurationCss: string) => {
-      const compiledCss = await compileTailwindCss(
-        classNameCandidates,
-        configurationCss,
-      );
-      // The CSS syntax needs to be transformed.
-      return await transformCss(compiledCss);
+      try {
+        const compiledCss = await compileTailwindCss(
+          classNameCandidates,
+          configurationCss,
+        );
+        // The CSS syntax needs to be transformed.
+        const transformedCss = await transformCss(compiledCss);
+        return { css: transformedCss };
+      } catch (error) {
+        console.error('Failed to compile Tailwind CSS:', error);
+        return {
+          css: '/*! Compiling Tailwind CSS failed. */',
+          error: `Failed to compile Tailwind CSS:', ${error}`,
+        };
+      }
     },
     [],
   ),

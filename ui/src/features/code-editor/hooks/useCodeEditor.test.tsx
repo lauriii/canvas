@@ -67,7 +67,7 @@ vi.mock('@/features/code-editor/hooks/useCompileCss', () => {
         .fn()
         .mockImplementation(async () => {
           await compileCss(['test'], '@theme {}');
-          return '/* compiled TW CSS */';
+          return { css: '/* compiled TW CSS */' };
         }),
     }),
   };

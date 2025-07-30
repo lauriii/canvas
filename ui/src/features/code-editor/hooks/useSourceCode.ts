@@ -170,10 +170,11 @@ const useSourceCode = (requestedComponentId: string): void => {
       // Build Tailwind CSS from the class name candidates. This will be our
       // global CSS. The global CSS source is the Tailwind CSS configuration, but
       // it can also contain arbitrary CSS.
-      const globalCompiledCss = await buildTailwindCssFromClassNameCandidates(
-        nextClassNameCandidates,
-        globalSourceCodeCSS,
-      );
+      const { css: globalCompiledCss, error: compiledTailwindError } =
+        await buildTailwindCssFromClassNameCandidates(
+          nextClassNameCandidates,
+          globalSourceCodeCSS,
+        );
       // Compile the component's JS code.
       const { code: compiledJs, error: compiledJsError } = compileJavaScript(
         sourceCodeJS,
@@ -225,7 +226,10 @@ const useSourceCode = (requestedComponentId: string): void => {
       dispatch(setPreviewCompiledJsForSlots(compiledJsForSlots));
       dispatch(
         setStatus({
-          compilationError: !!compiledJsError || !!compiledJsForSlotsError,
+          compilationError:
+            !!compiledJsError ||
+            !!compiledJsForSlotsError ||
+            !!compiledTailwindError,
           isCompiling: false,
         }),
       );
