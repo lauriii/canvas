@@ -34,7 +34,7 @@ export class XBEditor {
       },
     );
     await expect(this.page.getByTestId('xb-primary-panel')).toContainText(
-      'Content',
+      /Content|Library/,
       {
         timeout: 15000,
       },
@@ -108,14 +108,31 @@ export class XBEditor {
     }
   }
 
-  async addComponent(
-    componentId: string,
-    openLibrary: boolean = true,
-    hasInputs: boolean = true,
-  ) {
-    if (openLibrary) {
-      await this.openLibraryPanel();
-    }
+  async openLayersPanel() {
+    // Click the library panel first so it doesn't matter if the layers panel
+    // is already open or not.
+    await this.page.getByTestId('xb-side-menu').getByLabel('Add').click();
+    await this.page.getByTestId('xb-side-menu').getByLabel('Layers').click();
+    await expect(
+      this.page.locator(
+        '[data-testid="xb-primary-panel"] h4:has-text("Layers")',
+      ),
+    ).toBeVisible();
+  }
+
+  async openComponent(title: string) {
+    await this.page
+      .locator('[data-testid="xb-primary-panel"] [data-xb-type="component"]')
+      .locator(`text="${title}"`)
+      .click();
+  }
+
+  async addComponent(componentId: string, hasInputs: boolean = true) {
+    // Click the layers panel first so it doesn't matter if the library panel
+    // is already open or not.
+    await this.page.getByTestId('xb-side-menu').getByLabel('Layers').click();
+    await this.page.getByTestId('xb-side-menu').getByLabel('Add').click();
+
     const component = this.page.locator(
       `[data-xb-type="component"][data-xb-component-id="${componentId}"]`,
     );
@@ -151,6 +168,14 @@ export class XBEditor {
     await previewElement.waitFor({ state: 'attached' });
   }
 
+  async editComponentProp(propName: string, propValue: string) {
+    await this.page
+      .locator(
+        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] .field--name-${propName} input`,
+      )
+      .fill(propValue);
+  }
+
   async addCodeComponent(componentName: string, code: string) {
     await this.openLibraryPanel();
     await this.page
@@ -177,6 +202,13 @@ export class XBEditor {
     await codeEditor.fill(code);
   }
 
+  getPreviewFrame() {
+    return this.page
+      .locator('.xb-mosaic-window-preview iframe')
+      .contentFrame()
+      .locator('#xb-code-editor-preview-root');
+  }
+
   async preview() {
     await this.page
       .locator('[data-testid="xb-topbar"]')
@@ -193,6 +225,14 @@ export class XBEditor {
       .contentFrame()
       .locator('main')
       .waitFor({ state: 'visible' });
+  }
+
+  async exitPreview() {
+    await this.page
+      .locator('[data-testid="xb-topbar"]')
+      .getByRole('button', { name: 'Exit Preview' })
+      .click();
+    await this.waitForEditorUi();
   }
 
   async publishAllChanges(expectedTitles: string[] = []) {

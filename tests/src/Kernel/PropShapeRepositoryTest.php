@@ -146,6 +146,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'enum' => ['foo', 'bar']]),
       new PropShape(['type' => 'string', 'enum' => ['full', 'wide', 'normal', 'narrow']]),
       new PropShape(['type' => 'string', 'enum' => ['horizontal', 'vertical']]),
+      new PropShape(['type' => 'string', 'enum' => ['lazy', 'eager']]),
       new PropShape(['type' => 'string', 'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket']]),
       new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
@@ -310,6 +311,17 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape([
           'type' => 'string',
           'enum' => ['full', 'wide', 'normal', 'narrow'],
+        ]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=string&enum[0]=lazy&enum[1]=eager' => new StorablePropShape(
+        shape: new PropShape([
+          'type' => 'string',
+          'enum' => ['lazy', 'eager'],
         ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',

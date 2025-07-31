@@ -43,10 +43,10 @@ const testMediaLibraryInComponentInstanceForm = (
   // confirms that XBTemplateRenderer is not loading JS assets that already
   // exist on the page. Click to the second image to change the form, then
   // click back again.
-  cy.clickComponentInPreview('Image', 1);
+  cy.clickComponentInPreview('Test SDC Image', 1);
   cy.waitForAjax();
   cy.get('.js-media-library-item-preview img').should('not.exist');
-  cy.clickComponentInPreview('Image');
+  cy.clickComponentInPreview('Test SDC Image');
   cy.get('.js-media-library-item-preview img').should('exist');
   cy.waitForAjax();
 
@@ -122,7 +122,7 @@ const testMediaLibraryInComponentInstanceForm = (
   // Switch to full screen preview.
   cy.findByText('Preview').click();
   cy.findByText('Exit Preview').click();
-  cy.clickComponentInPreview('Image');
+  cy.clickComponentInPreview('Test SDC Image');
   // Media entity value should persist.
   cy.get(
     `[class*="contextualPanel"] input[aria-label="${lastStep.removeAriaLabel}"]`,
@@ -148,7 +148,7 @@ describe('Media Library component instance', () => {
   it('Can open the media library widget in an article props form', () => {
     cy.drupalLogin('xbUser', 'xbUser');
     cy.loadURLandWaitForXBLoaded();
-    cy.getComponentInPreview('Image', 0);
+    cy.getComponentInPreview('Test SDC Image', 0);
 
     cy.findByTestId('xb-contextual-panel--page-data').should(
       'have.attr',
@@ -158,7 +158,7 @@ describe('Media Library component instance', () => {
 
     // There are two images here, the second one is making use of an image
     // adapter which we don't support yet. We have to use the first one instead.
-    cy.clickComponentInPreview('Image', 0);
+    cy.clickComponentInPreview('Test SDC Image', 0);
 
     cy.findByTestId('xb-contextual-panel--settings').should(
       'have.attr',
@@ -186,13 +186,13 @@ describe('Media Library component instance', () => {
       cy.drupalLogin('xbUser', 'xbUser');
       cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
       cy.openLibraryPanel();
-      cy.get('.primaryPanelContent').findByText('Image').click();
+      cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
 
-      cy.get('.primaryPanelContent').findByText('Image').click();
+      cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
       cy.get(
         '.previewOverlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
       ).should('have.length', 2);
-      cy.clickComponentInPreview('Image', 0);
+      cy.clickComponentInPreview('Test SDC Image', 0);
       cy.waitForAjax();
 
       cy.get(

@@ -17,6 +17,8 @@ CODEOWNERS
 codespaces
 cqmr
 csstree
+dedreux
+delaville
 devizzent
 dhta
 diaclone

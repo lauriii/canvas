@@ -62,10 +62,9 @@ export class Drupal {
     );
   }
 
-  async setupMinimalXBTestSite() {
-    await this.installModules(['experience_builder', 'xb_test_sdc']);
+  async createXbPage(title: string, alias: string) {
     await this.drush(
-      "php-eval \"Drupal\\experience_builder\\Entity\\Page::create(['title' => 'Homepage', 'type' => 'xb_page', 'path' => ['alias' => '/homepage', 'langcode' => 'en']])->save();\"",
+      `php-eval "Drupal\\experience_builder\\Entity\\Page::create(['title' => '${title}', 'type' => 'xb_page', 'path' => ['alias' => '${alias}', 'langcode' => 'en']])->save();"`,
     );
   }
 
@@ -232,12 +231,12 @@ export class Drupal {
       }
       await page.locator('[data-drupal-selector="edit-submit"]').click();
       for (const module of modules) {
-        const checkbox = await page.locator(
+        const checkbox = page.locator(
           `[data-drupal-selector="edit-modules-${this.normalizeAttribute(
             module,
           )}-enable"]`,
         );
-        await expect(checkbox).toBeTruthy();
+        expect(checkbox).toBeTruthy();
         await expect(checkbox).toBeDisabled();
       }
       await expect(page.locator('//*[@data-drupal-messages]')).toContainText(
@@ -320,6 +319,24 @@ export class Drupal {
       return window.drupalSettings;
     });
     return value;
+  }
+
+  async selectMedia(media: string) {
+    await this.page
+      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
+      .first() // @todo Remove this line in https://www.drupal.org/project/experience_builder/issues/3535220
+      .click();
+    await this.page
+      .locator(`div.xb-media-preview-label:has-text("${media}")`)
+      .click();
+    await this.page
+      .getByRole('button', { name: 'Insert selected', exact: true })
+      .click();
+    expect(
+      this.page.locator(
+        '[data-testid="xb-contextual-panel"] .js-media-library-item-preview img',
+      ),
+    );
   }
 
   normalizeAttribute(attribute: string) {

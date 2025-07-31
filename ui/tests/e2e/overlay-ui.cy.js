@@ -43,11 +43,11 @@ describe('Experience Builder overlay UI interactions', () => {
         'Now hover a different component. The selected name should not show, the hovered name only should show.',
       );
       cy.get('@desktopPreviewOverlay').within(() => {
-        cy.findAllByLabelText('Image')
+        cy.findAllByLabelText('Test SDC Image')
           .eq(1)
           .realHover({ scrollBehavior: 'center' });
         cy.findAllByTestId('xb-name-tag').should('have.length', 1);
-        cy.findAllByTestId('xb-name-tag').should('have.text', 'Image');
+        cy.findAllByTestId('xb-name-tag').should('have.text', 'Test SDC Image');
       });
     },
   );

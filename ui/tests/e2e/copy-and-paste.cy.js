@@ -57,7 +57,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.log(
       'Select the Image component and then paste the Hero we copied after it.',
     );
-    cy.clickComponentInPreview('Image', 1);
+    cy.clickComponentInPreview('Test SDC Image', 1);
     cy.realPress(['Meta', 'v']);
 
     cy.log(

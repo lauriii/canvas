@@ -171,10 +171,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
 
     // Removing some test components that have been enabled due to all SDCs now
     // in xb_test_sdc module.
-    $components_to_remove = ['crash', 'component-no-meta-enum', 'component-mismatch-meta-enum', 'empty-enum', 'deprecated', 'experimental', 'image-gallery', 'image-optional-with-example-and-additional-prop', 'obsolete', 'grid-container', 'html-invalid-format', 'my-cta', 'sparkline', 'sparkline_min_2', 'props-invalid-shapes', 'props-no-examples', 'props-no-slots', 'props-no-title', 'props-slots', 'image-optional-with-example', 'image-optional-without-example', 'image-required-with-example', 'image-required-with-invalid-example', 'image-required-without-example'];
+    $components_to_remove = ['crash', 'component-no-meta-enum', 'component-mismatch-meta-enum', 'empty-enum', 'deprecated', 'experimental', 'image-gallery', 'image-optional-with-example-and-additional-prop', 'obsolete', 'grid-container', 'html-invalid-format', 'my-cta', 'sparkline', 'sparkline_min_2', 'props-invalid-shapes', 'props-no-examples', 'props-no-slots', 'props-no-title', 'props-slots', 'image-optional-with-example', 'image-optional-without-example', 'image-required-with-example', 'image-required-with-invalid-example', 'image-required-without-example', 'no-ui-sdc'];
     foreach ($components_to_remove as $key) {
       unset($components['xb_test_sdc:' . $key]);
     }
+    // @todo Remove in https://www.drupal.org/i/3537695; instead filter away *all* `noUi` SDCs.
+    unset($components['experience_builder:image']);
 
     foreach ($components as $component) {
       // Do not find a match for every unique SDC prop, but only for unique prop
@@ -289,6 +291,32 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'media_library',
       ],
       'expected' => [
+        'REQUIRED, type=integer' => [
+          'SDC props' => [
+            '⿲xb_test_sdc:card-with-remote-image␟width',
+            '⿲xb_test_sdc:card-with-remote-image␟height',
+          ],
+          'static prop source' => 'ℹ︎integer␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [
+            'day_count' => [
+              'oldest' => 'ℹ︎datetime␟value',
+              'newest' => 'ℹ︎datetime␟value',
+            ],
+          ],
+          'adapter_matches_instance' => [
+            'day_count' => [
+              'oldest' => [
+                'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+                'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+              ],
+              'newest' => [
+                'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+                'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+              ],
+            ],
+          ],
+        ],
         'REQUIRED, type=integer&$ref=json-schema-definitions://experience_builder.module/column-width' => [
           'SDC props' => [
             '⿲xb_test_sdc:two_column␟width',
@@ -300,6 +328,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=object&$ref=json-schema-definitions://experience_builder.module/image' => [
           'SDC props' => [
+            '⿲xb_test_sdc:card␟image',
             '⿲xb_test_sdc:image␟image',
             '⿲xb_test_sdc:image-srcset-candidate-template-uri␟image',
           ],
@@ -343,9 +372,14 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string',
             '⿲xb_test_sdc:attributes␟not_attributes',
+            '⿲xb_test_sdc:card-with-local-image␟src',
+            '⿲xb_test_sdc:card-with-local-image␟alt',
+            '⿲xb_test_sdc:card-with-remote-image␟src',
+            '⿲xb_test_sdc:card-with-remote-image␟alt',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟src',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟alt',
             '⿲xb_test_sdc:heading␟text',
             '⿲xb_test_sdc:my-hero␟heading',
-            '⿲xb_test_sdc:no-ui-sdc␟text',
             '⿲xb_test_sdc:shoe_details␟summary',
             '⿲xb_test_sdc:shoe_tab␟label',
             '⿲xb_test_sdc:shoe_tab␟panel',
@@ -412,6 +446,16 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'REQUIRED, type=string&enum[0]=full&enum[1]=wide&enum[2]=normal&enum[3]=narrow' => [
           'SDC props' => [
             '⿲xb_test_sdc:one_column␟width',
+          ],
+          'static prop source' => 'ℹ︎list_string␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'REQUIRED, type=string&enum[0]=lazy&enum[1]=eager' => [
+          'SDC props' => [
+            '⿲xb_test_sdc:card␟loading',
+            '⿲xb_test_sdc:card-with-local-image␟loading',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -950,6 +994,19 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'optional, type=string' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string',
+            '⿲xb_test_sdc:card␟heading',
+            '⿲xb_test_sdc:card␟content',
+            '⿲xb_test_sdc:card␟footer',
+            '⿲xb_test_sdc:card␟sizes',
+            '⿲xb_test_sdc:card-with-local-image␟heading',
+            '⿲xb_test_sdc:card-with-local-image␟content',
+            '⿲xb_test_sdc:card-with-local-image␟footer',
+            '⿲xb_test_sdc:card-with-remote-image␟heading',
+            '⿲xb_test_sdc:card-with-remote-image␟content',
+            '⿲xb_test_sdc:card-with-remote-image␟footer',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟heading',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟content',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟footer',
             '⿲xb_test_sdc:my-hero␟subheading',
             '⿲xb_test_sdc:my-hero␟cta1',
             '⿲xb_test_sdc:my-hero␟cta2',
@@ -1104,6 +1161,16 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'optional, type=string&enum[0]=foo&enum[1]=bar' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_enum',
+          ],
+          'static prop source' => 'ℹ︎list_string␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=string&enum[0]=lazy&enum[1]=eager' => [
+          'SDC props' => [
+            '⿲xb_test_sdc:card-with-remote-image␟loading',
+            '⿲xb_test_sdc:card-with-stream-wrapper-image␟loading',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],

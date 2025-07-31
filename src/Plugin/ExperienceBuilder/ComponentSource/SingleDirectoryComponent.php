@@ -313,6 +313,13 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     if (isset($definition['status']) && $definition['status'] === 'obsolete') {
       throw new ComponentDoesNotMeetRequirementsException(['Component has "obsolete" status']);
     }
+    // Special case exception for 'image' SDC, as noUi is not supported in
+    // Drupal core < 11.3.
+    // @todo Remove in https://www.drupal.org/i/3537695
+    if ($definition['id'] === 'experience_builder:image') {
+      return;
+    }
+
     // Special case exception for 'all-props' SDC.
     // (This is used to develop support for more prop shapes.)
     if ($definition['id'] === 'sdc_test_all_props:all-props') {

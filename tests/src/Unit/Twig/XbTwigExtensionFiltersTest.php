@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Unit\Twig;
 
+use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\experience_builder\Extension\XbTwigExtension;
 use Drupal\experience_builder\Routing\ParametrizedImageStyleConverter;
 use Drupal\Tests\UnitTestCase;
@@ -19,11 +22,31 @@ use Drupal\Tests\UnitTestCase;
 class XbTwigExtensionFiltersTest extends UnitTestCase {
 
   /**
+   * @var \Drupal\experience_builder\Extension\XbTwigExtension
+   */
+  private XbTwigExtension $xbTwigExtension;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+
+    // Mock the required dependencies
+    $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
+    $imageFactory = $this->createMock(ImageFactory::class);
+    $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
+
+    // Create the extension instance
+    $this->xbTwigExtension = new XbTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager);
+  }
+
+  /**
    * @covers XbTwigExtension::toSrcSet
    * @dataProvider providerToSrcSet
    */
   public function testToSrcSet(string $src, int $intrinsicImageWidth, ?string $expected): void {
-    $actual = XbTwigExtension::toSrcSet($src, $intrinsicImageWidth);
+    $actual = $this->xbTwigExtension->toSrcSet($src, $intrinsicImageWidth);
     $this->assertSame($expected, $actual);
   }
 
@@ -49,10 +72,10 @@ class XbTwigExtensionFiltersTest extends UnitTestCase {
       NULL,
     ];
 
-    yield 'complex image with alternateWidths with the image *exactly* the maximum allowed width' => [
+    yield 'complex image with alternateWidths with the image *exactly* the maximum allowed width — generate even the equally wide src because it may get converted to a more optimized format such as AVIF' => [
       '/sites/default/files/2025-07/Screenshot%202025-07-08%20at%208.56.02.png?alternateWidths=/sites/default/files/styles/xb_parametrized_width--%7Bwidth%7D/public/2025-07/Screenshot%25202025-07-08%2520at%25208.56.02.png.webp%3Fitok%3DWp4lG4Wk#fragment',
       max(ParametrizedImageStyleConverter::ALLOWED_WIDTHS),
-      self::generateExpectedSrcSetForWidths(array_slice(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, 0, -1)),
+      self::generateExpectedSrcSetForWidths(ParametrizedImageStyleConverter::ALLOWED_WIDTHS),
     ];
 
     yield 'complex image with alternateWidths with the image *slightly smaller* than the maximum allowed width' => [
@@ -116,7 +139,7 @@ class XbTwigExtensionFiltersTest extends UnitTestCase {
    */
   public function testToSrcSetWithInvalidWidth(string $src, int $intrinsicImageWidth, string $expectedException): void {
     $this->expectException($expectedException);
-    XbTwigExtension::toSrcSet($src, $intrinsicImageWidth);
+    $this->xbTwigExtension->toSrcSet($src, $intrinsicImageWidth);
   }
 
   public static function invalidProviderToSrcSet(): \Generator {

@@ -31,7 +31,9 @@ describe('Operate on components + interact in global regions', () => {
       cy.get('.primaryPanelContent').as('layersTree');
 
       // Open the layers in the Tree.
-      cy.get('@layersTree').findAllByText('Image').should('be.visible');
+      cy.get('@layersTree')
+        .findAllByText('Test SDC Image')
+        .should('be.visible');
       cy.get('@layersTree')
         .findAllByText('Hero')
         .should('be.visible')

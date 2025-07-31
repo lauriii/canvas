@@ -191,7 +191,7 @@ describe('Perform CRUD operations on components', () => {
           'Deprecated SDC',
           'Experimental SDC',
           'Heading',
-          'Image',
+          'Test SDC Image',
           'Hero',
           'Pattern',
           'One Column',
@@ -261,7 +261,7 @@ describe('Perform CRUD operations on components', () => {
       },
     );
 
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
     cy.openLibraryPanel();
 
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
@@ -357,16 +357,16 @@ describe('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components.
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
     cy.realPress('{del}');
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
     cy.realPress('{del}');
 
-    cy.waitForComponentNotInPreview('Image');
+    cy.waitForComponentNotInPreview('Test SDC Image');
 
     cy.openLibraryPanel();
 
-    cy.get('.primaryPanelContent').findByText('Image').click();
+    cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
 
     cy.intercept('POST', '**/xb/api/v0/layout/node/1').then(cy.log);
 
@@ -382,12 +382,12 @@ describe('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Delete the two existing image components.
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
     cy.realPress('{del}');
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
     cy.realPress('{del}');
 
-    cy.waitForComponentNotInPreview('Image');
+    cy.waitForComponentNotInPreview('Test SDC Image');
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent')

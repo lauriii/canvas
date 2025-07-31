@@ -50,7 +50,7 @@ describe('Block form', () => {
 
   it('Block settings form values are stored and the preview is updated', () => {
     // Delete the image that uses an adapted source.
-    cy.clickComponentInPreview('Image', 1);
+    cy.clickComponentInPreview('Test SDC Image', 1);
     cy.realType('{del}');
 
     cy.focusRegion('Header');

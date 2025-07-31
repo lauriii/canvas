@@ -12,7 +12,8 @@ test.describe('Canary XB Minimal', () => {
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.setupMinimalXBTestSite();
+      await drupal.installModules(['experience_builder', 'xb_test_sdc']);
+      await drupal.createXbPage('Homepage', '/homepage');
     },
   );
 

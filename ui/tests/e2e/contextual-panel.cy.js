@@ -87,7 +87,7 @@ describe('Contextual panel', () => {
       .invoke('attr', 'data-xb-uuid')
       .as('cid1');
     // Find and alias the UUID of the "image" component.
-    cy.getComponentInPreview('Image', 1)
+    cy.getComponentInPreview('Test SDC Image', 1)
       .find('[data-xb-uuid]')
       .invoke('attr', 'data-xb-uuid')
       .as('cid2');
@@ -117,7 +117,7 @@ describe('Contextual panel', () => {
 
     // Click component 2.
     cy.get('@cid2').then((cid2) => {
-      cy.clickComponentInPreview('Image', 1);
+      cy.clickComponentInPreview('Test SDC Image', 1);
 
       // Make sure the contextual panel opens for the clicked component.
       cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
@@ -266,7 +266,7 @@ describe('Contextual panel', () => {
 
     // Ensure enum/select required field does not have None option
     // Click on the first image component
-    cy.clickComponentInPreview('Image');
+    cy.clickComponentInPreview('Test SDC Image');
 
     cy.openLibraryPanel();
 

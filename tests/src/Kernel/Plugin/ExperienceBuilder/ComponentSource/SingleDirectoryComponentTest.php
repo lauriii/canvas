@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Kernel\Plugin\ExperienceBuilder\ComponentSource;
 
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\experience_builder\Entity\Component;
@@ -68,6 +71,32 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     'field',
     'text',
   ];
+
+  /**
+   * Setup tests.
+   */
+  public function setUp(): void {
+    parent::setUp();
+    // Fixate the private key & hash salt to get predictable `itok`.
+    $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
+    $settings_class = new \ReflectionClass(Settings::class);
+    $instance_property = $settings_class->getProperty('instance');
+    $settings = new Settings([
+      'hash_salt' => 'dynamic_image_style_hash_salt',
+    ]);
+    $instance_property->setValue(NULL, $settings);
+
+    // We need to ensure the public://balloons.png image exists in the test
+    // environment for the "Card with stream wrapper image" tests.
+    $file_system = \Drupal::service('file_system');
+    $extension_path_resolver = \Drupal::service('extension.path.resolver');
+    $module_path = $extension_path_resolver->getPath('module', 'xb_test_sdc');
+    $source = $module_path . '/components/card/balloons.png';
+    $destination = 'public://balloons.png';
+    $directory = 'public://';
+    $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
+    $file_system->copy($source, $destination, FileExists::Replace);
+  }
 
   /**
    * @depends testDiscovery
@@ -157,6 +186,10 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'xb_test_sdc');
     self::assertSame([
       'sdc.xb_test_sdc.attributes',
+      'sdc.xb_test_sdc.card',
+      'sdc.xb_test_sdc.card-with-local-image',
+      'sdc.xb_test_sdc.card-with-remote-image',
+      'sdc.xb_test_sdc.card-with-stream-wrapper-image',
       'sdc.xb_test_sdc.component-no-meta-enum',
       'sdc.xb_test_sdc.crash',
       'sdc.xb_test_sdc.deprecated',
@@ -218,7 +251,10 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
   }
 
   /**
+   * Tests that all SDCs use the SdcPlugin class.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
+   *
    * @covers ::getReferencedPluginClass()
    * @depends testDiscovery
    */
@@ -231,7 +267,10 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
   }
 
   /**
+   * Tests rendering an SDC component.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
+   *
    * @covers ::renderComponent()
    * @depends testDiscovery
    */
@@ -268,6 +307,143 @@ HTML,
           'library' => [
             'core/components.xb_test_sdc--attributes',
             'core/components.xb_test_sdc--attributes',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card' => [
+        'html' => <<<HTML
+<article class="card">
+  <header>
+    <h2>Card</h2>
+  </header>
+
+  <img
+   class="card--image"
+   src="::XB_MODULE_PATH::/tests/modules/xb_test_sdc/components/card/balloons.png"
+           alt="Hot air balloons"
+           width="640"
+           height="427"
+      loading="eager"
+    data-testid="card-component-image" data-component-id="experience_builder:image"
+/>
+
+  <div class="content">
+    <p>In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.</p>
+  </div>
+  <footer>I have a footer!</footer>
+</article>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--card',
+            'core/components.experience_builder--image',
+            'core/components.xb_test_sdc--card',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-local-image' => [
+        'html' => <<<HTML
+<article class="card--with-local-image">
+  <header>
+    <h2>Card with local image</h2>
+  </header>
+
+  <img
+   class="card--image"
+   src="/core/misc/druplicon.png"
+           alt="A classic druplicon"
+           width="88"
+           height="100"
+      loading="lazy"
+    data-testid="card-component-image" data-component-id="experience_builder:image"
+/>
+
+  <div class="content">
+    <p>In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.</p>
+  </div>
+  <footer>I have a footer!</footer>
+</article>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--card-with-local-image',
+            'core/components.experience_builder--image',
+            'core/components.xb_test_sdc--card',
+            'core/components.xb_test_sdc--card-with-local-image',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-remote-image' => [
+        'html' => <<<HTML
+<article class="card--with-remote-image">
+  <header>
+    <h2>Card with remote image</h2>
+  </header>
+
+  <img
+   class="card--image"
+   src="https://mdn.github.io/shared-assets/images/examples/balloons.jpg"
+           alt="Hot air balloons"
+           width="640"
+           height="427"
+      loading="lazy"
+    data-testid="card-component-image" data-component-id="experience_builder:image"
+/>
+
+  <div class="content">
+    <p>In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.</p>
+  </div>
+  <footer>I have a footer!</footer>
+</article>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--card-with-remote-image',
+            'core/components.experience_builder--image',
+            'core/components.xb_test_sdc--card',
+            'core/components.xb_test_sdc--card-with-remote-image',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-stream-wrapper-image' => [
+        'html' => <<<HTML
+<article class="card--with-stream-wrapper-image">
+  <header>
+    <h2>Card with stream wrapper</h2>
+  </header>
+
+  <img
+   class="card--image"
+   src="public://balloons.png"
+        srcset="::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--16/public/balloons.png.webp?itok=uFWMj39h 16w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--32/public/balloons.png.webp?itok=uFWMj39h 32w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--48/public/balloons.png.webp?itok=uFWMj39h 48w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--64/public/balloons.png.webp?itok=uFWMj39h 64w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--96/public/balloons.png.webp?itok=uFWMj39h 96w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--128/public/balloons.png.webp?itok=uFWMj39h 128w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--256/public/balloons.png.webp?itok=uFWMj39h 256w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--384/public/balloons.png.webp?itok=uFWMj39h 384w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--640/public/balloons.png.webp?itok=uFWMj39h 640w"
+     sizes="auto 100vw"
+           alt="Hot air balloons"
+           width="640"
+           height="427"
+      loading="lazy"
+    data-testid="card-component-image" data-component-id="experience_builder:image"
+/>
+
+  <div class="content">
+    <p>In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.</p>
+  </div>
+  <footer>I have a footer!</footer>
+</article>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.xb_test_sdc--card-with-stream-wrapper-image',
+            'core/components.experience_builder--image',
+            'core/components.xb_test_sdc--card',
+            'core/components.xb_test_sdc--card-with-stream-wrapper-image',
           ],
         ],
       ],
@@ -680,12 +856,14 @@ activation="auto">
     ], $rendered);
   }
 
+  /**
+   * Tests that relative file URLs are rewritten to reference the correct file path.
+   */
   public function testRewriteExampleUrl(): void {
     $plugin = \Drupal::service(ComponentPluginManager::class)->createInstance('xb_test_sdc:image');
     $component = SingleDirectoryComponent::createConfigEntity($plugin);
     $source = $component->getComponentSource();
     self::assertInstanceOf(SingleDirectoryComponent::class, $source);
-
     // Assert that existing files are rewritten to include the module path.
     $xb_test_sdc_module_path = \Drupal::service(ModuleExtensionList::class)->getPath('xb_test_sdc');
 
@@ -860,6 +1038,338 @@ activation="auto">
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'The not-attributes SDC prop!']],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card' => [
+        'prop_field_definitions' => [
+          'content' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'footer' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'I have a footer!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'heading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Card',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'image' => [
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'loading' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'eager',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'sizes' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'auto 50vw',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-local-image' => [
+        'prop_field_definitions' => [
+          'alt' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'A classic druplicon',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'content' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'footer' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'I have a footer!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'heading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Card with local image',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'loading' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'lazy',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'src' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => '/core/misc/druplicon.png',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-remote-image' => [
+        'prop_field_definitions' => [
+          'alt' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Hot air balloons',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'content' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'footer' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'I have a footer!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'heading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Card with remote image',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'height' => [
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => [
+              0 => [
+                'value' => 427,
+              ],
+            ],
+            'expression' => 'ℹ︎integer␟value',
+          ],
+          'loading' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'lazy',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'src' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'width' => [
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => [
+              0 => [
+                'value' => 640,
+              ],
+            ],
+            'expression' => 'ℹ︎integer␟value',
+          ],
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-stream-wrapper-image' => [
+        'prop_field_definitions' => [
+          'alt' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Hot air balloons',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'content' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'footer' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'I have a footer!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'heading' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Card with stream wrapper',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'loading' => [
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              [
+                'value' => 'lazy',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'src' => [
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'public://balloons.png',
+              ],
+            ],
             'expression' => 'ℹ︎string␟value',
           ],
         ],
@@ -1502,6 +2012,39 @@ activation="auto">
           'xb_test_sdc',
         ],
       ],
+      'sdc.xb_test_sdc.card' => [
+        'config' => [
+          'image.style.xb_parametrized_width',
+        ],
+        'module' => [
+          'core',
+          'file',
+          'image',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-local-image' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-remote-image' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
+      'sdc.xb_test_sdc.card-with-stream-wrapper-image' => [
+        'module' => [
+          'core',
+          'options',
+          'xb_test_sdc',
+        ],
+      ],
       'sdc.xb_test_sdc.component-no-meta-enum' => [
         'module' => [
           'core',
@@ -1728,6 +2271,527 @@ activation="auto">
                 0 => ['value' => 'The not-attributes SDC prop!'],
               ],
               'resolved' => 'The not-attributes SDC prop!',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.card' => [
+        'expected_output_selectors' => [
+          'article.card',
+          'article.card img.card--image',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Card',
+                ],
+              ],
+              'resolved' => 'Card',
+            ],
+          ],
+          'content' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+                ],
+              ],
+              'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+            ],
+          ],
+          'footer' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'I have a footer!',
+                ],
+              ],
+              'resolved' => 'I have a footer!',
+            ],
+          ],
+          'image' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => '/' . \Drupal::service(ExtensionPathResolver::class)->getPath('module', 'xb_test_sdc') . '/components/card/balloons.png',
+                'alt' => 'Hot air balloons',
+                'width' => 640,
+                'height' => 427,
+              ],
+            ],
+          ],
+          'sizes' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'auto 50vw',
+                ],
+              ],
+              'resolved' => 'auto 50vw',
+            ],
+          ],
+          'loading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'lazy',
+                1 => 'eager',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'eager',
+                ],
+              ],
+              'resolved' => 'eager',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.card-with-local-image' => [
+        'expected_output_selectors' => [
+          'article.card--with-local-image',
+          'article.card--with-local-image img.card--image',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Card with local image',
+                ],
+              ],
+              'resolved' => 'Card with local image',
+            ],
+          ],
+          'content' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+                ],
+              ],
+              'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+            ],
+          ],
+          'footer' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'I have a footer!',
+                ],
+              ],
+              'resolved' => 'I have a footer!',
+            ],
+          ],
+          'src' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => '/core/misc/druplicon.png',
+                ],
+              ],
+              'resolved' => '/core/misc/druplicon.png',
+            ],
+          ],
+          'alt' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'A classic druplicon',
+                ],
+              ],
+              'resolved' => 'A classic druplicon',
+            ],
+          ],
+          'loading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'lazy',
+                1 => 'eager',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'lazy',
+                ],
+              ],
+              'resolved' => 'lazy',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.card-with-remote-image' => [
+        'expected_output_selectors' => [
+          'article.card--with-remote-image',
+          'article.card--with-remote-image img.card--image',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Card with remote image',
+                ],
+              ],
+              'resolved' => 'Card with remote image',
+            ],
+          ],
+          'content' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+                ],
+              ],
+              'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+            ],
+          ],
+          'footer' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'I have a footer!',
+                ],
+              ],
+              'resolved' => 'I have a footer!',
+            ],
+          ],
+          'src' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
+                ],
+              ],
+              'resolved' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
+            ],
+          ],
+          'alt' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'Hot air balloons',
+                ],
+              ],
+              'resolved' => 'Hot air balloons',
+            ],
+          ],
+          'width' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'integer',
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 640,
+                ],
+              ],
+              'resolved' => 640,
+            ],
+          ],
+          'height' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'integer',
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 427,
+                ],
+              ],
+              'resolved' => 427,
+            ],
+          ],
+          'loading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'lazy',
+                1 => 'eager',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'lazy',
+                ],
+              ],
+              'resolved' => 'lazy',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.xb_test_sdc.card-with-stream-wrapper-image' => [
+        'expected_output_selectors' => [
+          'article.card--with-stream-wrapper-image',
+          'article.card--with-stream-wrapper-image img.card--image',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'Card with stream wrapper',
+                ],
+              ],
+              'resolved' => 'Card with stream wrapper',
+            ],
+          ],
+          'content' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+                ],
+              ],
+              'resolved' => 'In a curious work, published in Paris in 1863 by Delaville Dedreux, there is a suggestion for reaching the North Pole by an aerostat.',
+            ],
+          ],
+          'footer' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'I have a footer!',
+                ],
+              ],
+              'resolved' => 'I have a footer!',
+            ],
+          ],
+          'src' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'public://balloons.png',
+                ],
+              ],
+              'resolved' => 'public://balloons.png',
+            ],
+          ],
+          'alt' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                [
+                  'value' => 'Hot air balloons',
+                ],
+              ],
+              'resolved' => 'Hot air balloons',
+            ],
+          ],
+          'loading' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                0 => 'lazy',
+                1 => 'eager',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'lazy',
+                ],
+              ],
+              'resolved' => 'lazy',
             ],
           ],
         ],
