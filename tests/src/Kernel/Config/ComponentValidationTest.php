@@ -6,6 +6,8 @@ namespace Drupal\Tests\experience_builder\Kernel\Config;
 
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
+use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
+use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -621,6 +623,43 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       self::assertEquals('Schema errors for experience_builder.component.sdc.xb_test_sdc.my-cta with the following errors: 0 [versioned_properties.active.settings.prop_field_definitions] The required SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Title&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;text&lt;/em&gt;) must not be null.', $e->getMessage());
     }
+  }
+
+  /**
+   * @testWith ["ℹ︎non_existing_field_type␟value", null]
+   *           ["ℹ︎string␟non_existing_field_property", null]
+   *           ["nonsense", "<em class=\"placeholder\">nonsense</em> is not a valid prop expression."]
+   *           ["oops_lost_the_prefix_field_type␟value", "<em class=\"placeholder\">oops_lost_the_prefix_field_type␟value</em> is not a valid prop expression."]
+   *           ["ℹ︎string␞this_is_not_a_delta", "<em class=\"placeholder\">ℹ︎string␞this_is_not_a_delta</em> is not a valid prop expression."]
+   *           ["ℹ︎␜entity:node␝title␞␟value", "The expression is valid, but not one of the allowed types: <em class=\"placeholder\">&quot;FieldTypePropExpression&quot;, &quot;FieldTypeObjectPropsExpression&quot;, &quot;ReferenceFieldTypePropExpression&quot;</em>."]
+   *
+   * @see `type:experience_builder.generated_field_explicit_input_ux`
+   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+   */
+  public function testInvalidPropFieldDefinitionExpression(string $expression, ?string $expected_message): void {
+    $expected_validation_errors = is_string($expected_message)
+      ? ['versioned_properties.active.settings.prop_field_definitions.text.expression' => $expected_message]
+      : [];
+
+    assert($this->entity instanceof Component);
+    $settings = $this->entity->getSettings();
+    $settings['prop_field_definitions']['text']['expression'] = $expression;
+
+    // When the settings change, the version will also change.
+    $source = \Drupal::service(ComponentSourceManager::class)
+      ->createInstance(SingleDirectoryComponent::SOURCE_PLUGIN_ID, [
+        'local_source_id' => $this->entity->get('source_local_id'),
+        ...$settings,
+      ]);
+    assert($source instanceof ComponentSourceInterface);
+    $this->entity
+      ->createVersion($source->generateVersionHash())
+      ->setSettings($settings);
+
+    $this->assertValidationErrors([
+      // Because ::preSave() did not get executed. Irrelevant for this test.
+      'versioned_properties.active' => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type experience_builder.component.versioned.active.*).",
+    ] + $expected_validation_errors);
   }
 
 }

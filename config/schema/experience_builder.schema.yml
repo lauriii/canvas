@@ -507,10 +507,14 @@ experience_builder.generated_field_explicit_input_ux:
           # The default value must be retrievable
           expression:
             type: string
-            label: ''
-            constraints: { }
-            # @todo Add `StructuredDataPropExpression` validation constraint that fails if StructuredDataPropExpression::fromString() fails
-            # StructuredDataPropExpression: [field_type]
+            label: 'The expression that contains the field evaluation instructions'
+            constraints:
+              ValidStructuredDataPropExpression:
+                choices:
+                  - FieldTypePropExpression
+                  - FieldTypeObjectPropsExpression
+                  - ReferenceFieldTypePropExpression
+                message: 'The expression is valid, but not one of the allowed types: %choices.'
 
 experience_builder.component_source_local_id.js:
   type: experience_builder.component_source_local_id.*
