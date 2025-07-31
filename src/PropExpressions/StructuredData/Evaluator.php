@@ -120,7 +120,22 @@ final class Evaluator {
           $result = [];
           foreach ($field_item_list as $delta => $field_item) {
             if ($expr->delta === NULL || $expr->delta === $delta) {
-              $prop = $field_item->get($expr->propName);
+              assert(is_string($expr->propName) || (is_array($expr->propName) && is_array($expr->fieldName)));
+              $prop_name = match (TRUE) {
+                is_string($expr->propName) => $expr->propName,
+                // @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
+                // @phpstan-ignore-next-line offsetAccess.notFound
+                is_array($expr->propName) => $expr->propName[$expr->fieldName[$entity->bundle()]],
+              };
+              // TRICKY: when a FieldPropExpression targets multiple bundles of
+              // an entity type and a subset of those bundles' fields cannot
+              // provide the needed value, it is allowed to explicitly opt out
+              // using `␀`.
+              // @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+              if ($prop_name === StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {
+                return NULL;
+              }
+              $prop = $field_item->get($prop_name);
               $result[$delta] = $prop instanceof PrimitiveInterface
                 ? $prop->getCastedValue()
                 : $prop->getValue();

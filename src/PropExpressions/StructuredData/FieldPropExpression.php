@@ -30,21 +30,36 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     // A content entity field item delta is optional.
     // @todo Should this allow expressing "all deltas"? Should that be represented using `NULL`, `TRUE`, `*` or `∀`? For now assuming NULL.
     public readonly int|null $delta,
-    public readonly string $propName,
+    public readonly string|array $propName,
   ) {
     $bundles = $entityType->getBundles();
     if (($bundles === NULL || count($bundles) <= 1) && is_array($fieldName) && count($fieldName) > 1) {
       throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field name can be specified.');
     }
+    if (($bundles === NULL || count($bundles) <= 1) && is_array($this->propName) && count($this->propName) > 1) {
+      throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field property name can be specified.');
+    }
     // When targeting >1 bundle, it's possible to target either:
-    // - a base field, then $fieldName will be a a string
+    // - a base field, then $fieldName will be a string;
     // - bundle fields, then $fieldName must be an array: keys are bundle names,
-    //   values are bundle field names
-    // ⚠️ Note that $delta and $propNames continue to be unchanged; this is only
+    //   values are bundle field names;
+    // - different prop names if having different field names (as we could have
+    //   different field types) then $propNames must be an array: keys are
+    //   bundle-specific field names, values are the prop names for each field.
+    // ⚠️ Note that $delta continue to be unchanged; this is only
     // designed for the use case where different bundles have different fields
-    // of the same type (and cardinality and storage settings).
+    // of the same or different type (and cardinality and storage settings).
     // For example: pointing to multiple media types, with differently named
-    // "media source" fields, but with the same field types.
+    // "media source" fields, but with the same or different field types because
+    // having different media sources.
+    // If a value for the expression cannot be associated with a field type
+    // property, the special NULL symbol value (␀) can be used to opt out, but
+    // only in the context of a FieldObjectPropsExpression. For example: a prop
+    // shape to populate `<img>` would always need to populate `src`, but `alt`,
+    // `width` and `height` may be optional. Those last 3 could then use ␀ if
+    // only a subset of the bundle-specific fields with different field types
+    // are able to populate any of those.
+    // @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
     if (is_array($fieldName)) {
       $bundles = $entityType->getBundles();
       assert($bundles !== NULL && count($bundles) >= 1);
@@ -59,14 +74,29 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
         throw new \InvalidArgumentException('A field name must be specified for every bundle, and in the same order.');
       }
     }
+    if (is_array($propName)) {
+      // If propName is an array, fieldName must be too.
+      assert(is_array($fieldName));
+      if (array_values($fieldName) !== array_keys($propName)) {
+        throw new \InvalidArgumentException('A field property name must be specified for every field name, and in the same order.');
+      }
+      if (array_values(array_unique($propName)) === [StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]) {
+        throw new \InvalidArgumentException('At least one of the field names must have a field property specified; otherwise it should be omitted (␀ can only be used when a subset of the bundles does not provide a certain value).');
+      }
+    }
   }
 
   public function __toString(): string {
     return static::PREFIX
       . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
+      // Note that BetterEntityDataDefinition sorts bundles alphabetically (to
+      // ensure a predictable data type ID). Hence an array of field names must
+      // correspond to the alphabetically sorted bundle order.
       . static::PREFIX_FIELD_LEVEL . implode('|', (array) $this->fieldName)
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
-      . static::PREFIX_PROPERTY_LEVEL . $this->propName;
+      // See the above remark: the same is true for an array of field property
+      // names.
+      . static::PREFIX_PROPERTY_LEVEL . implode('|', (array) $this->propName);
   }
 
   /**
@@ -98,6 +128,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     }
 
     if (is_string($this->fieldName)) {
+      assert(is_string($this->propName));
       $field_definitions = $this->entityType->getPropertyDefinitions();
       if (!isset($field_definitions[$this->fieldName])) {
         throw new \LogicException(sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
@@ -118,22 +149,17 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
 
       // Computed properties can have dependencies of their own.
       if ($host_entity !== NULL) {
-        $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
-        if (!array_key_exists($this->propName, $property_definitions)) {
-          // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-          @trigger_error(sprintf('Property %s does not exist', $this->propName), E_USER_DEPRECATED);
-        }
-        elseif (is_a($property_definitions[$this->propName]->getClass(), DependentPluginInterface::class, TRUE)) {
-          assert($property_definitions[$this->propName]->isComputed());
-          foreach ($host_entity->get($this->fieldName) as $field_item) {
-            assert($field_item->get($this->propName) instanceof DependentPluginInterface);
-            $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($this->propName)->calculateDependencies());
-          }
-        }
+        $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
+          $host_entity,
+          $this->fieldName,
+          $this->propName,
+          $field_definition
+        ));
       }
     }
     else {
       assert(is_array($possible_bundles));
+      assert(is_string($this->propName) || (is_array($this->propName) && is_array($this->fieldName)));
       foreach ($possible_bundles as $bundle) {
         // @phpstan-ignore-next-line
         $bundle_field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
@@ -142,6 +168,45 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
           throw new \LogicException(sprintf("%s field on the %s bundle referenced in %s %s does not exist.", $bundle_specific_field_name, $bundle, (string) $this, __CLASS__));
         }
         $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($bundle_field_definitions[$bundle_specific_field_name], $bundle));
+      }
+
+      // Computed properties can have dependencies of their own.
+      if ($host_entity !== NULL) {
+        $bundle = $host_entity->bundle();
+        $bundle_specific_field_name = $this->fieldName[$bundle];
+        $prop_name = match (TRUE) {
+          is_string($this->propName) => $this->propName,
+          // @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
+          is_array($this->propName) => $this->propName[$bundle_specific_field_name],
+        };
+        if ($prop_name !== StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {
+          $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
+            $host_entity,
+            $bundle_specific_field_name,
+            $prop_name,
+            // @phpstan-ignore-next-line argument.type
+            $host_entity->getFieldDefinition($bundle_specific_field_name),
+          ));
+        }
+      }
+    }
+
+    return $dependencies;
+  }
+
+  private static function calculateDependenciesForProperty(FieldableEntityInterface $host_entity, string $field_name, string $prop_name, FieldDefinitionInterface $field_definition): array {
+    $dependencies = [];
+
+    $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
+    if (!array_key_exists($prop_name, $property_definitions)) {
+      // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
+      @trigger_error(sprintf('Property %s does not exist', $prop_name), E_USER_DEPRECATED);
+    }
+    elseif (is_a($property_definitions[$prop_name]->getClass(), DependentPluginInterface::class, TRUE)) {
+      assert($property_definitions[$prop_name]->isComputed());
+      foreach ($host_entity->get($field_name) as $field_item) {
+        assert($field_item->get($prop_name) instanceof DependentPluginInterface);
+        $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($prop_name)->calculateDependencies());
       }
     }
 
@@ -209,7 +274,12 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
         )
         : $field_name,
       $delta === '' ? NULL : (int) $delta,
-      $prop_name,
+      str_contains($prop_name, '|')
+        ? array_combine(
+          explode('|', $field_name),
+          explode('|', $prop_name),
+        )
+        : $prop_name,
     );
   }
 

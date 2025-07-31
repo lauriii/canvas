@@ -66,6 +66,14 @@ class PropExpressionDependenciesTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
+  protected static $configSchemaCheckerExclusions = [
+    // @todo Core bug: this is missing config schema: `type: field.storage_settings.file_uri` does not exist! This is being fixed in https://www.drupal.org/project/drupal/issues/3324140.
+    'field.storage.node.bar',
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('file');
@@ -103,6 +111,24 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       'label' => 'Body',
     ])->save();
     $this->createImageField('field_image', 'node', 'article');
+
+    // `foo` node type.
+    NodeType::create([
+      'type' => 'foo',
+      'name' => 'Foo',
+    ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'bar',
+      'type' => 'file_uri',
+      'entity_type' => 'node',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'bar',
+      'entity_type' => 'node',
+      'bundle' => 'foo',
+      'label' => 'The bar file URI field',
+    ])->save();
 
     // `news` node type.
     NodeType::create([
@@ -158,6 +184,24 @@ class PropExpressionDependenciesTest extends KernelTestBase {
           'height' => 11,
         ],
       ],
+    ])->save();
+
+    // `xyz` node type.
+    NodeType::create([
+      'type' => 'xyz',
+      'name' => 'XYZ',
+    ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'abc',
+      'type' => 'map',
+      'entity_type' => 'node',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'abc',
+      'entity_type' => 'node',
+      'bundle' => 'xyz',
+      'label' => 'The XYZ map field',
     ])->save();
   }
 

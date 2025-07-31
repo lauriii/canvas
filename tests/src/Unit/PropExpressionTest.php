@@ -183,6 +183,26 @@ class PropExpressionTest extends UnitTestCase {
         ],
       ],
 
+      // Context: >1 bundle of entity type, bundle/configurable field, with
+      // fields of different types and hence different field properties.
+      // ⚠️ Note the inconsistent ordering in the object representation, and the
+      // consistent ordering based on alphabetical bundle ordering in the string
+      // representation.
+      ['ℹ︎␜entity:node:article|foo|xyz␝field_image|bar|abc␞␟value|url|␀', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['article', 'foo', 'xyz']), ['article' => 'field_image', 'foo' => 'bar', 'xyz' => 'abc'], NULL, ['field_image' => 'value', 'bar' => 'url', 'abc' => StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]),
+        [
+          'module' => ['node', 'file'],
+          'config' => [
+            'node.type.article',
+            'node.type.foo',
+            'node.type.xyz',
+            'field.field.node.article.field_image',
+            'image.style.xb_parametrized_width',
+            'field.field.node.foo.bar',
+            'field.field.node.xyz.abc',
+          ],
+        ],
+      ],
+
       // Structured data expressions do NOT introspect the data model, they are
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted for all
@@ -508,6 +528,66 @@ class PropExpressionTest extends UnitTestCase {
       ],
       0,
       'alt',
+    );
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @testWith [null]
+   *           ["article"]
+   */
+  public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleBundles(?string $bundle): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('When targeting a (single bundle of) an entity type, only a single field property name can be specified.');
+    new FieldPropExpression(
+      BetterEntityDataDefinition::create('node', $bundle),
+      'field_image',
+      0,
+      [
+        'field_image' => 'alt',
+        'field_media' => 'description',
+      ],
+    );
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   */
+  public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('A field property name must be specified for every field name, and in the same order.');
+    new FieldPropExpression(
+      BetterEntityDataDefinition::create('node', ['bundle_a', 'bundle_b', 'bundle_c']),
+      [
+        'bundle_a' => 'field_image',
+        'bundle_b' => 'field_media_1',
+        'bundle_c' => 'field_media',
+      ],
+      0,
+      [
+        'field_image' => 'alt',
+        'field_media' => 'description',
+      ],
+    );
+  }
+
+  /**
+   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   */
+  public function testInvalidFieldPropExpressionDueToOnlyNullFieldPropNames(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('At least one of the field names must have a field property specified; otherwise it should be omitted (␀ can only be used when a subset of the bundles does not provide a certain value).');
+    new FieldPropExpression(
+      BetterEntityDataDefinition::create('node', ['bundle_a', 'bundle_b']),
+      [
+        'bundle_a' => 'field_image',
+        'bundle_b' => 'field_media_1',
+      ],
+      0,
+      [
+        'field_image' => '␀',
+        'field_media_1' => '␀',
+      ],
     );
   }
 

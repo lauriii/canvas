@@ -37,8 +37,10 @@ use Drupal\media\Entity\Media;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
+use Drupal\Tests\TestFileCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
@@ -50,10 +52,13 @@ class PropSourceTest extends KernelTestBase {
 
   private const IMAGE_MEDIA_UUID1 = '83b145bb-d8c3-4410-bbd6-fdcd06e27c29';
   private const IMAGE_MEDIA_UUID2 = '93b145bb-d8c3-4410-bbd6-fdcd06e27c29';
+  private const TEST_MEDIA = '43b145bb-d8c3-4410-bbd6-fdcd06e27c29';
 
   use ContribStrictConfigSchemaTestTrait;
+  use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
   use NodeCreationTrait;
+  use TestFileCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -69,6 +74,7 @@ class PropSourceTest extends KernelTestBase {
     'datetime_range',
     'media',
     'media_library',
+    'media_test_source',
     'system',
     'media',
     'views',
@@ -89,6 +95,8 @@ class PropSourceTest extends KernelTestBase {
 
     $this->createMediaType('image', ['id' => 'image']);
     $this->createMediaType('image', ['id' => 'anything_is_possible']);
+    // @see \Drupal\media_test_source\Plugin\media\Source\Test
+    $this->createMediaType('test', ['id' => 'image_but_not_image_media_source']);
 
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
@@ -101,6 +109,7 @@ class PropSourceTest extends KernelTestBase {
       $file_system->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
     }
     $file1 = File::create([
+      'uuid' => 'a461c159-039a-4de2-96e5-07d1112105df',
       'uri' => $file_uri,
       'status' => 1,
     ]);
@@ -141,6 +150,15 @@ class PropSourceTest extends KernelTestBase {
       ],
     ]);
     $image2->save();
+    $test_media = Media::create([
+      'uuid' => self::TEST_MEDIA,
+      'bundle' => 'image_but_not_image_media_source',
+      'name' => 'contrived example',
+      'field_media_test' => [
+        'value' => 'Jack is awesome!',
+      ],
+    ]);
+    $test_media->save();
 
     // Fixate the private key & hash salt to get predictable `itok`.
     $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');
@@ -417,13 +435,14 @@ class PropSourceTest extends KernelTestBase {
             'target_bundles' => [
               'image' => 'image',
               'anything_is_possible' => 'anything_is_possible',
+              'image_but_not_image_media_source' => 'image_but_not_image_media_source',
             ],
           ],
         ],
       ],
-      'value' => [['target_id' => 2], ['target_id' => 1]],
-      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":[{"target_id":2},{"target_id":1}],"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟alt,width↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟width,height↝entity␜␜entity:media:anything_is_possible|image␝field_media_image_1|field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image","anything_is_possible":"anything_is_possible"}}},"cardinality":5}}',
+      'value' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
+      'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟src_with_alternate_widths|src_with_alternate_widths|value,alt↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟alt|alt|␀,width↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟width|width|␀,height↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟height|height|␀}',
+      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":[{"target_id":2},{"target_id":1},{"target_id":3}],"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟src_with_alternate_widths|src_with_alternate_widths|value,alt↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟alt|alt|␀,width↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟width|width|␀,height↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟height|height|␀}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image","anything_is_possible":"anything_is_possible","image_but_not_image_media_source":"image_but_not_image_media_source"}}},"cardinality":5}}',
       'field_widgets' => [
         NULL => EntityReferenceAutocompleteWidget::class,
         'media_library_widget' => MediaLibraryWidget::class,
@@ -441,19 +460,28 @@ class PropSourceTest extends KernelTestBase {
           'width' => 80,
           'height' => 60,
         ],
+        [
+          'src' => 'Jack is awesome!',
+          'alt' => NULL,
+          'width' => NULL,
+          'height' => NULL,
+        ],
       ],
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
       'expected_dependencies' => [
         'config' => [
           'field.field.media.anything_is_possible.field_media_image_1',
           'field.field.media.image.field_media_image',
+          'field.field.media.image_but_not_image_media_source.field_media_test',
           'image.style.xb_parametrized_width',
           'media.type.anything_is_possible',
           'media.type.image',
+          'media.type.image_but_not_image_media_source',
         ],
         'content' => [
           'media:anything_is_possible:' . self::IMAGE_MEDIA_UUID2,
           'media:image:' . self::IMAGE_MEDIA_UUID1,
+          'media:image_but_not_image_media_source:' . self::TEST_MEDIA,
         ],
         'module' => [
           'file',
@@ -465,110 +493,206 @@ class PropSourceTest extends KernelTestBase {
 
   /**
    * @coversClass \Drupal\experience_builder\PropSource\DynamicPropSource
+   * @dataProvider providerDynamicPropSource
    */
-  public function testDynamicPropSource(): void {
+  public function testDynamicPropSource(
+    string $expression,
+    string $expected_json_representation,
+    string $expected_expression_class,
+    mixed $expected_evaluation_with_user_host_entity,
+    mixed $expected_evaluation_with_node_host_entity,
+    array $expected_dependencies_expression_only,
+    array $expected_dependencies_with_host_entity,
+  ): void {
+    // For testing expressions relying on users.
     $this->installEntitySchema('user');
-    $user = User::create(['name' => 'John Doe']);
+    $user = User::create([
+      'uuid' => '881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
+      'name' => 'John Doe',
+    ]);
     $user->save();
 
-    // A simple example: FieldPropExpression.
-    $simple_example = DynamicPropSource::parse([
-      'sourceType' => 'dynamic',
-      'expression' => 'ℹ︎␜entity:user␝name␞␟value',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $simple_example;
-    $this->assertSame('{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}', $json_representation);
-    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
-    $this->assertInstanceOf(DynamicPropSource::class, $simple_example);
-    // The contained information read back out.
-    $this->assertSame('dynamic', $simple_example->getSourceType());
-    $this->assertInstanceOf(FieldPropExpression::class, StructuredDataPropExpression::fromString($simple_example->asChoice()));
-    // Test the functionality of a DynamicPropSource:
-    // - evaluate it to populate an SDC prop
-    $this->assertSame('John Doe', $simple_example->evaluate($user, is_required: TRUE));
-    // - calculate its dependencies
-    $this->assertSame([
-      'module' => [
-        'user',
-      ],
-    ], $simple_example->calculateDependencies($user));
-
-    // A reference example: ReferenceFieldPropExpression.
+    // For testing expressions relying on nodes.
     $this->installEntitySchema('node');
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
-    $node = $this->createNode(['uid' => $user->id()]);
-    $object_example = DynamicPropSource::parse([
-      'sourceType' => 'dynamic',
-      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
-    ]);
-    // First, get the string representation and parse it back, to prove
-    // serialization and deserialization works.
-    $json_representation = (string) $object_example;
-    $this->assertSame('{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}', $json_representation);
-    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
-    $this->assertInstanceOf(DynamicPropSource::class, $simple_example);
-    // The contained information read back out.
-    $this->assertSame('dynamic', $simple_example->getSourceType());
-    $this->assertInstanceOf(ReferenceFieldPropExpression::class, StructuredDataPropExpression::fromString($object_example->asChoice()));
-    // Test the functionality of a DynamicPropSource:
-    // - evaluate it to populate an SDC prop
-    try {
-      $simple_example->evaluate($user, is_required: TRUE);
-      self::fail('Should throw an exception.');
-    }
-    catch (\DomainException $e) {
-      self::assertSame('`ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value` is an expression for entity type `node`, but the provided entity is of type `user`.', $e->getMessage());
-    }
-    $this->assertSame('John Doe', $simple_example->evaluate($node, is_required: TRUE));
-    // - calculate its dependencies
-    $this->assertSame([
-      'module' => ['node'],
-      'config' => ['node.type.page'],
-      'content' => ['user:user:' . $user->uuid()],
-    ], $simple_example->calculateDependencies($node));
+    $this->createImageField('field_image', 'node', 'page');
+    $node = $this->createNode(['uid' => $user->id(), 'field_image' => ['target_id' => 1]]);
 
-    // A complex object example: FieldObjectPropsExpression containing a
-    // ReferenceFieldPropExpression.
-    $object_example = DynamicPropSource::parse([
+    // For testing expressions relying on multiple bundles of the `node` entity
+    // type.
+    NodeType::create(['type' => 'bio', 'name' => 'biography'])->save();
+    $this->createImageField('field_photo', 'node', 'bio');
+    $node2 = $this->createNode(['uid' => $user->id(), 'type' => 'bio', 'field_photo' => ['target_id' => 2]]);
+
+    $original = DynamicPropSource::parse([
       'sourceType' => 'dynamic',
-      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+      'expression' => $expression,
     ]);
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
-    $json_representation = (string) $object_example;
-    $this->assertSame('{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}', $json_representation);
-    $simple_example = PropSource::parse(json_decode($json_representation, TRUE));
-    $this->assertInstanceOf(DynamicPropSource::class, $simple_example);
+    $json_representation = (string) $original;
+    $this->assertSame($expected_json_representation, $json_representation);
+    $parsed = PropSource::parse(json_decode($json_representation, TRUE));
+    $this->assertInstanceOf(DynamicPropSource::class, $parsed);
     // The contained information read back out.
-    $this->assertSame('dynamic', $simple_example->getSourceType());
-    $this->assertInstanceOf(FieldObjectPropsExpression::class, StructuredDataPropExpression::fromString($object_example->asChoice()));
+    $this->assertSame('dynamic', $parsed->getSourceType());
+    // @phpstan-ignore-next-line argument.type
+    $this->assertInstanceOf($expected_expression_class, StructuredDataPropExpression::fromString($parsed->asChoice()));
+
     // Test the functionality of a DynamicPropSource:
-    // - evaluate it to populate an SDC prop
+    $parsed_expression = StructuredDataPropExpression::fromString($expression);
+    $correct_host_entity_type = match (get_class($parsed_expression)) {
+      FieldPropExpression::class, FieldObjectPropsExpression::class => $parsed_expression->entityType->getEntityTypeId(),
+      ReferenceFieldPropExpression::class => $parsed_expression->referencer->entityType->getEntityTypeId(),
+      default => throw new \LogicException(),
+    };
+    // - evaluate it to populate an SDC prop using a `user` host entity
     try {
-      $simple_example->evaluate($user, is_required: TRUE);
-      self::fail('Should throw an exception.');
+      $result = $parsed->evaluate($user, is_required: TRUE);
+      if ($expected_evaluation_with_user_host_entity === \DomainException::class) {
+        self::fail('Should throw an exception.');
+      }
+      else {
+        self::assertSame($expected_evaluation_with_user_host_entity, $result);
+      }
     }
     catch (\DomainException $e) {
-      self::assertSame('`ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}` is an expression for entity type `node`, but the provided entity is of type `user`.', $e->getMessage());
+      self::assertSame($expected_evaluation_with_user_host_entity, \DomainException::class);
+      self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `user`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
-    $this->assertSame([
-      'human_id' => 'John Doe',
-      'machine_id' => 1,
-    ], $simple_example->evaluate($node, is_required: TRUE));
+    // - evaluate it to populate an SDC prop using a `node` host entity
+    try {
+      $result = $parsed->evaluate($node, is_required: TRUE);
+      if ($expected_evaluation_with_node_host_entity === \DomainException::class) {
+        self::fail('Should throw an exception.');
+      }
+      else {
+        // TRICKY: this one test case is hard to parametrize using a data
+        // provider, see the more precise/expansive assertions at the end of the
+        // test method.
+        if ($expression !== 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths') {
+          self::assertSame($expected_evaluation_with_node_host_entity, $result);
+        }
+      }
+    }
+    catch (\DomainException $e) {
+      self::assertSame($expected_evaluation_with_node_host_entity, \DomainException::class);
+      self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `node`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
+    }
+
     // - calculate its dependencies
-    $this->assertSame([
+    $this->assertSame($expected_dependencies_expression_only, $parsed->calculateDependencies());
+    $correct_host_entity = match ($correct_host_entity_type) {
+      'user' => $user,
+      'node' => $node,
+      default => throw new \LogicException(),
+    };
+    $this->assertSame($expected_dependencies_with_host_entity, $parsed->calculateDependencies($correct_host_entity));
+
+    if ($expression === 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths') {
+      // For the "bio" node, expect `image-2` and an `alternateWidths` query
+      // string (NOT: a URI template).
+      $this->assertStringContainsString('image-2', $parsed->evaluate($node, is_required: TRUE));
+      $this->assertStringContainsString('?alternateWidths=', $parsed->evaluate($node, is_required: TRUE));
+      $this->assertStringNotContainsString('{width}', $parsed->evaluate($node, is_required: TRUE));
+      // For the "bio" node, expect `image-3` and a URI template (NOT: an
+      // `alternateWidths` query string).
+      $this->assertStringContainsString('image-3', $parsed->evaluate($node2, is_required: TRUE));
+      $this->assertStringContainsString('{width}', $parsed->evaluate($node2, is_required: TRUE));
+      $this->assertStringNotContainsString('?alternateWidths=', $parsed->evaluate($node2, is_required: TRUE));
+
+      // The expression in the context of node 2 (a `bio` node), which surfaces
+      // no `content` dependencies because the `srcset_candidate_uri_template`
+      // property does not provide such a dependency
+      // @see \Drupal\experience_builder\TypedData\ImageDerivativeWithParametrizedWidth
+      $this->assertSame($expected_dependencies_expression_only, $parsed->calculateDependencies($node2));
+    }
+  }
+
+  public static function providerDynamicPropSource(): \Generator {
+    yield "simple: FieldPropExpression" => [
+      'expression' => 'ℹ︎␜entity:user␝name␞␟value',
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => 'John Doe',
+      'expected_evaluation_with_node_host_entity' => \DomainException::class,
+      'expected_dependencies_expression_only' => ['module' => ['user']],
+      'expected_dependencies_with_host_entity' => ['module' => ['user']],
+    ];
+
+    yield "entity reference: ReferenceFieldPropExpression" => [
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
+      'expected_expression_class' => ReferenceFieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_node_host_entity' => 'John Doe',
+      'expected_dependencies_expression_only' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+        'content' => [
+          'user:user:881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
+        ],
+      ],
+    ];
+
+    yield "complex object: FieldObjectPropsExpression containing a ReferenceFieldPropExpression" => [
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
+      'expected_expression_class' => FieldObjectPropsExpression::class,
+      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_node_host_entity' => [
+        'human_id' => 'John Doe',
+        'machine_id' => 1,
+      ],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node', 'node'],
+        'config' => ['node.type.page', 'node.type.page'],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node', 'node'],
+        'config' => ['node.type.page', 'node.type.page'],
+        'content' => [
+          'user:user:881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
+        ],
+      ],
+    ];
+
+    $expected_dependencies_expression = [
       'module' => [
         'node',
-        'node',
+        'file',
+        'file',
       ],
       'config' => [
+        'node.type.bio',
         'node.type.page',
-        'node.type.page',
+        'field.field.node.bio.field_photo',
+        'image.style.xb_parametrized_width',
+        'field.field.node.page.field_image',
+        'image.style.xb_parametrized_width',
       ],
-      'content' => ['user:user:' . $user->uuid()],
-    ], $simple_example->calculateDependencies($node));
+    ];
+    // The expression in the context of the `page` node, which surfaces content
+    // dependencies because the `src_with_alternate_widths` property DOES
+    // provide such dependencies
+    // @see \Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString
+    $expected_node_1_expression_dependencies = $expected_dependencies_expression;
+    $expected_node_1_expression_dependencies['module'][] = 'file';
+    $expected_node_1_expression_dependencies['content'][] = 'file:file:a461c159-039a-4de2-96e5-07d1112105df';
+
+    yield "Contrived multi-bundle example, with per-bundle field names *and* per-field property names" => [
+      'expression' => 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_node_host_entity' => '<impossible to express in a data provider, see test>',
+      'expected_dependencies_expression_only' => $expected_dependencies_expression,
+      'expected_dependencies_with_host_entity' => $expected_node_1_expression_dependencies,
+    ];
   }
 
   /**

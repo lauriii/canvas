@@ -26,6 +26,7 @@ interface StructuredDataPropExpressionInterface extends PropExpressionInterface,
   const SUFFIX_OBJECT = '}';
   const SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE = '↝';
   const SYMBOL_OBJECT_MAPPED_USE_PROP = '↠';
+  const SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP = '␀';
 
   /**
    * Assesses whether the given evaluation context is supported.
