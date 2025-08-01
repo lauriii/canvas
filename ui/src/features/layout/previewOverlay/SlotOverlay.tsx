@@ -14,9 +14,9 @@ import type {
   ComponentNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import { getDistanceBetweenElements } from '@/utils/function-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
 import { useParams } from 'react-router';
@@ -27,23 +27,47 @@ export interface SlotOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   parentComponent: ComponentNode;
   disableDrop: boolean;
+  forceRecalculate?: number; // Increment this prop to trigger a re-calculation of the slot overlay's border rect
 }
 
 const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
-  const { slot, parentComponent, iframeRef, disableDrop } = props;
+  const {
+    slot,
+    parentComponent,
+    iframeRef,
+    disableDrop,
+    forceRecalculate = 0,
+  } = props;
   const { componentsMap, slotsMap } = useDataToHtmlMapValue();
   const slotId = slot.id;
   const slotElementArray = useMemo(() => {
     const element = slotsMap[slot.id]?.element;
     return element ? [element] : null;
   }, [slotsMap, slot.id]);
-  const elementRect = useSyncPreviewElementSize(slotElementArray);
-  const [elementOffset, setElementOffset] = useState({
-    horizontalDistance: 0,
-    verticalDistance: 0,
+  const { elementRect, recalculateBorder } =
+    useSyncPreviewElementSize(slotElementArray);
+  const parentElementsInsideIframe =
+    componentsMap[parentComponent.uuid]?.elements;
+  const { offset, recalculateOffset } = useSyncPreviewElementOffset(
+    slotElementArray,
+    parentElementsInsideIframe ? parentElementsInsideIframe : null,
+  );
+  // Padding calculation (if needed for visual reasons)
+  const [padding, setPadding] = useState({
     paddingTop: '0px',
     paddingBottom: '0px',
   });
+  useEffect(() => {
+    const elementInsideIframe = slotsMap[slotId]?.element;
+    if (elementInsideIframe) {
+      const computedStyle = window.getComputedStyle(elementInsideIframe);
+      setPadding({
+        paddingTop: computedStyle.paddingTop,
+        paddingBottom: computedStyle.paddingBottom,
+      });
+    }
+  }, [slotsMap, slotId]);
+
   const { componentId: selectedComponent } = useParams();
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, slotId);
@@ -52,69 +76,35 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
+  const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
 
+  // Recalculate the children's borders when the elementRect changes
   useEffect(() => {
-    const iframeDocument = iframeRef.current?.contentDocument;
-    if (!iframeDocument) {
-      return;
-    }
+    setForceRecalculateChildren((prev) => prev + 1);
+  }, [elementRect]);
 
-    // Use querySelector to find the element inside the iframe
-    const elementInsideIframe = slotsMap[slotId]?.element;
-
-    const parentElementInsideIframe =
-      componentsMap[parentComponent.uuid]?.elements[0];
-    if (!elementInsideIframe) {
-      return;
-    }
-    const computedStyle = window.getComputedStyle(elementInsideIframe);
-
-    if (parentElementInsideIframe && elementInsideIframe) {
-      setElementOffset((prevOffsets) => {
-        // Only update the state if the offsets actually changes to prevent re-renders
-        const newOffsets = {
-          ...getDistanceBetweenElements(
-            parentElementInsideIframe,
-            elementInsideIframe,
-          ),
-          paddingTop: computedStyle.paddingTop,
-          paddingBottom: computedStyle.paddingBottom,
-        };
-
-        if (
-          prevOffsets.horizontalDistance !== newOffsets.horizontalDistance ||
-          prevOffsets.verticalDistance !== newOffsets.verticalDistance ||
-          prevOffsets.paddingTop !== newOffsets.paddingTop ||
-          prevOffsets.paddingBottom !== newOffsets.paddingBottom
-        ) {
-          return newOffsets;
-        }
-        return prevOffsets;
-      });
-    }
-  }, [
-    componentsMap,
-    slotsMap,
-    elementRect,
-    iframeRef,
-    parentComponent.uuid,
-    slotId,
-  ]);
+  // Recalculate the border when the parent increments the forceRecalculate prop
+  useEffect(() => {
+    recalculateBorder();
+    recalculateOffset();
+  }, [forceRecalculate, recalculateBorder, recalculateOffset]);
 
   const style: React.CSSProperties = useMemo(
     () => ({
       height: elementRect.height * canvasViewPortScale,
       width: elementRect.width * canvasViewPortScale,
-      top: elementOffset.verticalDistance * canvasViewPortScale,
-      left: elementOffset.horizontalDistance * canvasViewPortScale,
+      top: (offset.offsetTop || 0) * canvasViewPortScale,
+      left: (offset.offsetLeft || 0) * canvasViewPortScale,
       pointerEvents: 'none',
+      ...padding,
     }),
     [
       elementRect.height,
       elementRect.width,
       canvasViewPortScale,
-      elementOffset.verticalDistance,
-      elementOffset.horizontalDistance,
+      offset.offsetTop,
+      offset.offsetLeft,
+      padding,
     ],
   );
 
@@ -154,6 +144,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
           component={childComponent}
           index={index}
           disableDrop={disableDrop}
+          forceRecalculate={forceRecalculateChildren}
         />
       ))}
 

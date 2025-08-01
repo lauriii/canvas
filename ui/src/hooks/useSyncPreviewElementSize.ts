@@ -22,7 +22,9 @@ function findParentBody(element: HTMLElement) {
       return currentElement; // Found the body element
     }
     const parent = currentElement.parentElement;
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     currentElement = parent;
   }
 
@@ -59,6 +61,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const mutationObserverRef = useRef<MutationObserver | null>(null);
   const elementsRef = useRef<HTMLElement[] | null>(null);
+  const removeAnimationEndListenerRef = useRef<(() => void) | null>(null);
 
   const recalculateBorder = useCallback(() => {
     const elements = elementsRef.current;
@@ -85,6 +88,20 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
     }
   }, []);
 
+  const forceRecalculateBorder = useCallback(() => {
+    // updates the elementRect state immediately, which will trigger a re-render even if the dimensions haven't changed
+    // to catch situations where the position HAS changed due to transforms/translations/scale etc.
+    const elements = elementsRef.current;
+    const newRect = calculateBoundingRect(elements);
+
+    if (newRect && elements) {
+      requestAnimationFrame(() => {
+        setElementRect(newRect);
+      });
+    }
+  }, []);
+
+  // Update the elementsRef whenever the elements change
   useLayoutEffect(() => {
     elementsRef.current = elements;
     recalculateBorder();
@@ -110,7 +127,8 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
           mutation.attributeName === 'style'
         ) {
           const target = mutation.target;
-          // Calculate borders again after transitionEnd event to take into account the final result/position of css animations
+          // Calculate borders again after transitions to take into account the final result/position of css animations
+          // that may have been applied by the mutation.
           target.addEventListener('transitionend', recalculateBorder, {
             once: true,
           });
@@ -142,7 +160,7 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
         }
       }
 
-      // Observe mutations on the body to account for other element's updating that may affect the position of this one
+      // Observe mutations on the body to account for other elements updating that may affect the position of this one
       const parentBody = findParentBody(element);
       if (parentBody) {
         mutationObserverRef.current?.observe(parentBody, {
@@ -151,9 +169,21 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
           subtree: true,
         });
       }
-    });
-  }, [recalculateBorder]);
+      element.removeEventListener('animationend', forceRecalculateBorder);
 
+      // Bind animationend listener
+      element.addEventListener('animationend', forceRecalculateBorder);
+    });
+
+    // Store cleanup logic for animationend listeners
+    removeAnimationEndListenerRef.current = () => {
+      elementsRef.current?.forEach((element) => {
+        element.removeEventListener('animationend', forceRecalculateBorder);
+      });
+    };
+  }, [forceRecalculateBorder, recalculateBorder]);
+
+  // Initialize the observers and listeners when the component mounts
   useLayoutEffect(() => {
     if (elements?.length) {
       init();
@@ -163,11 +193,16 @@ function useSyncPreviewElementSize(input: HTMLElement[] | HTMLElement | null) {
       // Cleanup observers
       resizeObserverRef.current?.disconnect();
       mutationObserverRef.current?.disconnect();
+
+      // Cleanup animationend listeners
+      removeAnimationEndListenerRef.current?.();
     };
   }, [init, elements]);
 
   // Use useMemo to return a stable reference
-  return useMemo(() => elementRect, [elementRect]);
+  return useMemo(() => {
+    return { elementRect, recalculateBorder };
+  }, [elementRect, recalculateBorder]);
 }
 
 export default useSyncPreviewElementSize;

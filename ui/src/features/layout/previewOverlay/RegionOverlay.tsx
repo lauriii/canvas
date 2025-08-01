@@ -37,7 +37,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
   );
   const { regionsMap } = useDataToHtmlMapValue();
   const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
-  const elementRect = useSyncPreviewElementSize(
+  const { elementRect } = useSyncPreviewElementSize(
     regionsMap[region.id]?.elements,
   );
   const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
