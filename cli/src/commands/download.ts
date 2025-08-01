@@ -8,8 +8,9 @@ import { createApiService } from '../services/api';
 import yaml from 'js-yaml';
 import type { Component } from '../types/Component';
 import { reportResults } from '../utils/report-results';
-import type { Result } from '../types/Result';
 import { directoryExists } from '../utils/utils';
+import type { Result } from '../types/Result';
+import type { Metadata } from '../types/Metadata';
 
 interface DownloadOptions {
   clientId?: string;
@@ -179,12 +180,14 @@ export function downloadCommand(program: Command): void {
             await fs.mkdir(componentDir, { recursive: true });
 
             // Create component.yml metadata file
-            const metadata = {
+            const metadata: Metadata = {
               name: component.name,
               machineName: component.machineName,
               status: component.status,
               required: component.required || [],
-              props: component.props || {},
+              props: {
+                properties: component.props || {},
+              },
               slots: component.slots || {},
               importedJsComponents: component.importedJsComponents || [],
             };

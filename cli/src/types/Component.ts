@@ -27,9 +27,3 @@ export interface AssetLibrary {
     compiled: string;
   };
 }
-
-export interface Metadata {
-  name: string;
-  machineName: string;
-  slots: object;
-}

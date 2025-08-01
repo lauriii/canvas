@@ -177,6 +177,9 @@ async function getBuildAndUploadResults(
       // Process all component files
       const { sourceCodeJs, compiledJs, sourceCodeCss, compiledCss, metadata } =
         await processComponentFiles(dir);
+      if (!metadata) {
+        throw new Error('Invalid metadata file');
+      }
 
       const machineName =
         buildResult.itemName ||

@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
-import type { Component, Metadata } from '../types/Component';
+import type { Component } from '../types/Component';
+import type { Metadata } from '../types/Metadata';
 
 /**
  * Process and read component files
@@ -13,7 +14,7 @@ export async function processComponentFiles(componentDir: string): Promise<{
   compiledJs: string;
   sourceCodeCss: string;
   compiledCss: string;
-  metadata: Metadata;
+  metadata: Metadata | undefined;
 }> {
   const metadataPath = await findMetadataPath(componentDir);
   const metadata = await readComponentMetadata(metadataPath);
@@ -71,7 +72,7 @@ export async function findMetadataPath(componentDir: string): Promise<string> {
  */
 export async function readComponentMetadata(
   filePath: string,
-): Promise<Metadata> {
+): Promise<Metadata | undefined> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     // Make sure we return an object even if the file is empty
@@ -81,7 +82,7 @@ export async function readComponentMetadata(
       console.error(
         `Invalid metadata format in ${filePath}. Expected an object, got ${typeof rawMetadata}`,
       );
-      return { name: path.basename(path.dirname(filePath)) };
+      return undefined;
     }
 
     // Basic validation and normalization
@@ -102,6 +103,7 @@ export async function readComponentMetadata(
     return metadata;
   } catch (error) {
     console.error(`Error reading component metadata from ${filePath}:`, error);
+    return undefined;
   }
 }
 
