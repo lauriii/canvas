@@ -116,12 +116,14 @@ const operationsHandler = {
     availableComponents,
     layoutUtils,
     componentSelectionUtils,
+    navigate,
   }: {
     message: any;
     dispatch: any;
     availableComponents: any;
     layoutUtils: any;
     componentSelectionUtils: any;
+    navigate: any;
   }) => {
     // Logic for placing components (SDCs/Blocks/Code components) to the canvas.
     for (const op of message.operations) {
@@ -193,6 +195,8 @@ const operationsHandler = {
         }
       }
     }
+    // Redirect to /editor.
+    navigate('/editor');
   },
 };
 
@@ -368,6 +372,7 @@ const AiWizard = () => {
               availableComponents,
               layoutUtils,
               componentSelectionUtils,
+              navigate,
             });
           }, 0);
           // Return the message to DeepChat so it is displayed immediately.
