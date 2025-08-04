@@ -61,8 +61,9 @@ const AddCodeComponentDialog = () => {
       setValidationError('');
       dispatch(closeAllDialogs());
       navigate(`/code-editor/code/${data.machineName}`);
+      reset();
     }
-  }, [isSuccess, data?.machineName, dispatch, navigate, componentName]);
+  }, [isSuccess, data?.machineName, dispatch, navigate, componentName, reset]);
 
   useEffect(() => {
     if (isError) {
