@@ -134,6 +134,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       'compiledCss' => '',
       'importedJsComponents' => [],
       'props' => $transformed_props,
+      'dataDependencies' => [],
     ];
 
     $this->information = Yaml::dump([
