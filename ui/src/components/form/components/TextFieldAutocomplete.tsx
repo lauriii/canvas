@@ -66,6 +66,7 @@ const TextFieldAutocomplete = ({
   return (
     <div className={clsx(styles.wrap, styles.autocompleteWrap)}>
       <input
+        autoComplete="off"
         {...a2p(attributes, {}, { skipAttributes: ['onBlur', 'onChange'] })}
         className={clsx(styles.root, styles.autocomplete, className)}
         ref={(node) => {

@@ -39,6 +39,7 @@ export default function Slots() {
         <FormElement>
           <Label htmlFor={`slot-name-${slot.id}`}>Slot name</Label>
           <TextField.Root
+            autoComplete="off"
             id={`slot-name-${slot.id}`}
             placeholder="Enter a name"
             value={slot.name}

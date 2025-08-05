@@ -114,6 +114,7 @@ const AddCodeComponentDialog = () => {
             Component name
           </DialogFieldLabel>
           <TextField.Root
+            autoComplete="off"
             id={'componentName'}
             value={componentName}
             onChange={(e) => handleOnChange(e.target.value)}

@@ -64,6 +64,7 @@ export default function Props() {
             <FormElement>
               <Label htmlFor={`prop-name-${prop.id}`}>Prop name</Label>
               <TextField.Root
+                autoComplete="off"
                 id={`prop-name-${prop.id}`}
                 placeholder="Enter a name"
                 value={prop.name}

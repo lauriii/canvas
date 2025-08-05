@@ -281,6 +281,7 @@ const Navigation = ({
           }}
         >
           <TextField.Root
+            autoComplete="off"
             id="xb-navigation-search"
             placeholder="Search…"
             radius="medium"

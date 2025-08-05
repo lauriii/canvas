@@ -146,6 +146,7 @@ const SavePatternDialog: React.FC = () => {
             Pattern name
           </DialogFieldLabel>
           <TextField.Root
+            autoComplete="off"
             value={patternName}
             onChange={handleInputChange}
             placeholder="Enter a name"

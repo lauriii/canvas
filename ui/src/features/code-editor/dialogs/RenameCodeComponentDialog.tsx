@@ -96,6 +96,7 @@ const RenameCodeComponentDialog = () => {
           Component name
         </DialogFieldLabel>
         <TextField.Root
+          autoComplete="off"
           id={'componentName'}
           value={componentName}
           onChange={(e) => setComponentName(e.target.value)}

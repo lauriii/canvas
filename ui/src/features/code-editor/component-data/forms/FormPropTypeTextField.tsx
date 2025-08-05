@@ -26,6 +26,7 @@ export default function FormPropTypeTextField({
       <FormElement>
         <Label htmlFor={`prop-example-${id}`}>Example value</Label>
         <TextField.Root
+          autoComplete="off"
           id={`prop-example-${id}`}
           type={['integer', 'number'].includes(type) ? 'number' : 'text'}
           step={type === 'integer' ? 1 : undefined}

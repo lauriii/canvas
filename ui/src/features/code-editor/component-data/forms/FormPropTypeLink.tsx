@@ -61,6 +61,7 @@ export default function FormPropTypeLink({
           )}
           <Box flexGrow="1">
             <TextField.Root
+              autoComplete="off"
               id={`prop-example-${id}`}
               type="text"
               placeholder={

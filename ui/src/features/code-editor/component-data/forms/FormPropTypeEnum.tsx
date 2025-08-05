@@ -173,6 +173,7 @@ function EnumValuesForm({
           <Box flexGrow="1">
             <FormElement>
               <TextField.Root
+                autoComplete="off"
                 data-testid={`xb-prop-enum-value-${propId}-${index}`}
                 type={['integer', 'number'].includes(type) ? 'number' : 'text'}
                 step={type === 'integer' ? 1 : undefined}
