@@ -177,6 +177,8 @@ paths:
                       - No items to publish
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
+        '500':
+          $ref: '#/components/responses/ClientErrorResponse'
   /xb/api/v0/auto-saves/{entityTypeId}/{entityId}:
     description:  Interact with an auto-save entry for a particular entity
     parameters:
@@ -1991,7 +1993,7 @@ components:
             - entity_type
             - entity_id
             - entity_label
-            - auto_save_key
+            - api_auto_save_key
           properties:
             entity_type:
               type: string
@@ -2010,7 +2012,7 @@ components:
               examples:
                 - Spring sale now on
               title: Item label
-            auto_save_key:
+            api_auto_save_key:
               type: string
               examples:
                 - 'node:4:en'

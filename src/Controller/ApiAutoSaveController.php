@@ -377,7 +377,22 @@ final class ApiAutoSaveController extends ApiControllerBase {
         $transaction->rollBack();
       }
       Error::logException($this->logger, $e);
-      throw $e;
+      return new JsonResponse(data: [
+        'errors' => [
+          [
+            'detail' => $e->getMessage(),
+            'source' => [
+              'pointer' => 'error',
+            ],
+            'meta' => [
+              'entity_type' => $lastEntityEvaluated->getEntityTypeId(),
+              'entity_id' => $lastEntityEvaluated->id(),
+              'label' => $lastEntityEvaluated->label(),
+              self::AUTO_SAVE_KEY => AutoSaveManager::getAutoSaveKey($lastEntityEvaluated),
+            ],
+          ],
+        ],
+      ], status: 500);
     }
 
     return new JsonResponse(data: ['message' => new PluralTranslatableMarkup(\count($publish_auto_saves), 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);

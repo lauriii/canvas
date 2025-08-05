@@ -2,13 +2,39 @@
 
 describe('Publish review functionality', () => {
   beforeEach(() => {
-    cy.drupalXbInstall(['xb_test_article_fields', 'xb_test_invalid_field']);
+    cy.drupalXbInstall([
+      'xb_test_article_fields',
+      'xb_test_invalid_field',
+      'xb_force_publish_error',
+    ]);
     cy.drupalSession();
     cy.drupalLogin('xbUser', 'xbUser');
   });
 
   afterEach(() => {
     cy.drupalUninstall();
+  });
+
+  it('Handles non-validation publish errors', () => {
+    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+    cy.findByLabelText('Title').type('{selectall}{del}');
+    cy.findByLabelText('Title').type('cause exception');
+    cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+      timeout: 20000,
+    }).should('exist');
+
+    cy.publishAllPendingChanges(['cause exception'], false);
+    cy.get('[data-testid="error-details"] h4').should(
+      'have.text',
+      'cause exception',
+    );
+    cy.get('[data-testid="publish-error-detail"]').should(
+      'include.text',
+      'Forced exception for testing purposes.',
+    );
+    cy.get('button', { timeout: 20000 })
+      .contains(`Publish 1 selected`, { timeout: 20000 })
+      .should('exist');
   });
 
   it('Has links to the corresponding entity in errors', () => {

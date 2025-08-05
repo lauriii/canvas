@@ -64,6 +64,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     'path_alias',
     'path',
     'test_user_config',
+    'xb_force_publish_error',
   ];
 
   /**
@@ -1017,6 +1018,31 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
     ]);
     $this->assertSame(['message' => 'Successfully published 2 items.'], self::decodeResponse($response));
+
+    $autoSave->saveEntity($node1->set('title', 'cause exception'));
+    $autoSave->saveEntity($node2->set('title', 'this will be fine'));
+    $auto_save_data = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([
+      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
+      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
+    ]);
+    $decoded = self::decodeResponse($response);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'Forced exception for testing purposes.',
+          'source' => [
+            'pointer' => 'error',
+          ],
+          'meta' => [
+            'entity_type' => 'node',
+            'entity_id' => $node1->id(),
+            'label' => 'cause exception',
+            ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
+          ],
+        ],
+      ],
+    ], $decoded);
   }
 
   /**
