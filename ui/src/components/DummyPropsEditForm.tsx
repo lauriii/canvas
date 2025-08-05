@@ -39,7 +39,7 @@ import {
   useUpdateComponentMutation,
 } from '@/services/preview';
 import { getPropsValues } from '@/components/form/formUtil';
-import { syncPropSourcesToResolvedValues } from '@/components/form/inputBehaviors';
+import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import type { TransformConfig } from '@/utils/transforms';
 
 const TransformsContext = createContext<TransformConfig | undefined>(undefined);

@@ -49,13 +49,13 @@ describe('Media Library', () => {
     cy.findByLabelText('Display width').clear();
     cy.findByLabelText('Display width').type(190);
     cy.findByLabelText('Display width').trigger('change');
-    cy.waitForElementInIframe('video[width="190"] > source[src*="duck.mp4"]');
     cy.get('[aria-label="Video"]')
       .first()
       .should(($videoBox) => {
         const videoRect = $videoBox[0].getBoundingClientRect();
         expect(videoRect.width).to.be.closeTo(190, 1);
       });
+    cy.waitForElementInIframe('video[width="190"] > source[src*="duck.mp4"]');
     cy.findByLabelText('Display width').clear();
     cy.findByLabelText('Display width').type(500);
     cy.findByLabelText('Display width').trigger('change');
