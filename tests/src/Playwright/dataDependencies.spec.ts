@@ -16,6 +16,7 @@ test.describe('Data dependencies', () => {
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['experience_builder']);
       await drupal.createXbPage('Homepage', '/homepage');
+      await page.close();
     },
   );
 
@@ -33,7 +34,7 @@ test.describe('Data dependencies', () => {
       'utf-8',
     );
     await xBEditor.addCodeComponent('PageTitle', code);
-    const preview = xBEditor.getPreviewFrame();
+    const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(
       preview.getByRole('heading', {

@@ -1,6 +1,7 @@
 // cspell:ignore networkidle
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import nodePath from 'node:path';
 
 export class XBEditor {
   readonly page: Page;
@@ -27,40 +28,74 @@ export class XBEditor {
   }
 
   async waitForEditorUi() {
-    await expect(this.page.getByTestId('xb-contextual-panel')).toContainText(
-      'Title',
-      {
-        timeout: 15000,
-      },
+    await this.page
+      .getByTestId('xb-contextual-panel')
+      .locator('form')
+      .first()
+      .waitFor({ state: 'attached', timeout: 30_000 });
+    const forms = this.page.getByTestId('xb-contextual-panel').locator('form');
+    const count = await forms.count();
+    await Promise.race(
+      Array.from({ length: count }, (_, i) =>
+        forms.nth(i).waitFor({ state: 'visible', timeout: 30_000 }),
+      ),
     );
+
     await expect(this.page.getByTestId('xb-primary-panel')).toContainText(
-      /Content|Library/,
+      /Layers|Library/,
       {
         timeout: 15000,
       },
     );
 
-    await this.page.waitForFunction(
-      async () => {
-        const element = document.querySelector(
-          'iframe[data-xb-swap-active="true"]',
+    await this.page.evaluate(() => {
+      return new Promise((resolve) => {
+        let timeout;
+        const observer = new MutationObserver(() => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            observer.disconnect();
+            resolve();
+          }, 1000);
+        });
+
+        const parent = document.querySelector(
+          '[data-testid="xb-canvas-scaling"]',
         );
-        if (!element) return false;
+        observer.observe(parent, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+        });
 
-        // Check if it's been stable for a short period
-        const currentValue = element.getAttribute('data-xb-swap-active');
-        if (currentValue !== 'true') return false;
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Observe the iframes.
+        const iframes = parent.querySelectorAll('iframe[data-xb-iframe]');
+        iframes.forEach((iframe) => {
+          try {
+            if (iframe.contentDocument) {
+              observer.observe(iframe.contentDocument.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+              });
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (e) {
+            // Cross-origin iframe
+          }
+        });
 
-        // Check again after the delay to confirm stability
-        return element.getAttribute('data-xb-swap-active') === 'true';
-      },
-      { timeout: 10000 },
-    );
+        // Initial timeout
+        timeout = setTimeout(() => {
+          observer.disconnect();
+          resolve();
+        }, 1000);
+      });
+    });
 
     await expect(
       this.page.locator(
-        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="true"]',
+        '[data-testid="xb-canvas-scaling"] iframe[data-test-xb-content-initialized="true"]',
       ),
     ).toHaveCSS('opacity', '1');
     await expect(
@@ -74,6 +109,15 @@ export class XBEditor {
     const path = await this.getEditorPath();
     await this.page.goto(path);
     await this.waitForEditorUi();
+  }
+
+  async getActivePreviewFrame() {
+    await this.waitForEditorUi();
+    return this.page
+      .locator(
+        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="true"]',
+      )
+      .contentFrame();
   }
 
   /**
@@ -168,12 +212,39 @@ export class XBEditor {
     await previewElement.waitFor({ state: 'attached' });
   }
 
-  async editComponentProp(propName: string, propValue: string) {
-    await this.page
-      .locator(
-        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] .field--name-${propName} input`,
-      )
-      .fill(propValue);
+  async editComponentProp(
+    propName: string,
+    propValue: string,
+    propType = 'text',
+  ) {
+    const inputLocator = `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] .field--name-${propName.toLowerCase()} input`;
+    switch (propType) {
+      case 'file':
+        // For a moment there's 2 file choosers whilst the elements are processed.
+        await expect(
+          this.page.locator(`${inputLocator}[type="file"]`),
+        ).toHaveCount(1);
+        await expect(
+          this.page.locator(`${inputLocator}[type="file"]`),
+        ).toBeVisible();
+        await this.page
+          .locator(`${inputLocator}[type="file"]`)
+          .setInputFiles(nodePath.join(__dirname, propValue));
+        await expect(
+          this.page.locator(`${inputLocator}[type="file"]`),
+        ).not.toBeVisible();
+        break;
+      default:
+        await this.page.locator(inputLocator).fill(propValue);
+    }
+  }
+
+  async clickPreviewComponent(componentId: string) {
+    const previewElement = this.page.locator(
+      `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
+    );
+    await previewElement.waitFor({ state: 'attached' });
+    await previewElement.click();
   }
 
   async addCodeComponent(componentName: string, code: string) {
@@ -202,7 +273,100 @@ export class XBEditor {
     await codeEditor.fill(code);
   }
 
-  getPreviewFrame() {
+  async addCodeComponentProp(
+    propName: string,
+    propType: string,
+    example: { label: string; value: string; type: string }[] = [],
+    required: boolean = false,
+  ) {
+    await this.page
+      .locator('.xb-mosaic-window-component-data button:has-text("Props")')
+      .click();
+    await this.page
+      .locator('.xb-mosaic-window-component-data')
+      .getByRole('button')
+      .getByText('Add')
+      .click();
+    const propForm = this.page
+      .locator('.xb-mosaic-window-component-data [data-testid^="prop-"]')
+      .last();
+    await propForm.locator('[id^="prop-name-"]').fill(propName);
+    await propForm.locator('[id^="prop-type-"]').click();
+    await this.page
+      .locator('body > div > div.rt-SelectContent')
+      .getByRole('option', { name: propType, exact: true })
+      .click();
+    await expect(propForm.locator('[id^="prop-type-"]')).toHaveText(propType);
+    const requiredChecked = await propForm
+      .locator('[id^="prop-required-"]')
+      .getAttribute('data-state');
+    if (required && requiredChecked === 'unchecked') {
+      await propForm.locator('[id^="prop-required-"]').click();
+    }
+    if (required) {
+      expect(
+        await propForm
+          .locator('[id^="prop-required-"]')
+          .getAttribute('data-state'),
+      ).toEqual('checked');
+    } else {
+      expect(
+        await propForm
+          .locator('[id^="prop-required-"]')
+          .getAttribute('data-state'),
+      ).toEqual('unchecked');
+    }
+    for (const { label, value, type } of example) {
+      switch (type) {
+        case 'text':
+          await propForm
+            .locator(
+              `label[for^="prop-example-"]:has-text("${label}") + div input[id^="prop-example-"]`,
+            )
+            .fill(value);
+          break;
+        case 'select':
+          await propForm
+            .locator(
+              `label[for^="prop-example-"]:has-text("${label}") + button`,
+            )
+            .click();
+          await this.page
+            .locator('body > div > div.rt-SelectContent')
+            .getByRole('option', { name: value, exact: true })
+            .click();
+          await expect(
+            propForm.locator(
+              `label[for^="prop-example-"]:has-text("${label}") + button`,
+            ),
+          ).toHaveText(value);
+          break;
+        default:
+          throw new Error(`Unknown form element type ${type}`);
+      }
+    }
+
+    await this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/xb/api/v0/config/auto-save/js_component/') &&
+        response.request().method() === 'PATCH',
+    );
+
+    await expect(this.getCodePreviewFrame()).toBeVisible();
+  }
+
+  async saveCodeComponent(componentName: string) {
+    await this.page.getByRole('button', { name: 'Add to components' }).click();
+    await this.page.getByRole('button', { name: 'Add' }).click();
+    await this.waitForEditorUi();
+    await expect(
+      this.page.locator(
+        `[data-xb-type="component"][data-xb-component-id="${componentName}"]`,
+      ),
+    ).toBeVisible();
+  }
+
+  getCodePreviewFrame() {
     return this.page
       .locator('.xb-mosaic-window-preview iframe')
       .contentFrame()

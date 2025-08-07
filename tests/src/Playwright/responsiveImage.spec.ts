@@ -13,6 +13,7 @@ test.describe('Responsive Image', () => {
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.applyRecipe(`core/recipes/image_media_type`);
       await drupal.installModules(['experience_builder', 'xb_test_sdc']);
+      await page.close();
     },
   );
 
@@ -31,7 +32,7 @@ test.describe('Responsive Image', () => {
       .locator('[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]')
       .contentFrame();
     await expect(frame.locator('img.image')).toBeVisible();
-    await drupal.addMedia(
+    await drupal.addMediaImage(
       '../../../fixtures/images/gracie-big.jpg',
       'A cute dog',
     );
@@ -102,7 +103,7 @@ test.describe('Responsive Image', () => {
     await page.goto('/cards');
     await xBEditor.goToEditor();
     await xBEditor.addComponent('sdc.xb_test_sdc.card');
-    await drupal.addMedia(
+    await drupal.addMediaImage(
       '../../../fixtures/images/gracie-big.jpg',
       'A cute dog',
     );

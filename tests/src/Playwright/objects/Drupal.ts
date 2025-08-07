@@ -35,11 +35,11 @@ export class Drupal {
   }
 
   disableDrush() {
-    this.drupalSite.hasDrush = true;
+    this.drupalSite.hasDrush = false;
   }
 
   enableDrush() {
-    this.drupalSite.hasDrush = false;
+    this.drupalSite.hasDrush = true;
   }
 
   setDrush(enabled: boolean) {
@@ -50,6 +50,7 @@ export class Drupal {
     return await execDrush(command, this.drupalSite);
   }
 
+  // @todo deprecate this as it sets the site up into a weird state.
   async setupXBTestSite() {
     const moduleDir = await getModuleDir();
     await this.enableTestExtensions();
@@ -276,7 +277,35 @@ export class Drupal {
     );
   }
 
-  async addMedia(path: string, alt: string) {
+  async addMediaGenericFile(path: string) {
+    await this.page
+      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
+      .first() // @todo shouldn't need this but XB is currently rendering two fields
+      .click();
+    await this.page
+      .locator(
+        'form[data-drupal-selector^="media-library-add-form-upload"] input[name="files[upload]"]',
+      )
+      .setInputFiles(nodePath.join(__dirname, path));
+    await this.page.getByRole('button', { name: 'Save', exact: true }).click();
+    // @todo select the item we just uploaded rather than the first.
+    await this.page
+      .locator(
+        '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
+      )
+      .first()
+      .setChecked(true, { force: true });
+    await this.page
+      .getByRole('button', { name: 'Insert selected', exact: true })
+      .click();
+    await expect(
+      this.page.locator(
+        '[data-testid="xb-contextual-panel"] .js-media-library-item input[data-xb-media-remove-button="true"]',
+      ),
+    ).toBeVisible();
+  }
+
+  async addMediaImage(path: string, alt: string) {
     await this.page
       .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
       .first() // @todo shouldn't need this but XB is currently rendering two fields
@@ -290,6 +319,7 @@ export class Drupal {
     // It should be possible to set the alt text with the following, but there's currently a bug
     // await this.page.getByLabel('Alternative text').fill('A cute dog');
     // instead we use the evaluate method to set the value directly.
+    // https://www.drupal.org/project/experience_builder/issues/3535215
     await this.page
       .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
       .evaluate((el: HTMLInputElement, value) => {

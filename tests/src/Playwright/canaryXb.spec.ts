@@ -12,6 +12,7 @@ test.describe('Canary XB', () => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.setupXBTestSite();
+      await page.close();
     },
   );
 
@@ -91,5 +92,24 @@ test.describe('Canary XB', () => {
     await expect(layerPanelElement).toContainText('Two Column');
     await expect(layerPanelElement).toContainText('Column One');
     await expect(layerPanelElement).toContainText('Column Two');
+  });
+
+  test('Component can be deleted', async ({ page, drupal, xBEditor }) => {
+    await drupal.loginAsAdmin();
+    await page.goto('/first');
+    await xBEditor.goToEditor();
+    // Delete the image that uses an adapted source.
+    await xBEditor.clickPreviewComponent('sdc.xb_test_sdc.image');
+    await page.keyboard.press('Delete');
+    await page
+      .locator(
+        '#xbPreviewOverlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+      )
+      .waitFor({ state: 'detached' });
+    await expect(
+      page.locator(
+        '#xbPreviewOverlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+      ),
+    ).toHaveCount(0);
   });
 });

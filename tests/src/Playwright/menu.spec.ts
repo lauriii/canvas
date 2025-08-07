@@ -20,6 +20,7 @@ test.describe('Menu Component', () => {
       // @todo remove the cache clear once https://www.drupal.org/project/drupal/issues/3534825
       // is fixed.
       await drupal.drush('cr');
+      await page.close();
     },
   );
 
@@ -35,7 +36,7 @@ test.describe('Menu Component', () => {
       'utf-8',
     );
     await xBEditor.addCodeComponent('Menu', code);
-    const preview = xBEditor.getPreviewFrame();
+    const preview = xBEditor.getCodePreviewFrame();
 
     await expect(preview).toContainText('JSON:API Menu');
     await expect(preview).toContainText('Core Linkset Menu');

@@ -20,9 +20,9 @@ type DrupalSiteInstall = {
 
 const drupalSite = base.extend<DrupalSiteInstall>({
   drupalSite: [
-    async ({}, use, workerInfo) => {
+    async ({}, use) => {
       const stdout = await exec(
-        `php core/scripts/test-site.php install --no-interaction --install-profile minimal --base-url ${process.env.DRUPAL_TEST_BASE_URL} --db-url ${process.env.DRUPAL_TEST_DB_URL}-${workerInfo.workerIndex} --json`,
+        `php core/scripts/test-site.php install --no-interaction --install-profile minimal --base-url ${process.env.DRUPAL_TEST_BASE_URL} --db-url ${process.env.DRUPAL_TEST_DB_URL} --json`,
       );
       const installData = JSON.parse(stdout.toString());
       const withDrush = await hasDrush();

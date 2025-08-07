@@ -14,6 +14,7 @@ test.describe('Global elements', () => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['experience_builder']);
+      await page.close();
     },
   );
 
@@ -28,7 +29,7 @@ test.describe('Global elements', () => {
       'utf-8',
     );
     await xBEditor.addCodeComponent('PageTitle', code);
-    const preview = xBEditor.getPreviewFrame();
+    const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(
       preview.getByRole('heading', {
@@ -48,7 +49,7 @@ test.describe('Global elements', () => {
       'utf-8',
     );
     await xBEditor.addCodeComponent('SiteBranding', code);
-    const preview = xBEditor.getPreviewFrame();
+    const preview = xBEditor.getCodePreviewFrame();
     // Site name defaults to 'Drupal'.
     // @see \Drupal\Core\Command\InstallCommand::configure
     await expect(preview.getByRole('link', { name: 'Drupal' })).toBeVisible();
@@ -65,7 +66,7 @@ test.describe('Global elements', () => {
       'utf-8',
     );
     await xBEditor.addCodeComponent('Breadcrumbs', code);
-    const preview = xBEditor.getPreviewFrame();
+    const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(preview.getByRole('link', { name: 'Home' })).toBeVisible();
     await expect(

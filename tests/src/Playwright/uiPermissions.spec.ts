@@ -15,6 +15,7 @@ test.describe('XB UI Permissions', () => {
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.applyRecipe(`core/recipes/image_media_type`);
       await drupal.setupXBTestSite();
+      await page.close();
     },
   );
 
