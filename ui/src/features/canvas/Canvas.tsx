@@ -275,8 +275,8 @@ const Canvas = () => {
     }
     // Increase the total width/height of the canvas to accommodate the scaled xbCanvasScalingContainer.
     const rect = scalingContainerRef.current?.getBoundingClientRect();
-    canvasRef.current.style.width = `${rect.width}px`;
-    canvasRef.current.style.height = `${rect.height}px`;
+    canvasRef.current.style.width = rect.width ? `${rect.width}px` : '';
+    canvasRef.current.style.height = rect.height ? `${rect.height}px` : '';
   }, [canvasViewPort.scale]);
 
   return (
