@@ -190,7 +190,7 @@ async function getBuildAndUploadResults(
       //   without relying on yml metadata.
       const importedJsComponents = metadata.importedJsComponents || [];
 
-      const componentPayload = createComponentPayload({
+      const componentPayloadArg = {
         metadata,
         machineName,
         componentName,
@@ -199,7 +199,8 @@ async function getBuildAndUploadResults(
         sourceCodeCss,
         compiledCss,
         importedJsComponents,
-      });
+      };
+      const componentPayload = createComponentPayload(componentPayloadArg);
 
       // Check if component exists already
       let componentExists = false;
@@ -211,12 +212,44 @@ async function getBuildAndUploadResults(
         // Component does not exist, will create new.
       }
 
-      // Create or update the component
-      if (componentExists) {
-        await apiService.updateComponent(machineName, componentPayload);
-      } else {
-        await apiService.createComponent(componentPayload);
+      try {
+        // Create or update the component
+        if (componentExists) {
+          await apiService.updateComponent(machineName, componentPayload, true);
+        } else {
+          await apiService.createComponent(componentPayload, true);
+        }
+      } catch (error) {
+        // If the error is a 422 and specifies dataDependencies as the problem,
+        // it might be due to running a version of XB that does not yet support
+        // this property. Remove dataDependencies from the payload and make
+        // another attempts.
+        if (
+          error.status === 422 &&
+          error?.response?.data?.errors?.[0]?.source?.pointer ===
+            'dataDependencies'
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { dataDependencies, ...remainingPayload } = componentPayload;
+          if (componentExists) {
+            await apiService.updateComponent(machineName, remainingPayload);
+          } else {
+            await apiService.createComponent(remainingPayload);
+          }
+        } else {
+          // If we are here the create/update failed and is not a 422 related to
+          // dataDependencies.
+          // Make another attempt to create/update without the 2nd argument so
+          // the error is in the format expected by the catch statement that
+          // summarizes the success (or lack thereof) of this operation.
+          if (componentExists) {
+            await apiService.updateComponent(machineName, componentPayload);
+          } else {
+            await apiService.createComponent(componentPayload);
+          }
+        }
       }
+
       results.push({
         itemName: componentName,
         success: true,

@@ -190,6 +190,7 @@ export function downloadCommand(program: Command): void {
               },
               slots: component.slots || {},
               importedJsComponents: component.importedJsComponents || [],
+              dataDependencies: component.dataDependencies || [],
             };
 
             await fs.writeFile(

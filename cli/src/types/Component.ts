@@ -13,6 +13,7 @@ export interface Component {
   sourceCodeCss?: string;
   compiledCss?: string;
   importedJsComponents: string[];
+  dataDependencies: string[];
 }
 
 export interface AssetLibrary {

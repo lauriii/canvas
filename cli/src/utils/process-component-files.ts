@@ -153,5 +153,6 @@ export function createComponentPayload(params: {
     sourceCodeCss: sourceCodeCss,
     compiledCss: compiledCss,
     importedJsComponents: metadata.importedJsComponents || [],
+    dataDependencies: metadata.dataDependencies || [],
   };
 }

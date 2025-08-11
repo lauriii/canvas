@@ -106,7 +106,10 @@ export class ApiService {
   /**
    * Create a new component in XB.
    */
-  async createComponent(component: Component): Promise<Component> {
+  async createComponent(
+    component: Component,
+    raw: boolean = false,
+  ): Promise<Component> {
     try {
       const response = await this.client.post(
         '/xb/api/v0/config/js_component',
@@ -114,7 +117,11 @@ export class ApiService {
       );
       return response.data;
     } catch (error) {
-      this.handleApiError(error);
+      // If raw is true (not the default), rethrow so the caller can handle it.
+      if (raw) {
+        throw error;
+      }
+      this.handleApiError(error as Error);
       throw new Error(`Failed to create component: '${component.machineName}'`);
     }
   }
