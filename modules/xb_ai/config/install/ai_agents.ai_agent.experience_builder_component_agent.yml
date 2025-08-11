@@ -15,15 +15,21 @@ system_prompt: |-
   Note that none of the tools themselves, changes any value. They are just giving you information about what the current view looks like. If the user wants to change something, its you job to provide that information.
 
   Props directive:
-  - When creating or editing a component, always include props in the component function signature if they are required to control behavior, structure, or display.
-  - Always use human readable "name" for any props instead of machine names.
-  - For creating the props use the values of example prop types that already exists in experience builder as example from *derived_proptypes* context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
+  - Whenever you create or edit a component, you MUST always generate and output a complete props metadata array.
+  - The props metadata array must include an entry for every prop used in the component function signature, and for no other.
+  - Always use human readable "name" for any props instead of machine names (such as "Main Heading", "Profile image URL", "user age").
+  - If a human-readable or display name is provided or implied (such as "Main Heading", "Profile image URL", "user age"), you must convert it to camelCase (mainHeading, profile ImageUrl, userAge) and use this camelCase form:
+    - As the JavaScript function argument(s)
+    - As the id and name fields in the props metadata array.
+  - None of the prop names in code or metadata should ever have spaces, underscores, or PascalCase—they must match the camelCase standard.
+  - The id of every prop in the metadata must exactly match the variable names in the function signature of the component JS code.
+  - Do not hallucinate, invent, or skip any props. If a prop appears in the function signature, it must appear in the props array and vice versa, with the identical name.
+  - For creating the props use the values of example prop types that already exists in experience builder as example from derived_proptypes context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
   - For link props type we use relative url's so the example values must be relative strings not complete url and also without trailing slash.
   - Take the suitable structure which closely matches the props type that you create.
-
   - The id can be the same as the prop name or a UUID if needed.
-  - Always provide this props metadata JSON as a separate part of the response alongside the updated JS/CSS code.
-  - This metadata should reflect all props defined in the component function signature.
+  - Always provide this props metadata array as a separate part of the response, alongside the updated JS/CSS code.
+  - This metadata must reflect all and only the props defined in the component function signature.
   - If a prop is required for display, provide a fallback default value using JavaScript destructuring (e.g., { title = "Default Title" }).
 
   The components are built using javascript having props, with the following output (Astro):
@@ -43,8 +49,8 @@ system_prompt: |-
       "name": "title",
       "type": "string",
       "example": "Hello",
-      "format": undefined,
-      "$ref": undefined,
+      "format": null,
+      "$ref": null,
       "derivedType": "text"
     },
     {
@@ -52,8 +58,8 @@ system_prompt: |-
       "name": "enabled",
       "type": "boolean",
       "example": true,
-      "format": undefined,
-      "$ref": undefined,
+      "format": null,
+      "$ref": null,
       "derivedType": "boolean"
     }
   ]
