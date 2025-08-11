@@ -12,7 +12,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Theme\ThemeCommonElements;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\experience_builder\CodeComponentDataProvider;
 use Drupal\experience_builder\Entity\AssetLibrary;
@@ -157,43 +156,6 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
       ksort($xbData[CodeComponentDataProvider::V0]);
       $settings[CodeComponentDataProvider::XB_DATA_KEY] = $xbData;
     }
-  }
-
-  /**
-   * Implements hook_theme().
-   *
-   * For "block override" code components.
-   * ⚠️ This is highly experimental and *will* be refactored.
-   *
-   * @todo Remove/refactor in https://www.drupal.org/project/experience_builder/issues/3519737
-   */
-  #[Hook('theme')]
-  public function theme(): array {
-    $common_elements = ThemeCommonElements::commonElements();
-    return [
-      'block__system_menu_block__as_js_component' => [
-        'base hook' => 'block',
-        'template' => 'just-children',
-      ],
-      'menu__as_js_component' => [
-        'base hook' => 'menu',
-        'template' => 'just-children',
-        'variables' => $common_elements['menu']['variables'] + ['rendering_context' => \NULL],
-      ],
-      'block__system_branding_block__as_js_component' => [
-        'base hook' => 'block',
-        'template' => 'just-children',
-      ],
-      'block__system_breadcrumb_block__as_js_component' => [
-        'base hook' => 'block',
-        'template' => 'just-children',
-      ],
-      'breadcrumb__as_js_component' => [
-        'base hook' => 'breadcrumb',
-        'template' => 'just-children',
-        'variables' => $common_elements['breadcrumb']['variables'] + ['rendering_context' => \NULL],
-      ],
-    ];
   }
 
 }
