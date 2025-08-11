@@ -88,7 +88,29 @@ export const InputBehaviorsEntityForm = (
   };
 
   const validateNewValue = (e: React.ChangeEvent, newValue: any) => {
-    // @todo Implement this.
+    if (!(e.target instanceof HTMLInputElement)) {
+      return { valid: true, errors: null };
+    }
+
+    // For the page data form, we use native HTML5 validation, but the messages
+    // are displayed by the same component that renders JSON Schema errors in
+    // the component instance form.
+    if (!e.target.checkValidity()) {
+      const inputElement = e.target;
+      const requiredAndOnlyProblemIsEmpty =
+        inputElement.required &&
+        Object.keys(inputElement.validity).every((validityProperty: string) =>
+          ['valueMissing'].includes(validityProperty)
+            ? inputElement.validity[validityProperty as keyof ValidityState]
+            : !inputElement.validity[validityProperty as keyof ValidityState],
+        );
+      return {
+        valid: false,
+        errorMessage: e.target.validationMessage,
+        skipEarlyReturn: requiredAndOnlyProblemIsEmpty,
+      };
+    }
+
     return { valid: true, errors: null };
   };
 

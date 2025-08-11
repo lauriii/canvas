@@ -25,7 +25,9 @@ const ajv = new Ajv();
 
 type ValidationResult = {
   valid: boolean;
-  errors: null | ErrorObject[];
+  errors?: null | ErrorObject[];
+  errorMessage?: string;
+  skipEarlyReturn?: boolean;
 };
 
 type InputBehaviorsForm = (
@@ -205,31 +207,6 @@ export const InputBehaviorsCommon = ({
         );
       }
 
-      // Check if the input fails HTML5 validation (i.e. validation performed by
-      // the browser based on attribute values). If it fails, return early
-      // without updating the store. Additional validation based on JSON Schema
-      // will occur after this.
-      if (e.target instanceof HTMLInputElement && !e.target.reportValidity()) {
-        const inputElement = e.target;
-
-        // HTML5 validation has a stricter definition of `required` than JSON
-        // Schema. If this is the only violation, we should not return early.
-        const requiredAndOnlyProblemIsEmpty =
-          inputElement.required &&
-          Object.keys(inputElement.validity).every(
-            (validityProperty: string) =>
-              ['valueMissing'].includes(validityProperty)
-                ? inputElement.validity[validityProperty as keyof ValidityState]
-                : !inputElement.validity[
-                    validityProperty as keyof ValidityState
-                  ],
-          );
-
-        if (!requiredAndOnlyProblemIsEmpty) {
-          return;
-        }
-      }
-
       // Check the current value against the JSON Schema definition for the
       // prop. If the value is invalid, we return early and skip updating the
       // store.
@@ -239,8 +216,21 @@ export const InputBehaviorsCommon = ({
         e.target instanceof HTMLInputElement &&
         e.target.form instanceof HTMLFormElement
       ) {
-        if (!validateNewValue(e, newValue).valid) {
-          return;
+        const validationResult = validateNewValue(e, newValue);
+        if (!validationResult.valid && formId) {
+          dispatch(
+            setFieldError({
+              type: 'error',
+              message:
+                validationResult.errorMessage ||
+                ajv.errorsText(validationResult.errors),
+              formId,
+              fieldName,
+            }),
+          );
+          if (!validationResult?.skipEarlyReturn) {
+            return;
+          }
         }
       }
 
@@ -255,7 +245,9 @@ export const InputBehaviorsCommon = ({
           dispatch(
             setFieldError({
               type: 'error',
-              message: ajv.errorsText(validationResult.errors),
+              message:
+                validationResult.errorMessage ||
+                ajv.errorsText(validationResult.errors),
               formId,
               fieldName,
             }),
