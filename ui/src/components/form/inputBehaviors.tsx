@@ -205,29 +205,37 @@ export const InputBehaviorsCommon = ({
         );
       }
 
-      // Check if the input is valid before continuing.
+      // Check if the input fails HTML5 validation (i.e. validation performed by
+      // the browser based on attribute values). If it fails, return early
+      // without updating the store. Additional validation based on JSON Schema
+      // will occur after this.
       if (e.target instanceof HTMLInputElement && !e.target.reportValidity()) {
         const inputElement = e.target;
+
+        // HTML5 validation has a stricter definition of `required` than JSON
+        // Schema. If this is the only violation, we should not return early.
         const requiredAndOnlyProblemIsEmpty =
           inputElement.required &&
           Object.keys(inputElement.validity).every(
             (validityProperty: string) =>
-              ['valid', 'valueMissing'].includes(validityProperty)
+              ['valueMissing'].includes(validityProperty)
                 ? inputElement.validity[validityProperty as keyof ValidityState]
                 : !inputElement.validity[
                     validityProperty as keyof ValidityState
                   ],
           );
-        // We will return early unless the only problem caught by native
-        // validation is a required field that is empty.
+
         if (!requiredAndOnlyProblemIsEmpty) {
           return;
         }
       }
 
+      // Check the current value against the JSON Schema definition for the
+      // prop. If the value is invalid, we return early and skip updating the
+      // store.
       if (
         fieldName &&
-        newValue &&
+        (newValue || newValue === '') &&
         e.target instanceof HTMLInputElement &&
         e.target.form instanceof HTMLFormElement
       ) {
