@@ -47,6 +47,18 @@ class XbAiHooks {
             'name' => $this->t('derived Proptypes'),
             'description' => $this->t('Returns the proptypes available in experience builder.'),
           ],
+          'page_title' => [
+            'name' => $this->t('Page Title'),
+            'description' => $this->t('Returns the title of the page.'),
+          ],
+          'page_description' => [
+            'name' => $this->t('Page Description'),
+            'description' => $this->t('Returns the description of the page.'),
+          ],
+          'active_component_uuid' => [
+            'name' => $this->t('Active Component UUID'),
+            'description' => $this->t('Returns the UUID of the active component in the page.'),
+          ],
         ],
       ],
     ];
@@ -80,6 +92,18 @@ class XbAiHooks {
 
           case 'derived_proptypes':
             $replacements[$original] = !empty($data['derived_proptypes']) ? $data['derived_proptypes'] : NULL;
+            break;
+
+          case 'page_title':
+            $replacements[$original] = !empty($data['page_title']) ? $data['page_title'] : NULL;
+            break;
+
+          case 'page_description':
+            $replacements[$original] = !empty($data['page_description']) ? $data['page_description'] : NULL;
+            break;
+
+          case 'active_component_uuid':
+            $replacements[$original] = !empty($data['active_component_uuid']) ? $data['active_component_uuid'] : 'None';
             break;
         }
       }

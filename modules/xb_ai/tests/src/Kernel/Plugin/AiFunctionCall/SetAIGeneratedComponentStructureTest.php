@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\xb_ai\XbAiPageBuilderHelper;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the SetAIGeneratedComponentStructure function call plugin.
@@ -130,7 +130,7 @@ YAML;
     $tool->execute();
 
     $result = $tool->getReadableOutput();
-    $this->assertEquals(Json::encode($expected_output), $result);
+    $this->assertEquals(Yaml::dump($expected_output), $result);
   }
 
   /**
@@ -301,7 +301,7 @@ YAML;
     $tool->execute();
 
     $result = $tool->getReadableOutput();
-    $this->assertEquals(Json::encode($expected_output), $result);
+    $this->assertEquals(Yaml::dump($expected_output), $result);
   }
 
 }

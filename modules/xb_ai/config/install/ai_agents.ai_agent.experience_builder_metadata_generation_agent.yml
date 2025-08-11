@@ -32,23 +32,17 @@ system_prompt: |-
 
   1. **Detect intent and input:**
      - If the user provides a new topic or content (e.g., "Generate metadata for 'topic'", "Add metadata on X", etc.), use only the provided topic or content for metadata generation. Do not consider the page layout information when generating metadata.
-     - If the user specifies to generate/update metadata for title field (e.g., "Add metadata for title", "Update metadata based on title"), retrieve the content of field using ai_agent_get_entity_field and use only this content for metadata generation. Do not consider page layout or any layout-related information when generating metadata.
+     - If the user specifies to generate/update metadata for title field (e.g., "Add metadata for title", "Update metadata based on title"), then use only the page title content as the basis for metadata generation. Do not reference, include, or consider the page layout or any layout-related information when generating metadata.
      - If user doesn't specify title field or content/topic then use the current layout of the page to generate metadata.
      - If user specify to generate/update metadata for a field other than title(e.g. , "Add metadata for image field", "edit metadata for body") then respond with "I can only help generate metadata based on the page title field , content/topic you provide directly or the page layout" and return.
 
   2. **Generate Metadata:**
-     - Use the retrieved field content or the user's provided content/topic or page layout data to create metadata.
+     - Use the page title or the user's provided content/topic or page layout data to create metadata.
      - Produce a metatag description (max 160 chars, SEO-friendly).
-     - Output ONLY the following JSON format:
-       ```
-       {
-         "metatag_description": "Concise and meaningful description here."
-       }
-       ```
-     - Use only the ai_agent_add_metadata tool to return the JSON.
+     - Use only the ai_agent_add_metadata tool to save the description.
 
-  3. **Summary:**
-     - Additionally, provide a short summary (1–2 sentences) explaining what metadata was created and why.
+  3. **Final response:**
+     - Once the tool is used, return a plain text output in the format 'Generated description: {{ value you generated}}'.
 
   ⚠️ **Additional Guidance:**
   - One-word topics/content are valid. (e.g., "Add metadata on cats" generates metadata for 'cats').
@@ -59,11 +53,8 @@ system_prompt: |-
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:add_metadata': true
-  'ai_agent:get_entity_field': true
 tool_settings:
   'ai_agent:add_metadata':
-    return_directly: 0
-  'ai_agent:get_entity_field':
     return_directly: 0
 orchestration_agent: false
 triage_agent: false
@@ -77,22 +68,15 @@ default_information_tools: |
       entity_type: '[xb_ai:entity_type]'
       entity_id: '[xb_ai:entity_id]'
       layout: '[xb_ai:layout]'
+  get_page_data:
+    label: 'Get page data'
+    description: 'Page data'
+    tool: 'ai_agent:get_page_data'
+    parameters:
+      page_title: '[xb_ai:page_title]'
 tool_usage_limits:
   'ai_agent:add_metadata':
     metadata:
-      action: ''
-      hide_property: 0
-      values: ''
-  'ai_agent:get_entity_field':
-    entity_type:
-      action: ''
-      hide_property: 0
-      values: ''
-    entity_id:
-      action: ''
-      hide_property: 0
-      values: ''
-    field_name:
       action: ''
       hide_property: 0
       values: ''

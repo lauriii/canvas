@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
-use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\Yaml\Yaml;
+use Drupal\KernelTests\KernelTestBase;
 
 /**
- * Tests for the AddMetadata function call plugin.
+ * Tests for the GetPageData function call plugin.
  *
  * @group xb_ai
  */
-class AddMetadataTest extends KernelTestBase {
+final class GetPageDataTest extends KernelTestBase {
 
   /**
    * The function call plugin manager.
@@ -26,11 +26,11 @@ class AddMetadataTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'system',
+    'user',
     'ai',
     'ai_agents',
     'experience_builder',
-    'system',
-    'user',
     'xb_ai',
   ];
 
@@ -43,26 +43,24 @@ class AddMetadataTest extends KernelTestBase {
   }
 
   /**
-   * Test generating metadata successfully.
+   * Tests fetching a field from an entity.
    */
-  public function testAddMetadata(): void {
-    $tool = $this->functionCallManager->createInstance('ai_agent:add_metadata');
+  public function testPageData(): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:get_page_data');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
-    $generated_metadata = 'This is metatag description';
-    $expected_result = [
-      'metadata' => [
-        'metatag_description' => $generated_metadata,
-      ],
-    ];
-    $tool->setContextValue('metadata', $generated_metadata);
+    $tool->setContextValue('page_title', 'Title of the page');
+    $tool->setContextValue('page_description', 'Description of the page');
     $tool->execute();
-    $result = $tool->getReadableOutput();
-    $this->assertIsString($result);
 
+    $result = $tool->getReadableOutput();
     $parsed_result = Yaml::parse($result);
-    $this->assertArrayHasKey('metadata', $parsed_result);
-    $this->assertEquals($expected_result, $parsed_result);
+
+    $this->assertArrayHasKey('page_title', $parsed_result);
+    $this->assertEquals('Title of the page', $parsed_result['page_title']);
+
+    $this->assertArrayHasKey('page_description', $parsed_result);
+    $this->assertEquals('Description of the page', $parsed_result['page_description']);
   }
 
 }

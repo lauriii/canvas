@@ -50,7 +50,9 @@ class AddMetadata extends FunctionCallBase implements ExecutableFunctionCallInte
    */
   public function getReadableOutput(): string {
     return Yaml::dump([
-      'metadata' => $this->metadata,
+      'metadata' => [
+        'metatag_description' => $this->metadata,
+      ],
     ], 10, 2);
   }
 

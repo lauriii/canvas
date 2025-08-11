@@ -3,6 +3,7 @@
 namespace Drupal\xb_ai\Controller;
 
 use Drupal\ai\AiProviderPluginManager;
+use Drupal\ai_agents\Plugin\AiFunctionCall\AiAgentWrapper;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\CsrfTokenGenerator;
@@ -140,11 +141,6 @@ final class XbBuilder extends ControllerBase {
     $comments = [];
     $task_message = array_pop($prompt['messages']);
 
-    // Append the selected component to the task message if it exists.
-    if (!empty($prompt['active_component_uuid'])) {
-      $task_message['text'] .= ' selected_component_uuid:' . $prompt['active_component_uuid'];
-    }
-
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
     // @see \Drupal\xb_ai\Plugin\AiFunctionCall\GetCurrentLayout.
@@ -185,7 +181,7 @@ final class XbBuilder extends ControllerBase {
     $agent->setModelName($default['model_id']);
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
-    $agent->setTokenContexts(['entity_type' => $prompt['entity_type'], 'entity_id' => $prompt['entity_id'], 'selected_component' => $prompt['selected_component'] ?? NULL, 'layout' => $prompt['layout'] ?? NULL, 'derived_proptypes' => JSON::encode($prompt['derived_proptypes']) ?? NULL]);
+    $agent->setTokenContexts(['entity_type' => $prompt['entity_type'], 'entity_id' => $prompt['entity_id'], 'selected_component' => $prompt['selected_component'] ?? NULL, 'layout' => $prompt['layout'] ?? NULL, 'derived_proptypes' => JSON::encode($prompt['derived_proptypes']) ?? NULL, 'page_title' => $prompt['page_title'], 'page_description' => $prompt['page_description'] ?? NULL, 'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None']);
     $solvability = $agent->determineSolvability();
     $status = FALSE;
     $message = '';
@@ -202,58 +198,33 @@ final class XbBuilder extends ControllerBase {
     }
     elseif ($solvability == AiAgentInterface::JOB_SOLVABLE) {
       $response['status'] = TRUE;
-      $tools = $agent->getToolResults();
+      $tools = $agent->getToolResults(TRUE);
       $map = [
         EditComponentJs::class => ['js_structure', 'props_metadata'],
         CreateComponent::class => ['component_structure'],
         CreateFieldContent:: class => ['created_content'],
         EditFieldContent:: class => ['refined_text'],
         AddMetadata::class => ['metadata'],
-      ];
-      $plugins = [
-        'ai_agents::ai_agent::experience_builder_component_agent',
-        'ai_agents::ai_agent::experience_builder_metadata_generation_agent',
-        'ai_agents::ai_agent::experience_builder_title_generation_agent',
+        SetAIGeneratedComponentStructure::class => ['operations'],
       ];
       if (!empty($tools)) {
         foreach ($tools as $tool) {
-          // @todo Refactor this after https://www.drupal.org/i/3529310 is fixed.
-          if (
-            in_array($tool->getPluginId(), $plugins)
-          ) {
-            $response['message'] = $tool->getReadableOutput();
-            foreach ($tool->getAgent()->getToolResults() as $sub_agent_tool) {
-              foreach ($map as $class => $keys) {
-                if ($sub_agent_tool instanceof $class) {
-                  // @todo Refactor this after https://www.drupal.org/i/3529313 is fixed.
-                  $output = $sub_agent_tool->getReadableOutput();
-                  $data = Yaml::parse($output);
-                  foreach ($keys as $key) {
-                    if (!empty($data[$key])) {
-                      $response[$key] = $data[$key];
-                    }
-                  }
+          foreach ($map as $class => $keys) {
+            if ($tool instanceof $class) {
+              // @todo Refactor this after https://www.drupal.org/i/3529313 is fixed.
+              $output = $tool->getReadableOutput();
+              $data = Yaml::parse($output);
+              foreach ($keys as $key) {
+                if (!empty($data[$key])) {
+                  $response[$key] = $data[$key];
                 }
               }
             }
           }
-          elseif ($tool->getPluginId() === 'ai_agents::ai_agent::experience_builder_page_builder_agent') {
-            $tool_results_of_page_builder = $tool->getAgent()->getToolResults();
-            // The page builder uses a single tool: 'SetAIGeneratedComponentStructure'.
-            // This tool validates the component structure and converts the YAML input
-            // into a JSON representation of the component structure.
-            // The tool might be called multiple times if the AI returns an invalid structure.
-            // The final (valid) output is the one we want to use.
-            $last_tool_response = array_pop($tool_results_of_page_builder);
-            if (!$last_tool_response instanceof SetAIGeneratedComponentStructure) {
-              return new JsonResponse([
-                'status' => FALSE,
-                'message' => 'The AI Agent returned an unexpected response. Please try again.',
-              ]);
-            }
-            $response += Json::decode($last_tool_response->getReadableOutput());
-
-            // Clear the current layout from the temp store.
+          if ($tool instanceof AiAgentWrapper) {
+            $response['message'] = $tool->getReadableOutput();
+          }
+          if ($tool->getPluginId() === 'ai_agents::ai_agent::experience_builder_page_builder_agent') {
             $this->xbAiTempStore->deleteData(XbAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }

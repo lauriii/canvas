@@ -17,7 +17,10 @@ import {
 import { getDrupalSettings } from '@/utils/drupal-globals';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import type { CodeComponent } from '@/types/CodeComponent';
-import { updatePageDataExternally } from '@/features/pageData/pageDataSlice';
+import {
+  selectPageData,
+  updatePageDataExternally,
+} from '@/features/pageData/pageDataSlice';
 import {
   selectModel,
   setUpdatePreview,
@@ -95,7 +98,7 @@ const editContentHandler = {
 const metadataHandler = {
   canHandle: (msg: any) => 'metadata' in msg && msg.metadata,
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
-    const value = JSON.parse(message.metadata);
+    const value = message.metadata;
     dispatch(setUpdatePreview(true));
     dispatch(
       updatePageDataExternally({
@@ -228,6 +231,7 @@ function loadChatHistory() {
 }
 
 const AiWizard = () => {
+  const pageData = useAppSelector(selectPageData);
   const dispatch = useAppDispatch();
   const drupalSettings = getDrupalSettings();
   const chatElementRef = useRef<any>(null);
@@ -251,6 +255,7 @@ const AiWizard = () => {
   const currentValuesRef = useRef({
     codeComponentName,
     textPropsMapString,
+    pageData,
   });
 
   // Update the ref whenever tracked values change.
@@ -258,8 +263,9 @@ const AiWizard = () => {
     currentValuesRef.current = {
       codeComponentName,
       textPropsMapString,
+      pageData,
     };
-  }, [codeComponentName, textPropsMapString]);
+  }, [codeComponentName, textPropsMapString, pageData]);
   // Access layoutUtils and componentSelectionUtils from drupalSettings.xb
   const layoutUtils = drupalSettings.xb?.layoutUtils as any;
   const componentSelectionUtils = drupalSettings.xb
@@ -273,6 +279,13 @@ const AiWizard = () => {
     (state) => state.ui.selection.items[0],
   );
   const { data: availableComponents } = useGetComponentsQuery();
+  const componentsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (availableComponents && !componentsRef.current) {
+      componentsRef.current = availableComponents;
+    }
+  }, [availableComponents]);
 
   // Helper to transform the current layout into a JSON representation.
   const transformLayout = () => {
@@ -361,35 +374,31 @@ const AiWizard = () => {
     async (message: any) => {
       try {
         const handlers = getHandlersForMessage(message);
-        // If the handler is operationsHandler, do not await it here.
-        if (handlers.some((h) => h === operationsHandler)) {
-          // Show the message in the chat immediately.
-          setTimeout(() => {
-            // Do the async work in the background.
-            operationsHandler.handle({
+        for (const handler of handlers) {
+          // If the handler is operationsHandler, do not await it here.
+          if (handler === operationsHandler) {
+            setTimeout(() => {
+              // Do the async work in the background.
+              operationsHandler.handle({
+                message,
+                dispatch,
+                availableComponents: componentsRef.current,
+                layoutUtils,
+                componentSelectionUtils,
+                navigate,
+              });
+            }, 0);
+          } else {
+            await handler.handle({
               message,
               dispatch,
-              availableComponents,
+              createCodeComponent,
+              navigate,
+              availableComponents: componentsRef.current,
               layoutUtils,
               componentSelectionUtils,
-              navigate,
             });
-          }, 0);
-          // Return the message to DeepChat so it is displayed immediately.
-          return { text: message.message };
-        }
-
-        // For other handlers, await as usual.
-        for (const handler of handlers) {
-          await handler.handle({
-            message,
-            dispatch,
-            createCodeComponent,
-            navigate,
-            availableComponents,
-            layoutUtils,
-            componentSelectionUtils,
-          });
+          }
         }
         return { text: message.message };
       } catch (error) {
@@ -404,7 +413,6 @@ const AiWizard = () => {
       dispatch,
       createCodeComponent,
       navigate,
-      availableComponents,
       layoutUtils,
       componentSelectionUtils,
     ],
@@ -542,6 +550,12 @@ const AiWizard = () => {
                     active_component_uuid: selectedComponent ?? '',
                     current_layout: transformLayout(),
                     derived_proptypes: fixtureProps,
+                    page_title:
+                      currentValuesRef.current.pageData['title[0][value]'],
+                    page_description:
+                      currentValuesRef.current.pageData[
+                        'description[0][value]'
+                      ],
                   });
                   headers['Content-Type'] = 'application/json';
                 }
