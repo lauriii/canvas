@@ -4,12 +4,14 @@ namespace Drupal\xb_ai\Controller;
 
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai_agents\Plugin\AiFunctionCall\AiAgentWrapper;
+use Drupal\ai\OperationType\Chat\ChatInput;
+use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\ai\OperationType\GenericType\ImageFile;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
-use Drupal\ai_agents\Task\Task;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\xb_ai\Plugin\AiFunctionCall\AddMetadata;
@@ -106,7 +108,7 @@ final class XbBuilder extends ControllerBase {
         }
       }
     }
-    $file_entities = [];
+    $image_files = [];
     foreach ($files as $file) {
       $allowed_image_types = ['image/jpeg', 'image/png'];
       $mime_type = $file->getClientMimeType();
@@ -118,17 +120,26 @@ final class XbBuilder extends ControllerBase {
         ]);
       }
       // Copy the file to the temp directory.
-      $tmp_name = 'temporary://' . $file->getClientOriginalName();
+      $filename = $file->getClientOriginalName();
+      $tmp_name = 'temporary://' . $filename;
       $this->fileSystem->copy($file->getPathname(), $tmp_name, FileExists::Replace);
       // Create actual file entities.
       $file = $this->entityTypeManager()->getStorage('file')->create([
         'uid' => $this->currentUser()->id(),
-        'filename' => $file->getClientOriginalName(),
+        'filename' => $filename,
         'uri' => $tmp_name,
         'status' => 0,
       ]);
       $file->save();
-      $file_entities[] = $file;
+      $binary = file_get_contents($tmp_name);
+      if ($binary === FALSE) {
+        return new JsonResponse([
+          'status' => FALSE,
+          'message' => 'An error occurred reading the uploaded file.',
+        ]);
+      }
+
+      $image_files[] = new ImageFile($binary, $mime_type, $filename);
     }
 
     if (empty($prompt['messages'])) {
@@ -137,9 +148,10 @@ final class XbBuilder extends ControllerBase {
         'message' => 'No prompt provided',
       ]);
     }
-    // Add dynamic comments.
-    $comments = [];
     $task_message = array_pop($prompt['messages']);
+    $agent->setChatInput(new ChatInput([
+      new ChatMessage($task_message['role'], $task_message['text'], $image_files),
+    ]));
 
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
@@ -150,18 +162,35 @@ final class XbBuilder extends ControllerBase {
     }
 
     $task = $prompt['messages'];
+    $messages = [];
+    // Append the selected component to the task message if it exists.
+    if (!empty($prompt['active_component_uuid'])) {
+      $messages[] = new ChatMessage('user', ' selected_component_uuid:' . $prompt['active_component_uuid']);
+    }
     foreach ($task as $message) {
-      $comments[] = [
-        'role' => $message['role'],
-        'message' => $message['text'],
-      ];
+      if (!empty($message['files'])) {
+        $images = [];
+        foreach ($message['files'] as $file_info) {
+          if (!empty($file_info['src'])) {
+            $binary = @file_get_contents($file_info['src']);
+            preg_match('/^data:(.*?);base64,/', $file_info['src'], $matches);
+            $mime_type = $matches[1] ?? '';
+            if ($binary !== FALSE) {
+              $images[] = new ImageFile($binary, $mime_type, 'temp');
+            }
+          }
+        }
+        // The text is intentionally kept empty while setting it in comments
+        // so that the AI only takes the image as a context/history for the
+        // next prompt not any text related to it.
+        $messages[] = new ChatMessage($message['role'], '', $images);
+        break;
+      }
+      else {
+        $messages[] = new ChatMessage($message['role'] === 'user' ? 'user' : 'assistant', $message['text']);
+      }
     }
-    $task = new Task($task_message['text']);
-    $agent->setTask($task);
-    if (!empty($file_entities)) {
-      $task->setFiles($file_entities);
-    }
-    $task->setComments($comments);
+    $agent->setChatHistory($messages);
     $default = $this->providerService->getDefaultProviderForOperationType('chat');
     if (!is_array($default) || empty($default['provider_id']) || empty($default['model_id'])) {
       return new JsonResponse([

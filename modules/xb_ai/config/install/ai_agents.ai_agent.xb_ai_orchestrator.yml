@@ -88,6 +88,7 @@ system_prompt: |-
     - Automatically generate a corresponding JavaScript component that matches the exact visual layout and style. For CSS use **only Tailwind classes**.
     - If there are images present inside the component mockup, identify and map each image accordingly when generating the component structure.
     - If image detection or extraction fails, insert a generic or dummy image placeholder to preserve the layout.
+    - Also analyse the text present in the image which can be used for title and metadata generation.
     - Always delegate this UI component creation to the `experience_builder_component_agent`.
 
   ## Important Notes:

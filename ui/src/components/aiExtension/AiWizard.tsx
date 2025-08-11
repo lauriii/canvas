@@ -446,6 +446,19 @@ const AiWizard = () => {
     }
   }, [csrfToken, receiveMessage]);
 
+  // Handle text input changes to enable/disable submit button.
+  const handleTextInput = () => {
+    const chatEl = chatElementRef.current;
+    const deepChatEl = document.querySelector('deep-chat') as any;
+    const inputText =
+      deepChatEl?.shadowRoot?.querySelector('#text-input')?.textContent || '';
+    if (inputText.trim().length > 0) {
+      chatEl.disableSubmitButton(false);
+    } else {
+      chatEl.disableSubmitButton();
+    }
+  };
+
   return (
     csrfToken && (
       <Flex
@@ -578,13 +591,18 @@ const AiWizard = () => {
                   role: 'error',
                 });
               }
+              setTimeout(() => {
+                chatElementRef.current?.disableSubmitButton();
+              }, 0);
             },
           }}
+          onInput={handleTextInput}
           onComponentRender={() => {
             if (!isComponentRendered) {
               chatElementRef.current.clearMessages();
               sessionStorage.removeItem(SESSION_STORAGE_KEY);
               setChatHistory([]);
+              chatElementRef.current.disableSubmitButton();
               isComponentRendered = true;
             }
           }}
