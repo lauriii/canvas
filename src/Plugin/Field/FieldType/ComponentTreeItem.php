@@ -21,6 +21,7 @@ use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\MissingComponentInputsException;
 use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -655,7 +656,12 @@ class ComponentTreeItem extends FieldItemBase {
       return;
     }
     // Allow component source plugins to normalize the stored data.
-    $inputs = $this->getInputs();
+    try {
+      $inputs = $this->getInputs();
+    }
+    catch (\UnexpectedValueException | MissingComponentInputsException) {
+      $inputs = NULL;
+    }
     if ($inputs !== NULL) {
       $inputs = $source->optimizeExplicitInput($inputs);
       $this->setInput($inputs);

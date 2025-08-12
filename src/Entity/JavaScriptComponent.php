@@ -6,20 +6,19 @@ namespace Drupal\experience_builder\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
+use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\experience_builder\AutoSaveEntity;
 use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
 use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\ExperienceBuilderConfigUpdater;
 use Symfony\Component\Validator\ConstraintViolation;
 
 #[ConfigEntityType(
@@ -55,6 +54,7 @@ use Symfony\Component\Validator\ConstraintViolation;
 final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface {
 
   use XbAssetLibraryTrait;
+  use ConfigUpdaterAwareEntityTrait;
 
   public const string ENTITY_TYPE_ID = 'js_component';
   public const string ADMIN_PERMISSION = 'administer code components';
@@ -303,10 +303,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    */
   public function getProps(): ?array {
     return $this->props;
-  }
-
-  protected static function getConfigUpdater(): ExperienceBuilderConfigUpdater {
-    return \Drupal::service(ExperienceBuilderConfigUpdater::class);
   }
 
   /**

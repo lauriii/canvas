@@ -56,6 +56,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   public const string ADMIN_PERMISSION = 'administer page template';
   use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
+  use ConfigUpdaterAwareEntityTrait;
 
   /**
    * ID, composed of theme + region.
@@ -213,6 +214,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
       throw new \LogicException('Attempted to save a PageRegion targeting the main content region, which is not allowed. (This means it bypassed validation.)');
     }
     parent::preSave($storage);
+    self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
   }
 
   /**

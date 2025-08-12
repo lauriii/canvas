@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel\EventSubscriber;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
 use Drupal\experience_builder\Entity\Component;
@@ -14,10 +15,13 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
+use Drupal\media\MediaInterface;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 
 /**
  * @group experience_builder
@@ -29,6 +33,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use RecipeTestTrait;
+  use CrawlerTrait;
 
   private const string FIXTURES_DIR = __DIR__ . '/../../../fixtures/recipes';
 
@@ -105,11 +110,20 @@ final class RecipeSubscriberTest extends KernelTestBase {
       ->getComponentTreeItemByUuid('348bfa10-af72-49cd-900b-084d617c87df')
       ?->getInputs();
     $this->assertIsArray($inputs);
-    // The referenced UUID should be unchanged, but the target_id should have
-    // been updated.
-    $media_id = (int) $inputs['image']['target_id'];
-    $this->assertGreaterThan(1, $media_id);
-    $this->assertSame('346210de-12d8-4d02-9db4-455f1bdd99f7', Media::load($media_id)?->uuid());
+    // We should only store the target_uuid as the input is collapsed.
+    $media_uuid = '346210de-12d8-4d02-9db4-455f1bdd99f7';
+    self::assertEquals(['image' => ['target_uuid' => $media_uuid]], $inputs);
+    $output = $xb_field->toRenderable($node);
+    $crawler = $this->crawlerForRenderArray($output);
+    $media = \Drupal::service(EntityRepositoryInterface::class)->loadEntityByUuid('media', $media_uuid);
+    self::assertInstanceOf(MediaInterface::class, $media);
+    $file = $media->get('field_media_image')->entity;
+    \assert($file instanceof FileInterface);
+    $file_url = \Drupal::service(FileUrlGeneratorInterface::class)->generate($file->getFileUri() ?? '')->toString();
+    // But the rendered output should contain the actual image referenced by the
+    // target_uuid.
+    self::assertStringContainsString(\urldecode($file_url), $crawler->filter('img')->attr('src') ?? '');
+    $this->assertGreaterThan(1, $media->id());
   }
 
   public function testComponentConfigActions(): void {

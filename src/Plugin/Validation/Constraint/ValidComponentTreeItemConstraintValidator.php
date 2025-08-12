@@ -87,6 +87,15 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     // @see https://en.wikipedia.org/wiki/Robustness_principle
     try {
       $stored_explicit_input = $value->get('inputs')->getValues();
+      // We don't allow uncollapsed inputs.
+      $before_optimize = \hash('xxh64', \json_encode($stored_explicit_input, \JSON_THROW_ON_ERROR));
+      $value->optimizeInputs();
+      $after_optimize = \hash('xxh64', \json_encode($value->getInputs(), \JSON_THROW_ON_ERROR));
+      if ($after_optimize !== $before_optimize) {
+        $this->context->buildViolation('When using the default static prop source for a component input, you must use the collapsed input syntax.')
+          ->atPath(sprintf('inputs.%s', $value->getUuid()))
+          ->addViolation();
+      }
     }
     catch (MissingComponentInputsException $e) {
       if ($component_source->requiresExplicitInput()) {

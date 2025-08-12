@@ -842,20 +842,12 @@ final class JsComponentTest extends ComponentSourceTestBase {
    * {@inheritdoc}
    */
   public static function providerRenderComponentFailure(): \Generator {
-    $generate_static_prop_source = function (string $field_type, mixed $value): array {
-      return [
-        'sourceType' => "static:field_item:$field_type",
-        'value' => $value,
-        'expression' => (string) new FieldTypePropExpression($field_type, 'value'),
-      ];
-    };
-
     $component_id = JsComponent::componentIdFromJavascriptComponentId('xb_test_code_components_with_props');
     yield "JS Component with valid props, without exception" => [
       'component_id' => $component_id,
       'inputs' => [
-        'age' => $generate_static_prop_source('integer', 19),
-        'name' => $generate_static_prop_source('string', 'Tilly'),
+        'age' => 19,
+        'name' => 'Tilly',
       ],
       'expected_validation_errors' => [],
       'expected_exception' => NULL,
@@ -865,8 +857,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
     yield "JS Component with valid props, JSON encoding exception" => [
       'component_id' => $component_id,
       'inputs' => [
-        'age' => $generate_static_prop_source('integer', 19),
-        'name' => $generate_static_prop_source('string', IslandCastaway::WILSON),
+        'age' => 19,
+        'name' => IslandCastaway::WILSON,
       ],
       'expected_validation_errors' => [],
       'expected_exception' => [
@@ -879,8 +871,12 @@ final class JsComponentTest extends ComponentSourceTestBase {
     yield "JS Component with invalid props, validation error" => [
       'component_id' => $component_id,
       'inputs' => [
-        'age' => $generate_static_prop_source('string', "It's rude to ask"),
-        'name' => $generate_static_prop_source('string', 'Tilly'),
+        'age' => [
+          'sourceType' => "static:field_item:string",
+          'value' => "It's rude to ask",
+          'expression' => (string) new FieldTypePropExpression('string', 'value'),
+        ],
+        'name' => 'Tilly',
       ],
       'expected_validation_errors' => [
         \sprintf('2.inputs.%s.age', self::UUID_CRASH_TEST_DUMMY) => 'String value found, but an integer or an object is required. The provided value is: "It\'s rude to ask".',

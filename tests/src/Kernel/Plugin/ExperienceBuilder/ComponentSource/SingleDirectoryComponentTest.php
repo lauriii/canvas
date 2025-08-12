@@ -955,18 +955,10 @@ activation="auto">
   }
 
   public static function providerRenderComponentFailure(): \Generator {
-    $generate_static_prop_source = function (string $field_type, mixed $value): array {
-      return [
-        'sourceType' => "static:field_item:$field_type",
-        'value' => $value,
-        'expression' => (string) new FieldTypePropExpression($field_type, 'value'),
-      ];
-    };
-
     yield "SDC with valid props, without exception" => [
       'component_id' => 'sdc.xb_test_sdc.crash',
       'inputs' => [
-        'crash' => $generate_static_prop_source('boolean', FALSE),
+        'crash' => FALSE,
       ],
       'expected_validation_errors' => [],
       'expected_exception' => NULL,
@@ -989,7 +981,11 @@ activation="auto">
     yield "SDC with invalid prop, with exception" => [
       'component_id' => 'sdc.xb_test_sdc.crash',
       'inputs' => [
-        'crash' => $generate_static_prop_source('string', 'this is an invalid value for the SDC prop'),
+        'crash' => [
+          'sourceType' => "static:field_item:string",
+          'value' => 'this is an invalid value for the SDC prop',
+          'expression' => (string) new FieldTypePropExpression('string', 'value'),
+        ],
       ],
       'expected_validation_errors' => [
         \sprintf('2.inputs.%s.crash', self::UUID_CRASH_TEST_DUMMY) => 'String value found, but a boolean or an object is required. The provided value is: "this is an invalid value for the SDC prop".',
@@ -1017,7 +1013,7 @@ activation="auto">
     yield "SDC with invalid Twig" => [
       'component_id' => 'sdc.xb_broken_sdcs.invalid-filter',
       'inputs' => [
-        'name' => $generate_static_prop_source('string', 'Gaia'),
+        'name' => 'Gaia',
       ],
       'expected_validation_errors' => [],
       'expected_exception' => [

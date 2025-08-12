@@ -232,11 +232,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => "Ghosts crowd the young child's",
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => "Ghosts crowd the young child's",
           ],
         ],
         [
@@ -244,11 +240,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Fragile eggshell mind',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'Fragile eggshell mind',
           ],
         ],
       ],
@@ -264,11 +256,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
         [
@@ -278,11 +266,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => ' Smug in the wooly cotton brains of infancy',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
         ],
       ],
@@ -298,11 +282,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
         [
@@ -312,11 +292,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => ' Smug in the wooly cotton brains of infancy',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
         ],
       ],
@@ -332,17 +308,33 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
           'label' => Random::string(256),
         ],
       ],
       'expected_messages' => [
         'component_tree.0.label' => 'This value is too long. It should have <em class="placeholder">255</em> characters or less.',
+      ],
+    ];
+
+    yield "not collapsed" => [
+      'component_tree' => [
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_version' => 'ab4d3ddce315cf64',
+          'inputs' => [
+            'heading' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'And we laugh like soft, mad children',
+              'expression' => 'ℹ︎string␟value',
+            ],
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.inputs.e303dd88-9409-4dc7-8a8b-a31602884a94' => 'When using the default static prop source for a component input, you must use the collapsed input syntax.',
       ],
     ];
 
@@ -353,11 +345,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'abc',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
       ],

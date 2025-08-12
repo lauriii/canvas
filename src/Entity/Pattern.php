@@ -49,6 +49,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
 
   use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
+  use ConfigUpdaterAwareEntityTrait;
 
   /**
    * Pattern entity ID.
@@ -193,6 +194,11 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
       $value = self::generateComponentTreeKeys($value);
     }
     return parent::set($property_name, $value);
+  }
+
+  public function preSave(EntityStorageInterface $storage): void {
+    parent::preSave($storage);
+    self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
   }
 
 }

@@ -133,11 +133,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'uuid' => $uuid->generate(),
       'component_id' => 'sdc.xb_test_sdc.heading',
       'inputs' => [
-        'text' => [
-          'sourceType' => 'static:field_item:string',
-          'value' => 'Test Title',
-          'expression' => 'ℹ︎string␟value',
-        ],
+        'text' => 'Test Title',
         'element' => [
           // ⚠️ Note that this is NOT the field type that's in the Component config entity.
           'sourceType' => 'static:field_item:string',

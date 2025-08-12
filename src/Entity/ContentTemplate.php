@@ -65,6 +65,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface {
 
   use ComponentTreeItemListInstantiatorTrait;
+  use ConfigUpdaterAwareEntityTrait;
 
   public const string ENTITY_TYPE_ID = 'content_template';
 
@@ -146,6 +147,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   public function preSave(EntityStorageInterface $storage): void {
     $this->id = $this->id();
     parent::preSave($storage);
+    self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
   }
 
   /**

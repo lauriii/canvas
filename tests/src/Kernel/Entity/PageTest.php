@@ -115,13 +115,7 @@ final class PageTest extends KernelTestBase {
         [
           'uuid' => '09365c2d-1ee1-47fd-b5a3-7e4f34866186',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
-          'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => $test_heading_text,
-              'expression' => 'ℹ︎string␟value',
-            ],
-          ],
+          'inputs' => ['heading' => $test_heading_text],
         ],
         [
           'uuid' => 'af5fc5ab-1457-4258-880f-541a69c0110b',

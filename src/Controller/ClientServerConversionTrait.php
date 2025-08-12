@@ -129,7 +129,7 @@ trait ClientServerConversionTrait {
     if ($validate) {
       $violation_list = $entity ? new EntityConstraintViolationList($entity) : new ConstraintViolationList();
     }
-    foreach ($items as $delta => ['uuid' => $uuid, 'component_id' => $component_id, 'inputs' => $inputs]) {
+    foreach ($items as $delta => ['uuid' => $uuid, 'component_id' => $component_id, 'inputs' => $inputs, 'component_version' => $version]) {
       $component = $components[$component_id] ?? NULL;
       // If validation is requested, this has already been validated in
       // ::clientToServerTree
@@ -138,6 +138,7 @@ trait ClientServerConversionTrait {
         continue;
       }
       assert($component instanceof ComponentInterface);
+      $component->loadVersion($version);
       $source = $component->getComponentSource();
       // First we transform the incoming client model into input values using
       // the source plugin.

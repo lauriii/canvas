@@ -481,11 +481,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'abc',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
         [

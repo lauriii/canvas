@@ -39,11 +39,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'They say I am static, but I want to believe I can change!',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'They say I am static, but I want to believe I can change!',
             ],
           ],
         ],
@@ -66,11 +62,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
             'component_version' => '602623740c98a6cf',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'Gracie says hi!',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'Gracie says hi!',
               'image' => [
                 'sourceType' => 'default-relative-url',
                 'value' => [
@@ -264,11 +256,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'Shake dreams from your hair, my pretty child',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'Shake dreams from your hair, my pretty child',
             ],
           ],
           [
@@ -276,11 +264,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'And we laugh like soft, mad children',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'And we laugh like soft, mad children',
             ],
           ],
           [
@@ -288,11 +272,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'A vast radiant beach and cooled jewelled moon',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'A vast radiant beach and cooled jewelled moon',
             ],
           ],
         ],
@@ -304,11 +284,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'And we laugh like soft, mad children',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'And we laugh like soft, mad children',
             ],
           ],
           [
@@ -318,11 +294,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => ' Smug in the wooly cotton brains of infancy',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => ' Smug in the wooly cotton brains of infancy',
             ],
           ],
         ],
@@ -334,11 +306,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'component_version' => 'ab4d3ddce315cf64',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'And we laugh like soft, mad children',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => 'And we laugh like soft, mad children',
             ],
           ],
           [
@@ -348,11 +316,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'component_version' => 'ab4d3ddce315cf64',
             'component_id' => 'sdc.xb_test_sdc.props-slots',
             'inputs' => [
-              'heading' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => ' Smug in the wooly cotton brains of infancy',
-                'expression' => 'ℹ︎string␟value',
-              ],
+              'heading' => ' Smug in the wooly cotton brains of infancy',
             ],
           ],
         ],

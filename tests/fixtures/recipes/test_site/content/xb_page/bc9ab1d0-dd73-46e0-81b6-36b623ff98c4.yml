@@ -23,7 +23,7 @@ default:
       uuid: 2c6e91ae-23ac-433d-9bb8-687144464b34
       component_id: sdc.xb_test_sdc.props-slots
       component_version: ab4d3ddce315cf64
-      inputs: '{"heading":{"sourceType":"static:field_item:string","value":"Welcome to the site!","expression":"ℹ︎string␟value"}}'
+      inputs: '{"heading":"Welcome to the site!"}'
 
     -
       parent_uuid: null

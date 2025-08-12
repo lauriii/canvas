@@ -65,11 +65,7 @@ final class PageViewBuilderTest extends KernelTestBase {
           'uuid' => '66e4c177-8e29-42a6-8373-b82eee2841c0',
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => $test_heading_text,
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => $test_heading_text,
           ],
         ],
         [

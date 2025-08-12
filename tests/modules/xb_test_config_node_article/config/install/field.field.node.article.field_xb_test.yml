@@ -24,23 +24,14 @@ default_value:
     component_id: sdc.xb_test_sdc.two_column
     component_version: d99140cbd47c0b51
     inputs:
-      width:
-        sourceType: 'static:field_item:list_integer'
-        value: 50
-        expression: ℹ︎list_integer␟value
-        sourceTypeSettings:
-          storage:
-            allowed_values_function: experience_builder_load_allowed_values_for_component_prop
+      width: 50
   - uuid: 208452de-10d6-4fb8-89a1-10e340b3744c
     component_id: sdc.xb_test_sdc.my-hero
     component_version: 2cfc93f0259bf3ee
     slot: column_one
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
-      heading:
-        sourceType: 'static:field_item:string'
-        value: 'hello, world!'
-        expression: ℹ︎string␟value
+      heading: 'hello, world!'
       cta1href:
         sourceType: 'static:field_item:uri'
         value: 'https://drupal.org'
@@ -52,10 +43,7 @@ default_value:
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
-      heading:
-        sourceType: 'static:field_item:string'
-        value: 'Static by default'
-        expression: ℹ︎string␟value
+      heading: 'Static by default'
       cta1href:
         sourceType: 'static:field_item:uri'
         value: 'https://drupal.org'
@@ -66,34 +54,18 @@ default_value:
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
-      heading:
-        sourceType: 'static:field_item:string'
-        value: 'Static by default'
-        expression: ℹ︎string␟value
+      heading: 'Static by default'
       cta1href:
-        sourceType: 'static:field_item:link'
-        value:
-          uri: 'https://drupal.org'
-          title: null
-          options: { }
-        expression: ℹ︎link␟url
+        uri: 'https://drupal.org'
+        options: { }
   - uuid: e660e407-0901-4639-9726-9f99bc250c4c
     component_id: sdc.xb_test_sdc.heading
     component_version: 9616e3c4ab9b4fce
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
-      text:
-        sourceType: 'static:field_item:string'
-        value: 'hello, world!'
-        expression: ℹ︎string␟value
-      element:
-        sourceType: 'static:field_item:list_string'
-        value: h3
-        expression: ℹ︎list_string␟value
-        sourceTypeSettings:
-          storage:
-            allowed_values_function: experience_builder_load_allowed_values_for_component_prop
+      text: 'hello, world!'
+      element: h3
 default_value_callback: ''
 settings: {}
 field_type: component_tree

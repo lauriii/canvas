@@ -26,7 +26,6 @@ use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Drupal\KernelTests\KernelTestBase;
@@ -358,10 +357,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         'uuid' => '38b79bf8-53d0-4307-b9ef-221c6a63023a',
         'component_id' => 'sdc.xb_test_sdc.two_column',
         'inputs' => [
-          'width' => StaticPropSource::generate(
-            expression: new FieldTypePropExpression('integer', 'value'),
-            cardinality: 1,
-          )->withValue(33)->toArray(),
+          'width' => 33,
         ],
       ],
       [

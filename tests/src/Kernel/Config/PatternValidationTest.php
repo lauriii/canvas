@@ -41,12 +41,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->generateComponentConfig();
-    $generate_static_prop_source = function (string $label): array {
-      return [
-        'sourceType' => 'static:field_item:string',
-        'value' => "Hello, $label!",
-        'expression' => 'ℹ︎string␟value',
-      ];
+    $generate_static_prop_source = function (string $label): string {
+      return "Hello, $label!";
     };
     $this->entity = Pattern::create([
       'id' => 'test_pattern',
@@ -249,11 +245,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
         [
@@ -263,11 +255,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => ' Smug in the wooly cotton brains of infancy',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
         ],
       ],
@@ -283,11 +271,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
         ],
         [
@@ -297,11 +281,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => ' Smug in the wooly cotton brains of infancy',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
         ],
       ],
@@ -317,11 +297,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'And we laugh like soft, mad children',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'And we laugh like soft, mad children',
           ],
           'label' => Random::string(256),
         ],
@@ -338,6 +314,22 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_id' => 'sdc.xb_test_sdc.props-slots',
           'component_version' => 'abc',
           'inputs' => [
+            'heading' => 'And we laugh like soft, mad children',
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
+      ],
+    ];
+
+    yield "not collapsed" => [
+      'component_tree' => [
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_version' => 'ab4d3ddce315cf64',
+          'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
               'value' => 'And we laugh like soft, mad children',
@@ -347,7 +339,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
+        'component_tree.0.inputs.e303dd88-9409-4dc7-8a8b-a31602884a94' => 'When using the default static prop source for a component input, you must use the collapsed input syntax.',
       ],
     ];
   }

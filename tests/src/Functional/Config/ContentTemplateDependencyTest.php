@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Functional\Config;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\experience_builder\Functional\FunctionalTestBase;
@@ -181,16 +181,13 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
 
     // Ensure that the missing input was actually replaced by a static prop
     // source.
-    $tree = ContentTemplate::load('node.article.full')?->get('component_tree');
-    $this->assertIsArray($tree);
-    $input = Json::decode($tree[1]['inputs']);
-    $this->assertSame([
-      'sourceType' => 'static:field_item:string',
-      // The stored value is the default specified in the component's metadata.
-      // @see core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml
-      'value' => 'Press',
-      'expression' => 'ℹ︎string␟value',
-    ], $input['text']);
+    $tree = ContentTemplate::load('node.article.full')?->getComponentTree();
+    $item = $tree?->get(1);
+    \assert($item instanceof ComponentTreeItem);
+    $input = $item->getInputs();
+    // The stored value is the default specified in the component's metadata.
+    // @see core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml
+    $this->assertSame('Press', $input['text'] ?? NULL);
   }
 
   public function testRemoveFieldTypeProviderModule(): void {
@@ -252,14 +249,12 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
     // should have been replaced with a static prop source that matches the
     // SDC's example value.
     // @see core/modules/system/tests/modules/sdc_test/components/my-cta/my-cta.component.yml
-    $tree = $template->get('component_tree');
-    $input = Json::decode($tree[1]['inputs']);
-    $this->assertSame([
-      'sourceType' => 'static:field_item:string',
-      // The stored value is the default specified in the component's metadata.
-      'value' => 'Press',
-      'expression' => 'ℹ︎string␟value',
-    ], $input['text']);
+    $tree = $template->getComponentTree();
+    $item = $tree->get(1);
+    \assert($item instanceof ComponentTreeItem);
+    $input = $item->getInputs();
+    // The stored value is the default specified in the component's metadata.
+    $this->assertSame('Press', $input['text'] ?? NULL);
 
     $this->drupalGet($node->toUrl());
     $assert_session->pageTextContains('Press');
