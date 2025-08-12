@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\experience_builder\Functional\Update;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\Database\Database;
 use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -33,9 +32,6 @@ final class CollapseComponentInputsUpdateTest extends UpdatePathTestBase {
    * {@inheritdoc}
    */
   protected function setDatabaseDumpFiles(): void {
-    if (Database::getConnection()->driver() !== 'sqlite') {
-      $this->markTestSkipped('Due to the presence of `json:normal` in the test fixture DB, the update path can currently only be tested on SQLite. Fix in https://www.drupal.org/project/experience_builder/issues/3538537');
-    }
     $this->databaseDumpFiles[] = \dirname(__DIR__, 3) . '/fixtures/update/drupal-11.2.2-with-xb-0.7.2-alpha1.filled.php.gz';
   }
 
