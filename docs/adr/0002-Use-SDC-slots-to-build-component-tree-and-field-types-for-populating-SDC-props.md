@@ -6,7 +6,7 @@ Issue: <https://www.drupal.org/project/experience_builder/issues/3461490>
 
 ## Status
 
-Accepted
+Superseded by [ADR #6](../0006-One-field-row-per-component-instance.md.md).
 
 ## Context
 
@@ -36,7 +36,7 @@ In other words: until this ADR is superseded, all back-end work is in service of
 After careful research, countless conversations and hence rooted in real-world experience, a handful of decisions were made that define the _current_ direction but not necessarily the final implementation:
 
 1. The UX (client/UI/front-end) deals only with [Single-Directory Components](https://www.drupal.org/project/sdc) to start with.
-2. Hence all back-end infrastructure is Single-Directory Components-centric. Other component types are not supported for now, and if the back end gains support for more component types, the front end will also need to evolve. 
+2. Hence all back-end infrastructure is Single-Directory Components-centric. Other component types are not supported for now, and if the back end gains support for more component types, the front end will also need to evolve.
 3. [Drupal 11 requires a database that has JSON support](https://www.drupal.org/node/3444548). Efficiently storing and retrieving is thought to be efficiently possible using [a JSON blob representing a tree of components](https://www.drupal.org/project/drupal/issues/3440578).
 4. To store this component tree, not one but _two_ JSON blobs are stored:
    - one containing the `tree` of components (N components at the root, with optionally components in the slots of those components, and so on)
