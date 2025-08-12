@@ -4,35 +4,84 @@
  */
 (
   function (Drupal, once) {
-    function handleLinkClick() {
-      return (ev) => {
-        if (ev.currentTarget.target !== '_blank') {
-          ev.preventDefault();
-          // Send a post message to the parent window with the URL of the clicked link
-          window.parent.postMessage(
-            { xbPreviewClickedUrl: ev.currentTarget.href },
-            '*',
-          );
-        }
-      };
+    function interceptLink(url) {
+      // Send a post-message to the parent window with the URL of the clicked link.
+      window.parent.postMessage({ xbPreviewClickedUrl: url }, '*');
+    }
+
+    /**
+     * Stop link clicks from navigating the user away from the preview.
+     * @param event
+     */
+    function handleClick(event) {
+      const element = event.target.closest('a[href]');
+      if (element && !element.target?.includes('_blank')) {
+        event.preventDefault();
+        interceptLink(element.href);
+      }
+    }
+
+    /**
+     * Stop links from navigating the user away from the preview when Enter is pressed.
+     * @param event
+     */
+    function handleKeydown(event) {
+      const element = event.target.closest('a[href]');
+      if (element && event.key === 'Enter') {
+        event.preventDefault();
+        interceptLink(element.href);
+      }
+    }
+
+    /**
+     * Stop form submissions from navigating the user away from the preview.
+     * @param event
+     */
+    function handleSubmit(event) {
+      const element = event.target.closest('form');
+      if (element) {
+        // Prevent form submission and show a popup.
+        event.preventDefault();
+        window.parent.postMessage(
+          {
+            xbPreviewFormSubmitted:
+              'Form submission is not supported in the preview.',
+          },
+          '*',
+        );
+      }
+    }
+
+    /**
+     * Disable the right click context menu to prevent using it for navigation in the preview iframe.
+     * @param event
+     */
+    function handleContextmenu(event) {
+      event.preventDefault();
     }
 
     Drupal.behaviors.xbDisableLinks = {
       attach(context) {
-        function bindClick(el) {
-          once('xbDisableLinks', el).forEach((element) => {
-            element.addEventListener('click', handleLinkClick());
-          });
-        }
+        // Binding these events to the body means they will handle dynamically/asynchronously added elements.
 
-        context.querySelectorAll('a[href]').forEach((el) => {
-          bindClick(el);
+        once('xbDisableLinksClick', context.body).forEach((el) => {
+          el.addEventListener('click', handleClick);
+        });
+        once('xbDisableLinksKeydown', context.body).forEach((el) => {
+          el.addEventListener('keydown', handleKeydown);
+        });
+        once('xbDisableLinksSubmit', context.body).forEach((el) => {
+          el.addEventListener('submit', handleSubmit);
+        });
+        once('xbDisableLinksContextmenu', context.body).forEach((el) => {
+          el.addEventListener('contextmenu', handleContextmenu);
         });
       },
       detach(context) {
-        context.querySelectorAll('a[href]').forEach((el) => {
-          el.removeEventListener('click', handleLinkClick());
-        });
+        context.body.removeEventListener('click', handleClick);
+        context.body.removeEventListener('keydown', handleKeydown);
+        context.body.removeEventListener('submit', handleSubmit);
+        context.body.removeEventListener('contextmenu', handleContextmenu);
       },
     };
   }
