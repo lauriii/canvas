@@ -6,7 +6,6 @@ namespace Drupal\Tests\experience_builder\Functional\Update;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -65,7 +64,7 @@ final class CollapseComponentInputsUpdateTest extends UpdatePathTestBase {
     \assert($pattern_before instanceof Pattern);
     self::assertSame($expected_before_input, $pattern_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
-    $template_before = ContentTemplate::load(\implode('.', [Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'reverse']));
+    $template_before = ContentTemplate::load(\implode('.', ['node', 'article', 'reverse']));
     \assert($template_before instanceof ContentTemplate);
     self::assertSame($expected_before_input, $template_before->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
 
@@ -86,7 +85,7 @@ final class CollapseComponentInputsUpdateTest extends UpdatePathTestBase {
     self::assertSame($expected_after_input, $pattern_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
     self::assertEntityIsValid($pattern_after);
 
-    $template_after = ContentTemplate::load(\implode('.', [Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'reverse']));
+    $template_after = ContentTemplate::load(\implode('.', ['node', 'article', 'reverse']));
     \assert($template_after instanceof ContentTemplate);
     self::assertSame($expected_after_input, $template_after->getComponentTree()->getComponentTreeItemByUuid('c28c3443-174c-4a83-a07a-8a071b133371')?->getInputs());
     self::assertEntityIsValid($template_after);

@@ -522,6 +522,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'id' => [],
       'content_entity_type_id' => [
         'content_entity_type_bundle' => "The 'alpha' bundle does not exist on the 'user' entity type.",
+        'content_entity_type_id' => 'The value you selected is not a valid choice.',
         'content_entity_type_view_mode' => "The 'core.entity_view_mode.user.full' config does not exist.",
       ],
       'content_entity_type_bundle' => [],
@@ -547,7 +548,10 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->entity->set('content_entity_type_id', 'nope');
     $this->assertValidationErrors([
       '' => "The 'content_entity_type_id' property cannot be changed.",
-      'content_entity_type_id' => "The 'nope' plugin does not exist.",
+      'content_entity_type_id' => [
+        "The 'nope' plugin does not exist.",
+        'The value you selected is not a valid choice.',
+      ],
       'content_entity_type_bundle' => "The 'alpha' bundle does not exist on the 'nope' entity type.",
       'content_entity_type_view_mode' => "The 'core.entity_view_mode.nope.full' config does not exist.",
     ]);

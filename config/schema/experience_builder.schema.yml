@@ -718,6 +718,9 @@ experience_builder.content_template.*.*.*:
         PluginExists:
           manager: entity_type.manager
           interface: Drupal\Core\Entity\ContentEntityInterface
+        # @todo Update this in https://www.drupal.org/project/experience_builder/issues/3518272
+        Choice:
+          - node
     content_entity_type_bundle:
       type: string
       label: 'Bundle'
