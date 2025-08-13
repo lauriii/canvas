@@ -54,7 +54,7 @@ class ComponentTreeLoaderTest extends KernelTestBase {
     ]);
     $node->save();
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('For now XB only works if the entity is an xb_page or an article node! Other entity types and bundles must be tested before they are supported, to help see https://drupal.org/i/3493675.');
+    $this->expectExceptionMessage('This entity does not have an XB field!');
     /** @var \Drupal\experience_builder\Storage\ComponentTreeLoader $component_tree_loader */
     $component_tree_loader = $this->container->get(ComponentTreeLoader::class);
     $component_tree_loader->load($node);
