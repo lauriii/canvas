@@ -166,9 +166,11 @@
       "label": "Site branding",
       "label_display": "0",
       "provider": "system",
-      "use_site_logo": true,
-      "use_site_name": true,
-      "use_site_slogan": false
+      "block_branding": {
+        "use_site_logo": true,
+        "use_site_name": true,
+        "use_site_slogan": false
+      }
     },
     "70812c33-8706-4754-b0d4-3467a869bd69": {
       "label": "Status messages",

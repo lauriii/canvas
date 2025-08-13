@@ -6,6 +6,7 @@ use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\Core\Render\Element;
+use Drupal\experience_builder\Form\ClientFormSubmissionHelper;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
@@ -206,15 +207,7 @@ class ClientDataToEntityConverter {
     // Flag this as a programmatic build of the entity form - but do not flag
     // the form as submitted, as we don't want to execute submit handlers such
     // as ::save that would save the entity.
-    $form_state
-      // Set form object
-      ->setFormObject($form_object)
-      // Flag that we want to process input.
-      ->setProcessInput()
-      // But that the build is programmed (which bypasses caches etc).
-      ->setProgrammed()
-      // But access checks should still be accounted for.
-      ->setProgrammedBypassAccessCheck(FALSE)
+    $form_state = ClientFormSubmissionHelper::prepareProgrammedFormStateForFormObject($form_state, $form_object)
       // With the values provided from the front-end.
       ->setUserInput($entity_form_fields);
     $ajax_form_build_id = $ajax_submitted_form = NULL;
@@ -282,7 +275,7 @@ class ClientDataToEntityConverter {
     // Checkboxes are unique in that the browser doesn't submit a value when the
     // field is unchecked. We need to remove these from the field values when
     // that is the case.
-    $checkboxes_parents = self::spotCheckboxesParents($peek_form);
+    $checkboxes_parents = ClientFormSubmissionHelper::spotCheckboxesParents($peek_form);
     $empty_checkboxes = \array_filter($checkboxes_parents, static fn (array $parents) => NestedArray::getValue($entity_form_fields, $parents) === '0');
     foreach ($empty_checkboxes as $parents) {
       $value = NestedArray::getValue($entity_form_fields, $parents);
@@ -419,20 +412,6 @@ class ClientDataToEntityConverter {
       $values['form_id'] = $form['#form_id'];
     }
     return $values;
-  }
-
-  private static function spotCheckboxesParents(array $form): array {
-    $checkboxes = [];
-    foreach (Element::children($form) as $child) {
-      $element = $form[$child];
-      $checkboxes = \array_merge($checkboxes, self::spotCheckboxesParents($element));
-
-      if (($element['#type'] ?? NULL) === 'checkbox' && \array_key_exists('#parents', $element)) {
-        $checkboxes[] = $element['#parents'];
-      }
-    }
-
-    return $checkboxes;
   }
 
   private static function spotElementsByType(array $form, string $type): array {

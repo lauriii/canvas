@@ -161,15 +161,39 @@ export type PropSource =
 export type ResolvedValues = Record<string, AnyValue>;
 
 export interface ComponentModel {
-  // The props that are used to render previews and will be used for client-side
-  // preview updates (when they're supported).
+  // The (resolved) explicit component inputs that are used to:
+  // - render previews
+  // - perform client-side preview updates (for ComponentSources that support this — impossible if server-rendered)
+  // - populate forms (unless EvaluatedComponentModel is used)
+  // TRICKY: any ComponentSource that wants to support client-side preview updates MUST ensure that `resolved` contains
+  // values that are considered valid by the component's logic; otherwise rendering will fail. IOW: they must meet the
+  // specified types/schema.
+  // @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase::getExplicitInputDefinitions()
+  // TRICKY: conversely, this means that any ComponentSource that does not support client-side rendering is free to use
+  // whichever structure it likes, as long as its ::inputToClientModel() and ::clientModelToInput() methods are each
+  // others' inverses. This is why for example the `block` ComponentSource opted to transform the stored (server-side)
+  // explicit inputs to the form structure for its client-side `resolved` values.
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
+  // @see docs/components.md#3.2.1
+  // @todo Make this less confusing in https://www.drupal.org/project/experience_builder/issues/3521041
   resolved: ResolvedValues;
 }
 
 export type Sources = Record<string, PropSource>;
 
 export interface EvaluatedComponentModel extends ComponentModel {
-  // Source props/expressions needed by the server.
+  // The (source) explicit component inputs that are used to:
+  // - populate the component instance form
+  // - store the explicit inputs
+  // Note: The server evaluates `source` into `resolved`.
+  // (PropSources are used by ComponentSources without an explicit input UX, but only a schema — such as SDCs. The
+  // schema is mapped to PropSources that are able to meet the schema expectations, and to resolve the values stored in
+  // those PropSources, evaluation is needed.)
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+  // @see docs/components.md#3.1.1
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
+  // @see docs/components.md#3.3.1
+  // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
   source: Sources;
 }
 

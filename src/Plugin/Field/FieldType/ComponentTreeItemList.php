@@ -86,7 +86,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       // stored `inputs` data to the client-side `model`.
       // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
       // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
-      // @see SimpleComponent type-script definition.
+      // @see DynamicComponent type-script definition.
       // @see ComponentModel type-script definition.
       // @see PropSourceComponent type-script definition.
       // @see EvaluatedComponentModel type-script definition.

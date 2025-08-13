@@ -474,7 +474,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(
+  public function buildComponentInstanceForm(
     array $form,
     FormStateInterface $form_state,
     ?Component $component = NULL,
@@ -550,20 +550,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
     $form['#attached']['xb-transforms'] = $transforms;
     return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateConfigurationForm(array &$form, FormStateInterface $form_state): void {
-    // @todo Implementation.
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
-    // @todo Implementation.
   }
 
   /**

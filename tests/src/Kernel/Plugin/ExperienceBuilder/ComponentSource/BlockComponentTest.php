@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\node\Entity\Node;
@@ -22,6 +23,8 @@ use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputSchemaChangePoc;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatable;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockInputValidatableCrash;
 use Drupal\xb_test_block\Plugin\Block\XbTestBlockOptionalContexts;
+use Drupal\xb_test_block_form\Plugin\Block\XbTestBlockForm;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent
@@ -459,6 +462,72 @@ HTML,
 
   protected function getNotAllowedModuleForUninstallValidatorTesting(): string {
     return 'xb_test_block';
+  }
+
+  public function testBlockFormValidationAndSubmit(): void {
+    $this->enableModules(['xb_test_block_form']);
+    $this->generateComponentConfig();
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $page1 = Page::create(['title' => 'Forever, feels like never']);
+    $page1->save();
+    $page2 = Page::create(['title' => 'Chatter']);
+    $page2->save();
+    $component = Component::load('block.' . XbTestBlockForm::PLUGIN_ID);
+    \assert($component instanceof ComponentInterface);
+    $source = $component->getComponentSource();
+    \assert($source instanceof BlockComponent);
+    $uuid = '07875b1b-b68c-4b90-955c-d6136ff8af93';
+    // @phpstan-ignore-next-line
+    $input = $source->clientModelToInput($uuid, $component, [
+      // Behavior when component is first added to the layout.
+      // @see addNewComponentToLayout AppThunk in layoutModelSlice.ts
+      'resolved' => [],
+    ]);
+    self::assertSame([
+      'label' => 'Test block form',
+      // This confusingly isn't a boolean, because that what its config schema dictates.
+      // @see `type: block_settings`
+      // @todo Remove after https://drupal.org/i/2544708 is fixed.
+      // @see \Drupal\xb_test_block_form\Plugin\Block\XbTestBlockForm::blockSubmit
+      'label_display' => '0',
+      'multiplier' => 0,
+      // @see \Drupal\xb_test_block_form\Plugin\Block\XbTestBlockForm::defaultConfiguration
+      'xb_page' => 0,
+    ], $input);
+    // @phpstan-ignore-next-line
+    $input = $source->clientModelToInput($uuid, $component, [
+      'resolved' => [
+        'xb_page' => \sprintf('%s (%d)', $page1->label(), $page1->id()),
+      ],
+    ]);
+    // Confirm that block validation and submit methods are called.
+    self::assertEquals([
+      'xb_page' => $page1->id(),
+      'label' => 'Test block form',
+      // This confusingly isn't a boolean, because that what its config schema dictates.
+      // @see `type: block_settings`
+      // @todo Remove after https://drupal.org/i/2544708 is fixed.
+      'label_display' => '0',
+      // @see \Drupal\xb_test_block_form\Plugin\Block\XbTestBlockForm::blockSubmit
+      'multiplier' => 3,
+    ], $input);
+    // @todo This is wrong (it does not conform to `type: block.settings.xb_test_block_form`) and will be fixed in https://www.drupal.org/project/experience_builder/issues/3541125
+    self::assertFalse(is_int($input['xb_page']));
+
+    // Confirm that validation errors from submitting the block plugin are
+    // stored in the auto-save manager for a subsequent validation step.
+    // @phpstan-ignore-next-line
+    $input = $source->clientModelToInput($uuid, $component, [
+      'resolved' => [
+        'xb_page' => \sprintf('%s (%d)', $page2->label(), $page2->id()),
+      ],
+    ]);
+    $violations = $source->validateComponentInput($input, $uuid, NULL);
+    self::assertCount(1, $violations);
+    $first = $violations[0];
+    \assert($first instanceof ConstraintViolationInterface);
+    self::assertEquals('You better call me on the phone', $first->getMessage());
+    self::assertEquals(\sprintf('inputs.%s.xb_page', $uuid), $first->getPropertyPath());
   }
 
 }

@@ -1,0 +1,13 @@
+block.settings.xb_test_block_form:
+  type: block_settings
+  label: 'XB Test block settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    xb_page:
+      type: integer
+      label: 'Referenced entity ID'
+    multiplier:
+      type: integer
+      label: 'Multiplier'
+

@@ -8,8 +8,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Storage\ComponentTreeLoader;
@@ -25,9 +23,6 @@ final class ComponentInputsForm extends FormBase {
   public function __construct(
     // This must be protected so that DependencySerializationTrait, which is
     // used by the parent class, can access it.
-    protected ElementInfoManagerInterface $elementInfoManager,
-    // This must be protected so that DependencySerializationTrait, which is
-    // used by the parent class, can access it.
     protected ComponentTreeLoader $componentTreeLoader,
   ) {}
 
@@ -39,7 +34,6 @@ final class ComponentInputsForm extends FormBase {
     assert($component_tree_loader instanceof ComponentTreeLoader);
 
     return new static(
-      $container->get(ElementInfoManagerInterface::class),
       $component_tree_loader,
     );
   }
@@ -111,11 +105,8 @@ final class ComponentInputsForm extends FormBase {
     $form['#attributes']['data-form-id'] = 'component_inputs_form';
 
     $parents = ['xb_component_props', $component_instance_uuid];
-    $sub_form = ['#parents' => $parents, '#component' => $component];
-    $form['xb_component_props'][$component_instance_uuid] = $this->applyElementParents(
-      $component->getComponentSource()->buildConfigurationForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings')),
-      $parents
-    );
+    $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
+    $form['xb_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
@@ -131,30 +122,6 @@ final class ComponentInputsForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     // @todo implement submitForm() method.
-  }
-
-  public function applyElementParents(array $element, array $parents): array {
-    foreach (Element::children($element) as $child) {
-      if (\array_key_exists('#parents', $element[$child]) && $element[$child]['#parents'] !== $parents) {
-        // Ignore elements with existing, but different parents.
-        continue;
-      }
-      $this_parents = $parents;
-      if ($this->elementHasInput($element[$child])) {
-        $this_parents[] = $child;
-      }
-      $element[$child]['#parents'] = $this_parents;
-      $element[$child] = $this->applyElementParents($element[$child], $this_parents);
-    }
-    return $element;
-  }
-
-  public function elementHasInput(array $element): bool {
-    $type = $element['#type'] ?? NULL;
-    if ($type === NULL) {
-      return FALSE;
-    }
-    return $this->elementInfoManager->getInfoProperty($type, '#input', FALSE);
   }
 
 }

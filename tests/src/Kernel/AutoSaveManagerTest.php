@@ -26,6 +26,8 @@ use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @coversDefaultClass \Drupal\experience_builder\AutoSave\AutoSaveManager
@@ -408,6 +410,45 @@ class AutoSaveManagerTest extends KernelTestBase {
     $config_manager->getConfigFactory()->getEditable('system.site')->delete();
     $list = $sut->getAllAutoSaveList();
     self::assertEmpty($list);
+  }
+
+  public function testComponentFormViolationsTempStore(): void {
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $uuid = 'b26efbd7-f711-481c-a001-947396ed6ad3';
+    $violations = $auto_save_manager->getComponentInstanceFormViolations($uuid);
+    self::assertCount(0, $violations);
+    $violations->add(new ConstraintViolation(
+      'Bending Hectic',
+      NULL,
+      [],
+      NULL,
+      'strange.weather',
+      'Grand Illusion',
+    ));
+    $auto_save_manager->saveComponentInstanceFormViolations($uuid, $violations);
+    $violations = $auto_save_manager->getComponentInstanceFormViolations($uuid);
+    self::assertCount(1, $violations);
+    $violation = $violations[0];
+    \assert($violation instanceof ConstraintViolationInterface);
+    self::assertEquals('Bending Hectic', $violation->getMessage());
+    self::assertEquals('strange.weather', $violation->getPropertyPath());
+
+    $page = Page::create([
+      'title' => 'Immortal Love',
+      'components' => [
+        [
+          'uuid' => $uuid,
+          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'inputs' => [
+            'heading' => 'Cinnamon Temple',
+          ],
+        ],
+      ],
+    ]);
+    $auto_save_manager->delete($page);
+    $violations = $auto_save_manager->getComponentInstanceFormViolations($uuid);
+    self::assertCount(0, $violations);
   }
 
 }

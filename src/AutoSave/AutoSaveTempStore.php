@@ -34,4 +34,14 @@ final class AutoSaveTempStore extends SharedTempStore {
     $this->storage->deleteAll();
   }
 
+  /**
+   * Deletes multiple items.
+   *
+   * @param string[] $keys
+   *   Keys to delete.
+   */
+  public function deleteMultiple(array $keys): void {
+    $this->storage->deleteMultiple($keys);
+  }
+
 }

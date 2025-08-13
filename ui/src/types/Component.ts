@@ -37,6 +37,7 @@ interface BaseComponent {
   js_header: string;
   js_footer: string;
   version: string;
+  // @todo Move to PropSourceComponent in https://www.drupal.org/project/experience_builder/issues/3521041
   propSources: FieldData;
 }
 

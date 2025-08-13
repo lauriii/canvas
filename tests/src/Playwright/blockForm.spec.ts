@@ -57,9 +57,11 @@ test.describe('Block form', () => {
     await xBEditor.openComponent('Site branding');
 
     // Remove and re-add the site logo.
-    const siteLogoCheckbox = page.locator(
-      `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] input[data-drupal-selector="edit-xb-component-props-${componentUuid}-use-site-logo"]`,
-    );
+    const siteLogoCheckbox = page
+      .locator(
+        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"]`,
+      )
+      .getByLabel('Site logo');
     await expect(siteLogoCheckbox).toBeChecked();
     await expect(
       (await xBEditor.getActivePreviewFrame()).locator(
@@ -82,9 +84,11 @@ test.describe('Block form', () => {
     ).toBeVisible();
 
     // Remove the site name.
-    const siteNameCheckbox = page.locator(
-      `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] input[data-drupal-selector="edit-xb-component-props-${componentUuid}-use-site-name"]`,
-    );
+    const siteNameCheckbox = page
+      .locator(
+        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"]`,
+      )
+      .getByLabel('Site name');
     await expect(siteNameCheckbox).toBeChecked();
     await expect(
       (await xBEditor.getActivePreviewFrame()).locator(

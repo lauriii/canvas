@@ -182,9 +182,11 @@ trait XBFieldTrait {
         ],
         self::TEST_BLOCK => [
           'resolved' => [
-            'use_site_logo' => TRUE,
-            'use_site_name' => TRUE,
-            'use_site_slogan' => FALSE,
+            'block_branding' => [
+              'use_site_logo' => TRUE,
+              'use_site_name' => TRUE,
+              'use_site_slogan' => FALSE,
+            ],
             'label' => '',
             'label_display' => FALSE,
             // The 'provider' key is here to test that it is correctly removed.

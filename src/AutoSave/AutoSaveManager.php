@@ -48,23 +48,31 @@ class AutoSaveManager implements EventSubscriberInterface {
   ) {
   }
 
-  protected function getTempStore(): AutoSaveTempStore {
+  protected function getTempStoreByCollection(string $collection): AutoSaveTempStore {
     // Store for 30 days.
     $expire = 86400 * 30;
     // We need to fetch a new shared temp store from the factory for each
     // usage because the current user can change in the lifetime of a request.
-    return $this->tempStoreFactory->get('experience_builder.auto_save', expire: $expire);
+    return $this->tempStoreFactory->get($collection, expire: $expire);
+  }
+
+  protected function getTempStore(): AutoSaveTempStore {
+    return $this->getTempStoreByCollection('experience_builder.auto_save');
   }
 
   /**
    * @todo Remove this in https://drupal.org/i/3505018.
    */
   protected function getFormViolationTempStore(): AutoSaveTempStore {
-    // Store for 30 days.
-    $expire = 86400 * 30;
-    // We need to fetch a new shared temp store from the factory for each
-    // usage because the current user can change in the lifetime of a request.
-    return $this->tempStoreFactory->get('experience_builder.auto_save.form_violations', expire: $expire);
+    return $this->getTempStoreByCollection('experience_builder.auto_save.form_violations');
+  }
+
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018 and
+   *   https://drupal.org/i/3500795.
+   */
+  protected function getComponentInstanceFormViolationTempStore(): AutoSaveTempStore {
+    return $this->getTempStoreByCollection('experience_builder.auto_save.component_form_violations');
   }
 
   public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
@@ -126,6 +134,39 @@ class AutoSaveManager implements EventSubscriberInterface {
    */
   public function getEntityFormViolations(FieldableEntityInterface $entity): ConstraintViolationListInterface {
     return $this->getFormViolationTempStore()->get(self::getAutoSaveKey($entity)) ?? new ConstraintViolationList();
+  }
+
+  /**
+   * Saves a component instance form violation.
+   *
+   * Some component source plugins need to submit Drupal forms to determine
+   * validation errors. This happens during conversion of the client model to
+   * input values, which is separate to validation. In order to store a record
+   * of any form violations, component source plugins can make use of this
+   * method.
+   *
+   * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::clientModelToInput
+   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::clientModelToInput
+   * @see \Drupal\experience_builder\Form\ComponentInputsForm
+   *
+   * @todo Remove this in https://drupal.org/i/3505018 and
+   *    https://drupal.org/i/3500795.
+   */
+  public function saveComponentInstanceFormViolations(string $component_uuid, ?ConstraintViolationListInterface $violations = NULL): self {
+    if ($violations === NULL) {
+      $this->getComponentInstanceFormViolationTempStore()->delete($component_uuid);
+      return $this;
+    }
+    $this->getComponentInstanceFormViolationTempStore()->set($component_uuid, $violations);
+    return $this;
+  }
+
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018 and
+   *    https://drupal.org/i/3500795.
+   */
+  public function getComponentInstanceFormViolations(string $component_uuid): ConstraintViolationListInterface {
+    return $this->getComponentInstanceFormViolationTempStore()->get($component_uuid) ?? new ConstraintViolationList();
   }
 
   private static function normalizeEntity(EntityInterface $entity): array {
@@ -248,6 +289,21 @@ class AutoSaveManager implements EventSubscriberInterface {
     $key = $this->getAutoSaveKey($entity);
     $this->getTempStore()->delete($key);
     $this->getFormViolationTempStore()->delete($key);
+    if ($entity instanceof ContentEntityInterface) {
+      $xb_fields = \array_keys(
+        \array_filter(
+          $entity->getFields(),
+          static fn(FieldItemListInterface $field
+          ): bool => $field->getItemDefinition()->getClass(
+            ) === ComponentTreeItem::class
+        )
+      );
+      $component_uuids = \array_reduce($xb_fields, static fn (array $carry, string $field_name): array => [
+        ...$carry,
+        ...\array_column($entity->get($field_name)->getValue(), 'uuid'),
+      ], []);
+      $this->getComponentInstanceFormViolationTempStore()->deleteMultiple(\array_unique($component_uuids));
+    }
   }
 
   public function deleteAll(): void {

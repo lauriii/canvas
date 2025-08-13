@@ -147,12 +147,10 @@ final class XbPageVariant extends VariantBase implements PageVariantInterface, C
         if (!$autoSaveData->isEmpty()) {
           \assert($autoSaveData->entity instanceof PageRegion);
           $violations = $autoSaveData->entity->getTypedData()->validate();
-          if (\count($violations) > 0) {
-            // The auto-save entry is invalid, we don't use it and instead fallback
-            // to the saved version.
-            continue;
+          if (\count($violations) === 0) {
+            // The auto-save entry is valid, so use it instead.
+            $region = $autoSaveData->entity;
           }
-          $region = $autoSaveData->entity;
         }
       }
 

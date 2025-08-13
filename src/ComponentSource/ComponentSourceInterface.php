@@ -12,7 +12,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
-use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
@@ -42,7 +41,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceManager
  * @see \Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface
  */
-interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, PluginFormInterface, DependentPluginInterface, ContextAwarePluginInterface {
+interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ContextAwarePluginInterface {
 
   /**
    * Gets referenced plugin classes for this instance.
@@ -119,14 +118,17 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function hydrateComponent(array $explicit_input): array;
 
   /**
-   * Normalizes explicit inputs to the data model expected by the client.
+   * Converts (stored) explicit inputs to the data model expected by the client.
    *
    * Note that the result MUST NOT contain slot information.
    *
    * @param array $explicit_input
    *
    * @return array
+   *   An array with at minimum the 'resolved' key, possibly more. Each
+   *   ComponentSource plugin is free to choose its own client-side data model.
    *
+   * @see ComponentModel
    * @see openapi.yml
    * @see ::clientModelToInput()
    * @see \Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface::normalizeForClientSide
@@ -155,7 +157,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function getClientSideInfo(Component $component): array;
 
   /**
-   * Configuration form constructor.
+   * Component instance form constructor.
    *
    * @param array $form
    *   An associative array containing the initial structure of the plugin form.
@@ -174,8 +176,12 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @return array
    *   The form structure.
+   *
+   * @see ::inputToClientModel()
+   * @see ::clientModelToInput()
+   * @see \Drupal\Core\Plugin\PluginFormInterface::buildConfigurationForm()
    */
-  public function buildConfigurationForm(
+  public function buildComponentInstanceForm(
     array $form,
     FormStateInterface $form_state,
     ?Component $component = NULL,
@@ -186,6 +192,14 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   ): array;
 
   /**
+   * Converts client data model (typically form value) to input (stored value).
+   *
+   * Note that each ComponentSource plugin is free to choose its own client-side
+   * data model.
+   *
+   * If your component source needs to perform form submissions to retrieve
+   * validation errors, you can make use of the AutoSaveManager to store these
+   * for future retrieval.
    *
    * @param string $component_instance_uuid
    *   Component instance UUID.
@@ -199,8 +213,10 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @phpcs:ignore
    * @return SingleComponentInputArray
-   * @todo Refactor to use the Symfony denormalizer infrastructure?
+   *
    * @see ::inputToClientModel()
+   * @see \Drupal\experience_builder\AutoSave\AutoSaveManager::saveComponentInstanceFormViolations
+   * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
   public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array;
 
