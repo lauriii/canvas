@@ -104,6 +104,8 @@ HTML;
     $dev_mode = $this->moduleHandler->moduleExists('xb_dev_mode');
     // ⚠️ This is highly experimental and *will* be refactored.
     $ai_extension_available = $this->moduleHandler->moduleExists('xb_ai');
+    // ⚠️ This is highly experimental and *will* be refactored.
+    $personalization_extension_available = $this->moduleHandler->moduleExists('xb_personalization');
     $system_site_config = $this->configFactory->get('system.site');
 
     return (new HtmlResponse($this->buildHtml()))->addCacheableDependency($system_site_config)->setAttachments([
@@ -126,6 +128,7 @@ HTML;
           'entityTypeKeys' => $entity?->getEntityType()->getKeys(),
           'devMode' => $dev_mode,
           'aiExtensionAvailable' => $ai_extension_available,
+          'personalizationExtensionAvailable' => $personalization_extension_available,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx

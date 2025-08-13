@@ -24,6 +24,8 @@ export interface DrupalSettings {
     dialogCss: string[];
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
+    // ⚠️ This is highly experimental and *will* be refactored.
+    personalizationExtensionAvailable: boolean;
   };
   xbData: {
     v0: {

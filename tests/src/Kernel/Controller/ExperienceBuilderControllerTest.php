@@ -351,4 +351,84 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
     ];
   }
 
+  /**
+   * Tests controller feature flags.
+   *
+   * @param array $modules
+   *   The modules to enable.
+   * @param array $expectedFeatureFlags
+   *   The expected feature flags values.
+   *
+   * @dataProvider featureFlagsData
+   */
+  public function testControllerExposedFeatureFlags(array $modules, array $expectedFeatureFlags): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $permissions = [
+      'access content',
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+      Page::DELETE_PERMISSION,
+    ];
+    if (!empty($modules)) {
+      $this->enableModules($modules);
+    }
+
+    $this->setUpCurrentUser([], $permissions);
+
+    $add_url = Url::fromRoute('experience_builder.experience_builder', [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity' => '',
+    ])->toString();
+    self::assertEquals("/xb/xb_page", $add_url);
+
+    /** @var \Drupal\Core\Render\HtmlResponse $response */
+    $response = $this->request(Request::create($add_url));
+
+    foreach ($expectedFeatureFlags as $featureFlag => $featureFlagValue) {
+      $this->assertSame($featureFlagValue, $this->drupalSettings['xb'][$featureFlag]);
+    }
+
+    self::assertSame([
+      'user.permissions',
+      'languages:language_interface',
+      'theme',
+    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertSame([
+      'config:system.site',
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
+
+  }
+
+  public static function featureFlagsData(): \Generator {
+    yield 'none' => [
+      [],
+      [
+        'aiExtensionAvailable' => FALSE,
+        'personalizationExtensionAvailable' => FALSE,
+      ],
+    ];
+    yield 'ai' => [
+      ['xb_ai'],
+      [
+        'aiExtensionAvailable' => TRUE,
+        'personalizationExtensionAvailable' => FALSE,
+      ],
+    ];
+    yield 'personalization' => [
+      ['xb_personalization'],
+      [
+        'aiExtensionAvailable' => FALSE,
+        'personalizationExtensionAvailable' => TRUE,
+      ],
+    ];
+    yield 'all' => [
+      ['xb_ai', 'xb_personalization'],
+      [
+        'aiExtensionAvailable' => TRUE,
+        'personalizationExtensionAvailable' => TRUE,
+      ],
+    ];
+  }
+
 }
