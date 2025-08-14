@@ -275,6 +275,10 @@ const AiWizard = () => {
   const theLayoutModel = useAppSelector(
     (state) => state?.layoutModel?.present as LayoutModelSliceState,
   );
+  const layoutModelRef = useRef(theLayoutModel);
+  useEffect(() => {
+    layoutModelRef.current = theLayoutModel;
+  }, [theLayoutModel]);
   const selectedComponent = useAppSelector(
     (state) => state.ui.selection.items[0],
   );
@@ -289,9 +293,10 @@ const AiWizard = () => {
 
   // Helper to transform the current layout into a JSON representation.
   const transformLayout = () => {
-    if (!theLayoutModel?.layout) return null;
+    const theLayout = layoutModelRef.current;
+    if (!theLayout?.layout) return null;
     const result: any = { layout: {} };
-    theLayoutModel.layout.forEach((region, regionIndex) => {
+    theLayout.layout.forEach((region, regionIndex) => {
       result.layout[region.id] = {
         nodePathPrefix: [regionIndex],
         components: [],
