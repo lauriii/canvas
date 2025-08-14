@@ -110,7 +110,7 @@ class XbOauthAuthenticationProviderTest extends KernelTestBase {
       ['experience_builder.api.layout.post', [], FALSE],
       ['experience_builder.api.log_error', [], FALSE],
       ['experience_builder.component.status', [], FALSE],
-      ['experience_builder.experience_builder', [], FALSE],
+      ['experience_builder.boot.entity', [], FALSE],
     ];
   }
 

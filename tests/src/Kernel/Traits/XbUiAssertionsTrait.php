@@ -23,7 +23,12 @@ trait XbUiAssertionsTrait {
     $this->assertTitle('Drupal Experience Builder');
     self::assertCount(1, $this->cssSelect('#experience-builder'));
     self::assertArrayHasKey('xb', $this->drupalSettings);
-    self::assertEquals("xb/$entity_type/$entity_id", $this->drupalSettings['xb']['base']);
+    if ($entity_type) {
+      self::assertEquals("xb/$entity_type/$entity_id", $this->drupalSettings['xb']['base']);
+    }
+    else {
+      self::assertEquals('xb', $this->drupalSettings['xb']['base']);
+    }
     self::assertEquals($entity_type, $this->drupalSettings['xb']['entityType']);
     self::assertEquals($entity_id, $this->drupalSettings['xb']['entity']);
     self::assertEquals($entity_type_keys, $this->drupalSettings['xb']['entityTypeKeys']);

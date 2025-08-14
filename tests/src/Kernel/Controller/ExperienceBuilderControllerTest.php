@@ -99,21 +99,11 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    if ($entity_type === Page::ENTITY_TYPE_ID) {
-      $add_url = Url::fromRoute('experience_builder.experience_builder', [
-        'entity_type' => $entity_type,
-        'entity' => '',
-      ])->toString();
-      self::assertEquals("/xb/$entity_type", $add_url);
-      $this->request(Request::create($add_url));
-      $this->assertExperienceBuilderMount($entity_type);
-    }
-
     $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $sut = $storage->create($values);
     $sut->save();
 
-    $edit_url = Url::fromRoute('experience_builder.experience_builder', [
+    $edit_url = Url::fromRoute('experience_builder.boot.entity', [
       'entity_type' => $entity_type,
       'entity' => $sut->id(),
     ])->toString();
@@ -177,14 +167,14 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    $add_url = Url::fromRoute('experience_builder.experience_builder', [
-      'entity_type' => Page::ENTITY_TYPE_ID,
+    $xb_url = Url::fromRoute('experience_builder.boot.empty', [
+      'entity_type' => '',
       'entity' => '',
     ])->toString();
-    self::assertEquals("/xb/xb_page", $add_url);
+    self::assertEquals("/xb", $xb_url);
 
     /** @var \Drupal\Core\Render\HtmlResponse $response */
-    $response = $this->request(Request::create($add_url));
+    $response = $this->request(Request::create($xb_url));
 
     $this->assertSame($expectedPermissionFlags, $this->drupalSettings['xb']['permissions']);
     self::assertSame([
@@ -298,14 +288,14 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    $add_url = Url::fromRoute('experience_builder.experience_builder', [
-      'entity_type' => Page::ENTITY_TYPE_ID,
+    $xb_url = Url::fromRoute('experience_builder.boot.empty', [
+      'entity_type' => '',
       'entity' => '',
     ])->toString();
-    self::assertEquals("/xb/xb_page", $add_url);
+    self::assertEquals("/xb", $xb_url);
 
     /** @var \Drupal\Core\Render\HtmlResponse $response */
-    $response = $this->request(Request::create($add_url));
+    $response = $this->request(Request::create($xb_url));
 
     $this->assertSame($expectedCreateOperations, $this->drupalSettings['xb']['contentEntityCreateOperations']);
     self::assertSame([
@@ -374,14 +364,14 @@ final class ExperienceBuilderControllerTest extends KernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    $add_url = Url::fromRoute('experience_builder.experience_builder', [
-      'entity_type' => Page::ENTITY_TYPE_ID,
+    $xb_url = Url::fromRoute('experience_builder.boot.empty', [
+      'entity_type' => '',
       'entity' => '',
     ])->toString();
-    self::assertEquals("/xb/xb_page", $add_url);
+    self::assertEquals("/xb", $xb_url);
 
     /** @var \Drupal\Core\Render\HtmlResponse $response */
-    $response = $this->request(Request::create($add_url));
+    $response = $this->request(Request::create($xb_url));
 
     foreach ($expectedFeatureFlags as $featureFlag => $featureFlagValue) {
       $this->assertSame($featureFlagValue, $this->drupalSettings['xb'][$featureFlag]);

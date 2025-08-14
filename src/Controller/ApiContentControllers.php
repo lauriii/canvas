@@ -384,13 +384,13 @@ final class ApiContentControllers {
     // Link relation type => route name.
     $possible_operations = [
       XbUriDefinitions::LINK_REL_DELETE => ['route_name' => 'experience_builder.api.content.delete', 'op' => 'delete'],
-      XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
+      XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.boot.entity', 'op' => 'update'],
       // Setting the homepage is a staged configuration update, the UI will
       // call `experience_builder.api.config.post` but for the access check
       // use the content entity's access.
       // Conceptually, this is an operation on the content entity, so expose it
       // as a non-standard link operation.
-      XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.experience_builder', 'op' => 'update'],
+      XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.boot.entity', 'op' => 'update'],
       XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'create'],
     ];
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {

@@ -393,20 +393,23 @@ experience_builder.api.ui.content_template.suggestions.structured_data_for_prop_
   options:
     _format: 'json'
 
-experience_builder.component.status:
-  path: '/admin/appearance/component/status'
+experience_builder.boot.empty:
+  path: '/xb'
   defaults:
-    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController'
-    _title: 'Components status'
+    _controller: 'Drupal\experience_builder\Controller\ExperienceBuilderController'
+    _title: 'Experience Builder'
+    entity_type: NULL
+    entity: NULL
   requirements:
-    _permission: 'administer themes'
+    _xb_ui_access: 'TRUE'
+  options:
+    _format: 'json'
 
-experience_builder.experience_builder:
+experience_builder.boot.entity:
   path: '/xb/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\experience_builder\Controller\ExperienceBuilderController'
     _title: 'Experience Builder'
-    entity: NULL
   requirements:
     _xb_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
@@ -415,3 +418,11 @@ experience_builder.experience_builder:
       entity:
         type: entity:{entity_type}
     _format: 'json'
+
+experience_builder.component.status:
+  path: '/admin/appearance/component/status'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ComponentStatusController'
+    _title: 'Components status'
+  requirements:
+    _permission: 'administer themes'

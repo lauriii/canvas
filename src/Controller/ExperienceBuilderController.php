@@ -20,6 +20,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\experience_builder\AssetRenderer;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\ContentTemplate;
@@ -85,7 +86,7 @@ final class ExperienceBuilderController {
 </html>
 HTML;
 
-  public function __invoke(string $entity_type, ?EntityInterface $entity) : HtmlResponse {
+  public function __invoke(?string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     // @phpstan-ignore-next-line function.alreadyNarrowedType
     assert($this->validateTransformAssetLibraries());
     // List of libraries to load in the preview iframe.
@@ -122,7 +123,12 @@ HTML;
       ],
       'drupalSettings' => [
         'xb' => [
-          'base' => \sprintf('xb/%s/%s', $entity_type, $entity?->id()),
+          'base' => $entity_type !== NULL
+            ? Url::fromRoute('experience_builder.boot.entity', [
+              'entity_type' => $entity_type,
+              'entity' => $entity?->id(),
+            ])->getInternalPath()
+            : Url::fromRoute('experience_builder.boot.empty')->getInternalPath(),
           'entityType' => $entity_type,
           'entity' => $entity?->id(),
           'entityTypeKeys' => $entity?->getEntityType()->getKeys(),

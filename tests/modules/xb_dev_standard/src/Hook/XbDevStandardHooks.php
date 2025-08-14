@@ -62,7 +62,7 @@ class XbDevStandardHooks {
         'tab' => [
           '#type' => 'link',
           '#title' => new TranslatableMarkup('Experience Builder: %title', ['%title' => $node->label()]),
-          '#url' => Url::fromRoute('experience_builder.experience_builder', [
+          '#url' => Url::fromRoute('experience_builder.boot.entity', [
             'entity_type' => 'node',
             'entity' => $node->id(),
           ]),

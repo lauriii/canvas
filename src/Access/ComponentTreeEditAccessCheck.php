@@ -23,8 +23,6 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
   /**
    * Checks access for editing an entity's component tree.
    *
-   * @todo remove the nullish argument in https://www.drupal.org/i/3529836
-   *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   An entity containing a component tree.
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -33,7 +31,7 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
-  public function access(?EntityInterface $entity, ?AccountInterface $account): AccessResultInterface {
+  public function access(EntityInterface $entity, AccountInterface $account): AccessResultInterface {
     if ($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
       $tree = $this->componentTreeLoader->load($entity);
       // TRICKY: field access hooks must return AccessResult::forbidden() to

@@ -63,7 +63,6 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
       "canonical" => "/page/{xb_page}",
       "delete-form" => "/page/{xb_page}/delete",
       "edit-form" => "/xb/xb_page/{xb_page}",
-      "add-form" => "/xb/xb_page",
       "revision-delete-form" => "/page/{xb_page}/revisions/{xb_page_revision}/delete",
       "revision-revert-form" => "/page/{xb_page}/revisions/{xb_page_revision}/revert",
       "version-history" => "/page/{xb_page}/revisions",

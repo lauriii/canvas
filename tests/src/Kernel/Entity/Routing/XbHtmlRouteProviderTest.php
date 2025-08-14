@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\experience_builder\Kernel\Entity\Routing;
 
-use Drupal\Core\Url;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
@@ -48,13 +47,6 @@ final class XbHtmlRouteProviderTest extends KernelTestBase {
     // Needed for date formats.
     $this->installConfig(['system']);
     $this->installPageEntitySchema();
-  }
-
-  public function testAddFormRoute(): void {
-    $this->setUpCurrentUser([], [Page::CREATE_PERMISSION]);
-    $url = Url::fromRoute('entity.xb_page.add_form')->toString();
-    $this->request(Request::create($url));
-    $this->assertExperienceBuilderMount(Page::ENTITY_TYPE_ID);
   }
 
   public function testEditFormRoute(): void {
