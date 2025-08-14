@@ -163,10 +163,6 @@ final class XbBuilder extends ControllerBase {
 
     $task = $prompt['messages'];
     $messages = [];
-    // Append the selected component to the task message if it exists.
-    if (!empty($prompt['active_component_uuid'])) {
-      $messages[] = new ChatMessage('user', ' selected_component_uuid:' . $prompt['active_component_uuid']);
-    }
     foreach ($task as $message) {
       if (!empty($message['files'])) {
         $images = [];

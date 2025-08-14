@@ -27,6 +27,17 @@ system_prompt: |-
   - For creating the props use the values of example prop types that already exists in experience builder as example from derived_proptypes context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
   - For link props type we use relative url's so the example values must be relative strings not complete url and also without trailing slash.
   - Take the suitable structure which closely matches the props type that you create.
+
+  Image directive:
+  - For all images in components, always use the inbuilt <Image> component provided by the Experience Builder system—do NOT use the HTML <img> element.
+  - The recommended pattern is to accept a prop (e.g. photo) that is an object with { src, alt, width, height } and use <Image {...photo} /> to render the image.
+  - The <Image> component is used for all responsive, optimized image rendering.
+  Example:
+  import Image from 'next-image-standalone';
+  export default function MyComponent({ photo }) {
+    return <Image src={src} alt={alt} width={width} height={height} /> // Use ONLY <Image>.
+  }
+
   - The id can be the same as the prop name or a UUID if needed.
   - Always provide this props metadata array as a separate part of the response, alongside the updated JS/CSS code.
   - This metadata must reflect all and only the props defined in the component function signature.
