@@ -29,6 +29,7 @@ import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
 import { useDebouncedCallback } from 'use-debounce';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 import { useParams } from 'react-router';
+import useResizeObserver from '@/hooks/useResizeObserver';
 
 const Canvas = () => {
   const dispatch = useAppDispatch();
@@ -88,6 +89,21 @@ const Canvas = () => {
   useHotkeys('mod+v', () => {
     pasteAfterSelectedComponent();
   });
+
+  // Update the width/height of the canvas to accommodate the scaled viewport (scalingContainerRef).
+  const updateCanvasSize = useCallback(() => {
+    if (!scalingContainerRef.current || !canvasRef.current) {
+      return;
+    }
+
+    // because the canvas is scaled with CSS transform, we need to get/set the width/height of the parent manually
+    const rect = scalingContainerRef.current?.getBoundingClientRect();
+
+    canvasRef.current.style.width = rect.width ? `${rect.width}px` : '';
+    canvasRef.current.style.height = rect.height ? `${rect.height}px` : '';
+  }, []);
+
+  useResizeObserver(scalingContainerRef, updateCanvasSize);
 
   const debouncedScrollPosUpdate = useDebouncedCallback(() => {
     if (!isDragging) {
@@ -269,15 +285,10 @@ const Canvas = () => {
     };
   }, [handleWheel, handleMouseUp]);
 
+  // Update the canvas size when the scale changes or on initial render.
   useLayoutEffect(() => {
-    if (!scalingContainerRef.current || !canvasRef.current) {
-      return;
-    }
-    // Increase the total width/height of the canvas to accommodate the scaled xbCanvasScalingContainer.
-    const rect = scalingContainerRef.current?.getBoundingClientRect();
-    canvasRef.current.style.width = rect.width ? `${rect.width}px` : '';
-    canvasRef.current.style.height = rect.height ? `${rect.height}px` : '';
-  }, [canvasViewPort.scale]);
+    updateCanvasSize();
+  }, [canvasViewPort.scale, updateCanvasSize]);
 
   return (
     <div className={styles.canvasContainer}>
