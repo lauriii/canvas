@@ -436,16 +436,6 @@ const AiWizard = () => {
     };
   }, [csrfToken]);
 
-  // Set up the chat element to handle messages and history.
-  useEffect(() => {
-    if (chatElementRef.current && csrfToken) {
-      // Load chat history from sessionStorage.
-      chatElementRef.current.loadHistory = () => {
-        return loadChatHistory();
-      };
-    }
-  }, [csrfToken, receiveMessage]);
-
   // Handle text input changes to enable/disable submit button.
   const handleTextInput = () => {
     const chatEl = chatElementRef.current;
@@ -488,6 +478,7 @@ const AiWizard = () => {
         </Flex>
         <DeepChat
           ref={chatElementRef}
+          history={loadChatHistory()}
           images={{
             files: {
               acceptedFormats: '.jpg, .png, .jpeg',
