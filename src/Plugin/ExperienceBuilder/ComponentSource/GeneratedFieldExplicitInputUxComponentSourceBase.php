@@ -109,8 +109,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *   as well as core's component validator.
    * @see \Drupal\Core\Theme\Component\ComponentMetadata
    * @see \Drupal\experience_builder\PropShape\PropShape::getComponentProps()
+   * @todo Remove in https://www.drupal.org/project/experience_builder/issues/3503038
    */
-  abstract protected function getSdcPlugin(): SdcPlugin;
+  abstract public function getSdcPlugin(): SdcPlugin;
 
   /**
    * {@inheritdoc}

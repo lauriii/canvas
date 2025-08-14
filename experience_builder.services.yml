@@ -146,6 +146,7 @@ services:
   Drupal\experience_builder\Controller\ComponentAuditController: {}
   Drupal\experience_builder\Controller\ExperienceBuilderController: {}
   Drupal\experience_builder\Controller\ApiAutoSaveController: {}
+  Drupal\experience_builder\Controller\ApiUiContentTemplateControllers: {}
 
   # Decorators.
   Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor:

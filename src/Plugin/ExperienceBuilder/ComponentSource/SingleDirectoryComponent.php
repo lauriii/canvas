@@ -94,7 +94,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   /**
    * {@inheritdoc}
    */
-  protected function getSdcPlugin(): ComponentPlugin {
+  public function getSdcPlugin(): ComponentPlugin {
     return $this->getComponentPlugin();
   }
 

@@ -1515,6 +1515,56 @@ paths:
                     examples:
                       - Missing data
                       - Missing clientInstanceId
+  /xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{entityTypeId}/{bundle}/{configEntityId}:
+    description: Provides suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+    get:
+      description: Get suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/bundle'
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+                # There may be 0 props for this component.
+                minProperties: 0
+                additionalProperties:
+                  type: object
+                  # There may be 0 suggestions for this prop for this component.
+                  minProperties: 0
+                  additionalProperties:
+                    $ref: '#/components/schemas/StructuredDataForPropShapeSuggestion'
+              examples:
+                Suggestions for a 'xb_test_sdc.heading' SDC component instance in the context of an article node:
+                  value:
+                    text:
+                      256dc2b8dcec7355:
+                        label: "This Article's Title"
+                        source:
+                          sourceType: "dynamic"
+                          expression: "ℹ︎␜entity:node:article␝title␞␟value"
+                    style: []
+                    element: []
+                Suggestions for a 'xb_test_sdc.video' SDC component instance in the context of an article node:
+                  value:
+                    video: []
+                    display_width: []
+        # @todo fix in https://www.drupal.org/project/experience_builder/issues/3541366
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        # @todo fix in https://www.drupal.org/project/experience_builder/issues/3541366
+        '400':
+          description: Invalid request from the UI.
+          $ref: '#/components/responses/ClientErrorResponse'
+        # @todo fix in https://www.drupal.org/project/experience_builder/issues/3541366
+        '404':
+          description: Non-existent content entity type, bundle or Component.
+          $ref: '#/components/responses/ClientErrorResponse'
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
@@ -1961,6 +2011,19 @@ components:
             type: object
             allOf:
               - $ref: '#/components/schemas/SegmentationRule'
+    StructuredDataForPropShapeSuggestion:
+      title: Suggested structured data (DynamicPropSource) for prop shape
+      type: object
+      required:
+        - label
+        - source
+      properties:
+        label:
+          type: string
+          description: Human-readable label
+        source:
+          type: object
+          description: The object representation of the DynamicPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
     Error:
       type: object
       required:
@@ -2178,6 +2241,14 @@ components:
       schema:
         type: string
       example: node
+    bundle:
+      name: bundle
+      in: path
+      required: true
+      description: The bundle
+      schema:
+        type: string
+      example: article
     entityId:
       name: entityId
       in: path
@@ -2197,7 +2268,9 @@ components:
         type: string
       examples:
         arbitraryEntityId:
-          value: hopefully_meaningful_name
+          value:
+            - hopefully_meaningful_name
+            - sdc.xb_test_sdc.my-cta
   # @see https://spec.openapis.org/oas/v3.1.0.html#header-object
   requestBodies:
     Layout:

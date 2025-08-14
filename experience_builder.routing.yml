@@ -383,6 +383,16 @@ experience_builder.api.staged-update.auto-save.post:
     _xb_entity_create_access: 'staged_config_update'
   methods: [POST]
 
+experience_builder.api.ui.content_template.suggestions.structured_data_for_prop_shapes:
+  path: '/xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{content_entity_type_id}/{bundle}/{component_config_entity_id}'
+  defaults:
+    _controller: 'Drupal\experience_builder\Controller\ApiUiContentTemplateControllers::suggestions'
+  requirements:
+    _xb_entity_create_access: 'content_template'
+  methods: [GET]
+  options:
+    _format: 'json'
+
 experience_builder.component.status:
   path: '/admin/appearance/component/status'
   defaults:
