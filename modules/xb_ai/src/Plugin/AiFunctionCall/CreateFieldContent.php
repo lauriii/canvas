@@ -63,6 +63,9 @@ final class CreateFieldContent extends FunctionCallBase implements ExecutableFun
    * {@inheritdoc}
    */
   public function getReadableOutput(): string {
+    // \Drupal\xb_ai\Controller\XbBuilder::render() expects a YAML parsable
+    // string.
+    // @see \Drupal\xb_ai\Controller\XbBuilder::render()
     return Yaml::dump([
       'created_content' => $this->value,
       'field_name' => $this->fieldName,

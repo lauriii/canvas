@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\xb_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\Tests\xb_ai\Traits\FunctionalCallTestTrait;
 use Drupal\user\Entity\User;
-use Drupal\xb_ai\XbAiPageBuilderHelper;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -19,6 +20,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 
+  use FunctionalCallTestTrait;
   use UserCreationTrait;
 
   /**
@@ -69,6 +71,12 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
+    $this->container->get(ModuleInstallerInterface::class)->install(['xb_test_sdc']);
+    $this->container->get('theme_installer')->install(['stark']);
+    $this->container->get('config.factory')
+      ->getEditable('system.theme')
+      ->set('default', 'stark')
+      ->save();
   }
 
   /**
@@ -81,21 +89,11 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 reference_nodepath: [0, 0, 1, 0]
 placement: 'below'
 components:
-  - sdc.xb_test_sdc.card:
+  - sdc.xb_test_sdc.heading:
       props:
-        title: 'Test Card'
-        content: 'Test content'
+        text: 'Some text'
+        element: 'h1'
 YAML;
-
-    $mock_helper = $this->createMock(XbAiPageBuilderHelper::class);
-    $mock_helper->expects($this->once())
-      ->method('extractComponentIds')
-      ->with($this->callback(fn($arg) => is_array($arg)))
-      ->willReturn(['sdc.xb_test_sdc.card']);
-
-    $mock_helper->expects($this->once())
-      ->method('validateComponentsInAiResponse')
-      ->with(['sdc.xb_test_sdc.card']);
 
     $expected_output = [
       'operations' => [
@@ -103,11 +101,11 @@ YAML;
           'operation' => 'ADD',
           'components' => [
             [
-              'id' => 'sdc.xb_test_sdc.card',
+              'id' => 'sdc.xb_test_sdc.heading',
               'nodePath' => [0, 0, 1, 1],
               'fieldValues' => [
-                'title' => 'Test Card',
-                'content' => 'Test content',
+                'text' => 'Some text',
+                'element' => 'h1',
               ],
             ],
           ],
@@ -116,20 +114,7 @@ YAML;
       'message' => 'The changes have been made.',
     ];
 
-    $mock_helper->expects($this->once())
-      ->method('customYamlToArrayMapper')
-      ->with($valid_yaml)
-      ->willReturn($expected_output);
-
-    $this->container->set('xb_ai.page_builder_helper', $mock_helper);
-
-    $tool = $this->functionCallManager->createInstance('xb_ai:set_component_structure');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
-
-    $tool->setContextValue('component_structure', $valid_yaml);
-    $tool->execute();
-
-    $result = $tool->getReadableOutput();
+    $result = $this->getComponentToolOutput($valid_yaml);
     $this->assertEquals(Yaml::dump($expected_output), $result);
   }
 
@@ -164,12 +149,7 @@ components:
     name: 'Card'
 YAML;
 
-    $tool = $this->functionCallManager->createInstance('xb_ai:set_component_structure');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
-    $tool->setContextValue('component_structure', $invalid_yaml);
-    $tool->execute();
-
-    $result = $tool->getReadableOutput();
+    $result = $this->getComponentToolOutput($invalid_yaml);
     $this->assertStringContainsString('Failed to process layout data:', $result);
     $this->assertStringContainsString('is incomplete and missing elements', $result);
   }
@@ -190,12 +170,7 @@ components:
       content: [invalid: yaml: structure
 YAML;
 
-    $tool = $this->functionCallManager->createInstance('xb_ai:set_component_structure');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
-    $tool->setContextValue('component_structure', $invalid_yaml);
-    $tool->execute();
-
-    $result = $tool->getReadableOutput();
+    $result = $this->getComponentToolOutput($invalid_yaml);
     $this->assertStringContainsString('Failed to process layout data:', $result);
   }
 
@@ -214,27 +189,78 @@ components:
         title: 'Invalid Component'
 YAML;
 
-    $mock_helper = $this->createMock(XbAiPageBuilderHelper::class);
-    $mock_helper->expects($this->once())
-      ->method('extractComponentIds')
-      ->with($this->callback(fn($arg) => is_array($arg)))
-      ->willReturn(['invalid.component.id']);
+    $result = $this->getComponentToolOutput($valid_yaml);
+    $this->assertSame("Failed to process layout data: Component validation errors: components.0.[invalid.component.id]: The 'experience_builder.component.invalid.component.id' config does not exist.", self::normalizeErrorString($result));
 
-    $mock_helper->expects($this->once())
-      ->method('validateComponentsInAiResponse')
-      ->with(['invalid.component.id'])
-      ->willThrowException(new \Exception('The following component ids are incorrect: invalid.component.id'));
+    $invalid_nested_component = <<<YAML
+reference_nodepath: [0, 4, 0, 3, 1, 0]
+placement: above
+components:
+  - sdc.xb_test_sdc.two_column:
+      props:
+        width: 50
+      slots:
+        column_one:
+          - sdc.xb_test_sdc.invalid_component:
+              props:
+                heading: 'My Hero'
+                subheading: 'SubSnub'
+                cta1href: 'https://example.com'
+                cta1: 'View it!'
+                cta2: 'Click it!'
+YAML;
+    $result = $this->getComponentToolOutput($invalid_nested_component);
+    $this->assertSame("Failed to process layout data: Component validation errors: components.0.[sdc.xb_test_sdc.two_column].slots.column_one.0.[sdc.xb_test_sdc.invalid_component]: The 'experience_builder.component.sdc.xb_test_sdc.invalid_component' config does not exist.", self::normalizeErrorString($result));
+  }
 
-    $this->container->set('xb_ai.page_builder_helper', $mock_helper);
+  public function testValidateComponent(): void {
+    $this->container->get('current_user')->setAccount($this->privilegedUser);
 
-    $tool = $this->functionCallManager->createInstance('xb_ai:set_component_structure');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
-    $tool->setContextValue('component_structure', $valid_yaml);
-    $tool->execute();
+    $invalid_yaml = <<<YAML
+reference_nodepath: [1, 0, 1, 0]
+placement: 'above'
+components:
+  - sdc.xb_test_sdc.my-hero:
+      props:
+        subheading: 'SubSnub'
+        cta1: 'View it!'
+        cta1href: 'https://xb-example.com'
+        cta2: 'Click it!'
+YAML;
 
-    $result = $tool->getReadableOutput();
-    $this->assertStringContainsString('Failed to process layout data:', $result);
-    $this->assertStringContainsString('The following component ids are incorrect: invalid.component.id', $result);
+    $result = $this->getComponentToolOutput($invalid_yaml);
+    $this->assertSame("Failed to process layout data: Component validation errors: components.0.[sdc.xb_test_sdc.my-hero].props.heading: The property heading is required.", self::normalizeErrorString($result));
+    // Ensure we gracefully 'props' not being set.
+    $decoded = Yaml::parse($invalid_yaml);
+    unset($decoded['components'][0]['sdc.xb_test_sdc.my-hero']['props']);
+    $result = $this->getComponentToolOutput(Yaml::dump($decoded));
+    $this->assertSame('Failed to process layout data: Component validation errors: components.0.[sdc.xb_test_sdc.my-hero].props.heading: The property heading is required. components.0.[sdc.xb_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
+
+    $invalid_nested_yaml = <<<YAML
+reference_nodepath: [0, 4, 0, 3, 1, 0]
+placement: above
+components:
+  - sdc.xb_test_sdc.two_column:
+      props:
+        width: 50
+      slots:
+        column_one:
+          - sdc.xb_test_sdc.my-hero:
+              props:
+                heading: 'My Hero'
+                subheading: 'SubSnub'
+                cta1: 'View it!'
+                cta2: 'Click it!'
+YAML;
+    $result = $this->getComponentToolOutput($invalid_nested_yaml);
+    $this->assertSame('Failed to process layout data: Component validation errors: components.0.[sdc.xb_test_sdc.two_column].slots.column_one.0.[sdc.xb_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
+
+    // Ensure we error on invalid slot names.
+    $decoded = Yaml::parse($invalid_nested_yaml);
+    $decoded['components'][0]['sdc.xb_test_sdc.two_column']['slots']['not_real_slot'] = $decoded['components'][0]['sdc.xb_test_sdc.two_column']['slots']['column_one'];
+    $invalid_slot_name_yaml = Yaml::dump($decoded);
+    $result = $this->getComponentToolOutput($invalid_slot_name_yaml);
+    $this->assertSame('Failed to process layout data: Component validation errors: components.0.[sdc.xb_test_sdc.two_column]: Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.two_column</em>: <em class="placeholder">not_real_slot</em>. Valid slot names are: <em class="placeholder">column_one, column_two</em>. components.0.[sdc.xb_test_sdc.two_column].slots.column_one.0.[sdc.xb_test_sdc.my-hero].props.cta1href: The property cta1href is required. components.0.[sdc.xb_test_sdc.two_column].slots.not_real_slot.0.[sdc.xb_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
   }
 
   /**
@@ -247,25 +273,16 @@ YAML;
 reference_nodepath: [0, 4, 0, 3, 1, 0]
 placement: above
 components:
-  - sdc.xb_test_sdc.card:
+  - sdc.xb_test_sdc.two_column:
       props:
-        title: 'Card with nested content'
+        width: 50
       slots:
-        content:
-          - sdc.xb_test_sdc.text:
+        column_one:
+          - sdc.xb_test_sdc.heading:
               props:
-                text: 'Nested text component'
+                text: 'Some text'
+                element: 'h1'
 YAML;
-
-    $mock_helper = $this->createMock(XbAiPageBuilderHelper::class);
-    $mock_helper->expects($this->once())
-      ->method('extractComponentIds')
-      ->with($this->callback(fn($arg) => is_array($arg)))
-      ->willReturn(['sdc.xb_test_sdc.card', 'sdc.xb_test_sdc.text']);
-
-    $mock_helper->expects($this->once())
-      ->method('validateComponentsInAiResponse')
-      ->with(['sdc.xb_test_sdc.card', 'sdc.xb_test_sdc.text']);
 
     $expected_output = [
       'operations' => [
@@ -273,35 +290,26 @@ YAML;
           'operation' => 'ADD',
           'components' => [
             [
-              'id' => 'sdc.xb_test_sdc.card',
+              'id' => 'sdc.xb_test_sdc.two_column',
               'nodePath' => [0, 4, 0, 3, 1, 0],
-              'fieldValues' => ['title' => 'Card with nested content'],
+              'fieldValues' => ['width' => 50],
             ],
             [
-              'id' => 'sdc.xb_test_sdc.text',
+              'id' => 'sdc.xb_test_sdc.heading',
               'nodePath' => [0, 4, 0, 3, 1, 0, 0, 0],
-              'fieldValues' => ['text' => 'Nested text component'],
+              'fieldValues' => ['text' => 'Some text', 'element' => 'h1'],
             ],
           ],
         ],
       ],
       'message' => 'The changes have been made.',
     ];
-
-    $mock_helper->expects($this->once())
-      ->method('customYamlToArrayMapper')
-      ->with($nested_yaml)
-      ->willReturn($expected_output);
-
-    $this->container->set('xb_ai.page_builder_helper', $mock_helper);
-
-    $tool = $this->functionCallManager->createInstance('xb_ai:set_component_structure');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
-    $tool->setContextValue('component_structure', $nested_yaml);
-    $tool->execute();
-
-    $result = $tool->getReadableOutput();
+    $result = $this->getComponentToolOutput($nested_yaml);
     $this->assertEquals(Yaml::dump($expected_output), $result);
+  }
+
+  private function getComponentToolOutput(string $yaml): string {
+    return $this->getToolOutput('xb_ai:set_component_structure', ['component_structure' => $yaml]);
   }
 
 }

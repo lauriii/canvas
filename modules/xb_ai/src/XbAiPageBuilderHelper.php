@@ -211,57 +211,6 @@ class XbAiPageBuilderHelper {
   }
 
   /**
-   * Validates components in AI response against available SDC components.
-   *
-   * @param array $components_in_ai_response
-   *   Array of component IDs to validate.
-   *
-   * @throws \Exception
-   *   If any components don't exist in available SDC components.
-   */
-  public function validateComponentsInAiResponse(array $components_in_ai_response): void {
-    $sdc_info = Yaml::parse($this->getComponentContextForAi());
-
-    $valid_component_ids = array_keys($sdc_info);
-
-    $invalid_components = array_diff($components_in_ai_response, $valid_component_ids);
-
-    if (!empty($invalid_components)) {
-      throw new \Exception('The following component ids are incorrect: ' .
-          implode(', ', $invalid_components));
-    }
-  }
-
-  /**
-   * Extracts unique component IDs from a parsed YAML array.
-   *
-   * @param array $components
-   *   The array of components generated from parsing the YAML.
-   *
-   * @return array
-   *   Array of unique component IDs.
-   */
-  public function extractComponentIds(array $components): array {
-    $component_ids = [];
-
-    foreach ($components as $component) {
-      foreach ($component as $component_id => $component_data) {
-        $component_ids[] = $component_id;
-
-        if (isset($component_data['slots'])) {
-          foreach ($component_data['slots'] as $slot_components) {
-            if (is_array($slot_components)) {
-              $component_ids = array_merge($component_ids, $this->extractComponentIds($slot_components));
-            }
-          }
-        }
-      }
-    }
-
-    return array_unique($component_ids);
-  }
-
-  /**
    * Gets all the component entities keyed by source plugin id.
    *
    * @return array

@@ -62,7 +62,9 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
    * {@inheritdoc}
    */
   public function getReadableOutput(): string {
-    // Output it kind of like a yaml file.
+    // \Drupal\xb_ai\Controller\XbBuilder::render() expects a YAML parsable
+    // string.
+    // @see \Drupal\xb_ai\Controller\XbBuilder::render()
     return Yaml::dump([
       'js_structure' => $this->js,
       'props_metadata' => $this->props,

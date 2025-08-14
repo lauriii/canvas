@@ -12,6 +12,10 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
 use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
+use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Yaml\Yaml;
 
@@ -54,12 +58,16 @@ use Symfony\Component\Yaml\Yaml;
 )]
 final class CreateComponent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
 
+  use ConstraintPropertyPathTranslatorTrait;
+
   /**
    * The entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected EntityTypeManagerInterface $entityTypeManager;
+
+  protected LoggerInterface $logger;
 
   /**
    * Load from dependency injection container.
@@ -72,34 +80,81 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       new ContextDefinitionNormalizer(),
     );
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
+    $instance->logger = $container->get('logger.factory')->get('xb_ai');
     return $instance;
   }
-
-  /**
-   * The component information.
-   *
-   * @var string
-   */
-  protected string $information = "";
 
   /**
    * {@inheritdoc}
    */
   public function execute(): void {
-    // Collect the context values.
-    $component_name = $this->getContextValue('component_name');
-    $javascript = $this->getContextValue('js_structure') ?? '';
-    $css = $this->getContextValue('css_structure') ?? '';
-    $props = $this->getContextValue('props_metadata') ?? '';
-    $machine_name = strtolower(preg_replace('/\s+/', '_', $component_name));
+    try {
+      // Collect the context values.
+      $component_name = $this->getContextValue('component_name');
+      $javascript = $this->getContextValue('js_structure') ?? '';
+      $css = $this->getContextValue('css_structure') ?? '';
+      $props = $this->getContextValue('props_metadata') ?? '';
+      $machine_name = strtolower(preg_replace('/\s+/', '_', $component_name));
 
-    // Check if the component exists.
-    /** @var \Drupal\experience_builder\Entity\JavaScriptComponent $component */
-    $component = $this->entityTypeManager->getStorage('js_component')->load($machine_name);
+      // Check if the component exists.
+      /** @var \Drupal\experience_builder\Entity\JavaScriptComponent $component */
+      $component = $this->entityTypeManager->getStorage('js_component')->load($machine_name);
 
-    // If the component does not exist, return an error.
-    if ($component) {
-      $this->information = "The component with same name already exists.";
+      // If the component does not exist, return an error.
+      if ($component) {
+        throw new \Exception("The component with same name already exists.");
+      }
+
+      $props_array = Json::decode($props);
+      $transformed_props = [];
+      if (is_array($props_array)) {
+        foreach ($props_array as $prop) {
+          if (!empty($prop['id']) && !empty($prop['name']) && !empty($prop['type']) && !empty($prop['example'])) {
+            $transformed = [
+              'title' => $prop['name'],
+              'type' => $prop['type'],
+              'examples' => [$prop['example']],
+            ];
+            foreach (['format', '$ref', 'enum'] as $optional) {
+              if (isset($prop[$optional])) {
+                $transformed[$optional] = $prop[$optional];
+              }
+            }
+            $transformed_props[$prop['id']] = $transformed;
+          }
+        }
+      }
+      $output = [
+        'name' => $component_name,
+        'machineName' => $machine_name,
+        // Mark this code component as "internal": do not make it available to Content Creators yet.
+        // @see docs/config-management.md, section 3.2.1
+        'status' => FALSE,
+        'sourceCodeJs' => $javascript,
+        'sourceCodeCss' => $css,
+        'compiledJs' => '',
+        'compiledCss' => '',
+        'importedJsComponents' => [],
+        'props' => $transformed_props,
+        'dataDependencies' => [],
+      ];
+      $violations = JavaScriptComponent::createFromClientSide($output)->getTypedData()->validate();
+      if ($violations->count() > 0) {
+
+        // Translate constraint property paths to match YAML input structure
+        $translatedViolations = $this->translateConstraintPropertyPathsAndRoot(
+          ['' => 'component_structure.'],
+          $violations,
+          ''
+        );
+        throw new ConstraintViolationException($translatedViolations, 'Component validation errors');
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->error($e->getMessage());
+      // \Drupal\xb_ai\Controller\XbBuilder::render() also YAML parsable output.
+      // @see \Drupal\xb_ai\Controller\XbBuilder::render()
+      $this->setOutput(Yaml::dump(['error' => sprintf('Failed to process Javascript component data: %s', $e->getMessage())], 10, 2));
       return;
     }
 
@@ -137,16 +192,13 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       'dataDependencies' => [],
     ];
 
-    $this->information = Yaml::dump([
+    // \Drupal\xb_ai\Controller\XbBuilder::render() expects a YAML parsable
+    // string.
+    // @see \Drupal\xb_ai\Controller\XbBuilder::render()
+    $this->setOutput(Yaml::dump([
       'component_structure' => $output,
-    ], 10, 2);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getReadableOutput(): string {
-    return $this->information;
+    ], 10, 2)
+    );
   }
 
 }
