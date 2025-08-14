@@ -17,7 +17,7 @@ describe('Component transforms', () => {
     cy.drupalUninstall();
   });
 
-  it('Applies transforms based on the stored component instance, not the component metadata for new instances', () => {
+  it('Applies transforms based on the stored component instance, not the component metadata for new instances, can edit old versions', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Click a Hero component to open the component form.
@@ -33,6 +33,17 @@ describe('Component transforms', () => {
     // Ensure the input is invalid.
     const newUri = 'https://example.com/abdedfg';
     cy.get('@componentFormCTA1Link').type(newUri, { force: true });
+
+    // Assert this uses the old 'link' widget because the component version was
+    // from before XbTestStoragePropShapeAlterHooks::storagePropShapeAlter() was running.
+    cy.get('@componentFormCTA1Link')
+      .should('have.attr', 'name')
+      .and('match', /\[0]\[uri]$/);
+    // And should still be valid.
+    cy.get('@componentFormCTA1Link').then(($input) => {
+      expect($input[0].validity.valid).to.be.true;
+      expect($input[0].matches(':invalid')).to.be.false;
+    });
 
     cy.findByTestId(/^xb-component-form-.*/)
       .findByLabelText('CTA 1 text')
