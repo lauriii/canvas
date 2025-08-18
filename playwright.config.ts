@@ -13,7 +13,7 @@ export default defineConfig({
   /* Retry */
   retries: 2,
   /* Maximum failures */
-  maxFailures: 1,
+  maxFailures: 0,
   /* Parallel test workers, leave undefined for automatic */
   workers: undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */

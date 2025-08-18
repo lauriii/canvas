@@ -18,6 +18,7 @@ CODEOWNERS
 codespaces
 cqmr
 csstree
+ddev
 dedreux
 delaville
 devizzent

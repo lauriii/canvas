@@ -3,7 +3,7 @@
 /**
 * Implements hook_library_info_alter().
 */
-function xb_vite_library_info_alter(&$libraries, $extension) {
+function xb_vite_library_info_alter(array &$libraries, string $extension): void {
   $base = [
     'attributes' => ['type' => 'module'],
     // Disabling preprocessing ensures these files are not aggregated, which

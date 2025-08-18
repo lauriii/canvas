@@ -4,6 +4,12 @@
 These tests are in the `tests/src/Playwright` folder and make use of the recipes
 located in `tests/fixtures/recipes`.
 
+>>>
+❗ Setup
+First follow the global [setup instructions](./setup.md) to ensure you have all
+the required PHP dependencies.
+>>>
+
 ## Running Tests
 
 If you are not using ddev, copy `.env.defaults` to `.env` and modify the values

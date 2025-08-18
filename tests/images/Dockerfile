@@ -5,7 +5,7 @@ FROM registry.gitlab.com/drupal-infrastructure/drupalci/drupalci-environments/ph
 RUN sudo apt-get -y update
 ENV NVM_DIR=/root/.nvm
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-RUN . /root/.nvm/nvm.sh && nvm install 22
+RUN . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
 RUN node -v
 RUN corepack enable
 RUN npx playwright install-deps
@@ -28,7 +28,9 @@ RUN composer create-project drupal/recommended-project _drupal
 RUN cd _drupal && \
     composer config minimum-stability dev && \
     composer require drupal/core-dev "drupal/experience_builder @dev" drush/drush --with-all-dependencies && \
-    cd ../
+    cd web/modules/contrib/experience_builder && \
+    composer run install-dev-deps && \
+    cd ../../../../../
 
 # Clean up
 RUN rm -rf *

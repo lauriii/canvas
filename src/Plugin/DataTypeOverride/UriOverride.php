@@ -19,7 +19,7 @@ class UriOverride extends Uri {
     $components = parse_url($this->value);
     // Without at least a scheme and host, there's no hope of casting this to a
     // valid URI. Abort.
-    if (!array_key_exists('scheme', $components) || !array_key_exists('host', $components)) {
+    if (!is_array($components) || !array_key_exists('scheme', $components) || !array_key_exists('host', $components)) {
       return $this->value;
     }
 

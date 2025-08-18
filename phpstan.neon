@@ -8,16 +8,12 @@ parameters:
     - theme
     - profile
   excludePaths:
-    - modules/xb_vite
+    - '**/vendor/**'
+    # Sometimes npm packages include PHP files
+    - '**/node_modules/**'
     # These are 1:1 copies from Drupal core, with trivial additions that cannot have significant PHPStan impact. PHPStan compliance should happen upstream.
-    - src/Plugin/DataTypeOverride
     - src/Plugin/Field/FieldTypeOverride
     - src/TypedData/BetterEntityDataDefinition.php
-    # The npm package flatted includes PHP files 🙃
-    # Note: `ui/node_modules` may exist on local development environments, but is deleted on CI to avoid slow tests,
-    # hence the `(?)`.
-    # @todo Remove once https://www.drupal.org/project/drupal/issues/3249443 is fixed.
-    - ui/node_modules (?)
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
   treatPhpDocTypesAsCertain: false
@@ -44,7 +40,6 @@ parameters:
     # @todo Remove in https://drupal.org/i/3533845
     - identifier: phpunit.coversMethod
     - identifier: phpunit.covers
-
     -
       message: "#^Class .* extends @internal class#"
       count: 1

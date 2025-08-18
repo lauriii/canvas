@@ -15,6 +15,7 @@
     "test:playwright": "playwright install && playwright test -x",
     "lint:eslint": "eslint cli tests/src/Playwright playwright.config.ts eslint.config.mjs",
     "lint:prettier": "prettier --ignore-path .gitignore tests/src/Playwright playwright.config.ts cli eslint.config.mjs --check",
+    "lint:cspell": "cspell .",
     "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "lint": "npx npm-run-all --parallel --continue-on-error lint:*"
 
@@ -31,6 +32,7 @@
     "@eslint/js": "^9.26.0",
     "@playwright/test": "^1.51.1",
     "@types/node": "^22.14.0",
+    "cspell": "^9.2.0",
     "dotenv-defaults": "^5.0.2",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",

@@ -46,6 +46,9 @@ include:
       # - "/includes/include.drupalci.main-d7.yml"
       - "/includes/include.drupalci.variables.yml"
       - "/includes/include.drupalci.workflows.yml"
+  # Local includes
+  - local: .gitlab/ci/drupal.yml
+  - local: .gitlab/ci/test.yml
 
 stages:
   - development
@@ -81,10 +84,6 @@ variables:
   CI_PARENT_PROJECT_NAME: experience_builder
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
   _CONCURRENCY_THREADS: '12'
-
-# This module wants to strictly comply with Drupal core's word use standards.
-cspell:
-  allow_failure: false
 
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .is-push-rule: &is-push-rule
@@ -138,92 +137,22 @@ cspell:
       - ui/tests/fixtures/**/*
     when: on_success
 
-# Helper to setup a Drupal installation
-#
-# This should be quite fast with a warm cache, and is only used by one job
-# at the moment, so not currently worth the overhead of saving the output as
-# an artifact and starting a new job based on it.
-#
-# The drupal.org composer template creates a web/ directory and then
-# individually symlinks all the project files into module directory.
-# This causes some very strange behavior and node.js scripts will refuse to
-# run in a lot of cases, so this is an alternative job.
-.drupal: &drupal
-  # Move everything into a subdirectory
-  - mkdir tmp
-  - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
-  - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -exec mv {} tmp/ \;
-  - mv tmp $CI_PROJECT_NAME
-  # Get Drupal
-  - composer create-project drupal/recommended-project:$DRUPAL_CORE _drupal
-  - cd _drupal
-  # Add core-dev, Experience Builder, and drush
-  - |
-    composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
-  - composer config minimum-stability dev
-  - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" drush/drush --with-all-dependencies
-  - |
-    PACKAGE_INFO=$(composer info drupal/$CI_PARENT_PROJECT_NAME --all | grep "^dist" | awk -F": " "{print \$2}")
-    EXPECTED_PATH="[path] ../$CI_PROJECT_NAME $CI_COMMIT_SHA"
-    if [ "$PACKAGE_INFO" != "$EXPECTED_PATH" ]; then
-      echo "Unable to link to local $CI_PARENT_PROJECT_NAME package"
-      echo "Expected: $EXPECTED_PATH"
-      echo "Got: $PACKAGE_INFO"
-      exit 1
-    fi
-  # Setup webserver root
-  - rm -rf /var/www/html
-  - ln -s $CI_PROJECT_DIR/_drupal/web /var/www/html
-  - chown -R www-data:www-data /var/www/html
-  - chown -R www-data:www-data $CI_PROJECT_DIR/_drupal
-  # Setup directories
-  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites
-  - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/simpletest
-  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/simpletest
-  - mkdir -p $CI_PROJECT_DIR/_drupal/web/sites/default/files
-  - chmod 777 $CI_PROJECT_DIR/_drupal/web/sites/default/files
-  # Start the webserver
-  - service apache2 start
-  # Set simpletest environment variables
-  - !reference [ .simpletest-db ]
-  - !reference [ .show-environment-variables ]
-  # Ensure that every test site will be able to discover and install test modules.
-  # Anything in settings.testing.php is automatically copied into the settings of
-  # individual test sites. See \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(),
-  # which is called (indirectly) by \Drupal\TestSite\Commands\TestSiteInstallCommand.
-  - cd $CI_PROJECT_DIR/_drupal/web/sites/default
-  - echo '<?php' >> settings.testing.php
-  - echo '$settings["extension_discovery_scan_tests"] = TRUE;' >> settings.testing.php
-  # Change to the project directory
-  - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
-  # Install the UI
-  # @todo consolidate this with the UI job?
-  - cd ui
-  - npm ci
-  - npm run build
-  - cd ../
+# Disable jobs from the upstream template.
+phpcs:
+  rules:
+    - when: never
 
-# @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+phpstan:
+  rules:
+    - when: never
+
+cspell:
+  rules:
+    - when: never
+
 composer-lint:
   rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    - changes:
-        - composer.json
-      when: on_success
-    - *manual-rule
-
-phpcs:
-  allow_failure: false
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    # Also run whenever we catch up to the upstream PHPCS rules.
-    - changes:
-        - core.phpcs.xml.dist
-      when: on_success
-    - *manual-rule
+    - when: never
 
 phpcs-rules-match-drupal-11:
   stage: development
@@ -279,15 +208,6 @@ stylelint:
       - gl-codequality.json
     reports:
       codequality: gl-codequality.json
-
-# This module wants to strictly comply with PHPStan.
-.phpstan-base:
-  allow_failure: false
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-  rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    - *manual-rule
 
 phpunit:
   variables:
@@ -530,14 +450,49 @@ cypress unit:
     paths:
       - "docs/diagrams/*.md"
 
+lint (php):
+  stage: validate
+  needs: []
+  image: justafish/drupalci-environments-playwright:latest
+  variables:
+    GIT_DEPTH: 1
+    COMPOSER_ROOT_VERSION: 0.0.0
+  before_script:
+    - !reference [ .drupal-files ]
+    - composer run install-dev-deps
+    - mkdir -p test-results
+  script:
+    # PHPStan doesn't allow multiple outputs, but it will cache the result so
+    # the second run is very fast.
+    - composer run phpstan -- --error-format=junit > test-results/phpstan.xml || true
+    - !reference [ .test_runner ]
+    - run_test "composer validate" "composer validate --strict"
+    - run_test "phpcs" "composer run phpcs"
+    - run_test "phpstan" "composer run phpstan"
+    - !reference [ .test_summary ]
+  after_script:
+    - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
+  artifacts:
+    expose_as: 'Static tests report'
+    when: always
+    expire_in: 6 mos
+    paths:
+      - test-results/
+    reports:
+      junit:
+        - test-results/phpcs.xml
+        - test-results/phpstan.xml
+
 # This is the lint job for packages that are under the root package.json and
 # workspace.
 # @todo migrate the ui/ packages to the top level workspace now that we can get
 # around the GitLab issues.
-lint (frontend):
+lint (node):
   stage: validate
   needs: []
-  image: node:24
+  image: justafish/drupalci-environments-playwright:latest
+  before_script:
+    - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
   script:
     - npm ci
     - npm run lint
@@ -569,6 +524,7 @@ playwright:
     DRUPAL_TEST_PLAYWRIGHT_SKIP_TEARDOWN: true
   before_script:
     - !reference [ .drupal ]
+    - composer run install-dev-deps
   script:
     - npm ci
     - npm run test:playwright
@@ -621,7 +577,7 @@ CLI Test:
 CLI Publish:
   stage: publish
   needs:
-    - lint (frontend)
+    - lint (node)
     - CLI Test
   rules:
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
