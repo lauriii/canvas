@@ -350,21 +350,22 @@ final class ApiLayoutController {
 
     assert(isset($content));
     \assert($entity instanceof FieldableEntityInterface);
-    $this->converter->convert([
-      'layout' => $content,
-      // An empty model needs to be represented as \stdClass so that it is
-      // correctly json encoded. But we need to convert it to an array before
-      // we can extract it.
-      'model' => (array) $model,
-      // If we are not auto-saving there is no reason to convert the
-      // 'entity_form_fields'. This can cause access issue for just viewing the
-      // preview. This runs the conversion as if the user had no access to edit
-      // the entity fields which is all the that is necessary when not
-      // auto-saving.
-      'entity_form_fields' => $updateAutoSave ? $body['entity_form_fields'] : [],
-    ], $entity, validate: FALSE);
+
     // Store the auto-save entry.
     if ($updateAutoSave) {
+      $this->converter->convert([
+        'layout' => $content,
+        // An empty model needs to be represented as \stdClass so that it is
+        // correctly json encoded. But we need to convert it to an array before
+        // we can extract it.
+        'model' => (array) $model,
+        // If we are not auto-saving there is no reason to convert the
+        // 'entity_form_fields'. This can cause access issue for just viewing the
+        // preview. This runs the conversion as if the user had no access to edit
+        // the entity fields which is all the that is necessary when not
+        // auto-saving.
+        'entity_form_fields' => $body['entity_form_fields'],
+      ], $entity, validate: FALSE);
       $this->autoSaveManager->saveEntity($entity, $body['clientInstanceId']);
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
