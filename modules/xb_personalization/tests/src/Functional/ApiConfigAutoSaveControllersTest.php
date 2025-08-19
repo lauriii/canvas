@@ -76,6 +76,7 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
               ],
             ],
           ],
+          'weight' => 0,
         ],
         [
           'label' => 'Updated',
@@ -103,6 +104,7 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
               ],
             ],
           ],
+          'weight' => 0,
         ],
         "The 'administer personalization segments' permission is required.",
       ],

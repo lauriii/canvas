@@ -170,6 +170,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
           ],
         ],
       ],
+      'weight' => 0,
     ];
     $this->assertSame($expected_segment_normalization, $body);
 
@@ -371,6 +372,73 @@ class SegmentHttpApiTest extends HttpApiTestBase {
         "X-CSRF-Token request header is missing",
       ],
     ], json_decode((string) $response->getBody(), TRUE));
+  }
+
+  public function testSegmentWeight(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $list_url = Url::fromUri("base:/xb/api/v0/config/segment");
+
+    Segment::create([
+      'id' => 'test_segment',
+      'label' => 'Test Segment',
+      'rules' => [],
+      // Segments default to a weight of zero.
+    ])->save();
+
+    Segment::create([
+      'id' => 'test_segment_2',
+      'label' => 'Test Segment 2',
+      'rules' => [],
+      'weight' => 1,
+    ])->save();
+
+    $test_segment_1_expected_data = [
+      'id' => 'test_segment',
+      'label' => 'Test Segment',
+      'description' => NULL,
+      'rules' => [],
+      'weight' => 0,
+    ];
+
+    $test_segment_2_expected_data = [
+      'id' => 'test_segment_2',
+      'label' => 'Test Segment 2',
+      'description' => NULL,
+      'rules' => [],
+      'weight' => 1,
+    ];
+
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    // Check the order of the segments based on their weights.
+    $this->assertSame([
+      "test_segment" => $test_segment_1_expected_data,
+      "test_segment_2" => $test_segment_2_expected_data,
+    ], $body);
+
+    // Update the weight of the first segment.
+    $segment_to_send = [
+      'id' => 'test_segment',
+      'label' => 'Test Segment',
+      'description' => NULL,
+      'rules' => [],
+      'weight' => 3,
+    ];
+
+    $request_options[RequestOptions::JSON] = $segment_to_send;
+    $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/segment/test_segment'), $request_options, 200, NULL, NULL, NULL, NULL);
+
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    // Re-check the order of the segments based on the updated weight.
+    $this->assertSame([
+      "test_segment_2" => $test_segment_2_expected_data,
+      "test_segment" => [
+        'id' => 'test_segment',
+        'label' => 'Test Segment',
+        'description' => NULL,
+        'rules' => [],
+        'weight' => 3,
+      ],
+    ], $body);
   }
 
 }

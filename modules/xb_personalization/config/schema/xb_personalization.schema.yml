@@ -23,6 +23,9 @@ xb_personalization.segment.*:
       sequence:
         type: condition.plugin.[%key]
         label: Condition Settings
+    weight:
+      type: weight
+      label: Weight
 
 condition.plugin.utm_parameters:
   # @todo For being FullyValidatable, we need https://www.drupal.org/i/3525391 to be

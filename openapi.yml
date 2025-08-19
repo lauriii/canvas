@@ -609,6 +609,7 @@ paths:
                               "matching": "starts_with"
                           negate: false
                           all: true
+                      weight: 0
     post:
       description: Creates a new Personalization Segment.
       requestBody:
@@ -636,6 +637,7 @@ paths:
                         "matching": "starts_with"
                     negate: false
                     all: true
+                weight: 0
       responses:
         '201':
           description: Created entity successfully
@@ -662,6 +664,7 @@ paths:
                             "matching": "starts_with"
                         negate: false
                         all: true
+                    weight: 0
         '409':
           description: Personalization Segment with same ID already exists.
           $ref: '#/components/responses/ClientErrorResponse'
@@ -699,6 +702,7 @@ paths:
                           "matching": "starts_with"
                       negate: false
                       all: true
+                  weight: 0
     patch:
       description: Updates a specific Asset Library.
       requestBody:
@@ -1990,6 +1994,7 @@ components:
         # We only require id, as we want to allow partial updates with PATCH.
         # Complete constraint-based validation will happen on entity validation.
         - id
+      additionalProperties: false
       properties:
         id:
           type: string
@@ -2011,6 +2016,9 @@ components:
             type: object
             allOf:
               - $ref: '#/components/schemas/SegmentationRule'
+        weight:
+          type: integer
+          description: The weight of the segment, used for ordering segments.
     StructuredDataForPropShapeSuggestion:
       title: Suggested structured data (DynamicPropSource) for prop shape
       type: object

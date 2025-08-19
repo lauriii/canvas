@@ -73,6 +73,11 @@ final class ApiConfigControllers extends ApiControllerBase {
       $query->condition('status', TRUE);
     }
 
+    // If the XB config entity type has a weight, sort by it.
+    if ($xb_config_entity_type->hasKey('weight')) {
+      $query->sort('weight');
+    }
+
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($xb_config_entity_type->getListCacheContexts())
       ->addCacheTags($xb_config_entity_type->getListCacheTags());

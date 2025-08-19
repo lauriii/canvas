@@ -30,6 +30,7 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "id" => "id",
     "label" => "label",
     "status" => "status",
+    "weight" => "weight",
   ],
   handlers: [
     // @todo Define access handler in https://www.drupal.org/i/3525604
@@ -60,6 +61,7 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "label",
     "description",
     "rules",
+    "weight",
   ],
 )]
 final class Segment extends ConfigEntityBase implements SegmentInterface {
@@ -88,6 +90,11 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
    * The segmentation rules.
    */
   protected ?array $rules;
+
+  /**
+   * The segment weight.
+   */
+  protected int $weight = 0;
 
   /**
    * The segmentation rules lazy collection of plugin instances.
@@ -174,6 +181,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
         'label' => $this->label,
         'description' => $this->description,
         'rules' => $this->rules,
+        'weight' => $this->weight,
       ],
       preview: NULL,
     );
