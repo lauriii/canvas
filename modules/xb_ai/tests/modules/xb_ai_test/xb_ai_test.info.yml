@@ -1,0 +1,6 @@
+name: Experience Builder AI test
+type: module
+description: 'Support module for testing Experience Builder AI.'
+package: Testing
+dependencies:
+  - xb_ai:xb_ai

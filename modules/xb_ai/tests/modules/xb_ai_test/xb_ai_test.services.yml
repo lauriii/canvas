@@ -1,0 +1,5 @@
+services:
+  xb_ai_test.request_interceptor:
+    class: Drupal\xb_ai_test\EventSubscriber\XbAiRequestInterceptor
+    tags:
+      - { name: event_subscriber }

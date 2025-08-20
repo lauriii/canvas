@@ -111,3 +111,6 @@ interactable
 nodepath
 nodepaths
 proptypes
+herobanner
+herobannersecond
+Cdiv
