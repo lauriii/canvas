@@ -41,6 +41,8 @@ class SegmentHttpApiTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected readonly array $expectedDefaultSegment;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
@@ -49,13 +51,22 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+
+    $this->expectedDefaultSegment = [
+      'id' => Segment::DEFAULT_ID,
+      'label' => 'Default segment',
+      'description' => 'The negotiation fallback locked segment for personalization.',
+      'rules' => [],
+      'weight' => 2147483647,
+      'status' => TRUE,
+    ];
   }
 
   /**
    * @see \Drupal\xb_personalization\Entity\Segment
    */
   public function testSegment(): void {
-    $this->assertAuthenticationAndAuthorization('segment');
+    $this->assertAuthenticationAndAuthorization(Segment::ENTITY_TYPE_ID);
 
     $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri("base:/xb/api/v0/config/segment");
@@ -117,7 +128,9 @@ class SegmentHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
-    $this->assertSame([], $body);
+    $this->assertSame([
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
+    ], $body);
 
     // Create a segment via the XB HTTP API, correctly: 201.
     $segment_to_send['rules'] = [
@@ -171,12 +184,13 @@ class SegmentHttpApiTest extends HttpApiTestBase {
         ],
       ],
       'weight' => 0,
+      'status' => FALSE,
     ];
     $this->assertSame($expected_segment_normalization, $body);
 
     // Ensure it's disabled no matter what we sent in status.
     /** @var \Drupal\Core\Entity\EntityStorageInterface $segment_storage */
-    $segment_storage = \Drupal::service('entity_type.manager')->getStorage('segment');
+    $segment_storage = \Drupal::service('entity_type.manager')->getStorage(Segment::ENTITY_TYPE_ID);
     $segment = $segment_storage->loadUnchanged('my_segment');
     assert($segment instanceof Segment);
     self::assertFalse($segment->status());
@@ -249,6 +263,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "my_segment" => $expected_segment_normalization,
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
     ], $body);
     // Use the individual URL in the list response body.
     $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/segment/my_segment'), [], 200, ['user.permissions'], ['config:xb_personalization.segment.my_segment', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -323,6 +338,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "my_segment" => $expected_segment_normalization,
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
     ], $body);
 
     // Disable the segment.
@@ -336,9 +352,26 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "my_segment" => $expected_segment_normalization,
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
     ], $body);
 
-    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/segment/my_segment'), $list_url, 'config:segment_list');
+    // Attempt to update the default segment which is "locked".
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/segment/default'), $request_options, 403, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        "The default segment cannot be deleted or updated.",
+      ],
+    ], $body);
+
+    // Attempt to delete the default segment which is "locked".
+    $body = $this->assertExpectedResponse('DELETE', (Url::fromUri('base:/xb/api/v0/config/segment/default')), [], 403, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        "The default segment cannot be deleted or updated.",
+      ],
+    ], $body);
+
+    $this->assertDeletionAndDefaultOnly(Url::fromUri('base:/xb/api/v0/config/segment/my_segment'), $list_url, 'config:segment_list');
 
     // This was now tested full circle! ✅
   }
@@ -354,10 +387,12 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
-    // Authenticated & authorized: 200, but empty list.
+    // Authenticated & authorized: 200, list includes the default segment.
     $this->drupalLogin($this->httpApiUser);
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
+    $this->assertSame([
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
+    ], $body);
 
     // Send a POST request without the CSRF token.
     $request_options = [
@@ -398,6 +433,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       'description' => NULL,
       'rules' => [],
       'weight' => 0,
+      'status' => TRUE,
     ];
 
     $test_segment_2_expected_data = [
@@ -406,6 +442,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       'description' => NULL,
       'rules' => [],
       'weight' => 1,
+      'status' => TRUE,
     ];
 
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:segment_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -413,6 +450,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       "test_segment" => $test_segment_1_expected_data,
       "test_segment_2" => $test_segment_2_expected_data,
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
     ], $body);
 
     // Update the weight of the first segment.
@@ -422,6 +460,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       'description' => NULL,
       'rules' => [],
       'weight' => 3,
+      'status' => FALSE,
     ];
 
     $request_options[RequestOptions::JSON] = $segment_to_send;
@@ -437,8 +476,27 @@ class SegmentHttpApiTest extends HttpApiTestBase {
         'description' => NULL,
         'rules' => [],
         'weight' => 3,
+        'status' => FALSE,
       ],
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
     ], $body);
+  }
+
+  /**
+   * Asserts we can delete a resource, and we get only the default afterward.
+   */
+  protected function assertDeletionAndDefaultOnly(Url $resource_url, Url $list_url, string $list_cache_tag): void {
+    // Delete the sole remaining segment via the XB HTTP API: 204.
+    $body = $this->assertExpectedResponse('DELETE', $resource_url, [], 204, NULL, NULL, NULL, NULL);
+    $this->assertNull($body);
+
+    // Re-retrieve list: 200, empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [$list_cache_tag, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      Segment::DEFAULT_ID => $this->expectedDefaultSegment,
+    ], $body);
+    $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertSame([], $individual_body);
   }
 
 }

@@ -18,6 +18,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\xb_personalization\Form\SegmentForm;
 use Drupal\xb_personalization\Form\SegmentRuleForm;
+use Drupal\xb_personalization\Access\SegmentAccessControlHandler;
 use Drupal\xb_personalization\SegmentListBuilder;
 
 #[ConfigEntityType(
@@ -33,7 +34,7 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "weight" => "weight",
   ],
   handlers: [
-    // @todo Define access handler in https://www.drupal.org/i/3525604
+    "access" => SegmentAccessControlHandler::class,
     "list_builder" => SegmentListBuilder::class,
     "form" => [
       "add" => SegmentForm::class,
@@ -53,9 +54,6 @@ use Drupal\xb_personalization\SegmentListBuilder;
     "singular" => "@count personalization segment",
     "plural" => "@count personalization segments",
   ],
-  additional: [
-    'xb_visible_when_disabled' => TRUE,
-  ],
   config_export: [
     "id",
     "label",
@@ -70,6 +68,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
 
   public const string ENTITY_TYPE_ID = 'segment';
   public const string ADMIN_PERMISSION = 'administer personalization segments';
+  public const string DEFAULT_ID = 'default';
 
   /**
    * The segment ID.
@@ -182,6 +181,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
         'description' => $this->description,
         'rules' => $this->rules,
         'weight' => $this->weight,
+        'status' => $this->status(),
       ],
       preview: NULL,
     );

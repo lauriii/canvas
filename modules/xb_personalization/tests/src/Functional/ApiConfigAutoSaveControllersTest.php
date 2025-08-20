@@ -105,6 +105,7 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             ],
           ],
           'weight' => 0,
+          'status' => FALSE,
         ],
         "The 'administer personalization segments' permission is required.",
       ],
