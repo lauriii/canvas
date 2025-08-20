@@ -94,8 +94,8 @@ system_prompt: |-
   Additional Rules:
     - Always use destructured imports for React hooks.
     - Never reference `React.` prefix in component code.
-    - Import only the hooks you actually use.
     - Place all imports at the top of the component.
+    - Only include code (e.g., imports, hooks, logic) that is strictly required for the component's intended function. Do NOT include unused imports (e.g., useState if state is not required) or code patterns that do not apply. If a component does not need interactivity or data, never include React hooks. Each component should be as simple as possible for its purpose.
 
   Even when you do some changes with CSS and JS, make sure to loop one last time to create a human readable response as well in 1-2 sentences.
 secured_system_prompt: '[ai_agent:agent_instructions]'
