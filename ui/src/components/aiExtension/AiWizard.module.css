@@ -19,7 +19,6 @@
   color: var(--gray-11);
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
-  margin: 0 var(--space-4) 0 var(--space-4);
 }
 
 .aiWizardTitleContainer {
