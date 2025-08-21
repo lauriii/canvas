@@ -84,14 +84,14 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.log(`Iteration ${ix + 1}: Adding ${step.expectedAlt} complete`);
   });
 
-  // Add a new component which should trigger opening the component inputs form
+  // Add a new component which should trigger opening the component instance form
   // in the contextual panel.
   cy.openLibraryPanel();
   cy.get('.primaryPanelContent').should('contain.text', 'Components');
   cy.get('.primaryPanelContent').findByText('Hero').click();
   cy.findByTestId('xb-contextual-panel').should('exist');
   cy.get(
-    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+    '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
   ).within(() => {
     cy.findAllByLabelText('Heading').should('exist');
   });

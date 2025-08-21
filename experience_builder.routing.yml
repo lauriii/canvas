@@ -260,11 +260,11 @@ experience_builder.api.content.list:
 
 # Forms: component instance and content entity.
 # @see \Drupal\experience_builder\Theme\XBThemeNegotiator::applies()
-experience_builder.api.form.component_inputs:
+experience_builder.api.form.component_instance:
   path: '/xb/api/v0/form/component-instance/{entity_type}/{entity}'
   defaults:
-    _form: 'Drupal\experience_builder\Form\ComponentInputsForm'
-    _title: 'Component Inputs Form'
+    _form: 'Drupal\experience_builder\Form\ComponentInstanceForm'
+    _title: 'Component Instance Form'
   requirements:
     _xb_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'

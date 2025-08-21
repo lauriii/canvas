@@ -9,7 +9,7 @@
           e.preventDefault();
           // Update a text prop.
           document.querySelector(
-            '[data-form-id="component_inputs_form"][type="text"]',
+            '[data-form-id="component_instance_form"][type="text"]',
           ).value = 'SURPRISE!';
           // Update the controlling text input, use jQuery val() so we have an
           // instance of that method working in our tests.
@@ -22,7 +22,7 @@
           e.preventDefault();
           // Update an enum prop value.
           document.querySelector(
-            'select[data-form-id="component_inputs_form"]',
+            'select[data-form-id="component_instance_form"]',
           ).value = 'baz';
         });
       });
@@ -31,7 +31,7 @@
           e.preventDefault();
           // Update a number prop value.
           document.querySelector(
-            '[data-form-id="component_inputs_form"][type="number"]',
+            '[data-form-id="component_instance_form"][type="number"]',
           ).value = 2000;
         });
       });

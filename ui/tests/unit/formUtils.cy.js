@@ -24,7 +24,7 @@ Value`,
   'xb_component_props[all-props][media][selection][0][target_id]': 3,
   form_build_id: 'this-is-a-form-build-id',
   form_token: 'this-is-a-form-token',
-  form_id: 'component_inputs_form',
+  form_id: 'component_instance_form',
 };
 let inputAndUiData = {
   selectedComponent: 'all-props',

@@ -91,7 +91,8 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
       'bundle' => 'article',
     ])->save();
 
-    // Create a simple template that uses the string fields in component inputs.
+    // Create a simple template that uses string fields to populate component
+    // instances.
     $template = ContentTemplate::create([
       'content_entity_type_id' => 'node',
       'content_entity_type_bundle' => 'article',

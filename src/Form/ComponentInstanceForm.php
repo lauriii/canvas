@@ -14,11 +14,13 @@ use Drupal\experience_builder\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Allows editing the prop sources for a component.
+ * Allows editing a component instance.
+ *
+ * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::buildComponentInstanceForm()
  */
-final class ComponentInputsForm extends FormBase {
+final class ComponentInstanceForm extends FormBase {
 
-  public const FORM_ID = 'component_inputs_form';
+  public const FORM_ID = 'component_instance_form';
 
   public function __construct(
     // This must be protected so that DependencySerializationTrait, which is
@@ -93,8 +95,9 @@ final class ComponentInputsForm extends FormBase {
       '#value' => $props,
     ];
 
-    // Prevent form submission while specifying values for component inputs,
-    // because changes are saved via Redux instead of a traditional submit.
+    // Prevent form submission while specifying values for component instance's
+    // inputs, because changes are saved via Redux instead of a traditional
+    // submit.
     // @see ui/src/components/form/inputBehaviors.tsx
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
@@ -102,7 +105,7 @@ final class ComponentInputsForm extends FormBase {
     $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model);
 
     $form['#component'] = $component;
-    $form['#attributes']['data-form-id'] = 'component_inputs_form';
+    $form['#attributes']['data-form-id'] = self::FORM_ID;
 
     $parents = ['xb_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
@@ -125,3 +128,4 @@ final class ComponentInputsForm extends FormBase {
   }
 
 }
+

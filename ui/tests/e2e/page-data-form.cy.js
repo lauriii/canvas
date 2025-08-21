@@ -58,11 +58,11 @@ describe('Page data form', () => {
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 
     cy.intercept('PATCH', '**/xb/api/v0/layout/node/1').as('patchPreview');
-    // Switch back to component inputs form.
+    // Switch back to component instance form.
     cy.clickComponentInPreview('Hero');
     cy.findByTestId('xb-contextual-panel--settings').click();
     cy.get(
-      '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+      '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
     )
       .findByLabelText('Heading')
       .as('heroTitle');

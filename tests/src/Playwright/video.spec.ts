@@ -49,7 +49,7 @@ test.describe('Video Component', () => {
 
     const formBuildId = await page
       .locator(
-        'input[type="hidden"][data-form-id="component_inputs_form"][name="form_build_id"]',
+        'input[type="hidden"][data-form-id="component_instance_form"][name="form_build_id"]',
       )
       .getAttribute('value');
 
@@ -116,7 +116,7 @@ test.describe('Video Component', () => {
     expect(
       await page
         .locator(
-          'input[type="hidden"][data-form-id="component_inputs_form"][name="form_build_id"]',
+          'input[type="hidden"][data-form-id="component_instance_form"][name="form_build_id"]',
         )
         .getAttribute('value'),
     ).not.toEqual(formBuildId);

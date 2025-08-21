@@ -1033,7 +1033,7 @@ paths:
       description: TODO
       responses:
         '200':
-          description: Component inputs form
+          description: Component instance form
           content:
             application/json:
               schema:

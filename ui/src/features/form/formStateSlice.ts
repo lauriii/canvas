@@ -13,7 +13,7 @@ export interface FormState {
 }
 
 export interface FormStateSliceFormsState {
-  [FORM_TYPES.COMPONENT_INPUTS_FORM]: FormState;
+  [FORM_TYPES.COMPONENT_INSTANCE_FORM]: FormState;
   [FORM_TYPES.ENTITY_FORM]: FormState;
 }
 
@@ -28,7 +28,7 @@ const emptyFormState = {
 
 export const initialState: FormStateSliceState = {
   currentComponent: undefined,
-  [FORM_TYPES.COMPONENT_INPUTS_FORM]: emptyFormState,
+  [FORM_TYPES.COMPONENT_INSTANCE_FORM]: emptyFormState,
   [FORM_TYPES.ENTITY_FORM]: emptyFormState,
 };
 
@@ -62,7 +62,7 @@ export const formStateSlice = createSlice({
       (state, action: PayloadAction<ComponentId>) => ({
         ...state,
         currentComponent: action.payload,
-        [FORM_TYPES.COMPONENT_INPUTS_FORM]: { errors: {}, values: {} },
+        [FORM_TYPES.COMPONENT_INSTANCE_FORM]: { errors: {}, values: {} },
       }),
     ),
     clearFieldValues: create.reducer(

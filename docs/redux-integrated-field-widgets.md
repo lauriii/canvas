@@ -236,7 +236,7 @@ Built-in transforms include:
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\experience_builder\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 
-The transforms that apply to each prop are attached to the [ComponentInputsForm](../src/Form/ComponentInputsForm.php) by
+The transforms that apply to each prop are attached to the [ComponentInstanceForm](../src/Form/ComponentInstanceForm.php) by
 the [Generated UX source base plugin](../src/Plugin/ExperienceBuilder/ComponentSource/GeneratedFieldExplicitInputUxComponentSourceBase.php)
 which is used by both SDC and Code (JavaScript) components.
 

@@ -70,7 +70,7 @@ const PageDataFormRenderer = () => {
       e: AjaxUpdateFormStateEvent,
     ) => void = ({ detail }) => {
       const { updates, formId } = detail;
-      // We only care about the entity form, not the component inputs form.
+      // We only care about the entity form, not the component instance form.
       if (formId === FORM_TYPES.ENTITY_FORM) {
         if (Object.keys(updates).length === 0) {
           // Nothing has changed, no need to change the state.

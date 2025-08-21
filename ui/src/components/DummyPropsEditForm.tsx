@@ -159,8 +159,8 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
       e: AjaxUpdateFormStateEvent,
     ) => void = ({ detail }) => {
       const { updates, formId } = detail;
-      // We only care about the component inputs form, not the entity form.
-      if (formId === 'component_inputs_form') {
+      // We only care about the component instance form, not the entity form.
+      if (formId === 'component_instance_form') {
         // Apply transforms for form state.
         const { propsValues: values, selectedModel } = getPropsValues(
           updates,
@@ -285,7 +285,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   };
 
   useEffect(() => {
-    dispatch(clearFieldValues('component_inputs_form'));
+    dispatch(clearFieldValues('component_instance_form'));
   }, [dispatch, selectedComponent]);
 
   useEffect(() => {

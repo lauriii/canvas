@@ -64,7 +64,7 @@ describe('Undo/Redo functionality', () => {
     );
   });
 
-  it('Component inputs form values are included in Undo/Redo', () => {
+  it('Component instance form values are included in Undo/Redo', () => {
     cy.loadURLandWaitForXBLoaded();
 
     // Click on our "hello, world!" hero component.

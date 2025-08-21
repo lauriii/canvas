@@ -13,11 +13,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * @coversClass \Drupal\experience_builder\Form\ComponentInputsForm
+ * @coversClass \Drupal\experience_builder\Form\ComponentInstanceForm
  * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildConfigurationForm()
  * @group experience_builder
  */
-final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
+final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   use CiModulePathTrait;
 
@@ -47,8 +47,8 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
     $client_side_info_prop_sources = json_decode($response, TRUE)[$component]['propSources'];
 
     // Perform the same transformation the XB UI does in JavaScript to construct
-    // the `form_xb_props` request parameter expected by ComponentInputsForm.
-    // @see \Drupal\experience_builder\Form\ComponentInputsForm::buildForm()
+    // the `form_xb_props` request parameter expected by ComponentInstanceForm.
+    // @see \Drupal\experience_builder\Form\ComponentInstanceForm::buildForm()
     // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildConfigurationForm()
     $actual_form_xb_props = [
       // Used by client to render previews.
@@ -301,3 +301,4 @@ final class ComponentInputsFormTest extends ApiLayoutControllerTestBase {
   }
 
 }
+

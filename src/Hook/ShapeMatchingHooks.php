@@ -160,8 +160,8 @@ class ShapeMatchingHooks {
     ];
     if (in_array($format->id(), $protected_formats, TRUE)) {
       return match($operation) {
-        // It is guaranteed that these text formats/editors are available only for
-        // XB's component inputs form.
+        // It is guaranteed that these text formats/editors are available only
+        // for XB's component instance form.
         // @see \Drupal\filter\Element\TextFormat::processFormats()
         // @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::processTextFormat()
         'use' => AccessResult::allowed()->addCacheableDependency($format),

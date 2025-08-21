@@ -290,7 +290,7 @@ const InputBehaviors = (OriginalInput: React.FC) => {
     const { attributes } = props;
     const formId = attributes['data-form-id'] as FormId;
     const FORM_INPUT_BEHAVIORS: Record<FormId, InputBehaviorsForm> = {
-      [FORM_TYPES.COMPONENT_INPUTS_FORM]: InputBehaviorsComponentPropsForm,
+      [FORM_TYPES.COMPONENT_INSTANCE_FORM]: InputBehaviorsComponentPropsForm,
       [FORM_TYPES.ENTITY_FORM]: InputBehaviorsEntityForm,
     };
 

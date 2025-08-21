@@ -713,7 +713,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // A StaticPropSource is never rendered in an abstract context; it's always
     // rendered for a concrete component's prop. So, this test should do the
     // same.
-    // @see \Drupal\experience_builder\Form\ComponentInputsForm
+    // @see \Drupal\experience_builder\Form\ComponentInstanceForm
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     $components = $sdc_manager->getAllComponents();
     $some_sdc_prop_for_unique_prop_shape = [];
@@ -726,7 +726,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
           $some_sdc_prop_for_unique_prop_shape[$prop_shape->uniquePropSchemaKey()] = [
             $component_id,
             // Note: on the live site, an older version than the active version
-            // may be used in the ComponentInputsForm, because the Content
+            // may be used in the ComponentInstanceForm, because the Content
             // Author may be editing an ancient component instance. For the
             // purpose of this test, the active version is fine.
             Component::load($component_id)?->getActiveVersion(),

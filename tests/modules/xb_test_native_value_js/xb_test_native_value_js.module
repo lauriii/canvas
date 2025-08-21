@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 
-function xb_test_native_value_js_form_component_inputs_form_alter(array &$form, FormStateInterface $form_state): void {
+function xb_test_native_value_js_form_component_instance_form_alter(array &$form, FormStateInterface $form_state): void {
   $form['text_trigger'] = [
     '#type' => 'button',
     '#value' => 'Trigger Text Update',

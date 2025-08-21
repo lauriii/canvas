@@ -302,7 +302,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     foreach ($explicit_input['resolved'] as $prop_name => $value) {
       // Undo what ::clientModelToInput() and ::getExplicitInput() did: restore
       // the `source` to pass the necessary information to the client that
-      // \Drupal\experience_builder\Form\ComponentInputsForm expects (and hence
+      // \Drupal\experience_builder\Form\ComponentInstanceForm expects (and hence
       // also ::buildConfigurationForm()).
       // Note this only changes `source`, not `resolved`, because the `resolved`
       // value must still be what the `DefaultRelativeUrlPropSource` evaluated
@@ -489,7 +489,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $component_plugin = $this->getSdcPlugin();
     $component_schema = $component_plugin->metadata->schema ?? [];
 
-    // Allow form alterations specific to XB component inputs forms (currently
+    // Allow form alterations specific to XB component instance forms (currently
     // only "static prop sources").
     $form_state->set('is_xb_static_prop_source', TRUE);
 
@@ -641,14 +641,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // Track those SDC props without a 'resolved' value (because an example
       // value is missing, which is allowed for optional SDC props), because it
       // will still be necessary to generate the necessary 'source' information
-      // for them (to send to ComponentInputsForm).
+      // for them (to send to ComponentInstanceForm).
       else {
         $unpopulated_props_for_default_markup[$prop_name] = NULL;
       }
 
       // Gather the information that the client will pass to the server to
       // generate a form.
-      // @see \Drupal\experience_builder\Form\ComponentInputsForm
+      // @see \Drupal\experience_builder\Form\ComponentInstanceForm
       $field_data[$prop_name] = [
         'required' => in_array($prop_name, $component_plugin->metadata->schema['required'] ?? [], TRUE),
         'jsonSchema' => array_diff_key($prop_shape->resolvedSchema, array_flip(['meta:enum', 'x-translation-context'])),

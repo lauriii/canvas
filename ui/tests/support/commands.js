@@ -1023,13 +1023,13 @@ Cypress.Commands.add('editHeroComponent', () => {
 
   // The drawer contains a component edit form.
   cy.get(
-    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+    '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
   ).within(() => {
     cy.findAllByLabelText('Heading').should('exist');
   });
 
   cy.get(
-    '[class*="contextualPanel"] [data-drupal-selector="component-inputs-form"]',
+    '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
   ).then(($form) => {
     expect($form).to.exist;
     $form.find('label').each((index, label) => {

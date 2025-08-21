@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * predictable markup. Otherwise the Redux integration is likely to break.
  *
  * This also achieves an intentional side effect: nothing of Drupal themes
- * is visible in the component inputs form or entity fields forms displayed in
+ * is visible in the component instance form or entity fields forms displayed in
  * Experience Builder: `stark` defines no templates, and hence relies on all
  * default templates only.
  *

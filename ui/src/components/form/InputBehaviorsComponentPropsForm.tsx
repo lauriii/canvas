@@ -131,7 +131,7 @@ export const InputBehaviorsComponentPropsForm = (
   };
 
   const formState = useAppSelector((state) =>
-    selectFormValues(state, FORM_TYPES.COMPONENT_INPUTS_FORM),
+    selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
 
   const fieldName = attributes.name || attributes['data-xb-name'];

@@ -37,7 +37,7 @@ test.describe('Block form', () => {
     // them doesn't function.
     // For now just verify that the elements are there.
     const inputsForm = page.locator(
-      '[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"]',
+      '[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"]',
     );
     await expect(inputsForm).toContainText('Menu levels');
     await expect(inputsForm.locator('select')).toHaveCount(2);
@@ -59,7 +59,7 @@ test.describe('Block form', () => {
     // Remove and re-add the site logo.
     const siteLogoCheckbox = page
       .locator(
-        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"]`,
+        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"]`,
       )
       .getByLabel('Site logo');
     await expect(siteLogoCheckbox).toBeChecked();
@@ -86,7 +86,7 @@ test.describe('Block form', () => {
     // Remove the site name.
     const siteNameCheckbox = page
       .locator(
-        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"]`,
+        `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"]`,
       )
       .getByLabel('Site name');
     await expect(siteNameCheckbox).toBeChecked();

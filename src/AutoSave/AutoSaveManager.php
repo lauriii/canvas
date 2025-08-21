@@ -147,7 +147,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    *
    * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::clientModelToInput
    * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::clientModelToInput
-   * @see \Drupal\experience_builder\Form\ComponentInputsForm
+   * @see \Drupal\experience_builder\Form\ComponentInstanceForm
    *
    * @todo Remove this in https://drupal.org/i/3505018 and
    *    https://drupal.org/i/3500795.

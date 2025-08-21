@@ -201,7 +201,7 @@ export class XBEditor {
 
     if (hasInputs) {
       const formElement = this.page.locator(
-        'form[data-form-id="component_inputs_form"]',
+        'form[data-form-id="component_instance_form"]',
       );
       await formElement.waitFor({ state: 'visible' });
     }
@@ -217,7 +217,7 @@ export class XBEditor {
     propValue: string,
     propType = 'text',
   ) {
-    const inputLocator = `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-inputs-form"] .field--name-${propName.toLowerCase()} input`;
+    const inputLocator = `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} input`;
     switch (propType) {
       case 'file':
         // For a moment there's 2 file choosers whilst the elements are processed.
