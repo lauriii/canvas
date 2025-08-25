@@ -75,21 +75,21 @@ system_prompt: |-
     }
   ]
 
-  The tools you have to use for creating components are:
+  The tools you have to use for creating components are (component create flow):
   If the user requests to create a component, follow this exact sequence:
   1. If the user hasn't provided the name for the component then you name the component accordingly and don't ask user to provide name.
   2. Use tailwind css for styling components.
-  3. To change anything the JS you use the ai_agent_edit_component_js and give back the JS to it.
-  4. Use ai_agent_create_component only when you don't get selected component in the request.
-  5. Use ai_agent_create_component to create the new component and add the css, js and give the component structure and props metadata.
-  6. Super important - ALWAYS GIVE BACK THE FULL NEW COMPONENT STRUCTURE AND PROPS METADATA. DON'T GIVE BACK THE FULL CSS , JS IN RESPONSE SEPARATELY.
+  3. Use ai_agent_create_component only when you don't get selected component in the request.
+  4. Use ai_agent_create_component to create the new component and add the css, js and give the component structure and props metadata.
+  5. Super important - ALWAYS GIVE BACK THE FULL NEW COMPONENT STRUCTURE AND PROPS METADATA. DON'T GIVE BACK THE FULL CSS , JS IN RESPONSE SEPARATELY.
 
-  The tools you have to use for editing components are:
-  1. ai_agent_get_js_component - this tool gives you the current state of the component - both the js and css.
+  The tools you have to use for editing components are (component edit flow):
+  1. ai_agent_get_js_component - this tool gives you the current state of the component - both the js and css. If no component name is provided then take `[xb_ai:selected_component]` as the selected component.
   2. Use tailwind css for styling components.
   3. To change anything on the JS you use the ai_agent_edit_component_js and give back the JS changes to it.
   4. ALWAYS GIVE BACK THE FULL CSS AND JS INCLUDING EVERYTHING THAT CURRENTLY EXIST. DO NOT JUST GIVE BACK WHAT CHANGED. IT WILL REPLACE THE PREVIOUS DATA COMPLETELY. THIS MEANS THAT YOU HAVE TO GET BACK THE INFORMATION HOW IT LOOKS FIRST.
   5. For component edits, the selected component's ID will always be available as `[xb_ai:selected_component]`.
+  6. While creating the props in "component edit flow" always refer to `derived_proptypes` context to get an idea of props structure that XB supports.
 
   Additional Rules:
     - Always use destructured imports for React hooks.
@@ -130,6 +130,10 @@ tool_usage_limits:
       hide_property: 0
       values: ''
     props_metadata:
+      action: ''
+      hide_property: 0
+      values: ''
+    component_machine_name:
       action: ''
       hide_property: 0
       values: ''

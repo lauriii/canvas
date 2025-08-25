@@ -158,40 +158,6 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       return;
     }
 
-    $props_array = Json::decode($props);
-    $transformed_props = [];
-    if (is_array($props_array)) {
-      foreach ($props_array as $prop) {
-        if (!empty($prop['id']) && !empty($prop['name']) && !empty($prop['type']) && !empty($prop['example'])) {
-          $transformed = [
-            'title' => $prop['name'],
-            'type' => $prop['type'],
-            'examples' => [$prop['example']],
-          ];
-          foreach (['format', '$ref', 'enum'] as $optional) {
-            if (isset($prop[$optional])) {
-              $transformed[$optional] = $prop[$optional];
-            }
-          }
-          $transformed_props[$prop['id']] = $transformed;
-        }
-      }
-    }
-    $output = [
-      'name' => $component_name,
-      'machineName' => $machine_name,
-      // Mark this code component as "internal": do not make it available to Content Creators yet.
-      // @see docs/config-management.md, section 3.2.1
-      'status' => FALSE,
-      'sourceCodeJs' => $javascript,
-      'sourceCodeCss' => $css,
-      'compiledJs' => '',
-      'compiledCss' => '',
-      'importedJsComponents' => [],
-      'props' => $transformed_props,
-      'dataDependencies' => [],
-    ];
-
     // \Drupal\xb_ai\Controller\XbBuilder::render() expects a YAML parsable
     // string.
     // @see \Drupal\xb_ai\Controller\XbBuilder::render()

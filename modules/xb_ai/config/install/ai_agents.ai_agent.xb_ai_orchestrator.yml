@@ -106,6 +106,7 @@ system_prompt: |-
     - "Update title to say Hello Drupal" (when `selected_component` exists in context) → `experience_builder_component_agent`
     - "Update description to say Hello Drupal" (when `selected_component` exists in context) → `experience_builder_component_agent`
     - "Add a new section with a title and description" → `experience_builder_page_builder_agent` even if `selected_component` is present
+    - "Add a link prop to the component" → `experience_builder_component_agent`.
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:get_entity_information': true
