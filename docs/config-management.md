@@ -47,6 +47,8 @@ to one of us! 😊 🙏
 - `component type`: see [`XB Components` doc](components.md)
 - `component tree`: see [`XB Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component input`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
+- `Folders`: a way to organize components, patterns and code components into individual "Folders" on the client-side of XB
+- `Folder config entity`: stores a list of `items` of particular `configEntityTypeId`, currently limited to `component`, `pattern` and `js_component`
 - `PageRegion config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
 - `Pattern config entity`: stores a `component tree` that allows Ambitious Site Builders to save common component composition patterns for Content Creators to reuse
 - `structured data`: see [`XB Data Model` doc](data-model.md)
@@ -293,3 +295,20 @@ are executed once published. This occurs when the entity is changed from `status
 
 Any user of the XB UI can create `StagedConfigUpdate`s, as long as they can update the target configuration (simple
 configuration such as `system.site`, or a config entity such as `node.type.article`).
+
+### 3.7 `Folder` config entity
+
+See:
+- `\Drupal\experience_builder\Entity\Folder`
+- `\Drupal\experience_builder\Entity\FolderItemInterface`
+
+A `Folder` config entity allows organizing certain XB config entities in `Folder`s. A `Folder` targets a single XB
+config entity type, must have a unique name (per config entity type), and can list >=0 entities of that config entity
+type. Each such config config entity can only exist  in a single `Folder`.
+`Folder` config entities use the (configuration system-provided) UUID as their identifier.
+
+⚠️ Still to be built:
+- A UI to create `Folder`s: https://www.drupal.org/project/experience_builder/issues/3540577
+- A UI to manage `Folder`s: https://www.drupal.org/project/experience_builder/issues/3540580
+- Adding UI to create and manage `Pattern`s and `Code Component`s
+- Automated creation of `Folder`s based on `Component` category or group: https://www.drupal.org/project/experience_builder/issues/3541364

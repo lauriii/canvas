@@ -8,6 +8,10 @@ administer code components:
   # Restricted as code components allow to execute JavaScript code.
   restrict access: true
 
+# @see \Drupal\experience_builder\Entity\Folder::ADMIN_PERMISSION
+administer folders:
+  title: 'Administer folders'
+
 # @see \Drupal\experience_builder\Entity\Pattern::ADMIN_PERMISSION
 administer patterns:
   title: 'Administer patterns'

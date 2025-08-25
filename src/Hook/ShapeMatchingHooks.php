@@ -41,7 +41,6 @@ use Drupal\media\Plugin\media\Source\Image;
 use Drupal\media\Plugin\media\Source\VideoFile;
 use Symfony\Component\Validator\Constraints\Hostname;
 use Symfony\Component\Validator\Constraints\Ip;
-use Symfony\Component\Validator\Constraints\NotEqualTo;
 
 /**
  * @file
@@ -77,6 +76,8 @@ class ShapeMatchingHooks {
         'provider' => 'core',
         'id' => 'Hostname',
       ];
+    }
+    if (!isset($definitions['Ip'])) {
       // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv4
       // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv6
       $definitions['Ip'] = [
@@ -85,14 +86,6 @@ class ShapeMatchingHooks {
         'type' => ['string'],
         'provider' => 'core',
         'id' => 'Ip',
-      ];
-      // @see `type: experience_builder.page_region.*`
-      $definitions['NotEqualTo'] = [
-        'label' => 'Not equal to',
-        'class' => NotEqualTo::class,
-        'type' => ['string'],
-        'provider' => 'core',
-        'id' => 'NotEqualTo',
       ];
     }
   }

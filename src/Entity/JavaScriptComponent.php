@@ -51,7 +51,7 @@ use Symfony\Component\Validator\ConstraintViolation;
     'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
   ],
 )]
-final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface {
+final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface, FolderItemInterface {
 
   use XbAssetLibraryTrait;
   use ConfigUpdaterAwareEntityTrait;

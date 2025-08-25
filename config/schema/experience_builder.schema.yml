@@ -850,3 +850,41 @@ experience_builder.staged_config_update.*:
             label: 'Input'
             constraints:
               NotBlank: [ ]
+
+experience_builder.folder.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: required_label
+      label: 'Name'
+      constraints:
+        UniqueNamePerFolderTypeConstraint:
+          id: '%parent.uuid'
+          configEntityTypeId: '%parent.configEntityTypeId'
+    configEntityTypeId:
+      type: string
+      label: 'Folder type'
+      constraints:
+        # Accept only config entity types that implement FolderItemInterface.
+        PluginExists:
+          manager: entity_type.manager
+          interface: Drupal\experience_builder\Entity\FolderItemInterface
+    weight:
+      type: weight
+      label: 'Weight'
+    items:
+      type: sequence
+      orderby: value
+      sequence:
+        type: string
+        label: 'Folder items IDs'
+        constraints:
+          BetterConfigExists:
+            prefix: 'experience_builder.[%parent.%parent.configEntityTypeId].'
+          OneFolderPerItemLimitConstraint:
+            id: '%parent.%parent.uuid'
+            configEntityTypeId: '%parent.%parent.configEntityTypeId'
+      constraints:
+        Unique: ~

@@ -7,12 +7,15 @@ namespace Drupal\Tests\experience_builder\Functional;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Random;
+use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\Folder;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
@@ -72,6 +75,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       Component::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
+      Folder::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
@@ -1319,7 +1323,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $response = $this->makeApiRequest('POST', $list_url, $request_options);
     self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
     $body = json_decode((string) $response->getBody(), TRUE);
-    $idKey = $this->container->get(EntityTypeManagerInterface::class)->getDefinition($entity_type_id)->getKey('id');
+    $config_entity_type_definition = $this->container->get(EntityTypeManagerInterface::class)->getDefinition($entity_type_id);
+    assert($config_entity_type_definition instanceof ConfigEntityType);
+    $idKey = $config_entity_type_definition->get('xb_client_id_key') ?? $config_entity_type_definition->getKey('id');
     $this->assertArrayHasKey($idKey, $body);
     $id = $body[$idKey];
 
@@ -1546,6 +1552,202 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     }
     $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', 'HIT');
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'UNCACHEABLE (request policy)');
+  }
+
+  /**
+   * @see \Drupal\experience_builder\Entity\Folder
+   */
+  public function testFolder(): void {
+    $this->assertAuthenticationAndAuthorization('folder');
+    $list_url = Url::fromUri("base:/xb/api/v0/config/folder");
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // Create a Folder via the XB HTTP API, but forget crucial data that causes
+    // the required shape to be violated: 500, courtesy of OpenAPI.
+    $folder_to_send = [
+      'name' => 'Test folder, please ignore',
+      'type' => Component::ENTITY_TYPE_ID,
+      'weight' => 0,
+    ];
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/folder]. [Keyword validation failed: Required property \'items\' must be present in the object in items]',
+    ], $body, 'Fails with missing data.');
+
+    // Add missing crucial data, but leave a required shape violation: 500,
+    // courtesy of OpenAPI.
+    $folder_to_send['items'] = [
+      1,
+    ];
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /xb/api/v0/config/folder]. [Value expected to be \'string\', but \'integer\' given in items->0]',
+    ], $body, 'Fails with invalid shape.');
+
+    // Meet data shape requirements, but violate constraint in `items`
+    $folder_to_send['items'] = ['fake_component'];
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The \'experience_builder.component.fake_component\' config does not exist.',
+          'source' => ['pointer' => 'items.0'],
+        ],
+      ],
+    ], $body);
+
+    // Re-retrieve list: 200, unchanged.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+
+    // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame([], $body);
+
+    // Create a Folder via the XB HTTP API, correctly: 201.
+    $folder_to_send['items'] = [];
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    assert(is_array($body));
+    ksort($folder_to_send);
+    ksort($body);
+    $new_folder = Folder::loadByNameAndConfigEntityTypeId($folder_to_send['name'], $folder_to_send['type']);
+    assert($new_folder instanceof Folder);
+    $id = $new_folder->id();
+    $this->assertEquals($folder_to_send + ['id' => $id], $body);
+
+    // Creating a Folder with an already-in-use name: 422.
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'Name <em class="placeholder">Test folder, please ignore</em> is not unique in Folder type "<em class="placeholder">component</em>"',
+          'source' => ['pointer' => 'name'],
+        ],
+      ],
+    ], $body);
+
+    // Create a Folder with BE generated id: 201.
+    $new_folder_to_send = $folder_to_send;
+    $new_folder_to_send['name'] = 'Unique test name, please ignore.';
+    // Create folder with weight of -1 to place at the bottom of the list.
+    $new_folder_to_send['weight'] = -1;
+    $request_options[RequestOptions::JSON] = $new_folder_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    assert(is_array($body));
+    $this->assertArrayHasKey('id', $body);
+    $this->assertNotEquals($body['id'], $id);
+    $this->assertTrue(Uuid::isValid($body['id']));
+    $new_folder_id = $body['id'];
+
+    // Create folder with weight of 1 to place at the bottom of the list.
+    $temp_folder = Folder::create([
+      'name' => 'Temp Folder',
+      'configEntityTypeId' => Component::ENTITY_TYPE_ID,
+      'weight' => 1,
+      'items' => [],
+    ]);
+    $temp_folder->save();
+
+    // Fetch list of Folders to verify correct they are sorted correctly.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    assert(is_array($body));
+    $this->assertEquals([
+      // Weight of -1.
+      $new_folder_id,
+      // Weight of 0.
+      $id,
+      // Weight of 1.
+      $temp_folder->id(),
+    ],
+      array_keys($body));
+    $temp_folder->delete();
+
+    // Delete Folder via the XB HTTP API: 204.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/folder/' . $new_folder_id), [], 204, NULL, NULL, NULL, NULL);
+
+    // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
+    // Use the individual URL in the list response body.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals([
+      $id => $folder_to_send + ['id' => $id],
+    ], $body);
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), [], 200, ['user.permissions'], ['config:experience_builder.folder.' . $id, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals($folder_to_send + ['id' => $id], $individual_body);
+
+    // Modify a Folder incorrectly (shape-wise): 500.
+    $request_options[RequestOptions::JSON] = [
+      'id' => $id,
+      'weight' => 0,
+      'items' => NULL,
+      'name' => 'Test',
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/v0/config/folder/{configEntityId}]. [Keyword validation failed: Value cannot be null in items]',
+    ], $body, 'Fails with an invalid \'items\' value.');
+
+    $request_options[RequestOptions::JSON] = [
+      'id' => $id,
+      'weight' => 0,
+      'name' => NULL,
+      'items' => [],
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [patch /xb/api/v0/config/folder/{configEntityId}]. [Keyword validation failed: Value cannot be null in name]',
+    ], $body, 'Fails with an invalid \'name\' value.');
+
+    // Modify a Folder incorrectly (items constraint validation fail): 422.
+    $request_options[RequestOptions::JSON] = [
+      'id' => $id,
+      'weight' => 0,
+      'name' => 'Test',
+      'items' => ['fake_component'],
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The \'experience_builder.component.fake_component\' config does not exist.',
+          'source' => ['pointer' => 'items.0'],
+        ],
+      ],
+    ], $body);
+
+    // Modify a Folder correctly: 200.
+    $request_options[RequestOptions::JSON] = $folder_to_send;
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertEquals($folder_to_send + ['id' => $id], $body);
+
+    // Partially modify a Folder: 200.
+    $folder_to_send['name'] = 'Updated test Folder name';
+    $request_options[RequestOptions::JSON] = [
+      'name' => $folder_to_send['name'],
+      'weight' => $folder_to_send['weight'],
+      'items' => $folder_to_send['items'],
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertEquals($folder_to_send + ['id' => $id], $body);
+
+    // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertEquals([
+      $id => $folder_to_send + ['id' => $id],
+    ], $body);
+
+    // Delete the sole remaining Folder via the XB HTTP API: 204.
+    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $list_url, 'config:folder_list');
+
+    // This was now tested full circle! ✅
   }
 
 }

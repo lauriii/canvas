@@ -78,7 +78,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     'ImmutableProperties' => ['id', 'source', 'source_local_id'],
   ],
 )]
-final class Component extends VersionedConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface {
+final class Component extends VersionedConfigEntityBase implements ComponentInterface, XbHttpApiEligibleConfigEntityInterface, FolderItemInterface {
 
   public const string ADMIN_PERMISSION = 'administer components';
 

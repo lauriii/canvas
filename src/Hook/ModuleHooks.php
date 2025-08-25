@@ -12,6 +12,8 @@ use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\experience_builder\Form\FormIdPreRender;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Validator\Constraints\NotEqualTo;
+use Symfony\Component\Validator\Constraints\Unique;
 
 class ModuleHooks {
 
@@ -21,6 +23,36 @@ class ModuleHooks {
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
   ) {
+  }
+
+  /**
+   * Implements hook_validation_constraint_alter().
+   */
+  #[Hook('validation_constraint_alter')]
+  public function validationConstraintAlter(array &$definitions): void {
+    // Add the Symfony validation constraints that Drupal core does not add in
+    // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
+    // unknown reasons. Do it defensively, to not break when this changes.
+    if (!isset($definitions['NotEqualTo'])) {
+      // @see `type: experience_builder.page_region.*`
+      $definitions['NotEqualTo'] = [
+        'label' => 'Not equal to',
+        'class' => NotEqualTo::class,
+        'type' => ['string'],
+        'provider' => 'core',
+        'id' => 'NotEqualTo',
+      ];
+    }
+    if (!isset($definitions['Unique'])) {
+      // @see `type: experience_builder.folder.*`
+      $definitions['Unique'] = [
+        'label' => 'Unique',
+        'class' => Unique::class,
+        'type' => ['sequence'],
+        'provider' => 'core',
+        'id' => 'Unique',
+      ];
+    }
   }
 
   /**

@@ -42,7 +42,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
   ],
 )]
 
-final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface {
+final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, FolderItemInterface {
 
   public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';

@@ -89,3 +89,12 @@ function experience_builder_requirements(string $phase): array {
   }
   return $requirements;
 }
+
+/**
+ * Install Folder config entity type.
+ */
+function experience_builder_update_112000(array &$sandbox): void {
+  \Drupal::entityDefinitionUpdateManager()->installEntityType(
+    \Drupal::entityTypeManager()->getDefinition('folder')
+  );
+}

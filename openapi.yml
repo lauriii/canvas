@@ -340,6 +340,98 @@ paths:
                 # @see \Drupal\Core\Plugin\Component::$machineName
                 additionalProperties:
                   $ref: '#/components/schemas/Component'
+  /xb/api/v0/config/folder:
+    description: TODO
+    get:
+      description: TODO
+      responses:
+        '200':
+          description: Collection of Folders
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/ExistingFolder'
+    post:
+      description: TODO
+      requestBody:
+        description: Create new Folder.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewFolder'
+            examples:
+              example with one folder:
+                name: Test folder
+                type: component
+                weight: 0
+                items: [ ]
+      responses:
+        '201':
+          description: Successful save of Folder
+          content:
+            application/json:
+              examples:
+                example with one component type folder:
+                  id: 75144f9b-1bfc-4874-b848-b5889f066222
+                  name: Test Folder
+                  type: component
+                  weight: 0
+                  items: [ ]
+              schema:
+                $ref: '#/components/schemas/ExistingFolder'
+        '409':
+          description: Folder with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/xb/api/v0/config/folder/{configEntityId}':
+    description: TODO
+    get:
+      description: TODO
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Folder
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExistingFolder'
+    patch:
+      description: TODO
+      requestBody:
+        description: Update specific Folder.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              allOf:
+                - required:
+                    - name
+                    - weight
+                    - items
+                - $ref: '#/components/schemas/Folder'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Folder
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExistingFolder'
+    delete:
+      description: Deletes a Folder.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Folder.
   /xb/api/v0/config/js_component:
     get:
       description: Collection of Code Components
@@ -2158,6 +2250,53 @@ components:
             - layout
             - model
         - $ref: '#/components/schemas/Pattern'
+    Folder:
+      title: Folder
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID.
+        name:
+          type: string
+          description: Human-readable name.
+        type:
+          $ref: '#/components/schemas/FolderType'
+        weight:
+          type: integer
+          description: Position of the Folder relative to other Folders.
+        items:
+          type: array
+          description: Numbered array of Folder item entity IDs, where numbers refer to items position in a Folder.
+          items:
+            type: string
+            description: Singular Folder item id.
+      additionalProperties: false
+    FolderType:
+      type: string
+      enum:
+        - component
+        - js_component
+        - pattern
+    ExistingFolder:
+      type: object
+      allOf:
+        - required:
+            - id
+            - name
+            - type
+            - weight
+            - items
+        - $ref: '#/components/schemas/Folder'
+    NewFolder:
+      type: object
+      allOf:
+        - required:
+            - name
+            - type
+            - weight
+            - items
+        - $ref: '#/components/schemas/Folder'
     StagedConfigUpdate:
       title: Staged Config Update
       type: object
