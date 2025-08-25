@@ -248,6 +248,7 @@ const AiWizard = () => {
   const textPropsMapString = JSON.stringify(textPropsMap);
   const [, setChatHistory] = useState(() => loadChatHistory());
   let isComponentRendered = false;
+  const welcomeTextRef = useRef<HTMLSpanElement>(null);
 
   // Create a ref to store current values for Deep Chat's connect prop.
   // Accessing these ensures we're working with fresh values even after the Deep
@@ -429,6 +430,9 @@ const AiWizard = () => {
     const handler = (event: { detail: { message: any; isHistory: any } }) => {
       const { message, isHistory } = event.detail;
       if (!isHistory) {
+        if (welcomeTextRef.current) {
+          welcomeTextRef.current.style.display = 'none';
+        }
         const oldHistoryStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
         const oldHistory = oldHistoryStr ? JSON.parse(oldHistoryStr) : [];
         const updated = [...oldHistory, message];
@@ -477,7 +481,7 @@ const AiWizard = () => {
               <Text className={styles.aiWizardBeta}>Beta</Text>
             </Box>
           </Flex>
-          <Text className={styles.aiWizardSubtitle}>
+          <Text ref={welcomeTextRef} className={styles.aiWizardSubtitle}>
             Hello, how can I help you today?
           </Text>
         </Flex>
