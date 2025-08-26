@@ -8,7 +8,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { Theme } from '@radix-ui/themes';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import {
-  addNewComponentToLayout,
+  _addNewComponentToLayout,
   addNewPatternToLayout,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
@@ -65,7 +65,7 @@ const ListItem: React.FC<{
 
       if (type === 'component' || type === 'dynamicComponent') {
         dispatch(
-          addNewComponentToLayout(
+          _addNewComponentToLayout(
             {
               to: newPath,
               component: item as XBComponent,

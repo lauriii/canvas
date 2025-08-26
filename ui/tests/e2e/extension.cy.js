@@ -44,7 +44,6 @@ describe('extending experience builder', () => {
           const allAvailableComponentsExist = availableComponents.every(
             (component) => extensionComponents.includes(component),
           );
-
           expect(
             allAvailableComponentsExist,
             'All library components exist in the extension component dropdown',
@@ -54,7 +53,7 @@ describe('extending experience builder', () => {
     );
 
     cy.log(
-      'Confirm that an extension can select an item in the layout, focus it, then delete it',
+      'Confirm that an extension can select an item in the layout, focus it, update it, then delete it',
     );
     cy.waitForElementContentInIframe('div', 'hello, world!');
     // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
@@ -66,5 +65,23 @@ describe('extending experience builder', () => {
     cy.findByTestId('xb-contextual-panel').should('exist');
     cy.findByTestId('ex-delete').click();
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
+
+    // Choose a component to add to the layout.
+    cy.findByTestId('ex-select-component').select('sdc.xb_test_sdc.my-hero');
+    // Add it.
+    cy.findByTestId('ex-insert').click();
+    // Confirm the programmatically inserted component has a non-default value.
+    cy.findByLabelText('Heading').should('have.value', 'Hijacked Value');
+    cy.waitForElementContentInIframe('.my-hero__heading', 'Hijacked Value');
+
+    cy.findByTestId('ex-update').click();
+    cy.findByLabelText('Heading').should(
+      'have.value',
+      'an extension updated this',
+    );
+    cy.waitForElementContentInIframe(
+      '.my-hero__heading',
+      'an extension updated this',
+    );
   });
 });

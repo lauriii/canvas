@@ -18,7 +18,7 @@ import {
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  addNewComponentToLayout,
+  _addNewComponentToLayout,
   addNewPatternToLayout,
   moveNode,
   selectLayout,
@@ -176,7 +176,7 @@ const DragEventsHandler: React.FC = () => {
       if (type === 'component' || type === 'dynamicComponent') {
         // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
         dispatch(
-          addNewComponentToLayout(
+          _addNewComponentToLayout(
             {
               to: dropPath,
               component: newItem,

@@ -138,56 +138,14 @@ const operationsHandler = {
         availableComponents
       ) {
         for (const component of op.components) {
-          if (
-            component.id &&
-            component.nodePath &&
-            availableComponents[component.id]
-          ) {
-            let componentToUse: XBComponent = availableComponents[component.id];
-            if (component.fieldValues) {
-              // Create a copy of the component to set the field values
-              // as it is not possible to update the original component
-              // object directly.
-              const componentCopy = structuredClone(
-                availableComponents[component.id],
-              );
-              // Set the values to the props.
-              Object.entries(component.fieldValues).forEach(
-                ([fieldName, value]) => {
-                  const propSource = (componentCopy as any).propSources?.[
-                    fieldName
-                  ];
-                  if (propSource) {
-                    // Ensure default_values exists
-                    if (!propSource.default_values) {
-                      propSource.default_values = {};
-                    }
-                    if (propSource.jsonSchema.format === 'uri-reference') {
-                      propSource.default_values.source = [value];
-                    } else {
-                      // Ensure source exists and is an array
-                      if (!Array.isArray(propSource.default_values.source)) {
-                        propSource.default_values.source = [{}];
-                      }
-                      // Ensure the first element exists
-                      if (!propSource.default_values.source[0]) {
-                        propSource.default_values.source[0] = {};
-                      }
-                      // Now set the value
-                      propSource.default_values.source[0].value = value;
-                      // @todo Revisit once https://www.drupal.org/node/3538576 is in.
-                      propSource.default_values.resolved = value;
-                    }
-                  }
-                },
-              );
-              componentToUse = componentCopy;
-            }
+          if (component.id && availableComponents[component.id]) {
+            const componentToUse: XBComponent =
+              availableComponents[component.id];
             dispatch(
               layoutUtils.addNewComponentToLayout(
                 {
-                  to: component.nodePath,
                   component: componentToUse,
+                  withValues: component.fieldValues,
                 },
                 componentSelectionUtils.setSelectedComponent,
               ),

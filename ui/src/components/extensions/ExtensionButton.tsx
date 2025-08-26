@@ -16,7 +16,11 @@ const ExtensionButton: React.FC<ExtensionsPopoverProps> = ({ extension }) => {
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       dispatch(setDialogOpen('extension'));
-      dispatch(setActiveExtension(extension));
+
+      // Remove the component property as it is not needed and unserializable.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { component, ...activeExtension } = extension;
+      dispatch(setActiveExtension(activeExtension));
     },
     [dispatch, extension],
   );

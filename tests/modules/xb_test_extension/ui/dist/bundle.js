@@ -2095,8 +2095,8 @@
       setSelectedLayoutItem = _useState2[1];
     var _useState3 = ReactOriginal.useState(),
       _useState4 = _slicedToArray(_useState3, 2),
-      selectedComponentType = _useState4[0],
-      setSelectedComponentType = _useState4[1];
+      selectedFromListComponentType = _useState4[0],
+      setSelectedFromListComponentType = _useState4[1];
 
     // Get the entire layout model from the Redux store.
     var theLayout = useSelector(function (state) {
@@ -2126,6 +2126,10 @@
     theLayout.forEach(function (region) {
       _flatComponentsList(region.components || []);
     });
+    var node = drupalSettings.xb.layoutUtils.findComponentByUuid(theLayout, selectedComponent);
+    var _ref = node !== null && node !== void 0 && node.type ? node.type.split('@') : [],
+      _ref2 = _slicedToArray(_ref, 1),
+      selectedComponentType = _ref2[0];
 
     // Create a dropdown with every available component as options.
     var componentsSelect = function componentsSelect() {
@@ -2137,35 +2141,32 @@
               maxWidth: '250px'
             },
             onChange: function onChange(e) {
-              return setSelectedComponentType(e.target.value);
+              return setSelectedFromListComponentType(e.target.value);
             },
             children: [/*#__PURE__*/jsxRuntimeExports.jsx("option", {
               value: "",
               children: _typeof(availableComponents) === 'object' ? '--Select A Component--' : '-- Component List Not Ready --'
-            }, 99999999), _typeof(availableComponents) === 'object' && Object.entries(availableComponents).map(function (_ref, index) {
-              var _ref2 = _slicedToArray(_ref, 2);
-                _ref2[0];
-                var item = _ref2[1];
+            }, 99999999), _typeof(availableComponents) === 'object' && Object.entries(availableComponents).map(function (_ref3, index) {
+              var _ref4 = _slicedToArray(_ref3, 2);
+                _ref4[0];
+                var item = _ref4[1];
               return /*#__PURE__*/jsxRuntimeExports.jsx("option", {
                 value: item.id,
                 children: item.name
               }, index);
             })]
-          }), selectedComponentType && /*#__PURE__*/jsxRuntimeExports.jsx(Button, {
+          }), selectedFromListComponentType && /*#__PURE__*/jsxRuntimeExports.jsx(Button, {
             "data-testid": "ex-insert",
             onClick: function onClick() {
-              // With no selectedComponent we insert the new component right at the top.
-              var nodePath = [0, 0];
-              if (selectedComponent) {
-                // The component should be inserted after the selected component,
-                // so increase the path value if the final item by 1.
-                nodePath = drupalSettings.xb.layoutUtils.findNodePathByUuid(theLayout, selectedComponent);
-                nodePath[nodePath.length - 1] += 1;
-              }
+              var _component$propSource;
+              var component = availableComponents[selectedFromListComponentType];
+              var withValues = component !== null && component !== void 0 && (_component$propSource = component.propSources) !== null && _component$propSource !== void 0 && _component$propSource.heading ? {
+                heading: 'Hijacked Value'
+              } : null;
               dispatch(drupalSettings.xb.layoutUtils.addNewComponentToLayout({
-                to: nodePath,
-                component: availableComponents[selectedComponentType]
-              }));
+                component: component,
+                withValues: withValues
+              }, drupalSettings.xb.componentSelectionUtils.setSelectedComponent));
             },
             children: "insert"
           })]
@@ -2240,6 +2241,17 @@
             "data-testid": "ex-selected-element",
             children: selectedComponent
           })]
+        }), selectedComponentType === 'sdc.xb_test_sdc.my-hero' && /*#__PURE__*/jsxRuntimeExports.jsx(Button, {
+          "data-testid": "ex-update",
+          onClick: function onClick() {
+            dispatch(drupalSettings.xb.layoutUtils.updateExistingComponentValues({
+              componentToUpdateId: selectedComponent,
+              values: {
+                heading: 'an extension updated this'
+              }
+            }));
+          },
+          children: "Update the heading value of the selected hero component"
         })]
       })
     });

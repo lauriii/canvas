@@ -3,6 +3,7 @@ export interface ExtensionDefinition {
   id: string;
   description: string;
   imgSrc: string;
+  component?: any;
 }
 
 export type ExtensionsList = ExtensionDefinition[];

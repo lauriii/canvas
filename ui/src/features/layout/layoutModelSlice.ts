@@ -1,6 +1,6 @@
 // cspell:ignore uuidv
 import type { RootState, AppThunk } from '@/app/store';
-import type { XBComponent } from '@/types/Component';
+import type { ComponentsList, XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { UUID } from '@/types/UUID';
 import type { PayloadAction } from '@reduxjs/toolkit';
@@ -18,6 +18,10 @@ import {
   removeComponentByUuid,
   replaceUUIDsAndUpdateModel,
 } from './layoutUtils';
+import { previewApi } from '@/services/preview';
+import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { getXbSettings } from '@/utils/drupal-globals';
+const xbSettings = getXbSettings();
 
 export enum NodeType {
   Region = 'region',
@@ -113,6 +117,7 @@ type InsertMultipleNodesPayload = {
 type AddNewNodePayload = {
   to: number[];
   component: XBComponent;
+  withValues?: Record<string, any>;
 };
 
 type AddNewPatternPayload = {
@@ -444,10 +449,23 @@ export const layoutModelSlice = createSlice({
   }),
 });
 
-export const addNewComponentToLayout =
+// This underscore-prefixed function is used internally when the `to`
+// value (where it should be placed in the layout) is already known. For example
+// drag and drop operations are aware of the destination coordinates, so this
+// is the method called.
+// The non-underscored version of this function *can* specify a destination, but
+// has additional logic for determining the best destination if one is not provided.
+//
+// Payload properties:
+// - component: The component to add to the layout.
+// - to: Optional coordinates where the component should be added. If not
+//       provided, they are added after the current selection.
+// - withValues: Optional values to override the default values of the
+//   component.
+export const _addNewComponentToLayout =
   (payload: AddNewNodePayload, setSelectedComponent: Function): AppThunk =>
   (dispatch, getState) => {
-    const { to, component } = payload;
+    const { to, component, withValues } = payload;
     // Populate the model data with the default values
     const buildInitialData = (component: XBComponent): ComponentModel => {
       if (componentHasFieldData(component)) {
@@ -476,6 +494,31 @@ export const addNewComponentToLayout =
       };
     };
 
+    // This is called if withValues is not null. The withValues object
+    // specifies values that should override the defaults for the newly inserted
+    // component.
+    const updateValues = (
+      component: XBComponent,
+      initialData: ComponentModel | EvaluatedComponentModel,
+      newValues: Record<string, any>,
+    ) => {
+      const resolved = {
+        ...initialData.resolved,
+        ...newValues,
+      };
+      if (!isEvaluatedComponentModel(initialData)) {
+        return { resolved };
+      }
+      return {
+        source: syncPropSourcesToResolvedValues(
+          initialData.source,
+          component,
+          resolved,
+        ),
+        resolved,
+      };
+    };
+
     const slots: SlotNode[] = [];
     const uuid = uuidv4();
 
@@ -491,7 +534,7 @@ export const addNewComponentToLayout =
         });
       });
     }
-
+    const initialData = buildInitialData(component);
     const layoutModel: LayoutModelPiece = {
       layout: [
         {
@@ -502,7 +545,9 @@ export const addNewComponentToLayout =
         },
       ],
       model: {
-        [uuid]: buildInitialData(component),
+        [uuid]: withValues
+          ? updateValues(component, initialData, withValues)
+          : initialData,
       },
     };
 
@@ -521,6 +566,135 @@ export const addNewComponentToLayout =
     setSelectedComponent(uuid, updatedLayout);
   };
 
+// This action eventually calls _addNewComponentToLayout, but first determines
+// where to insert the new component based on the current selection if there
+// isn't a `to` value in the payload specifying destination coordinates.
+//
+// Payload properties:
+// - component: The component to add to the layout.
+// - to: Optional coordinates where the component should be added. If not
+//       provided, they are added after the current selection.
+// - withValues: Optional values to override the default values of the
+//   component.
+export const addNewComponentToLayout =
+  (
+    payload: AddNewNodePayload,
+    setSelectedComponent: Function = () => {},
+  ): AppThunk =>
+  (dispatch, getState) => {
+    const state = getState();
+    let to: number[] = [0, 0];
+    const theLayout = selectLayout(state);
+    const selectionItems = state?.ui?.selection?.items;
+    // If destination coordinates are provided, use them.
+    if (payload.to) {
+      to = payload.to;
+    } else {
+      // If no destination coordinates are provided, insert the new component
+      // after the current selection.
+      const selectedComponent = selectionItems ? selectionItems.at(-1) : null;
+      if (selectedComponent) {
+        // The component should be inserted after the selected component,
+        // so increase the path value if the final item by 1.
+        const nodePath = findNodePathByUuid(theLayout, selectedComponent);
+        if (nodePath !== null) {
+          nodePath[nodePath.length - 1] += 1;
+          to = nodePath;
+        }
+      }
+    }
+
+    dispatch(
+      _addNewComponentToLayout({ ...payload, to }, setSelectedComponent),
+    );
+  };
+
+export const updateExistingComponentValues =
+  (payload: any): AppThunk =>
+  async (dispatch, getState) => {
+    const { componentSelectionUtils } = xbSettings;
+    const state = getState();
+    const components: ComponentsList | undefined = state?.componentAndLayoutApi
+      ?.queries?.['getComponents(undefined)']?.data as
+      | ComponentsList
+      | undefined;
+    if (!components) {
+      console.warn('No components list found, cannot update component values.');
+      return;
+    }
+
+    let resetSelection: string | undefined = undefined;
+    const { values, componentToUpdateId } = payload;
+    const selectionItems = state?.ui?.selection?.items;
+
+    // If the component being updated is currently selected, it is temporarily
+    // deselected, then re-selected after the value update. This ensures the
+    // form re-renders with the updated values.
+    if (
+      Array.isArray(selectionItems) &&
+      selectionItems.includes(componentToUpdateId)
+    ) {
+      resetSelection = componentToUpdateId;
+      componentSelectionUtils.setSelectedComponent(null);
+    }
+
+    const layout = selectLayout(state);
+    const model = selectModel(state)[componentToUpdateId];
+    const node = findComponentByUuid(layout, componentToUpdateId);
+    const [selectedComponentType, version] = (
+      node ? (node.type as string) : 'noop'
+    ).split('@');
+    const componentMetadata = components[selectedComponentType];
+    Object.keys(values).forEach((key) => {
+      if (!componentMetadata?.propSources?.[key]) {
+        console.warn(
+          `Component ${selectedComponentType} does not have a prop named ${key}. Update cancelled.`,
+        );
+        return;
+      }
+    });
+
+    const resolved = {
+      ...model.resolved,
+      ...values,
+    };
+    if (isEvaluatedComponentModel(model) && componentMetadata) {
+      const valuePayload = {
+        componentInstanceUuid: componentToUpdateId,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          source: syncPropSourcesToResolvedValues(
+            model.source,
+            componentMetadata,
+            resolved,
+          ),
+          resolved,
+        },
+      };
+      await dispatch(
+        previewApi.endpoints.updateComponent.initiate(valuePayload, {
+          fixedCacheKey: componentToUpdateId,
+        }),
+      );
+    } else {
+      const valuePayload = {
+        componentInstanceUuid: componentToUpdateId,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          ...model,
+          resolved,
+        },
+      };
+      await dispatch(
+        previewApi.endpoints.updateComponent.initiate(valuePayload, {
+          fixedCacheKey: componentToUpdateId,
+        }),
+      );
+    }
+    if (resetSelection) {
+      componentSelectionUtils.setSelectedComponent(resetSelection);
+    }
+  };
 export const addNewPatternToLayout =
   (payload: AddNewPatternPayload, setSelectedComponent: Function): AppThunk =>
   (dispatch, getState) => {
@@ -595,5 +769,6 @@ const layoutUtils = {
   addNewComponentToLayout,
   addNewPatternToLayout,
   selectLayoutForRegion,
+  updateExistingComponentValues,
 };
 setXbDrupalSetting('layoutUtils', layoutUtils);

@@ -5,7 +5,7 @@ import { useState } from 'react';
 const ConceptProver = () => {
   const dispatch = useDispatch();
   const [selectedLayoutItem, setSelectedLayoutItem] = useState();
-  const [selectedComponentType, setSelectedComponentType] = useState();
+  const [selectedFromListComponentType, setSelectedFromListComponentType] = useState();
 
   // Get the entire layout model from the Redux store.
   const theLayout = useSelector((state) => state?.layoutModel?.present?.layout);
@@ -30,6 +30,9 @@ const ConceptProver = () => {
     flatComponentsList(region.components || []);
   });
 
+  const node = drupalSettings.xb.layoutUtils.findComponentByUuid(theLayout, selectedComponent);
+  const [selectedComponentType] = node?.type ? node.type.split('@') : [];
+
   // Create a dropdown with every available component as options.
   const componentsSelect = () => {
     return (
@@ -40,7 +43,7 @@ const ConceptProver = () => {
           <select
             data-testid="ex-select-component"
             style={{ maxWidth: '250px' }}
-            onChange={(e) => setSelectedComponentType(e.target.value)}
+            onChange={(e) => setSelectedFromListComponentType(e.target.value)}
           >
             <option value="" key={99999999}>
               {typeof availableComponents === 'object'
@@ -55,26 +58,19 @@ const ConceptProver = () => {
               ))}
           </select>
           {/* When a component type is selected, provide the option to insert it in the layout. */}
-          {selectedComponentType && (
+          {selectedFromListComponentType && (
             <Button
               data-testid="ex-insert"
               onClick={() => {
-                // With no selectedComponent we insert the new component right at the top.
-                let nodePath = [0, 0];
-                if (selectedComponent) {
-                  // The component should be inserted after the selected component,
-                  // so increase the path value if the final item by 1.
-                  nodePath = drupalSettings.xb.layoutUtils.findNodePathByUuid(
-                    theLayout,
-                    selectedComponent,
-                  );
-                  nodePath[nodePath.length - 1] += 1;
-                }
+                const component = availableComponents[selectedFromListComponentType];
+                const withValues = component?.propSources?.heading ? { heading: 'Hijacked Value' } : null;
                 dispatch(
                   drupalSettings.xb.layoutUtils.addNewComponentToLayout({
-                    to: nodePath,
-                    component: availableComponents[selectedComponentType],
-                  }),
+                    component,
+                    withValues,
+                  },
+                    drupalSettings.xb.componentSelectionUtils.setSelectedComponent
+                  ),
                 );
               }}
             >
@@ -166,6 +162,25 @@ const ConceptProver = () => {
           <b>Event: Detect selected element</b>:<br />
           <small data-testid="ex-selected-element">{selectedComponent}</small>
         </div>
+        {/* When a hero is selected, make a button available to programmatically
+          update its value. */}
+        {selectedComponentType === 'sdc.xb_test_sdc.my-hero' && (
+          <Button
+            data-testid="ex-update"
+            onClick={() => {
+              dispatch(
+                drupalSettings.xb.layoutUtils.updateExistingComponentValues(
+                  {
+                    componentToUpdateId: selectedComponent,
+                    values: {heading: 'an extension updated this'},
+                  })
+              );
+            }}
+          >
+            Update the heading value of the selected hero component
+          </Button>
+
+        )}
       </div>
     </div>
   );
