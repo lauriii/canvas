@@ -69,3 +69,10 @@ function experience_builder_post_update_collapse_field_config_component_inputs(a
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, 'field_config', static fn(FieldConfig $field): bool => $xbConfigUpdater->needsComponentInputsCollapsed($field));
 }
+
+/**
+ * Rebuild the container to drop the SDC validator constraint class alter.
+ */
+function experience_builder_post_update_remove_sdc_validator_constraint_class(): void {
+  // Empty update to trigger container rebuild.
+}

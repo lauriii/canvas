@@ -4,6 +4,7 @@ props:
   type: object
   required:
     - test_REQUIRED_string
+    - test_REQUIRED_string_format_uri
     - test_REQUIRED_string_html_inline
     - test_REQUIRED_string_html_block
     - test_REQUIRED_string_html
@@ -130,6 +131,12 @@ props:
       title: 'String, format=uuid'
       type: string
       format: uuid
+    test_REQUIRED_string_format_uri:
+      title: 'String, format=uri (required)'
+      type: string
+      format: uri
+      examples:
+        - https://uri.example.com
     test_string_format_uri:
       title: 'String, format=uri'
       type: string

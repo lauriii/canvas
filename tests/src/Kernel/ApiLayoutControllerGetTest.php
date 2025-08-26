@@ -315,7 +315,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],
@@ -350,14 +350,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => XBTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@060b3f2620eb7f36',
+                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],

@@ -491,6 +491,26 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&format=uri' => [
           'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri',
+          ],
+          'static prop source' => 'ℹ︎link␟url',
+          'instances' => [
+            // @todo This includes relative URLs, fix in https://www.drupal.org/project/experience_builder/issues/3542895
+            'ℹ︎␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'REQUIRED, type=string&format=uri-reference' => [
+          'SDC props' => [
             '⿲xb_test_sdc:my-hero␟cta1href',
           ],
           'static prop source' => 'ℹ︎link␟url',

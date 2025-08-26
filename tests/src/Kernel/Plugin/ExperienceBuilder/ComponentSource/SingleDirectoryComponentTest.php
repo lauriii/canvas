@@ -3504,7 +3504,7 @@ activation="auto">
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
-              'format' => 'uri',
+              'format' => 'uri-reference',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',

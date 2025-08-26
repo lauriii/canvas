@@ -24,12 +24,14 @@ props:
       title: CTA 1 text
       examples:
         - View
+    # ℹ️ For an example of a CTA that supports only absolute URLs, see the my-cta SDC.
     cta1href:
       type: string
-      format: uri
+      format: uri-reference
       title: CTA 1 link
       examples:
         - https://example.com
+        - /node/1
     cta2:
       type: string
       title: CTA 2 text

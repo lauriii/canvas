@@ -15,6 +15,9 @@ class XbTestStoragePropShapeAlterHooks {
    */
   #[Hook('storage_prop_shape_alter')]
   public function storagePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
+    // TRICKY: the `uri` field type (and data type) only support absolute URLs,
+    // so this MUST NOT be used for `type: string, format: uri-reference`.
+    // @see \Drupal\Tests\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidatorTest::testValidate()
     if ($storable_prop_shape->shape->schema == [
       'type' => 'string',
       'format' => 'uri',

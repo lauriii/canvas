@@ -1,6 +1,6 @@
 $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
-name: Call to Action
-description: Call to action link.
+name: Call to Absolute Action
+description: Call to action link (absolute URL, so no internal relative links possible).
 props:
   type: object
   required:
@@ -14,13 +14,13 @@ props:
       examples:
         - Press
         - Submit now
+    # ℹ️ For an example of a CTA that also supports relative URLs, see the my-hero SDC.
     href:
       type: string
       title: URL
       format: uri
       examples:
         - https://www.drupal.org
-        - /node/1
     target:
       type: string
       title: Target

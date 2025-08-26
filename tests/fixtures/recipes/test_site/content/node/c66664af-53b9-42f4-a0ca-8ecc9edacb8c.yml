@@ -59,7 +59,7 @@ default:
       slot: column_one
       uuid: 0a476da3-8daa-4409-85a8-ef7c2ed5ee5f
       component_id: sdc.xb_test_sdc.my-hero
-      component_version: 2cfc93f0259bf3ee
+      component_version: 888412021fbcc837
       inputs: '{"heading":"meow!","subheading":"this is a hero","cta1":"View","cta1href":{"uri":"https://drupal.org","options":[]},"cta2":"Click"}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
@@ -80,5 +80,5 @@ default:
       slot: column_two
       uuid: a9727e4b-42a7-4621-a502-be43cab1e20a
       component_id: sdc.xb_test_sdc.my-hero
-      component_version: 2cfc93f0259bf3ee
+      component_version: 888412021fbcc837
       inputs: '{"heading":"hello, world!","subheading":"protect yourself from dangerous cats","cta1":"Yes","cta1href":{"uri":"https://drupal.org","options":[]},"cta2":"No thanks"}'

@@ -93,14 +93,12 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
    * @covers \Drupal\experience_builder\ComponentSource\ComponentSourceBase::generateVersionHash()
    */
   public function testStorablePropShapeChanges(): void {
-    $component = Component::load('sdc.xb_test_sdc.my-hero');
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertEquals([
-      'heading' => 'string',
-      'subheading' => 'string',
-      'cta1' => 'string',
-      'cta1href' => 'link',
-      'cta2' => 'string',
+      'text' => 'string',
+      'href' => 'link',
+      'target' => 'list_string',
     ], \array_map(static fn (array $field) => $field['field_type'], $component->getSettings()['prop_field_definitions']));
 
     $uuid = \Drupal::service(UuidInterface::class);
@@ -117,8 +115,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         // Collapsed inputs with static defaults pinned to the active component
         // version.
         'inputs' => [
-          'heading' => 'mirror my melody',
-          'cta1href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
+          'text' => 'mirror my melody',
+          'href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
         ],
       ],
     ]);
@@ -139,7 +137,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         [
           'uuid' => $first_uuid,
           'nodeType' => 'component',
-          'type' => 'sdc.xb_test_sdc.my-hero@' . $original_version,
+          'type' => 'sdc.xb_test_sdc.my-cta@' . $original_version,
           'slots' => [],
           'name' => NULL,
         ],
@@ -147,11 +145,11 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       'model' => [
         $first_uuid => [
           'source' => [
-            'heading' => [
+            'text' => [
               'sourceType' => 'static:field_item:string',
               'expression' => 'ℹ︎string␟value',
             ],
-            'cta1href' => [
+            'href' => [
               'sourceType' => 'static:field_item:link',
               'sourceTypeSettings' => [
                 'instance' => [
@@ -166,8 +164,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
             ],
           ],
           'resolved' => [
-            'heading' => 'mirror my melody',
-            'cta1href' => 'http://arachnophobia.com/',
+            'text' => 'mirror my melody',
+            'href' => 'http://arachnophobia.com/',
           ],
         ],
       ],
@@ -175,22 +173,20 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     self::assertEquals($expected_original_client_model, $client_model);
 
     // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
-    // field type used for populating the cta1href prop.
+    // field type used for populating the cta1href (`format: uri`) prop.
     // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
       ->install(['xb_test_storage_prop_shape_alter']);
     $this->generateComponentConfig();
-    $component = Component::load('sdc.xb_test_sdc.my-hero');
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     $new_version = $component->getActiveVersion();
     self::assertNotEquals($original_version, $new_version);
     self::assertSame([$new_version, $original_version], $component->getVersions());
     self::assertEquals([
-      'heading' => 'string',
-      'subheading' => 'string',
-      'cta1' => 'string',
-      'cta1href' => 'uri',
-      'cta2' => 'string',
+      'text' => 'string',
+      'href' => 'uri',
+      'target' => 'list_string',
     ], \array_map(static fn(array $field) => $field['field_type'], $component->getSettings()['prop_field_definitions']));
 
     $new_items = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
@@ -200,8 +196,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         'uuid' => $second_uuid,
         'component_id' => $component->id(),
         'inputs' => [
-          'heading' => 'mirror my melody',
-          'cta1href' => 'http://arachnophobia.com/',
+          'text' => 'mirror my melody',
+          'href' => 'http://arachnophobia.com/',
         ],
       ],
     ]);
@@ -219,7 +215,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         [
           'uuid' => $second_uuid,
           'nodeType' => 'component',
-          'type' => 'sdc.xb_test_sdc.my-hero@' . $new_version,
+          'type' => 'sdc.xb_test_sdc.my-cta@' . $new_version,
           'slots' => [],
           'name' => NULL,
         ],
@@ -227,18 +223,18 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       'model' => [
         $second_uuid => [
           'source' => [
-            'heading' => [
+            'text' => [
               'sourceType' => 'static:field_item:string',
               'expression' => 'ℹ︎string␟value',
             ],
-            'cta1href' => [
+            'href' => [
               'sourceType' => 'static:field_item:uri',
               'expression' => 'ℹ︎uri␟value',
             ],
           ],
           'resolved' => [
-            'heading' => 'mirror my melody',
-            'cta1href' => 'http://arachnophobia.com/',
+            'text' => 'mirror my melody',
+            'href' => 'http://arachnophobia.com/',
           ],
         ],
       ],
@@ -263,17 +259,15 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // original field type.
     \Drupal::service(ModuleInstallerInterface::class)->uninstall(['xb_test_storage_prop_shape_alter']);
     $this->generateComponentConfig();
-    $component = Component::load('sdc.xb_test_sdc.my-hero');
+    $component = Component::load('sdc.xb_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     $newest_version = $component->getActiveVersion();
     self::assertEquals($original_version, $newest_version);
     self::assertSame([$original_version, $new_version, $original_version], $component->getVersions());
     self::assertEquals([
-      'heading' => 'string',
-      'subheading' => 'string',
-      'cta1' => 'string',
-      'cta1href' => 'link',
-      'cta2' => 'string',
+      'text' => 'string',
+      'href' => 'link',
+      'target' => 'list_string',
     ], \array_map(static fn (array $field) => $field['field_type'], $component->getSettings()['prop_field_definitions']));
 
     $newest_items = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
@@ -282,8 +276,8 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         'uuid' => $uuid->generate(),
         'component_id' => $component->id(),
         'inputs' => [
-          'heading' => 'mirror my melody',
-          'cta1href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
+          'text' => 'mirror my melody',
+          'href' => ['uri' => 'http://arachnophobia.com/', 'options' => []],
         ],
       ],
     ]);

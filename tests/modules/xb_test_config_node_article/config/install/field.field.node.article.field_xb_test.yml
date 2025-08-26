@@ -27,7 +27,7 @@ default_value:
       width: 50
   - uuid: 208452de-10d6-4fb8-89a1-10e340b3744c
     component_id: sdc.xb_test_sdc.my-hero
-    component_version: 2cfc93f0259bf3ee
+    component_version: 888412021fbcc837
     slot: column_one
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
@@ -39,7 +39,7 @@ default_value:
     label: 'Starring … Drupal as the hero! 🤩'
   - uuid: 4d866c38-7261-45c6-9b1e-0b94096d51e8
     component_id: sdc.xb_test_sdc.my-hero
-    component_version: 2cfc93f0259bf3ee
+    component_version: 888412021fbcc837
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
@@ -50,7 +50,7 @@ default_value:
         expression: ℹ︎uri␟value
   - uuid: 5944ef12-4a3d-4f3a-8e67-086661be9ffc
     component_id: sdc.xb_test_sdc.my-hero
-    component_version: 2cfc93f0259bf3ee
+    component_version: 888412021fbcc837
     slot: column_two
     parent_uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     inputs:
