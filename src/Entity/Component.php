@@ -14,6 +14,7 @@ use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
+use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\experience_builder\Audit\ComponentAudit;
 use Drupal\experience_builder\ClientSideRepresentation;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
@@ -341,6 +342,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     ];
     // @see \Drupal\Core\Extension\ThemeHandler::getDefault()
     $default_theme = $config['system.theme']->get('default');
+    // We need to get the hierarchy of base themes from the current theme.
+    $theme_with_ancestors = static::getDefaultThemeWithAncestors($default_theme);
 
     // 1. Is the component dynamic (consumes implicit inputs/context or has
     // logic)?
@@ -357,7 +360,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     }
 
     // 3. Is the component provided by the default theme (or its base theme)?
-    if ($this->provider === $default_theme) {
+    if (in_array($this->provider, $theme_with_ancestors, TRUE)) {
       return LibraryEnum::PrimaryComponents;
     }
 
@@ -396,13 +399,16 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     $installed_themes = array_keys($theme_handler->listInfo());
     $default_theme = $theme_handler->getDefault();
 
+    // We need to get the hierarchy of base themes from the current theme.
+    $theme_with_ancestors = static::getDefaultThemeWithAncestors($default_theme);
+
     // Omit Components provided by installed-but-not-default themes. This keeps
     // all other Components:
     // - module-provided ones
     // - default theme-provided
     // - provided by something else than an extension, such as an entity.
     $or_group = $query->orConditionGroup()
-      ->condition('provider', operator: 'NOT IN', value: array_diff($installed_themes, [$default_theme]))
+      ->condition('provider', operator: 'NOT IN', value: array_diff($installed_themes, $theme_with_ancestors))
       ->condition('provider', operator: 'IS NULL');
     $query->condition($or_group);
 
@@ -413,6 +419,19 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       // The default theme is stored in the `system.theme` config.
       'config:system.theme',
     ]);
+  }
+
+  /**
+   * Computes the theme ancestry chain.
+   *
+   * @return array<string>
+   */
+  private static function getDefaultThemeWithAncestors(string $default_theme): array {
+    $container = \Drupal::getContainer();
+    $theme_initialization = $container->get(ThemeInitializationInterface::class);
+    $theme_object = $theme_initialization->getActiveThemeByName($default_theme);
+    $theme_ancestors = array_keys($theme_object->getBaseThemeExtensions());
+    return [...$theme_ancestors, $default_theme];
   }
 
   /**

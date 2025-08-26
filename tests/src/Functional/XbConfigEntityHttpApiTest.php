@@ -1409,7 +1409,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   public function testComponent(): void {
-    $this->container->get('theme_installer')->install(['stark', 'olivero']);
+    $this->container->get('theme_installer')->install(['stark', 'test_theme_child']);
 
     // Ensure we have an interesting set of Component config entities: the ones
     // provided by the modules & themes, including:
@@ -1494,22 +1494,24 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // 2. Test results depending on the default theme.
     // Stark has no SDCs.
     $this->assertSame('stark', $this->config('system.theme')->get('default'));
-    $this->assertArrayNotHasKey('sdc.olivero.teaser', $data);
-    // Olivero does have an SDC, and it's enabled, but it is omitted because the
+    $this->assertArrayNotHasKey('sdc.test_theme_child.test-child', $data);
+    // Test Theme Child does have an SDC, and it's enabled, but it is omitted because the
     // default theme is Stark.
-    $this->assertInstanceOf(Component::class, Component::load('sdc.olivero.teaser'));
-    $this->assertTrue(Component::load('sdc.olivero.teaser')->status());
-    $this->assertSame('olivero', Component::load('sdc.olivero.teaser')->get('provider'));
-    // Change the default theme from Stark to Olivero, and observe the impact on
-    // the list of Components returned.
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'olivero')->save();
+    $this->assertInstanceOf(Component::class, Component::load('sdc.test_theme_child.test-child'));
+    $this->assertTrue(Component::load('sdc.test_theme_child.test-child')->status());
+    $this->assertSame('test_theme_child', Component::load('sdc.test_theme_child.test-child')->get('provider'));
+    // Change the default theme from Stark to Test Theme Child, and observe the
+    // impact on the list of Components returned.
+    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'test_theme_child')->save();
     $this->rebuildAll();
     $this->drupalGet('xb/api/v0/config/component');
     $this->assertDynamicPageCacheAccelerated(maxAge: '-1 (Permanent)');
     $data = Json::decode($page->getText());
-    // Olivero does have an SDC!
-    $this->assertSame('olivero', $this->config('system.theme')->get('default'));
-    $this->assertArrayHasKey('sdc.olivero.teaser', $data);
+    // Test Theme Child does have an SDC!
+    $this->assertSame('test_theme_child', $this->config('system.theme')->get('default'));
+    $this->assertArrayHasKey('sdc.test_theme_child.test-child', $data);
+    // Also verify that the Components from the base themes are available.
+    $this->assertArrayHasKey('sdc.test_theme_base.test-base', $data);
 
     // 3. Test that good cacheability is guaranteed.
     // As soon as the "recent content" block has any nodes to list, due to its
