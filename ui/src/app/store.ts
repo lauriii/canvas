@@ -32,6 +32,7 @@ import { configurationSlice } from '@/features/configuration/configurationSlice'
 import { patternApi } from '@/services/patterns';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
+import { personalizationApi } from '@/services/personalization';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { formStateSlice } from '@/features/form/formStateSlice';
 import type { UnknownAction } from 'redux';
@@ -41,6 +42,7 @@ import codeEditorSlice from '@/features/code-editor/codeEditorSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
 import { contentApi } from '@/services/content';
 import { queryErrorSlice } from '@/features/error-handling/queryErrorSlice';
+import { personalizationSlice } from '@/features/personalization/personalizationSlice';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -127,6 +129,7 @@ const rootReducer = combineSlices(
   },
   patternApi,
   assetLibraryApi,
+  personalizationApi,
   componentAndLayoutApi,
   previewApi,
   dummyPropsFormApi,
@@ -144,6 +147,7 @@ const rootReducer = combineSlices(
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
+  personalizationSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -195,6 +199,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware().concat(
         patternApi.middleware,
         assetLibraryApi.middleware,
+        personalizationApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,
         dummyPropsFormApi.middleware,

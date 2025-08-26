@@ -3,7 +3,12 @@ import styles from './Topbar.module.css';
 import { Button, Flex, Grid, Tooltip, Box } from '@radix-ui/themes';
 import UndoRedo from '@/components/UndoRedo';
 import DropIcon from '@assets/icons/drop.svg?react';
-import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import {
+  CardStackPlusIcon,
+  EyeNoneIcon,
+  EyeOpenIcon,
+  PersonIcon,
+} from '@radix-ui/react-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
@@ -20,13 +25,19 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.includes('/preview');
+  const isEditor = location.pathname.includes('/editor');
+  const isSegments = location.pathname.includes('/segments');
   const dispatch = useAppDispatch();
 
   let hasAiExtensionAvailable = false;
+  let hasPersonalizeExtensionAvailable = false;
 
   const drupalSettings = getDrupalSettings();
   if (drupalSettings && drupalSettings.xb.aiExtensionAvailable) {
     hasAiExtensionAvailable = true;
+  }
+  if (drupalSettings && drupalSettings.xb.personalizationExtensionAvailable) {
+    hasPersonalizeExtensionAvailable = true;
   }
 
   function handleChangeModeClick() {
@@ -78,6 +89,30 @@ const Topbar = () => {
               <>
                 <div className={clsx(styles.verticalDivider)}></div>
                 <AIToggleButton />
+              </>
+            )}
+            {!isPreview && hasPersonalizeExtensionAvailable && (
+              <>
+                <Button
+                  variant={isEditor ? 'soft' : 'ghost'}
+                  color={isEditor ? 'blue' : 'gray'}
+                  onClick={() => navigate('/editor')}
+                >
+                  <CardStackPlusIcon />
+                  <span className={isEditor ? '' : 'visually-hidden'}>
+                    Builder
+                  </span>
+                </Button>
+                <Button
+                  variant={isSegments ? 'soft' : 'ghost'}
+                  color={isSegments ? 'blue' : 'gray'}
+                  onClick={() => navigate('/segments')}
+                >
+                  <PersonIcon />
+                  <span className={isSegments ? '' : 'visually-hidden'}>
+                    Segments
+                  </span>
+                </Button>
               </>
             )}
             <div className={clsx(styles.verticalDivider)}></div>

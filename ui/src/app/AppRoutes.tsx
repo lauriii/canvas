@@ -1,6 +1,7 @@
 import {
   createBrowserRouter,
   Navigate,
+  Outlet,
   RouterProvider,
 } from 'react-router-dom';
 import App from '@/app/App';
@@ -16,6 +17,8 @@ import SideMenu from '@/components/sideMenu/SideMenu';
 import PermissionCheck from '@/components/PermissionCheck';
 import ErrorCard from '@/components/error/ErrorCard';
 import { Flex } from '@radix-ui/themes';
+import SegmentPanel from '@/features/personalization/SegmentPanel';
+import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 
 interface AppRoutesInterface {
   basePath: string;
@@ -92,6 +95,25 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
             element: CodeEditorUi,
+          },
+          {
+            // Personalization
+            path: '/segments/',
+            element: (
+              <SegmentPanel>
+                <Outlet />
+              </SegmentPanel>
+            ),
+            children: [
+              {
+                path: '/segments/',
+                element: <SegmentDashboard />,
+              },
+              {
+                path: '/segments/:segmentId',
+                element: <h1>Segment Details</h1>,
+              },
+            ],
           },
         ],
       },
