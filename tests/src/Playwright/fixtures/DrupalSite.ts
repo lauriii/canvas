@@ -4,6 +4,7 @@ import { Drupal } from '../objects/Drupal';
 import { XBEditor } from '../objects/XBEditor';
 import { exec } from '../utilities/DrupalExec';
 import { hasDrush } from '../utilities/DrupalFilesystem';
+import { Ai } from '../objects/Ai';
 
 export type DrupalSite = {
   dbPrefix: string;
@@ -78,6 +79,16 @@ const xBEditor = base.extend<XBEditorObj>({
   ],
 });
 
+const ai = base.extend<{ ai: Ai }>({
+  ai: [
+    async ({ page }, use) => {
+      const ai = new Ai({ page });
+      await use(ai);
+    },
+    { auto: true },
+  ],
+});
+
 export const beforeAllTests = base.extend<{ forEachWorker: void }>({
   forEachWorker: [
     async ({ drupalSite }, use) => {
@@ -104,6 +115,7 @@ export const test = mergeTests(
   drupalSite,
   drupal,
   xBEditor,
+  ai,
   beforeAllTests,
   beforeEachTest,
 );
