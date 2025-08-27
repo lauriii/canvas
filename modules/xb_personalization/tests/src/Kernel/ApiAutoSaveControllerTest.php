@@ -54,7 +54,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig('system');
-    $this->installConfig('xb_personalization');
     (new XBTestSetup())->setup();
   }
 

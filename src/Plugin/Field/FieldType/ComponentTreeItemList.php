@@ -17,6 +17,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\experience_builder\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\experience_builder\Element\RenderSafeComponentContainer;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
@@ -221,6 +222,17 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           assert($component instanceof Component);
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component_instance_uuid, $isPreview);
+
+          // A component instance provided by a ComponentSourceWithSwitchCasesInterface
+          // is guaranteed to either be a `switch` or a `case`. The `switch` component
+          // instance is the inevitable container (that may render nothing at all on the
+          // live site) that contains the different possible `case`s. On the live site,
+          // only ONE `case` will ever be rendered: the negotiated one.
+          if ($source instanceof ComponentSourceWithSwitchCasesInterface && !$isPreview) {
+            if ($source->isCase() && !$source->isNegotiatedCase($component_instance)) {
+              unset($component_instance['slots']);
+            }
+          }
 
           // Wrap each rendered component instance in HTML comments that allow the
           // client side to identify it.

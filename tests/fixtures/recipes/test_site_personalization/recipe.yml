@@ -1,0 +1,24 @@
+name: 'Test site personalization'
+description: 'Provides a base site with personalization features'
+type: 'XB'
+
+recipes:
+  - base
+
+install:
+  - stark
+  - experience_builder
+  - xb_stark
+  - xb_test_sdc
+  - xb_personalization
+
+config:
+  strict: true
+  import:
+    experience_builder: '*'
+    xb_personalization: '*'
+  actions:
+    system.site:
+      simpleConfigUpdate:
+        page.front: /personalization-test
+        name: 'Drupal'

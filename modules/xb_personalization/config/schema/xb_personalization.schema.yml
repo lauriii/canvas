@@ -27,6 +27,20 @@ xb_personalization.segment.*:
       type: weight
       label: Weight
 
+experience_builder.component_source_local_id.p13n:
+  type: experience_builder.component_source_local_id.*
+  label: 'Component ID'
+  constraints:
+    FullyValidatable: ~
+    Choice:
+      - switch
+      - case
+experience_builder.component_source_settings.p13n:
+  type: experience_builder.component_source_settings.*
+  label: 'Personalization component settings'
+  constraints:
+    FullyValidatable: ~
+
 condition.plugin.utm_parameters:
   # @todo For being FullyValidatable, we need https://www.drupal.org/i/3525391 to be
   # fixed. In the meantime, see

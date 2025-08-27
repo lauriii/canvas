@@ -31,7 +31,7 @@
       "playwright-report/**",
       "scripts/tag-release.sh",
       "test-results/**",
-      "tests/fixtures/recipes/test_site/content/user/**",
+      "tests/fixtures/recipes/**/content/**/**",
       "tests/modules/xb_test_extension/ui/dist/**",
       "tests/modules/xb_test_semi_coupled/semicoupled_app/dist/**",
       "ui/dist/**",

@@ -419,6 +419,11 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       // The default theme is stored in the `system.theme` config.
       'config:system.theme',
     ]);
+
+    // @todo Ignore Components provided by ComponentSourceWithSwitchCasesInterface sources in https://www.drupal.org/project/experience_builder/issues/3525797
+    // (Not ignoring them is a way to show these Components in the UI, which is
+    // how we're bootstrapping the p13n component source functionality: it
+    // allows the BE to be built ahead of the FE.)
   }
 
   /**
