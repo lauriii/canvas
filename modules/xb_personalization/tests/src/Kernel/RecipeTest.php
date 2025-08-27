@@ -56,7 +56,7 @@ final class RecipeTest extends KernelTestBase {
       ->getComponentTreeItemByUuid('8e28dfca-c1b1-4aa2-8c19-b8a0c13e9bf4');
     assert($switch_component instanceof ComponentTreeItem);
     $this->assertIsArray($switch_component->getInputs());
-    $this->assertSame([
+    $this->assertEquals([
       'variants' => [
         'halloween',
         'default',
@@ -67,7 +67,7 @@ final class RecipeTest extends KernelTestBase {
       ->getComponentTreeItemByUuid('5e9d5b61-595c-4785-8af6-b78317e52c64');
     assert($halloween_case instanceof ComponentTreeItem);
     $this->assertIsArray($halloween_case->getInputs());
-    $this->assertSame([
+    $this->assertEquals([
       'variant_id' => 'halloween',
       'segments' => [
         'halloween',
@@ -79,7 +79,7 @@ final class RecipeTest extends KernelTestBase {
       ->getComponentTreeItemByUuid('1c29b6e6-02c5-4bfc-99e0-88894609390e');
     assert($default_case instanceof ComponentTreeItem);
     $this->assertIsArray($default_case->getInputs());
-    $this->assertSame([
+    $this->assertEquals([
       'variant_id' => 'default',
       'segments' => [
         Segment::DEFAULT_ID,

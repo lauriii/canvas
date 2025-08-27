@@ -102,6 +102,9 @@ Unless none match, then the Default Personalization Variant will be displayed.
 
 Segments are site-wide.
 
+A `default` `Segment` is provided, which acts as the fallback of the negotiation. This `default` `Segment` is protected
+against edits or deletion.
+
 ###### Properties
 
 id, label, description, rules (array), weight(int), status (bool)
@@ -109,8 +112,8 @@ id, label, description, rules (array), weight(int), status (bool)
 The personalization rules will re-use the existing Condition API from Drupal core.
 
 We need to take into consideration third-party integrations defining segment rules.
-We might need in the future ensuring the last step for negotiation is done client-side.
-
+We might need in the future ensuring the last step for negotiation is done client-side. This means, more than one
+grafting could be served for a given variation, and which one is actually active to the user could happen client-side.
 
 ###### Cacheability
 
@@ -189,7 +192,7 @@ This new segment will be disabled by default.
 {
   "id": "my_first_segment",
   "label": "My first segment",
-  "description": "Extended description",
+  "description": "Extended description"
 }
 ```
 
@@ -237,45 +240,52 @@ For the moment we can hard-code the expected segmentation rules, but these will 
 
 ### 3.2. Personalization Variations
 
-TBD describe new component source.
-
-###### The grafting or wrapper
-
 Variants are local per grafting, on the contrary of segments that are global.
 
-For that reason, we will store the mapping of Segment <=> Variants in the inputs of each grafting component.
+The provided `Personalization` component source defines two components: `switch` and `case`.
 
-This mapping is 1-to-1 initially, but must include the option of having multiple Variants per Segment in the future.
+#### 3.2.1. Server data-model
 
-So the inputs would look like
+Our `switch` component instance will define a grafting.
+In its inputs, we store the different `cases` identifiers, in the `variants` input.
+
+So the inputs for the `switch` component would look like
 
 ```yaml
-grafting inputs:
-   mapping:
-     variation-1:
-       segments: [] # We can have a variation with no segment associated — this is then inactive, perhaps it's still being refined before going live.
-       label: Variation 1
-     variation-2:
-       segments: [segment-1] # The mapping between a variation and the segment it will be used for.
-       label: Variation 2
-     default:
-       # If a grafting exists, we always have a default variation. This might not be reflected in the
-       # stored model as it should not be editable.
-       label: Default
+switch inputs:
+  variants:
+    - variation-1
+    - variation-2
+    - variation-3
+    - default
 ```
 
-###### The switch-case model
+Those ids are arbitrary. They _don't_ relate to `Segment` IDs at all. We might actually use uuids when we build the client
+for this.
 
+The `switch` component instance slot contain the different `case` component instances that will define each grafting.
+A `case` mapped to the `default` `Segment` is mandatory.
+
+The mapping of `Segment` <=> Variants resides in the inputs of each grafting.
+This mapping is 1-to-1 initially, but must include the option of having multiple `Segment`s per Variant in the future.
+
+Then the inputs for the `case` component instance would look like
+
+```yaml
+case inputs:
+  variant_id: 'variation-3' # This matches one of the `switch` `variants` above.
+  segments: ['my-segment-id'] # This is the actual mapping variant <=> `Segment`s
+```
+
+Each `switch` or `case` could have a user-friendly label. This isn't in the `inputs` itself, but on the top-level
+component instance label.
+
+#### 3.2.2. Client data-model
 
 TBD
 
-#### 3.2.2. Server data-model
-
-TBD
-
-#### 3.2.3. Client data-model
-
-TBD
+See https://www.drupal.org/project/experience_builder/issues/3525746#comment-16121437
+(this will define the -hopefully- generic switch-case `nodeType`s, or point to docs in `data-model.md 3.4.x` itself.)
 
 ### 3.3. Personalization Negotiation
 
@@ -301,3 +311,14 @@ The logic would be:
 4. We can serve the personalization variant based on that segment, or the default if no matches were found.
 
 If possible we should use the Context API.
+
+# 4. Personalization recipe
+
+We provide a recipe for seeing this in action that is used for tests, but can also be used for seeing a demo.
+
+You can install it with something like
+
+```
+ddev drush site:install minimal --yes && ddev drush user:password admin admin && \
+ddev -d /var/www/html/web exec php core/scripts/drupal recipe modules/contrib/experience_builder/tests/fixtures/recipes/test_site_personalization
+```
