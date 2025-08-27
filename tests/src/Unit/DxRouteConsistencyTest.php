@@ -40,6 +40,15 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   /**
    * @depends testRoutingYmlDx
    */
+  public function testAuthenticationRequiredPermission(array $xb_api_routes): void {
+    foreach ($xb_api_routes as $xb_api_route_name => $xb_api_route) {
+      $this->assertArrayHasKey('_xb_authentication_required', $xb_api_route['requirements'], "`$xb_api_route_name` needs to include the _xb_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated.");
+    }
+  }
+
+  /**
+   * @depends testRoutingYmlDx
+   */
   public function testOpenApiCompleteness(array $xb_api_routes): void {
     // Map XB API route definitions keyed by route name to being keyed by path
     // and method, with the path resolved where possible.

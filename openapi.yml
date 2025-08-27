@@ -475,6 +475,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -493,6 +496,9 @@ paths:
       responses:
         '204':
           description: Deleted individual Code Component
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -507,6 +513,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -527,6 +536,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeComponent'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -1404,6 +1416,9 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/project/experience_builder/issues/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -1450,6 +1465,9 @@ paths:
                   autoSaves:
                     type: object
                     description: Auto-saved entries with hash values for concurrency control
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -1494,6 +1512,9 @@ paths:
                   autoSaves:
                     type: object
                     description: Auto-saved entries with hash values for concurrency control
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -1650,6 +1671,9 @@ paths:
                     video: []
                     display_width: []
         # @todo fix in https://www.drupal.org/project/experience_builder/issues/3541366
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
@@ -2354,6 +2378,23 @@ components:
             type: object
             required:
               - errors
+            properties:
+              errors:
+                type: array
+                description: Error items
+                items:
+                  type: object
+                  schema:
+                    $ref: '#/components/schemas/Error'
+    UnauthorizedErrorResponse:
+      description: Error when unauthenticated.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - errors
+            additionalProperties: false
             properties:
               errors:
                 type: array

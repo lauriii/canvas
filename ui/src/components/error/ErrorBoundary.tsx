@@ -9,6 +9,9 @@ import ErrorAlert from '@/components/error/ErrorAlert';
 import ErrorCard from '@/components/error/ErrorCard';
 import ErrorPage from '@/components/error/ErrorPage';
 import { usePostLogEntryMutation } from '@/services/log';
+import { getDrupalSettings } from '@/utils/drupal-globals';
+
+const drupalSettings = getDrupalSettings();
 
 /**
  * Error boundary component that catches errors in its child component tree.
@@ -23,16 +26,30 @@ const ErrorBoundary: React.FC<{
   children: React.ReactNode;
 }> = ({ title, resetButtonText, onReset, variant = 'card', children }) => {
   const [postLogEntryMutation] = usePostLogEntryMutation();
+
   return (
     <ReactErrorBoundary
       fallbackRender={({ error, resetErrorBoundary }) => {
+        const status = error?.status || error?.data?.status;
+        let message =
+          error.message ||
+          error.data?.message ||
+          error.error ||
+          (Array.isArray(error?.data?.errors) && error.data.errors.join(`\n`));
+        if (status) {
+          message = `Error ${status}: ${message}`;
+        }
         if (variant === 'alert') {
           return (
             <ErrorAlert
               title={title}
-              error={error.message || error.error}
-              resetErrorBoundary={resetErrorBoundary}
-              resetButtonText={resetButtonText}
+              error={message}
+              resetErrorBoundary={
+                status === 401
+                  ? () => (window.location.href = drupalSettings.xb.loginUrl)
+                  : resetErrorBoundary
+              }
+              resetButtonText={status === 401 ? 'Go to login' : resetButtonText}
             />
           );
         }
@@ -41,7 +58,7 @@ const ErrorBoundary: React.FC<{
           <Wrapper>
             <ErrorCard
               title={title}
-              error={error.message || error.error}
+              error={message}
               resetErrorBoundary={resetErrorBoundary}
               resetButtonText={resetButtonText}
             />

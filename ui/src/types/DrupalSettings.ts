@@ -24,6 +24,7 @@ export interface DrupalSettings {
     dialogCss: string[];
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
+    loginUrl: string;
     // ⚠️ This is highly experimental and *will* be refactored.
     personalizationExtensionAvailable: boolean;
   };

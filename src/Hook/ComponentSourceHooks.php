@@ -106,8 +106,12 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
     // TRICKY: the `route` cache context varies also by route parameters, that
     // is unnecessary here, because this only varies by route definition.
     $page['#cache']['contexts'][] = 'route.name';
-    // @phpstan-ignore-next-line
-    $page['#attached']['library'][] = AssetLibrary::load(AssetLibrary::GLOBAL_ID)->getAssetLibrary($is_preview);
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    // The `global `asset library is guaranteed to exist, but protect even
+    // against the most obscure edge cases. (Also: tests do simulate that!)
+    if ($asset_library) {
+      $page['#attached']['library'][] = $asset_library->getAssetLibrary($is_preview);
+    }
   }
 
   /**

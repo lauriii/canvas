@@ -67,6 +67,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
@@ -79,6 +81,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+
+    // Create a user with an arbitrary permission that is not related to
+    // accessing any XB resources.
+    $user2 = $this->createUser(['view media']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   /**
@@ -107,6 +115,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    */
   public function testPattern(): void {
     // cspell:ignore testpatternpleaseignore
+    $this->drupalLogin($this->limitedPermissionsUser);
     $this->assertAuthenticationAndAuthorization('pattern');
 
     $base = rtrim(base_path(), '/');
@@ -477,6 +486,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    * @see \Drupal\experience_builder\Entity\JavaScriptComponent
    */
   public function testJavaScriptComponent(): void {
+    $this->drupalLogin($this->limitedPermissionsUser);
     $this->assertAuthenticationAndAuthorization(JavaScriptComponent::ENTITY_TYPE_ID);
 
     $base = rtrim(base_path(), '/');
@@ -1157,6 +1167,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     \assert($library instanceof AssetLibrary);
     $library->delete();
+    $this->drupalLogin($this->limitedPermissionsUser);
     $this->assertAuthenticationAndAuthorization(AssetLibrary::ENTITY_TYPE_ID, FALSE);
 
     $base = rtrim(base_path(), '/');
@@ -1284,8 +1295,8 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
   private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE): void {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
-    // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    // Insufficient Permissions: 403.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [
         'Requires >=1 content entity type with an XB field that can be created or edited.',
@@ -1331,6 +1342,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $this->drupalLogout();
     // Verify we cannot access it as anonymous.
+    $canonical_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id/$id");
+    $response = $this->makeApiRequest('GET', $canonical_url, []);
+    $this->assertSame(401, $response->getStatusCode());
+
+    $this->drupalLogin($this->limitedPermissionsUser);
+    // Verify we cannot access it with insufficient permissions.
     $canonical_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id/$id");
     $response = $this->makeApiRequest('GET', $canonical_url, []);
     $this->assertSame(403, $response->getStatusCode());
@@ -1394,6 +1411,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'node_list',
       'user:1',
       'user:2',
+      'user:3',
       'user_list',
     ];
     // If expected adds new components, those components add additional cache tags. If those cache tags are not
@@ -1455,6 +1473,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'node_list',
       'user:1',
       'user:2',
+      'user:3',
       'user_list',
       AutoSaveManager::CACHE_TAG,
     ];
@@ -1560,6 +1579,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    * @see \Drupal\experience_builder\Entity\Folder
    */
   public function testFolder(): void {
+    $this->drupalLogin($this->limitedPermissionsUser);
     $this->assertAuthenticationAndAuthorization('folder');
     $list_url = Url::fromUri("base:/xb/api/v0/config/folder");
     $request_options = [

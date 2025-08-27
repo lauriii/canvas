@@ -36,11 +36,19 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([Page::EDIT_PERMISSION]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+
+    // Create a user with an arbitrary permission that is not related to
+    // accessing any XB resources.
+    $user2 = $this->createUser(['view media']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   public function testStagedConfigUpdate(): void {
@@ -125,9 +133,18 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
     self::assertArrayHasKey('data', $auto_save_data);
     $this->assertSame($entity_data, $auto_save_data['data']);
 
-    // Anonymously: 403.
+    // Anonymously: 401.
     $this->drupalLogout();
-    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 401, ['user.roles:anonymous'], ['4xx-response', 'config:system.site', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'errors' => [
+        'You must be logged in to access this resource.',
+      ],
+    ], $body);
+
+    // Insufficient permissions: 403
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [
         $missingPermissionError,

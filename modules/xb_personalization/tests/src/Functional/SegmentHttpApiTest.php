@@ -43,6 +43,8 @@ class SegmentHttpApiTest extends HttpApiTestBase {
 
   protected readonly array $expectedDefaultSegment;
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
@@ -60,6 +62,12 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       'weight' => 2147483647,
       'status' => TRUE,
     ];
+
+    // Create a user with an arbitrary permission that is not related to
+    // accessing any XB resources.
+    $user2 = $this->createUser(['view own unpublished content']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   /**
@@ -379,8 +387,17 @@ class SegmentHttpApiTest extends HttpApiTestBase {
   private function assertAuthenticationAndAuthorization(string $entity_type_id): void {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
-    // Anonymously: 403.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['config:user.role.anonymous', '4xx-response', 'http_response'], 'MISS', NULL);
+    // Anonymous user: 401.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 401, ['user.roles:anonymous'], ['4xx-response', 'config:system.site', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'errors' => [
+        "You must be logged in to access this resource.",
+      ],
+    ], $body);
+
+    // Limited Permissions: 403.
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [
         "Requires >=1 content entity type with an XB field that can be created or edited.",

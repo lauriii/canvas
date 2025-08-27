@@ -39,6 +39,8 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
@@ -47,6 +49,12 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+
+    // Create a user with an arbitrary permission that is not related to
+    // accessing any XB resources.
+    $user2 = $this->createUser(['view media']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   public static function providerTest(): array {
@@ -165,9 +173,9 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $original_entity_array = $original_entity->toArray();
     assert(is_array($original_entity_array));
 
-    // Anonymously: 403.
-    $this->drupalLogout();
-    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    // Insufficient Permissions: 403.
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [
         $missingPermissionError,

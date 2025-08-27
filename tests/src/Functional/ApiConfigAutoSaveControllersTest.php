@@ -39,6 +39,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
@@ -47,6 +49,12 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
+
+    // Create a user with an arbitrary permission that is not related to
+    // accessing any XB resources.
+    $user2 = $this->createUser(['view media']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   public static function providerTest(): array {
@@ -252,9 +260,18 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->assertSession()->statusCodeEquals(200);
     self::assertSame(NestedArray::getValue($initial_entity, $compiled_css_path_in_normalization), $response);
 
-    // Anonymously: 403.
+    // Anonymously: 401.
     $this->drupalLogout();
-    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 401, ['user.roles:anonymous'], ['4xx-response', 'config:system.site', 'config:user.role.anonymous', 'http_response'], 'MISS', NULL);
+    $this->assertSame([
+      'errors' => [
+        'You must be logged in to access this resource.',
+      ],
+    ], $body);
+
+    // Limited Permissions: 403.
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $body = $this->assertExpectedResponse('GET', $auto_save_url, [], 403, ['user.permissions'], ['4xx-response', 'http_response'], 'UNCACHEABLE (request policy)', NULL);
     $this->assertSame([
       'errors' => [
         $missingPermissionError,
@@ -273,8 +290,15 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->performAutoSave($patch_update + $initial_entity, $updated_entity, $entity_type_id, $entity_id);
 
     // Assert that draft endpoints can be fetched.
-    // Draft CSS/JS should not be available to unprivileged users.
+    // Draft CSS/JS should not be available to unauthenticated users.
     $this->drupalLogout();
+    $this->drupalGet($js_auto_save_url);
+    $this->assertSession()->statusCodeEquals(401);
+    $this->drupalGet($css_auto_save_url);
+    $this->assertSession()->statusCodeEquals(401);
+
+    // Draft CSS/JS should not be available to unprivileged users.
+    $this->drupalLogin($this->limitedPermissionsUser);
     $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(403);
     $this->drupalGet($css_auto_save_url);

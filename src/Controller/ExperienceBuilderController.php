@@ -16,6 +16,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
@@ -46,6 +47,7 @@ final class ExperienceBuilderController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
+    private readonly UrlGeneratorInterface $urlGenerator,
   ) {}
 
   private const HTML = <<<HTML
@@ -153,6 +155,7 @@ HTML;
           ],
           'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
           'homepagePath' => $system_site_config->get('page.front'),
+          'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
         ],
         // Override actual `xbData` with dummy data for code component editor
         // development purposes.

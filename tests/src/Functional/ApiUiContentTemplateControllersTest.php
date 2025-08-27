@@ -35,6 +35,8 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  protected readonly UserInterface $limitedPermissionsUser;
+
   protected function setUp(): void {
     parent::setUp();
     $this->generateComponentConfig();
@@ -90,6 +92,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);
+
+    $user2 = $this->createUser(['view media']);
+    assert($user2 instanceof UserInterface);
+    $this->limitedPermissionsUser = $user2;
   }
 
   /**
@@ -263,15 +269,15 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // expect a 403 with a message stating which permission is needed.
     // Testing this for each client error case proves no information is divulged
     // to unauthorized requests. Note also that Page Cache accelerates these.
-    $this->drupalLogout();
+    $this->drupalLogin($this->limitedPermissionsUser);
     $json = $this->assertExpectedResponse(
       method: 'GET',
       url: Url::fromUri('base:/xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
       request_options: [],
       expected_status: Response::HTTP_FORBIDDEN,
       expected_cache_contexts: ['user.permissions'],
-      expected_cache_tags: ['4xx-response', 'config:user.role.anonymous', 'http_response'],
-      expected_page_cache: 'MISS',
+      expected_cache_tags: ['4xx-response', 'http_response'],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: NULL,
     );
     $this->assertSame(['errors' => [sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
