@@ -364,6 +364,40 @@ class PropExpressionTest extends UnitTestCase {
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
+
+      // Digs into multiple levels of an entity reference field to return values
+      // from different levels of that reference.
+      [
+        'ℹ︎␜entity:node:article␝yo_ho␞␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt}',
+        new FieldObjectPropsExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, [
+          'src' => new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
+            new ReferenceFieldPropExpression(
+              new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'entity'),
+              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+            ),
+          ),
+          'alt' => new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'alt'),
+          ),
+        ]),
+        [
+          'module' => ['node', 'media', 'node', 'media'],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.yo_ho',
+            'media.type.image',
+            'node.type.article',
+            'field.field.node.article.yo_ho',
+            'media.type.image',
+          ],
+          'content' => [
+            'media:image:some-media-uuid',
+            'media:image:some-media-uuid',
+          ],
+        ],
+      ],
     ];
   }
 

@@ -140,9 +140,11 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
       else {
         [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping);
         [$field_instance_prop_name, $field_prop_ref_expr] = explode(self::PREFIX_ENTITY_LEVEL, $obj_prop_mapping_remainder, 2);
+        $referenced = StructuredDataPropExpression::fromString(self::PREFIX . $field_prop_ref_expr);
+        assert($referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression(
           new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name),
-          FieldPropExpression::fromString(self::PREFIX . $field_prop_ref_expr)
+          $referenced,
         );
       }
     }
