@@ -134,7 +134,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
 
 describe('Media Library In Entity (page data) Form', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalXbInstall([], {}, ['administer nodes']);
   });
 
   beforeEach(() => {

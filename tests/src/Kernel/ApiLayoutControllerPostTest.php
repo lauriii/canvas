@@ -487,8 +487,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertNotNull($content_region);
 
     $crawler = new Crawler($this->content);
-    $element = $crawler->filter('astro-island')->eq(1);
-    self::assertNotFalse(str_contains($content_region, 'astro-island'));
+    $element = $crawler->filter('xb-island')->eq(1);
+    self::assertNotFalse(str_contains($content_region, 'xb-island'));
     self::assertNotFalse(str_contains($content_region, $uuid));
     self::assertEquals($uuid, $element->attr('uid'));
 

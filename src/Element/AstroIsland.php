@@ -166,7 +166,7 @@ final class AstroIsland extends RenderElementBase {
    */
   protected static function generateTemplate(array $slot_names): string {
     $has_slots = !empty($slot_names);
-    $template = '<astro-island uid="{{ __aie_uuid }}"
+    $template = '<xb-island uid="{{ __aie_uuid }}"
       component-url="{{ __aie_component_url }}"
       component-export="default"'
       . ($has_slots ? ' await-children=""' : '') . '
@@ -182,7 +182,7 @@ final class AstroIsland extends RenderElementBase {
     // because with Astro's client="only" directive, Astro waits until the
     // entire page is loaded before hydrating islands.
     // @todo Investigate if it's possible to hydrate islands immediately
-    //   after the <astro-island> element is parsed rather than on page load.
+    //   after the <xb-island> element is parsed rather than on page load.
     $template .= '<script type="module" src="{{ __aie_renderer }}" blocking="render"></script>';
     $template .= '<script type="module" src="{{ __aie_component_url }}" blocking="render"></script>';
 
@@ -195,7 +195,7 @@ final class AstroIsland extends RenderElementBase {
       }
       $template .= \sprintf('<template data-astro-template="%s">{{ %s }}</template>', $escaped_slot_name, $escaped_slot_name);
     }
-    $template .= '</astro-island>';
+    $template .= '</xb-island>';
     return $template;
   }
 

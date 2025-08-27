@@ -1,3 +1,4 @@
+# @cspell:ignore Gablethorp
 _meta:
   version: '1.0'
   entity_type: xb_page
@@ -17,14 +18,19 @@ default:
     -
       value: 'This is the homepage'
   components:
-    -
-      parent_uuid: null
+    - parent_uuid: null
       slot: null
+      uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
+      component_id: js.xb_test_code_components_with_slots
+      component_version: 5d3d256aa45dea9e
+      inputs: '{"name":"Sir Gablethorp"}'
+    -
+      parent_uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
+      slot: description
       uuid: 2c6e91ae-23ac-433d-9bb8-687144464b34
       component_id: sdc.xb_test_sdc.props-slots
       component_version: ab4d3ddce315cf64
       inputs: '{"heading":"Welcome to the site!"}'
-
     -
       parent_uuid: null
       slot: null

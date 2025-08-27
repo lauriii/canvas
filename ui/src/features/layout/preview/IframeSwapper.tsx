@@ -6,6 +6,8 @@ import styles from '@/features/layout/preview/Preview.module.css';
 import clsx from 'clsx';
 import { useAppSelector } from '@/app/hooks';
 import { selectDragging } from '@/features/ui/uiSlice';
+import type { ComponentPreviewUpdateEvent } from '@/components/form/formUtil';
+import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/formUtil';
 
 interface IFrameSwapperProps {
   srcDocument: string;
@@ -82,6 +84,41 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     }, []);
 
     // Sync the whichActiveRef to the whichActive state and then set isReloading back to false.
+    useEffect(() => {
+      const listener = (e: ComponentPreviewUpdateEvent) => {
+        const { activeIFrame } = getIFrames();
+        // Find the xb-island elements for the updated component.
+        const component = activeIFrame.contentDocument?.querySelector(
+          `xb-island[uid="${e.componentUuid}"]`,
+        );
+        if (!component) {
+          // We need a round trip to update the preview here.
+          e.setPreviewBackgroundUpdate(false);
+          return;
+        }
+        // We can update the preview in the background.
+        e.setPreviewBackgroundUpdate(true);
+
+        component.setAttribute(
+          'props',
+          JSON.stringify({
+            ...JSON.parse(component.getAttribute('props')!),
+            [e.propName]: ['raw', e.propValue],
+          }),
+        );
+      };
+      document.addEventListener(
+        COMPONENT_PREVIEW_UPDATE_EVENT,
+        listener as any as EventListener,
+      );
+      return () => {
+        document.removeEventListener(
+          COMPONENT_PREVIEW_UPDATE_EVENT,
+          listener as any as EventListener,
+        );
+      };
+    }, [getIFrames]);
+
     useEffect(() => {
       whichActiveRef.current = whichActive;
       setIsReloading(false);

@@ -171,7 +171,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $body = (string) $response->getBody();
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
-    $element = $crawler->filter('astro-island');
+    $element = $crawler->filter('xb-island');
     self::assertCount(1, $element);
     self::assertEquals($uuid, $element->attr('uid'));
     // Validate element is in content region.
@@ -212,7 +212,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
 
-    $element = $crawler->filter('astro-island');
+    $element = $crawler->filter('xb-island');
     // Validate element is in content region.
     $this->assertMatchesRegularExpression(sprintf(self::UUID_IN_CONTENT_REGION, $uuid), $element->ancestors()->html());
 
@@ -253,7 +253,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $crawler = new Crawler($json['html']);
     $sidebar_first_region = $crawler->filter('.layout-sidebar-first');
     self::assertCount(1, $sidebar_first_region);
-    $element = $sidebar_first_region->filter('astro-island');
+    $element = $sidebar_first_region->filter('xb-island');
     self::assertCount(1, $element);
     self::assertJsonStringEqualsJsonString($updated_opts_json, $element->attr('opts') ?? '');
   }

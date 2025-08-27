@@ -129,7 +129,7 @@ final class AstroIslandTest extends KernelTestBase {
     $original_island = $island;
 
     $crawler = $this->crawlerForRenderArray($island);
-    $element = $crawler->filter('astro-island');
+    $element = $crawler->filter('xb-island');
     self::assertEquals([
       ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [$component_url => ['some' => 'import/map.js']],
     ], $island['#attached']['import_maps']);
@@ -170,7 +170,7 @@ final class AstroIslandTest extends KernelTestBase {
     $island = $original_island;
     unset($island['#slots'], $island['#props'], $island['#uuid'], $island['#framework']);
     $crawler = $this->crawlerForRenderArray($island);
-    $element = $crawler->filter('astro-island');
+    $element = $crawler->filter('xb-island');
     self::assertCount(1, $element);
     self::assertNotNull($element->attr('uid'));
     self::assertJsonStringEqualsJsonString('{}', $element->attr('props') ?? '');

@@ -48,7 +48,7 @@ test.describe('Data dependencies', () => {
     await xBEditor.publishAllChanges(['Homepage']);
     await page.goto('/homepage');
     await expect(
-      page.locator('astro-island').getByRole('heading', { name: 'Homepage' }),
+      page.locator('xb-island').getByRole('heading', { name: 'Homepage' }),
     ).toBeVisible();
   });
 });

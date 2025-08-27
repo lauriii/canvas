@@ -108,15 +108,19 @@ Cypress.Commands.add('drupalEnableThemeForXb', (themeMachineName) => {
   });
 });
 
-Cypress.Commands.add('drupalXbInstall', (extraModules = [], options = {}) => {
-  cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
-  cy.task('log', `Extra modules ${extraModules}`);
-  cy.drupalInstall({
-    setupFile: Cypress.env('setupFile'),
-    extraModules,
-    options,
-  });
-});
+Cypress.Commands.add(
+  'drupalXbInstall',
+  (extraModules = [], options = {}, extraPermissions = []) => {
+    cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
+    cy.task('log', `Extra modules ${extraModules}`);
+    cy.drupalInstall({
+      setupFile: Cypress.env('setupFile'),
+      extraModules,
+      options,
+      extraPermissions,
+    });
+  },
+);
 
 Cypress.Commands.add(
   'drupalInstall',
@@ -525,15 +529,17 @@ Cypress.Commands.add(
       }).should(() => {
         const frameContent = doc
           .querySelector(iframeSelector)
-          ?.contentWindow?.document?.body.querySelector(selector);
+          ?.contentWindow?.document?.body.querySelectorAll(selector);
         expect(
-          !!frameContent,
+          frameContent.length,
           `'${selector}' was found in iframe '${iframeSelector}'`,
-        ).to.equal(true);
+        ).to.be.greaterThan(0);
         expect(
-          frameContent?.textContent?.includes(textContent),
+          Array.from(frameContent).filter((el) =>
+            el.textContent?.includes(textContent),
+          ).length,
           `${iframeSelector} in iframe includes text ${textContent}`,
-        ).to.equal(true);
+        ).to.be.greaterThan(0);
       });
     });
   },

@@ -1,4 +1,4 @@
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCurrentComponent,
   selectFormValues,
@@ -19,6 +19,7 @@ import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import type { InputUIData, PropsValues } from '@/types/Form';
 import { useUpdateComponentMutation } from '@/services/preview';
 import {
+  ComponentPreviewUpdateEvent,
   getPropSchemas,
   getPropsValues,
   propInputData,
@@ -26,11 +27,16 @@ import {
   toPropName,
   validateProp,
 } from '@/components/form/formUtil';
+import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
 import { flaggedForRemoval, parseValue } from '@/utils/function-utils';
-import { InputBehaviorsCommon } from '@/components/form/inputBehaviors';
+import {
+  InputBehaviorsCommon,
+  POLLED_BACKGROUND_TIMEOUT,
+} from '@/components/form/inputBehaviors';
 import { FORM_TYPES } from '@/features/form/constants';
 import type { XBComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
+import { useRef } from 'react';
 
 export const InputBehaviorsComponentPropsForm = (
   OriginalInput: React.FC,
@@ -43,7 +49,9 @@ export const InputBehaviorsComponentPropsForm = (
    * We already have a workaround for this for the Redux provider, could we do the same for the React Router context?
    */
   const currentComponent = useAppSelector(selectCurrentComponent);
+  const dispatch = useAppDispatch();
   const selectedComponent = currentComponent || 'noop';
+  const polledBackgroundUpdate = useRef<number | null>(null);
   const model = useAppSelector(selectModel);
   const { attributes } = props;
   const { data: components } = useGetComponentsQuery();
@@ -67,6 +75,19 @@ export const InputBehaviorsComponentPropsForm = (
   const [patchComponent] = useUpdateComponentMutation({
     fixedCacheKey: selectedComponent,
   });
+
+  const fieldName = attributes.name || attributes['data-xb-name'];
+  const propName = toPropName(fieldName, selectedComponent);
+  // Scalar prop-types might be able to perform real-time updates.
+  const isScalarProp = ['number', 'integer', 'string', 'boolean'].includes(
+    component?.propSources?.[propName]?.jsonSchema?.type as string,
+  );
+  // We don't debounce updates for code components where the prop is scalar -
+  // but all other components/props should be debounced to avoid thrashing the
+  // server with multiple PATCH requests.
+  const shouldDebounce =
+    !isScalarProp ||
+    components?.[selectedComponentType]?.source !== 'Code component';
 
   const formStateToStore = (newFormState: PropsValues) => {
     // Apply (client-side) transforms for form state.
@@ -105,19 +126,55 @@ export const InputBehaviorsComponentPropsForm = (
       }
     });
 
+    let backgroundPreviewUpdate = false;
+    if (isScalarProp) {
+      // Fire an event to allow listeners to attempt real-time updates.
+      const PreviewUpdateEvent = new ComponentPreviewUpdateEvent(
+        selectedComponent,
+        propName,
+        resolved[propName],
+      );
+      document.dispatchEvent(PreviewUpdateEvent);
+      dispatch(
+        // Flag if any listeners were able to perform a real-time update.
+        setPreviewBackgroundUpdate(
+          PreviewUpdateEvent.getPreviewBackgroundUpdate(),
+        ),
+      );
+      backgroundPreviewUpdate = PreviewUpdateEvent.getPreviewBackgroundUpdate();
+    }
+
     if (isEvaluatedComponentModel(selectedModel) && component) {
-      patchComponent({
-        componentInstanceUuid: selectedComponent,
-        componentType: `${selectedComponentType}@${version}`,
-        model: {
-          source: syncPropSourcesToResolvedValues(
-            selectedModel.source,
-            component,
+      const updateBackend = () => {
+        patchComponent({
+          componentInstanceUuid: selectedComponent,
+          componentType: `${selectedComponentType}@${version}`,
+          model: {
+            source: syncPropSourcesToResolvedValues(
+              selectedModel.source,
+              component,
+              resolved,
+            ),
             resolved,
-          ),
-          resolved,
-        },
-      });
+          },
+        });
+      };
+      if (backgroundPreviewUpdate) {
+        if (polledBackgroundUpdate.current !== null) {
+          clearTimeout(polledBackgroundUpdate.current);
+        }
+        // If we're doing a background update, debounce that so we don't make
+        // multiple requests for a single update. If we're not doing a
+        // background preview update, we should schedule this immediately -
+        // debouncing in InputBehaviors will handle preventing this firing too
+        // many times in succession.
+        polledBackgroundUpdate.current = setTimeout(
+          updateBackend,
+          POLLED_BACKGROUND_TIMEOUT,
+        ) as any as number;
+        return;
+      }
+      updateBackend();
       return;
     }
     patchComponent({
@@ -134,8 +191,6 @@ export const InputBehaviorsComponentPropsForm = (
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
 
-  const fieldName = attributes.name || attributes['data-xb-name'];
-  const propName = toPropName(fieldName, selectedComponent);
   const propsOverrides: { options?: Object[] } = {};
 
   const { multipleInputsSingleValue } = propInputData(
@@ -214,6 +269,7 @@ export const InputBehaviorsComponentPropsForm = (
     <InputBehaviorsCommon
       OriginalInput={OriginalInput}
       props={{ ...props, ...propsOverrides }}
+      shouldDebounce={shouldDebounce}
       callbacks={{
         commitFormState: formStateToStore,
         parseNewValue,

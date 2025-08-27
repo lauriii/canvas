@@ -486,7 +486,7 @@ class XbPageVariantTest extends FunctionalTestBase {
   private function getRenderedJavaScriptComponentIds(): array {
     return array_map(
       fn (NodeElement $e) => (string) $e->getAttribute('uid'),
-      $this->getSession()->getPage()->findAll('css', 'astro-island')
+      $this->getSession()->getPage()->findAll('css', 'xb-island')
     );
   }
 
@@ -496,7 +496,7 @@ class XbPageVariantTest extends FunctionalTestBase {
   private function assertRenderedJavaScriptComponent(string $html, string $uid, array $expected_opts, array $expected_slots): void {
     // TRICKY: use Crawler to also be able to assert HTML embedded in a JSON
     // response.
-    $js_component = (new Crawler($html))->filter("astro-island[uid='$uid']");
+    $js_component = (new Crawler($html))->filter("xb-island[uid='$uid']");
     self::assertCount(1, $js_component);
 
     // Assert opts.

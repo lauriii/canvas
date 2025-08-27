@@ -1,5 +1,5 @@
-import { useEffect, useCallback, useState } from 'react';
 import type * as React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getDefaultValue } from '@/components/form/formUtil';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { debounce } from 'lodash';
@@ -7,21 +7,26 @@ import './InputBehaviors.css';
 import type { PropsValues } from '@/types/Form';
 import type { Attributes } from '@/types/DrupalAttribute';
 import type { FormId } from '@/features/form/formStateSlice';
-import type { ErrorObject } from 'ajv/dist/types';
 import {
+  clearFieldError,
   selectFieldError,
   selectFormValues,
   setFieldError,
   setFieldValue,
-  clearFieldError,
 } from '@/features/form/formStateSlice';
+import type { ErrorObject } from 'ajv/dist/types';
 import { FORM_TYPES } from '@/features/form/constants';
 import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
 import { InputBehaviorsEntityForm } from '@/components/form/InputBehaviorsEntityForm';
 import { InputBehaviorsComponentPropsForm } from '@/components/form/InputBehaviorsComponentPropsForm';
 import Ajv from 'ajv';
+
 const ajv = new Ajv();
+
+export const POLLED_BACKGROUND_TIMEOUT = 1000;
+export const DEBOUNCE_TIMEOUT = 400;
+export const IMMEDIATE_TIMEOUT = 0;
 
 type ValidationResult = {
   valid: boolean;
@@ -49,6 +54,7 @@ export const InputBehaviorsCommon = ({
   OriginalInput,
   props,
   callbacks,
+  shouldDebounce = true,
 }: {
   OriginalInput: React.FC<InputProps>;
   props: {
@@ -64,6 +70,7 @@ export const InputBehaviorsCommon = ({
     parseNewValue: (newValue: React.ChangeEvent) => any;
     validateNewValue: (e: React.ChangeEvent, newValue: any) => ValidationResult;
   };
+  shouldDebounce?: boolean;
 }) => {
   const { attributes, options, value, ...passProps } = props;
   const { commitFormState, parseNewValue, validateNewValue } = callbacks;
@@ -144,11 +151,16 @@ export const InputBehaviorsCommon = ({
     };
   }, [dispatch, fieldName, formId, setInputValue]);
 
-  // Use debounce to prevent excessive repaints of the layout.
-  const debounceStoreUpdate = debounce(
-    commitFormState,
-    ['checkbox', 'radio'].includes(elementType as string) ? 0 : 400,
-  );
+  // Use debounce to prevent excessive repaints of the layout if the wrapping
+  // component requests it.
+  const debounceStoreUpdate = shouldDebounce
+    ? debounce(
+        commitFormState,
+        ['checkbox', 'radio'].includes(elementType as string)
+          ? IMMEDIATE_TIMEOUT
+          : DEBOUNCE_TIMEOUT,
+      )
+    : commitFormState;
 
   // Register the debounced store function as a callback so debouncing is
   // preserved between renders.
