@@ -33,7 +33,7 @@ test.describe('Data dependencies', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('PageTitle', code);
+    await xBEditor.createCodeComponent('PageTitle', code);
     const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(
@@ -44,7 +44,7 @@ test.describe('Data dependencies', () => {
     await xBEditor.publishAllChanges(['PageTitle', 'Global CSS']);
     await page.getByRole('button', { name: 'Add to components' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Add' }).click();
-    await xBEditor.addComponent('js.pagetitle', false);
+    await xBEditor.addComponent({ id: 'js.pagetitle' }, { hasInputs: false });
     await xBEditor.publishAllChanges(['Homepage']);
     await page.goto('/homepage');
     await expect(

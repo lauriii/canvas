@@ -26,7 +26,7 @@ test.describe('Responsive Image', () => {
     await drupal.createXbPage('Homepage', '/homepage');
     await page.goto('/homepage');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent('sdc.xb_test_sdc.image');
+    await xBEditor.addComponent({ id: 'sdc.xb_test_sdc.image' });
 
     const frame = page
       .locator('[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]')
@@ -102,16 +102,20 @@ test.describe('Responsive Image', () => {
     await drupal.createXbPage('Cards', '/cards');
     await page.goto('/cards');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent('sdc.xb_test_sdc.card');
+    await xBEditor.addComponent({ id: 'sdc.xb_test_sdc.card' });
     await drupal.addMediaImage(
       '../../../fixtures/images/gracie-big.jpg',
       'A cute dog',
     );
-    await xBEditor.addComponent('sdc.xb_test_sdc.card-with-local-image');
-    await xBEditor.addComponent('sdc.xb_test_sdc.card-with-remote-image');
-    await xBEditor.addComponent(
-      'sdc.xb_test_sdc.card-with-stream-wrapper-image',
-    );
+    await xBEditor.addComponent({
+      id: 'sdc.xb_test_sdc.card-with-local-image',
+    });
+    await xBEditor.addComponent({
+      id: 'sdc.xb_test_sdc.card-with-remote-image',
+    });
+    await xBEditor.addComponent({
+      id: 'sdc.xb_test_sdc.card-with-stream-wrapper-image',
+    });
     await xBEditor.preview();
 
     const previewIframe = page

@@ -33,7 +33,7 @@ test.describe('Video Component', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('Video', code);
+    await xBEditor.createCodeComponent('Video', code);
     await xBEditor.addCodeComponentProp('video', 'Video', [
       {
         type: 'select',
@@ -45,7 +45,7 @@ test.describe('Video Component', () => {
       { type: 'text', label: 'Example value', value: 'Example Text' },
     ]);
     await xBEditor.saveCodeComponent('js.video');
-    await xBEditor.addComponent('js.video');
+    await xBEditor.addComponent({ id: 'js.video' });
 
     const formBuildId = await page
       .locator(
@@ -147,7 +147,7 @@ test.describe('Video Component', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('VideoMedia', code);
+    await xBEditor.createCodeComponent('VideoMedia', code);
     await xBEditor.addCodeComponentProp('video', 'Video', [
       {
         type: 'select',
@@ -159,7 +159,7 @@ test.describe('Video Component', () => {
       { type: 'text', label: 'Example value', value: 'Example Text' },
     ]);
     await xBEditor.saveCodeComponent('js.videomedia');
-    await xBEditor.addComponent('js.videomedia');
+    await xBEditor.addComponent({ id: 'js.videomedia' });
 
     await drupal.addMediaGenericFile(
       '../../../../ui/assets/videos/bird_vertical.mp4',

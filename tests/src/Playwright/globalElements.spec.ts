@@ -28,7 +28,7 @@ test.describe('Global elements', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('PageTitle', code);
+    await xBEditor.createCodeComponent('PageTitle', code);
     const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(
@@ -48,7 +48,7 @@ test.describe('Global elements', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/page-elements/SiteBranding.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('SiteBranding', code);
+    await xBEditor.createCodeComponent('SiteBranding', code);
     const preview = xBEditor.getCodePreviewFrame();
     // Site name defaults to 'Drupal'.
     // @see \Drupal\Core\Command\InstallCommand::configure
@@ -65,7 +65,7 @@ test.describe('Global elements', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/page-elements/Breadcrumbs.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('Breadcrumbs', code);
+    await xBEditor.createCodeComponent('Breadcrumbs', code);
     const preview = xBEditor.getCodePreviewFrame();
     // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
     await expect(preview.getByRole('link', { name: 'Home' })).toBeVisible();

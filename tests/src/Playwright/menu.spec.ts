@@ -35,7 +35,7 @@ test.describe('Menu Component', () => {
       `${moduleDir}/experience_builder/tests/fixtures/code_components/menus/Menu.jsx`,
       'utf-8',
     );
-    await xBEditor.addCodeComponent('Menu', code);
+    await xBEditor.createCodeComponent('Menu', code);
     const preview = xBEditor.getCodePreviewFrame();
 
     await expect(preview).toContainText('JSON:API Menu');

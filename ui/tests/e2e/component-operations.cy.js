@@ -1,4 +1,6 @@
-describe('Perform CRUD operations on components that require disabled CSS aggregation', () => {
+// WARNING: describe.skip() is used to ignore this entire spec as it was ported to Playwright in https://www.drupal.org/i/3537664
+// eslint-disable-next-line mocha/no-pending-tests
+describe.skip('Perform CRUD operations on components that require disabled CSS aggregation', () => {
   before(() => {
     cy.drupalXbInstall([], { disableAggregation: true });
   });
@@ -30,7 +32,9 @@ describe('Perform CRUD operations on components that require disabled CSS aggreg
   });
 });
 
-describe('Perform CRUD operations on components', () => {
+// WARNING: describe.skip() is used to ignore this entire spec as it was ported to Playwright in https://www.drupal.org/i/3537664
+// eslint-disable-next-line mocha/no-pending-tests
+describe.skip('Perform CRUD operations on components', () => {
   before(() => {
     cy.drupalXbInstall();
   });

@@ -68,7 +68,7 @@ test.describe('Basic accessibility', () => {
     expect(libraryScan.violations).toEqual([]);
 
     // Props Panel.
-    xBEditor.addComponent('sdc.xb_test_sdc.my-hero');
+    xBEditor.addComponent({ id: 'sdc.xb_test_sdc.my-hero' });
     const propsScan = await new AxeBuilder({ page })
       .disableRules(baseline)
       .analyze();

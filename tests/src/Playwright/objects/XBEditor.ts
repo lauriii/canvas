@@ -49,46 +49,60 @@ export class XBEditor {
     );
 
     await this.page.evaluate(() => {
-      return new Promise((resolve) => {
-        let timeout;
-        const observer = new MutationObserver(() => {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => {
-            observer.disconnect();
-            resolve();
-          }, 1000);
-        });
+      return new Promise<void>((resolve) => {
+        const framesStable = () => {
+          // When a change happens data-test-xb-content-initialized is set to
+          // false on the active iframe.
+          // Then, when the inactive iframe is ready to be swapped to active,
+          // data-test-xb-content-initialized is set true, and the value of
+          // data-xb-swap-active is swapped.
+          const frameAInitialized = document.querySelector(
+            '[data-xb-iframe="A"][data-test-xb-content-initialized="true"]',
+          );
+          const frameBInitialized = document.querySelector(
+            '[data-xb-iframe="B"][data-test-xb-content-initialized="true"]',
+          );
+          const frameAActive = document.querySelector(
+            '[data-xb-iframe="A"][data-xb-swap-active="true"]',
+          );
+          const frameBActive = document.querySelector(
+            '[data-xb-iframe="B"][data-xb-swap-active="true"]',
+          );
+          const xor = (a, b) => {
+            return a ? !b : b;
+          };
+          // Only one frame is uninitialized.
+          // and
+          // only one frame is initialized and stable.
+          return (
+            xor(frameAInitialized, frameBInitialized) &&
+            ((frameAInitialized && frameAActive) ||
+              (frameBInitialized && frameBActive))
+          );
+        };
+        let mutated = false;
 
-        const parent = document.querySelector(
+        const targetNode = document.querySelector(
           '[data-testid="xb-canvas-scaling"]',
         );
-        observer.observe(parent, {
+        const observer = new MutationObserver(() => {
+          // Reset the mutated state as something has changed.
+          mutated = true;
+        });
+        observer.observe(targetNode, {
+          attributes: true,
           childList: true,
           subtree: true,
-          attributes: true,
         });
 
-        // Observe the iframes.
-        const iframes = parent.querySelectorAll('iframe[data-xb-iframe]');
-        iframes.forEach((iframe) => {
-          try {
-            if (iframe.contentDocument) {
-              observer.observe(iframe.contentDocument.body, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-              });
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (e) {
-            // Cross-origin iframe
+        const intervalId = setInterval(() => {
+          if (!mutated && framesStable()) {
+            clearInterval(intervalId); // Stop the interval
+            observer.disconnect();
+            resolve();
+          } else {
+            mutated = false;
           }
-        });
-
-        // Initial timeout
-        timeout = setTimeout(() => {
-          observer.disconnect();
-          resolve();
         }, 1000);
       });
     });
@@ -107,7 +121,13 @@ export class XBEditor {
 
   async goToEditor() {
     const path = await this.getEditorPath();
-    await this.page.goto(path);
+    const response = await this.page.goto(path);
+    if (!response || response.status() !== 200) {
+      throw new Error(
+        "Editor didn't load. Before calling goToEditor, first call `await page.goto('/first');` using the page's alias and ensure its a page that can be edited by XB.",
+      );
+    }
+
     await this.waitForEditorUi();
   }
 
@@ -126,6 +146,9 @@ export class XBEditor {
    *
    */
   async openLibraryPanel() {
+    // Click the layers panel first so it doesn't matter if the layers panel
+    // is already open or not.
+    await this.page.getByTestId('xb-side-menu').getByLabel('Layers').click();
     await this.page.getByTestId('xb-side-menu').getByLabel('Add').click();
     await expect(
       this.page.getByTestId('xb-components-library-loading'),
@@ -171,33 +194,64 @@ export class XBEditor {
       .click();
   }
 
-  async addComponent(componentId: string, hasInputs: boolean = true) {
-    // Click the layers panel first so it doesn't matter if the library panel
-    // is already open or not.
-    await this.page.getByTestId('xb-side-menu').getByLabel('Layers').click();
-    await this.page.getByTestId('xb-side-menu').getByLabel('Add').click();
+  /**
+   * Adds a component to the preview by clicking it in .
+   *
+   * @param identifier An object with either an 'id' (sdc.xb_test_sdc.card) or 'name' (Hero) property to identify the component.
+   * @param options Optional parameters:
+   * - hasInputs: If true, waits for the component inputs form to be visible. (default: true)
+   *
+   * Example usage:
+   *   await xBEditor.addComponent({ name: 'Card' }, { waitForNetworkResponses: true });
+   */
+  async addComponent(
+    identifier: { id?: string; name?: string },
+    options: {
+      hasInputs?: boolean;
+    } = {},
+  ) {
+    const { id, name } = identifier;
+    const { hasInputs = true } = options;
 
-    const component = this.page.locator(
-      `[data-xb-type="component"][data-xb-component-id="${componentId}"]`,
+    await this.openLibraryPanel();
+
+    let selector, previewSelector;
+
+    if (id) {
+      selector = `[data-xb-type="component"][data-xb-component-id="${id}"]`;
+      previewSelector = `#xbPreviewOverlay [data-xb-component-id="${id}"]`;
+    } else if (name) {
+      selector = `[data-xb-type="component"][data-xb-name="${name}"]`;
+      previewSelector = `#xbPreviewOverlay [aria-label="${name}"]`;
+    } else {
+      throw new Error("Either 'id' or 'name' must be provided.");
+    }
+
+    const componentLocator = this.page
+      .getByTestId('xb-primary-panel')
+      .locator(selector);
+
+    const existingInstances = this.page.locator(previewSelector);
+    const initialCount = await existingInstances.count();
+    await componentLocator.click();
+
+    expect(await this.page.locator(previewSelector).count()).toBe(
+      initialCount + 1,
     );
-    await component.click();
-    await Promise.all([
-      this.page.waitForResponse(
-        (response) =>
-          response.url().includes('/xb/api/v0/layout/') &&
-          response.request().method() === 'POST',
-      ),
-      this.page.waitForResponse(
-        (response) =>
-          response.url().includes('/xb/api/v0/form/component-instance/') &&
-          response.request().method() === 'PATCH',
-      ),
-      this.page.waitForResponse(
-        (response) =>
-          response.url().includes('/xb/api/v0/auto-saves/pending') &&
-          response.request().method() === 'GET',
-      ),
-    ]);
+
+    const updatedInstances = this.page.locator(previewSelector);
+    const updatedCount = await updatedInstances.count();
+    for (let i = 0; i < updatedCount; i++) {
+      await this.page.waitForFunction(
+        ([selector, index]) => {
+          const element = document.querySelectorAll(selector)[index];
+          if (!element) return false;
+          const box = element.getBoundingClientRect();
+          return box.width > 0 && box.height > 0;
+        },
+        [previewSelector, i],
+      );
+    }
 
     if (hasInputs) {
       const formElement = this.page.locator(
@@ -205,11 +259,6 @@ export class XBEditor {
       );
       await formElement.waitFor({ state: 'visible' });
     }
-
-    const previewElement = this.page.locator(
-      `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
-    );
-    await previewElement.waitFor({ state: 'attached' });
   }
 
   async editComponentProp(
@@ -218,6 +267,8 @@ export class XBEditor {
     propType = 'text',
   ) {
     const inputLocator = `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} input`;
+    const labelLocator = `[data-testid="xb-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} label`;
+
     switch (propType) {
       case 'file':
         // For a moment there's 2 file choosers whilst the elements are processed.
@@ -236,18 +287,161 @@ export class XBEditor {
         break;
       default:
         await this.page.locator(inputLocator).fill(propValue);
+        // Click the label as autocomplete/link fields will not update until the
+        // element has lost focus.
+        await this.page.locator(labelLocator).click();
+        break;
     }
   }
 
-  async clickPreviewComponent(componentId: string) {
-    const previewElement = this.page.locator(
-      `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
-    );
-    await previewElement.waitFor({ state: 'attached' });
-    await previewElement.click();
+  async moveComponent(componentName: string, target: string) {
+    const component = this.page
+      .locator('[data-testid="xb-primary-panel"] [data-xb-type="component"]')
+      .getByText(componentName);
+    const dropzoneLocator = `[data-testid="xb-primary-panel"] [data-xb-uuid*="${target}"] [class*="DropZone"]`;
+    const dropzone = this.page.locator(dropzoneLocator);
+    // See https://playwright.dev/docs/input#dragging-manually on why this needs
+    // to be done like this.
+    await component.hover({ force: true });
+    await this.page.mouse.down();
+
+    // Force a layout recalculation in headless mode, this is only needed for
+    // webkit.
+    await this.page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      document.body.offsetHeight; // Forces reflow
+    });
+    await dropzone.hover({ force: true });
+    await this.page.evaluate((locator) => {
+      // Force another reflow to ensure drop zone state is updated.
+      // Again, only needed for webkit.
+      const dropzone = document.querySelector(locator);
+      if (dropzone) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        dropzone.offsetHeight; // Forces reflow on the drop zone
+      }
+    }, dropzoneLocator);
+    await dropzone.hover({ force: true });
+    await this.page.mouse.up();
+    await expect(
+      this.page.locator(
+        `[data-testid="xb-primary-panel"] [data-xb-type="slot"][data-xb-uuid*="${target}"]`,
+      ),
+    ).toContainText(componentName);
   }
 
-  async addCodeComponent(componentName: string, code: string) {
+  async deleteComponent(componentId: string) {
+    const component = this.page.locator(
+      `.componentOverlay:has([data-xb-component-id="${componentId}"])`,
+    );
+    await expect(component).toHaveCount(1);
+    // get the component's data-xb-uuid attribute value from the child .xb--sortable-item element
+    const componentUuid = await component
+      .locator('> .xb--sortable-item')
+      .getAttribute('data-xb-uuid');
+
+    if (!componentUuid) {
+      const html = await component.evaluate((el) => el.outerHTML);
+      throw new Error(`data-xb-uuid is null. Element HTML: ${html}`);
+    }
+
+    await expect(
+      (await this.getActivePreviewFrame()).locator(
+        `[data-xb-uuid="${componentUuid}"]`,
+      ),
+    ).toHaveCount(1);
+    await this.clickPreviewComponent(componentId);
+    await this.page.keyboard.press('Delete');
+    // Should be gone from the overlay
+    await expect(
+      this.page.locator(`[data-xb-uuid="${componentUuid}"]`),
+    ).toHaveCount(0);
+    // should be gone from inside the preview frame
+    await expect(
+      (await this.getActivePreviewFrame()).locator(
+        `[data-xb-uuid="${componentUuid}"]`,
+      ),
+    ).toHaveCount(0);
+  }
+
+  async hoverPreviewComponent(componentId: string) {
+    const component = this.page.locator(
+      `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
+    );
+    // Directly trigger mouse events via JavaScript because of webkit.
+    await component.evaluate((el) => {
+      // First ensure element is visible in its container
+      el.scrollIntoView({
+        behavior: 'instant',
+        block: 'center',
+        inline: 'center',
+      });
+
+      // Create and dispatch mouse events
+      const mouseenterEvent = new MouseEvent('mouseenter', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      const mouseoverEvent = new MouseEvent('mouseover', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      el.dispatchEvent(mouseenterEvent);
+      el.dispatchEvent(mouseoverEvent);
+    });
+  }
+
+  async clickPreviewComponent(componentId: string) {
+    const component = this.page.locator(
+      `#xbPreviewOverlay [data-xb-component-id="${componentId}"]`,
+    );
+
+    // Directly trigger click events via JavaScript because of webkit
+    await component.evaluate((el) => {
+      // First ensure element is visible in its container
+      el.scrollIntoView({
+        behavior: 'instant',
+        block: 'center',
+        inline: 'center',
+      });
+
+      // Create and dispatch the full click sequence
+      const mousedownEvent = new MouseEvent('mousedown', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        button: 0, // Left mouse button
+        buttons: 1,
+      });
+
+      const mouseupEvent = new MouseEvent('mouseup', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        buttons: 0,
+      });
+
+      const clickEvent = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        buttons: 0,
+      });
+
+      // Dispatch the full sequence: mousedown → mouseup → click
+      el.dispatchEvent(mousedownEvent);
+      el.dispatchEvent(mouseupEvent);
+      el.dispatchEvent(clickEvent);
+    });
+  }
+
+  async createCodeComponent(componentName: string, code: string) {
     await this.openLibraryPanel();
     await this.page
       .locator('[data-testid="xb-primary-panel"]')
@@ -424,5 +618,40 @@ export class XBEditor {
       // Fail after a minute of trying.
       timeout: 60_000,
     });
+  }
+
+  /**
+   * Clears the auto-save for a given entity type and ID.
+   *
+   * Requires that the module xb_e2e_support is enabled.
+   *
+   * @param type The entity type (e.g., 'node', 'xb_page').
+   * @param id The entity ID (default '1').
+   */
+  async clearAutoSave(type: string = 'node', id: string = '1') {
+    const url = `/xb-test/clear-auto-save/${type}/${id}`;
+    const response = await this.page.request.get(url);
+    if (response.status() !== 200) {
+      throw new Error(
+        `Failed to clear auto-save for ${type}/${id}: ${response.status()}`,
+      );
+    }
+  }
+
+  /**
+   * Returns the <head> element from the preview iframe.
+   */
+  async getIframeHead(
+    iframeSelector = '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+  ) {
+    const iframeHandle = await this.page.waitForSelector(iframeSelector, {
+      timeout: 10000,
+    });
+    const headHandle = await iframeHandle.evaluateHandle(
+      (iframe: HTMLIFrameElement) => {
+        return iframe.contentDocument?.head;
+      },
+    );
+    return headHandle;
   }
 }

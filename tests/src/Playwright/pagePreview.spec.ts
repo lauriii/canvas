@@ -28,7 +28,7 @@ test.describe('Preview Link Behavior', () => {
     await drupal.createXbPage('Preview 1', '/preview-page-1');
     await page.goto('/preview-page-1');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent('sdc.xb_test_sdc.my-hero');
+    await xBEditor.addComponent({ name: 'Hero' });
 
     await page.getByText('Preview', { exact: true }).click();
 
@@ -66,7 +66,7 @@ test.describe('Preview Link Behavior', () => {
     await page.goto('/preview-page-2');
     await xBEditor.goToEditor();
 
-    await xBEditor.addComponent('sdc.xb_test_sdc.my-hero');
+    await xBEditor.addComponent({ name: 'Hero' });
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
 
     await expect(

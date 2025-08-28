@@ -277,6 +277,64 @@ export class Drupal {
     );
   }
 
+  async setPreprocessing({
+    css,
+    javascript,
+  }: {
+    css?: boolean;
+    javascript?: boolean;
+  }) {
+    let changedCss, changedJs;
+
+    if (this.hasDrush()) {
+      if (css !== undefined) {
+        changedCss = true;
+        await this.drush(
+          `config:set system.performance css.preprocess ${css ? '1' : '0'}`,
+        );
+      }
+      if (javascript !== undefined) {
+        changedJs = true;
+        await this.drush(
+          `config:set system.performance js.preprocess ${javascript ? '1' : '0'}`,
+        );
+      }
+      if (changedCss || changedJs) {
+        await this.drush('cache:clear css-js');
+      }
+    } else {
+      await this.page.goto('/admin/config/development/performance');
+      if (css !== undefined) {
+        changedCss = true;
+        await this.page.getByLabel('Aggregate CSS files').setChecked(css);
+      }
+      if (javascript !== undefined) {
+        changedJs = true;
+        await this.page
+          .getByLabel('Aggregate JavaScript files')
+          .setChecked(javascript);
+      }
+      await this.page
+        .getByRole('button', { name: 'Save configuration' })
+        .click();
+    }
+
+    // If either CSS or JS was changed, verify the setting is applied
+    if (changedCss || changedJs) {
+      await this.page.goto(`/admin/config/development/performance`);
+      if (changedCss) {
+        await expect(this.page.getByLabel('Aggregate CSS files')).toBeChecked({
+          checked: !!css,
+        });
+      }
+      if (changedJs) {
+        await expect(
+          this.page.getByLabel('Aggregate JavaScript files'),
+        ).toBeChecked({ checked: !!javascript });
+      }
+    }
+  }
+
   async addMediaGenericFile(path: string) {
     await this.page
       .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
@@ -306,10 +364,8 @@ export class Drupal {
   }
 
   async addMediaImage(path: string, alt: string) {
-    await this.page
-      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
-      .first() // @todo shouldn't need this but XB is currently rendering two fields
-      .click();
+    await this.page.getByRole('button', { name: 'Add media' }).click();
+
     await this.page
       .locator(
         'form[data-drupal-selector^="media-library-add-form-upload"] input[name="files[upload]"]',
