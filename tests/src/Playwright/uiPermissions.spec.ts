@@ -13,6 +13,7 @@ test.describe('XB UI Permissions', () => {
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
+      await drupal.installModules(['experience_builder']);
       await drupal.applyRecipe(`core/recipes/image_media_type`);
       await drupal.setupXBTestSite();
       await page.close();
@@ -67,15 +68,18 @@ test.describe('XB UI Permissions', () => {
     await expect(
       primaryPanel.getByRole('button', { name: 'Add new' }),
     ).toBeVisible();
-    await expect(
-      primaryPanel.getByRole('button', { name: 'Code' }),
-    ).toBeAttached();
 
     // Make a change to the page
     await expect(page.getByText('No changes')).toBeAttached();
-    await page.getByText('Hero').first().click();
+
+    await page
+      .locator('[aria-label="Draggable component Hero"]')
+      .first()
+      .click();
+    await page.waitForTimeout(500);
     await expect(page.getByLabel('Sub-heading')).toBeAttached();
     await page.getByLabel('Sub-heading').fill('New Heading');
+    await expect(page.getByLabel('Sub-heading')).toHaveValue('New Heading');
     await page.getByText('Review 1 change').click();
     await page.getByTestId('xb-publish-review-select-all').click();
     await expect(page.getByText('Publish 1 selected')).toBeAttached();

@@ -43,6 +43,7 @@ const SidebarNode = React.forwardRef<
     open?: boolean;
     className?: string;
     onMenuOpenChange?: (open: boolean) => void;
+    includeDropdown?: boolean;
   } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
@@ -58,6 +59,7 @@ const SidebarNode = React.forwardRef<
       open = false,
       className,
       onMenuOpenChange,
+      includeDropdown = true,
       ...props
     },
     ref,
@@ -102,7 +104,7 @@ const SidebarNode = React.forwardRef<
             </Text>
           </Flex>
         </Flex>
-        {dropdownMenuContent && (
+        {includeDropdown && dropdownMenuContent && (
           <DropdownMenu.Root onOpenChange={onMenuOpenChange}>
             <DropdownMenu.Trigger>
               <button

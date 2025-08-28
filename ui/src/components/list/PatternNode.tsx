@@ -6,6 +6,7 @@ import { useAppDispatch } from '@/app/hooks';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import type { Pattern } from '@/types/Pattern';
 import PermissionCheck from '@/components/PermissionCheck';
+import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 
 const PatternNode: React.FC<{
   pattern: Pattern;
@@ -14,6 +15,7 @@ const PatternNode: React.FC<{
 }> = (props) => {
   const { pattern, onMenuOpenChange, disabled } = props;
   const dispatch = useAppDispatch();
+  const displayContext = useDisplayContext();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -51,6 +53,8 @@ const PatternNode: React.FC<{
             </UnifiedMenu.Content>
           }
           onMenuOpenChange={onMenuOpenChange}
+          includeDropdown={displayContext !== 'manage-library'}
+          draggable={displayContext !== 'manage-library'}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content

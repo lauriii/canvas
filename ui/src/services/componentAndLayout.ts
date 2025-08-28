@@ -27,7 +27,13 @@ type LayoutApiResponse = RootLayoutModel & {
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery: baseQueryWithAutoSaves,
-  tagTypes: ['Components', 'CodeComponents', 'CodeComponentAutoSave', 'Layout'],
+  tagTypes: [
+    'Components',
+    'CodeComponents',
+    'CodeComponentAutoSave',
+    'Layout',
+    'Folders',
+  ],
   endpoints: (builder) => ({
     getComponents: builder.query<
       ComponentsList,
@@ -157,6 +163,44 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' },
       ],
     }),
+    createFolder: builder.mutation<any, any>({
+      query: (body) => ({
+        url: 'xb/api/v0/config/folder',
+        method: 'POST',
+        body: {
+          items: body.items || [],
+          name: body.name,
+          weight: body.weight || 0,
+          type: body.type,
+        },
+      }),
+      invalidatesTags: [{ type: 'Folders', id: 'LIST' }],
+    }),
+    getFolders: builder.query<any, any>({
+      query: () => 'xb/api/v0/config/folder',
+      providesTags: () => [{ type: 'Folders', id: 'LIST' }],
+      transformResponse: (response: any) => {
+        // Create a mapping of component IDs to folder IDs for quick access.
+        const componentIndexedFolders: Record<string, string> = Object.entries(
+          response,
+        ).reduce(
+          (
+            carry: Record<string, string>,
+            [folderId, folderInfo]: [string, any],
+          ) => {
+            folderInfo?.items.forEach((componentId: string) => {
+              carry[componentId] = folderId;
+            });
+            return carry;
+          },
+          {} as Record<string, string>,
+        );
+        return {
+          folders: response,
+          componentIndexedFolders,
+        };
+      },
+    }),
     getAutoSave: builder.query<
       { data: CodeComponentSerialized; autoSaves: AutoSavesHash },
       string
@@ -205,6 +249,8 @@ export const {
   useCreateCodeComponentMutation,
   useUpdateCodeComponentMutation,
   useDeleteCodeComponentMutation,
+  useCreateFolderMutation,
+  useGetFoldersQuery,
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
 } = componentAndLayoutApi;

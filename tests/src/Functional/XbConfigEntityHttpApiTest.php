@@ -67,6 +67,164 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
   protected readonly UserInterface $httpApiUser;
 
+  protected array $defaultFolders = [
+    '0bac3d4b-3ee1-47e7-9124-0d0b6882055d' => [
+      'name' => 'Atom/Media',
+      'id' => '0bac3d4b-3ee1-47e7-9124-0d0b6882055d',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.video',
+      ],
+    ],
+    '1e06667f-933d-49ff-8966-c8ab5a11720d' => [
+      'name' => 'Lists (Views)',
+      'id' => '1e06667f-933d-49ff-8966-c8ab5a11720d',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.views_block.content_recent-block_1',
+        'block.views_block.who_s_online-who_s_online_block',
+      ],
+    ],
+    '344a9eb6-7abe-457e-b732-2698672f0779' => [
+      'name' => 'Forms',
+      'id' => '344a9eb6-7abe-457e-b732-2698672f0779',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.user_login_block',
+      ],
+    ],
+    '359f17e0-9786-43e0-86cd-0619394bf12a' => [
+      'name' => 'User',
+      'id' => '359f17e0-9786-43e0-86cd-0619394bf12a',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.views_block.who_s_new-block_1',
+      ],
+    ],
+    '54d29693-2b4e-46d2-83a6-8d6ffdbd7eae' => [
+      'name' => 'Container/Special',
+      'id' => '54d29693-2b4e-46d2-83a6-8d6ffdbd7eae',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.shoe_tab_group',
+      ],
+    ],
+    '5ef4ff01-32b2-40d9-8471-15c9288c67ea' => [
+      'name' => 'System',
+      'id' => '5ef4ff01-32b2-40d9-8471-15c9288c67ea',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.system_clear_cache_block',
+        'block.system_branding_block',
+        'block.system_breadcrumb_block',
+        'block.system_messages_block',
+        'block.system_powered_by_block',
+      ],
+    ],
+    '8150c8fa-26e9-403c-8225-852a32490c35' => [
+      'name' => 'Atom/Text',
+      'id' => '8150c8fa-26e9-403c-8225-852a32490c35',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.heading',
+        'sdc.xb_test_sdc.shoe_badge',
+      ],
+    ],
+    '8bacc99f-b9b8-418b-b14a-db564364592d' => [
+      'name' => 'core',
+      'id' => '8bacc99f-b9b8-418b-b14a-db564364592d',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.local_actions_block',
+        'block.local_tasks_block',
+        'block.page_title_block',
+      ],
+    ],
+    '912ee056-75f7-490e-84ad-cc485e469f13' => [
+      'name' => 'Menus',
+      'id' => '912ee056-75f7-490e-84ad-cc485e469f13',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'block.system_menu_block.account',
+        'block.system_menu_block.admin',
+        'block.system_menu_block.footer',
+        'block.system_menu_block.main',
+        'block.system_menu_block.tools',
+      ],
+    ],
+    'cf03636e-6f4f-4cef-992d-bcf319a7cb69' => [
+      'name' => 'Other',
+      'id' => 'cf03636e-6f4f-4cef-992d-bcf319a7cb69',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.experience_builder.image',
+        'sdc.xb_broken_sdcs.invalid-filter',
+        'sdc.xb_test_sdc.my-cta',
+        'sdc.xb_test_sdc.component-no-meta-enum',
+        'sdc.xb_test_sdc.no-ui-sdc',
+        'sdc.xb_test_sdc.card',
+        'sdc.xb_test_sdc.props-no-slots',
+        'sdc.xb_test_sdc.image-required-with-example',
+        'sdc.xb_test_sdc.card-with-stream-wrapper-image',
+        'sdc.xb_test_sdc.my-hero',
+        'sdc.xb_test_sdc.props-slots',
+        'sdc.xb_test_sdc.my-section',
+        'sdc.xb_test_sdc.crash',
+        'sdc.xb_test_sdc.card-with-local-image',
+        'sdc.xb_test_sdc.image-optional-with-example',
+        'sdc.xb_test_sdc.image',
+        'sdc.xb_test_sdc.attributes',
+        'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+        'sdc.xb_test_sdc.sparkline',
+        'sdc.xb_test_sdc.image-optional-without-example',
+        'sdc.xb_test_sdc.card-with-remote-image',
+        'sdc.xb_test_sdc.image-gallery',
+        'sdc.xb_test_sdc.druplicon',
+      ],
+    ],
+    'd0ba87b2-79b4-4622-98e1-cf82dc3655a0' => [
+      'name' => 'Container',
+      'id' => 'd0ba87b2-79b4-4622-98e1-cf82dc3655a0',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.grid-container',
+        'sdc.xb_test_sdc.one_column',
+        'sdc.xb_test_sdc.two_column',
+      ],
+    ],
+    'd64b91c6-f99e-43fc-b251-777c7e2f4669' => [
+      'name' => 'Atom/Tabs',
+      'id' => 'd64b91c6-f99e-43fc-b251-777c7e2f4669',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.shoe_tab_panel',
+        'sdc.xb_test_sdc.shoe_tab',
+      ],
+    ],
+    'e3fac676-8929-4205-abe8-df94ec85e0d2' => [
+      'name' => 'Status',
+      'id' => 'e3fac676-8929-4205-abe8-df94ec85e0d2',
+      'type' => 'component',
+      'weight' => 0,
+      'items' => [
+        'sdc.xb_test_sdc.experimental',
+        'sdc.xb_test_sdc.deprecated',
+      ],
+    ],
+  ];
+
   protected readonly UserInterface $limitedPermissionsUser;
 
   protected function setUp(): void {
@@ -1292,7 +1450,7 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/xb/api/v0/config/xb_asset_library/global'), [], 403, NULL, NULL, NULL, NULL);
   }
 
-  private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE): void {
+  private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE, array $initial_items = []): void {
     $list_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
 
     // Insufficient Permissions: 403.
@@ -1306,7 +1464,12 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Authenticated & authorized: 200, but empty list.
     $this->drupalLogin($this->httpApiUser);
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ["config:{$entity_type_id}_list", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
+    if (empty($initial_items)) {
+      $this->assertSame([], $body);
+    }
+    else {
+      $this->assertSameFoldersSansUuids($initial_items, $body ?? []);
+    }
 
     // Send a POST request without the CSRF token.
     $request_options = [
@@ -1580,8 +1743,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
    */
   public function testFolder(): void {
     $this->drupalLogin($this->limitedPermissionsUser);
-    $this->assertAuthenticationAndAuthorization('folder');
+    $this->assertAuthenticationAndAuthorization('folder', initial_items: $this->defaultFolders);
+
     $list_url = Url::fromUri("base:/xb/api/v0/config/folder");
+
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -1627,11 +1792,11 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve list: 200, unchanged.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
+    $this->assertSameFoldersSansUuids($this->defaultFolders, $body ?? []);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
-    $this->assertSame([], $body);
+    $this->assertSameFoldersSansUuids($this->defaultFolders, $body ?? []);
 
     // Create a Folder via the XB HTTP API, correctly: 201.
     $folder_to_send['items'] = [];
@@ -1682,15 +1847,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Fetch list of Folders to verify correct they are sorted correctly.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     assert(is_array($body));
-    $this->assertEquals([
-      // Weight of -1.
-      $new_folder_id,
-      // Weight of 0.
-      $id,
-      // Weight of 1.
-      $temp_folder->id(),
-    ],
-      array_keys($body));
+    $this->assertCount(count($this->defaultFolders) + 3, $body);
+    $this->assertEquals($new_folder_id, array_keys($body)[0]);
+    $this->assertEquals($temp_folder->id(), array_keys($body)[count($body) - 1]);
     $temp_folder->delete();
 
     // Delete Folder via the XB HTTP API: 204.
@@ -1699,9 +1858,10 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     // Use the individual URL in the list response body.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertEquals([
-      $id => $folder_to_send + ['id' => $id],
-    ], $body);
+    self::assertNotNull($body);
+    $this->assertEquals(array_keys(Folder::loadMultiple()), array_keys($body));
+    $this->assertArrayHasKey($id, $body);
+    $this->assertEquals($folder_to_send + ['id' => $id], $body[$id]);
     $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/xb/api/v0/config/folder/' . $id), [], 200, ['user.permissions'], ['config:experience_builder.folder.' . $id, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertEquals($folder_to_send + ['id' => $id], $individual_body);
 
@@ -1762,12 +1922,15 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertEquals([
-      $id => $folder_to_send + ['id' => $id],
-    ], $body);
+    self::assertNotNull($body);
+    $this->assertEquals(array_keys(Folder::loadMultiple()), array_keys($body));
+    $this->assertArrayHasKey($id, $body);
+    $this->assertEquals($folder_to_send + ['id' => $id], $body[$id]);
 
-    // Delete the sole remaining Folder via the XB HTTP API: 204.
-    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $list_url, 'config:folder_list');
+    // Delete the recently added Folder via the XB HTTP API: 204.
+    $folders_with_a_delete = $this->defaultFolders;
+    unset($folders_with_a_delete[$id]);
+    $this->assertDeletionAndEmptyList(Url::fromUri('base:/xb/api/v0/config/folder/' . $id), $list_url, 'config:folder_list', $folders_with_a_delete);
 
     // This was now tested full circle! ✅
   }

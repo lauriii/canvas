@@ -19,10 +19,11 @@ export interface ListProps {
     | LayoutItemType.PATTERN
     | LayoutItemType.DYNAMIC;
   label: string;
+  inFolder?: boolean;
 }
 
 const List: React.FC<ListProps> = (props) => {
-  const { items, isLoading, type, label } = props;
+  const { items, isLoading, type, label, inFolder } = props;
   const listElRef = useRef<HTMLDivElement>(null);
   const { isDragging } = useAppSelector(selectDragging);
 
@@ -35,7 +36,7 @@ const List: React.FC<ListProps> = (props) => {
       : [];
   }, [items]);
 
-  if ((!items || !Object.keys(items).length) && !isLoading) {
+  if ((!items || !Object.keys(items).length) && !isLoading && !inFolder) {
     return (
       <Callout.Root size="1" variant="soft" color="gray" my="3">
         <Flex align="center" gapX="2">

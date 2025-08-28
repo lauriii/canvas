@@ -87,15 +87,13 @@ final class Folder extends ConfigEntityBase implements XbHttpApiEligibleConfigEn
     $query->sort('weight');
   }
 
-  public static function loadByNameAndConfigEntityTypeId(string $name, string $configEntityTypeId): self|FALSE {
+  public static function loadByNameAndConfigEntityTypeId(string $name, string $configEntityTypeId): self|NULL {
     $results = \Drupal::entityTypeManager()->getStorage(self::ENTITY_TYPE_ID)->loadByProperties([
       'name' => $name,
       'configEntityTypeId' => $configEntityTypeId,
     ]);
-    /** @var self|FALSE $folder */
-    $folder = reset($results);
-
-    return $folder;
+    // @phpstan-ignore return.type
+    return !empty($results) ? reset($results) : NULL;
   }
 
   public static function loadByItemAndConfigEntityTypeId(string $item_id, string $configEntityTypeId): ?self {
@@ -110,6 +108,20 @@ final class Folder extends ConfigEntityBase implements XbHttpApiEligibleConfigEn
       1 => self::load(reset($ids)),
       default => throw new \RuntimeException('It is impossible for an item to exist in multiple Folders.'),
     };
+  }
+
+  public function addItems(array $new_item_ids): self {
+    $items_in_folder = $this->get('items');
+    $new_items = array_unique([...$items_in_folder, ...$new_item_ids]);
+    $this->set('items', array_values($new_items));
+    return $this;
+  }
+
+  public function removeItem(string $remove_id): self {
+    $items_in_folder = $this->get('items');
+    $new_items = array_values(array_filter($items_in_folder, fn($item) => $item !== $remove_id));
+    $this->set('items', $new_items);
+    return $this;
   }
 
 }

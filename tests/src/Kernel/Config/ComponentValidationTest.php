@@ -10,6 +10,7 @@ use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
 use Drupal\experience_builder\ComponentSource\ComponentSourceManager;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\experience_builder\Entity\Folder;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\VersionedConfigEntityBase;
 use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
@@ -83,6 +84,21 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig('experience_builder');
+
+    // TRICKY: creating the first Component config entity (for an SDC) triggers
+    // SDC plugin discovery, which in turn triggers all Component config
+    // entities for SDCs to be created. Which in turn means the corresponding
+    // Folders have been created — including for the SDC Component config entity
+    // this test is manually/explicitly creating.
+    // To work around this, first explicitly generate all Component config
+    // entities, then delete the auto-created Component config entity.
+    $this->generateComponentConfig();
+    $auto_created_component = Component::load('sdc.xb_test_sdc.my-cta');
+    self::assertNotNull($auto_created_component);
+    self::assertNotNull(Folder::loadByItemAndConfigEntityTypeId('sdc.xb_test_sdc.my-cta', Component::ENTITY_TYPE_ID));
+    $auto_created_component->delete();
+    self::assertNull(Folder::loadByItemAndConfigEntityTypeId('sdc.xb_test_sdc.my-cta', Component::ENTITY_TYPE_ID));
+
     $this->entity = Component::create([
       'id' => 'sdc.xb_test_sdc.my-cta',
       'category' => 'Test',

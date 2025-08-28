@@ -33,6 +33,7 @@ endapply
 entityviewdisplay
 extralight
 fieldtext
+folderfy
 gerbeaud
 heredocs
 hyperscriptification

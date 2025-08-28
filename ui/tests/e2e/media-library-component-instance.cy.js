@@ -1,28 +1,27 @@
-const iterations = [
-  {
-    removeText: 'Remove The bones are their money',
-    selectNewText: 'Select Sorry I resemble a dog',
-    removeAriaLabel: 'Remove Sorry I resemble a dog',
-    expectedAlt: 'My barber may have been looking at a picture of a dog',
-  },
-  {
-    removeText: 'Remove Sorry I resemble a dog',
-    selectNewText: 'Select The bones are their money',
-    removeAriaLabel: 'Remove The bones are their money',
-    expectedAlt: 'The bones equal dollars',
-  },
-  {
-    removeText: 'Remove The bones are their money',
-    selectNewText: 'Select Sorry I resemble a dog',
-    removeAriaLabel: 'Remove Sorry I resemble a dog',
-    expectedAlt: 'My barber may have been looking at a picture of a dog',
-  },
-];
-
 const testMediaLibraryInComponentInstanceForm = (
   cy,
   entityType = 'xb_page',
 ) => {
+  const iterations = [
+    {
+      removeText: 'Remove The bones are their money',
+      selectNewText: 'Select Sorry I resemble a dog',
+      removeAriaLabel: 'Remove Sorry I resemble a dog',
+      expectedAlt: 'My barber may have been looking at a picture of a dog',
+    },
+    {
+      removeText: 'Remove Sorry I resemble a dog',
+      selectNewText: 'Select The bones are their money',
+      removeAriaLabel: 'Remove The bones are their money',
+      expectedAlt: 'The bones equal dollars',
+    },
+    {
+      removeText: 'Remove The bones are their money',
+      selectNewText: 'Select Sorry I resemble a dog',
+      removeAriaLabel: 'Remove Sorry I resemble a dog',
+      expectedAlt: 'My barber may have been looking at a picture of a dog',
+    },
+  ];
   cy.get('div[role="dialog"]', { timeout: 20000 }).should('exist');
   cy.findByLabelText('Select The bones are their money').should(
     'not.be.checked',

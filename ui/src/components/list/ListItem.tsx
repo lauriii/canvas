@@ -22,6 +22,7 @@ import { useDraggable } from '@dnd-kit/core';
 import PatternNode from '@/components/list/PatternNode';
 import { useParams } from 'react-router';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
+import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 
 const ListItem: React.FC<{
   item: XBComponent | Pattern;
@@ -51,6 +52,10 @@ const ListItem: React.FC<{
       name: item.name,
     },
   });
+  const displayContext = useDisplayContext();
+
+  const makeDraggable = () => displayContext !== 'manage-library';
+  const includeDropdown = () => displayContext !== 'manage-library';
 
   const clickToInsertHandler = (newId: string) => {
     let path: number[] | null = [0];
@@ -124,24 +129,41 @@ const ListItem: React.FC<{
             ? 'dynamicComponent'
             : type
         }
+        includeDropdown={includeDropdown()}
+        draggable={makeDraggable()}
       />
     );
   };
 
+  let wrapperProps: React.HTMLAttributes<HTMLDivElement> &
+    React.RefAttributes<HTMLDivElement> & {
+      'data-xb-component-id': string;
+      'data-xb-name': string;
+      'data-xb-type':
+        | LayoutItemType.PATTERN
+        | LayoutItemType.COMPONENT
+        | LayoutItemType.DYNAMIC;
+    } = {
+    role: 'listitem',
+    'data-xb-component-id': item.id,
+    'data-xb-name': item.name,
+    'data-xb-type': type,
+    className: clsx(styles.listItem),
+  };
+
+  if (makeDraggable()) {
+    wrapperProps = {
+      ...wrapperProps,
+      ...attributes,
+      ...listeners,
+      ref: setNodeRef,
+      onClick: () => clickToInsertHandler(item.id),
+      onMouseEnter: () => handleMouseEnter(item),
+    };
+  }
+
   return (
-    <div
-      key={item.id}
-      {...attributes}
-      {...listeners}
-      role="listitem"
-      ref={setNodeRef}
-      data-xb-component-id={item.id}
-      data-xb-name={item.name}
-      data-xb-type={type}
-      className={clsx(styles.listItem)}
-      onClick={() => clickToInsertHandler(item.id)}
-      onMouseEnter={() => handleMouseEnter(item)}
-    >
+    <div key={item.id} {...wrapperProps}>
       <Tooltip.Provider>
         <Tooltip.Root delayDuration={0}>
           <Tooltip.Trigger asChild={true} style={{ width: '100%' }}>

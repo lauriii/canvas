@@ -24,8 +24,6 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   protected static $modules = [
     'experience_builder',
     'sdc',
-    'xb_test_sdc',
-    'block',
     // XB's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
@@ -53,9 +51,17 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testItemsConstraintValidation(): void {
+    $this->enableModules(['xb_test_sdc']);
+
     // 1. A Component-targeting Folder containing all actual Component config
-    // entities.
+    // entities. Empty all Folders so we're effectively starting from scratch.
     $this->generateComponentConfig();
+    $folders = Folder::loadMultiple();
+    foreach ($folders as $folder) {
+      $folder->set('items', []);
+      $folder->save();
+    }
+
     $components = Component::loadMultiple();
     $this->assertNotEmpty($components);
     $items = \array_keys($components);
@@ -155,9 +161,16 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testOneFolderPerItemLimitConstraintValidation(): void {
+    $this->enableModules(['xb_test_sdc']);
+
     // 1. A Component-targeting Folder containing all actual Component config
-    // entities.
+    // entities. Empty all folders so we're effectively starting from scratch.
     $this->generateComponentConfig();
+    $folders = Folder::loadMultiple();
+    foreach ($folders as $folder) {
+      $folder->set('items', []);
+      $folder->save();
+    }
     $components = Component::loadMultiple();
     $this->assertNotEmpty($components);
     $items = \array_keys($components);

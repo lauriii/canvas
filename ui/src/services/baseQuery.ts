@@ -58,7 +58,13 @@ export const withAutoSavesInjection: (
   return (args, api, extraOptions) => {
     if (typeof args === 'object') {
       const { url } = args;
-      if (url && api.type === 'mutation') {
+      if (
+        url &&
+        api.type === 'mutation' &&
+        // Skip autoSaves injection for mutations that do not impact data that
+        // is autosaved, such as creating folders.
+        !['createFolder'].includes(api.endpoint)
+      ) {
         const state = api.getState() as RootState;
         const { publishReview, configuration } = state;
         const { entityType, entity } = configuration;

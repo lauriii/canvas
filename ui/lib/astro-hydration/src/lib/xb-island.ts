@@ -1,16 +1,18 @@
 // @cspell:ignore vnode
-import type { VNode } from "preact";
+import type { VNode } from 'preact';
 
 interface AstroIslandElement extends HTMLElement {
-  attributeChangedCallback(): void
+  attributeChangedCallback(): void;
 }
 
 interface AstroIslandElementConstructor {
-  new(...params: any[]): AstroIslandElement
+  new (...params: any[]): AstroIslandElement;
 }
 
 (() => {
-  const AstroIsland = customElements.get("astro-island") as AstroIslandElementConstructor;
+  const AstroIsland = customElements.get(
+    'astro-island',
+  ) as AstroIslandElementConstructor;
 
   if (AstroIsland === undefined) {
     throw new Error();
@@ -21,7 +23,7 @@ interface AstroIslandElementConstructor {
     const expected = ['type', 'key', 'props'];
     const keys = Object.keys(element);
     return expected.filter((key) => keys.includes(key)).length === 3;
-  }
+  };
 
   class XbIsland extends AstroIsland {
     static observedAttributes = ['props'];
@@ -41,13 +43,12 @@ interface AstroIslandElementConstructor {
       // all properties of this element and then removing those that are VNodes.
       Object.entries(this)
         .filter(([key]) => key.startsWith('_'))
-        .filter(([,value]) => isVnode(value))
+        .filter(([, value]) => isVnode(value))
         .forEach(([key]) => {
           delete this[key as keyof this];
         });
       super.attributeChangedCallback();
     }
   }
-  customElements.define("xb-island", XbIsland);
-
+  customElements.define('xb-island', XbIsland);
 })();

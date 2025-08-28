@@ -6,6 +6,7 @@ import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 import { Box, Button, Flex, Heading, ScrollArea } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Library from '@/components/sidePanel/Library';
+import ManageLibrary from '@/components/sidePanel/ManageLibrary';
 import {
   selectActivePanel,
   unsetActivePanel,
@@ -25,6 +26,7 @@ export const PrimaryPanel = () => {
   const panelMap: Record<string, string> = {
     library: 'Library',
     layers: 'Layers',
+    manageLibrary: 'Manage library',
     extensions: 'Extensions',
     aiWizard: 'AI',
   };
@@ -63,6 +65,11 @@ export const PrimaryPanel = () => {
             {activePanel === 'library' && (
               <ErrorBoundary>
                 <Library />
+              </ErrorBoundary>
+            )}
+            {activePanel === 'manageLibrary' && (
+              <ErrorBoundary>
+                <ManageLibrary />
               </ErrorBoundary>
             )}
             {activePanel === 'extensions' && (

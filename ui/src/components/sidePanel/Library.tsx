@@ -5,7 +5,6 @@ import {
 } from '@/components/form/components/Accordion';
 import ComponentList from '@/components/list/ComponentList';
 import PatternList from '@/components/list/PatternList';
-import CodeComponentList from '@/features/code-editor/CodeComponentList';
 import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import {
@@ -16,7 +15,6 @@ import {
 } from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import styles from './Library.module.css';
-import DynamicComponentList from '@/components/list/DynamicComponentList';
 import PermissionCheck from '@/components/PermissionCheck';
 
 const Library = () => {
@@ -60,30 +58,6 @@ const Library = () => {
         >
           <ErrorBoundary title="An unexpected error has occurred while fetching components.">
             <ComponentList />
-          </ErrorBoundary>
-        </AccordionDetails>
-        <PermissionCheck hasPermission="codeComponents">
-          <AccordionDetails
-            value={LayoutItemType.CODE}
-            title="Code"
-            onTriggerClick={() => onClickHandler(LayoutItemType.CODE)}
-            className={styles.accordionDetails}
-            triggerClassName={styles.accordionDetailsTrigger}
-          >
-            <ErrorBoundary title="An unexpected error has occurred while fetching code components.">
-              <CodeComponentList />
-            </ErrorBoundary>
-          </AccordionDetails>
-        </PermissionCheck>
-        <AccordionDetails
-          value={LayoutItemType.DYNAMIC}
-          title="Dynamic Components"
-          onTriggerClick={() => onClickHandler(LayoutItemType.DYNAMIC)}
-          className={styles.accordionDetails}
-          triggerClassName={styles.accordionDetailsTrigger}
-        >
-          <ErrorBoundary title="An unexpected error has occurred while fetching dynamic components.">
-            <DynamicComponentList />
           </ErrorBoundary>
         </AccordionDetails>
       </AccordionRoot>

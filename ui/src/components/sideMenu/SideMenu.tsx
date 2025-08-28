@@ -1,5 +1,10 @@
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
-import { FileTextIcon, LayersIcon, PlusIcon } from '@radix-ui/react-icons';
+import {
+  FileTextIcon,
+  LayersIcon,
+  PlusIcon,
+  Component1Icon,
+} from '@radix-ui/react-icons';
 import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
 import styles from './SideMenu.module.css';
 import { useCallback } from 'react';
@@ -61,6 +66,15 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       enabled: true,
     },
     { type: 'separator' },
+    {
+      type: 'button',
+      id: 'manageLibrary',
+      icon: <Component1Icon />,
+      label: 'Manage library',
+      enabled: true,
+    },
+    { type: 'separator' },
+
     {
       type: 'button',
       id: 'templates',

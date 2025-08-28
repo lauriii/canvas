@@ -1,24 +1,25 @@
-const iterations = [
-  {
-    removeText: 'Remove The bones are their money',
-    selectNewText: 'Select Sorry I resemble a dog',
-    removeAriaLabel: 'Remove Sorry I resemble a dog',
-    expectedAlt: 'My barber may have been looking at a picture of a dog',
-  },
-  {
-    removeText: 'Remove Sorry I resemble a dog',
-    selectNewText: 'Select The bones are their money',
-    removeAriaLabel: 'Remove The bones are their money',
-    expectedAlt: 'The bones equal dollars',
-  },
-  {
-    removeText: 'Remove The bones are their money',
-    selectNewText: 'Select Sorry I resemble a dog',
-    removeAriaLabel: 'Remove Sorry I resemble a dog',
-    expectedAlt: 'My barber may have been looking at a picture of a dog',
-  },
-];
 const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
+  const iterations = [
+    {
+      removeText: 'Remove The bones are their money',
+      selectNewText: 'Select Sorry I resemble a dog',
+      removeAriaLabel: 'Remove Sorry I resemble a dog',
+      expectedAlt: 'My barber may have been looking at a picture of a dog',
+    },
+    {
+      removeText: 'Remove Sorry I resemble a dog',
+      selectNewText: 'Select The bones are their money',
+      removeAriaLabel: 'Remove The bones are their money',
+      expectedAlt: 'The bones equal dollars',
+    },
+    {
+      removeText: 'Remove The bones are their money',
+      selectNewText: 'Select Sorry I resemble a dog',
+      removeAriaLabel: 'Remove Sorry I resemble a dog',
+      expectedAlt: 'My barber may have been looking at a picture of a dog',
+    },
+  ];
+
   cy.drupalLogin('xbUser', 'xbUser');
   // Node 1 includes prop sources that make use of adapters, we need to
   // make sure there are no auto-save entries for that node before we attempt

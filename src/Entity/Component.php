@@ -516,6 +516,42 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     }
   }
 
+  public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
+    parent::postSave($storage, $update);
+
+    // For new Components, auto-create Folders based on their category.
+    if (!$update) {
+      $category = $this->getCategory();
+
+      // If no category is set, there's no Folder to auto-create.
+      if (empty($category)) {
+        return;
+      }
+      $folder = Folder::loadByNameAndConfigEntityTypeId((string) $category, self::ENTITY_TYPE_ID);
+      if (empty($folder)) {
+        $folder = Folder::create([
+          'name' => $category,
+          'weight' => 0,
+          'status' => TRUE,
+          'configEntityTypeId' => self::ENTITY_TYPE_ID,
+        ]);
+      }
+      $folder->addItems([$this->id])->save();
+    }
+  }
+
+  public static function preDelete(EntityStorageInterface $storage, array $entities): void {
+    // If the Component is deleted, remove it from the Folder it was in.
+    foreach ($entities as $entity) {
+      /** @var \Drupal\experience_builder\Entity\Component $entity */
+      $category = $entity->getCategory();
+      if (!empty($category)) {
+        Folder::loadByNameAndConfigEntityTypeId((string) $category, self::ENTITY_TYPE_ID)?->removeItem($entity->id())?->save();
+      }
+    }
+    parent::preDelete($storage, $entities);
+  }
+
   /**
    * Validates the active version.
    *

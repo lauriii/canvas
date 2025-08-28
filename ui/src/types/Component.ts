@@ -1,4 +1,6 @@
 import type { TransformConfig } from '@/utils/transforms';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import type { PatternsList } from '@/types/Pattern';
 
 export interface FieldData {
   [key: string]: FieldDataItem;
@@ -81,6 +83,29 @@ export type XBComponent = DynamicComponent | JSComponent | PropSourceComponent;
 export interface ComponentsList {
   [key: string]: XBComponent;
 }
+
+export type Folder = {
+  id: string;
+  name: string;
+  items: string[];
+  weight?: number;
+};
+
+export interface Folders {
+  [key: string]: Folder;
+}
+
+export type FolderInList = {
+  id: string;
+  name: string;
+  weight?: number;
+  items:
+    | ComponentsList
+    | Record<string, CodeComponentSerialized>
+    | PatternsList;
+};
+
+export type FoldersInList = FolderInList[];
 
 /**
  * Type predicate.

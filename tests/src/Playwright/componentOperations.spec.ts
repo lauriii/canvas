@@ -83,62 +83,167 @@ test.describe('Perform CRUD operations on components', () => {
     }
     await expect(page.locator('[data-testid="xb-primary-panel"]'))
       .toMatchAriaSnapshot(`
-           - heading "Library" [level=4]
-           - button:
-             - img
-           - button "Add new":
-             - img
-           - button "Patterns" [expanded]
-           - region "Patterns":
-             - img
-             - paragraph: No items to show in Patterns
-           - button "Components" [expanded]
-           - region "Components":
-             - list:
-               - listitem:
-                 - img
-                 - text: Druplicon
-               - listitem:
-                 - img
-                 - text: Heading
-               - listitem:
-                 - img
-                 - text: Hero
-               - listitem:
-                 - img
-                 - text: Image
-               - listitem:
-                 - img
-                 - text: One Column
-               - listitem:
-                 - img
-                 - text: Section
-               - listitem:
-                 - img
-                 - text: Shoe Badge
-               - listitem:
-                 - img
-                 - text: Shoe Tab
-               - listitem:
-                 - img
-                 - text: Shoe Tab Group
-               - listitem:
-                 - img
-                 - text: Shoe Tab Panel
-               - listitem:
-                 - img
-                 - text: Two Column
-           - button "Code" [expanded]
-           - region "Code":
-             - img
-             - paragraph: No items to show in Code components
-           - button "Dynamic Components" [expanded]
-           - region "Dynamic Components":
-             - button "Forms dynamic components"
-             - button "Lists (Views) dynamic components"
-             - button "Menus dynamic components"
-             - button "System dynamic components"
-             - button "User dynamic components"
+        - heading "Library" [level=4]
+        - button:
+          - img
+        - button "Add new":
+          - img
+        - button "Patterns" [expanded]
+        - region "Patterns"
+        - button "Components" [expanded]
+        - region "Components":
+          - button "Atom/Media" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Video":
+              - img
+          - button "Atom/Tabs" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Shoe Tab":
+              - img
+            - button "Shoe Tab Panel":
+              - img
+          - button "Atom/Text" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Heading":
+              - img
+            - button "Shoe Badge":
+              - img
+          - button "Container" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Grid Container":
+              - img
+            - button "One Column":
+              - img
+            - button "Two Column":
+              - img
+          - button "Container/Special" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Shoe Tab Group":
+              - img
+          - button "core" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Page title":
+              - img
+            - button "Primary admin actions":
+              - img
+            - button "Tabs":
+              - img
+          - button "Forms" [expanded]:
+            - img
+            - img
+          - list:
+            - button "User login":
+              - img
+          - button "Lists (Views)" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Recent content":
+              - img
+            - button "Who's online":
+              - img
+          - button "Menus" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Administration":
+              - img
+            - button "Footer":
+              - img
+            - button "Main navigation":
+              - img
+            - button "Tools":
+              - img
+            - button "User account menu":
+              - img
+          - button "Other" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Call to Absolute Action":
+              - img
+            - button "Card":
+              - img
+            - button "Card with local image":
+              - img
+            - button "Card with remote image":
+              - img
+            - button "Card with stream wrapper image":
+              - img
+            - button "Component no meta:enum":
+              - img
+            - button "Druplicon":
+              - img
+            - button "Hero":
+              - img
+            - button "Image":
+              - img
+            - button "No UI SDC":
+              - img
+            - button "Section":
+              - img
+            - button "Test SDC Image":
+              - img
+            - button "XB test SDC for image gallery (>1 image)":
+              - img
+            - button /XB test SDC for sparkline \\(>1 integers between -\\d+ and \\d+\\)/:
+              - img
+            - 'button "XB test SDC for testing type: \`Drupal\\\\Core\\\\Template\\\\Attribute\` special casing"':
+              - img
+            - button "XB test SDC that crashes when 'crash' prop is TRUE":
+              - img
+            - button "XB test SDC with optional image and heading":
+              - img
+            - button "XB test SDC with optional image, with example":
+              - img
+            - button "XB test SDC with optional image, without example":
+              - img
+            - button "XB test SDC with props and slots":
+              - img
+            - button "XB test SDC with props but no slots":
+              - img
+            - button "XB test SDC with required image, with example":
+              - img
+          - button "Status" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Deprecated SDC":
+              - img
+            - button "Experimental SDC":
+              - img
+          - button "System" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Breadcrumbs":
+              - img
+            - button "Clear cache":
+              - img
+            - button "Messages":
+              - img
+            - button "Powered by Drupal":
+              - img
+            - button "Site branding":
+              - img
+          - button "User" [expanded]:
+            - img
+            - img
+          - list:
+            - button "Who's new":
+              - img
          `);
   });
 
