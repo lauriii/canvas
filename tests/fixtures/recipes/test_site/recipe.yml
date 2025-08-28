@@ -3,6 +3,7 @@ description: 'Site for running tests against.'
 type: 'XB'
 install:
   - stark
+  - xb_stark
   - experience_builder
   - xb_test_code_components
   - xb_test_sdc
