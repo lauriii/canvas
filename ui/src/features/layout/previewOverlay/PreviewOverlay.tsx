@@ -3,8 +3,8 @@ import styles from './PreviewOverlay.module.css';
 import clsx from 'clsx';
 
 /**
- * Renders a div at a level above where we scale the canvas into which we can portal the UI and overlay that sits over
- * the iframes. Doing this means the UI doesn't scale when the user zooms the canvas.
+ * Renders a div at a level above where we scale the editor frame into which we can portal the UI and overlay that sits over
+ * the iframes. Doing this means the UI doesn't scale when the user zooms the editor frame.
  */
 const PreviewOverlay: React.FC = () => {
   return (

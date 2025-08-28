@@ -1,4 +1,4 @@
-import Canvas from '@/features/canvas/Canvas';
+import EditorFrame from '@/features/editorFrame/EditorFrame';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import ContextualPanel from '@/components/panel/ContextualPanel';
@@ -46,7 +46,7 @@ const Editor = () => {
       >
         <Layout />
       </ErrorBoundary>
-      <Canvas />
+      <EditorFrame />
       <ContextualPanel />
       <div className={styles.absoluteContainer}>
         <PatternDialogs />

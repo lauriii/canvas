@@ -3,8 +3,8 @@ import { useRef, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Progress } from '@radix-ui/themes';
 import {
-  CanvasMode,
-  selectCanvasMode,
+  EditorFrameMode,
+  selectEditorFrameMode,
   selectViewportMinHeight,
   selectViewportWidth,
   setFirstLoadComplete,
@@ -29,7 +29,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
-  const canvasMode = useAppSelector(selectCanvasMode);
+  const editorFrameMode = useAppSelector(selectEditorFrameMode);
   const viewportWidth = useAppSelector(selectViewportWidth);
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
   useComponentHtmlMap(iframeRef.current);
@@ -94,9 +94,9 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         ref={iframeRef}
         srcDocument={frameSrcDoc}
         setIsReloading={setIsReloading}
-        interactive={canvasMode === CanvasMode.INTERACTIVE}
+        interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />
-      {canvasMode === CanvasMode.EDIT && (
+      {editorFrameMode === EditorFrameMode.EDIT && (
         <>
           <ViewportOverlay
             iframeRef={iframeRef}

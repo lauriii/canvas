@@ -128,7 +128,7 @@ const operationsHandler = {
     componentSelectionUtils: any;
     navigate: any;
   }) => {
-    // Logic for placing components (SDCs/Blocks/Code components) to the canvas.
+    // Logic for placing components (SDCs/Blocks/Code components) to the editor frame.
     for (const op of message.operations) {
       // Only 'Add' operation is supported for now.
       if (

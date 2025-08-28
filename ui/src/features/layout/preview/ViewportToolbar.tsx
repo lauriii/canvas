@@ -11,7 +11,7 @@ import type { ScaleValue } from '@/features/ui/uiSlice';
 import {
   scaleValues,
   selectViewportWidth,
-  setCanvasViewPort,
+  setEditorFrameViewPort,
   setViewportMinHeight,
   setViewportWidth,
 } from '@/features/ui/uiSlice';
@@ -21,7 +21,7 @@ import type { viewportSize } from '@/types/Preview';
 import { viewportSizes } from '@/types/Preview';
 
 interface ViewportToolbarProps {
-  canvasPaneRef: RefObject<HTMLElement>;
+  editorPaneRef: RefObject<HTMLElement>;
   scalingContainerRef: RefObject<HTMLElement>;
 }
 
@@ -44,7 +44,7 @@ const findClosestScaleValue = (desiredScale: number): ScaleValue => {
 };
 
 const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
-  const { canvasPaneRef, scalingContainerRef } = props;
+  const { editorPaneRef, scalingContainerRef } = props;
   const dispatch = useAppDispatch();
   const currentWidth = useAppSelector(selectViewportWidth);
   const handleWidthClick = (viewportSize: viewportSize) => {
@@ -61,31 +61,31 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   };
 
   const handleScaleToFit = () => {
-    if (canvasPaneRef.current) {
-      const canvasContainerWidth =
-        canvasPaneRef.current.getBoundingClientRect().width;
-      const scaleToFit = canvasContainerWidth / currentWidth;
+    if (editorPaneRef.current) {
+      const editorFrameContainerWidth =
+        editorPaneRef.current.getBoundingClientRect().width;
+      const scaleToFit = editorFrameContainerWidth / currentWidth;
       const closestScale = findClosestScaleValue(scaleToFit);
       dispatch(
-        setCanvasViewPort({
+        setEditorFrameViewPort({
           scale: closestScale.scale < 1 ? closestScale.scale : 1,
         }),
       );
 
       requestAnimationFrame(() => {
-        if (canvasPaneRef.current && scalingContainerRef.current) {
+        if (editorPaneRef.current && scalingContainerRef.current) {
           // Calculate the height of the preview (getBoundingClientRect takes into account scaling).
           const previewHeight =
             scalingContainerRef.current.getBoundingClientRect().height;
 
-          // Calculate the center offset inside the canvas.
-          const canvasHeight = canvasPaneRef.current.scrollHeight;
-          const centerOffset = (canvasHeight - previewHeight) / 2;
+          // Calculate the center offset inside the editor frame.
+          const editorFrameHeight = editorPaneRef.current.scrollHeight;
+          const centerOffset = (editorFrameHeight - previewHeight) / 2;
 
           const y = centerOffset - 50;
           dispatch(
-            setCanvasViewPort({
-              x: getHalfwayScrollPosition(canvasPaneRef.current),
+            setEditorFrameViewPort({
+              x: getHalfwayScrollPosition(editorPaneRef.current),
               y,
             }),
           );
@@ -101,7 +101,11 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   }, [dispatch]);
 
   return (
-    <Flex className={styles.toolbar} gap="2" data-testid="xb-canvas-controls">
+    <Flex
+      className={styles.toolbar}
+      gap="2"
+      data-testid="xb-editor-frame-controls"
+    >
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           <Button

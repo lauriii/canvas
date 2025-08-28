@@ -9,7 +9,7 @@ export interface DraggingStatus {
   previewDragging: boolean;
 }
 
-export interface CanvasViewPort {
+export interface EditorViewPort {
   x: number;
   y: number;
   scale: number;
@@ -22,7 +22,7 @@ export interface Selection {
 
 export const DEFAULT_REGION = 'content' as const;
 
-export enum CanvasMode {
+export enum EditorFrameMode {
   INTERACTIVE = 'interactive',
   EDIT = 'edit',
 }
@@ -41,10 +41,10 @@ export interface uiSliceState {
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   viewportWidth: number;
   viewportMinHeight: number;
-  canvasViewport: CanvasViewPort;
+  editorViewPort: EditorViewPort;
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
-  canvasMode: CanvasMode;
+  editorFrameMode: EditorFrameMode;
   undoStack: Array<UndoRedoType>;
   redoStack: Array<UndoRedoType>;
 }
@@ -70,7 +70,7 @@ export const initialState: uiSliceState = {
   targetSlot: undefined,
   viewportWidth: 0,
   viewportMinHeight: 0,
-  canvasViewport: {
+  editorViewPort: {
     x: 0,
     y: 0,
     scale: 1,
@@ -79,7 +79,7 @@ export const initialState: uiSliceState = {
   redoStack: [],
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
-  canvasMode: CanvasMode.EDIT,
+  editorFrameMode: EditorFrameMode.EDIT,
   selection: {
     consecutive: false,
     items: [],
@@ -213,27 +213,27 @@ export const uiSlice = createAppSlice({
     unsetTargetSlot: create.reducer((state) => {
       state.targetSlot = undefined;
     }),
-    setCanvasViewPort: create.reducer(
+    setEditorFrameViewPort: create.reducer(
       (state, action: PayloadAction<UpdateViewportPayload>) => {
         if (action.payload.x !== undefined) {
-          state.canvasViewport.x = action.payload.x;
+          state.editorViewPort.x = action.payload.x;
         }
         if (action.payload.y !== undefined) {
-          state.canvasViewport.y = action.payload.y;
+          state.editorViewPort.y = action.payload.y;
         }
-        state.canvasViewport.scale =
-          action.payload.scale || state.canvasViewport.scale;
+        state.editorViewPort.scale =
+          action.payload.scale || state.editorViewPort.scale;
       },
     ),
-    canvasViewPortZoomIn: create.reducer((state, action) => {
-      const currentScale = state.canvasViewport.scale;
+    editorViewPortZoomIn: create.reducer((state, action) => {
+      const currentScale = state.editorViewPort.scale;
       const newIndex = getNewScaleIndex(currentScale, 'increment');
-      state.canvasViewport.scale = scaleValues[newIndex].scale;
+      state.editorViewPort.scale = scaleValues[newIndex].scale;
     }),
-    canvasViewPortZoomOut: create.reducer((state, action) => {
-      const currentScale = state.canvasViewport.scale;
+    editorViewPortZoomOut: create.reducer((state, action) => {
+      const currentScale = state.editorViewPort.scale;
       const newIndex = getNewScaleIndex(currentScale, 'decrement');
-      state.canvasViewport.scale = scaleValues[newIndex].scale;
+      state.editorViewPort.scale = scaleValues[newIndex].scale;
     }),
     setViewportWidth: create.reducer((state, action: PayloadAction<number>) => {
       state.viewportWidth = action.payload;
@@ -253,11 +253,11 @@ export const uiSlice = createAppSlice({
         state.firstLoadComplete = action.payload;
       },
     ),
-    setCanvasModeEditing: create.reducer((state) => {
-      state.canvasMode = CanvasMode.EDIT;
+    setEditorFrameModeEditing: create.reducer((state) => {
+      state.editorFrameMode = EditorFrameMode.EDIT;
     }),
-    setCanvasModeInteractive: create.reducer((state) => {
-      state.canvasMode = CanvasMode.INTERACTIVE;
+    setEditorFrameModeInteractive: create.reducer((state) => {
+      state.editorFrameMode = EditorFrameMode.INTERACTIVE;
     }),
     clearSelection: create.reducer((state) => {
       state.selection.items.length = 0;
@@ -322,11 +322,11 @@ export const uiSlice = createAppSlice({
     selectTargetSlot: (ui): string | undefined => {
       return ui.targetSlot;
     },
-    selectCanvasViewPort: (ui): CanvasViewPort => {
-      return ui.canvasViewport;
+    selectEditorViewPort: (ui): EditorViewPort => {
+      return ui.editorViewPort;
     },
-    selectCanvasViewPortScale: (ui): number => {
-      return ui.canvasViewport.scale;
+    selectEditorViewPortScale: (ui): number => {
+      return ui.editorViewPort.scale;
     },
     selectViewportWidth: (ui): number => {
       return ui.viewportWidth;
@@ -340,8 +340,8 @@ export const uiSlice = createAppSlice({
     selectFirstLoadComplete: (ui): boolean => {
       return ui.firstLoadComplete;
     },
-    selectCanvasMode: (ui): CanvasMode => {
-      return ui.canvasMode;
+    selectEditorFrameMode: (ui): EditorFrameMode => {
+      return ui.editorFrameMode;
     },
     selectSelection: (ui): Selection => {
       return ui.selection;
@@ -381,15 +381,15 @@ export const {
   unsetHoveredComponent,
   unsetUpdatingComponent,
   unsetTargetSlot,
-  setCanvasViewPort,
-  canvasViewPortZoomIn,
-  canvasViewPortZoomOut,
+  setEditorFrameViewPort,
+  editorViewPortZoomIn,
+  editorViewPortZoomOut,
   setViewportWidth,
   setViewportMinHeight,
   setLatestUndoRedoActionId,
   setFirstLoadComplete,
-  setCanvasModeEditing,
-  setCanvasModeInteractive,
+  setEditorFrameModeEditing,
+  setEditorFrameModeInteractive,
   pushUndo,
   performUndoOrRedo,
   clearSelection,
@@ -406,13 +406,13 @@ export const {
   selectHoveredComponent,
   selectNoComponentIsHovered,
   selectTargetSlot,
-  selectCanvasViewPort,
-  selectCanvasViewPortScale,
+  selectEditorViewPort,
+  selectEditorViewPortScale,
   selectViewportWidth,
   selectViewportMinHeight,
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
-  selectCanvasMode,
+  selectEditorFrameMode,
   selectUndoType,
   selectRedoType,
   selectSelection,

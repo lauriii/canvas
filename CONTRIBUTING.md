@@ -44,7 +44,7 @@ Tip: Use `ddev help <command>` for additional information about the command and 
 7.  Build the front end: `cd modules/contrib/experience_builder/ui` and then either
     * With Node.js available: `npm install && npm run build`
     * With Docker available: `docker build --output dist .`
-8.  Browse to `/node/add/article` just enter a title for the article and hit save. This will create a node with an empty canvas for the field `field_xb_demo`.
+8.  Browse to `/node/add/article` just enter a title for the article and hit save. This will create a node with an empty Editor Frame for the field `field_xb_demo`.
 9.  In the toolbar, click "Experience Builder"! 🥳
 10. If you're curious: look at the code, step through it with a debugger, and join us!
 11. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`

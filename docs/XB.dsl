@@ -115,7 +115,7 @@ workspace {
                 xb-code-component-component -> this "Is available in left sidebar (assuming open slots and/or unlocked component subtrees) of"
                 xb-code-component-block -> this "Is available in left sidebar (assuming open slots and/or unlocked component subtrees) of"
                 xb-code-component-field-formatter -> this "Is available in left sidebar (assuming open slots and/or unlocked component subtrees) of"
-                xb-config-entityviewdisplay -> this "Defines the default layout (or empty canvas if none)"
+                xb-config-entityviewdisplay -> this "Defines the default layout (or empty if none)"
             }
             drupal-config = container "Config" {
                 description "All Drupal config — including data model."

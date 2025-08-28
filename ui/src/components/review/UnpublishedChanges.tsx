@@ -51,7 +51,7 @@ const UnpublishedChanges = () => {
     fixedCacheKey: selectedComponent,
   });
   const [, { isLoading: isUpdatingPreview }] = usePostPreviewMutation({
-    fixedCacheKey: 'canvasPreview',
+    fixedCacheKey: 'editorFramePreview',
   });
   const [pollingInterval, setPollingInterval] =
     useState<number>(REFETCH_INTERVAL_MS);

@@ -83,7 +83,7 @@ export class XBEditor {
         let mutated = false;
 
         const targetNode = document.querySelector(
-          '[data-testid="xb-canvas-scaling"]',
+          '[data-testid="xb-editor-frame-scaling"]',
         );
         const observer = new MutationObserver(() => {
           // Reset the mutated state as something has changed.
@@ -109,12 +109,12 @@ export class XBEditor {
 
     await expect(
       this.page.locator(
-        '[data-testid="xb-canvas-scaling"] iframe[data-test-xb-content-initialized="true"]',
+        '[data-testid="xb-editor-frame-scaling"] iframe[data-test-xb-content-initialized="true"]',
       ),
     ).toHaveCSS('opacity', '1');
     await expect(
       this.page.locator(
-        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="false"]',
+        '[data-testid="xb-editor-frame-scaling"] iframe[data-xb-swap-active="false"]',
       ),
     ).toHaveCSS('opacity', '0');
   }
@@ -135,7 +135,7 @@ export class XBEditor {
     await this.waitForEditorUi();
     return this.page
       .locator(
-        '[data-testid="xb-canvas-scaling"] iframe[data-xb-swap-active="true"]',
+        '[data-testid="xb-editor-frame-scaling"] iframe[data-xb-swap-active="true"]',
       )
       .contentFrame();
   }

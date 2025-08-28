@@ -191,7 +191,7 @@ final class Personalization extends ComponentSourceBase implements
   }
 
   public function getClientSideInfo(Component $component): array {
-    // @todo Uncomment the next line and delete everything else once a React UI exists for this: you would never drag these components onto the canvas. Remove in https://www.drupal.org/project/experience_builder/issues/3525797
+    // @todo Uncomment the next line and delete everything else once a React UI exists for this: you would never drag these components onto the editor frame. Remove in https://www.drupal.org/project/experience_builder/issues/3525797
     // throw new \RuntimeException('This should not be called because this source implements ComponentSourceWithSwitchCasesInterface.');
 
     $client_side_info = [

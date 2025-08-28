@@ -45,6 +45,6 @@ graph TB
     26-. "<div>Is available in left sidebar<br />(assuming open slots and/or<br />unlocked component subtrees)<br />of</div><div style='font-size: 70%'></div>" .->46
     30-. "<div>Is available in left sidebar<br />(assuming open slots and/or<br />unlocked component subtrees)<br />of</div><div style='font-size: 70%'></div>" .->46
     33-. "<div>Is available in left sidebar<br />(assuming open slots and/or<br />unlocked component subtrees)<br />of</div><div style='font-size: 70%'></div>" .->46
-    19-. "<div>Defines the default layout<br />(or empty canvas if none)</div><div style='font-size: 70%'></div>" .->46
+    19-. "<div>Defines the default layout<br />(or empty if none)</div><div style='font-size: 70%'></div>" .->46
   end
 ```

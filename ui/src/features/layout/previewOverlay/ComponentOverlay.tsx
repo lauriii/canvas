@@ -6,7 +6,7 @@ import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectCanvasViewPortScale,
+  selectEditorViewPortScale,
   selectComponentIsSelected,
   selectDragging,
   selectIsComponentHovered,
@@ -74,7 +74,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const isUpdating = useAppSelector((state) => {
     return selectIsComponentUpdating(state, component.uuid);
   });
-  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const dispatch = useAppDispatch();
   const { setSelectedComponent, handleComponentSelection } =
     useComponentSelection();
@@ -155,16 +155,16 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const style: React.CSSProperties = useMemo(
     () => ({
       opacity: initialized ? '1' : '0',
-      height: elementRect.height * canvasViewPortScale,
-      width: elementRect.width * canvasViewPortScale,
-      top: (offset.offsetTop || 0) * canvasViewPortScale,
-      left: (offset.offsetLeft || 0) * canvasViewPortScale,
+      height: elementRect.height * editorViewPortScale,
+      width: elementRect.width * editorViewPortScale,
+      top: (offset.offsetTop || 0) * editorViewPortScale,
+      left: (offset.offsetLeft || 0) * editorViewPortScale,
     }),
     [
       initialized,
       elementRect.height,
       elementRect.width,
-      canvasViewPortScale,
+      editorViewPortScale,
       offset,
     ],
   );

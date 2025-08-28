@@ -29,7 +29,9 @@ test.describe('Responsive Image', () => {
     await xBEditor.addComponent({ id: 'sdc.xb_test_sdc.image' });
 
     const frame = page
-      .locator('[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]')
+      .locator(
+        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+      )
       .contentFrame();
     await expect(frame.locator('img.image')).toBeVisible();
     await drupal.addMediaImage(
@@ -38,7 +40,7 @@ test.describe('Responsive Image', () => {
     );
     await page.waitForFunction(() => {
       const frame: HTMLIFrameElement = document.querySelector(
-        '[data-testid="xb-canvas-scaling"] [data-xb-swap-active="true"]',
+        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
       );
       const img = frame?.contentWindow.document.querySelector('img.image');
       const imgSrc = img?.getAttribute('src');

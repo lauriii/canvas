@@ -50,7 +50,7 @@ The UI layer...
 2. blocks interaction with the document inside the `<iframe>` elements;
 3. has a mirrored version of each component and slot in the page so that each can be outlined/annotated without injecting markup into the `<iframe>` document;
 4. is responsible for user interactions with the components/slots;
-5. is portalled and rendered above the `<Canvas>` element.
+5. is portalled and rendered above the `<EditorFrame>` element.
 
 Let's look at the above points in turn:
 
@@ -69,7 +69,7 @@ For each component and slot, a transparent element is rendered and positioned (s
 The overlaid components handle interactions like hover, click, drag, and right-click. This means we don't have to inject event listeners into the `<iframe>`. For instance, showing a border around a component when hovering over it becomes trivial, as we just add a class to the element and apply a border with CSS!
 
 ### 5. Portals
-It was a [requirement](https://www.drupal.org/project/experience_builder/issues/3469672) that zooming the canvas should not also scale the XB UI. If a user zooms way out, we don't want the component's name in the UI to become illegibly small! To avoid these scaling issues, the `<ViewportOverlay>` uses a React portal to render into a `<div id="xbPreviewOverlay">` that exists above the element that scales when a user zooms the canvas.
+It was a [requirement](https://www.drupal.org/project/experience_builder/issues/3469672) that zooming the Editor Frame should not also scale the XB UI. If a user zooms way out, we don't want the component's name in the UI to become illegibly small! To avoid these scaling issues, the `<ViewportOverlay>` uses a React portal to render into a `<div id="xbPreviewOverlay">` that exists above the element that scales when a user zooms the preview.
 
 
 ## Data Model and HTML Mapping

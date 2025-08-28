@@ -53,7 +53,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         deviceScaleFactor: 1,
-        /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the preview canvas etc. */
+        /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the editor frame etc. */
         viewport: { width: 2560, height: 1440 },
       },
       dependencies: ['setup'],

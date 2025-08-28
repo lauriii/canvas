@@ -18,7 +18,7 @@ describe.skip('Component slots functionality', () => {
 
   it('Can add a component with slots and then add components into those slots', () => {
     cy.loadURLandWaitForXBLoaded();
-    // Set the viewport to be 4k to ensure the full canvas is visible without scrolling because
+    // Set the viewport to be 4k to ensure the full editor frame is visible without scrolling because
     // the scrolling messes up the realDnd command.
     cy.viewport(3840, 2160);
     cy.get('[data-xb-uuid="root"]').findByText('Two Column').click();

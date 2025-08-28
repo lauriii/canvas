@@ -1,10 +1,10 @@
-.canvasContainer {
+.editorFrameContainer {
   position: relative;
   overflow: hidden;
   flex-grow: 1;
 }
 
-.canvasPane {
+.editorPane {
   position: relative;
   overflow: scroll;
   box-sizing: content-box;
@@ -13,8 +13,8 @@
   background: var(--gray-8);
 }
 
-.canvas {
-  --canvas-scale: 1;
+.editorFrame {
+  --editor-frame-scale: 1;
 
   position: relative;
   display: flex;
@@ -34,17 +34,17 @@
   }
 }
 
-.modifierKeyPressed .canvas {
+.modifierKeyPressed .editorFrame {
   cursor: zoom-in;
   user-select: none;
 }
 
-.isPanning .canvas {
+.isPanning .editorFrame {
   user-select: none;
 }
 
-.modifierKeyPressed .canvas > *,
-.isPanning .canvas > * {
+.modifierKeyPressed .editorFrame > *,
+.isPanning .editorFrame > * {
   user-select: none;
   pointer-events: none;
 }

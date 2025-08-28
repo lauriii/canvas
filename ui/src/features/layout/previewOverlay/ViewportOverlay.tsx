@@ -9,7 +9,7 @@ import useResizeObserver from '@/hooks/useResizeObserver';
 
 import {
   DEFAULT_REGION,
-  selectCanvasViewPortScale,
+  selectEditorViewPortScale,
   selectDragging,
   selectZooming,
 } from '@/features/ui/uiSlice';
@@ -33,7 +33,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const { iframeRef, previewContainerRef } = props;
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const positionDivRef = useRef(null);
-  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const layout = useAppSelector(selectLayout);
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
@@ -83,7 +83,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
 
   useTransitionEndListener(
     previewContainerRef.current
-      ? previewContainerRef.current.closest('.xbCanvasScalingContainer')
+      ? previewContainerRef.current.closest('.xbEditorFrameScalingContainer')
       : null,
     updateRect,
   );
@@ -94,7 +94,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       setPortalRoot(targetDiv);
     }
     updateRect();
-  }, [previewContainerRef, updateRect, canvasViewPortScale]);
+  }, [previewContainerRef, updateRect, editorViewPortScale]);
 
   // When double-clicking "outside" the focused region, set the focus back to the default region (by navigating to /editor).
   function handleDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
@@ -106,7 +106,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
 
   if (!portalRoot || !rect || treeDragging) return null;
 
-  // This overlay is portalled and rendered higher up the DOM tree to ensure that when the canvas is zoomed, the UI
+  // This overlay is portalled and rendered higher up the DOM tree to ensure that when the editor frame is zoomed, the UI
   // rendered inside the overlay does not also scale. We don't want tiny text in the UI when a user zooms out for instance.
   return ReactDOM.createPortal(
     <div

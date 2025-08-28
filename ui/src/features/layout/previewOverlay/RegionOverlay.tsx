@@ -7,7 +7,7 @@ import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay'
 import styles from './PreviewOverlay.module.css';
 import {
   DEFAULT_REGION,
-  selectCanvasViewPortScale,
+  selectEditorViewPortScale,
   selectDragging,
   selectIsComponentHovered,
   selectTargetSlot,
@@ -40,7 +40,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
   const { elementRect } = useSyncPreviewElementSize(
     regionsMap[region.id]?.elements,
   );
-  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const [overlayStyles, setOverlayStyles] = useState({});
   const targetSlot = useAppSelector(selectTargetSlot);
   const disableRegion = focusedRegion !== region.id;
@@ -55,12 +55,12 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
 
   useEffect(() => {
     setOverlayStyles({
-      top: `${elementRect.top * canvasViewPortScale}px`,
-      left: `${elementRect.left * canvasViewPortScale}px`,
-      width: `${elementRect.width * canvasViewPortScale}px`,
-      height: `${elementRect.height * canvasViewPortScale}px`,
+      top: `${elementRect.top * editorViewPortScale}px`,
+      left: `${elementRect.left * editorViewPortScale}px`,
+      width: `${elementRect.width * editorViewPortScale}px`,
+      height: `${elementRect.height * editorViewPortScale}px`,
     });
-  }, [elementRect, canvasViewPortScale, region.id, disableRegion, regionsMap]);
+  }, [elementRect, editorViewPortScale, region.id, disableRegion, regionsMap]);
 
   function handleItemMouseOver(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();

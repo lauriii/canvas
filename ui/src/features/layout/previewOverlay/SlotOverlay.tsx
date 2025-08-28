@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import styles from './PreviewOverlay.module.css';
 import { useAppSelector } from '@/app/hooks';
 import {
-  selectCanvasViewPortScale,
+  selectEditorViewPortScale,
   selectIsComponentHovered,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
@@ -73,7 +73,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     return selectIsComponentHovered(state, slotId);
   });
   const targetSlot = useAppSelector(selectTargetSlot);
-  const canvasViewPortScale = useAppSelector(selectCanvasViewPortScale);
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
   const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
@@ -91,17 +91,17 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
 
   const style: React.CSSProperties = useMemo(
     () => ({
-      height: elementRect.height * canvasViewPortScale,
-      width: elementRect.width * canvasViewPortScale,
-      top: (offset.offsetTop || 0) * canvasViewPortScale,
-      left: (offset.offsetLeft || 0) * canvasViewPortScale,
+      height: elementRect.height * editorViewPortScale,
+      width: elementRect.width * editorViewPortScale,
+      top: (offset.offsetTop || 0) * editorViewPortScale,
+      left: (offset.offsetLeft || 0) * editorViewPortScale,
       pointerEvents: 'none',
       ...padding,
     }),
     [
       elementRect.height,
       elementRect.width,
-      canvasViewPortScale,
+      editorViewPortScale,
       offset.offsetTop,
       offset.offsetLeft,
       padding,

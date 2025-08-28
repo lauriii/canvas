@@ -1,21 +1,21 @@
 import type React from 'react';
 import { useLayoutEffect } from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import styles from './Canvas.module.css';
+import styles from './EditorFrame.module.css';
 import clsx from 'clsx';
 import Preview from '@/features/layout/preview/Preview';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import {
-  selectCanvasViewPort,
-  canvasViewPortZoomIn,
-  canvasViewPortZoomOut,
-  setCanvasViewPort,
+  selectEditorViewPort,
+  editorViewPortZoomIn,
+  editorViewPortZoomOut,
+  setEditorFrameViewPort,
   setIsPanning,
   selectFirstLoadComplete,
-  setCanvasModeEditing,
-  setCanvasModeInteractive,
+  setEditorFrameModeEditing,
+  setEditorFrameModeInteractive,
   setIsZooming,
   selectPanning,
   selectDragging,
@@ -31,15 +31,15 @@ import { getHalfwayScrollPosition } from '@/utils/function-utils';
 import { useParams } from 'react-router';
 import useResizeObserver from '@/hooks/useResizeObserver';
 
-const Canvas = () => {
+const EditorFrame = () => {
   const dispatch = useAppDispatch();
-  const canvasRef = useRef<HTMLDivElement | null>(null);
-  const canvasPaneRef = useRef<HTMLDivElement | null>(null);
+  const editorFrameRef = useRef<HTMLDivElement | null>(null);
+  const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameScrollRef = useRef<number | null>(null);
   const animFrameScaleRef = useRef<number | null>(null);
   const scalingContainerRef = useRef<HTMLDivElement | null>(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const canvasViewPort = useAppSelector(selectCanvasViewPort);
+  const editorViewPort = useAppSelector(selectEditorViewPort);
   const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
   const [isVisible, setIsVisible] = useState(false);
   const [middleMouseDown, setMiddleMouseDown] = useState(false);
@@ -54,9 +54,9 @@ const Canvas = () => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const { isDragging } = useAppSelector(selectDragging);
 
-  useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(canvasViewPortZoomIn()));
+  useHotkeys(['NumpadAdd', 'Equal'], () => dispatch(editorViewPortZoomIn()));
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
-    dispatch(canvasViewPortZoomOut()),
+    dispatch(editorViewPortZoomOut()),
   );
   useHotkeys('ctrl', () => setModifierKeyPressed(true), {
     keydown: true,
@@ -69,11 +69,11 @@ const Canvas = () => {
 
   // TODO This should have a better keyboard shortcut, but as the Interactive mode is still
   // in development/buggy, leaving it as something obscure for now.
-  useHotkeys('v', () => dispatch(setCanvasModeInteractive()), {
+  useHotkeys('v', () => dispatch(setEditorFrameModeInteractive()), {
     keydown: true,
     keyup: false,
   });
-  useHotkeys('v', () => dispatch(setCanvasModeEditing()), {
+  useHotkeys('v', () => dispatch(setEditorFrameModeEditing()), {
     keydown: false,
     keyup: true,
   });
@@ -90,27 +90,27 @@ const Canvas = () => {
     pasteAfterSelectedComponent();
   });
 
-  // Update the width/height of the canvas to accommodate the scaled viewport (scalingContainerRef).
-  const updateCanvasSize = useCallback(() => {
-    if (!scalingContainerRef.current || !canvasRef.current) {
+  // Update the width/height of the editorFrame to accommodate the scaled viewport (scalingContainerRef).
+  const updateEditorFrameSize = useCallback(() => {
+    if (!scalingContainerRef.current || !editorFrameRef.current) {
       return;
     }
 
-    // because the canvas is scaled with CSS transform, we need to get/set the width/height of the parent manually
+    // because the editorFrame is scaled with CSS transform, we need to get/set the width/height of the parent manually
     const rect = scalingContainerRef.current?.getBoundingClientRect();
 
-    canvasRef.current.style.width = rect.width ? `${rect.width}px` : '';
-    canvasRef.current.style.height = rect.height ? `${rect.height}px` : '';
+    editorFrameRef.current.style.width = rect.width ? `${rect.width}px` : '';
+    editorFrameRef.current.style.height = rect.height ? `${rect.height}px` : '';
   }, []);
 
-  useResizeObserver(scalingContainerRef, updateCanvasSize);
+  useResizeObserver(scalingContainerRef, updateEditorFrameSize);
 
   const debouncedScrollPosUpdate = useDebouncedCallback(() => {
     if (!isDragging) {
       dispatch(
-        setCanvasViewPort({
-          x: canvasPaneRef.current?.scrollLeft,
-          y: canvasPaneRef.current?.scrollTop,
+        setEditorFrameViewPort({
+          x: editorPaneRef.current?.scrollLeft,
+          y: editorPaneRef.current?.scrollTop,
         }),
       );
     }
@@ -136,20 +136,20 @@ const Canvas = () => {
     if (!firstLoadComplete) {
       return;
     }
-    if (scalingContainerRef.current && canvasPaneRef.current) {
+    if (scalingContainerRef.current && editorPaneRef.current) {
       // hardcoded value of 68 to account for the height of the UI (top bar 48px) + 20px gap.
       const previewHeight =
         scalingContainerRef.current.getBoundingClientRect().height;
 
-      // Calculate the center offset inside the canvas.
-      const canvasHeight = canvasPaneRef.current.scrollHeight;
-      const centerOffset = (canvasHeight - previewHeight) / 2;
+      // Calculate the center offset inside the editorFrame.
+      const editorFrameHeight = editorPaneRef.current.scrollHeight;
+      const centerOffset = (editorFrameHeight - previewHeight) / 2;
 
       const y = centerOffset - 50;
-      const x = getHalfwayScrollPosition(canvasPaneRef.current);
+      const x = getHalfwayScrollPosition(editorPaneRef.current);
 
       // Scroll the preview to the middle top.
-      dispatch(setCanvasViewPort({ x: x, y: y }));
+      dispatch(setEditorFrameViewPort({ x: x, y: y }));
       setIsVisible(true);
     }
   }, [dispatch, firstLoadComplete]);
@@ -184,17 +184,17 @@ const Canvas = () => {
       const { clientX, clientY } = e;
       setMiddleMouseDown(true);
       dispatch(setIsPanning(true));
-      if (canvasPaneRef.current) {
+      if (editorPaneRef.current) {
         setStartPos({
-          x: clientX + canvasPaneRef.current.scrollLeft,
-          y: clientY + canvasPaneRef.current.scrollTop,
+          x: clientX + editorPaneRef.current.scrollLeft,
+          y: clientY + editorPaneRef.current.scrollTop,
         });
       }
       e.preventDefault();
     }
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (middleMouseDownRef.current) {
       const { clientX, clientY } = e;
       const translationX = startPos.x - clientX;
@@ -206,11 +206,11 @@ const Canvas = () => {
 
       animFrameScrollRef.current = requestAnimationFrame(() => {
         if (scalingContainerRef.current) {
-          scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+          scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
         }
-        if (canvasPaneRef.current) {
-          canvasPaneRef.current.scrollLeft = translationX;
-          canvasPaneRef.current.scrollTop = translationY;
+        if (editorPaneRef.current) {
+          editorPaneRef.current.scrollLeft = translationX;
+          editorPaneRef.current.scrollTop = translationY;
         }
         debouncedScrollPosUpdate();
       });
@@ -238,9 +238,9 @@ const Canvas = () => {
           lastWheelEventTimeRef.current = now;
           // Only care about the direction, not the magnitude.
           if (e.deltaY > 0) {
-            dispatch(canvasViewPortZoomOut());
+            dispatch(editorViewPortZoomOut());
           } else {
-            dispatch(canvasViewPortZoomIn());
+            dispatch(editorViewPortZoomIn());
           }
 
           debouncedIsZoomingUpdate();
@@ -256,12 +256,12 @@ const Canvas = () => {
     }
 
     animFrameScrollRef.current = requestAnimationFrame(() => {
-      if (canvasPaneRef.current) {
-        canvasPaneRef.current.scrollLeft = canvasViewPort.x;
-        canvasPaneRef.current.scrollTop = canvasViewPort.y;
+      if (editorPaneRef.current) {
+        editorPaneRef.current.scrollLeft = editorViewPort.x;
+        editorPaneRef.current.scrollTop = editorViewPort.y;
       }
     });
-  }, [canvasViewPort.x, canvasViewPort.y]);
+  }, [editorViewPort.x, editorViewPort.y]);
 
   useEffect(() => {
     if (animFrameScaleRef.current) {
@@ -270,10 +270,10 @@ const Canvas = () => {
 
     animFrameScaleRef.current = requestAnimationFrame(() => {
       if (scalingContainerRef.current) {
-        scalingContainerRef.current.style.transform = `scale(${canvasViewPort.scale})`;
+        scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
       }
     });
-  }, [canvasViewPort.scale]);
+  }, [editorViewPort.scale]);
 
   useEffect(() => {
     window.addEventListener('mouseup', handleMouseUp);
@@ -285,43 +285,43 @@ const Canvas = () => {
     };
   }, [handleWheel, handleMouseUp]);
 
-  // Update the canvas size when the scale changes or on initial render.
+  // Update the editorFrame size when the scale changes or on initial render.
   useLayoutEffect(() => {
-    updateCanvasSize();
-  }, [canvasViewPort.scale, updateCanvasSize]);
+    updateEditorFrameSize();
+  }, [editorViewPort.scale, updateEditorFrameSize]);
 
   return (
-    <div className={styles.canvasContainer}>
+    <div className={styles.editorFrameContainer}>
       <div
-        className={clsx(styles.canvasPane, {
+        className={clsx(styles.editorPane, {
           [styles.modifierKeyPressed]: modifierKeyPressed,
           [styles.isPanning]: isPanning,
         })}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleCanvasMouseMove}
+        onMouseMove={handleMouseMove}
         onScroll={handlePaneScroll}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        ref={canvasPaneRef}
+        ref={editorPaneRef}
       >
         <div
-          className={clsx(styles.canvas, {
+          className={clsx(styles.editorFrame, {
             [styles.visible]: isVisible,
           })}
           // @ts-ignore
-          style={{ '--canvas-scale': canvasViewPort.scale }}
-          ref={canvasRef}
-          data-testid="xb-canvas"
+          style={{ '--editor-frame-scale': editorViewPort.scale }}
+          ref={editorFrameRef}
+          data-testid="xb-editor-frame"
         >
           <div style={{ position: 'relative' }} id="positionAnchor">
             <div
               className={clsx(
-                'xbCanvasScalingContainer',
-                styles.xbCanvasScalingContainer,
+                'xbEditorFrameScalingContainer',
+                styles.xbEditorFrameScalingContainer,
               )}
-              data-testid="xb-canvas-scaling"
+              data-testid="xb-editor-frame-scaling"
               style={{
-                transform: `scale(${canvasViewPort.scale})`,
+                transform: `scale(${editorViewPort.scale})`,
               }}
               ref={scalingContainerRef}
             >
@@ -340,11 +340,11 @@ const Canvas = () => {
         </div>
       </div>
       <ViewportToolbar
-        canvasPaneRef={canvasPaneRef}
+        editorPaneRef={editorPaneRef}
         scalingContainerRef={scalingContainerRef}
       />
     </div>
   );
 };
 
-export default Canvas;
+export default EditorFrame;
