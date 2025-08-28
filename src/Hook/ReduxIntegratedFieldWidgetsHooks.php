@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\Hook;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Hook\Order\OrderAfter;
 use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
@@ -192,7 +193,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     ];
   }
 
-  #[Hook('element_info_alter')]
+  #[Hook('element_info_alter', order: new OrderAfter(['editor']))]
   public function elementInfoAlter(array &$info): void {
     if (isset($info['text_format'])) {
       $info['text_format']['#process'][] = [ReduxIntegratedFieldWidgetsHooks::class, 'processTextFormat'];
