@@ -54,7 +54,7 @@
 #
 
 # The default for the back-end, with more specific code owners for specific areas.
-[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan
+[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan @penyaskito
 /src/
 
 # Issues: https://www.drupal.org/project/issues/experience_builder?component=Component+sources
