@@ -167,11 +167,9 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
-        'sdc.experience_builder.image',
         'sdc.xb_broken_sdcs.invalid-filter',
         'sdc.xb_test_sdc.my-cta',
         'sdc.xb_test_sdc.component-no-meta-enum',
-        'sdc.xb_test_sdc.no-ui-sdc',
         'sdc.xb_test_sdc.card',
         'sdc.xb_test_sdc.props-no-slots',
         'sdc.xb_test_sdc.image-required-with-example',
@@ -1604,15 +1602,6 @@ class XbConfigEntityHttpApiTest extends HttpApiTestBase {
     // - one that does not originate from any extension, but is a code component
     //   created from scratch and exposed as a Component
     $this->createMyCtaComponentFromSdc();
-
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3537695
-    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
-      // SDC `noUi` handling didn't happen before Drupal core 11.3, so disable
-      // the `noUi` component.
-      $no_ui_component = Component::load('sdc.xb_test_sdc.no-ui-sdc');
-      assert($no_ui_component instanceof Component);
-      $no_ui_component->setStatus(FALSE)->save();
-    }
 
     $page = $this->getSession()->getPage();
     $this->drupalLogin($this->httpApiUser);

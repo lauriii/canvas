@@ -220,7 +220,14 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     $props = self::getPropsForComponentPlugin($component_plugin);
     assert(is_array($component_plugin->getPluginDefinition()));
     // Disabled if obsolete or flagged with noUi.
-    $status = !((isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE) || (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete'));
+    $status = !(
+      (isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE)
+      // The above only works on Drupal core >=11.3.
+      // @todo Remove in https://www.drupal.org/i/3537695
+      || ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE)
+      || (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete')
+    );
+
     $settings = [
       'prop_field_definitions' => $props,
     ];
@@ -312,12 +319,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
 
     if (isset($definition['status']) && $definition['status'] === 'obsolete') {
       throw new ComponentDoesNotMeetRequirementsException(['Component has "obsolete" status']);
-    }
-    // Special case exception for 'image' SDC, as noUi is not supported in
-    // Drupal core < 11.3.
-    // @todo Remove in https://www.drupal.org/i/3537695
-    if ($definition['id'] === 'experience_builder:image') {
-      return;
     }
 
     // Special case exception for 'all-props' SDC.

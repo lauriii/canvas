@@ -206,7 +206,6 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.xb_test_sdc.my-cta',
       'sdc.xb_test_sdc.my-hero',
       'sdc.xb_test_sdc.my-section',
-      'sdc.xb_test_sdc.no-ui-sdc',
       'sdc.xb_test_sdc.one_column',
       'sdc.xb_test_sdc.props-no-slots',
       'sdc.xb_test_sdc.props-slots',
@@ -727,19 +726,6 @@ HTML,
           'library' => [
             'core/components.xb_test_sdc--my-section',
             'core/components.xb_test_sdc--my-section',
-          ],
-        ],
-      ],
-      'sdc.xb_test_sdc.no-ui-sdc' => [
-        'cacheability' => $default_cacheability,
-        'html' => '<div  data-component-id="xb_test_sdc:no-ui-sdc">
-  Playing hide and seek
-</div>
-',
-        'attachments' => [
-          'library' => [
-            'core/components.xb_test_sdc--no-ui-sdc',
-            'core/components.xb_test_sdc--no-ui-sdc',
           ],
         ],
       ],
@@ -1704,22 +1690,6 @@ activation="auto">
           ],
         ],
       ],
-      'sdc.xb_test_sdc.no-ui-sdc' => [
-        'prop_field_definitions' => [
-          'text' => [
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'Playing hide and seek',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-        ],
-      ],
       'sdc.xb_test_sdc.one_column' => [
         'prop_field_definitions' => [
           'width' => [
@@ -2163,12 +2133,6 @@ activation="auto">
         ],
       ],
       'sdc.xb_test_sdc.my-section' => [
-        'module' => [
-          'core',
-          'xb_test_sdc',
-        ],
-      ],
-      'sdc.xb_test_sdc.no-ui-sdc' => [
         'module' => [
           'core',
           'xb_test_sdc',
@@ -3566,34 +3530,6 @@ activation="auto">
                 ],
               ],
               'resolved' => 'Our mission is to deliver the best products and services to our customers. We strive to exceed expectations and continuously improve our offerings.',
-            ],
-          ],
-        ],
-        'transforms' => [],
-      ],
-      'sdc.xb_test_sdc.no-ui-sdc' => [
-        'expected_output_selectors' => [
-          'div[data-component-id="xb_test_sdc:no-ui-sdc"]',
-        ],
-        'source' => 'Module component',
-        'metadata' => [
-          'slots' => [],
-        ],
-        'propSources' => [
-          'text' => [
-            'required' => TRUE,
-            'jsonSchema' => [
-              'type' => 'string',
-            ],
-            'sourceType' => 'static:field_item:string',
-            'expression' => 'ℹ︎string␟value',
-            'default_values' => [
-              'source' => [
-                0 => [
-                  'value' => 'Playing hide and seek',
-                ],
-              ],
-              'resolved' => 'Playing hide and seek',
             ],
           ],
         ],

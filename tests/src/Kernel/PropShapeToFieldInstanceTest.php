@@ -161,6 +161,16 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
 
     $matches = [];
     $components = $sdc_manager->getAllComponents();
+    // Shape matching is only ever relevant to SDCs that may appear in the UI,
+    // and hence also in XB. Omit SDCs with `noUi: true`.
+    $components = array_filter(
+      $components,
+      fn (Component $c) => (property_exists($c->metadata, 'noUi') && $c->metadata->noUi === FALSE)
+        // The above only works on Drupal core >=11.3.
+        // @todo Remove in https://www.drupal.org/i/3537695
+        // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
+        || ($c->getPluginDefinition()['noUi'] ?? FALSE) === FALSE,
+    );
     // Ensure the consistent sorting that ComponentPluginManager should have
     // already guaranteed.
     $components = array_combine(
@@ -171,12 +181,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
 
     // Removing some test components that have been enabled due to all SDCs now
     // in xb_test_sdc module.
-    $components_to_remove = ['crash', 'component-no-meta-enum', 'component-mismatch-meta-enum', 'empty-enum', 'deprecated', 'experimental', 'image-gallery', 'image-optional-with-example-and-additional-prop', 'obsolete', 'grid-container', 'html-invalid-format', 'my-cta', 'sparkline', 'sparkline_min_2', 'props-invalid-shapes', 'props-no-examples', 'props-no-slots', 'props-no-title', 'props-slots', 'image-optional-with-example', 'image-optional-without-example', 'image-required-with-example', 'image-required-with-invalid-example', 'image-required-without-example', 'no-ui-sdc'];
+    $components_to_remove = ['crash', 'component-no-meta-enum', 'component-mismatch-meta-enum', 'empty-enum', 'deprecated', 'experimental', 'image-gallery', 'image-optional-with-example-and-additional-prop', 'obsolete', 'grid-container', 'html-invalid-format', 'my-cta', 'sparkline', 'sparkline_min_2', 'props-invalid-shapes', 'props-no-examples', 'props-no-slots', 'props-no-title', 'props-slots', 'image-optional-with-example', 'image-optional-without-example', 'image-required-with-example', 'image-required-with-invalid-example', 'image-required-without-example'];
     foreach ($components_to_remove as $key) {
       unset($components['xb_test_sdc:' . $key]);
     }
-    // @todo Remove in https://www.drupal.org/i/3537695; instead filter away *all* `noUi` SDCs.
-    unset($components['experience_builder:image']);
 
     foreach ($components as $component) {
       // Do not find a match for every unique SDC prop, but only for unique prop

@@ -87,7 +87,15 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
           $reasons[$component_id][] = 'Component has "obsolete" status';
           $component->disable();
         }
+        // An existing Component's SDC may be marked `noUi`.
         if (isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE) {
+          $reasons[$component_id][] = 'Component flagged "noUi".';
+          $component->disable();
+        }
+        // The above only works on Drupal core >=11.3.
+        // @todo Remove in https://www.drupal.org/i/3537695
+        // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
+        if ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE) {
           $reasons[$component_id][] = 'Component flagged "noUi".';
           $component->disable();
         }
@@ -95,6 +103,16 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
       else {
         try {
           $component_plugin = $this->createInstance($machine_name);
+          // Do not create `Component` config entities for SDCs marked `noUi`.
+          if (isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE) {
+            continue;
+          }
+          // The above only works on Drupal core >=11.3.
+          // @todo Remove in https://www.drupal.org/i/3537695
+          // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
+          if ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE) {
+            continue;
+          }
           SingleDirectoryComponent::componentMeetsRequirements($component_plugin);
           $component = SingleDirectoryComponent::createConfigEntity($component_plugin);
         }
