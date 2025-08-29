@@ -548,6 +548,7 @@ playwright:
 
 CLI Test:
   stage: test
+  image: node:20-alpine
   needs: []
   rules:
     - changes:
@@ -582,6 +583,7 @@ CLI Test:
 
 CLI Publish:
   stage: publish
+  image: node:20-alpine
   needs:
     - lint (node)
     - CLI Test
