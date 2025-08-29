@@ -10,6 +10,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 
 /**
@@ -18,6 +19,8 @@ use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
  * @group experience_builder
  */
 class ComponentTreeLoaderTest extends KernelTestBase {
+
+  use VfsPublicStreamUrlTrait;
 
   /**
    * {@inheritdoc}

@@ -9,6 +9,7 @@ use Drupal\experience_builder\Entity\Pattern;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
@@ -32,6 +33,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   use ClientServerConversionTrait;
   use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;
+  use VfsPublicStreamUrlTrait;
 
   /**
    * {@inheritdoc}

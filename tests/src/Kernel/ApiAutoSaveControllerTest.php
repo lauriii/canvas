@@ -27,6 +27,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
@@ -55,6 +56,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   use BlockCreationTrait;
   use RequestTrait;
   use XBFieldTrait;
+  use VfsPublicStreamUrlTrait;
 
   /**
    * {@inheritdoc}

@@ -36,6 +36,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -59,6 +60,7 @@ class PropSourceTest extends KernelTestBase {
   use MediaTypeCreationTrait;
   use NodeCreationTrait;
   use TestFileCreationTrait;
+  use VfsPublicStreamUrlTrait;
 
   /**
    * {@inheritdoc}
@@ -228,6 +230,8 @@ class PropSourceTest extends KernelTestBase {
       $this->fail("Not a minimal representation: $json_representation.");
     }
     $this->assertSame($value, $prop_source_example->getValue());
+    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3530351, which will add better validation of `type: string, format: uri` and `type: string, format: uri-reference`.
+    $this->assertStringStartsNotWith('/vfs://root/', \base_path() . $this->siteDirectory);
     // Test the functionality of a StaticPropSource:
     // - evaluate it to populate an SDC prop
     if (isset($expected_user_value['src'])) {

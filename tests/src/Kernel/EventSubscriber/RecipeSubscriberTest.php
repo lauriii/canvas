@@ -20,6 +20,7 @@ use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
 
@@ -34,6 +35,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use RecipeTestTrait;
   use CrawlerTrait;
+  use VfsPublicStreamUrlTrait;
 
   private const string FIXTURES_DIR = __DIR__ . '/../../../fixtures/recipes';
 

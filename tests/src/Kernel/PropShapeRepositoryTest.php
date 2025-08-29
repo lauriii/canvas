@@ -22,6 +22,7 @@ use Drupal\experience_builder\PropSource\StaticPropSource;
 use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
@@ -33,6 +34,7 @@ use JsonSchema\Validator;
 class PropShapeRepositoryTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use VfsPublicStreamUrlTrait;
 
   /**
    * {@inheritdoc}

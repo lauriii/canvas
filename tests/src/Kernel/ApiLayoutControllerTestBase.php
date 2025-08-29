@@ -8,6 +8,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\PageRegion;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     request as parentRequest;
   }
   use UserCreationTrait;
+  use VfsPublicStreamUrlTrait;
 
   /**
    * Unwrap the JSON response so we can perform assertions on it.

@@ -35,6 +35,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
 use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
@@ -61,6 +62,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   use EntityFormTrait;
   use ContentModerationTestTrait;
   use RequestTrait;
+  use VfsPublicStreamUrlTrait;
 
   private User $otherUser;
 

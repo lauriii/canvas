@@ -9,6 +9,7 @@ use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
+use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -17,6 +18,7 @@ abstract class AutoSaveConflictConfigTestBase extends KernelTestBase {
   use AutoSaveConflictTestTrait;
   use RequestTrait;
   use UserCreationTrait;
+  use VfsPublicStreamUrlTrait;
 
   protected string $updateKey;
 
