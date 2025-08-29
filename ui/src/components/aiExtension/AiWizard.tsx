@@ -146,6 +146,7 @@ const operationsHandler = {
                 {
                   component: componentToUse,
                   withValues: component.fieldValues,
+                  to: component.nodePath,
                 },
                 componentSelectionUtils.setSelectedComponent,
               ),
