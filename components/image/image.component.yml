@@ -14,6 +14,8 @@ props:
       # ⚠️ Note this does NOT specify `$ref: json-schema-definitions://experience_builder.module/image-uri`, see comment above.
       examples:
         - https://placehold.co/600x400
+        - /sites/default/files/llama.jpg
+        - public://llama.jpg
     alt:
       title: Alternative text
       type: string

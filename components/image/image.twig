@@ -1,6 +1,8 @@
 {% set width = width ?? src|getWidth %}
 {% set height = height ?? src|getHeight %}
 {% set srcset = src|toSrcSet(width) %}
+{# Convert any stream wrapper image URL to a public, browser-resolvable URL. (No-op if not stream wrapper image URL. #}
+{% set src = file_url(src) %}
 <img
    class="{{ class ?? 'image' }}"
    src="{{ src }}"

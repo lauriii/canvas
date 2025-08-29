@@ -419,7 +419,7 @@ HTML,
 
   <img
    class="card--image"
-   src="public://balloons.png"
+   src="::SITE_DIR_BASE_URL::/files/balloons.png"
         srcset="::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--16/public/balloons.png.webp?itok=uFWMj39h 16w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--32/public/balloons.png.webp?itok=uFWMj39h 32w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--48/public/balloons.png.webp?itok=uFWMj39h 48w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--64/public/balloons.png.webp?itok=uFWMj39h 64w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--96/public/balloons.png.webp?itok=uFWMj39h 96w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--128/public/balloons.png.webp?itok=uFWMj39h 128w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--256/public/balloons.png.webp?itok=uFWMj39h 256w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--384/public/balloons.png.webp?itok=uFWMj39h 384w, ::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--640/public/balloons.png.webp?itok=uFWMj39h 640w"
      sizes="auto 100vw"
            alt="Hot air balloons"
@@ -441,7 +441,6 @@ HTML,
           'library' => [
             'core/components.xb_test_sdc--card-with-stream-wrapper-image',
             'core/components.experience_builder--image',
-            'core/components.xb_test_sdc--card',
             'core/components.xb_test_sdc--card-with-stream-wrapper-image',
           ],
         ],

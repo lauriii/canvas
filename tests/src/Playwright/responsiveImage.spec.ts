@@ -216,7 +216,9 @@ test.describe('Responsive Image', () => {
     );
     await cardStreamWrapper.scrollIntoViewIfNeeded();
     expect(await cardStreamWrapperInvalidSrc.getAttribute('src')).toContain(
-      'public://balloons2.png',
+      // The stream wrapper URI must be rewritten to an actually resolvable URL.
+      // @see tests/modules/xb_test_sdc/components/card-with-stream-wrapper-image/card-with-stream-wrapper-image.twig
+      'files/balloons2.png',
     );
   });
 });

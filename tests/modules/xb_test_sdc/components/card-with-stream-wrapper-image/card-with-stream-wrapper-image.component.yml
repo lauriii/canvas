@@ -28,6 +28,10 @@ props:
     src:
       title: Stream wrapper image path
       type: string
+      # Note: the xb_test_sdc:card SDC uses `json-schema-definitions://experience_builder.module/image`, and that shape
+      # does NOT accept stream wrapper URIs. Hence this SDC's implementation can NOT reuse xb_test_sdc:card.
+      # @todo This is the correct schema. Add this in https://www.drupal.org/project/experience_builder/issues/3530351.
+      # $ref: json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
       description: Stream wrapper image path e.g. public://
       examples:
         # This is created in the module installer.

@@ -1,11 +1,33 @@
-{% include 'xb_test_sdc:card' with {
-  class: 'card--with-stream-wrapper-image',
-  heading,
-  content,
-  footer,
-  image: {
+{#
+/**
+ * ⚠️This duplicates much of the xb_test_sdc:card component, because that SDC requires a browser-resolvable image URI.
+ *
+ * Stream wrapper URIs cannot be handled by the browser. The JSON Schema for the "card" SDC detects this and a
+ * validation error would be thrown during the rendering: when this SDC includes the "card" SDC.
+ *
+ * @see json-schema-definitions://experience_builder.module/image-uri
+ * @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+ */
+#}
+{% set image = {}  %}
+<article class="card--with-stream-wrapper-image">
+  <header>
+    <h2>{{ heading }}</h2>
+  </header>
+
+  {% include 'experience_builder:image' with image|merge({
     src,
     alt,
-  },
-  loading,
-} only %}
+    loading,
+    sizes,
+    class: 'card--image',
+    attributes: create_attribute({
+      'data-testid': 'card-component-image',
+    })
+  }|filter((value) => value is not null)) only %}
+
+  <div class="content">
+    <p>{{ content }}</p>
+  </div>
+  <footer>{{ footer }}</footer>
+</article>
