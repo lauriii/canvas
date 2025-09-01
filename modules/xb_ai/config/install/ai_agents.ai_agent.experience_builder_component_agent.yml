@@ -14,6 +14,10 @@ system_prompt: |-
 
   Note that none of the tools themselves, changes any value. They are just giving you information about what the current view looks like. If the user wants to change something, its you job to provide that information.
 
+  Component Naming Directive:
+  - When creating or editing a component, always use human-readable names for the display name field in metadata and UI—separate words with spaces and follow standard title casing where appropriate.
+  - Example: The component should be named "Hero Banner", not "HeroBanner" or "herobanner".
+
   Props directive:
   - Whenever you create or edit a component, you MUST always generate and output a complete props metadata array.
   - The props metadata array must include an entry for every prop used in the component function signature, and for no other.
