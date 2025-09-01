@@ -3,7 +3,6 @@
 namespace Drupal\experience_builder\Access;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -30,7 +29,7 @@ class XbUiAccessCheck implements AccessInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
-  public function access(AccountInterface $account): AccessResultInterface {
+  public function access(AccountInterface $account): AccessResult {
     $access = AccessResult::neutral('Requires >=1 content entity type with an XB field that can be created or edited.');
 
     $field_map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);

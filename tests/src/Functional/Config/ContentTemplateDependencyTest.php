@@ -129,7 +129,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
         ],
       ],
     ]);
-    $template->save();
+    $template->setStatus(TRUE)->save();
     // All fields should be hard dependencies of the template.
     $dependencies = $template->getDependencies();
     $this->assertContains('field.field.node.article.field_slogan', $dependencies['config']);

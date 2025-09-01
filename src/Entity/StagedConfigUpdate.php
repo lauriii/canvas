@@ -37,7 +37,7 @@ use Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage;
     'actions',
   ],
 )]
-final class StagedConfigUpdate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
+final class StagedConfigUpdate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, AutoSavePublishAwareInterface {
 
   public const string ENTITY_TYPE_ID = 'staged_config_update';
 
@@ -124,9 +124,13 @@ final class StagedConfigUpdate extends ConfigEntityBase implements XbHttpApiElig
     // Nothing to do.
   }
 
-  public function applyUpdateOnSave(): void {
+  /**
+   * {@inheritdoc}
+   */
+  public function autoSavePublish(): self {
     // @see \Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage::save()
     $this->setStatus(TRUE);
+    return $this;
   }
 
 }

@@ -25,10 +25,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
 use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\AutoSavePublishAwareInterface;
 use Drupal\experience_builder\Entity\EntityConstraintViolationList;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
 use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
@@ -253,8 +253,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
           $violationSets[] = new EntityConstraintViolationList($entity, $violations);
           continue;
         }
-        if ($entity instanceof StagedConfigUpdate) {
-          $entity->applyUpdateOnSave();
+        if ($entity instanceof AutoSavePublishAwareInterface) {
+          $entity->autoSavePublish();
         }
       }
       else {

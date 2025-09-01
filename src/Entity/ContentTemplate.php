@@ -62,7 +62,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
     'exposed_slots',
   ],
 )]
-final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface {
+final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
   use ComponentTreeItemListInstantiatorTrait;
   use ConfigUpdaterAwareEntityTrait;
@@ -112,6 +112,13 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
    */
   protected ?array $exposed_slots = [];
+
+  /**
+   * Disabled by default.
+   *
+   * @var bool
+   */
+  protected $status = FALSE;
 
   /**
    * Tries to load a template for a particular entity, in a specific view mode.
@@ -385,6 +392,14 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
       $value = self::generateComponentTreeKeys($value);
     }
     return parent::set($property_name, $value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function autoSavePublish(): self {
+    $this->setStatus(TRUE);
+    return $this;
   }
 
 }

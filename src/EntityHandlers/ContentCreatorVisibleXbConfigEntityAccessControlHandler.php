@@ -17,6 +17,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ContentCreatorVisibleXbConfigEntityAccessControlHandler extends XbConfigEntityAccessControlHandler {
 
+  protected $viewLabelOperation = TRUE;
+
   final public function __construct(
     EntityTypeInterface $entity_type,
     ConfigManagerInterface $configManager,
@@ -41,6 +43,9 @@ class ContentCreatorVisibleXbConfigEntityAccessControlHandler extends XbConfigEn
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
+      // We allow viewing the label of these entities if the user has access to XB to allow them
+      // to be published.
+      'view label' => $this->xbUiAccessCheck->access($account)->addCacheableDependency($entity),
       // We allow viewing these entities if the user has access to XB, and their
       // status is enabled.
       'view' => $this->xbUiAccessCheck->access($account)->andIf(AccessResult::allowedIf($entity->status())

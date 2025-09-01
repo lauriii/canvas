@@ -139,6 +139,18 @@ HTML;
     // Opt the content type into XB by creating a component tree field.
     $this->createComponentTreeField('node', 'article');
 
+    // Confirm although we've opted in the status of the template is false so
+    // will not be used.
+    $template = ContentTemplate::load('node.article.full');
+    assert($template instanceof ContentTemplate);
+    self::assertFalse($template->status());
+    self::assertStringNotContainsString('XB is large and in charge!', $html);
+    self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
+    self::assertCount(0, $crawler->filter('script'));
+
+    // Updated the status of the template to true.
+    $template->setStatus(TRUE)->save();
+
     // Reload the node now that the field definitions have changed.
     self::assertNotNull($node->id());
     $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->loadUnchanged($node->id());
@@ -153,6 +165,7 @@ HTML;
     $crawler = $this->crawlerForRenderArray($output);
     $html = $crawler->html();
 
+    self::assertTrue($template->status());
     self::assertStringContainsString('XB is large and in charge!', $html);
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
@@ -205,7 +218,7 @@ HTML;
           'label' => 'Custom content area',
         ],
       ],
-    ])->save();
+    ])->setStatus(TRUE)->save();
 
     // Create an article that fills in the template's exposed slot.
     $node = $this->createNode([

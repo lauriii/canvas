@@ -17,6 +17,7 @@ use Drupal\experience_builder\AutoSave\AutoSaveManager;
 use Drupal\experience_builder\Controller\ApiAutoSaveController;
 use Drupal\experience_builder\Controller\ErrorCodesEnum;
 use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\experience_builder\Entity\ContentTemplate;
 use Drupal\experience_builder\Entity\JavaScriptComponent;
 use Drupal\experience_builder\Entity\Page;
 use Drupal\experience_builder\Entity\PageRegion;
@@ -475,6 +476,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
+    $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
     /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $permissions = [
@@ -484,6 +486,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       //   need in https://drupal.org/i/3535354.
       'bypass node access',
       Page::EDIT_PERMISSION,
+      ContentTemplate::ADMIN_PERMISSION,
     ];
     if ($authorized) {
       $permissions[] = AutoSaveManager::PUBLISH_PERMISSION;
@@ -494,6 +497,50 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $this->expectExceptionMessage($expected_403_message);
     }
     $this->assertNoAutoSaveData();
+
+    $template_tree = [
+      // A static marker so we can easily tell if we're rendering with XB.
+      [
+        'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
+        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'XB is large and in charge!',
+        ],
+      ],
+      // The node body, which needs to be using a dynamic prop source
+      // because all content templates require at least one dynamic prop
+      // source.
+      [
+        'uuid' => '6cf8297a-fc60-4019-be81-c336fd828c39',
+        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'dynamic',
+            'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
+        ],
+      ],
+    ];
+    $template = ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => $template_tree,
+    ]);
+    self::assertCount(0, $template->getTypedData()->validate());
+    $template->save();
+    $this->assertFalse($template->status());
+
+    // Make an update so the auto-save manager will save the entity.
+    $template_tree['0']['inputs']['heading'] = 'This is an updated text value';
+    $template->set('component_tree', $template_tree);
+    self::assertCount(0, $template->getTypedData()->validate());
+    $autoSave->saveEntity($template);
+    self:self::assertInstanceOf(ContentTemplate::class, $autoSave->getAutoSaveEntity($template)->entity);
+
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
@@ -807,6 +854,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
     $this->assertNotNull($page->id());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())?->label());
+    $saved_template = $content_template_storage->loadUnchanged($template->id());
+    \assert($saved_template instanceof ContentTemplate);
+    $this->assertFalse($saved_template->status());
     $this->assertSiteHomepage('/user/login');
 
     if ($withGlobal) {
@@ -913,6 +963,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
     $this->assertNotNull($page->id());
     $this->assertSame('Test page', $page_storage->loadUnchanged($page->id())->label());
+    $saved_template = $content_template_storage->loadUnchanged($template->id());
+    \assert($saved_template instanceof ContentTemplate);
+    $this->assertFalse($saved_template->status());
     $this->assertSiteHomepage('/user/login');
 
     // Try publishing something with a field change that we don't have access to.
@@ -927,6 +980,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
     $this->container->get('module_installer')->uninstall(['xb_test_field_access']);
 
+    self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
     $response = $this->makePublishAllRequest();
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -954,6 +1008,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
+    $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
 
     $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());
@@ -961,6 +1016,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertTrue($page->isPublished());
     $this->assertSame('The updated title.', $page->label());
     $this->assertSame($page->getRevisionUserId(), $user->id());
+
+    $this->assertNotNull($template->id());
+    $template = $content_template_storage->loadUnchanged($template->id());
+    assert($template instanceof ContentTemplate);
+    $this->assertTrue($template->status());
 
     $this->assertNotNull($code_component->id());
     $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
