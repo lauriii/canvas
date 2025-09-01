@@ -2,7 +2,13 @@
  * ⚠️ This is highly experimental and *will* be refactored.
  */
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useSyncExternalStore,
+} from 'react';
 import { DeepChat } from 'deep-chat-react';
 import styles from './AiWizard.module.css';
 import {
@@ -32,6 +38,71 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
 import fixtureProps from '../../../../modules/xb_ai/src/PropsSchema.json';
+
+const DB_NAME = 'aiWizardDB';
+const STORE_NAME = 'chatHistory';
+const KEY = 'history';
+
+const withStore = (
+  type: IDBTransactionMode,
+  callback: (store: IDBObjectStore) => void,
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () =>
+      request.result.createObjectStore(STORE_NAME);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction(STORE_NAME, type);
+      callback(tx.objectStore(STORE_NAME));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+  });
+};
+
+const db = {
+  get: (): Promise<any[]> =>
+    new Promise((resolve) => {
+      let req: IDBRequest;
+      withStore('readonly', (store) => {
+        req = store.get(KEY);
+      }).then(() => resolve(req?.result || []));
+    }),
+  set: (data: any[]) => withStore('readwrite', (store) => store.put(data, KEY)),
+  clear: () => withStore('readwrite', (store) => store.clear()),
+};
+
+const createHistoryStore = () => {
+  let history: any[] = [];
+  const subscribers = new Set<() => void>();
+
+  db.get().then((initialHistory) => {
+    history = initialHistory;
+    subscribers.forEach((callback) => callback());
+  });
+
+  return {
+    addMessage(message: any) {
+      history = [...history, message];
+      db.set(history);
+    },
+    clearHistory() {
+      history = [];
+      db.clear();
+      subscribers.forEach((callback) => callback());
+    },
+    subscribe(callback: () => void) {
+      subscribers.add(callback);
+      return () => subscribers.delete(callback);
+    },
+    getSnapshot() {
+      return history;
+    },
+  };
+};
+const historyStore = createHistoryStore();
 
 const simplePropertyHandler = (
   property: string,
@@ -177,18 +248,6 @@ function getHandlersForMessage(message: any) {
   return messageHandlers.filter((handler) => handler.canHandle(message));
 }
 
-const SESSION_STORAGE_KEY = 'aiWizardChatHistory';
-
-function loadChatHistory() {
-  const data = sessionStorage.getItem(SESSION_STORAGE_KEY);
-  if (!data) return [];
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
 const AiWizard = () => {
   const pageData = useAppSelector(selectPageData);
   const dispatch = useAppDispatch();
@@ -205,7 +264,10 @@ const AiWizard = () => {
     Object.entries(model).map(([uuid, comp]) => [uuid, comp.resolved]),
   );
   const textPropsMapString = JSON.stringify(textPropsMap);
-  const [, setChatHistory] = useState(() => loadChatHistory());
+  const chatHistory = useSyncExternalStore(
+    historyStore.subscribe,
+    historyStore.getSnapshot,
+  );
   let isComponentRendered = false;
   const welcomeTextRef = useRef<HTMLSpanElement>(null);
 
@@ -392,10 +454,7 @@ const AiWizard = () => {
         if (welcomeTextRef.current) {
           welcomeTextRef.current.style.display = 'none';
         }
-        const oldHistoryStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        const oldHistory = oldHistoryStr ? JSON.parse(oldHistoryStr) : [];
-        const updated = [...oldHistory, message];
-        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+        historyStore.addMessage(message);
       }
     };
     chatEl.addEventListener('message', handler);
@@ -446,7 +505,7 @@ const AiWizard = () => {
         </Flex>
         <DeepChat
           ref={chatElementRef}
-          history={loadChatHistory()}
+          history={chatHistory}
           images={{
             files: {
               acceptedFormats: '.jpg, .png, .jpeg',
@@ -559,8 +618,7 @@ const AiWizard = () => {
           onComponentRender={() => {
             if (!isComponentRendered) {
               chatElementRef.current.clearMessages();
-              sessionStorage.removeItem(SESSION_STORAGE_KEY);
-              setChatHistory([]);
+              historyStore.clearHistory();
               chatElementRef.current.disableSubmitButton();
               isComponentRendered = true;
             }
