@@ -33,7 +33,7 @@ test.describe('AI Features', () => {
   test('Show AI panel only to users with Canvas AI permissions', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.login({
       username: 'canvasai',
@@ -41,7 +41,7 @@ test.describe('AI Features', () => {
     });
     await drupal.createCanvasPage('Canvas AI User', '/canvasai_user');
     await page.goto('/canvasai_user');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
     // @todo This test should fail once https://www.drupal.org/i/3533449 is implemented
     await expect(
@@ -58,11 +58,16 @@ test.describe('AI Features', () => {
     ).toBeAttached();
   });
 
-  test('Create component workflow', async ({ page, drupal, xBEditor, ai }) => {
+  test('Create component workflow', async ({
+    page,
+    drupal,
+    canvasEditor,
+    ai,
+  }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Canvas AI component', '/canvasai_component');
     await page.goto('/canvasai_component');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await ai.openPanel();
     await ai.submitQuery('Create component');
     await expect(page).toHaveURL(
@@ -85,32 +90,32 @@ test.describe('AI Features', () => {
       .filter({ hasText: /^HeroBanner$/ })
       .nth(4)
       .click();
-    await xBEditor.clickPreviewComponent('js.herobanner');
+    await canvasEditor.clickPreviewComponent('js.herobanner');
 
     // Create a second component.
     await ai.submitQuery('Create second component');
     await expect(page).toHaveURL(
       /\/canvas\/canvas_page\/\d+\/code-editor\/component\/herobannersecond/,
     );
-    const preview = xBEditor.getCodePreviewFrame();
+    const preview = canvasEditor.getCodePreviewFrame();
     const redElements = preview.locator('.bg-red-600');
     const blueElements = preview.locator('.bg-blue-600');
     await expect(redElements).toHaveCount(1);
     await expect(blueElements).toHaveCount(0);
 
     await ai.submitQuery('Edit component');
-    const updatedPreview = xBEditor.getCodePreviewFrame();
+    const updatedPreview = canvasEditor.getCodePreviewFrame();
     const redElementsUpdated = updatedPreview.locator('.bg-red-600');
     const blueElementsUpdated = updatedPreview.locator('.bg-blue-600');
     await expect(redElementsUpdated).toHaveCount(0);
     await expect(blueElementsUpdated).toHaveCount(1);
   });
 
-  test('Image upload', async ({ page, drupal, xBEditor, ai }) => {
+  test('Image upload', async ({ page, drupal, canvasEditor, ai }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Canvas AI image upload', '/canvasai_image');
     await page.goto('/canvasai_image');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await ai.openPanel();
 
     const buffer = readFileSync('tests/fixtures/images/gracie-big.jpg');
@@ -158,11 +163,11 @@ test.describe('AI Features', () => {
     ).not.toBeVisible();
   });
 
-  test('Generate title', async ({ page, drupal, xBEditor, ai }) => {
+  test('Generate title', async ({ page, drupal, canvasEditor, ai }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Canvas AI title', '/canvasai_title');
     await page.goto('/canvasai_title');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await ai.openPanel();
     await expect(page.getByRole('textbox', { name: 'Title*' })).toHaveValue(
       'Canvas AI title',
@@ -173,11 +178,11 @@ test.describe('AI Features', () => {
     );
   });
 
-  test('Generate metadata', async ({ page, drupal, xBEditor, ai }) => {
+  test('Generate metadata', async ({ page, drupal, canvasEditor, ai }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Canvas AI metadata', '/canvasai_metadata');
     await page.goto('/canvasai_metadata');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await ai.openPanel();
     await expect(
       page.getByRole('textbox', { name: 'Meta description' }),

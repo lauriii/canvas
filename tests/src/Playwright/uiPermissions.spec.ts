@@ -23,11 +23,11 @@ test.describe('Canvas UI Permissions', () => {
   test('User with admin permissions can load Canvas UI and see lots of buttons', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await page.getByText('Two Column').click({ button: 'right' });
 
     const menu = page.getByRole('menu', {
@@ -64,7 +64,7 @@ test.describe('Canvas UI Permissions', () => {
     await page.locator('body').click(); // Dismiss the context menu
     await expect(contextMenu).not.toBeAttached();
 
-    await xBEditor.openLibraryPanel();
+    await canvasEditor.openLibraryPanel();
     // Check that a button with the text "Add new" exists inside canvas-primary-panel
     const primaryPanel = page.getByTestId('canvas-primary-panel');
     await expect(
@@ -90,7 +90,7 @@ test.describe('Canvas UI Permissions', () => {
   test('User with no Canvas permissions can load Canvas UI', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     // Create a role with no (well, minimal) Canvas permissions
     await drupal.createRole({ name: 'canvas_no_permissions' });
@@ -115,7 +115,7 @@ test.describe('Canvas UI Permissions', () => {
     await drupal.createUser(user);
     await drupal.login(user);
     await page.goto('/first');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
     await page.getByText('Two Column').click({ button: 'right' });
     const menu = page.getByRole('menu', {
@@ -155,7 +155,7 @@ test.describe('Canvas UI Permissions', () => {
     await expect(contextMenu).not.toBeAttached();
 
     // Open the library panel
-    await xBEditor.openLibraryPanel();
+    await canvasEditor.openLibraryPanel();
 
     // Check that a button with the text "Add new" does not exist inside canvas-primary-panel
     const primaryPanel = page.getByTestId('canvas-primary-panel');

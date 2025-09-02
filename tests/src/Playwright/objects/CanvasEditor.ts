@@ -212,7 +212,7 @@ export class CanvasEditor {
    * - hasInputs: If true, waits for the component inputs form to be visible. (default: true)
    *
    * Example usage:
-   *   await xBEditor.addComponent({ name: 'Card' }, { waitForNetworkResponses: true });
+   *   await canvasEditor.addComponent({ name: 'Card' }, { waitForNetworkResponses: true });
    */
   async addComponent(
     identifier: { id?: string; name?: string },

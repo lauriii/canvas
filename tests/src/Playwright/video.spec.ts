@@ -20,12 +20,12 @@ test.describe('Video Component', () => {
   test('Can use a generic file widget to populate a video prop', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Video Test', '/video-test');
     await page.goto('/video-test');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     let previewFrame;
 
     const moduleDir = await getModuleDir();
@@ -33,19 +33,19 @@ test.describe('Video Component', () => {
       `${moduleDir}/canvas/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('Video', code);
-    await xBEditor.addCodeComponentProp('video', 'Video', [
+    await canvasEditor.createCodeComponent('Video', code);
+    await canvasEditor.addCodeComponentProp('video', 'Video', [
       {
         type: 'select',
         label: 'Example aspect ratio',
         value: '16:9 (Widescreen)',
       },
     ]);
-    await xBEditor.addCodeComponentProp('text', 'Text', [
+    await canvasEditor.addCodeComponentProp('text', 'Text', [
       { type: 'text', label: 'Example value', value: 'Example Text' },
     ]);
-    await xBEditor.saveCodeComponent('js.video');
-    await xBEditor.addComponent({ id: 'js.video' });
+    await canvasEditor.saveCodeComponent('js.video');
+    await canvasEditor.addComponent({ id: 'js.video' });
 
     const formBuildId = await page
       .locator(
@@ -54,7 +54,7 @@ test.describe('Video Component', () => {
       .getAttribute('value');
 
     // Check hardcoded default values.
-    previewFrame = await xBEditor.getActivePreviewFrame();
+    previewFrame = await canvasEditor.getActivePreviewFrame();
     expect(await previewFrame.locator('video').getAttribute('src')).toContain(
       '/ui/assets/videos/mountain_wide',
     );
@@ -62,13 +62,13 @@ test.describe('Video Component', () => {
       await previewFrame.locator('video').getAttribute('poster'),
     ).toContain('https://placehold.co/1920x1080.png?text=Widescreen');
 
-    await xBEditor.editComponentProp(
+    await canvasEditor.editComponentProp(
       'video',
       // @todo move this to tests/fixtures/videos
       '../../../../ui/assets/videos/mountain_wide.mp4',
       'file',
     );
-    previewFrame = await xBEditor.getActivePreviewFrame();
+    previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');
 
     // Click the remove button to remove the video.
@@ -96,11 +96,11 @@ test.describe('Video Component', () => {
     ).not.toBeVisible();
 
     // Back to the default, which has a poster image.
-    previewFrame = await xBEditor.getActivePreviewFrame();
+    previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).toHaveAttribute('poster');
 
     // Add a different video
-    await xBEditor.editComponentProp(
+    await canvasEditor.editComponentProp(
       'video',
       // @todo move this to tests/fixtures/videos
       '../../../../ui/assets/videos/bird_vertical.mp4',
@@ -121,7 +121,7 @@ test.describe('Video Component', () => {
         .getAttribute('value'),
     ).not.toEqual(formBuildId);
 
-    previewFrame = await xBEditor.getActivePreviewFrame();
+    previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');
     expect(await previewFrame.locator('video').getAttribute('src')).toContain(
       'bird_vertical',
@@ -131,13 +131,13 @@ test.describe('Video Component', () => {
   test('Can use media to populate a video prop', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.applyRecipe('core/recipes/local_video_media_type');
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Video Media Test', '/video-media-test');
     await page.goto('/video-media-test');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
     // Add the component again. The previous one can't be reused because it needs
     // resaving in order for the media widget to kick in.
@@ -147,24 +147,24 @@ test.describe('Video Component', () => {
       `${moduleDir}/canvas/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('VideoMedia', code);
-    await xBEditor.addCodeComponentProp('video', 'Video', [
+    await canvasEditor.createCodeComponent('VideoMedia', code);
+    await canvasEditor.addCodeComponentProp('video', 'Video', [
       {
         type: 'select',
         label: 'Example aspect ratio',
         value: '16:9 (Widescreen)',
       },
     ]);
-    await xBEditor.addCodeComponentProp('text', 'Text', [
+    await canvasEditor.addCodeComponentProp('text', 'Text', [
       { type: 'text', label: 'Example value', value: 'Example Text' },
     ]);
-    await xBEditor.saveCodeComponent('js.videomedia');
-    await xBEditor.addComponent({ id: 'js.videomedia' });
+    await canvasEditor.saveCodeComponent('js.videomedia');
+    await canvasEditor.addComponent({ id: 'js.videomedia' });
 
     await drupal.addMediaGenericFile(
       '../../../../ui/assets/videos/bird_vertical.mp4',
     );
-    const previewFrame = await xBEditor.getActivePreviewFrame();
+    const previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');
     expect(await previewFrame.locator('video').getAttribute('src')).toContain(
       'bird_vertical',

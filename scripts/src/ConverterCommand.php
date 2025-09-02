@@ -54,6 +54,7 @@ class ConverterCommand extends Command {
       'Xb' => 'Canvas',
       'ExperienceBuilder' => 'Canvas',
       'Drupal Drupal Canvas' => 'Drupal Canvas',
+      'xBEditor' => 'canvasEditor',
       // We cannot replace xB because that would match things like ajaxBehaviors.
       // If we need for some reason, we need to revert that here.
     ];

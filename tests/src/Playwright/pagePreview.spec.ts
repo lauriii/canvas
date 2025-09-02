@@ -23,12 +23,12 @@ test.describe('Preview Link Behavior', () => {
   test('Can view a preview and change preview width', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Preview 1', '/preview-page-1');
     await page.goto('/preview-page-1');
-    await xBEditor.goToEditor();
-    await xBEditor.addComponent({ name: 'Hero' });
+    await canvasEditor.goToEditor();
+    await canvasEditor.addComponent({ name: 'Hero' });
 
     await page.getByText('Preview', { exact: true }).click();
 
@@ -54,19 +54,19 @@ test.describe('Preview Link Behavior', () => {
 
     // Exit preview and wait for editor UI
     await page.getByText('Exit Preview').click();
-    await xBEditor.waitForEditorUi();
+    await canvasEditor.waitForEditorUi();
   });
 
   test('Links in the preview should be intercepted', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Preview 2', '/preview-page-2');
     await page.goto('/preview-page-2');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
-    await xBEditor.addComponent({ name: 'Hero' });
+    await canvasEditor.addComponent({ name: 'Hero' });
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
 
     await expect(
@@ -126,11 +126,11 @@ test.describe('Preview Link Behavior', () => {
   test('Form submission in the preview should be intercepted', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Preview 3', '/preview-page-3');
     await page.goto('/preview-page-3');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
 
     await expect(

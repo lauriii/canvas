@@ -24,19 +24,23 @@ test.describe('Menu Component', () => {
     },
   );
 
-  test('Add and test menu component', async ({ page, drupal, xBEditor }) => {
+  test('Add and test menu component', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Homepage', '/homepage');
     await page.goto('/homepage');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
 
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/menus/Menu.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('Menu', code);
-    const preview = xBEditor.getCodePreviewFrame();
+    await canvasEditor.createCodeComponent('Menu', code);
+    const preview = canvasEditor.getCodePreviewFrame();
 
     await expect(preview).toContainText('JSON:API Menu');
     await expect(preview).toContainText('Core Linkset Menu');

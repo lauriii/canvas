@@ -17,7 +17,7 @@ test.describe('Theming', () => {
   test("The active theme's base CSS should not be loaded when loading the Canvas UI.", async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Olivero', '/olivero');
@@ -25,7 +25,7 @@ test.describe('Theming', () => {
     await drupal.drush('config:set system.theme default olivero');
     await drupal.setPreprocessing({ css: false });
     await page.goto('/olivero');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     // We expect the correct CSS files to be loaded for the Drupal Canvas UI.
     await expect(
       page.locator(

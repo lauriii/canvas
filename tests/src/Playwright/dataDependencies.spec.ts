@@ -22,30 +22,33 @@ test.describe('Data dependencies', () => {
 
   test('Are extracted and saved to the entity', async ({
     page,
-    xBEditor,
+    canvasEditor,
     drupal,
   }) => {
     await drupal.loginAsAdmin();
     await page.goto('/homepage');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('PageTitle', code);
-    const preview = xBEditor.getCodePreviewFrame();
+    await canvasEditor.createCodeComponent('PageTitle', code);
+    const preview = canvasEditor.getCodePreviewFrame();
     // @see \Drupal\canvas\Controller\CanvasController::__invoke
     await expect(
       preview.getByRole('heading', {
         name: 'This is a page title for testing purposes',
       }),
     ).toBeVisible();
-    await xBEditor.publishAllChanges(['PageTitle', 'Global CSS']);
+    await canvasEditor.publishAllChanges(['PageTitle', 'Global CSS']);
     await page.getByRole('button', { name: 'Add to components' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Add' }).click();
-    await xBEditor.addComponent({ id: 'js.pagetitle' }, { hasInputs: false });
-    await xBEditor.publishAllChanges(['Homepage']);
+    await canvasEditor.addComponent(
+      { id: 'js.pagetitle' },
+      { hasInputs: false },
+    );
+    await canvasEditor.publishAllChanges(['Homepage']);
     await page.goto('/homepage');
     await expect(
       page.locator('canvas-island').getByRole('heading', { name: 'Homepage' }),

@@ -66,14 +66,14 @@ const drupal = base.extend<DrupalObj>({
 });
 
 type CanvasEditorObj = {
-  xBEditor: CanvasEditor;
+  canvasEditor: CanvasEditor;
 };
 
-const xBEditor = base.extend<CanvasEditorObj>({
-  xBEditor: [
+const canvasEditor = base.extend<CanvasEditorObj>({
+  canvasEditor: [
     async ({ page }, use) => {
-      const xBEditor = new CanvasEditor({ page });
-      await use(xBEditor);
+      const canvasEditor = new CanvasEditor({ page });
+      await use(canvasEditor);
     },
     { auto: true },
   ],
@@ -114,7 +114,7 @@ const beforeEachTest = base.extend<{ forEachTest: void }>({
 export const test = mergeTests(
   drupalSite,
   drupal,
-  xBEditor,
+  canvasEditor,
   ai,
   beforeAllTests,
   beforeEachTest,

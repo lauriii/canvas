@@ -83,10 +83,10 @@ test.describe('Canary Canvas', () => {
     `);
   });
 
-  test('Drupal Canvas Layer Panel', async ({ page, drupal, xBEditor }) => {
+  test('Drupal Canvas Layer Panel', async ({ page, drupal, canvasEditor }) => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const layerPanel = 'xpath=//*[@data-testid="canvas-primary-panel"]';
     const layerPanelElement = await page.locator(layerPanel);
     await expect(layerPanelElement).toContainText('Two Column');
@@ -94,12 +94,12 @@ test.describe('Canary Canvas', () => {
     await expect(layerPanelElement).toContainText('Column Two');
   });
 
-  test('Component can be deleted', async ({ page, drupal, xBEditor }) => {
+  test('Component can be deleted', async ({ page, drupal, canvasEditor }) => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     // Delete the image that uses an adapted source.
-    await xBEditor.clickPreviewComponent('sdc.canvas_test_sdc.image');
+    await canvasEditor.clickPreviewComponent('sdc.canvas_test_sdc.image');
     await page.keyboard.press('Delete');
     await page
       .locator(

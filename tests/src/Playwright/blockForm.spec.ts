@@ -21,13 +21,13 @@ test.describe('Block form', () => {
   test('Block settings form with details element', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
     await page.goto('/menu-block');
-    await xBEditor.goToEditor();
-    await xBEditor.openLayersPanel();
-    await xBEditor.openComponent('Administration');
+    await canvasEditor.goToEditor();
+    await canvasEditor.openLayersPanel();
+    await canvasEditor.openComponent('Administration');
 
     // @todo
     // In the Cypress test it now goes on to verify that the two dropdowns
@@ -47,14 +47,14 @@ test.describe('Block form', () => {
   test('Block settings form values are stored and the preview is updated', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
     await page.goto('/branding-block');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
     const componentUuid = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
-    await xBEditor.openComponent('Site branding');
+    await canvasEditor.openComponent('Site branding');
 
     // Remove and re-add the site logo.
     const siteLogoCheckbox = page
@@ -64,21 +64,21 @@ test.describe('Block form', () => {
       .getByLabel('Site logo');
     await expect(siteLogoCheckbox).toBeChecked();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         `[data-canvas-uuid="${componentUuid}"] img`,
       ),
     ).toBeVisible();
     await siteLogoCheckbox.click();
     await expect(siteLogoCheckbox).not.toBeChecked();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         `[data-canvas-uuid="${componentUuid}"] img`,
       ),
     ).not.toBeVisible();
     await siteLogoCheckbox.click();
     await expect(siteLogoCheckbox).toBeChecked();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         `[data-canvas-uuid="${componentUuid}"] img`,
       ),
     ).toBeVisible();
@@ -91,20 +91,20 @@ test.describe('Block form', () => {
       .getByLabel('Site name');
     await expect(siteNameCheckbox).toBeChecked();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         `[data-canvas-uuid="${componentUuid}"]`,
       ),
     ).toHaveText('Drupal');
     await siteNameCheckbox.click();
     await expect(siteNameCheckbox).not.toBeChecked();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         `[data-canvas-uuid="${componentUuid}"]`,
       ),
     ).not.toHaveText('Drupal');
 
     // Verify the component is saved and renders with the new options.
-    await xBEditor.publishAllChanges();
+    await canvasEditor.publishAllChanges();
     await page.goto('/branding-block');
     await expect(page.locator(`#block-${componentUuid} img`)).toBeVisible();
     await expect(page.locator(`#block-${componentUuid} img`)).toHaveAttribute(

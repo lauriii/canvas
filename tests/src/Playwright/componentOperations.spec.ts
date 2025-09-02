@@ -48,10 +48,10 @@ test.describe('Perform CRUD operations on components', () => {
     });
   });
 
-  test('Layer and Components Panel', async ({ page, drupal, xBEditor }) => {
+  test('Layer and Components Panel', async ({ page, drupal, canvasEditor }) => {
     await drupal.createCanvasPage('Panels', '/panels');
     await page.goto('/panels');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await expect(page.locator('[data-testid="canvas-side-menu"]'))
       .toMatchAriaSnapshot(`
          - button "Add":
@@ -307,13 +307,17 @@ test.describe('Perform CRUD operations on components', () => {
          `);
   });
 
-  test('Component hovers and clicks', async ({ page, drupal, xBEditor }) => {
+  test('Component hovers and clicks', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
     await drupal.createCanvasPage('Hovers', '/hovers');
     await page.goto('/hovers');
-    await xBEditor.goToEditor();
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
-    await xBEditor.openLayersPanel();
+    await canvasEditor.goToEditor();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
+    await canvasEditor.openLayersPanel();
 
     // Confirm no component has a hover outline.
     await expect(
@@ -348,25 +352,25 @@ test.describe('Perform CRUD operations on components', () => {
     await expect(hero).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
 
     // Hover over a component in the preview frame and verify it's outlined.
-    await xBEditor.hoverPreviewComponent('sdc.canvas_test_sdc.my-hero');
+    await canvasEditor.hoverPreviewComponent('sdc.canvas_test_sdc.my-hero');
     await expect(hero).toHaveCSS('outline-width', '1px');
     await expect(hero).toHaveCSS('outline-style', 'solid');
     await expect(hero).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
     await expect(card).toHaveCSS('outline-style', 'dashed');
-    await xBEditor.hoverPreviewComponent('sdc.canvas_test_sdc.card');
+    await canvasEditor.hoverPreviewComponent('sdc.canvas_test_sdc.card');
     await expect(card).toHaveCSS('outline-width', '1px');
     await expect(card).toHaveCSS('outline-style', 'solid');
     await expect(card).not.toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
     await expect(hero).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
 
     // Check edit props form opens when clicking the component in the preview.
-    await xBEditor.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
+    await canvasEditor.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
     await expect(
       page.locator(
         '[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-subheading input',
       ),
     ).toBeVisible();
-    await xBEditor.clickPreviewComponent('sdc.canvas_test_sdc.card');
+    await canvasEditor.clickPreviewComponent('sdc.canvas_test_sdc.card');
     await expect(
       page.locator(
         '[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-content input',
@@ -377,24 +381,24 @@ test.describe('Perform CRUD operations on components', () => {
   test('Can handle empty heading prop in hero component', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Hero', '/hero');
     await page.goto('/hero');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     await expect(page.locator('#block-stark-page-title h1')).toHaveCount(0);
 
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
 
     // Heading.
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
     ).toContainText('There goes my hero');
-    await xBEditor.editComponentProp('heading', '');
+    await canvasEditor.editComponentProp('heading', '');
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
     ).not.toContainText('There goes my hero');
@@ -402,25 +406,25 @@ test.describe('Perform CRUD operations on components', () => {
     // Refresh the page.
     await page.reload();
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
     ).not.toContainText('There goes my hero');
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] .my-hero__subheading',
       ),
     ).toContainText('Watch him as he goes!');
 
     // CTAs.
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] a[href="https://example.com"]',
       ),
     ).toBeVisible();
-    await xBEditor.editComponentProp('cta1href', 'https://drupal.org');
+    await canvasEditor.editComponentProp('cta1href', 'https://drupal.org');
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] a.my-hero__cta--primary',
       ),
     ).toHaveAttribute('href', /drupal\.org/);
@@ -429,22 +433,26 @@ test.describe('Perform CRUD operations on components', () => {
   test('Can delete component with delete key', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Delete', '/delete');
     await page.goto('/delete');
-    await xBEditor.goToEditor();
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
-    await xBEditor.deleteComponent('sdc.canvas_test_sdc.card');
+    await canvasEditor.goToEditor();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
+    await canvasEditor.deleteComponent('sdc.canvas_test_sdc.card');
   });
 
-  test('Can add a component with slots', async ({ page, drupal, xBEditor }) => {
+  test('Can add a component with slots', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
     await drupal.createCanvasPage('Slots', '/slots');
     await page.goto('/slots');
-    await xBEditor.goToEditor();
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.props-slots' });
-    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
-    await xBEditor.openLayersPanel();
+    await canvasEditor.goToEditor();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.props-slots' });
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
+    await canvasEditor.openLayersPanel();
     await expect(page.locator('[data-testid="canvas-primary-panel"]'))
       .toMatchAriaSnapshot(`
       - heading "Layers" [level=4]
@@ -469,7 +477,7 @@ test.describe('Perform CRUD operations on components', () => {
           - img
           - text: Card
       `);
-    await xBEditor.moveComponent('Card', 'the_footer');
+    await canvasEditor.moveComponent('Card', 'the_footer');
     await expect(page.locator('[data-testid="canvas-primary-panel"]'))
       .toMatchAriaSnapshot(`
       - heading "Layers" [level=4]
@@ -501,21 +509,25 @@ test.describe('Perform CRUD operations on components', () => {
       `);
   });
 
-  test('The iframe loads the SDC CSS', async ({ drupal, page, xBEditor }) => {
+  test('The iframe loads the SDC CSS', async ({
+    drupal,
+    page,
+    canvasEditor,
+  }) => {
     await drupal.setPreprocessing({ css: false });
     await drupal.createCanvasPage('Load SDC CSS', '/sdc-styles');
     await page.goto('/sdc-styles');
-    await xBEditor.goToEditor();
-    await xBEditor.addComponent({ name: 'Hero' });
+    await canvasEditor.goToEditor();
+    await canvasEditor.addComponent({ name: 'Hero' });
 
-    const head = await xBEditor.getIframeHead();
+    const head = await canvasEditor.getIframeHead();
     expect(head).not.toBeUndefined();
     const headHTML = await page.evaluate((el) => el.innerHTML, head);
     expect(headHTML).toContain('components/my-hero/my-hero.css');
 
-    await xBEditor.deleteComponent('sdc.canvas_test_sdc.my-hero');
+    await canvasEditor.deleteComponent('sdc.canvas_test_sdc.my-hero');
 
-    const head2 = await xBEditor.getIframeHead();
+    const head2 = await canvasEditor.getIframeHead();
     expect(head2).not.toBeUndefined();
     const head2HTML = await page.evaluate((el) => el.innerHTML, head2);
     expect(head2HTML).not.toContain('components/my-hero/my-hero.css');
@@ -524,13 +536,13 @@ test.describe('Perform CRUD operations on components', () => {
   test('Should be able to blur autocomplete without problems. See #3519734', async ({
     page,
     drupal,
-    xBEditor,
+    canvasEditor,
   }) => {
     await drupal.createCanvasPage('Blur Autocomplete', '/blur-autocomplete');
     await page.goto('/blur-autocomplete');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
-    await xBEditor.addComponent({ name: 'Hero' });
+    await canvasEditor.addComponent({ name: 'Hero' });
 
     // Fill in Heading and Sub-heading fields
     const headType = 'Head is different';
@@ -544,13 +556,13 @@ test.describe('Perform CRUD operations on components', () => {
       subType,
     );
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
     ).toContainText(headType);
 
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] p',
       ),
     ).toContainText(subType);
@@ -569,13 +581,13 @@ test.describe('Perform CRUD operations on components', () => {
 
     // Assert the preview still has the correct values
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
     ).toContainText(headType);
 
     await expect(
-      (await xBEditor.getActivePreviewFrame()).locator(
+      (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] p',
       ),
     ).toContainText(subType);

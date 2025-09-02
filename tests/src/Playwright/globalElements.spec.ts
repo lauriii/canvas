@@ -18,18 +18,18 @@ test.describe('Global elements', () => {
     },
   );
 
-  test('Page title', async ({ page, xBEditor, drupal }) => {
+  test('Page title', async ({ page, canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Page Title', '/page-title');
     await page.goto('/page-title');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('PageTitle', code);
-    const preview = xBEditor.getCodePreviewFrame();
+    await canvasEditor.createCodeComponent('PageTitle', code);
+    const preview = canvasEditor.getCodePreviewFrame();
     // @see \Drupal\canvas\Controller\CanvasController::__invoke
     await expect(
       preview.getByRole('heading', {
@@ -38,35 +38,35 @@ test.describe('Global elements', () => {
     ).toBeVisible();
   });
 
-  test('Site branding', async ({ page, xBEditor, drupal }) => {
+  test('Site branding', async ({ page, canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Site Branding', '/site-branding');
     await page.goto('/site-branding');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/SiteBranding.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('SiteBranding', code);
-    const preview = xBEditor.getCodePreviewFrame();
+    await canvasEditor.createCodeComponent('SiteBranding', code);
+    const preview = canvasEditor.getCodePreviewFrame();
     // Site name defaults to 'Drupal'.
     // @see \Drupal\Core\Command\InstallCommand::configure
     await expect(preview.getByRole('link', { name: 'Drupal' })).toBeVisible();
   });
 
-  test('Breadcrumbs', async ({ page, xBEditor, drupal }) => {
+  test('Breadcrumbs', async ({ page, canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Breadcrumbs', '/breadcrumbs');
     await page.goto('/breadcrumbs');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/Breadcrumbs.jsx`,
       'utf-8',
     );
-    await xBEditor.createCodeComponent('Breadcrumbs', code);
-    const preview = xBEditor.getCodePreviewFrame();
+    await canvasEditor.createCodeComponent('Breadcrumbs', code);
+    const preview = canvasEditor.getCodePreviewFrame();
     // @see \Drupal\canvas\Controller\CanvasController::__invoke
     await expect(preview.getByRole('link', { name: 'Home' })).toBeVisible();
     await expect(

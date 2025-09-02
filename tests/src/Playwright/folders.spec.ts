@@ -22,11 +22,15 @@ test.describe('Folder Management', () => {
     },
   );
 
-  test('Folder display and creation', async ({ page, drupal, xBEditor }) => {
+  test('Folder display and creation', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
     await drupal.loginAsAdmin();
     await drupal.createCanvasPage('Test Page', '/test-page');
     await page.goto('/test-page');
-    await xBEditor.goToEditor();
+    await canvasEditor.goToEditor();
 
     await page.click('[aria-label="Manage library"]');
     await expect(
