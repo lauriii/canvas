@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Tests\ApiRequestTrait;
-use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Base class for functional tests of XB's internal HTTP API.
+ * Base class for functional tests of Canvas's internal HTTP API.
  *
  * Provides helper methods for making API requests and asserting response cacheability.
  *
- * @group experience_builder
+ * @group canvas
  */
 abstract class HttpApiTestBase extends FunctionalTestBase {
 
@@ -80,7 +80,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
    */
   protected function performAutoSave(array $data_to_auto_save, array $expected_auto_save_entity, string $entity_type_id, string $entity_id): void {
     static $clientIdNumber = 0;
-    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
+    $auto_save_url = Url::fromUri("base:/canvas/api/v0/config/auto-save/$entity_type_id/$entity_id");
     $request_options = [
       RequestOptions::HEADERS => [
         'Content-Type' => 'application/json',
@@ -97,8 +97,8 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       // Use a unique client instance ID to ensure that auto-save hashes are
       // always verified, except when we are explicitly testing using the same
       // client.
-      // @see \Drupal\Tests\experience_builder\Kernel\AutoSave\AutoSaveConflictTestTrait::testOutdatedAutoSave()
-      // @see \Drupal\experience_builder\Controller\AutoSaveTrait::validateAutoSaves()
+      // @see \Drupal\Tests\canvas\Kernel\AutoSave\AutoSaveConflictTestTrait::testOutdatedAutoSave()
+      // @see \Drupal\canvas\Controller\AutoSaveTrait::validateAutoSaves()
       'clientInstanceId' => 'test-client-' . (++$clientIdNumber),
     ];
     $patch_response = $this->assertExpectedResponse('PATCH', $auto_save_url, $request_options, 200, NULL, NULL, NULL, NULL);
@@ -117,11 +117,11 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         'Content-Type' => 'application/json',
       ],
     ];
-    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
+    $auto_save_url = Url::fromUri("base:/canvas/api/v0/config/auto-save/$entity_type_id/$entity_id");
     // Because the 'autoSaveStartingPoint`, which is returned from the
     // $auto_save_url GET request, is created using the saved entity in addition
     // to the auto-save entry we need to expect the cache tags of the entity.
-    // @see \Drupal\experience_builder\Controller\AutoSaveValidateTrait::getClientAutoSaveData()
+    // @see \Drupal\canvas\Controller\AutoSaveValidateTrait::getClientAutoSaveData()
     $entity = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id)->load($entity_id);
     $cacheTags = [AutoSaveManager::CACHE_TAG, 'http_response'];
     if ($entity instanceof EntityInterface) {
@@ -168,7 +168,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     }
     \assert($entity instanceof EntityInterface);
     $data = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($entity)->entity;
-    \assert($data instanceof XbHttpApiEligibleConfigEntityInterface);
+    \assert($data instanceof CanvasHttpApiEligibleConfigEntityInterface);
     $this->assertSame($expected_auto_save, $data->normalizeForClientSide()->values);
   }
 
@@ -176,7 +176,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
    * Asserts we can delete a resource, and we get an empty list afterward.
    */
   protected function assertDeletionAndEmptyList(Url $resource_url, Url $list_url, string $list_cache_tag, array $default_list = []): void {
-    // Delete the sole remaining segment via the XB HTTP API: 204.
+    // Delete the sole remaining segment via the Canvas HTTP API: 204.
     $body = $this->assertExpectedResponse('DELETE', $resource_url, [], 204, NULL, NULL, NULL, NULL);
     $this->assertNull($body);
 
@@ -188,7 +188,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
     else {
       // If the default list is not empty, check against that instead of an
       // empty array. We only expect this for the Folder config entity type.
-      // @see \Drupal\Tests\experience_builder\Functional\XbConfigEntityHttpApiTest::$defaultFolders
+      // @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::$defaultFolders
       assert(str_contains($list_url->getUri(), 'folder'));
       $this->assertSameFoldersSansUuids($default_list, $body ?? []);
     }
@@ -218,7 +218,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
         'label' => $entity->label(),
       ],
     ];
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/xb/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], [...$entity->getCacheTags(), 'config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', "user:{$user->id()}"], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/auto-saves/pending"), $request_options, 200, ['user.permissions'], [...$entity->getCacheTags(), 'config:user.settings', AutoSaveManager::CACHE_TAG, 'http_response', "user:{$user->id()}"], 'UNCACHEABLE (request policy)', 'MISS');
     $id = array_keys($expected_list)[0];
     \assert(\is_array($body));
     self::assertArrayHasKey($id, $body);

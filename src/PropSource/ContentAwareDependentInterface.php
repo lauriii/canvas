@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -11,7 +11,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  * Provides an interface for a prop source that has dependencies.
  *
  * @internal
- * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  */
 interface ContentAwareDependentInterface {
 

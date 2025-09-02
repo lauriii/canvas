@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Core\Breadcrumb\ChainBreadcrumbBuilderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -18,12 +18,12 @@ use Symfony\Component\Routing\Route;
  * Provides a service to expose site metadata to drupalSettings for JS components.
  *
  * This includes site branding, breadcrumbs, page title and base URL.
- * Intended for use with dynamic JavaScript components such as those in Experience Builder.
+ * Intended for use with dynamic JavaScript components such as those in Drupal Canvas.
  */
 readonly final class CodeComponentDataProvider {
 
   public const string V0 = 'v0';
-  public const string XB_DATA_KEY = 'xbData';
+  public const string CANVAS_DATA_KEY = 'canvasData';
 
   public function __construct(
     private ConfigFactoryInterface $configFactory,
@@ -35,11 +35,11 @@ readonly final class CodeComponentDataProvider {
   ) {}
 
   /**
-   * Returns the BaseUrl for V0 of drupalSettings.xbData.
+   * Returns the BaseUrl for V0 of drupalSettings.canvasData.
    *
    * @return array[]
    */
-  public function getXbDataBaseUrlV0(): array {
+  public function getCanvasDataBaseUrlV0(): array {
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
 
@@ -57,11 +57,11 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Returns the Branding array for V0 of drupalSettings.xbData.
+   * Returns the Branding array for V0 of drupalSettings.canvasData.
    *
    * @return array[]
    */
-  public function getXbDataBrandingV0(): array {
+  public function getCanvasDataBrandingV0(): array {
     $site_config = $this->configFactory->get('system.site');
     return [
       self::V0 => [
@@ -75,11 +75,11 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Returns the Breadcrumbs for V0 of drupalSettings.xbData.
+   * Returns the Breadcrumbs for V0 of drupalSettings.canvasData.
    *
    * @return array[]
    */
-  public function getXbDataBreadcrumbsV0(): array {
+  public function getCanvasDataBreadcrumbsV0(): array {
     return [
       self::V0 => [
         'breadcrumbs' => array_map(static function (Link $link) {
@@ -95,11 +95,11 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Returns the PageTitle for V0 of drupalSettings.xbData.
+   * Returns the PageTitle for V0 of drupalSettings.canvasData.
    *
    * @return array[]
    */
-  public function getXbDataPageTitleV0(): array {
+  public function getCanvasDataPageTitleV0(): array {
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
     $route = $this->routeMatch->getRouteObject();
@@ -113,16 +113,16 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Returns settings for using JSON:API for V0 of drupalSettings.xbData.
+   * Returns settings for using JSON:API for V0 of drupalSettings.canvasData.
    *
    * @return array
    */
-  public function getXbDataJsonApiSettingsV0(): array {
+  public function getCanvasDataJsonApiSettingsV0(): array {
     if (!$this->container->hasParameter('jsonapi.base_path')) {
       // If the `jsonapi.base_path` service parameter is not available, it means
       // the JSON:API module is not installed.
       // In contrast to the other settings, this may hence not change the
-      // placeholder values in `experience_builder/xbData.v0.jsonapiSettings` at
+      // placeholder values in `canvas/canvasData.v0.jsonapiSettings` at
       // all.
       return [
         self::V0 => [
@@ -150,8 +150,8 @@ readonly final class CodeComponentDataProvider {
    * @return array|string[]
    *   The array of the drupalSettings libraries.
    */
-  public static function getRequiredXbDataLibraries(string $jsCode): array {
-    @trigger_error('Calling ' . __METHOD__ . '() is deprecated in experience_builder:0.7.3-alpha1 and will be removed from experience_builder:1.0.0. There is no replacement. See https://www.drupal.org/node/3538276', E_USER_DEPRECATED);
+  public static function getRequiredCanvasDataLibraries(string $jsCode): array {
+    @trigger_error('Calling ' . __METHOD__ . '() is deprecated in canvas:0.7.3-alpha1 and will be removed from canvas:1.0.0. There is no replacement. See https://www.drupal.org/node/3538276', E_USER_DEPRECATED);
     return [];
   }
 

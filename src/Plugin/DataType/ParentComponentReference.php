@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\DataReferenceBase;
 use Drupal\Core\TypedData\DataReferenceDefinition;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Defines a data type that resolves to the parent component tree item.
@@ -15,7 +15,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
  * This serves as 'parent_component' property of component tree item field items and
  * gets its value set from the parent, i.e. ComponentTreeItem.
  *
- * @property \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $parent
+ * @property \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $parent
  * @property ?\Drupal\Core\TypedData\TypedDataInterface $target
  */
 #[DataType(
@@ -51,7 +51,7 @@ final class ParentComponentReference extends DataReferenceBase {
     }
     // TRICKY: the target may no longer exist.
     // @todo Clarify in https://www.drupal.org/i/3524406
-    /** @var ?\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem */
+    /** @var ?\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem */
     return $this->target;
   }
 

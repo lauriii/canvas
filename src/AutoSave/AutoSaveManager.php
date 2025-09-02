@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\AutoSave;
+namespace Drupal\canvas\AutoSave;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -18,11 +18,11 @@ use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
-use Drupal\experience_builder\AutoSaveEntity;
-use Drupal\experience_builder\Controller\ApiContentControllers;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\AutoSaveEntity;
+use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -33,7 +33,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 class AutoSaveManager implements EventSubscriberInterface {
 
-  public const CACHE_TAG = 'experience_builder__auto_save';
+  public const CACHE_TAG = 'canvas__auto_save';
   public const string PUBLISH_PERMISSION = 'publish auto-saves';
 
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
@@ -57,14 +57,14 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   protected function getTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('experience_builder.auto_save');
+    return $this->getTempStoreByCollection('canvas.auto_save');
   }
 
   /**
    * @todo Remove this in https://drupal.org/i/3505018.
    */
   protected function getFormViolationTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('experience_builder.auto_save.form_violations');
+    return $this->getTempStoreByCollection('canvas.auto_save.form_violations');
   }
 
   /**
@@ -72,7 +72,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    *   https://drupal.org/i/3500795.
    */
   protected function getComponentInstanceFormViolationTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('experience_builder.auto_save.component_form_violations');
+    return $this->getTempStoreByCollection('canvas.auto_save.component_form_violations');
   }
 
   public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
@@ -145,9 +145,9 @@ class AutoSaveManager implements EventSubscriberInterface {
    * of any form violations, component source plugins can make use of this
    * method.
    *
-   * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::clientModelToInput
-   * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::clientModelToInput
-   * @see \Drupal\experience_builder\Form\ComponentInstanceForm
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::clientModelToInput
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::clientModelToInput
+   * @see \Drupal\canvas\Form\ComponentInstanceForm
    *
    * @todo Remove this in https://drupal.org/i/3505018 and
    *    https://drupal.org/i/3500795.
@@ -179,7 +179,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       // If the entity has a 'changed' field, we don't want to include it in the
       // normalized data, as will be updated when we create an entity to
       // compare against the save version.
-      // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::getAutoSaveEntity().
+      // @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntity().
       $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => $field->getFieldDefinition()->getType() !== 'changed');
       // Similarly, we don't want to include the 'externalUpdates' field as it's
       // not truly an entity field, but something used to track programmatic
@@ -282,7 +282,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   /**
-   * @see ::onXbConfigEntitySave()
+   * @see ::onCanvasConfigEntitySave()
    */
   public function delete(EntityInterface $entity): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
@@ -290,7 +290,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $this->getTempStore()->delete($key);
     $this->getFormViolationTempStore()->delete($key);
     if ($entity instanceof ContentEntityInterface) {
-      $xb_fields = \array_keys(
+      $canvas_fields = \array_keys(
         \array_filter(
           $entity->getFields(),
           static fn(FieldItemListInterface $field
@@ -298,7 +298,7 @@ class AutoSaveManager implements EventSubscriberInterface {
             ) === ComponentTreeItem::class
         )
       );
-      $component_uuids = \array_reduce($xb_fields, static fn (array $carry, string $field_name): array => [
+      $component_uuids = \array_reduce($canvas_fields, static fn (array $carry, string $field_name): array => [
         ...$carry,
         ...\array_column($entity->get($field_name)->getValue(), 'uuid'),
       ], []);
@@ -336,9 +336,9 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
   }
 
-  public function onXbConfigEntitySave(ConfigCrudEvent $event): void {
+  public function onCanvasConfigEntitySave(ConfigCrudEvent $event): void {
     [$module] = explode('.', $event->getConfig()->getName(), 2);
-    if ($module !== 'experience_builder') {
+    if ($module !== 'canvas') {
       return;
     }
 
@@ -346,8 +346,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     if (!$entity) {
       return;
     }
-    // Auto-saves can only occur for XB config entities modified by the XB UI.
-    if (!$entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+    // Auto-saves can only occur for Canvas config entities modified by the Canvas UI.
+    if (!$entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
       return;
     }
 
@@ -356,7 +356,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       return;
     }
     $autoSaveEntity = $autoSaveData->entity;
-    assert($autoSaveEntity instanceof XbHttpApiEligibleConfigEntityInterface);
+    assert($autoSaveEntity instanceof CanvasHttpApiEligibleConfigEntityInterface);
 
     // Update the `label` and `status` keys of the config entity, if they've
     // changed.
@@ -391,7 +391,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
   }
 
-  public function onXbConfigDelete(ConfigCrudEvent $event): void {
+  public function onCanvasConfigDelete(ConfigCrudEvent $event): void {
     $autoSaveEntities = $this->getAllAutoSaveList(TRUE);
     $autoSaveEntities = array_filter($autoSaveEntities, fn($entityData) => $entityData['entity'] instanceof StagedConfigUpdate);
     foreach ($autoSaveEntities as $autoSaveEntity) {
@@ -407,8 +407,8 @@ class AutoSaveManager implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    $events[ConfigEvents::SAVE][] = ['onXbConfigEntitySave'];
-    $events[ConfigEvents::DELETE][] = ['onXbConfigDelete'];
+    $events[ConfigEvents::SAVE][] = ['onCanvasConfigEntitySave'];
+    $events[ConfigEvents::DELETE][] = ['onCanvasConfigDelete'];
     return $events;
   }
 

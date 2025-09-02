@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Doubles;
+namespace Drupal\Tests\canvas\Doubles;
 
 /**
  * A test exception that includes a verbose message.

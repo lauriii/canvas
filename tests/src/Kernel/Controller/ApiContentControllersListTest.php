@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Controller;
+namespace Drupal\Tests\canvas\Kernel\Controller;
 
 // cspell:ignore Gábor Hojtsy uniquesearchterm gàbor autosave searchterm
 
@@ -10,9 +10,9 @@ use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Controller\ApiContentControllers;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,8 +20,8 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Tests the ApiContentControllers::list() method.
  *
- * @group experience_builder
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiContentControllers
+ * @group canvas
+ * @coversDefaultClass \Drupal\canvas\Controller\ApiContentControllers
  */
 class ApiContentControllersListTest extends KernelTestBase {
   use UserCreationTrait;
@@ -29,17 +29,17 @@ class ApiContentControllersListTest extends KernelTestBase {
   /**
    * Base path for the content API endpoint.
    *
-   * @todo Strip `xb_page` in https://www.drupal.org/i/3498525, and add test coverage for other content entity types.
+   * @todo Strip `canvas_page` in https://www.drupal.org/i/3498525, and add test coverage for other content entity types.
    */
-  private const API_BASE_PATH = '/api/xb/content/xb_page';
+  private const API_BASE_PATH = '/api/canvas/content/canvas_page';
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'system',
-    'xb_test_page',
+    'canvas_test_page',
     'user',
     'field',
     'text',
@@ -53,14 +53,14 @@ class ApiContentControllersListTest extends KernelTestBase {
   /**
    * The API Content controller service.
    *
-   * @var \Drupal\experience_builder\Controller\ApiContentControllers
+   * @var \Drupal\canvas\Controller\ApiContentControllers
    */
   protected ApiContentControllers $apiContentController;
 
   /**
    * The AutoSaveManager service.
    *
-   * @var \Drupal\experience_builder\AutoSave\AutoSaveManager
+   * @var \Drupal\canvas\AutoSave\AutoSaveManager
    */
   protected AutoSaveManager $autoSaveManager;
 
@@ -81,7 +81,7 @@ class ApiContentControllersListTest extends KernelTestBase {
   /**
    * Test pages.
    *
-   * @var \Drupal\experience_builder\Entity\Page[]
+   * @var \Drupal\canvas\Entity\Page[]
    */
   protected $pages = [];
 
@@ -92,7 +92,7 @@ class ApiContentControllersListTest extends KernelTestBase {
     parent::setUp();
 
     $this->installEntitySchema('user');
-    $this->installEntitySchema('xb_page');
+    $this->installEntitySchema('canvas_page');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('media');
     $this->installConfig(['system', 'field', 'filter', 'path_alias']);
@@ -113,7 +113,7 @@ class ApiContentControllersListTest extends KernelTestBase {
    */
   protected function createTestPages(): void {
     $page1 = Page::create([
-      'title' => "Published XB Page",
+      'title' => "Published Canvas Page",
       'status' => TRUE,
       'path' => ['alias' => "/page-1"],
     ]);
@@ -121,7 +121,7 @@ class ApiContentControllersListTest extends KernelTestBase {
     $this->pages['published'] = $page1;
 
     $page2 = Page::create([
-      'title' => "Unpublished XB Page",
+      'title' => "Unpublished Canvas Page",
       'status' => FALSE,
     ]);
     $page2->save();
@@ -129,7 +129,7 @@ class ApiContentControllersListTest extends KernelTestBase {
 
     // Create page with unique searchable title.
     $page3 = Page::create([
-      'title' => "UniqueSearchTerm XB Page",
+      'title' => "UniqueSearchTerm Canvas Page",
       'status' => TRUE,
       'path' => ['alias' => "/page-3"],
     ]);
@@ -216,7 +216,7 @@ class ApiContentControllersListTest extends KernelTestBase {
    * @covers ::list
    */
   public function testBasicList(): void {
-    $response = $this->apiContentController->list('xb_page', Request::create(self::API_BASE_PATH, 'GET'));
+    $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
 
     $content = $response->getContent();
     self::assertNotEmpty($content, 'Response content should not be empty');
@@ -237,7 +237,7 @@ class ApiContentControllersListTest extends KernelTestBase {
     // Expected cache tags should include entity list tag, auto-save tag,
     // and individual entity tags
     $expected_cache_tags = [
-      'xb_page_list',
+      'canvas_page_list',
       // Access check on home-page adds this.
       'config:system.site',
       AutoSaveManager::CACHE_TAG,
@@ -265,7 +265,7 @@ class ApiContentControllersListTest extends KernelTestBase {
     self::assertArrayHasKey($page_id, $data, "Searchable page should be in the results");
     $this->assertValidResultData($data[$page_id], $this->getEntityData($this->pages['searchable']));
 
-    $data = $this->executeListRequest(['search' => 'XB Page']);
+    $data = $this->executeListRequest(['search' => 'Canvas Page']);
     self::assertGreaterThan(1, count($data), 'Search should return multiple results');
 
     $data = $this->executeListRequest(['search' => 'NoMatchingTerm']);
@@ -344,9 +344,9 @@ class ApiContentControllersListTest extends KernelTestBase {
   public function testSearchSortOrder(): void {
     // Create test pages with the same search term but different titles
     $pages_data = [
-      'page1' => "XB Search Term One",
-      'page2' => "XB Search Term Two",
-      'page3' => "XB Search Term Three",
+      'page1' => "Canvas Search Term One",
+      'page2' => "Canvas Search Term Two",
+      'page3' => "Canvas Search Term Three",
     ];
 
     $page_ids = [];
@@ -369,7 +369,7 @@ class ApiContentControllersListTest extends KernelTestBase {
       $this->pages[$key]->save();
     }
 
-    $data = $this->executeListRequest(['search' => 'XB Search Term']);
+    $data = $this->executeListRequest(['search' => 'Canvas Search Term']);
     self::assertCount(3, $data, 'Search should return all three matching pages');
 
     // Get the IDs in order they appear in the results

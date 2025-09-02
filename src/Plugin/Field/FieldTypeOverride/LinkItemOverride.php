@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\experience_builder\TypedData\LinkUrl;
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\link\Plugin\Field\FieldType\LinkItem;
 
 /**

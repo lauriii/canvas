@@ -39,10 +39,10 @@ const mockChanges: Record<string, UnpublishedChange> = {
     },
   },
   asset: {
-    pointer: 'xb_asset_library:3:en',
+    pointer: 'asset_library:3:en',
     label: 'Brand Assets Library',
     updated: Math.floor(Date.now() / 1000) - 24 * 60 * 60, // 1 day ago
-    entity_type: 'xb_asset_library',
+    entity_type: 'asset_library',
     data_hash: 'data-hash-3',
     entity_id: 3,
     langcode: 'en',

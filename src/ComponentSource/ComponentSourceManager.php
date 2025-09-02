@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\ComponentSource;
+namespace Drupal\canvas\ComponentSource;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\experience_builder\Attribute\ComponentSource;
+use Drupal\canvas\Attribute\ComponentSource;
 
 /**
  * Defines a plugin manager for component source plugins.
  *
- * @see \Drupal\experience_builder\Attribute\ComponentSource
- * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface
- * @see \Drupal\experience_builder\ComponentSource\ComponentSourceBase
+ * @see \Drupal\canvas\Attribute\ComponentSource
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceBase
  */
 final class ComponentSourceManager extends DefaultPluginManager {
 
@@ -25,14 +25,14 @@ final class ComponentSourceManager extends DefaultPluginManager {
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
     parent::__construct(
-      'Plugin/ExperienceBuilder/ComponentSource',
+      'Plugin/Canvas/ComponentSource',
       $namespaces,
       $module_handler,
       ComponentSourceInterface::class,
       ComponentSource::class
     );
-    $this->alterInfo('experience_builder_component_source');
-    $this->setCacheBackend($cache_backend, 'experience_builder_component_source');
+    $this->alterInfo('canvas_component_source');
+    $this->setCacheBackend($cache_backend, 'canvas_component_source');
   }
 
 }

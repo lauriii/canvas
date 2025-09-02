@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Adapter;
+namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -21,7 +21,7 @@ use Drupal\image\ImageStyleInterface;
       'properties' => [
         'src' => [
           'title' => 'Original image stream wrapper URI',
-          '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri',
+          '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri',
         ],
         'width' => [
           'title' => 'Original image width',
@@ -37,10 +37,10 @@ use Drupal\image\ImageStyleInterface;
         ],
       ],
     ],
-    'imageStyle' => ['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/config-entity-id'],
+    'imageStyle' => ['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/config-entity-id'],
   ],
   requiredInputs: ['image'],
-  output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'],
+  output: ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
 )]
 final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 

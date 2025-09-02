@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 final class EntityFormController extends ControllerBase {
@@ -25,7 +25,7 @@ final class EntityFormController extends ControllerBase {
     // is for 'operation' not form mode.
     $form = $this->entityTypeManager()->getFormObject($entity_type, 'default');
     $form_entity = $entity;
-    // The form structure is fetched from XB via a GET request. Any subsequent
+    // The form structure is fetched from Canvas via a GET request. Any subsequent
     // updates to the form via AJAX use Drupal's standard POST request. We only
     // want to fetch the entity from auto-save if we're requesting the original
     // form. If the form is being updated by AJAX, the entity field values in

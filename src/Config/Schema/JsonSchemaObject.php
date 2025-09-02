@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Config\Schema;
+namespace Drupal\canvas\Config\Schema;
 
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\TypedData\DataDefinitionInterface;

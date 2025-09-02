@@ -5,7 +5,7 @@ import type { Attributes } from '@/types/DrupalAttribute';
 import type { transliterate as TransliterateType } from '@/types/transliterate';
 import { useAppSelector } from '@/app/hooks';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
-import { getDrupalSettings, getXbSettings } from '@/utils/drupal-globals';
+import { getDrupalSettings, getCanvasSettings } from '@/utils/drupal-globals';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
 import { selectEntityId } from '@/features/configuration/configurationSlice';
 import InputBehaviors from '@/components/form/inputBehaviors';
@@ -59,10 +59,10 @@ const DrupalPathWidget = ({
   const [pathValue, setPathValue] = useState<string>(initialValue.toString());
   const autoGenerateOn = useRef<boolean>(false);
 
-  const xbSettings = getXbSettings();
+  const canvasSettings = getCanvasSettings();
   const entity_form_fields = useAppSelector(selectPageData);
   const titleInput =
-    entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
+    entity_form_fields[`${canvasSettings.entityTypeKeys.label}[0][value]`];
   const entityId = useAppSelector(selectEntityId);
   const { data: fetchedLayout } = useGetLayoutByIdQuery(entityId);
   const isPublished = fetchedLayout?.isPublished;

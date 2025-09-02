@@ -12,7 +12,7 @@ default:
       value: en
   name:
     -
-      value: xbUser
+      value: canvasUser
   pass:
     -
       value: $2y$10$juvdK/pIcmq7GEhYbZ.gaeeqVY6NSlUDuM39agBlsIPlo.RtZ4t3e
@@ -20,7 +20,7 @@ default:
       pre_hashed: false
   mail:
     -
-      value: xb@test.com
+      value: canvas@test.com
   timezone:
     -
       value: Europe/London
@@ -38,7 +38,7 @@ default:
       value: 0
   init:
     -
-      value: xb@test.com
+      value: canvas@test.com
   roles:
     -
-      target_id: xb
+      target_id: canvas

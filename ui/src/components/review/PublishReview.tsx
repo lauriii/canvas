@@ -150,7 +150,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
         <Button
           variant="solid"
           disabled={!changes?.length || isBusy}
-          data-testid="xb-publish-review"
+          data-testid="canvas-publish-review"
           className={clsx(styles.triggerButton, {
             [styles.disableClick]: isBusy,
             [styles.noChanges]: !changes?.length,
@@ -161,7 +161,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       </Popover.Trigger>
       <Popover.Content
         asChild
-        data-testid="xb-publish-reviews-content"
+        data-testid="canvas-publish-reviews-content"
         width="100vw"
         maxWidth="360px"
       >
@@ -192,7 +192,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   onCheckedChange={handleSelectAll}
                   size="1"
                   aria-label="Select all changes"
-                  data-testid="xb-publish-review-select-all"
+                  data-testid="canvas-publish-review-select-all"
                 />
                 Select All
               </Flex>

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -11,16 +11,16 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\TypedData;
-use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
-use Drupal\experience_builder\PropSource\PropSource;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropSource\ContentAwareDependentInterface;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\PropSource\StaticPropSource;
 
 /**
- * @phpstan-import-type PropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
- * @phpstan-import-type AdaptedPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
- * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\experience_builder\PropSource\PropSourceBase
+ * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
+ * @phpstan-import-type AdaptedPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
+ * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
  */
 #[DataType(
@@ -64,7 +64,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     // @todo Uncomment next line and delete last line after https://www.drupal.org/project/drupal/issues/2232427
     // return $this->inputs;
     // Fall back to NULL if not yet initialized, to allow validation.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     return $this->value ?? NULL;
   }
 
@@ -125,7 +125,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
    *   (optional) The host entity of this set of inputs, if applicable.
    *
-   * @return iterable<string, \Drupal\experience_builder\PropSource\PropSourceBase>
+   * @return iterable<string, \Drupal\canvas\PropSource\PropSourceBase>
    *   An array of prop sources that have a dependency of the given type and
    *   name. The keys will be strings in the form of "INSTANCE_UUID:PROP_NAME".
    */
@@ -139,7 +139,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   }
 
   /**
-   * @return \Generator<string, \Drupal\experience_builder\PropSource\PropSourceBase>
+   * @return \Generator<string, \Drupal\canvas\PropSource\PropSourceBase>
    */
   private function getPropSources(): \Generator {
     $item = $this->getParent();
@@ -153,8 +153,8 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     foreach ($this->inputs as $name => $raw_prop_source) {
       if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
         // This is likely a *collapsed* StaticPropSource.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
         try {
           $parsed_default_prop_source = array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name]) && array_key_exists('sourceType', $default_prop_sources[$name])
             ? PropSource::parse($default_prop_sources[$name])
@@ -171,9 +171,9 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
         catch (\LogicException) {
         }
 
-        // This isn't a component source using \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
-        // @todo Move this logic into \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
-        // @see https://www.drupal.org/project/experience_builder/issues/3467954
+        // This isn't a component source using \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+        // @todo Move this logic into \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
+        // @see https://www.drupal.org/project/canvas/issues/3467954
         continue;
       }
       try {
@@ -192,7 +192,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * @return array<string, array<string, array|string>>
    *
    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
-   * @throws \Drupal\experience_builder\MissingComponentInputsException
+   * @throws \Drupal\canvas\MissingComponentInputsException
    */
   public function getValues(): array {
     $item = $this->getParent();

@@ -36,12 +36,10 @@ const hasPermission = (
     case 'edit':
       return !!links['edit-form'];
     case 'duplicate':
-      return !!links[
-        'https://drupal.org/project/experience_builder#link-rel-duplicate'
-      ];
+      return !!links['https://drupal.org/project/canvas#link-rel-duplicate'];
     case 'homepage':
       return !!links[
-        'https://drupal.org/project/experience_builder#link-rel-set-as-homepage'
+        'https://drupal.org/project/canvas#link-rel-set-as-homepage'
       ];
     case 'delete':
       return !!links['delete-form'];
@@ -149,7 +147,11 @@ const ContentGroup = ({
   const homepagePath = useAppSelector(selectHomepagePath);
   if (items.length === 0) {
     return (
-      <Callout.Root size="1" color="gray" data-testid="xb-navigation-results">
+      <Callout.Root
+        size="1"
+        color="gray"
+        data-testid="canvas-navigation-results"
+      >
         <Callout.Icon>
           <InfoCircledIcon />
         </Callout.Icon>
@@ -164,7 +166,7 @@ const ContentGroup = ({
         {title}
       </Heading>
       <Flex
-        data-testid="xb-navigation-results"
+        data-testid="canvas-navigation-results"
         direction="column"
         gap="2"
         mt="2"
@@ -180,7 +182,7 @@ const ContentGroup = ({
               pr="2"
               className={styles.item}
               key={item.id}
-              data-xb-page-id={item.id}
+              data-canvas-page-id={item.id}
             >
               <Flex
                 role={'listitem'}
@@ -264,7 +266,7 @@ const Navigation = ({
   }, [onSearch]);
 
   return (
-    <div data-testid="xb-navigation-content">
+    <div data-testid="canvas-navigation-content">
       <Flex direction="row" gap="2" mb="4">
         <form
           className={styles.search}
@@ -272,9 +274,9 @@ const Navigation = ({
             event.preventDefault();
             const form = event.currentTarget;
             const formElements = form.elements as typeof form.elements & {
-              'xb-navigation-search': HTMLInputElement;
+              'canvas-navigation-search': HTMLInputElement;
             };
-            onSearch?.(formElements['xb-navigation-search'].value);
+            onSearch?.(formElements['canvas-navigation-search'].value);
           }}
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
@@ -282,7 +284,7 @@ const Navigation = ({
         >
           <TextField.Root
             autoComplete="off"
-            id="xb-navigation-search"
+            id="canvas-navigation-search"
             placeholder="Search…"
             radius="medium"
             aria-label="Search content"
@@ -298,7 +300,7 @@ const Navigation = ({
             <DropdownMenu.Trigger>
               <Button
                 variant="soft"
-                data-testid="xb-navigation-new-button"
+                data-testid="canvas-navigation-new-button"
                 size="1"
               >
                 <PlusIcon />
@@ -309,7 +311,7 @@ const Navigation = ({
             <DropdownMenu.Content>
               <DropdownMenu.Item
                 onClick={onNewPage}
-                data-testid="xb-navigation-new-page-button"
+                data-testid="canvas-navigation-new-page-button"
               >
                 <FileIcon />
                 New page

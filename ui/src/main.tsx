@@ -23,7 +23,7 @@ import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import {
   getBaseUrl,
   getDrupal,
-  getXbSettings,
+  getCanvasSettings,
   getDrupalSettings,
 } from '@/utils/drupal-globals';
 
@@ -39,19 +39,19 @@ interface ProviderComponentProps {
 }
 
 const Drupal = getDrupal();
-const xbSettings = getXbSettings();
+const canvasSettings = getCanvasSettings();
 const baseUrl = getBaseUrl();
 const drupalSettings = getDrupalSettings();
 
-const container = document.getElementById('experience-builder');
+const container = document.getElementById('canvas');
 
 const appConfiguration: AppConfiguration = {
   ...initialState,
   baseUrl: baseUrl || import.meta.env.BASE_URL,
-  entityType: xbSettings.entityType || 'node',
-  entity: xbSettings.entity || '1',
-  devMode: xbSettings.devMode || false,
-  homepagePath: xbSettings.homepagePath,
+  entityType: canvasSettings.entityType || 'node',
+  entity: canvasSettings.entity || '1',
+  devMode: canvasSettings.devMode || false,
+  homepagePath: canvasSettings.homepagePath,
 };
 
 const isAjaxing = () =>
@@ -63,7 +63,7 @@ const attachBehaviorsAfterAjaxing = (
   theContext: HTMLElement,
   theSettings: { doNotReinvoke?: boolean },
 ) => {
-  document.body.dataset.xbAjaxBehaviors = 'true';
+  document.body.dataset.canvasAjaxBehaviors = 'true';
   const attachTheBehaviors = () => {
     setTimeout(() => {
       Drupal.attachBehaviors(theContext, {
@@ -77,7 +77,7 @@ const attachBehaviorsAfterAjaxing = (
   // the end of the stack.
   if (!isAjaxing()) {
     attachTheBehaviors();
-    document.body.dataset.xbAjaxBehaviors = 'false';
+    document.body.dataset.canvasAjaxBehaviors = 'false';
   } else {
     // If AJAX operations are occurring, set up an interval that will run
     // until AJAX operations have stopped, after which behaviors are
@@ -85,7 +85,7 @@ const attachBehaviorsAfterAjaxing = (
     const interval = setInterval(() => {
       if (!isAjaxing()) {
         attachTheBehaviors();
-        document.body.dataset.xbAjaxBehaviors = 'false';
+        document.body.dataset.canvasAjaxBehaviors = 'false';
         clearInterval(interval);
       }
     });
@@ -96,7 +96,7 @@ Drupal.attachBehaviorsAfterAjaxing = attachBehaviorsAfterAjaxing;
 
 // Add dialog-scoped CSS to the page on load so even dialogs triggered without
 // AJAX have the correct CSS.
-const dialogCss = drupalSettings?.xb?.dialogCss || [];
+const dialogCss = drupalSettings?.canvas?.dialogCss || [];
 const asResponse = dialogCss.map((path: string) => ({
   media: 'all',
   href: path,
@@ -116,13 +116,13 @@ setTimeout(() => {
 if (container) {
   const root = createRoot(container);
   let routerRoot = appConfiguration.baseUrl;
-  if (xbSettings.base) {
-    routerRoot = `${routerRoot}${xbSettings.base}`;
+  if (canvasSettings.base) {
+    routerRoot = `${routerRoot}${canvasSettings.base}`;
   }
   const store = makeStore({ configuration: appConfiguration });
 
   // Make the store available to extensions.
-  xbSettings.store = store;
+  canvasSettings.store = store;
 
   root.render(
     <React.StrictMode>
@@ -144,7 +144,7 @@ if (container) {
   // Make the list of twig-to-JSX components available to Drupal behaviors.
   Drupal.JSXComponents = twigToJSXComponentMap;
 
-  Drupal.xbTransforms = transforms;
+  Drupal.canvasTransforms = transforms;
 
   // Make this application's hyperscriptify functionality available to
   // Drupal behaviors.
@@ -226,7 +226,7 @@ if (container) {
     const updates = updatedInputs
       .map((el) => {
         // For each element, parse out its attributes. These are JSON sent by
-        // the xb_stark.theme with the semi_coupled theme engine.
+        // the canvas_stark.theme with the semi_coupled theme engine.
         return JSON.parse(el.getAttribute('attributes') || '{}');
       })
       // Build a key-value pair of input names and values.

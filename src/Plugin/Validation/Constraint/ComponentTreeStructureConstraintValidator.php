@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Config\Schema\Sequence;
@@ -13,10 +13,10 @@ use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\LengthConstraint;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\All;
@@ -105,7 +105,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     // TRICKY: The existing validator and execution context cannot be reused
     // because Drupal expects everything to be TypedData, whereas here it is a
     // plain array-based data structure.
-    // @todo Re-assess this in https://www.drupal.org/project/experience_builder/issues/3462235: if that introduces TypedData objects, then this could be simplified.
+    // @todo Re-assess this in https://www.drupal.org/project/canvas/issues/3462235: if that introduces TypedData objects, then this could be simplified.
     $non_typed_data_validator = $this->validatorFactory->createValidator();
 
     // Constraint to validate each component instance, which is represented in
@@ -121,13 +121,13 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           'component_id' => new Required([
             new Type('string'),
             new NotBlank(),
-            new ConfigExistsConstraint(['prefix' => 'experience_builder.component.']),
+            new ConfigExistsConstraint(['prefix' => 'canvas.component.']),
           ]),
           'component_version' => new Required([
             new Type('string'),
             new NotBlank(),
             new ValidConfigEntityVersionConstraint([
-              'configPrefix' => 'experience_builder.component.',
+              'configPrefix' => 'canvas.component.',
               'configName' => '%parent.component_id',
             ]),
           ]),
@@ -260,7 +260,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         $entity->getEntityTypeId(),
         $entity->bundle(),
         // Only the full view mode can expose slots.
-        // @see `type: experience_builder.content_template.*.*.*`'s
+        // @see `type: canvas.content_template.*.*.*`'s
         'full',
       ]);
       $template = $content_template_storage->load($template_id);

@@ -184,7 +184,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       onMouseOut={handleItemMouseOut}
       onClick={handleComponentClick}
       onKeyDown={handleKeyDown}
-      data-xb-selected={isSelected}
+      data-canvas-selected={isSelected}
       className={clsx('componentOverlay', styles.componentOverlay, {
         [styles.selected]: isSelected,
         [styles.hovered]: isHovered,
@@ -203,15 +203,15 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           ref={setNodeRef}
           {...listeners}
           {...attributes}
-          className={clsx('xb--sortable-item', styles.sortableItem)}
-          data-xb-component-id={componentType}
-          data-xb-uuid={component.uuid}
-          data-xb-type={component.nodeType}
-          data-xb-overlay="true"
+          className={clsx('canvas--sortable-item', styles.sortableItem)}
+          data-canvas-component-id={componentType}
+          data-canvas-uuid={component.uuid}
+          data-canvas-type={component.nodeType}
+          data-canvas-overlay="true"
         />
       </ComponentContextMenu>
       {(isHovered || isSelected) && (
-        <div className={clsx(styles.xbNameTag)}>
+        <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag
             name={name}
             id={component.uuid}

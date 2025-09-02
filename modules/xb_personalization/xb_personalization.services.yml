@@ -1,5 +1,0 @@
-services:
-  xb_personalization.api_config_route_subscriber:
-    class: Drupal\xb_personalization\EventSubscriber\ApiConfigRouteSubscriber
-    tags:
-      - { name: event_subscriber }

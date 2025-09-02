@@ -1,11 +1,11 @@
 describe('Undo/Redo functionality', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,28 +13,28 @@ describe('Undo/Redo functionality', () => {
   });
 
   it('Performs a basic interaction with Undo/Redo', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Assert that the undo button is disabled initially.
     cy.get('button[aria-label="Undo"]').should('be.disabled');
 
     // Check there are three heroes initially.
     cy.testInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
     );
     cy.get('.primaryPanelContent').findByText('Two Column').click();
-    cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
+    cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
     cy.openLibraryPanel();
 
-    // Click on the menu item with data-xb-name="Hero" inside menu.
-    cy.get('.primaryPanelContent [data-xb-name="Hero"]').click();
+    // Click on the menu item with data-canvas-name="Hero" inside menu.
+    cy.get('.primaryPanelContent [data-canvas-name="Hero"]').click();
     cy.wait('@getPreview');
 
     cy.getIframeBody().find(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -45,7 +45,7 @@ describe('Undo/Redo functionality', () => {
 
     // Assert that the component was deleted from the layout.
     cy.getIframeBody().find(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
@@ -57,7 +57,7 @@ describe('Undo/Redo functionality', () => {
 
     // Assert that the component was again added to the layout.
     cy.getIframeBody().find(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -65,39 +65,39 @@ describe('Undo/Redo functionality', () => {
   });
 
   it('Component instance form values are included in Undo/Redo', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Click on our "hello, world!" hero component.
     cy.clickComponentInPreview('Hero');
 
     // Add " one" to the heading field.
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .click();
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .type(' one');
 
     cy.waitForElementContentInIframe('.my-hero__heading', 'hello, world! one');
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .should('have.value', 'hello, world! one');
 
     // Add " two" to the heading field.
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .click();
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .type(' two');
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .blur();
     // Disable the no-unnecessary-waiting eslint rule below because we need to wait
     // for the debounce to finish to ensure the undo history is updated.
     cy.wait(500); // eslint-disable-line cypress/no-unnecessary-waiting
 
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .should('have.value', 'hello, world! one two');
 

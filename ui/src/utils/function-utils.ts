@@ -254,7 +254,7 @@ export function mapSlots(document: Document): SlotsMap {
 
   while (currentNode) {
     // Adjust regex to capture UUID and slot name, ignoring whitespace
-    const slotMatch = /^\s*xb-slot-start-([\w-]+)\/([\w-]+)\s*$/.exec(
+    const slotMatch = /^\s*canvas-slot-start-([\w-]+)\/([\w-]+)\s*$/.exec(
       currentNode.nodeValue || '',
     );
 
@@ -266,7 +266,7 @@ export function mapSlots(document: Document): SlotsMap {
       // Ensure the parent element exists and is an HTMLElement
       const parentElement = currentNode.parentElement;
       if (parentElement) {
-        parentElement.dataset.xbSlotId = slotId;
+        parentElement.dataset.canvasSlotId = slotId;
         slotsMap[slotId] = {
           element: parentElement,
           componentUuid: uuid,
@@ -295,7 +295,7 @@ export function mapComponents(document: Document): ComponentsMap {
   const componentMap: ComponentsMap = {};
 
   while (currentNode) {
-    const startMatch = /^\s*xb-start-([\w-]+)\s*$/.exec(
+    const startMatch = /^\s*canvas-start-([\w-]+)\s*$/.exec(
       currentNode.nodeValue || '',
     );
 
@@ -312,11 +312,11 @@ export function mapComponents(document: Document): ComponentsMap {
         sibling &&
         !(
           sibling.nodeType === Node.COMMENT_NODE &&
-          sibling.nodeValue?.trim() === `xb-end-${uuid}`
+          sibling.nodeValue?.trim() === `canvas-end-${uuid}`
         )
       ) {
         if (sibling.nodeType === Node.ELEMENT_NODE) {
-          (sibling as HTMLElement).dataset.xbUuid = uuid;
+          (sibling as HTMLElement).dataset.canvasUuid = uuid;
           componentMap[uuid].elements.push(sibling as HTMLElement);
         }
         sibling = sibling.nextSibling;
@@ -341,7 +341,7 @@ export function mapRegions(document: Document): RegionsMap {
   );
   let currentNode = walker.nextNode();
   while (currentNode) {
-    const startMatch = /^\s*xb-region-start-([\w-]+)\s*$/.exec(
+    const startMatch = /^\s*canvas-region-start-([\w-]+)\s*$/.exec(
       currentNode.nodeValue || '',
     );
 
@@ -363,7 +363,7 @@ export function mapRegions(document: Document): RegionsMap {
           sibling &&
           !(
             sibling.nodeType === Node.COMMENT_NODE &&
-            sibling.nodeValue?.trim() === `xb-region-end-${regionId}`
+            sibling.nodeValue?.trim() === `canvas-region-end-${regionId}`
           )
         ) {
           if (sibling.nodeType === Node.ELEMENT_NODE) {
@@ -379,9 +379,9 @@ export function mapRegions(document: Document): RegionsMap {
   return regionMap;
 }
 
-// <!-- xb-start-4737d23d-fa9a-4670-9807-ebf61e049076 -->
+// <!-- canvas-start-4737d23d-fa9a-4670-9807-ebf61e049076 -->
 /**
- * Returns an array of all HTMLElements that are in between the xb-start-{uuid} and xb-end-{uuid} HTML comments.
+ * Returns an array of all HTMLElements that are in between the canvas-start-{uuid} and canvas-end-{uuid} HTML comments.
  * @param id
  * @param document
  */
@@ -389,8 +389,8 @@ export function getElementsByIdInHTMLComment(
   id: string,
   document: Document,
 ): HTMLElement[] {
-  const startMarker = `xb-start-${id}`;
-  const endMarker = `xb-end-${id}`;
+  const startMarker = `canvas-start-${id}`;
+  const endMarker = `canvas-end-${id}`;
   const iterator = document.createNodeIterator(
     document,
     NodeFilter.SHOW_COMMENT,
@@ -440,7 +440,7 @@ export function getElementsByIdInHTMLComment(
 }
 
 /**
- * Finds all the xb-slot-start-{any} HTML comments in the whole document and returns an array containing their immediate parent HTMLElements.
+ * Finds all the canvas-slot-start-{any} HTML comments in the whole document and returns an array containing their immediate parent HTMLElements.
  * @param document
  */
 export function getSlotParentsByHTMLComments(
@@ -449,7 +449,7 @@ export function getSlotParentsByHTMLComments(
   const slotParents: HTMLElement[] = [];
   const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT, {
     acceptNode(node) {
-      const commentPattern = /^\s*xb-slot-start-/;
+      const commentPattern = /^\s*canvas-slot-start-/;
       return commentPattern.test(node.nodeValue || '')
         ? NodeFilter.FILTER_ACCEPT
         : NodeFilter.FILTER_REJECT;
@@ -457,7 +457,7 @@ export function getSlotParentsByHTMLComments(
   });
   let currentNode = walker.nextNode();
 
-  // Each time an xb-slot-start comment is found, add the parent HTMLElement to the array
+  // Each time an canvas-slot-start comment is found, add the parent HTMLElement to the array
   while (currentNode) {
     if (currentNode.parentElement) {
       slotParents.push(currentNode.parentElement);
@@ -470,7 +470,7 @@ export function getSlotParentsByHTMLComments(
 
 /**
  * Find a given slot by ID using the HTML comment annotations - it will return the immediate parent HTMLElement that
- * contains the <!-- xb-slot-start-{slotId} --> comment.
+ * contains the <!-- canvas-slot-start-{slotId} --> comment.
  * @param slotId
  * @param document
  */
@@ -479,7 +479,7 @@ export function getSlotParentElementByIdInHTMLComment(
   document: Document,
 ): HTMLElement | null {
   // regular expression pattern to match comments with the given slot ID
-  const commentPattern = new RegExp(`^\\s*xb-slot-start-${slotId}\\b`);
+  const commentPattern = new RegExp(`^\\s*canvas-slot-start-${slotId}\\b`);
   const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT, {
     acceptNode(node) {
       return commentPattern.test(node.nodeValue || '')

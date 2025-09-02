@@ -1,6 +1,0 @@
-type: module
-name: Experience Builder Vite Integration
-description: "Enables Hot Module Replacement (HMR) for Experience Builder via the Vite development server."
-core_version_requirement: ^10 || ^11
-dependencies:
-  - experience_builder:experience_builder

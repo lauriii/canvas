@@ -1,6 +1,6 @@
 import useSwr from 'swr';
 
-export default function xbUseSwr(key: any, fetcher: any, options: any) {
+export default function canvasUseSwr(key: any, fetcher: any, options: any) {
   function dataPane(useSWRNext: any) {
     return (key: any, fetcher: any, config: any) => {
       const swr = useSWRNext(key, fetcher, config);
@@ -8,7 +8,7 @@ export default function xbUseSwr(key: any, fetcher: any, options: any) {
 
       if (swr.data !== undefined && !swr.isLoading) {
         window.parent.postMessage({
-          type: '_xb_useswr_data_fetch',
+          type: '_canvas_useswr_data_fetch',
           id,
           data: swr.data,
         });
@@ -16,7 +16,7 @@ export default function xbUseSwr(key: any, fetcher: any, options: any) {
 
       if (swr.error) {
         window.parent.postMessage({
-          type: '_xb_useswr_error',
+          type: '_canvas_useswr_error',
           id,
           data: swr.error,
           error: true,

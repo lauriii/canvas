@@ -27,7 +27,7 @@ export const Spotlight = (props: Props) => {
       <div />
       <div
         className={styles.highlighted}
-        data-testid="xb-region-spotlight-highlight"
+        data-testid="canvas-region-spotlight-highlight"
         style={{ width: `${width}px`, height: `${height}px` }}
       ></div>
       <div />

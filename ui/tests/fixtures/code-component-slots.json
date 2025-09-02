@@ -7,7 +7,7 @@
     },
     {
       "name": "Slot with example value",
-      "example": "<div>Experience Builder</div>",
+      "example": "<div>Drupal Canvas</div>",
       "id": "1c374686-8c73-4a01-8727-a36ff1cc59eb"
     }
   ],
@@ -17,7 +17,7 @@
     },
     "slotWithExampleValue": {
       "title": "Slot with example value",
-      "examples": ["<div>Experience Builder</div>"]
+      "examples": ["<div>Drupal Canvas</div>"]
     }
   }
 }

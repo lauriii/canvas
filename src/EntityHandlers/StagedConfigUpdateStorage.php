@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EntityHandlers;
+namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class StagedConfigUpdateStorage extends ConfigEntityStorage {
@@ -33,7 +33,7 @@ final class StagedConfigUpdateStorage extends ConfigEntityStorage {
    *
    * @param string[] $ids
    *
-   * @return array<string, \Drupal\experience_builder\Entity\StagedConfigUpdate|null>
+   * @return array<string, \Drupal\canvas\Entity\StagedConfigUpdate|null>
    */
   public function loadMultiple(?array $ids = NULL): array {
     if ($ids === NULL) {
@@ -49,7 +49,7 @@ final class StagedConfigUpdateStorage extends ConfigEntityStorage {
   /**
    * {@inheritdoc}
    *
-   * @return \Drupal\experience_builder\Entity\StagedConfigUpdate|null
+   * @return \Drupal\canvas\Entity\StagedConfigUpdate|null
    */
   public function load($id) {
     assert(is_string($id));

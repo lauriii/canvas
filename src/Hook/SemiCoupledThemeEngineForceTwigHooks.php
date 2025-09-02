@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -14,9 +14,9 @@ use Drupal\Core\Render\Element;
  *
  * Identifies templates that should be Twig rendered.
  *
- * @see themes/xb_stark/templates/process_as_regular_twig
- * @see \Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks
- * @see https://git.drupalcode.org/project/experience_builder/-/commit/c5b5d93d79cb7260ec5160fa22014a1f755b40cf
+ * @see themes/canvas_stark/templates/process_as_regular_twig
+ * @see \Drupal\canvas\Hook\SemiCoupledThemeEngineHooks
+ * @see https://git.drupalcode.org/project/canvas/-/commit/c5b5d93d79cb7260ec5160fa22014a1f755b40cf
  */
 class SemiCoupledThemeEngineForceTwigHooks {
 

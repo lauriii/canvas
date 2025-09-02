@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Tests AssetLibrary config entities' generated assets load successfully.
  *
- * @group experience_builder
+ * @group canvas
  */
 final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['canvas'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * @covers \Drupal\experience_builder\Hook\ComponentSourceHooks::pageAttachments
+   * @covers \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments
    */
   public function test(): void {
     // We need to disable CSS/JS aggregation to test the raw assets.
@@ -42,7 +42,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
     // Simulate 3 users:
     // - visitor (end user)
-    // - content creator (able to modify >=1 entity with an XB field)
+    // - content creator (able to modify >=1 entity with an Canvas field)
     // - code component developer (without the ability to create content)
     $visitor = $this->drupalCreateUser(['access content']);
     $this->assertInstanceOf(AccountInterface::class, $visitor);
@@ -73,8 +73,8 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
     $regular_css_path = $url_generator->generateString($library->getCssPath());
     $regular_js_path = $url_generator->generateString($library->getJsPath());
-    $auto_save_css_path = base_path() . 'xb/api/v0/auto-saves/css/xb_asset_library/' . $library->id();
-    $auto_save_js_path = base_path() . 'xb/api/v0/auto-saves/js/xb_asset_library/' . $library->id();
+    $auto_save_css_path = base_path() . 'canvas/api/v0/auto-saves/css/asset_library/' . $library->id();
+    $auto_save_js_path = base_path() . 'canvas/api/v0/auto-saves/js/asset_library/' . $library->id();
 
     $assert_library_global_library = function (string $path, bool $is_preview) use ($regular_css_path, $regular_js_path, $auto_save_css_path, $auto_save_js_path) {
       $response = $this->drupalGet($path);
@@ -107,9 +107,9 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $this->drupalGet($regular_js_path);
     $this->assertSame($library->getJs(), $this->getTextContent());
 
-    // Case 3: Route with _xb_use_template_draft should use regular asset
+    // Case 3: Route with _canvas_use_template_draft should use regular asset
     // library if there is no auto-saved version.
-    $assert_library_global_library('/xb/api/v0/layout/xb_page/' . $page->id(), TRUE);
+    $assert_library_global_library('/canvas/api/v0/layout/canvas_page/' . $page->id(), TRUE);
 
     // Create auto-save data for the global asset library.
     $auto_save_data = [
@@ -127,9 +127,9 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $library->updateFromClientSide($auto_save_data);
     $auto_save_manager->saveEntity($library);
 
-    // Case 4: Route with _xb_use_template_draft should use auto-saved version
+    // Case 4: Route with _canvas_use_template_draft should use auto-saved version
     // library if it exists.
-    $assert_library_global_library('/xb/api/v0/layout/xb_page/' . $page->id(), TRUE);
+    $assert_library_global_library('/canvas/api/v0/layout/canvas_page/' . $page->id(), TRUE);
 
     // Case 5: Test that on regular page the content creator sees the regular
     // version even if the auto-save version exists.
@@ -142,7 +142,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
       if (!$should_pass) {
         $this->assertSession()->statusCodeEquals(403);
-        self::assertSame('Requires >=1 content entity type with an XB field that can be created or edited.', $parsed_response['errors'][0]);
+        self::assertSame('Requires >=1 content entity type with an Canvas field that can be created or edited.', $parsed_response['errors'][0]);
       }
       else {
         $this->assertSession()->statusCodeEquals(200);
@@ -167,7 +167,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     $assert_auto_save_access($auto_save_js_path, TRUE);
     $assert_auto_save_access($auto_save_css_path, TRUE);
 
-    // User with permission to access the XB UI (and hence is allowed to access
+    // User with permission to access the Canvas UI (and hence is allowed to access
     // previews, which in turns means they must be able to see auto-saved code
     // components) should have access to the auto-saved assets.
     $this->drupalLogin($content_creator);

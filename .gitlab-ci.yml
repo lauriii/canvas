@@ -81,7 +81,7 @@ variables:
   # https://project.pages.drupalcode.org/gitlab_templates/info/test-locally/
   DRUPALORG_CI_SERVER_URL: https://git.drupalcode.org
   # Set this as CI_PROJECT_NAME changes on forks.
-  CI_PARENT_PROJECT_NAME: experience_builder
+  CI_PARENT_PROJECT_NAME: canvas
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
   _CONCURRENCY_THREADS: '12'
 
@@ -179,7 +179,7 @@ phpcs-rules-match-drupal-11:
       if [ $DIFF_EXIT_CODE -ne 0 ]; then
         echo "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥"
         echo "Error: core.phpcs.xml.dist not up to date with Drupal 11.x core/phpcs.xml.dist. Please create an issue to update this file."
-        echo "Issue template: https://www.drupal.org/node/add/project-issue/experience_builder?title=Update%20PHPCS%20config%20to%20match%20Drupal%2011&field_issue_parent=3512890&clone_body=1&categories=2&priorities=100&status=1&version=0.x-dev&component=Code&assigned=0&tags="
+        echo "Issue template: https://www.drupal.org/node/add/project-issue/canvas?title=Update%20PHPCS%20config%20to%20match%20Drupal%2011&field_issue_parent=3512890&clone_body=1&categories=2&priorities=100&status=1&version=0.x-dev&component=Code&assigned=0&tags="
       else
         echo "👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍👍"
         echo "core.phpcs.xml.dist is up to date with Drupal 11.x core/phpcs.xml.dist"
@@ -187,7 +187,7 @@ phpcs-rules-match-drupal-11:
 
       # Exit with the exit code of the diff command
       exit $DIFF_EXIT_CODE
-  # Allow this to fail, to avoid disrupting XB's CI when upstream changes.
+  # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
   allow_failure: true
 stylelint:
   allow_failure: false
@@ -211,7 +211,7 @@ stylelint:
 
 phpunit:
   variables:
-    # Note: XB uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
+    # Note: Canvas uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
     _PHPUNIT_CONCURRENT: 1
   needs:
     - composer
@@ -428,13 +428,13 @@ cypress unit:
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - docs/XB.dsl
+        - docs/Canvas.dsl
         - docs/diagrams/*
   image:
     name: structurizr/cli
     entrypoint: [""]
   script:
-    - /usr/local/structurizr-cli/structurizr.sh export --workspace docs/XB.dsl --format mermaid --output $CI_PROJECT_DIR/docs/diagrams
+    - /usr/local/structurizr-cli/structurizr.sh export --workspace docs/Canvas.dsl --format mermaid --output $CI_PROJECT_DIR/docs/diagrams
     # Prepend the prefix
     #   ```mermaid
     # and the
@@ -562,10 +562,10 @@ CLI Test:
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
   before_script:
     mkdir -p test-results
-  # This job must pass, but must also not disrupt XB's CI if dependencies have a security vulnerability.
+  # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.
   allow_failure:
     exit_codes:
-      # `npm audit …` fails (implies upstream security vulnerability that may or may not affect XB)
+      # `npm audit …` fails (implies upstream security vulnerability that may or may not affect Canvas)
       - 100
   script:
     - npm ci

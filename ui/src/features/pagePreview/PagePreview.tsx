@@ -66,10 +66,10 @@ const PagePreview = () => {
 
   useEffect(() => {
     function handlePreviewLinkClick(event: MessageEvent) {
-      if (event.data && event.data.xbPreviewClickedUrl) {
-        setLinkIntercepted(event.data.xbPreviewClickedUrl);
+      if (event.data && event.data.canvasPreviewClickedUrl) {
+        setLinkIntercepted(event.data.canvasPreviewClickedUrl);
       }
-      if (event.data && event.data.xbPreviewFormSubmitted) {
+      if (event.data && event.data.canvasPreviewFormSubmitted) {
         setSubmissionIntercepted(true);
       }
     }

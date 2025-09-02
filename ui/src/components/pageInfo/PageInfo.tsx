@@ -46,7 +46,7 @@ import {
   extractHomepagePathFromStagedConfig,
   selectHomepageStagedConfigExists,
 } from '@/features/configuration/configurationSlice';
-import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
 import { pageDataFormApi } from '@/services/pageDataForm';
 
@@ -62,9 +62,9 @@ const iconMap: PageType = {
   Homepage: <HomeIcon />,
 };
 
-const xbSettings = getXbSettings();
+const canvasSettings = getCanvasSettings();
 
-export const HOMEPAGE_CONFIG_ID = 'xb_set_homepage';
+export const HOMEPAGE_CONFIG_ID = 'canvas_set_homepage';
 
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
@@ -79,12 +79,12 @@ const PageInfo = () => {
   )?.name;
   const entity_form_fields = useAppSelector(selectPageData);
   const title =
-    entity_form_fields[`${xbSettings.entityTypeKeys.label}[0][value]`];
+    entity_form_fields[`${canvasSettings.entityTypeKeys.label}[0][value]`];
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
   const canCreatePages =
-    !!xbSettings.contentEntityCreateOperations?.xb_page?.xb_page;
+    !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
   const {
     data: pageItems,
     isLoading: isPageItemsLoading,
@@ -92,7 +92,7 @@ const PageInfo = () => {
     isSuccess: isGetPageItemsSuccess,
   } = useGetContentListQuery({
     // @todo Generalize in https://www.drupal.org/i/3498525
-    entityType: 'xb_page',
+    entityType: 'canvas_page',
     search: debouncedSearchTerm,
   });
   const entityId = useAppSelector(selectEntityId);
@@ -126,7 +126,7 @@ const PageInfo = () => {
         (page) => page.internalPath === homepagePath,
       );
       setIsCurrentPageHomepage(
-        entityType === 'xb_page' && entityId === String(homepage?.id),
+        entityType === 'canvas_page' && entityId === String(homepage?.id),
       );
     }
   }, [entityId, entityType, homepagePath, isGetPageItemsSuccess, pageItems]);
@@ -141,7 +141,7 @@ const PageInfo = () => {
 
   function handleNewPage() {
     createContent({
-      entity_type: 'xb_page',
+      entity_type: 'canvas_page',
     });
   }
 
@@ -156,23 +156,23 @@ const PageInfo = () => {
       pageItems?.filter((page) => page.id !== item.id) || [];
     const pageToDeleteId = String(item.id);
     await deleteContent({
-      entityType: 'xb_page',
+      entityType: 'canvas_page',
       entityId: pageToDeleteId,
     });
     const homepage = pageItems?.find(
       (page) => page.internalPath === homepagePath,
     );
     // If the current page is the one being deleted, redirect to the homepage.
-    if (entityType === 'xb_page' && entityId === pageToDeleteId) {
+    if (entityType === 'canvas_page' && entityId === pageToDeleteId) {
       if (homepage) {
-        setEditorEntity('xb_page', String(homepage.id));
+        setEditorEntity('canvas_page', String(homepage.id));
       } else if (remainingPages.length > 0) {
         // It's possible there is no homepage set yet right now, so we redirect to the first remaining page.
-        setEditorEntity('xb_page', String(remainingPages[0].id));
+        setEditorEntity('canvas_page', String(remainingPages[0].id));
       } else {
-        // If there are no more pages, redirect out of XB.
+        // If there are no more pages, redirect out of Canvas.
         // @todo: Remove this in https://www.drupal.org/i/3506434
-        //   since deleting the homepage in XB should be disallowed in that issue so remaining pages should never be 0.
+        //   since deleting the homepage in Canvas should be disallowed in that issue so remaining pages should never be 0.
         setTimeout(() => {
           window.location.href = baseUrl;
         }, 100);
@@ -180,20 +180,20 @@ const PageInfo = () => {
     }
     // Keep local storage tidy and clear out the array of collapsed layers for the deleted item.
     window.localStorage.removeItem(
-      `XB.collapsedLayers.xb_page.${pageToDeleteId}`,
+      `Canvas.collapsedLayers.canvas_page.${pageToDeleteId}`,
     );
   }
 
   function handleDuplication(item: ContentStub) {
     createContent({
-      entity_type: 'xb_page',
+      entity_type: 'canvas_page',
       entity_id: String(item.id),
     });
   }
 
   // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types.
   function handleOnSelect(item: ContentStub) {
-    setEditorEntity('xb_page', String(item.id));
+    setEditorEntity('canvas_page', String(item.id));
   }
 
   function handleSetHomepage(item: ContentStub) {
@@ -253,7 +253,7 @@ const PageInfo = () => {
               color="gray"
               variant="soft"
               size="1"
-              data-testid="xb-navigation-button"
+              data-testid="canvas-navigation-button"
             >
               <Flex gap="2" align="center">
                 {isCurrentPageHomepage ? iconMap['Homepage'] : iconMap['Page']}
@@ -269,7 +269,7 @@ const PageInfo = () => {
             asChild
             align="center"
           >
-            <Panel className="xb-app" mt="4">
+            <Panel className="canvas-app" mt="4">
               {!pageItemsError && (
                 <Navigation
                   loading={isPageItemsLoading}

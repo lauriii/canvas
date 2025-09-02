@@ -158,7 +158,7 @@ const dateTime: Transformer<
   if ('time' in value) {
     timeString = value.time;
   }
-  // @todo Update this in https://www.drupal.org/project/experience_builder/issues/3501281, which will allow removing the FE-special casing in \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator::evaluate()
+  // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
   return new Date(`${dateString} ${timeString}+0000`).toISOString();
 };
 

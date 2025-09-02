@@ -67,16 +67,18 @@ describe('<Preview /> for code editor', () => {
     // in a <script> tag with `src`, but since this is a component test, that
     // won't work.
     cy.wait(2000); // eslint-disable-line cypress/no-unnecessary-waiting
-    cy.getIframe('[data-xb-iframe="xb-code-editor-preview"]').then((doc) => {
-      const script = doc.createElement('script');
-      script.type = 'module';
-      script.textContent = previewScript;
-      doc.head.appendChild(script);
-    });
+    cy.getIframe('[data-canvas-iframe="canvas-code-editor-preview"]').then(
+      (doc) => {
+        const script = doc.createElement('script');
+        script.type = 'module';
+        script.textContent = previewScript;
+        doc.head.appendChild(script);
+      },
+    );
 
     cy.waitForElementInIframe(
       '#hello',
-      '[data-xb-iframe="xb-code-editor-preview"]',
+      '[data-canvas-iframe="canvas-code-editor-preview"]',
     );
     cy.testInIframe(
       '#hello',
@@ -86,7 +88,7 @@ describe('<Preview /> for code editor', () => {
         expect(computedStyle.fontSize).to.equal('24px');
         expect(computedStyle.color).to.equal('rgb(0, 0, 255)');
       },
-      '[data-xb-iframe="xb-code-editor-preview"]',
+      '[data-canvas-iframe="canvas-code-editor-preview"]',
     );
   });
 });

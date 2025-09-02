@@ -30,7 +30,7 @@ const AddToComponentsDialog = () => {
         ...selectedComponent,
         // Mark this code component as "exposed", to make it available to content creators.
         // @see docs/config-management.md, section 3.2.1
-        // @see \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage::createOrUpdateComponentEntity()
+        // @see \Drupal\canvas\EntityHandlers\JavascriptComponentStorage::createOrUpdateComponentEntity()
         status: true,
       },
     });

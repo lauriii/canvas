@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit;
+namespace Drupal\Tests\canvas\Unit;
 
 use cebe\openapi\json\JsonPointer;
 use cebe\openapi\ReferenceContext;
 use cebe\openapi\spec\Schema;
 use Drupal\Component\Serialization\Yaml;
-use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
+use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
 use DrupalFinder\DrupalFinderComposerRuntime;
 use JsonSchema\Validator;
@@ -19,7 +19,7 @@ use League\OpenAPIValidation\Schema\SchemaValidator;
 /**
  * Validates this Drupal module's OpenAPI spec against the OpenAPI JSON schema.
  *
- * @group experience_builder.
+ * @group canvas.
  *
  * @requires function \cebe\openapi\Reader::readFromYamlFile
  * @requires function \DrupalFinder\DrupalFinderComposerRuntime::getVendorDir

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use League\OpenAPIValidation\PSR7\OperationAddress;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Response subscriber that validates an Experience Builder API response.
+ * Response subscriber that validates an Drupal Canvas API response.
  *
  * @internal
  */

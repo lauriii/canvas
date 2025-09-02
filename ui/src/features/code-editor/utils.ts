@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { camelCase, isEqual } from 'lodash';
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
-import { getXbModuleBaseUrl } from '@/utils/drupal-globals';
+import { getCanvasModuleBaseUrl } from '@/utils/drupal-globals';
 
 import type {
   CodeComponentProp,
@@ -431,7 +431,7 @@ function serializeVideoSrc(example: CodeComponentPropVideoExample) {
 }
 
 function deserializeVideoSrc(example: CodeComponentPropVideoExample) {
-  const moduleBaseUrl = getXbModuleBaseUrl();
+  const moduleBaseUrl = getCanvasModuleBaseUrl();
   const configExampleUrls = Object.values(CONFIG_EXAMPLE_URLS);
   for (const configUrl of configExampleUrls) {
     if (example.src.includes(configUrl)) {

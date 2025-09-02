@@ -1,29 +1,29 @@
 <?php
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
-use Drupal\experience_builder\PropSource\DynamicPropSource;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Controllers exposing HTTP API for powering XB's Content Template editor UI.
+ * Controllers exposing HTTP API for powering Canvas's Content Template editor UI.
  *
- * @internal This HTTP API is intended only for the XB UI. These controllers
+ * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  *
- * @see \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
+ * @see \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
  */
 final class ApiUiContentTemplateControllers extends ApiControllerBase {
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Traits;
+namespace Drupal\Tests\canvas\Kernel\Traits;
 
 use Drupal\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
-use Drupal\experience_builder\Version;
+use Drupal\canvas\Version;
 
 trait CacheBustingTrait {
 

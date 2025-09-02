@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\experience_builder\Utility\ExceptionHelper;
+use Drupal\canvas\Utility\ExceptionHelper;
 use League\OpenAPIValidation\PSR7\Exception\NoPath;
 use League\OpenAPIValidation\PSR7\Exception\ValidationFailed;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
 /**
- * Event subscriber base class for validating Experience Builder API messages.
+ * Event subscriber base class for validating Drupal Canvas API messages.
  *
  * This functionality only takes effect in the presence of the
  * league/openapi-psr7-validator Composer library with PHP assertions enabled
@@ -60,7 +60,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
   }
 
   /**
-   * Validates Experience Builder API messages.
+   * Validates Drupal Canvas API messages.
    *
    * @throws \League\OpenAPIValidation\PSR7\Exception\ValidationFailed
    *    See docblock on {@see self::validate()}.
@@ -82,7 +82,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     catch (ValidationFailed $e) {
       $this->logFailure($e);
       // @todo Surface exception details better for front-end display.
-      // @see https://www.drupal.org/project/experience_builder/issues/3470321
+      // @see https://www.drupal.org/project/canvas/issues/3470321
       throw $e;
     }
   }
@@ -92,7 +92,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
    */
   private function shouldValidate(Request $request): bool {
     return !$this->isProd()
-      && $this->isExperienceBuilderMessage()
+      && $this->isCanvasMessage()
       && $this->isValidationEnabled()
       && !$request->headers->has('X-NO-OPENAPI-VALIDATION');
   }
@@ -114,10 +114,10 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
   /**
    * Determines whether the message is from this module.
    */
-  private function isExperienceBuilderMessage(): bool {
+  private function isCanvasMessage(): bool {
     return str_starts_with(
       $this->currentRouteMatch->getRouteName() ?? '',
-      'experience_builder.api.',
+      'canvas.api.',
     );
   }
 
@@ -157,7 +157,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
       '%s/%s/openapi.yml',
       $this->appRoot,
       $this->moduleHandler
-        ->getModule('experience_builder')
+        ->getModule('canvas')
         ->getPath(),
     );
 

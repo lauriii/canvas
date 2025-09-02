@@ -23,7 +23,7 @@ export class Drupal {
       url: this.drupalSite.url,
     };
     const playwrightCookie = {
-      name: 'XB_PLAYWRIGHT',
+      name: 'CANVAS_PLAYWRIGHT',
       value: 'true',
       url: this.drupalSite.url,
     };
@@ -51,21 +51,19 @@ export class Drupal {
   }
 
   // @todo deprecate this as it sets the site up into a weird state.
-  async setupXBTestSite() {
+  async setupCanvasTestSite() {
     const moduleDir = await getModuleDir();
     await this.enableTestExtensions();
     await this.writeBaseUrl();
+    await this.applyRecipe(`${moduleDir}/canvas/tests/fixtures/recipes/base`);
     await this.applyRecipe(
-      `${moduleDir}/experience_builder/tests/fixtures/recipes/base`,
-    );
-    await this.applyRecipe(
-      `${moduleDir}/experience_builder/tests/fixtures/recipes/test_site`,
+      `${moduleDir}/canvas/tests/fixtures/recipes/test_site`,
     );
   }
 
-  async createXbPage(title: string, alias: string) {
+  async createCanvasPage(title: string, alias: string) {
     await this.drush(
-      `php-eval "Drupal\\experience_builder\\Entity\\Page::create(['title' => '${title}', 'type' => 'xb_page', 'path' => ['alias' => '${alias}', 'langcode' => 'en']])->save();"`,
+      `php-eval "Drupal\\canvas\\Entity\\Page::create(['title' => '${title}', 'type' => 'canvas_page', 'path' => ['alias' => '${alias}', 'langcode' => 'en']])->save();"`,
     );
   }
 
@@ -337,8 +335,10 @@ export class Drupal {
 
   async addMediaGenericFile(path: string) {
     await this.page
-      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
-      .first() // @todo shouldn't need this but XB is currently rendering two fields
+      .locator(
+        '[data-testid="canvas-contextual-panel"] input[value="Add media"]',
+      )
+      .first() // @todo shouldn't need this but Canvas is currently rendering two fields
       .click();
     await this.page
       .locator(
@@ -358,7 +358,7 @@ export class Drupal {
       .click();
     await expect(
       this.page.locator(
-        '[data-testid="xb-contextual-panel"] .js-media-library-item input[data-xb-media-remove-button="true"]',
+        '[data-testid="canvas-contextual-panel"] .js-media-library-item input[data-canvas-media-remove-button="true"]',
       ),
     ).toBeVisible();
   }
@@ -375,7 +375,7 @@ export class Drupal {
     // It should be possible to set the alt text with the following, but there's currently a bug
     // await this.page.getByLabel('Alternative text').fill('A cute dog');
     // instead we use the evaluate method to set the value directly.
-    // https://www.drupal.org/project/experience_builder/issues/3535215
+    // https://www.drupal.org/project/canvas/issues/3535215
     await this.page
       .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
       .evaluate((el: HTMLInputElement, value) => {
@@ -395,7 +395,7 @@ export class Drupal {
       .click();
     await expect(
       this.page.locator(
-        '[data-testid="xb-contextual-panel"] .js-media-library-item-preview img',
+        '[data-testid="canvas-contextual-panel"] .js-media-library-item-preview img',
       ),
     ).toHaveAttribute('alt', alt);
   }
@@ -409,18 +409,20 @@ export class Drupal {
 
   async selectMedia(media: string) {
     await this.page
-      .locator('[data-testid="xb-contextual-panel"] input[value="Add media"]')
-      .first() // @todo Remove this line in https://www.drupal.org/project/experience_builder/issues/3535220
+      .locator(
+        '[data-testid="canvas-contextual-panel"] input[value="Add media"]',
+      )
+      .first() // @todo Remove this line in https://www.drupal.org/project/canvas/issues/3535220
       .click();
     await this.page
-      .locator(`div.xb-media-preview-label:has-text("${media}")`)
+      .locator(`div.canvas-media-preview-label:has-text("${media}")`)
       .click();
     await this.page
       .getByRole('button', { name: 'Insert selected', exact: true })
       .click();
     expect(
       this.page.locator(
-        '[data-testid="xb-contextual-panel"] .js-media-library-item-preview img',
+        '[data-testid="canvas-contextual-panel"] .js-media-library-item-preview img',
       ),
     );
   }

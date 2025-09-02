@@ -2,7 +2,7 @@
 
 Date: 2024-06-14
 
-Issue: <https://www.drupal.org/project/experience_builder/issues/3454669>
+Issue: <https://www.drupal.org/project/canvas/issues/3454669>
 
 ## Status
 

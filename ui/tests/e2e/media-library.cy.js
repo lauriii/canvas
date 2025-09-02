@@ -1,6 +1,9 @@
 describe('Media Library', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_sdc', 'xb_test_e2e_code_components']);
+    cy.drupalCanvasInstall([
+      'canvas_test_sdc',
+      'canvas_test_e2e_code_components',
+    ]);
   });
 
   beforeEach(() => {
@@ -14,11 +17,11 @@ describe('Media Library', () => {
   });
 
   it('Can remove an optional image no example and there is no image in the preview', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get(
-      '[data-xb-component-id="sdc.xb_test_sdc.image-optional-without-example"]',
+      '[data-canvas-component-id="sdc.canvas_test_sdc.image-optional-without-example"]',
     ).realClick();
     cy.waitForElementNotInIframe('.layout-content img');
     cy.get(
@@ -41,11 +44,11 @@ describe('Media Library', () => {
   });
 
   it('Can remove an optional image with example and there is no image in the preview', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get(
-      '[data-xb-component-id="sdc.xb_test_sdc.image-optional-with-example"]',
+      '[data-canvas-component-id="sdc.canvas_test_sdc.image-optional-with-example"]',
     ).realClick();
     cy.waitForElementInIframe('.layout-content img[alt="Boring placeholder"]');
     cy.get(
@@ -68,11 +71,11 @@ describe('Media Library', () => {
   });
 
   it('Can remove an optional code component image with example and there is no image in the preview', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get(
-      '[data-xb-component-id="js.xb_test_e2e_code_components_optional_image"]',
+      '[data-canvas-component-id="js.canvas_test_e2e_code_components_optional_image"]',
     ).realClick();
     cy.waitForElementInIframe(
       '.layout-content img[alt="Example image placeholder"]',
@@ -115,11 +118,11 @@ describe('Media Library', () => {
   });
 
   it('Can remove a required code component image with example and there is no image in the preview', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get(
-      '[data-xb-component-id="js.xb_test_e2e_code_components_req_image"]',
+      '[data-canvas-component-id="js.canvas_test_e2e_code_components_req_image"]',
     ).realClick();
     cy.waitForElementInIframe(
       '.layout-content img[alt="Example image placeholder"]',

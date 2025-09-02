@@ -1,0 +1,21 @@
+# @todo This is the only config that depends on `canvas.component.*`. When this file is removed, simplify canvas_module_preinstall().
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_canvas_demo
+    - node.type.article
+  module:
+    - canvas
+id: node.article.field_canvas_demo
+field_name: field_canvas_demo
+entity_type: node
+bundle: article
+label: 🪄 Canvas Demo ✨
+description: ''
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: component_tree

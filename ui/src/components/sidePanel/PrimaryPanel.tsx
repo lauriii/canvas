@@ -34,7 +34,7 @@ export const PrimaryPanel = () => {
   return (
     <Flex
       className={clsx(styles.primaryPanel, ...offLeftClasses)}
-      data-testid="xb-primary-panel"
+      data-testid="canvas-primary-panel"
       direction="column"
     >
       <Flex align="center" className={styles.header} px="4" flexShrink="0">

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
-use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
- * @coversClass \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
- * @group experience_builder
+ * @coversClass \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
+ * @group canvas
  */
 class FieldForComponentSuggesterTest extends KernelTestBase {
 
@@ -31,15 +31,15 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     'system',
     'user',
     // The module being tested.
-    'experience_builder',
+    'canvas',
     // The dependent modules.
     'sdc',
     'media',
     // The module providing realistic test SDCs.
-    'xb_test_sdc',
+    'canvas_test_sdc',
     // The module providing the sample SDC to test all JSON schema types.
     'sdc_test_all_props',
-    'xb_test_sdc',
+    'canvas_test_sdc',
     // All other core modules providing field types.
     'comment',
     'datetime',
@@ -65,7 +65,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $this->installEntitySchema('node');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
@@ -168,10 +168,10 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
 
   public static function provider(): \Generator {
     yield 'the image component' => [
-      'xb_test_sdc:image',
+      'canvas_test_sdc:image',
       'entity:node:foo',
       [
-        '⿲xb_test_sdc:image␟image' => [
+        '⿲canvas_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [
             "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -185,10 +185,10 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     ];
 
     yield 'the image component — free of context' => [
-      'xb_test_sdc:image',
+      'canvas_test_sdc:image',
       NULL,
       [
-        '⿲xb_test_sdc:image␟image' => [
+        '⿲canvas_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [],
           'adapters' => [
@@ -199,15 +199,15 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       ],
     ];
 
-    // 💡 Demonstrate it is possible to reuse an XB-defined prop shape, add a
+    // 💡 Demonstrate it is possible to reuse an Canvas-defined prop shape, add a
     // new computed property to a field type, and match that, too. (This
-    // particular computed property happens to be added by XB itself, but any
+    // particular computed property happens to be added by Canvas itself, but any
     // module can follow this pattern.)
     yield 'the image-srcset-candidate-template-uri component' => [
-      'xb_test_sdc:image-srcset-candidate-template-uri',
+      'canvas_test_sdc:image-srcset-candidate-template-uri',
       'entity:node:foo',
       [
-        '⿲xb_test_sdc:image-srcset-candidate-template-uri␟image' => [
+        '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image' => [
           'required' => TRUE,
           'instances' => [
             "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -217,7 +217,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             'Make relative image URL absolute' => 'image_url_rel_to_abs',
           ],
         ],
-        '⿲xb_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
+        '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
           'required' => FALSE,
           'instances' => [
             "Subset of this Foo's field_silly_image: srcset_candidate_uri_template (1 of 7 props — absent: entity, alt, title, width, height, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',

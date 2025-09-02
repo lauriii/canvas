@@ -48,7 +48,7 @@ export function uploadCommand(program: Command): void {
       const skipTailwind = !options.tailwind;
 
       try {
-        p.intro('Experience Builder Component Upload');
+        p.intro('Drupal Canvas Component Upload');
 
         // Update config with CLI options
         if (options.clientId) setConfig({ clientId: options.clientId });
@@ -221,7 +221,7 @@ async function getBuildAndUploadResults(
         }
       } catch (error) {
         // If the error is a 422 and specifies dataDependencies as the problem,
-        // it might be due to running a version of XB that does not yet support
+        // it might be due to running a version of Canvas that does not yet support
         // this property. Remove dataDependencies from the payload and make
         // another attempts.
         if (

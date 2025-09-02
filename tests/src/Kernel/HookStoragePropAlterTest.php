@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropShape\StorablePropShape;
 
 /**
- * @covers \Drupal\experience_builder\PropShape\PropShape::getStorage()
- * @group experience_builder
+ * @covers \Drupal\canvas\PropShape\PropShape::getStorage()
+ * @group canvas
  */
 class HookStoragePropAlterTest extends PropShapeRepositoryTest {
 
@@ -17,9 +17,9 @@ class HookStoragePropAlterTest extends PropShapeRepositoryTest {
    * {@inheritdoc}
    */
   protected static $modules = [
-    // @see xb_test_storage_prop_shape_alter_storage_prop_shape_alter()
-    // @see xb_test_storage_prop_shape_alter_field_widget_info_alter()
-    'xb_test_storage_prop_shape_alter',
+    // @see canvas_test_storage_prop_shape_alter_storage_prop_shape_alter()
+    // @see canvas_test_storage_prop_shape_alter_field_widget_info_alter()
+    'canvas_test_storage_prop_shape_alter',
   ];
 
   /**

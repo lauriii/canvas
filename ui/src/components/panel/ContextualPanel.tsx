@@ -54,7 +54,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
 
   return (
     <Box
-      data-testid="xb-contextual-panel"
+      data-testid="canvas-contextual-panel"
       pt="2"
       className={clsx(styles.contextualPanel, ...offRightClasses)}
     >
@@ -62,7 +62,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
         flexGrow="1"
         direction="column"
         height="100%"
-        data-testid={`xb-contextual-panel-${selectedComponent}`}
+        data-testid={`canvas-contextual-panel-${selectedComponent}`}
       >
         <ErrorBoundary>
           <Tabs.Root
@@ -74,14 +74,14 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
             <Tabs.List justify="start" mx="4" size="1">
               <Tabs.Trigger
                 value="pageData"
-                data-testid="xb-contextual-panel--page-data"
+                data-testid="canvas-contextual-panel--page-data"
               >
                 Page data
               </Tabs.Trigger>
               {(selectedComponent || isMultiSelect) && (
                 <Tabs.Trigger
                   value="settings"
-                  data-testid="xb-contextual-panel--settings"
+                  data-testid="canvas-contextual-panel--settings"
                 >
                   Settings
                 </Tabs.Trigger>
@@ -106,7 +106,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                                 'Copy functionality will be implemented later',
                               )
                             }
-                            className="xb-button"
+                            className="canvas-button"
                           >
                             Copy
                           </Button>
@@ -121,7 +121,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                                 'Save as Pattern functionality will be implemented later',
                               )
                             }
-                            className="xb-button"
+                            className="canvas-button"
                           >
                             Save as Pattern
                           </Button>

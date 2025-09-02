@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Render;
+namespace Drupal\canvas\Render;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Render\AttachmentsInterface;
@@ -26,7 +26,7 @@ use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
  *
  * @code
- *  use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+ *  use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
  *  $scope = '/modules/mymodule/js/file.js';
  *  $build['i_can_haz_imports'] = [
  *    '#type' => 'container',
@@ -97,7 +97,7 @@ final class ImportMapResponseAttachmentsProcessor implements AttachmentsResponse
     $import_map = self::buildHtmlTagForAttachedImportMaps($response);
     if ($import_map) {
       unset($original_attachments['import_maps']);
-      $original_attachments['html_head'][] = [$import_map, 'xb_import_map'];
+      $original_attachments['html_head'][] = [$import_map, 'canvas_import_map'];
       // Set the attachments with the new script tag and without the import_maps
       // entry.
       $response->setAttachments($original_attachments);

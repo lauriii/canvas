@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\AutoSave;
+namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,7 +37,7 @@ trait AutoSaveConflictTestTrait {
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
 
     $this->setUpEntity();
     $this->setUpCurrentUser(permissions: self::getPermissions());
@@ -196,10 +196,10 @@ trait AutoSaveConflictTestTrait {
     $response = $this->request(Request::create($url));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     $postEntitySaveJson = self::decodeResponse($response);
-    $this->entity instanceof XbHttpApiEligibleConfigEntityInterface ?
-        // For XbHttpApiEligibleConfigEntityInterface entities the auto-save
+    $this->entity instanceof CanvasHttpApiEligibleConfigEntityInterface ?
+        // For CanvasHttpApiEligibleConfigEntityInterface entities the auto-save
         // will be deleted after the entity save.
-        // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::onXbConfigEntitySave()
+        // @see \Drupal\canvas\AutoSave\AutoSaveManager::onCanvasConfigEntitySave()
         $this->assertNull($postEntitySaveJson['autoSaves'][$autoSaveKey]['hash']) :
         $this->assertSame($preEntitySaveJson['autoSaves'][$autoSaveKey]['hash'], $postEntitySaveJson['autoSaves'][$autoSaveKey]['hash']);
     $this->assertNotEmpty($postEntitySaveJson['autoSaves'][$autoSaveKey]['autoSaveStartingPoint']);

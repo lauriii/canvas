@@ -1,12 +1,12 @@
 describe('DOM to Redux functionality', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_native_value_js']);
+    cy.drupalCanvasInstall(['canvas_test_native_value_js']);
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
     cy.get('.primaryPanelContent').findByText('Test Value Update').click();
@@ -14,18 +14,18 @@ describe('DOM to Redux functionality', () => {
   });
 
   it('update text value', () => {
-    //tests/modules/xb_test_native_value_js/js/test-value-updates.js
+    //tests/modules/canvas_test_native_value_js/js/test-value-updates.js
 
     // Confirm the initial state relevant to this test:
     // - The heading input value is "The Default!", which should also be
     //   reflected in the preview.
     // - The "Default Visible" text input is visible. It can be made invisible
     //   when the "Controlling Text" input has the value 'make visible
-    //   invisible' @see xb_test_state_api.module.
+    //   invisible' @see canvas_test_state_api.module.
     // - The div that should be visible when the "Controlling Text" input is
-    //   empty is visible. @see xb_test_state_api.module
+    //   empty is visible. @see canvas_test_state_api.module
     // - The div that should be invisible when the "Controlling Text" input is
-    //   empty is invisible. @see xb_test_state_api.module
+    //   empty is invisible. @see canvas_test_state_api.module
     cy.findByLabelText('Heading').should('have.value', 'The Default!');
     cy.waitForElementContentInIframe('.text-value', 'The Default!');
     cy.get('#edit-default-visible').scrollIntoView();
@@ -40,7 +40,7 @@ describe('DOM to Redux functionality', () => {
     //   programmatic updates are  reflected in the preview.
     // - The "Controlling Text" input value will be "make visible invisible".
     //   This is to confirm that programmatic updates trigger the state API.
-    // @see test-value-updates.js in the xb_test_native_value_js module for the
+    // @see test-value-updates.js in the canvas_test_native_value_js module for the
     // implementation of this button's click handler.
     cy.get('#trigger-text-update').click();
 
@@ -82,7 +82,7 @@ describe('DOM to Redux functionality', () => {
     cy.waitForElementContentInIframe('.test-value-update-bool code', 'true');
 
     // Click this button to programmatically toggle the boolean element.
-    // @see test-value-updates.js in the xb_test_native_value_js module for the
+    // @see test-value-updates.js in the canvas_test_native_value_js module for the
     // implementation of this button's click handler.
     cy.get('#trigger-toggle-update').click();
 
@@ -99,7 +99,7 @@ describe('DOM to Redux functionality', () => {
     cy.waitForElementContentInIframe('.number-value', '999');
 
     // Click this button to programmatically set the number element to 2000.
-    // @see test-value-updates.js in the xb_test_native_value_js module for the
+    // @see test-value-updates.js in the canvas_test_native_value_js module for the
     // implementation of this button's click handler.
     cy.get('#trigger-number-update').click();
 
@@ -123,7 +123,7 @@ describe('DOM to Redux functionality', () => {
     cy.get('[name="conditional_visible_field"]').should('not.be.visible');
 
     // Click this button to programmatically check the checkbox.
-    // @see test-value-updates.js in the xb_test_native_value_js module for the
+    // @see test-value-updates.js in the canvas_test_native_value_js module for the
     // implementation of this button's click handler.
     cy.get('#trigger-checkbox-update').click();
 

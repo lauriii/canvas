@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleExtensionList;
 
 /**
  * @internal
- * @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoAlter()
+ * @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoAlter()
  */
 class Version {
 
@@ -21,7 +21,7 @@ class Version {
 
   public function getVersion(): string {
     if ($this->version === NULL) {
-      $package_file_name = $this->moduleExtensionList->getPath('experience_builder') . '/ui/package.json';
+      $package_file_name = $this->moduleExtensionList->getPath('canvas') . '/ui/package.json';
       assert(file_exists($package_file_name));
       $package_file_contents = file_get_contents($package_file_name);
       assert(is_string($package_file_contents));

@@ -9,12 +9,12 @@ import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Basic accessibility', () => {
   test.beforeAll(
-    'Setup minimal test site with Experience Builder',
+    'Setup minimal test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules(['experience_builder', 'xb_test_sdc']);
-      await drupal.createXbPage('Homepage', '/homepage');
+      await drupal.installModules(['canvas', 'canvas_test_sdc']);
+      await drupal.createCanvasPage('Homepage', '/homepage');
       await page.close();
     },
   );
@@ -68,7 +68,7 @@ test.describe('Basic accessibility', () => {
     expect(libraryScan.violations).toEqual([]);
 
     // Props Panel.
-    xBEditor.addComponent({ id: 'sdc.xb_test_sdc.my-hero' });
+    xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
     const propsScan = await new AxeBuilder({ page })
       .disableRules(baseline)
       .analyze();

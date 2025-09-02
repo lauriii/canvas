@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\JsonSchemaInterpreter;
+namespace Drupal\canvas\JsonSchemaInterpreter;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\PropShape\StorablePropShape;
-use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
-use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirement;
+use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
 /**
  * Interprets JSON schema types (with type-specific constraints) to Typed Data.
@@ -25,7 +25,7 @@ use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
  *   `hook_storage_prop_shape_alter()`
  * - Drupal field instances' props thanks to hardcoded knowledge about Drupal
  *   validation constraint equivalents: `::toDataTypeShapeRequirements()`, used
- *   by \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ *   by \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  *
  * KNOWN UNKNOWNS.
  *
@@ -41,9 +41,9 @@ use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
  * KNOWN KNOWNS
  *
  * Upstream changes needed, but high confidence that it is possible:
- * @see \Drupal\experience_builder\Plugin\Field\FieldType\PathItemOverride
- * @see \Drupal\experience_builder\Plugin\Field\FieldType\TextItemOverride
- * @see \Drupal\experience_builder\Plugin\Field\FieldType\UuidItemOverride
+ * @see \Drupal\canvas\Plugin\Field\FieldType\PathItemOverride
+ * @see \Drupal\canvas\Plugin\Field\FieldType\TextItemOverride
+ * @see \Drupal\canvas\Plugin\Field\FieldType\UuidItemOverride
  * @todo Disallow JSON schema string formats that do not make sense/are obscure enough — these should be disallowed in \Drupal\sdc\Component\ComponentValidator::validateProps()
  *
  * Will have to fix eventually, but high confidence that it will work:
@@ -101,8 +101,8 @@ enum JsonSchemaType: string {
    *
    * @param JsonSchema $schema
    *
-   * @see \Drupal\experience_builder\PropSource\DynamicPropSource
-   * @see \Drupal\experience_builder\JsonSchemaFieldInstanceMatcher
+   * @see \Drupal\canvas\PropSource\DynamicPropSource
+   * @see \Drupal\canvas\JsonSchemaFieldInstanceMatcher
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {
     return match ($this) {
@@ -117,10 +117,10 @@ enum JsonSchemaType: string {
       JsonSchemaType::String => match (TRUE) {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
-        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
+        // @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::MARKUP
         array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
           !isset($schema['x-formatting-context']) || $schema['x-formatting-context'] === 'block' => new DataTypeShapeRequirement('StringSemantics', ['semantic' => StringSemanticsConstraint::MARKUP]),
-          // @todo Add support for `x-formatting-context: inline`. This is blocked on CKEditor 5 support: https://www.drupal.org/i/3467959#comment-16052121. Once CKEditor 5 support is viable, this will need to generate a datatype shape requirement that checks the allowed text formats allowed by a field instance to ensure it only allows the `xb_html_inline` text format, or a subset of what it allows.
+          // @todo Add support for `x-formatting-context: inline`. This is blocked on CKEditor 5 support: https://www.drupal.org/i/3467959#comment-16052121. Once CKEditor 5 support is viable, this will need to generate a datatype shape requirement that checks the allowed text formats allowed by a field instance to ensure it only allows the `canvas_html_inline` text format, or a subset of what it allows.
           $schema['x-formatting-context'] === 'inline' => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
           // Other `x-formatting-context` values do not make sense.
           default => throw new \LogicException('Invalid `x-formatting-context` value; this component should never have been eligible.'),
@@ -145,7 +145,7 @@ enum JsonSchemaType: string {
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To
         // ensure a good UX, Drupal interprets this as meaning "prose".
-        // @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint::PROSE
+        // @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::PROSE
         TRUE => new DataTypeShapeRequirement('StringSemantics', ['semantic' => StringSemanticsConstraint::PROSE]),
       },
 
@@ -184,15 +184,15 @@ enum JsonSchemaType: string {
    * Used for generating a StaticPropSource, for storing a value that fits in
    * this prop shape.
    *
-   * @param \Drupal\experience_builder\PropShape\PropShape $shape
+   * @param \Drupal\canvas\PropShape\PropShape $shape
    *   The prop shape to find the recommended UX (storage + widget) for.
    *
-   * @return \Drupal\experience_builder\PropShape\StorablePropShape|null
-   *   NULL is returned to indicate that Experience Builder + Drupal core do not
+   * @return \Drupal\canvas\PropShape\StorablePropShape|null
+   *   NULL is returned to indicate that Drupal Canvas + Drupal core do not
    *   support a field type that provides a good UX for entering a value of this
    *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
    *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource
+   * @see \Drupal\canvas\PropSource\StaticPropSource
    */
   public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
     $schema = $shape->schema;
@@ -255,13 +255,13 @@ enum JsonSchemaType: string {
         // Custom: `contentMediaType: text/html` + `x-formatting-context`.
         // @see docs/shape-matching-into-field-types.md#3.2.1
         array_key_exists('contentMediaType', $schema) && $schema['contentMediaType'] === 'text/html' => match(TRUE) {
-          !isset($schema['x-formatting-context']) || $schema['x-formatting-context'] === 'block' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text_long', 'value'), fieldWidget: 'text_textarea', fieldInstanceSettings: ['allowed_formats' => ['xb_html_block']]),
-          $schema['x-formatting-context'] === 'inline' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text', 'value'), fieldWidget: 'text_textfield', fieldInstanceSettings: ['allowed_formats' => ['xb_html_inline']]),
+          !isset($schema['x-formatting-context']) || $schema['x-formatting-context'] === 'block' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text_long', 'value'), fieldWidget: 'text_textarea', fieldInstanceSettings: ['allowed_formats' => ['canvas_html_block']]),
+          $schema['x-formatting-context'] === 'inline' => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('text', 'value'), fieldWidget: 'text_textfield', fieldInstanceSettings: ['allowed_formats' => ['canvas_html_inline']]),
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
-          'json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
+          'json-schema-definitions://canvas.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
           default => NULL,
         },
         array_key_exists('enum', $schema) => match(in_array('', $schema['enum'], TRUE)) {
@@ -272,7 +272,7 @@ enum JsonSchemaType: string {
             fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
             fieldWidget: 'options_select',
             fieldStorageSettings: [
-              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
             ],
           ),
         },
@@ -295,7 +295,7 @@ enum JsonSchemaType: string {
       JsonSchemaType::Integer => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number', fieldInstanceSettings: [
@@ -314,7 +314,7 @@ enum JsonSchemaType: string {
       JsonSchemaType::Number => match (TRUE) {
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
         // `min` and/or `max`
         array_key_exists('minimum', $schema) || array_key_exists('maximum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number', fieldStorageSettings: [
@@ -329,12 +329,12 @@ enum JsonSchemaType: string {
       JsonSchemaType::Object => match (TRUE) {
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-          // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
-          // @todo Try decorating with adapter in https://www.drupal.org/project/experience_builder/issues/3536115.
-          'json-schema-definitions://experience_builder.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
-            // TRICKY: Additional computed property on image fields added by Experience Builder.
-            // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride
-            // @todo Remove the next line in favor of the commented out lines in https://www.drupal.org/project/experience_builder/issues/3536115.
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+          // @todo Try decorating with adapter in https://www.drupal.org/project/canvas/issues/3536115.
+          'json-schema-definitions://canvas.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
+            // TRICKY: Additional computed property on image fields added by Drupal Canvas.
+            // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
+            // @todo Remove the next line in favor of the commented out lines in https://www.drupal.org/project/canvas/issues/3536115.
             'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
             // @phpcs:disable
             /*
@@ -349,8 +349,8 @@ enum JsonSchemaType: string {
             'height' => new FieldTypePropExpression('image', 'height'),
           ])),
           // @see \Drupal\file\Plugin\Field\FieldType\FileItem
-          // @see \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
-          'json-schema-definitions://experience_builder.module/video' => new StorablePropShape(
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+          'json-schema-definitions://canvas.module/video' => new StorablePropShape(
             shape: $shape,
             fieldWidget: 'file_generic',
             fieldTypeProp: new FieldTypeObjectPropsExpression('file', [

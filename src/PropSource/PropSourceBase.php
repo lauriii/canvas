@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 

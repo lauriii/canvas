@@ -18,7 +18,7 @@ export const dummyPropsFormApi = createApi({
       query: (queryString) => {
         const fullQueryString = addAjaxPageState(queryString);
         return {
-          url: `xb/api/v0/form/component-instance/{entity_type}/{entity_id}`,
+          url: `canvas/api/v0/form/component-instance/{entity_type}/{entity_id}`,
           // We use PATCH to keep this distinct from AJAX form submissions which
           // use POST.
           method: 'PATCH',

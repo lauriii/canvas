@@ -1,27 +1,27 @@
 <?php
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Selects the Experience Builder page display variant.
+ * Selects the Drupal Canvas page display variant.
  *
  * @see \Drupal\Core\Render\RenderEvents
  */
 final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
 
   /**
-   * Selects the Experience Builder page display variant.
+   * Selects the Drupal Canvas page display variant.
    *
    * @param \Drupal\Core\Render\PageDisplayVariantSelectionEvent $event
    *   The event to process.
    *
-   * @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant
    */
   public function onSelectPageDisplayVariant(PageDisplayVariantSelectionEvent $event): void {
     $regions = PageRegion::loadForActiveTheme();
@@ -29,9 +29,9 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
       // No active page regions for this theme.
       return;
     }
-    $event->setPluginId(XbPageVariant::PLUGIN_ID);
+    $event->setPluginId(CanvasPageVariant::PLUGIN_ID);
     $event->setPluginConfiguration([
-      XbPageVariant::PREVIEW_KEY => $event->getRouteMatch()->getRouteObject()?->getOption('_xb_use_template_draft'),
+      CanvasPageVariant::PREVIEW_KEY => $event->getRouteMatch()->getRouteObject()?->getOption('_canvas_use_template_draft'),
     ]);
   }
 

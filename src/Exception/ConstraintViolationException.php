@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Exception;
+namespace Drupal\canvas\Exception;
 
-use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**

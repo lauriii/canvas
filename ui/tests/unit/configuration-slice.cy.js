@@ -11,8 +11,8 @@ describe('Configuration slice', () => {
   it('Should set configuration', () => {
     const state = configurationSlice.reducer(
       initialState,
-      setConfiguration({ baseUrl: '/xb/' }),
+      setConfiguration({ baseUrl: '/canvas/' }),
     );
-    expect(state.baseUrl).to.eq('/xb/');
+    expect(state.baseUrl).to.eq('/canvas/');
   });
 });

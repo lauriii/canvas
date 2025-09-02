@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -20,7 +20,7 @@ final class ComponentIncompatibilityReasonRepository {
     #[Autowire('@keyvalue')]
     KeyValueFactoryInterface $keyValueFactory,
   ) {
-    $this->keyValue = $keyValueFactory->get('experience_builder:component:reasons');
+    $this->keyValue = $keyValueFactory->get('canvas:component:reasons');
   }
 
   /**

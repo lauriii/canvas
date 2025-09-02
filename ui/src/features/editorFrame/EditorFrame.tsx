@@ -311,15 +311,15 @@ const EditorFrame = () => {
           // @ts-ignore
           style={{ '--editor-frame-scale': editorViewPort.scale }}
           ref={editorFrameRef}
-          data-testid="xb-editor-frame"
+          data-testid="canvas-editor-frame"
         >
           <div style={{ position: 'relative' }} id="positionAnchor">
             <div
               className={clsx(
-                'xbEditorFrameScalingContainer',
-                styles.xbEditorFrameScalingContainer,
+                'canvasEditorFrameScalingContainer',
+                styles.canvasEditorFrameScalingContainer,
               )}
-              data-testid="xb-editor-frame-scaling"
+              data-testid="canvas-editor-frame-scaling"
               style={{
                 transform: `scale(${editorViewPort.scale})`,
               }}

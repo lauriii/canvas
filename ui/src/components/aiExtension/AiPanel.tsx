@@ -17,7 +17,7 @@ const AiPanel: React.FC<AiPanelProps> = () => {
     <Box
       className={styles.aiPanel}
       data-open={!!isOpen}
-      data-testid="xb-ai-panel"
+      data-testid="canvas-ai-panel"
     >
       <div data-open={!!isOpen} className={styles.aiPanelContent}>
         {isOpen && <AiWizard />}

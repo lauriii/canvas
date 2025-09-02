@@ -2,13 +2,13 @@
 
 describe('Publish review functionality', () => {
   beforeEach(() => {
-    cy.drupalXbInstall([
-      'xb_test_article_fields',
-      'xb_test_invalid_field',
-      'xb_force_publish_error',
+    cy.drupalCanvasInstall([
+      'canvas_test_article_fields',
+      'canvas_test_invalid_field',
+      'canvas_force_publish_error',
     ]);
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   afterEach(() => {
@@ -16,10 +16,10 @@ describe('Publish review functionality', () => {
   });
 
   it('Handles non-validation publish errors', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
     cy.findByLabelText('Title').type('{selectall}{del}');
     cy.findByLabelText('Title').type('cause exception');
-    cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+    cy.get('[data-testid="canvas-publish-review"]:not([disabled])', {
       timeout: 20000,
     }).should('exist');
 
@@ -39,9 +39,9 @@ describe('Publish review functionality', () => {
 
   it('Has links to the corresponding entity in errors', () => {
     const entityData = [];
-    const paths = [{ path: 'xb/xb_page/2' }, { path: 'xb/node/2' }];
+    const paths = [{ path: 'canvas/canvas_page/2' }, { path: 'canvas/node/2' }];
     paths.forEach(({ path }) => {
-      cy.loadURLandWaitForXBLoaded({ url: path });
+      cy.loadURLandWaitForCanvasLoaded({ url: path });
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('Hero').click();
       cy.findByLabelText('Heading').type('{selectall}{del}');
@@ -50,17 +50,17 @@ describe('Publish review functionality', () => {
       cy.window().then((win) => {
         entityData.push({
           title: win.document.querySelector(
-            '[data-testid="xb-navigation-button"]',
+            '[data-testid="canvas-navigation-button"]',
           ).textContent,
           componentId: win.document
             .querySelector(
-              '[data-xb-component-id="sdc.xb_test_sdc.my-hero"][data-xb-uuid]',
+              '[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"][data-canvas-uuid]',
             )
-            .getAttribute('data-xb-uuid'),
+            .getAttribute('data-canvas-uuid'),
           path,
         });
         if (entityData.length === paths.length) {
-          cy.intercept('POST', '**/xb/api/v0/auto-saves/publish', {
+          cy.intercept('POST', '**/canvas/api/v0/auto-saves/publish', {
             statusCode: 422,
             body: {
               errors: [
@@ -99,7 +99,10 @@ describe('Publish review functionality', () => {
       });
     });
 
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/1', clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({
+      url: 'canvas/canvas_page/1',
+      clearAutoSave: false,
+    });
     cy.findByText('Review 2 changes').should('exist');
     cy.publishAllPendingChanges(['I am an empty node', 'Empty Page'], false);
     cy.get('[data-testid="error-details"]').then(($errors) => {
@@ -138,18 +141,18 @@ describe('Publish review functionality', () => {
       cy.clearAutoSave('node', 2);
 
       const iterations = [
-        { path: 'xb/node/1', waitFor: 'Review 1 change' },
-        { path: 'xb/node/2', waitFor: 'Review 2 changes' },
+        { path: 'canvas/node/1', waitFor: 'Review 1 change' },
+        { path: 'canvas/node/2', waitFor: 'Review 2 changes' },
       ];
 
       iterations.forEach(({ path, waitFor }, index) => {
-        cy.loadURLandWaitForXBLoaded({ url: path, clearAutoSave: false });
+        cy.loadURLandWaitForCanvasLoaded({ url: path, clearAutoSave: false });
         // First remove the two image components because they will otherwise crash
         // due to the test not creating them in a way that allows the media entity
         // to be found based on filename.
-        if (path === 'xb/node/1') {
+        if (path === 'canvas/node/1') {
           cy.get(
-            '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+            '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
           )
             .first()
             .trigger('contextmenu', {
@@ -161,7 +164,7 @@ describe('Publish review functionality', () => {
             scrollBehavior: false,
           });
           cy.get(
-            '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+            '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
           )
             .first()
             .trigger('contextmenu', {
@@ -176,27 +179,29 @@ describe('Publish review functionality', () => {
           cy.findByText(waitFor).should('not.exist');
         }
 
-        cy.findByLabelText('XB Text Field').type('invalid constraint');
-        cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+        cy.findByLabelText('Canvas Text Field').type('invalid constraint');
+        cy.get('[data-testid="canvas-publish-review"]:not([disabled])', {
           timeout: 20000,
         }).should('exist');
         cy.findByText(waitFor, { timeout: 20000 }).should('exist');
       });
 
       cy.findByText('Review 2 changes').click();
-      cy.findByTestId('xb-publish-review-select-all').click();
+      cy.findByTestId('canvas-publish-review-select-all').click();
       cy.findByText('Publish 2 selected').click();
-      cy.findByTestId('xb-review-publish-errors').should('exist');
-      cy.findByTestId('xb-review-publish-errors').should(($errorsContainer) => {
-        expect($errorsContainer.find('h3')).to.include.text('Errors');
-        $errorsContainer
-          .find('[data-testid="publish-error-detail"]')
-          .each((index, errorDetail) => {
-            expect(errorDetail).to.include.text(
-              'The value "invalid constraint" is not allowed in this field.',
-            );
-          });
-      });
+      cy.findByTestId('canvas-review-publish-errors').should('exist');
+      cy.findByTestId('canvas-review-publish-errors').should(
+        ($errorsContainer) => {
+          expect($errorsContainer.find('h3')).to.include.text('Errors');
+          $errorsContainer
+            .find('[data-testid="publish-error-detail"]')
+            .each((index, errorDetail) => {
+              expect(errorDetail).to.include.text(
+                'The value "invalid constraint" is not allowed in this field.',
+              );
+            });
+        },
+      );
     },
   );
 });
@@ -212,7 +217,7 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -220,7 +225,7 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
   });
 
   it('Form validation errors prevent publishing', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.findByText('Authoring information').click({ force: true });
     cy.findByText('Authoring information')
       .parents('[data-state="open"][data-drupal-selector]')
@@ -233,7 +238,7 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
     // Blur the autocomplete input to trigger an update.
     cy.findByLabelText('Title').focus();
 
-    cy.get('[data-testid="xb-publish-review"]:not([disabled])', {
+    cy.get('[data-testid="canvas-publish-review"]:not([disabled])', {
       timeout: 20000,
     }).should('exist');
     cy.findByRole('button', {
@@ -244,11 +249,11 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
     // the button whilst it is loading.
     cy.get('@review').click();
     // Enable extended debug output from failed publishing.
-    cy.intercept('**/xb/api/v0/auto-saves/publish');
-    cy.findByTestId('xb-publish-reviews-content')
+    cy.intercept('**/canvas/api/v0/auto-saves/publish');
+    cy.findByTestId('canvas-publish-reviews-content')
       .as('publishReview')
       .should('exist');
-    cy.findByTestId('xb-publish-review-select-all').click();
+    cy.findByTestId('canvas-publish-review-select-all').click();
     cy.get('@publishReview')
       .findByRole('button', { name: /Publish \d+ selected/ })
       .click();

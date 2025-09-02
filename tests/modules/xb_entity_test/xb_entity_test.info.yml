@@ -1,6 +1,0 @@
-name: XB Entity Test
-description: 'Test hooks for test entities'
-type: module
-package: Testing
-dependencies:
-  - experience_builder:experience_builder

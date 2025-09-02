@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 enum ErrorCodesEnum: int {
 

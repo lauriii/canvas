@@ -3,48 +3,44 @@ import { Drupal } from './objects/Drupal';
 import { expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// @cspell:ignore xbai
+// @cspell:ignore canvasai
 /**
- * This test suite will verify XB AI related features.
+ * This test suite will verify Canvas AI related features.
  */
 
 test.describe('AI Features', () => {
   test.beforeAll(
-    'Setup test site with Experience Builder',
+    'Setup test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules([
-        'experience_builder',
-        'xb_ai',
-        'xb_ai_test',
-      ]);
-      await drupal.createRole({ name: 'xb_ai' });
+      await drupal.installModules(['canvas', 'canvas_ai', 'canvas_ai_test']);
+      await drupal.createRole({ name: 'canvas_ai' });
       await drupal.addPermissions({
-        role: 'xb_ai',
-        permissions: ['view the administration theme', 'edit xb_page'],
+        role: 'canvas_ai',
+        permissions: ['view the administration theme', 'edit canvas_page'],
       });
       await drupal.createUser({
-        email: `xbai@example.com`,
-        username: 'xbai',
+        email: `canvasai@example.com`,
+        username: 'canvasai',
         password: 'superstrongpassword1337',
-        roles: ['xb_ai'],
+        roles: ['canvas_ai'],
       });
       await page.close();
     },
   );
 
-  test('Show AI panel only to users with XB AI permissions', async ({
+  test('Show AI panel only to users with Canvas AI permissions', async ({
     page,
     drupal,
     xBEditor,
   }) => {
     await drupal.login({
-      username: 'xbai',
+      username: 'canvasai',
       password: 'superstrongpassword1337',
     });
-    await drupal.createXbPage('XB AI User', '/xbai_user');
-    await page.goto('/xbai_user');
+    await drupal.createCanvasPage('Canvas AI User', '/canvasai_user');
+    await page.goto('/canvasai_user');
     await xBEditor.goToEditor();
 
     // @todo This test should fail once https://www.drupal.org/i/3533449 is implemented
@@ -53,8 +49,8 @@ test.describe('AI Features', () => {
     ).toBeAttached();
 
     await drupal.addPermissions({
-      role: 'xb_ai',
-      permissions: ['use experience builder ai'],
+      role: 'canvas_ai',
+      permissions: ['use Drupal Canvas ai'],
     });
     await page.reload();
     await expect(
@@ -64,15 +60,15 @@ test.describe('AI Features', () => {
 
   test('Create component workflow', async ({ page, drupal, xBEditor, ai }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('XB AI component', '/xbai_component');
-    await page.goto('/xbai_component');
+    await drupal.createCanvasPage('Canvas AI component', '/canvasai_component');
+    await page.goto('/canvasai_component');
     await xBEditor.goToEditor();
     await ai.openPanel();
     await ai.submitQuery('Create component');
     await expect(page).toHaveURL(
-      /\/xb\/xb_page\/\d+\/code-editor\/component\/herobanner/,
+      /\/canvas\/canvas_page\/\d+\/code-editor\/component\/herobanner/,
     );
-    await page.getByTestId('xb-publish-review').click();
+    await page.getByTestId('canvas-publish-review').click();
     await page
       .getByRole('checkbox', { name: 'Select all changes in Components' })
       .click();
@@ -82,7 +78,7 @@ test.describe('AI Features', () => {
     await page.getByRole('button', { name: 'Publish 2 selected' }).click();
     await page.getByRole('button', { name: 'Add to components' }).click();
     await page.getByRole('button', { name: 'Add' }).click();
-    await expect(page).toHaveURL(/\/xb\/xb_page\/\d+\/editor/);
+    await expect(page).toHaveURL(/\/canvas\/canvas_page\/\d+\/editor/);
     await page.getByRole('button', { name: 'Add' }).click();
     await page
       .locator('div')
@@ -94,7 +90,7 @@ test.describe('AI Features', () => {
     // Create a second component.
     await ai.submitQuery('Create second component');
     await expect(page).toHaveURL(
-      /\/xb\/xb_page\/\d+\/code-editor\/component\/herobannersecond/,
+      /\/canvas\/canvas_page\/\d+\/code-editor\/component\/herobannersecond/,
     );
     const preview = xBEditor.getCodePreviewFrame();
     const redElements = preview.locator('.bg-red-600');
@@ -112,8 +108,8 @@ test.describe('AI Features', () => {
 
   test('Image upload', async ({ page, drupal, xBEditor, ai }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('XB AI image upload', '/xbai_image');
-    await page.goto('/xbai_image');
+    await drupal.createCanvasPage('Canvas AI image upload', '/canvasai_image');
+    await page.goto('/canvasai_image');
     await xBEditor.goToEditor();
     await ai.openPanel();
 
@@ -127,7 +123,7 @@ test.describe('AI Features', () => {
       return dt;
     }, buffer.toString('binary'));
     await page.dispatchEvent(
-      '[data-testid="xb-ai-panel"] deep-chat #drag-and-drop',
+      '[data-testid="canvas-ai-panel"] deep-chat #drag-and-drop',
       'drop',
       {
         dataTransfer,
@@ -142,7 +138,7 @@ test.describe('AI Features', () => {
     ).toBeVisible();
 
     const submitButton = page
-      .getByTestId('xb-ai-panel')
+      .getByTestId('canvas-ai-panel')
       .locator('.input-button.inside-right');
     await expect(submitButton).not.toBeVisible();
 
@@ -164,12 +160,12 @@ test.describe('AI Features', () => {
 
   test('Generate title', async ({ page, drupal, xBEditor, ai }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('XB AI title', '/xbai_title');
-    await page.goto('/xbai_title');
+    await drupal.createCanvasPage('Canvas AI title', '/canvasai_title');
+    await page.goto('/canvasai_title');
     await xBEditor.goToEditor();
     await ai.openPanel();
     await expect(page.getByRole('textbox', { name: 'Title*' })).toHaveValue(
-      'XB AI title',
+      'Canvas AI title',
     );
     await ai.submitQuery('Generate title');
     await expect(page.getByRole('textbox', { name: 'Title*' })).toHaveValue(
@@ -179,8 +175,8 @@ test.describe('AI Features', () => {
 
   test('Generate metadata', async ({ page, drupal, xBEditor, ai }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('XB AI metadata', '/xbai_metadata');
-    await page.goto('/xbai_metadata');
+    await drupal.createCanvasPage('Canvas AI metadata', '/canvasai_metadata');
+    await page.goto('/canvasai_metadata');
     await xBEditor.goToEditor();
     await ai.openPanel();
     await expect(

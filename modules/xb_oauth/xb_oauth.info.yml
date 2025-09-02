@@ -1,7 +1,0 @@
-type: module
-name: Experience Builder OAuth
-description: "Provides OAuth2-based authentication for Experience Builder's external HTTP API"
-core_version_requirement: ^11
-dependencies:
-  - experience_builder:experience_builder
-  - simple_oauth:simple_oauth (>=6.0.0)

@@ -47,7 +47,7 @@ const FolderList = ({
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
       <Collapsible.Trigger
         className={clsx(listStyles.folderTrigger)}
-        data-xb-folder-name={folder.name}
+        data-canvas-folder-name={folder.name}
       >
         <Flex flexGrow="1" align="center" overflow="hidden" pb="2" pt="2">
           <Flex pl="2" align="center" flexShrink="0">

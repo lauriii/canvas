@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\TypedData;
+namespace Drupal\canvas\TypedData;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\experience_builder\Entity\ParametrizedImageStyle;
-use Drupal\experience_builder\Plugin\DataType\UriTemplate;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\canvas\Entity\ParametrizedImageStyle;
+use Drupal\canvas\Plugin\DataType\UriTemplate;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\file\Entity\File;
 
 /**
@@ -26,7 +26,7 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
 
   private function getParametrizedImageStyle(): ParametrizedImageStyle {
     // @phpstan-ignore-next-line
-    return ParametrizedImageStyle::load('xb_parametrized_width');
+    return ParametrizedImageStyle::load('canvas_parametrized_width');
   }
 
   /**

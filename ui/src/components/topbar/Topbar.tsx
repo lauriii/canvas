@@ -19,7 +19,7 @@ import { getDrupalSettings } from '@/utils/drupal-globals';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { useAppDispatch } from '@/app/hooks';
 
-const PREVIOUS_URL_STORAGE_KEY = 'XBPreviousURL';
+const PREVIOUS_URL_STORAGE_KEY = 'CanvasPreviousURL';
 
 const Topbar = () => {
   const navigate = useNavigate();
@@ -33,10 +33,13 @@ const Topbar = () => {
   let hasPersonalizeExtensionAvailable = false;
 
   const drupalSettings = getDrupalSettings();
-  if (drupalSettings && drupalSettings.xb.aiExtensionAvailable) {
+  if (drupalSettings && drupalSettings.canvas.aiExtensionAvailable) {
     hasAiExtensionAvailable = true;
   }
-  if (drupalSettings && drupalSettings.xb.personalizationExtensionAvailable) {
+  if (
+    drupalSettings &&
+    drupalSettings.canvas.personalizationExtensionAvailable
+  ) {
     hasPersonalizeExtensionAvailable = true;
   }
 
@@ -60,7 +63,7 @@ const Topbar = () => {
     window.sessionStorage.getItem(PREVIOUS_URL_STORAGE_KEY) ?? '/';
 
   return (
-    <Menubar.Root data-testid="xb-topbar" asChild>
+    <Menubar.Root data-testid="canvas-topbar" asChild>
       <Box
         className={clsx(styles.root, styles.topBar, {
           [styles.inPreview]: isPreview,
@@ -69,14 +72,14 @@ const Topbar = () => {
       >
         <Grid columns="3" gap="0" width="auto" height="100%">
           <Flex align="center" gap="2">
-            <Tooltip content="Exit Experience Builder">
+            <Tooltip content="Exit Drupal Canvas">
               <a
                 href={backHref}
                 aria-labelledby="back-to-previous-label"
                 className={clsx(styles.topBarButton, styles.exitButton)}
               >
                 <span className="visually-hidden" id="back-to-previous-label">
-                  Exit Experience Builder
+                  Exit Drupal Canvas
                 </span>
                 <DropIcon
                   className={styles.drupalLogo}

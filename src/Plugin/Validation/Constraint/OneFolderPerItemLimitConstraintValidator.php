@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\Config\Schema\TypeResolver;
-use Drupal\experience_builder\Entity\Folder;
+use Drupal\canvas\Entity\Folder;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

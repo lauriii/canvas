@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
 class ApiLayoutControllerTestBase extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
 
-  const REGION_PATTERN = '/<!-- xb-region-start-%1$s -->([\n\s\S]*)<!-- xb-region-end-%1$s -->/';
+  const REGION_PATTERN = '/<!-- canvas-region-start-%1$s -->([\n\s\S]*)<!-- canvas-region-end-%1$s -->/';
 
   use RequestTrait {
     request as parentRequest;
@@ -89,7 +89,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
       $html = $decoded['html'] ?? $html;
     }
     $matches = [];
-    \preg_match_all('/(xb-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $html, $matches);
+    \preg_match_all('/(canvas-start-)(.*?)[\/ \t](.*?)(-->)(.*?)/', $html, $matches);
     return $matches[2];
   }
 

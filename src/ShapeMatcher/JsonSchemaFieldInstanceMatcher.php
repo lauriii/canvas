@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\ShapeMatcher;
+namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -34,16 +34,16 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\experience_builder\Plugin\AdapterManager;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraintValidator;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\Plugin\AdapterManager;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraintValidator;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
@@ -58,30 +58,30 @@ use Symfony\Component\Validator\Constraint;
  * Starts from a JSON schema type and finds equivalent Drupal validation
  * constraints.
  *
- * @see \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement
- * @see \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements
- * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
+ * @see \Drupal\canvas\ShapeMatcher\DataTypeShapeRequirement
+ * @see \Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
  *
  * Then traverses all (base, bundle, configurable) field instances on all entity
  * types (and bundles), to find a match. Matches are described using structured
  * data prop expressions.
  *
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression
+ * @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
+ * @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression
+ * @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
+ * @see \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression
  *
  * These are then used in "dynamic prop sources".
  *
- * @see \Drupal\experience_builder\PropSource\DynamicPropSource
+ * @see \Drupal\canvas\PropSource\DynamicPropSource
  *
  * For "static prop sources", the equivalents are:
  *
- * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
- * @see \Drupal\experience_builder\PropShape\StorablePropShape
- * @see \Drupal\experience_builder\PropSource\StaticPropSource
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+ * @see \Drupal\canvas\PropShape\StorablePropShape
+ * @see \Drupal\canvas\PropSource\StaticPropSource
  *
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 final class JsonSchemaFieldInstanceMatcher {
 
@@ -130,13 +130,13 @@ final class JsonSchemaFieldInstanceMatcher {
    *
    * @param JsonSchema $sub_schema
    *
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
 
   /**
    * @param JsonSchema $schema
    *
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression>
    */
 
   /**
@@ -170,7 +170,7 @@ final class JsonSchemaFieldInstanceMatcher {
    * @param JsonSchema $schema
    * @return JsonSchema
    *
-   * @see \Drupal\experience_builder\Plugin\Adapter\AdapterBase::resolveSchemaReferences
+   * @see \Drupal\canvas\Plugin\Adapter\AdapterBase::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {
@@ -183,7 +183,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
-   * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
+   * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     if ($primitive_type === JsonSchemaType::Array) {
@@ -221,7 +221,7 @@ final class JsonSchemaFieldInstanceMatcher {
   /**
    * @param JsonSchema $schema
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
   private function matchEntityPropsForObject(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, bool $is_required_in_json_schema, array $schema, int $cardinality_in_json_schema): array {
     $required_object_props = [];
@@ -296,8 +296,8 @@ final class JsonSchemaFieldInstanceMatcher {
     // Prefer complete matches: list complete matches before minimal matches.
     foreach ($matches_complete + $matches_minimal as $field_name => $mapping) {
       // @todo Support nested/recursive/chained FieldObjectPropsExpression?
-      // @see https://www.drupal.org/project/experience_builder/issues/3467890#comment-16036211
-      /** @var array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression> $mapping */
+      // @see https://www.drupal.org/project/canvas/issues/3467890#comment-16036211
+      /** @var array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression> $mapping */
       $matches[] = new FieldObjectPropsExpression($entity_data_definition, $field_name, NULL, $mapping);
     }
     return $matches;
@@ -306,7 +306,7 @@ final class JsonSchemaFieldInstanceMatcher {
   /**
    * @param JsonSchema $schema
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>
    */
   private function matchEntityPropsForScalar(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema, int $cardinality_in_json_schema): array {
     if (!$primitive_type->isScalar()) {
@@ -548,7 +548,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
-   * @return array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression>
    */
   public function findFieldInstanceFormatMatches(
     JsonSchemaType $primitive_type,
@@ -583,7 +583,7 @@ final class JsonSchemaFieldInstanceMatcher {
         }
       }
     }
-    /** @var array<\Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression> */
+    /** @var array<\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
     $instances = array_values($keyed_by_string);
@@ -831,7 +831,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
-   * @return \Drupal\experience_builder\Plugin\Adapter\AdapterInterface[]
+   * @return \Drupal\canvas\Plugin\Adapter\AdapterInterface[]
    */
   public function findAdaptersByMatchingOutput(array $schema): array {
     return $this->adapterManager->getDefinitionsByOutputSchema($schema);

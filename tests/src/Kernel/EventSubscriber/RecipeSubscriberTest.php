@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\EventSubscriber;
+namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityRepositoryInterface;
@@ -10,9 +10,9 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -20,15 +20,15 @@ use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\CrawlerTrait;
 
 /**
- * @group experience_builder
+ * @group canvas
  * @group #slow
- * @covers \Drupal\experience_builder\EventSubscriber\RecipeSubscriber
- * @covers \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
+ * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
+ * @covers \Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
  */
 final class RecipeSubscriberTest extends KernelTestBase {
 
@@ -45,7 +45,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    // Set up the basic stuff needed for XB to work.
+    // Set up the basic stuff needed for Canvas to work.
     $recipe = Recipe::createFromDirectory(self::FIXTURES_DIR . '/base');
     RecipeRunner::processRecipe($recipe);
   }
@@ -57,19 +57,19 @@ final class RecipeSubscriberTest extends KernelTestBase {
     RecipeRunner::processRecipe($recipe);
 
     // Components should have been created.
-    $this->assertInstanceOf(Component::class, Component::load('sdc.xb_test_sdc.grid-container'));
+    $this->assertInstanceOf(Component::class, Component::load('sdc.canvas_test_sdc.grid-container'));
     $this->assertInstanceOf(Component::class, Component::load('block.system_menu_block.admin'));
 
-    // Demo XB field should have been created.
-    $this->assertArrayHasKey('node.article.field_xb_demo', FieldConfig::loadMultiple());
+    // Demo Canvas field should have been created.
+    $this->assertArrayHasKey('node.article.field_canvas_demo', FieldConfig::loadMultiple());
     $this->assertSame([
-      'type' => 'experience_builder_naive_render_sdc_tree',
+      'type' => 'canvas_naive_render_sdc_tree',
       'label' => 'hidden',
       'settings' => [],
       'third_party_settings' => [],
       'weight' => -2,
       'region' => 'content',
-    ], EntityViewDisplay::load('node.article.default')?->getComponent('field_xb_demo'));
+    ], EntityViewDisplay::load('node.article.default')?->getComponent('field_canvas_demo'));
 
     // Demo content should have been created.
     $this->assertSame([
@@ -106,16 +106,16 @@ final class RecipeSubscriberTest extends KernelTestBase {
     $node = $this->container->get(EntityRepositoryInterface::class)
       ->loadEntityByUuid('node', 'c66664af-53b9-42f4-a0ca-8ecc9edacb8c');
     $this->assertInstanceOf(FieldableEntityInterface::class, $node);
-    $xb_field = $node->get('field_xb_demo');
-    assert($xb_field instanceof ComponentTreeItemList);
-    $inputs = $xb_field
+    $canvas_field = $node->get('field_canvas_demo');
+    assert($canvas_field instanceof ComponentTreeItemList);
+    $inputs = $canvas_field
       ->getComponentTreeItemByUuid('348bfa10-af72-49cd-900b-084d617c87df')
       ?->getInputs();
     $this->assertIsArray($inputs);
     // We should only store the target_uuid as the input is collapsed.
     $media_uuid = '346210de-12d8-4d02-9db4-455f1bdd99f7';
     self::assertEquals(['image' => ['target_uuid' => $media_uuid]], $inputs);
-    $output = $xb_field->toRenderable($node);
+    $output = $canvas_field->toRenderable($node);
     $crawler = $this->crawlerForRenderArray($output);
     $media = \Drupal::service(EntityRepositoryInterface::class)->loadEntityByUuid('media', $media_uuid);
     self::assertInstanceOf(MediaInterface::class, $media);
@@ -133,14 +133,14 @@ final class RecipeSubscriberTest extends KernelTestBase {
 name: Disable components
 type: Testing
 install:
-  - experience_builder
+  - canvas
   - stark
-  - xb_stark
+  - canvas_stark
 config:
   import:
-    experience_builder: '*'
+    canvas: '*'
   actions:
-    experience_builder.component.sdc.experience_builder.*:
+    canvas.component.sdc.canvas.*:
       disable: []
 YAML
     );
@@ -152,7 +152,7 @@ YAML
     self::assertGreaterThanOrEqual(2, count($components));
     foreach ($components as $id => $component) {
       $this->assertSame(
-        !str_contains($id, 'sdc.experience_builder.'),
+        !str_contains($id, 'sdc.canvas.'),
         $component->status(),
       );
     }

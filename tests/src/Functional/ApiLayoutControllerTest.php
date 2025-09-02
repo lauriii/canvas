@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use Symfony\Component\DomCrawler\Crawler;
@@ -19,17 +19,17 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * Defines a functional test for API layout controller.
  *
- * @group experience_builder
+ * @group canvas
  */
 final class ApiLayoutControllerTest extends HttpApiTestBase {
 
-  const UUID_IN_CONTENT_REGION = '/<!-- xb-region-start-content -->.*(uid="%s").*<!-- xb-region-end-content -->/';
+  const UUID_IN_CONTENT_REGION = '/<!-- canvas-region-start-content -->.*(uid="%s").*<!-- canvas-region-end-content -->/';
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
   ];
 
   /**
@@ -38,9 +38,9 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Note: drafts are loaded in the XB UI, not on the live site.
+   * Note: drafts are loaded in the Canvas UI, not on the live site.
    *
-   * @see \Drupal\Tests\experience_builder\Functional\XbPageVariantTest
+   * @see \Drupal\Tests\canvas\Functional\CanvasPageVariantTest
    */
   public function testWithDraftCodeComponent(): void {
     $account = $this->createUser([
@@ -96,7 +96,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     ];
     $saved_component_values['name'] = 'Here comes the';
     // But store an overridden version in auto-save (draft).
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     // Auto-save entries should match the format sent by the client.
     $saved_component_values['sourceCodeJs'] = $saved_component_values['js']['original'];
@@ -106,14 +106,14 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     // 'importedJsComponents' is a value sent by the client that is used to
     // determine Javascript Code component dependencies and is not saved
     // directly on the backend.
-    // @see \Drupal\experience_builder\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
+    // @see \Drupal\canvas\Entity\JavaScriptComponent::addJavaScriptComponentsDependencies().
     $saved_component_values['importedJsComponents'] = [];
     unset($saved_component_values['js'], $saved_component_values['css']);
     $code_component->updateFromClientSide($saved_component_values);
     $autoSave->saveEntity($code_component);
 
     // Load the test data from the layout controller.
-    $content = $this->drupalGet('/xb/api/v0/layout/xb_page/1');
+    $content = $this->drupalGet('/canvas/api/v0/layout/canvas_page/1');
     $this->assertJson($content);
     $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
     // These are allowed in GET response but not in POST/PATCH.
@@ -146,7 +146,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
           'expression' => 'ℹ︎list_string␟value',
           'sourceTypeSettings' => [
             'storage' => [
-              'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
             ],
           ],
         ],
@@ -163,7 +163,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
       RequestOptions::BODY => Json::encode($json),
     ];
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
-    $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
+    $response = $this->makeApiRequest('POST', Url::fromRoute('canvas.api.layout.post', [
       'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
@@ -171,7 +171,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $body = (string) $response->getBody();
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
-    $element = $crawler->filter('xb-island');
+    $element = $crawler->filter('canvas-island');
     self::assertCount(1, $element);
     self::assertEquals($uuid, $element->attr('uid'));
     // Validate element is in content region.
@@ -189,9 +189,9 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     ]), $element->attr('opts') ?? '');
     // And we should have our style tag.
     $links = \array_map(static fn (mixed $link) => \parse_url((string) $link, \PHP_URL_PATH), $crawler->filter('link[rel="stylesheet"]')->extract(['href']));
-    $draft_css_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
-      'xb_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
-      'xb_config_entity' => 'hey_there',
+    $draft_css_url = Url::fromRoute('canvas.api.config.auto-save.get.css', [
+      'canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
+      'canvas_config_entity' => 'hey_there',
     ])->toString();
     self::assertContains($draft_css_url, $links);
 
@@ -203,7 +203,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
 
     $original_request_json['autoSaves'] = $json['autoSaves'];
     $request_options[RequestOptions::BODY] = Json::encode($original_request_json);
-    $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
+    $response = $this->makeApiRequest('POST', Url::fromRoute('canvas.api.layout.post', [
       'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
@@ -212,7 +212,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $json = \json_decode($body, TRUE, JSON_THROW_ON_ERROR);
     $crawler = new Crawler($json['html']);
 
-    $element = $crawler->filter('xb-island');
+    $element = $crawler->filter('canvas-island');
     // Validate element is in content region.
     $this->assertMatchesRegularExpression(sprintf(self::UUID_IN_CONTENT_REGION, $uuid), $element->ancestors()->html());
 
@@ -223,11 +223,11 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     ]);
     self::assertJsonStringEqualsJsonString($updated_opts_json, $element->attr('opts') ?? '');
 
-    // Enable Experience Builder for all regions on the Stark theme.
+    // Enable Drupal Canvas for all regions on the Stark theme.
     $this->drupalGet('/admin/appearance/settings/stark');
-    $this->assertSession()->pageTextContains('Experience Builder');
-    $this->assertSession()->fieldExists('use_xb');
-    $this->submitForm(['use_xb' => TRUE], 'Save configuration');
+    $this->assertSession()->pageTextContains('Drupal Canvas');
+    $this->assertSession()->fieldExists('use_canvas');
+    $this->submitForm(['use_canvas' => TRUE], 'Save configuration');
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
 
     $json = $original_request_json;
@@ -242,7 +242,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     unset($json['autoSaves']);
     $json += $this->getClientAutoSaves([$page]);
     $request_options[RequestOptions::BODY] = Json::encode($json);
-    $response = $this->makeApiRequest('POST', Url::fromRoute('experience_builder.api.layout.post', [
+    $response = $this->makeApiRequest('POST', Url::fromRoute('canvas.api.layout.post', [
       'entity_type' => Page::ENTITY_TYPE_ID,
       'entity' => $page->id(),
     ]), $request_options);
@@ -253,7 +253,7 @@ final class ApiLayoutControllerTest extends HttpApiTestBase {
     $crawler = new Crawler($json['html']);
     $sidebar_first_region = $crawler->filter('.layout-sidebar-first');
     self::assertCount(1, $sidebar_first_region);
-    $element = $sidebar_first_region->filter('xb-island');
+    $element = $sidebar_first_region->filter('canvas-island');
     self::assertCount(1, $element);
     self::assertJsonStringEqualsJsonString($updated_opts_json, $element->attr('opts') ?? '');
   }

@@ -37,7 +37,7 @@ export function downloadCommand(program: Command): void {
     .option('--all', 'Download all components')
     .option('--verbose', 'Enable verbose output')
     .action(async (options: DownloadOptions) => {
-      p.intro('Experience Builder Component Download');
+      p.intro('Drupal Canvas Component Download');
 
       try {
         // Update config with CLI options

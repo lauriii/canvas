@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 /**
  * @internal
- * @see \Drupal\experience_builder\Entity\Component::computeUiLibrary()
+ * @see \Drupal\canvas\Entity\Component::computeUiLibrary()
  */
 enum LibraryEnum: string {
   case Elements = 'elements';

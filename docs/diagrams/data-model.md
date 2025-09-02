@@ -3,12 +3,12 @@ classDiagram
     content-type "1" --> "N" content-entity: Has instances
     content-type "1" --> "1" DefaultTree: Defines
     content-type "1" --> "N" other-base-or-bundle-field: Defines
-    content-type "1" --> "1" XB-field: Defines
-    content-entity "1" --> "1" XB-field: Contains
+    content-type "1" --> "1" Canvas-field: Defines
+    content-entity "1" --> "1" Canvas-field: Contains
     content-entity "1" --> "N" other-base-or-bundle-field: Contains
-    XB-field "1" --> "1" DefaultTree : Uses
-    XB-field "1" --> "1" Tree : Contains
-    XB-field "1" --> "1" Props : Contains
+    Canvas-field "1" --> "1" DefaultTree : Uses
+    Canvas-field "1" --> "1" Tree : Contains
+    Canvas-field "1" --> "1" Props : Contains
     Tree "1" --> "1" DefaultTree: AddsToOpenSlots
     Tree "1" --> "1" DefaultTree: OverridesInUnlockedSubtrees
     class Tree {

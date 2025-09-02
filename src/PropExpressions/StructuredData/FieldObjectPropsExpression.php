@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\StructuredData;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
@@ -11,7 +11,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
 final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
 
@@ -69,8 +69,8 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
           // Assert it here both to satisfy PHPStan and to prove it while
           // assertions are on.
           // @see __construct()
-          // @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
-          // @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
+          // @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
+          // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
           assert(($expr instanceof ReferenceFieldPropExpression && is_string($expr->referencer->propName)) || ($expr instanceof FieldPropExpression && is_string($expr->propName)));
           $tail = match (get_class($expr)) {
             ReferenceFieldPropExpression::class => (function () use ($expr) {

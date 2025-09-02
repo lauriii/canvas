@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\Component;
+namespace Drupal\canvas\PropExpressions\Component;
 
-use Drupal\experience_builder\PropExpressions\PropExpressionInterface;
+use Drupal\canvas\PropExpressions\PropExpressionInterface;
 
 interface ComponentPropExpressionInterface extends PropExpressionInterface {
 

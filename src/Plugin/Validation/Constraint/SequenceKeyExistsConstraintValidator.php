@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Core\Config\Action\ConfigActionManager;
@@ -66,8 +66,8 @@ final class RecipeSubscriber implements EventSubscriberInterface {
     // Re-run any config actions that target Component entities.
     $items = array_filter(
       $event->recipe->config->config['actions'] ?? [],
-      // @see \Drupal\experience_builder\Entity\Component
-      fn (string $name): bool => str_starts_with($name, 'experience_builder.component.'),
+      // @see \Drupal\canvas\Entity\Component
+      fn (string $name): bool => str_starts_with($name, 'canvas.component.'),
       ARRAY_FILTER_USE_KEY,
     );
     foreach ($items as $name => $actions) {

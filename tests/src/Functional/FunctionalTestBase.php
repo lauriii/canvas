@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\image\Entity\ImageStyle;
@@ -11,11 +11,11 @@ use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\TestFileCreationTrait;
 
 /**
- * Base class for functional tests of XB, ensures OpenAPI validation is active.
+ * Base class for functional tests of Canvas, ensures OpenAPI validation is active.
  *
  * Provides common setup and helper methods for functional tests.
  *
- * @group experience_builder
+ * @group canvas
  */
 abstract class FunctionalTestBase extends BrowserTestBase {
 
@@ -27,9 +27,9 @@ abstract class FunctionalTestBase extends BrowserTestBase {
     $config->set('js.preprocess', TRUE);
     $config->set('css.preprocess', TRUE);
     $config->save();
-    if ($this->container->get('module_handler')->moduleExists('experience_builder')) {
-      $response_validator = $this->container->get('experience_builder.openapi.http_response_validator.subscriber');
-      $request_validator = $this->container->get('experience_builder.openapi.http_request_validator.subscriber');
+    if ($this->container->get('module_handler')->moduleExists('canvas')) {
+      $response_validator = $this->container->get('canvas.openapi.http_response_validator.subscriber');
+      $request_validator = $this->container->get('canvas.openapi.http_request_validator.subscriber');
       if (!($request_validator->isValidationEnabled() && $response_validator->isValidationEnabled())) {
         $this->fail('OpenAPI validation must be enabled to run functional tests. See the CONTRIBUTING.md file.');
       }
@@ -55,7 +55,7 @@ abstract class FunctionalTestBase extends BrowserTestBase {
     $this->assertSession()->statusMessageContains('Title field is required.');
 
     // One entity fields is required: `Title`. Fill it, press `Save`.
-    $page->fillField('title[0][value]', 'The first entity using XB!');
+    $page->fillField('title[0][value]', 'The first entity using Canvas!');
     $page->pressButton('Save');
 
     // Success!

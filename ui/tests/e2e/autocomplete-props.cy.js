@@ -1,11 +1,11 @@
 describe('Prop with autocomplete', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_autocomplete']);
+    cy.drupalCanvasInstall(['canvas_test_autocomplete']);
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,10 +13,10 @@ describe('Prop with autocomplete', () => {
   });
 
   it('has a working autocomplete in the props form', () => {
-    cy.loadURLandWaitForXBLoaded();
-    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.loadURLandWaitForCanvasLoaded();
+    cy.get('iframe[data-canvas-preview]').should('exist');
     cy.get(
-      `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__content`,
+      `#canvasPreviewOverlay .canvas--viewport-overlay .canvas--region-overlay__content`,
     )
       .findAllByLabelText('Hero')
       .eq(0)
@@ -35,7 +35,7 @@ describe('Prop with autocomplete', () => {
   });
 
   it('Works with link fields', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
     cy.get('.primaryPanelContent')
@@ -43,7 +43,7 @@ describe('Prop with autocomplete', () => {
       .click();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.testInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -52,16 +52,16 @@ describe('Prop with autocomplete', () => {
       .as('linkField')
       .should('have.value', 'https://example.com')
       .click();
-    // @see XBTestSetup, there is a node with title
-    // 'XB With a block in the layout'
+    // @see CanvasTestSetup, there is a node with title
+    // 'Canvas With a block in the layout'
     cy.get('@linkField').clear();
-    cy.get('@linkField').type('XB With a block');
+    cy.get('@linkField').type('Canvas With a block');
     cy.get('ul.ui-autocomplete').should('exist');
     cy.get('ul.ui-autocomplete li').should(
       'have.text',
-      'XB With a block in the layout',
+      'Canvas With a block in the layout',
     );
-    cy.intercept('PATCH', '**/xb/api/layout/node/1').as('patchPreview');
+    cy.intercept('PATCH', '**/canvas/api/layout/node/1').as('patchPreview');
     cy.get('ul.ui-autocomplete li').click();
     cy.get('@linkField').should('have.value', 'entity:node/3');
     cy.get('@linkField').blur();
@@ -69,7 +69,7 @@ describe('Prop with autocomplete', () => {
     cy.waitFor('@patchPreview');
 
     cy.waitForElementContentInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"] a[href*="/the-one-with-a-block"]',
+      '[data-component-id="canvas_test_sdc:my-hero"] a[href*="/the-one-with-a-block"]',
       'View',
     );
   });

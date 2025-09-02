@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\TypedData\TypedDataInterface;
 use Symfony\Component\Validator\Constraint;
@@ -24,8 +24,8 @@ final class ValidSlotNameConstraintValidator extends RegexValidator {
     }
 
     // The value could either be a string (the slot name) or a mapping that
-    // defines a slot (see `type: experience_builder.slot_definition` in
-    // experience_builder.schema.yml), in a sequence of slot definitions, in
+    // defines a slot (see `type: canvas.slot_definition` in
+    // canvas.schema.yml), in a sequence of slot definitions, in
     // which case the mapping's name should be the slot name.
     if (!is_string($value)) {
       $data = $this->context->getObject();

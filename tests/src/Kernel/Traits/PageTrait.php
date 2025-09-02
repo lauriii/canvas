@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Traits;
+namespace Drupal\Tests\canvas\Kernel\Traits;
 
-use Drupal\experience_builder\Entity\Page;
-use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
+use Drupal\canvas\Entity\Page;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 
 trait PageTrait {
 
@@ -21,7 +21,7 @@ trait PageTrait {
     'views',
     'filter',
     'media_library',
-    'xb_test_page',
+    'canvas_test_page',
   ];
 
   protected function installPageEntitySchema(): void {
@@ -32,7 +32,7 @@ trait PageTrait {
   /**
    * Asserts that the page entity can be saved without violations.
    *
-   * @param \Drupal\experience_builder\Entity\Page $page
+   * @param \Drupal\canvas\Entity\Page $page
    *   The page entity.
    */
   protected static function assertSaveWithoutViolations(Page $page): void {

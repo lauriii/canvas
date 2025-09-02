@@ -14,14 +14,14 @@ import {
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
-import XbText from '@/components/form/xb-components/XbText';
-import XbBox from '@/components/form/xb-components/XbBox';
+import CanvasText from '@/components/form/canvas-components/CanvasText';
+import CanvasBox from '@/components/form/canvas-components/CanvasBox';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
-// @see \Drupal\experience_builder\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()
+// @see \Drupal\canvas\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()
 // @see docs/semi-coupled-theme-engine.md
 // @see themes/engines/semi_coupled/README.md
-// @see themes/xb_stark/templates/process_as_jsx/
+// @see themes/canvas_stark/templates/process_as_jsx/
 
 const twigToJSXComponentMap = {
   'drupal-container--text-format-filter-guidelines':
@@ -41,8 +41,8 @@ const twigToJSXComponentMap = {
   'drupal-textarea': DrupalTextArea,
   'drupal-vertical-tabs': DrupalVerticalTabs,
   'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
-  'xb-text': XbText,
-  'xb-box': XbBox,
+  'canvas-text': CanvasText,
+  'canvas-box': CanvasBox,
 };
 
 export default twigToJSXComponentMap;

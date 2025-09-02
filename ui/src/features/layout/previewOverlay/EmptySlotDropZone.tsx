@@ -57,7 +57,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
         className={clsx(styles.emptySlotDropZone, {
           [styles.isOver]: isOver,
         })}
-        data-testid="xb-empty-slot-drop-zone"
+        data-testid="canvas-empty-slot-drop-zone"
         ref={setDropRef}
       >
         {activeName ? (

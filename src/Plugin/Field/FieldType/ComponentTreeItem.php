@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldType;
+namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -19,11 +19,11 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataReferenceDefinition;
 use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
-use Drupal\experience_builder\PropSource\ContentAwareDependentInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\PropSource\ContentAwareDependentInterface;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -35,19 +35,19 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * @todo How to achieve https://www.previousnext.com.au/blog/pitchburgh-diaries-decoupled-layout-builder-sprint-1-2?
  * @see https://git.drupalcode.org/project/metatag/-/blob/2.0.x/src/Plugin/Field/FieldType/MetatagFieldItem.php
  *
- * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
- * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'component_version'
  *
- * @property \Drupal\experience_builder\HydratedTree $hydrated
+ * @property \Drupal\canvas\HydratedTree $hydrated
  */
 #[FieldType(
   id: self::PLUGIN_ID,
-  label: new TranslatableMarkup("Experience Builder"),
-  description: new TranslatableMarkup("Field to use Experience Builder for presenting these entities"),
-  default_formatter: "experience_builder_naive_render_sdc_tree",
+  label: new TranslatableMarkup("Drupal Canvas"),
+  description: new TranslatableMarkup("Field to use Drupal Canvas for presenting these entities"),
+  default_formatter: "canvas_naive_render_sdc_tree",
   // @todo Revisit this prior to 1.0.
-  // @see https://www.drupal.org/project/experience_builder/issues/3497926
+  // @see https://www.drupal.org/project/canvas/issues/3497926
   no_ui: TRUE,
   list_class: ComponentTreeItemList::class,
   // This only makes sense in a multi-value context: each item is a node in the
@@ -59,11 +59,11 @@ use Symfony\Component\Validator\ConstraintViolationList;
       // Only StaticPropSources may be used, because using DynamicPropSources is
       // a decision that should be made at the Content Type Template level by a
       // Site Builder, not by each Content Creator.
-      // @see https://www.drupal.org/project/experience_builder/issues/3455629
+      // @see https://www.drupal.org/project/canvas/issues/3455629
       'inputs' => [
         'absence' => [
           'dynamic',
-          // @todo Allow adapters that consume a single shape and output that same single shape in https://www.drupal.org/project/experience_builder/issues/3536115
+          // @todo Allow adapters that consume a single shape and output that same single shape in https://www.drupal.org/project/canvas/issues/3536115
           'adapter',
         ],
         'presence' => NULL,
@@ -72,8 +72,8 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'absence' => [
           // Components implementing either of these 2 interfaces are only
           // allowed to live at the PageRegion level.
-          // @see \Drupal\experience_builder\Entity\PageRegion
-          // @see `type: experience_builder.page_region.*`
+          // @see \Drupal\canvas\Entity\PageRegion
+          // @see `type: canvas.page_region.*`
           TitleBlockPluginInterface::class,
           MessagesBlockPluginInterface::class,
         ],
@@ -121,7 +121,7 @@ class ComponentTreeItem extends FieldItemBase {
    *
    * @param ComponentTreeItemPropName $name
    *
-   * @return ($name is 'parent_item' ? \Drupal\experience_builder\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\experience_builder\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
+   * @return ($name is 'parent_item' ? \Drupal\canvas\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\canvas\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
    */
   // phpcs:enable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
   public function get($name) {
@@ -165,9 +165,9 @@ class ComponentTreeItem extends FieldItemBase {
         $deps_for_type = array_diff($deps_for_type, [
           // `core` is always present.
           'core',
-          // This very field type is provided by Experience Builder, so
+          // This very field type is provided by Drupal Canvas, so
           // obviously this module is also always present.
-          'experience_builder',
+          'canvas',
         ]);
       }
       sort($deps_for_type);
@@ -222,7 +222,7 @@ class ComponentTreeItem extends FieldItemBase {
           // - the root of the tree
           // - or the root of a bonsai tree (a tree in a content template's exposed slot)
           // In the latter case, `slot` must match an exposed slot of the associated `ContentTemplate`.
-          // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidParentAndSlotConstraintValidator
+          // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidParentAndSlotConstraintValidator
           'not null' => FALSE,
         ],
         'slot' => [
@@ -269,7 +269,7 @@ class ComponentTreeItem extends FieldItemBase {
           'length' => 255,
           // NULL means no label, meaning the Component config entity label will
           // be shown ("inherited") to the content author.
-          // @see \Drupal\experience_builder\Entity\Component::$label
+          // @see \Drupal\canvas\Entity\Component::$label
           'not null' => FALSE,
         ],
       ],
@@ -296,7 +296,7 @@ class ComponentTreeItem extends FieldItemBase {
       ->setSetting('max_length', 36)
       // Note we don't add a UUID constraint here as that is validated by the
       // ComponentTreeStructure constraint on the item list.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setRequired(FALSE);
 
     $properties['parent_item'] = DataReferenceDefinition::create(\sprintf('field_item:%s', self::PLUGIN_ID))
@@ -319,13 +319,13 @@ class ComponentTreeItem extends FieldItemBase {
       ->setSetting('max_length', 36)
       // Note we don't add a UUID constraint here as that is validated by the
       // ComponentTreeStructure constraint on the item list.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setRequired(TRUE);
 
     $properties['component_id'] = DataReferenceTargetDefinition::create('string')
       // Note we don't add a ConfigExists constraint here as that is validated by
       // ComponentTreeStructure constraint on the item list.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setLabel(new TranslatableMarkup('Component ID'))
       ->setRequired(TRUE);
 
@@ -334,7 +334,7 @@ class ComponentTreeItem extends FieldItemBase {
       // Note we don't add a ValidConfigEntityVersion or
       // ValidConfigEntityVersionConstraint constraint here as they are both
       // validated by ComponentTreeStructure constraint on the item list.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints
       ->setRequired(TRUE);
 
     $properties['component'] = DataReferenceDefinition::create(ConfigEntityVersionAdapter::PLUGIN_ID)
@@ -460,7 +460,7 @@ class ComponentTreeItem extends FieldItemBase {
     // properties. This avoids a *repeated* validation error:
     // if there already is a validation error for a missing key, another
     // validation error for an invalid value is not helpful.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     if (!is_array($values) || !array_key_exists('inputs', $values)) {
       $this->getProperties()['inputs']->applyDefaultValue(FALSE);
     }
@@ -563,10 +563,10 @@ class ComponentTreeItem extends FieldItemBase {
       ));
       return;
     }
-    // Ensure that only ever valid inputs for component instances in an XB
+    // Ensure that only ever valid inputs for component instances in an Canvas
     // field are saved. When a field is saved that somehow was not validated,
     // this will catch that.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
     $input_values = $this->getInputs();
     $component_violations = $source->validateComponentInput($input_values ?? [], $component_instance_uuid, $entity);
     if ($component_violations->count() > 0) {
@@ -612,10 +612,10 @@ class ComponentTreeItem extends FieldItemBase {
     // validation is performed — if it fails, then an exception is thrown and
     // the entity saving database transaction is rolled back, and an error
     // message is displayed.
-    // This should NEVER occur, but until Experience Builder is stable and/or
+    // This should NEVER occur, but until Drupal Canvas is stable and/or
     // https://www.drupal.org/project/drupal/issues/2820364 is unresolved, this
-    // ensures Experience Builder developers are informed early.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator::validate()
+    // ensures Drupal Canvas developers are informed early.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator::validate()
     $this->validate();
     return FALSE;
   }

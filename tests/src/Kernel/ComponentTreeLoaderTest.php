@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Storage\ComponentTreeLoader
+ * @coversDefaultClass \Drupal\canvas\Storage\ComponentTreeLoader
  *
- * @group experience_builder
+ * @group canvas
  */
 class ComponentTreeLoaderTest extends KernelTestBase {
 
@@ -28,17 +28,17 @@ class ComponentTreeLoaderTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
   }
 
-  public function testGetXBFieldName(): void {
+  public function testGetCanvasFieldName(): void {
     $node = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
     ]);
-    /** @var \Drupal\experience_builder\Storage\ComponentTreeLoader $loader */
+    /** @var \Drupal\canvas\Storage\ComponentTreeLoader $loader */
     $loader = $this->container->get(ComponentTreeLoader::class);
-    $this->assertEquals('field_xb_demo', $loader->load($node)->getFieldDefinition()->getName());
+    $this->assertEquals('field_canvas_demo', $loader->load($node)->getFieldDefinition()->getName());
     $page = Page::create([
       'title' => 'My page',
     ]);
@@ -57,26 +57,26 @@ class ComponentTreeLoaderTest extends KernelTestBase {
     ]);
     $node->save();
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('This entity does not have an XB field!');
-    /** @var \Drupal\experience_builder\Storage\ComponentTreeLoader $component_tree_loader */
+    $this->expectExceptionMessage('This entity does not have an Canvas field!');
+    /** @var \Drupal\canvas\Storage\ComponentTreeLoader $component_tree_loader */
     $component_tree_loader = $this->container->get(ComponentTreeLoader::class);
     $component_tree_loader->load($node);
   }
 
-  public function testMissingXBField(): void {
+  public function testMissingCanvasField(): void {
     $node = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
     ]);
     $node->save();
-    FieldStorageConfig::loadByName('node', 'field_xb_demo')?->delete();
+    FieldStorageConfig::loadByName('node', 'field_canvas_demo')?->delete();
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
     // Reload the node to refresh field definitions.
     $node = Node::load($node->id());
     self::assertNotNull($node);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('This entity does not have an XB field!');
-    /** @var \Drupal\experience_builder\Storage\ComponentTreeLoader $component_tree_loader */
+    $this->expectExceptionMessage('This entity does not have an Canvas field!');
+    /** @var \Drupal\canvas\Storage\ComponentTreeLoader $component_tree_loader */
     $component_tree_loader = $this->container->get(ComponentTreeLoader::class);
     $component_tree_loader->load($node);
   }

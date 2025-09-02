@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataTypeOverride\ComputedFileUrlOverride;
-use Drupal\experience_builder\Plugin\DataTypeOverride\UriOverride;
+use Drupal\canvas\Plugin\DataTypeOverride\ComputedFileUrlOverride;
+use Drupal\canvas\Plugin\DataTypeOverride\UriOverride;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 
 /**
@@ -33,7 +33,7 @@ class FileUriItemOverride extends FileUriItem {
       ->setRequired(TRUE)
       // The ComputedFileUrl data type generates a browser-accessible URL (root-
       // relative, absolute using HTTP, absolute using HTTPs or relative).
-      // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern()
+      // @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern()
       ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?(?!.*\:\/\/)[^\s]+$/"]);
     return $properties;
   }

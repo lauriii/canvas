@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -72,7 +72,7 @@ final class NotNullValueForEveryRequiredSdcPropConstraintValidator extends Const
       if (!array_key_exists($required_key, $mapping) || $mapping[$required_key]['default_value'] === NULL) {
         $this->context->buildViolation($constraint->message)
           // `title` is guaranteed to exist.
-          // @see \Drupal\experience_builder\Plugin\ComponentPluginManager::componentMeetsRequirements()
+          // @see \Drupal\canvas\Plugin\ComponentPluginManager::componentMeetsRequirements()
           ->setParameter('%prop_title', $component_schema['properties'][$required_key]['title'])
           ->setParameter('%prop_machine_name', $required_key)
           ->addViolation();

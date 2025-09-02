@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString;
-use Drupal\experience_builder\Plugin\DataType\UriTemplate;
-use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString;
+use Drupal\canvas\Plugin\DataType\UriTemplate;
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\experience_builder\TypedData\ImageDerivativeWithParametrizedWidth;
+use Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth;
 
 /**
  * @todo Fix upstream.
@@ -53,8 +53,8 @@ class ImageItemOverride extends ImageItem {
     // width.
     // @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/srcset#value
     // @see https://tools.ietf.org/html/rfc6570
-    // @see \Drupal\experience_builder\TypedData\ImageDerivativeWithParametrizedWidth::getAllowedWidths()
-    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/experience_builder/issues/3464003.
+    // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth::getAllowedWidths()
+    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
     // ⚠️ TRICKY: switching to adapters will require an update path for ALL component trees where this field property is being consumed.
     $properties['srcset_candidate_uri_template'] = DataDefinition::create(UriTemplate::PLUGIN_ID)
       ->setLabel(new TranslatableMarkup('srcset template'))
@@ -70,7 +70,7 @@ class ImageItemOverride extends ImageItem {
     // File entity' `uri` field's `url` property an `?alternateWidths` query
     // parameter that contains an (encoded) URI template for a front-end
     // developer to use if they choose to do so.
-    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/experience_builder/issues/3464003.
+    // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
     // ⚠️ TRICKY: switching to adapters will require an update path for ALL component trees where this field property is being consumed.
     $properties['src_with_alternate_widths'] = DataDefinition::create('uri')
       ->setLabel(new TranslatableMarkup('Resolved image URL with ?alternateWidths query parameter'))
@@ -90,7 +90,7 @@ class ImageItemOverride extends ImageItem {
       ->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => 'image/*'])
       // The ComputedFileUrl data type generates a browser-accessible URL (root-
       // relative, absolute using HTTP, absolute using HTTPs or relative).
-      // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern()
+      // @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern()
       ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?(?!.*\:\/\/)[^\s]+$/"])
       ->setClass(ComputedUrlWithQueryString::class);
 
@@ -103,11 +103,11 @@ class ImageItemOverride extends ImageItem {
   public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
     return NestedArray::mergeDeep(
       parent::calculateDependencies($field_definition),
-      // @see \Drupal\experience_builder\TypedData\ImageDerivativeWithParametrizedWidth
-      // @see config/install/image.style.xb_parametrized_width.yml
+      // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth
+      // @see config/install/image.style.canvas_parametrized_width.yml
       [
         'config' => [
-          'image.style.xb_parametrized_width',
+          'image.style.canvas_parametrized_width',
         ],
       ],
     );

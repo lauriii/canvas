@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\Controller\ClientServerConversionTrait;
-use Drupal\experience_builder\Entity\Pattern;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\canvas\Controller\ClientServerConversionTrait;
+use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 class ClientServerConversionTraitTest extends KernelTestBase {
 
@@ -25,7 +25,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   private const NESTED_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7859';
 
 
-  use XBFieldTrait {
+  use CanvasFieldTrait {
     getValidClientJson as traitGetValidClientJson;
     getValidConvertedInputs as traitGetValidConvertedInputs;
   }
@@ -40,7 +40,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
    */
   private function getValidClientJson(bool $dynamic_image = TRUE): array {
     $json = $this->traitGetValidClientJson(NULL, $dynamic_image);
-    // @see \Drupal\experience_builder\ClientDataToEntityConverter::convert()
+    // @see \Drupal\canvas\ClientDataToEntityConverter::convert()
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'))[0];
     assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($content_region))) === 4);
     assert($content_region['nodeType'] === 'region');
@@ -49,7 +49,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.xb_test_sdc.props-slots@ab4d3ddce315cf64',
+      'type' => 'sdc.canvas_test_sdc.props-slots@ab4d3ddce315cf64',
       'slots' => [
         [
           'id' => "$uuid/the_body",
@@ -116,7 +116,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
   public function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
     $this->setUpImages();
   }
 
@@ -128,13 +128,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertSame([
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.xb_test_sdc.heading',
-        'component_version' => '9616e3c4ab9b4fce',
+        'component_id' => 'sdc.canvas_test_sdc.heading',
+        'component_version' => '8dd7b865998f53b0',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
-        'component_id' => 'sdc.xb_test_sdc.image',
-        'component_version' => 'c06e0be7dd131740',
+        'component_id' => 'sdc.canvas_test_sdc.image',
+        'component_version' => 'cc9b97c9370aabdf',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -143,12 +143,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       ],
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
-        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
         'component_version' => 'ab4d3ddce315cf64',
       ],
       [
         'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
-        'component_id' => 'sdc.xb_test_sdc.props-slots',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
         'component_version' => 'ab4d3ddce315cf64',
         'slot' => 'the_body',
         'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
@@ -158,7 +158,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $node1 = Node::create([
       'type' => 'article',
       'title' => '5 amazing uses for old toothbrushes',
-      'field_xb_demo' => $converted_items,
+      'field_canvas_demo' => $converted_items,
     ]);
     $node1->validate();
     $node1->save();
@@ -166,10 +166,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertNodeValues(
       $node1,
       [
-        'sdc.xb_test_sdc.heading',
-        'sdc.xb_test_sdc.image',
+        'sdc.canvas_test_sdc.heading',
+        'sdc.canvas_test_sdc.image',
         'block.system_branding_block',
-        'sdc.xb_test_sdc.props-slots',
+        'sdc.canvas_test_sdc.props-slots',
       ],
       $expected_inputs,
       ['title' => '5 amazing uses for old toothbrushes']
@@ -181,13 +181,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $this->assertSame([
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.xb_test_sdc.heading',
-        'component_version' => '9616e3c4ab9b4fce',
+        'component_id' => 'sdc.canvas_test_sdc.heading',
+        'component_version' => '8dd7b865998f53b0',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
-        'component_id' => 'sdc.xb_test_sdc.image',
-        'component_version' => 'c06e0be7dd131740',
+        'component_id' => 'sdc.canvas_test_sdc.image',
+        'component_version' => 'cc9b97c9370aabdf',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -221,10 +221,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     );
 
     $invalid_tree_client_json = $valid_client_json;
-    $invalid_tree_client_json['layout'][1]['type'] = 'sdc.experience_builder.missing_component@no_such_thing';
+    $invalid_tree_client_json['layout'][1]['type'] = 'sdc.canvas.missing_component@no_such_thing';
     $this->assertConversionErrors(
       $invalid_tree_client_json,
-      ['layout.children.1.component_id' => "The 'experience_builder.component.sdc.experience_builder.missing_component' config does not exist."]
+      ['layout.children.1.component_id' => "The 'canvas.component.sdc.canvas.missing_component' config does not exist."]
     );
   }
 
@@ -244,13 +244,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_HEADING_UUID,
-          'type' => 'sdc.xb_test_sdc.heading@9616e3c4ab9b4fce',
+          'type' => 'sdc.canvas_test_sdc.heading@8dd7b865998f53b0',
           'slots' => [],
         ],
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_IMAGE_UUID,
-          'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
+          'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
           'slots' => [],
         ],
         [
@@ -277,7 +277,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
               'expression' => 'ℹ︎list_string␟value',
               'sourceTypeSettings' => [
                 'storage' => [
-                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+                  'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
                 ],
               ],
             ],
@@ -286,7 +286,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
               'expression' => 'ℹ︎list_string␟value',
               'sourceTypeSettings' => [
                 'storage' => [
-                  'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+                  'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
                 ],
               ],
             ],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Render;
+namespace Drupal\Tests\canvas\Kernel\Render;
 
 // cspell:ignore razzler
 
@@ -10,15 +10,15 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests ImportMapResponseAttachmentsProcessor.
  *
- * @coversDefaultClass \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor
+ * @group canvas
  */
 final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
 
@@ -26,9 +26,9 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'big_pipe',
-    // XB's dependencies (modules providing field types + widgets).
+    // Canvas's dependencies (modules providing field types + widgets).
     'ckeditor5',
     'editor',
     'field',
@@ -43,8 +43,8 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    // Experience Builder configuration (creates the global AssetLibrary).
-    $this->installConfig('experience_builder');
+    // Drupal Canvas configuration (creates the global AssetLibrary).
+    $this->installConfig('canvas');
   }
 
   public function testImportMapResponseAttachmentsProcessor(): void {
@@ -99,7 +99,7 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
     self::assertArrayNotHasKey('import_maps', $attachments);
     self::assertArrayHasKey('html_head', $attachments);
     [$element, $name] = \reset($attachments['html_head']);
-    self::assertEquals('xb_import_map', $name);
+    self::assertEquals('canvas_import_map', $name);
     self::assertEquals('script', $element['#tag']);
     self::assertEquals('html_tag', $element['#type']);
     self::assertEquals(['type' => 'importmap'], $element['#attributes']);

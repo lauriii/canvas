@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldType;
+namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Plugin\DependentPluginInterface;
@@ -15,22 +15,22 @@ use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldItemList;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderableInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSwitchCasesInterface;
-use Drupal\experience_builder\Element\RenderSafeComponentContainer;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
-use Drupal\experience_builder\Exception\SubtreeInjectionException;
-use Drupal\experience_builder\HydratedTree;
-use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
+use Drupal\canvas\Element\RenderSafeComponentContainer;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Exception\SubtreeInjectionException;
+use Drupal\canvas\HydratedTree;
+use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 
 /**
  * A component tree: a list item class for ComponentTreeItem.
  *
  * @phpstan-type ComponentTreeItemArray array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: SingleComponentInputArray}
  * @phpstan-type ComponentTreeItemListArray array<int, ComponentTreeItemArray>
- * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
  */
 final class ComponentTreeItemList extends FieldItemList implements RenderableInterface, CacheableDependencyInterface, DependentPluginInterface {
@@ -59,7 +59,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $this->getParent()
           ? $this->getEntity()
           // Support dangling component trees.
-          // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait
+          // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait
           : NULL
       ));
     }
@@ -78,15 +78,15 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    */
   private function buildLayoutAndModel(iterable $tree_tier): array {
     $built = ['layout' => [], 'model' => []];
-    /** @var \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem $item */
+    /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($tree_tier as $item) {
       $item_layout_node = $item->getClientSideRepresentation();
       $component_instance_uuid = $item->getUuid();
 
       // Use ComponentSourceInterface::inputToClientModel() to map the server-
       // stored `inputs` data to the client-side `model`.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+      // @see \Drupal\canvas\Plugin\DataType\ComponentInputs
       // @see DynamicComponent type-script definition.
       // @see ComponentModel type-script definition.
       // @see PropSourceComponent type-script definition.
@@ -100,7 +100,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       // TRICKY: the server-side implementation (for storage efficiency) forbids
       // - empty component subtrees
       // - empty slots
-      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
       // But the client expects all *available* slots to get a `slot node`: in
       // every `component node` for every slot of that component, even the slot
       // is empty.
@@ -237,8 +237,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           // Wrap each rendered component instance in HTML comments that allow the
           // client side to identify it.
           if ($isPreview) {
-            $element['#prefix'] = Markup::create("<!-- xb-start-$component_instance_uuid -->");
-            $element['#suffix'] = Markup::create("<!-- xb-end-$component_instance_uuid -->");
+            $element['#prefix'] = Markup::create("<!-- canvas-start-$component_instance_uuid -->");
+            $element['#suffix'] = Markup::create("<!-- canvas-end-$component_instance_uuid -->");
           }
 
           // Associate the `Component` config entity cache tag with every rendered
@@ -263,14 +263,14 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
                   ? ['#plain_text' => $slot_value]
                   // TRICKY: this goes beyond what Drupal core appears to allow
                   // in https://www.drupal.org/node/3398039, but the SDC plugin
-                  // manager accepts this as a valid SDC definition, so XB has
+                  // manager accepts this as a valid SDC definition, so Canvas has
                   // no choice but to support it.
                   : ['#markup' => $slot_value];
               }
               // When previewing and the slot value is a default: omit the
               // default in favor of a placeholder div.
               elseif ($isPreview && is_string($slot_value)) {
-                $slots[$slot] = ['#markup' => Markup::create('<div class="xb--slot-empty-placeholder"></div>')];
+                $slots[$slot] = ['#markup' => Markup::create('<div class="canvas--slot-empty-placeholder"></div>')];
               }
               // Explicit slot value: renderify, just like the rest of the
               // component tree.
@@ -314,7 +314,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    */
   private function getCacheability(): CacheableMetadata {
     // @todo Once bundle-level defaults for `tree` + `inputs` are supported, this should also include cacheability of whatever config that is stored in.
-    // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::preSave()
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::preSave()
 
     $root = $this->getRoot();
     if ($root instanceof EntityAdapter) {
@@ -367,7 +367,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * Constructs a depth-first graph based on the given tree.
    *
-   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList $tree
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $tree
    *   Tree to construct a graph for.
    *
    * @return array<string, array{'edges': array<string, TRUE>}>
@@ -486,7 +486,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $source_type_prefixes = [];
     foreach ($this as $item) {
       \assert($item instanceof ComponentTreeItem);
-      /** @var \Drupal\experience_builder\Plugin\DataType\ComponentInputs $inputs */
+      /** @var \Drupal\canvas\Plugin\DataType\ComponentInputs $inputs */
       $inputs = $item->get('inputs');
       $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypePrefixList());
     }
@@ -495,7 +495,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
 
   /**
    * @param ExposedSlotDefinitions $exposed_slot_info
-   * @param \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList $subTreeItemList
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $subTreeItemList
    * @return $this
    */
   public function injectSubTreeItemList(array $exposed_slot_info, ComponentTreeItemList $subTreeItemList): self {

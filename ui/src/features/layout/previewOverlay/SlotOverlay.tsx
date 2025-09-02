@@ -116,11 +116,11 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
         [styles.hovered]: isHovered,
         [styles.dropTarget]: slotId === targetSlot,
       })}
-      data-xb-type="slot"
+      data-canvas-type="slot"
       style={style}
     >
       {(targetSlot === slotId || isHovered) && (
-        <div className={clsx(styles.xbNameTag, styles.xbNameTagSlot)}>
+        <div className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}>
           <SlotNameTag
             name={`${slotName} (${parentComponentName})`}
             id={slotId}

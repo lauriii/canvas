@@ -34,7 +34,7 @@ import {
   POLLED_BACKGROUND_TIMEOUT,
 } from '@/components/form/inputBehaviors';
 import { FORM_TYPES } from '@/features/form/constants';
-import type { XBComponent } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import { useRef } from 'react';
 
@@ -76,7 +76,7 @@ export const InputBehaviorsComponentPropsForm = (
     fixedCacheKey: selectedComponent,
   });
 
-  const fieldName = attributes.name || attributes['data-xb-name'];
+  const fieldName = attributes.name || attributes['data-canvas-name'];
   const propName = toPropName(fieldName, selectedComponent);
   // Scalar prop-types might be able to perform real-time updates.
   const isScalarProp = ['number', 'integer', 'string', 'boolean'].includes(
@@ -281,7 +281,7 @@ export const InputBehaviorsComponentPropsForm = (
 
 export const syncPropSourcesToResolvedValues = (
   sources: Sources,
-  component: XBComponent,
+  component: CanvasComponent,
   resolvedValues: ResolvedValues,
 ): Sources => {
   if (!componentHasFieldData(component)) {

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * @covers \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
- * @group experience_builder
+ * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
+ * @group canvas
  */
 final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
 
@@ -22,7 +22,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'user',
     'system',
     'media',
@@ -37,12 +37,12 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
     $this->installConfig(['system']);
   }
 
-  private function getXbAssetLibraries(): array {
+  private function getCanvasAssetLibraries(): array {
     $library_discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     assert($library_discovery instanceof CacheCollectorInterface);
 
-    // Get the (cached) XB asset libraries.
-    $discovered = $library_discovery->getLibrariesByExtension('experience_builder');
+    // Get the (cached) Canvas asset libraries.
+    $discovered = $library_discovery->getLibrariesByExtension('canvas');
 
     // Simulate this having been a single request/response, and the response has
     // finished. For cache collectors, the destruct() method is called, which
@@ -107,7 +107,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
     ]);
     $library->save();
 
-    $discovered = $this->getXbAssetLibraries();
+    $discovered = $this->getCanvasAssetLibraries();
     $asset_library_draft = \sprintf('asset_library.%s.draft', $library_id);
     $asset_library = \sprintf('asset_library.%s', $library_id);
     $js_component_draft = \sprintf('astro_island.%s.draft', $js_component_id);
@@ -135,7 +135,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
       'original' => $some_css,
       'compiled' => $some_css,
     ])->save();
-    $discovered = $this->getXbAssetLibraries();
+    $discovered = $this->getCanvasAssetLibraries();
     self::assertArrayHasKey($asset_library_draft, $discovered);
     self::assertArrayHasKey('css', $discovered[$asset_library_draft]);
     self::assertArrayHasKey('js', $discovered[$asset_library_draft]);
@@ -158,7 +158,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
       'original' => $some_css,
       'compiled' => $some_css,
     ])->save();
-    $discovered = $this->getXbAssetLibraries();
+    $discovered = $this->getCanvasAssetLibraries();
     self::assertArrayHasKey($asset_library_draft, $discovered);
     self::assertArrayHasKey('css', $discovered[$asset_library_draft]);
     self::assertArrayHasKey('js', $discovered[$asset_library_draft]);

@@ -3,12 +3,12 @@
 
 describe('Publish review functionality', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -19,13 +19,13 @@ describe('Publish review functionality', () => {
     'Can make a change and see changes in the "Review x changes" button',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForCanvasLoaded();
 
-      cy.findByTestId('xb-topbar').findByText('Published');
+      cy.findByTestId('canvas-topbar').findByText('Published');
 
       cy.clickComponentInPreview('Hero');
 
-      cy.findByTestId(/^xb-component-form-.*/)
+      cy.findByTestId(/^canvas-component-form-.*/)
         .findByLabelText('Heading')
         .type(' updated');
 
@@ -43,21 +43,21 @@ describe('Publish review functionality', () => {
 
       cy.findByText('hello, world! updated').should('not.exist');
 
-      cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+      cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
 
-      cy.publishAllPendingChanges('XB Needs This For The Time Being');
+      cy.publishAllPendingChanges('Canvas Needs This For The Time Being');
 
       cy.log('After publishing, there should be no changes.');
-      cy.findByTestId('xb-topbar')
+      cy.findByTestId('canvas-topbar')
         .findByText('No changes', { selector: 'button' })
         .should('exist');
-      cy.findByTestId('xb-topbar').findByText('Published');
+      cy.findByTestId('canvas-topbar').findByText('Published');
 
       cy.log(
         'After publishing and reloading the page, there should be no changes.',
       );
-      cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
-      cy.findByTestId('xb-topbar')
+      cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+      cy.findByTestId('canvas-topbar')
         .findByText('No changes', { selector: 'button' })
         .should('exist');
 
@@ -65,16 +65,16 @@ describe('Publish review functionality', () => {
         'Make another change and ensure the button still updates say "Review n changes"',
       );
       cy.clickComponentInPreview('Hero');
-      cy.findByTestId(/^xb-component-form-.*/)
+      cy.findByTestId(/^canvas-component-form-.*/)
         .findByLabelText('Heading')
         .type(' updated again');
 
-      cy.findByTestId('xb-topbar').findByText('Changed');
+      cy.findByTestId('canvas-topbar').findByText('Changed');
       cy.findByText('Review 1 change').click();
 
       cy.log('...and make sure the change shows up in the drop-down');
-      cy.findByTestId('xb-publish-reviews-content').within(() => {
-        cy.findByText('XB Needs This For The Time Being');
+      cy.findByTestId('canvas-publish-reviews-content').within(() => {
+        cy.findByText('Canvas Needs This For The Time Being');
       });
 
       cy.log('After publishing, the change should be visible page!');
@@ -87,25 +87,25 @@ describe('Publish review functionality', () => {
     'User without "publish auto-saves" permission cannot publish changes',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      // Create user with all xbUser permissions except publish auto-saves
-      cy.visit('admin/people/permissions/xb');
+      // Create user with all canvasUser permissions except publish auto-saves
+      cy.visit('admin/people/permissions/canvas');
       cy.get(
-        'input[type="checkbox"][data-drupal-selector="edit-xb-publish-auto-saves"]',
+        'input[type="checkbox"][data-drupal-selector="edit-canvas-publish-auto-saves"]',
       ).uncheck();
       cy.get('input[data-drupal-selector="edit-submit"]').click();
 
-      cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForCanvasLoaded();
 
       cy.clickComponentInPreview('Hero');
-      cy.findByTestId(/^xb-component-form-.*/)
+      cy.findByTestId(/^canvas-component-form-.*/)
         .findByLabelText('Heading')
         .type(' updated by user without publish permission');
 
       cy.findByText('Changed');
       cy.findByText('Review 1 change').click();
 
-      cy.findByTestId('xb-publish-reviews-content').within(() => {
-        cy.findByTestId('xb-publish-review-select-all').click();
+      cy.findByTestId('canvas-publish-reviews-content').within(() => {
+        cy.findByTestId('canvas-publish-review-select-all').click();
         cy.findByText(/Publish \d selected/).should('not.exist');
       });
     },

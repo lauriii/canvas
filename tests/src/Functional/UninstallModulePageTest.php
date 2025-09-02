@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Database\Database;
 use Drupal\field\Entity\FieldConfig;
@@ -12,14 +12,14 @@ use Drupal\FunctionalTests\Installer\InstallerTestBase;
 /**
  * Tests the uninstalling module page is loaded.
  *
- * @group experience_builder
+ * @group canvas
  */
 class UninstallModulePageTest extends InstallerTestBase {
 
   /**
    * {@inheritdoc}
    *
-   * This is to get config/optional/field.field.node.article.field_xb_demo.yml installed, and trigger the edge case.
+   * This is to get config/optional/field.field.node.article.field_canvas_demo.yml installed, and trigger the edge case.
    */
   protected $profile = 'standard';
 
@@ -43,13 +43,13 @@ class UninstallModulePageTest extends InstallerTestBase {
    * Tests that the uninstalling module page is loaded.
    */
   public function testUninstallModulePage(): void {
-    \Drupal::service('module_installer')->install(['experience_builder']);
+    \Drupal::service('module_installer')->install(['canvas']);
     $this->drupalGet('admin/modules/uninstall');
     $session = $this->assertSession();
     $this->assertSession()->statusCodeEquals(200);
     // Load & delete dependent field config for module uninstall.
     $entity_type = 'node';
-    $field_name = 'field_xb_demo';
+    $field_name = 'field_canvas_demo';
     $field_config = FieldConfig::load($entity_type . '.' . $field_name);
     if ($field_config) {
       $field_config->delete();
@@ -61,10 +61,10 @@ class UninstallModulePageTest extends InstallerTestBase {
     }
 
     $this->drupalGet('admin/modules/uninstall');
-    $this->submitForm(['uninstall[experience_builder]' => 1], 'Uninstall');
+    $this->submitForm(['uninstall[canvas]' => 1], 'Uninstall');
     $this->submitForm([], 'Uninstall');
     $session->pageTextContains('The selected modules have been uninstalled.');
-    $session->pageTextNotContains('Experience Builder');
+    $session->pageTextNotContains('Drupal Canvas');
   }
 
 }

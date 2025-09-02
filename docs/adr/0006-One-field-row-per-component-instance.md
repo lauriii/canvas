@@ -2,7 +2,7 @@
 
 Date: 2025-08-11
 
-Issue: <https://www.drupal.org/project/experience_builder/issues/3520449>
+Issue: <https://www.drupal.org/project/canvas/issues/3520449>
 
 ## Status
 
@@ -13,10 +13,10 @@ Accepted
 _This supersedes [ADR #2](../0002-Use-SDC-slots-to-build-component-tree-and-field-types-for-populating-SDC-props.md.md)._
 
 ### Contrast
-After ~1 year of work on XB (Experience Builder), the context in ADR #2 is no longer accurate:
-- XB no longer only supports [Single-Directory Components](https://www.drupal.org/project/sdc), but also Block plugins and "code components", with a (still maturing) [abstraction layer to support more](../../components.md).
+After ~1 year of work on Canvas (Drupal Canvas), the context in ADR #2 is no longer accurate:
+- Canvas no longer only supports [Single-Directory Components](https://www.drupal.org/project/sdc), but also Block plugins and "code components", with a (still maturing) [abstraction layer to support more](../../components.md).
 - Storing 2 JSON blobs (`tree` and `inputs`) per revision was a fine start, but had to be refactored away from for multiple reasons:
-  - [Drupal core's #3343634 Add "json" as core data type to Schema and Database API](https://www.drupal.org/project/drupal/issues/3343634) did not land by Drupal 11.2, which is the core version during which XB will see its 1.0 release
+  - [Drupal core's #3343634 Add "json" as core data type to Schema and Database API](https://www.drupal.org/project/drupal/issues/3343634) did not land by Drupal 11.2, which is the core version during which Canvas will see its 1.0 release
   - Updating JSON blobs, for example when a component implementation changes and requires an update path (e.g. SDC changing the type of a prop, block plugins changing the type of a setting, removing one SDC in favor of another with similar but different props, etc.), is brittle and risky
 
 Point 5 in ADR #2 does still stand:
@@ -27,12 +27,12 @@ But that functionality has since been generalized (`GeneratedFieldExplicitInputU
 
 Unchanged from ADR #2: ideally, all existing Drupal functionality continues to work, because that means:
 
-- Experience Builder gets to start with an existing ecosystem, instead of having to start from zero
+- Drupal Canvas gets to start with an existing ecosystem, instead of having to start from zero
 - prior _investments_ in functionality are not forfeited
 
 ### Recap
 
-In summary, XB's (server-side) data model was originally designed with:
+In summary, Canvas's (server-side) data model was originally designed with:
 
 * Only SDCs
 * Dynamic data fetched from host entity fields via expressions (i.e. `DynamicPropSources`)
@@ -42,7 +42,7 @@ In summary, XB's (server-side) data model was originally designed with:
 * Support both revisions and translations when a component tree lives in a content entity
 
 This model served well in the prototype and early implementation stages, but it needs to be finalized to minimize
-disruption after [`1.0.0-beta1`](https://www.drupal.org/project/experience_builder/issues/3515932). Since then, we are seeing a need to evolve the data model to support:
+disruption after [`1.0.0-beta1`](https://www.drupal.org/project/canvas/issues/3515932). Since then, we are seeing a need to evolve the data model to support:
 
 ### Functional requirements
 1. Support multiple types of components, not just SDCs → ComponentSource plugins
@@ -62,8 +62,8 @@ disruption after [`1.0.0-beta1`](https://www.drupal.org/project/experience_build
 5. Must be able to support component instances with a large number of inputs (e.g., 150+)
 
 ### What is out of scope:
-1. Creating multiple view modes with each their own content templates and exposed slots using a single component tree and inputs — XB 1.x will be constrained to a single content template with exposed slots: for the canonical/full view mode. We may decide to add support for content templates for additional view modes, but if so, XB 1.x will not support exposed slots for them.
-2. Using component props for structured data – XB components are designed to consume structured data, not vice versa.
+1. Creating multiple view modes with each their own content templates and exposed slots using a single component tree and inputs — Canvas 1.x will be constrained to a single content template with exposed slots: for the canonical/full view mode. We may decide to add support for content templates for additional view modes, but if so, Canvas 1.x will not support exposed slots for them.
+2. Using component props for structured data – Canvas components are designed to consume structured data, not vice versa.
 
 ## Decision
 
@@ -106,13 +106,13 @@ In order of importance, with the following markers:
   - The ability to retrieve a subset of a component tree, for example to support alternative renderings
 2. `+T` Because everything in the component tree is available as Typed Data, it is simple to add JSON:API read/write support (or GraphQL, or …) — including filtering trees
 3. `+TOB` It is simple to add _new_ capabilities that are per-component instance:
-  - For example, adding a `label` field property/column to allow Content Creators to _name_ component instances: [#3460958](https://www.drupal.org/project/experience_builder/issues/3460958)
+  - For example, adding a `label` field property/column to allow Content Creators to _name_ component instances: [#3460958](https://www.drupal.org/project/canvas/issues/3460958)
   - In the future: adding support for _component variants_: add a `variant` field property/column, which would be `NULL` when it is the default variant (or the component has no variants), making it possible to query across all component instances and surface how much usage each variant sees
   - In the future: adding support for _locking a subset of the explicit inputs when using asymmetric translations_: add an `untranslatable_inputs` field property/column, which would have its key-value pairs merged with those in `inputs` (and always be `NULL` when using symmetric translations)
 4. `+T` Supporting "exposed slots defined in content templates" functionality is as simple as allowing `slot` to be an exposed slot defined by the `ContentTemplate` config entity
-3. `+TOB` Improving storage efficiency (deduplicating the same `inputs` data across different revisions of the same component instance and/or across component instances within the same revision) can be done in a generic way (not specific to XB), benefiting many field types at once
+3. `+TOB` Improving storage efficiency (deduplicating the same `inputs` data across different revisions of the same component instance and/or across component instances within the same revision) can be done in a generic way (not specific to Canvas), benefiting many field types at once
 6. `≃T` The JSON blob for each component instance's `inputs` field property/column still remains that: a _blob_, which only the corresponding `Component Source Plugin` can load, validate, and understand.
 7. `≃TOB` This shifts away from an _almost_ document-oriented data storage model to a relational data storage model
-  - `+TOB`This makes XB more in line with the rest of the Drupal ecosystem
+  - `+TOB`This makes Canvas more in line with the rest of the Drupal ecosystem
   - `+TOB` This mitigates the risks associated with relying on per-database differences in their JSON support (see [#3343634](https://www.drupal.org/project/drupal/issues/3343634))
   - `+TO` This strikes a careful balance between making all relations between component instances and `Component` versions be queryable, but not the `inputs` for each component instance.

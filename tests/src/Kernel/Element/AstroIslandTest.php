@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Element;
+namespace Drupal\Tests\canvas\Kernel\Element;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -10,19 +10,19 @@ use Drupal\Component\Utility\DeprecationHelper;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
-use Drupal\experience_builder\Element\AstroIsland;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\canvas\Element\AstroIsland;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\CrawlerTrait;
+use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests Island.
  *
- * @covers \Drupal\experience_builder\Element\AstroIsland
+ * @covers \Drupal\canvas\Element\AstroIsland
  * @group JavaScriptComponents
- * @group experience_builder
+ * @group canvas
  */
 final class AstroIslandTest extends KernelTestBase {
 
@@ -32,7 +32,7 @@ final class AstroIslandTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder', 'user', 'system', 'media'];
+  protected static $modules = ['canvas', 'user', 'system', 'media'];
 
   /**
    * {@inheritdoc}
@@ -99,7 +99,7 @@ final class AstroIslandTest extends KernelTestBase {
     $js_hash = Crypt::hmacBase64($js, $component->uuid());
     $discovery = \Drupal::service(LibraryDiscoveryInterface::class);
     assert($discovery instanceof CacheCollectorInterface);
-    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
+    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('canvas'));
     self::assertStringEqualsFile('assets://astro-island/' . $css_hash . '.css', $css);
     self::assertStringEqualsFile('assets://astro-island/' . $js_hash . '.js', $js);
 
@@ -129,7 +129,7 @@ final class AstroIslandTest extends KernelTestBase {
     $original_island = $island;
 
     $crawler = $this->crawlerForRenderArray($island);
-    $element = $crawler->filter('xb-island');
+    $element = $crawler->filter('canvas-island');
     self::assertEquals([
       ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [$component_url => ['some' => 'import/map.js']],
     ], $island['#attached']['import_maps']);
@@ -150,8 +150,8 @@ final class AstroIslandTest extends KernelTestBase {
 
     self::assertEquals($component_url, $element->attr('component-url'));
 
-    $xb_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'experience_builder');
-    self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $xb_directory), $element->attr('renderer-url'));
+    $canvas_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'canvas');
+    self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $canvas_directory), $element->attr('renderer-url'));
 
     $slots = $element->filter('template[data-astro-template]');
     self::assertCount(2, $slots);
@@ -170,7 +170,7 @@ final class AstroIslandTest extends KernelTestBase {
     $island = $original_island;
     unset($island['#slots'], $island['#props'], $island['#uuid'], $island['#framework']);
     $crawler = $this->crawlerForRenderArray($island);
-    $element = $crawler->filter('xb-island');
+    $element = $crawler->filter('canvas-island');
     self::assertCount(1, $element);
     self::assertNotNull($element->attr('uid'));
     self::assertJsonStringEqualsJsonString('{}', $element->attr('props') ?? '');
@@ -209,7 +209,7 @@ final class AstroIslandTest extends KernelTestBase {
       fn () => \Drupal::service('library.discovery.collector'),
     );
     assert($discovery instanceof CacheCollectorInterface);
-    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('experience_builder'));
+    self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('canvas'));
 
     $island = [
       '#type' => AstroIsland::PLUGIN_ID,
@@ -218,7 +218,7 @@ final class AstroIslandTest extends KernelTestBase {
     ];
     $this->crawlerForRenderArray($island);
     self::assertSame([
-      'experience_builder/astro.hydration',
+      'canvas/astro.hydration',
     ], $island['#attached']['library']);
   }
 

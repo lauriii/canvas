@@ -1,6 +1,6 @@
-# Experience Builder Personalization
+# Drupal Canvas Personalization
 
-In the rest of this document, `Experience Builder` will be written as `XB`.
+In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
 ## 1. Terminology
 
@@ -42,7 +42,7 @@ based on specific goals.
 
 `Metrics`: Quantifiable measurements used to evaluate the success of different variations in an A/B test.
 
-`Personalizable Component Tree`: At a very high level (excuse the simplification), we model the XB as a tree of
+`Personalizable Component Tree`: At a very high level (excuse the simplification), we model the Canvas as a tree of
 components. We might refer in this document to a Page from now on for simplicity, but we expect that Page Regions,
 Content Templates or other trees might be personalizable.
 
@@ -78,11 +78,11 @@ be too specific.
 
 ## 3. Implementation / Architecture
 
-We would like to have a feature flag for personalization. For simplicity, we will use a _xb_personalization_ module for
+We would like to have a feature flag for personalization. For simplicity, we will use a _canvas_personalization_ module for
 that.
 
 Currently, it's not that easy to generate extensions for the client UI. We will work directly on the React UI application.
-For the backend, we will use the _xb_personalization_ module as far (or as long) as possible.
+For the backend, we will use the _canvas_personalization_ module as far (or as long) as possible.
 
 ### 3.1. Personalization Segments
 
@@ -187,7 +187,7 @@ sequenceDiagram
 So the flow will start with a POST to create the original entity.
 This new segment will be disabled by default.
 
-`POST /xb/api/v0/config/segment`
+`POST /canvas/api/v0/config/segment`
 ```json
 {
   "id": "my_first_segment",
@@ -198,7 +198,7 @@ This new segment will be disabled by default.
 
 We will do the changes on auto-save as needed. Here we can set the published flag as, this won't take effect until the user publishes the changes.
 
-`PATCH /xb/api/v0/config/auto-save/segment/my_first_segment`
+`PATCH /canvas/api/v0/config/auto-save/segment/my_first_segment`
 ```json
 {
   "id": "my_first_segment",
@@ -225,7 +225,7 @@ We will do the changes on auto-save as needed. Here we can set the published fla
 When we are ready, the user will publish the changes.
 We don't need to make this call, as the user will in the UI, but for reference:
 
-`POST /xb/api/v0/auto-saves/publish`
+`POST /canvas/api/v0/auto-saves/publish`
 
 
 #### 3.1.3. Getting available segmentation rules
@@ -284,7 +284,7 @@ component instance label.
 
 TBD
 
-See https://www.drupal.org/project/experience_builder/issues/3525746#comment-16121437
+See https://www.drupal.org/project/canvas/issues/3525746#comment-16121437
 (this will define the -hopefully- generic switch-case `nodeType`s, or point to docs in `data-model.md 3.4.x` itself.)
 
 ### 3.3. Personalization Negotiation
@@ -320,5 +320,5 @@ You can install it with something like
 
 ```
 ddev drush site:install minimal --yes && ddev drush user:password admin admin && \
-ddev -d /var/www/html/web exec php core/scripts/drupal recipe modules/contrib/experience_builder/tests/fixtures/recipes/test_site_personalization
+ddev -d /var/www/html/web exec php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/test_site_personalization
 ```

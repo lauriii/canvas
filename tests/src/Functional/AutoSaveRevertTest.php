@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Page;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
@@ -16,7 +16,7 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 /**
  * Tests that auto-saved changes are deleted when reverting a page revision.
  *
- * @group experience_builder
+ * @group canvas
  */
 class AutoSaveRevertTest extends BrowserTestBase {
 
@@ -30,13 +30,13 @@ class AutoSaveRevertTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder', 'user', 'node'];
+  protected static $modules = ['canvas', 'user', 'node'];
 
   /**
    * Tests access to page revisions.
    */
   public function testRevisionAccess(): void {
-    $user = $this->drupalCreateUser(['edit xb_page']);
+    $user = $this->drupalCreateUser(['edit canvas_page']);
     assert($user instanceof AccountInterface);
     $this->drupalLogin($user);
 
@@ -49,21 +49,21 @@ class AutoSaveRevertTest extends BrowserTestBase {
     $page->save();
 
     $this->drupalGet('/page/' . $page->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Drupal Canvas.');
 
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $page->set('title', 'Test Page - Auto-saved revision');
     $autoSaveManager->saveEntity($page);
 
     $this->drupalGet('/page/' . $page->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextContains('This page has unpublished changed in Drupal Canvas.');
     $this->submitForm([], 'Revert');
 
     $this->assertSession()->addressEquals('page/1/revisions');
     self::assertTrue($autoSaveManager->getAutoSaveEntity($page)->isEmpty());
 
     $this->drupalGet('/page/' . $page->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Drupal Canvas.');
   }
 
   /**
@@ -101,21 +101,21 @@ class AutoSaveRevertTest extends BrowserTestBase {
     $node->save();
 
     $this->drupalGet('/node/' . $node->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Drupal Canvas.');
 
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     $node->set('title', 'Test Article - Auto-saved revision');
     $autoSaveManager->saveEntity($node);
 
     $this->drupalGet('/node/' . $node->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextContains('This page has unpublished changed in Drupal Canvas.');
     $this->submitForm([], 'Revert');
 
     $this->assertSession()->addressEquals('node/1/revisions');
     self::assertTrue($autoSaveManager->getAutoSaveEntity($node)->isEmpty());
 
     $this->drupalGet('/node/' . $node->id() . '/revisions/' . $original_vid . '/revert');
-    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Experience Builder.');
+    $this->assertSession()->pageTextNotContains('This page has unpublished changed in Drupal Canvas.');
   }
 
 }

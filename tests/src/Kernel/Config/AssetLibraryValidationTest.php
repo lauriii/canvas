@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\canvas\Entity\AssetLibrary;
 
 /**
  * Tests validation of Asset Library entities.
  *
- * @group experience_builder
+ * @group canvas
  */
 class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -18,7 +18,7 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
   ];
 
   /**
@@ -72,8 +72,8 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
     $css_hash = Crypt::hmacBase64($css, $this->entity->uuid());
     $js_hash = Crypt::hmacBase64($js, $this->entity->uuid());
 
-    self::assertStringEqualsFile('assets://xb/' . $css_hash . '.css', $css);
-    self::assertStringEqualsFile('assets://xb/' . $js_hash . '.js', $js);
+    self::assertStringEqualsFile('assets://canvas/' . $css_hash . '.css', $css);
+    self::assertStringEqualsFile('assets://canvas/' . $js_hash . '.js', $js);
   }
 
   /**

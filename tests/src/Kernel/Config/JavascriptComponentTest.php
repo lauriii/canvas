@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Entity\JavaScriptComponent
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Entity\JavaScriptComponent
+ * @group canvas
  */
 class JavascriptComponentTest extends KernelTestBase {
 
   protected static $modules = [
-    'experience_builder',
+    'canvas',
   ];
 
   /**
@@ -42,7 +42,7 @@ class JavascriptComponentTest extends KernelTestBase {
     $this->assertSame(SAVED_NEW, $js_component->save());
     $this->assertCount(0, $js_component->getDependencies());
     $this->assertSame([
-      'config:experience_builder.js_component.test',
+      'config:canvas.js_component.test',
     ], $js_component->getCacheTags());
 
     // Create another component that will be imported by the first one.
@@ -53,7 +53,7 @@ class JavascriptComponentTest extends KernelTestBase {
     $this->assertSame(SAVED_NEW, $js_component2->save());
     $this->assertCount(0, $js_component2->getDependencies());
     $this->assertSame([
-      'config:experience_builder.js_component.test2',
+      'config:canvas.js_component.test2',
     ], $js_component2->getCacheTags());
 
     // Adding a component to `importedJsComponents` should add this component
@@ -68,8 +68,8 @@ class JavascriptComponentTest extends KernelTestBase {
       $js_component->getDependencies()
     );
     $this->assertSame([
-      'config:experience_builder.js_component.test',
-      'config:experience_builder.js_component.test2',
+      'config:canvas.js_component.test',
+      'config:canvas.js_component.test2',
     ], $js_component->getCacheTags());
 
     // Ensure missing components are will throw a validation error.
@@ -111,7 +111,7 @@ class JavascriptComponentTest extends KernelTestBase {
     $this->assertSame(SAVED_UPDATED, $js_component->save());
     $this->assertSame([], $js_component->getDependencies());
     $this->assertSame([
-      'config:experience_builder.js_component.test',
+      'config:canvas.js_component.test',
     ], $js_component->getCacheTags());
   }
 

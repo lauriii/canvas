@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Asset;
+namespace Drupal\canvas\Asset;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AssetResolver as CoreAssetResolver;
@@ -35,7 +35,7 @@ final class AssetResolver extends CoreAssetResolver {
    * libraries.
    *
    * Typically, multiple libraries using the same assets is not a concern, but
-   * Experience Builder has several custom libraries that are equivalent to
+   * Drupal Canvas has several custom libraries that are equivalent to
    * core libraries but with changes that account for admin theme overrides and
    * other as-needed customization.
    *
@@ -53,7 +53,7 @@ final class AssetResolver extends CoreAssetResolver {
    *   - at index one: the (possibly optimized) collection of JavaScript assets
    *     for the bottom of the page
    */
-  public function getXbJsAssets(AttachedAssetsInterface $assets, bool $optimize, ?LanguageInterface $language = NULL): array {
+  public function getCanvasJsAssets(AttachedAssetsInterface $assets, bool $optimize, ?LanguageInterface $language = NULL): array {
     $default_result = $this->assetResolver->getJsAssets($assets, $optimize, $language);
 
     // Populate a list of JS assets that have already been loaded.
@@ -88,10 +88,10 @@ final class AssetResolver extends CoreAssetResolver {
   public function getJsAssets(AttachedAssetsInterface $assets, $optimize, ?LanguageInterface $language = NULL): array {
     $already_loaded = $assets->getAlreadyLoadedLibraries();
     $to_load = $assets->getLibraries();
-    $already_loaded_xb = array_filter($already_loaded, fn($item) => str_contains($item, 'experience_builder/xb.drupal'));
-    $to_load_xb = array_filter($to_load, fn($item) => str_contains($item, 'experience_builder/xb.drupal'));
-    if (!empty($to_load_xb) || !empty($already_loaded_xb)) {
-      return $this->getXbJsAssets($assets, $optimize, $language);
+    $already_loaded_canvas = array_filter($already_loaded, fn($item) => str_contains($item, 'canvas/canvas.drupal'));
+    $to_load_canvas = array_filter($to_load, fn($item) => str_contains($item, 'canvas/canvas.drupal'));
+    if (!empty($to_load_canvas) || !empty($already_loaded_canvas)) {
+      return $this->getCanvasJsAssets($assets, $optimize, $language);
     }
     return parent::getJsAssets($assets, $optimize, $language);
   }

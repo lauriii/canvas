@@ -1,7 +1,7 @@
 import { mergeTests } from '@playwright/test';
 import { test as base } from '@playwright/test';
 import { Drupal } from '../objects/Drupal';
-import { XBEditor } from '../objects/XBEditor';
+import { CanvasEditor } from '../objects/CanvasEditor';
 import { exec } from '../utilities/DrupalExec';
 import { hasDrush } from '../utilities/DrupalFilesystem';
 import { Ai } from '../objects/Ai';
@@ -65,14 +65,14 @@ const drupal = base.extend<DrupalObj>({
   ],
 });
 
-type XBEditorObj = {
-  xBEditor: XBEditor;
+type CanvasEditorObj = {
+  xBEditor: CanvasEditor;
 };
 
-const xBEditor = base.extend<XBEditorObj>({
+const xBEditor = base.extend<CanvasEditorObj>({
   xBEditor: [
     async ({ page }, use) => {
-      const xBEditor = new XBEditor({ page });
+      const xBEditor = new CanvasEditor({ page });
       await use(xBEditor);
     },
     { auto: true },

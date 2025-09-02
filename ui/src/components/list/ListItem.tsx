@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { XBComponent, JSComponent } from '@/types/Component';
+import type { CanvasComponent, JSComponent } from '@/types/Component';
 import type { Pattern } from '@/types/Pattern';
 import { useState } from 'react';
 import clsx from 'clsx';
@@ -25,7 +25,7 @@ import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 
 const ListItem: React.FC<{
-  item: XBComponent | Pattern;
+  item: CanvasComponent | Pattern;
   type:
     | LayoutItemType.COMPONENT
     | LayoutItemType.PATTERN
@@ -36,7 +36,7 @@ const ListItem: React.FC<{
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const layout = useAppSelector(selectLayout);
   const [previewingComponent, setPreviewingComponent] = useState<
-    XBComponent | Pattern
+    CanvasComponent | Pattern
   >();
   const {
     componentId: selectedComponent,
@@ -73,7 +73,7 @@ const ListItem: React.FC<{
           _addNewComponentToLayout(
             {
               to: newPath,
-              component: item as XBComponent,
+              component: item as CanvasComponent,
             },
             setSelectedComponent,
           ),
@@ -92,7 +92,7 @@ const ListItem: React.FC<{
     }
   };
 
-  const handleMouseEnter = (component: XBComponent | Pattern) => {
+  const handleMouseEnter = (component: CanvasComponent | Pattern) => {
     if (!isMenuOpen) {
       setPreviewingComponent(component);
     }
@@ -125,7 +125,7 @@ const ListItem: React.FC<{
         title={item.name}
         disabled={isDragging}
         variant={
-          type === 'component' && (item as XBComponent).source === 'Blocks'
+          type === 'component' && (item as CanvasComponent).source === 'Blocks'
             ? 'dynamicComponent'
             : type
         }
@@ -137,17 +137,17 @@ const ListItem: React.FC<{
 
   let wrapperProps: React.HTMLAttributes<HTMLDivElement> &
     React.RefAttributes<HTMLDivElement> & {
-      'data-xb-component-id': string;
-      'data-xb-name': string;
-      'data-xb-type':
+      'data-canvas-component-id': string;
+      'data-canvas-name': string;
+      'data-canvas-type':
         | LayoutItemType.PATTERN
         | LayoutItemType.COMPONENT
         | LayoutItemType.DYNAMIC;
     } = {
     role: 'listitem',
-    'data-xb-component-id': item.id,
-    'data-xb-name': item.name,
-    'data-xb-type': type,
+    'data-canvas-component-id': item.id,
+    'data-canvas-name': item.name,
+    'data-canvas-type': type,
     className: clsx(styles.listItem),
   };
 

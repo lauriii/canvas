@@ -1,6 +1,6 @@
 const testMediaLibraryInComponentInstanceForm = (
   cy,
-  entityType = 'xb_page',
+  entityType = 'canvas_page',
 ) => {
   const iterations = [
     {
@@ -39,7 +39,7 @@ const testMediaLibraryInComponentInstanceForm = (
   cy.waitForElementInIframe('img[alt="The bones equal dollars"]');
 
   // Use the Media Library widget an additional time. This effectively
-  // confirms that XBTemplateRenderer is not loading JS assets that already
+  // confirms that CanvasTemplateRenderer is not loading JS assets that already
   // exist on the page. Click to the second image to change the form, then
   // click back again.
   cy.clickComponentInPreview('Test SDC Image', 1);
@@ -49,15 +49,17 @@ const testMediaLibraryInComponentInstanceForm = (
   cy.get('.js-media-library-item-preview img').should('exist');
   cy.waitForAjax();
 
-  cy.get('[data-testid*="xb-component-form-"]').as('inputForm');
+  cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
   cy.get('@inputForm').recordFormBuildId();
-  cy.intercept('PATCH', '**/xb/api/v0/form/component-instance/**').as('patch');
+  cy.intercept('PATCH', '**/canvas/api/v0/form/component-instance/**').as(
+    'patch',
+  );
 
   iterations.forEach((step, index) => {
     // The image location in the preview is different depending on the entity
     // type.
     const defaultPlaceholder =
-      entityType === 'xb_page'
+      entityType === 'canvas_page'
         ? `[id^="block-"] > img[alt="Boring placeholder"][src$="components/image/600x400.png"]:first-of-type`
         : `.column-one > img[alt="Boring placeholder"][src$="components/image/600x400.png"]`;
     cy.log(
@@ -106,9 +108,9 @@ const testMediaLibraryInComponentInstanceForm = (
   const lastStep = iterations.pop();
 
   // Switch back to entity edit form.
-  cy.findByTestId('xb-contextual-panel--page-data').click();
+  cy.findByTestId('canvas-contextual-panel--page-data').click();
   // Then back to the component.
-  cy.findByTestId('xb-contextual-panel--settings').click();
+  cy.findByTestId('canvas-contextual-panel--settings').click();
   // Media entity value should persist.
   cy.get(
     `[class*="contextualPanel"] input[aria-label="${lastStep.removeAriaLabel}"]`,
@@ -134,7 +136,7 @@ const testMediaLibraryInComponentInstanceForm = (
 
 describe('Media Library component instance', () => {
   beforeEach(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
     cy.drupalSession();
     // A larger viewport makes it easier to debug in the test runner app.
     cy.viewport(2000, 1000);
@@ -145,11 +147,11 @@ describe('Media Library component instance', () => {
   });
 
   it('Can open the media library widget in an article props form', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded();
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded();
     cy.getComponentInPreview('Test SDC Image', 0);
 
-    cy.findByTestId('xb-contextual-panel--page-data').should(
+    cy.findByTestId('canvas-contextual-panel--page-data').should(
       'have.attr',
       'data-state',
       'active',
@@ -159,7 +161,7 @@ describe('Media Library component instance', () => {
     // adapter which we don't support yet. We have to use the first one instead.
     cy.clickComponentInPreview('Test SDC Image', 0);
 
-    cy.findByTestId('xb-contextual-panel--settings').should(
+    cy.findByTestId('canvas-contextual-panel--settings').should(
       'have.attr',
       'data-state',
       'active',
@@ -179,17 +181,17 @@ describe('Media Library component instance', () => {
   });
 
   it(
-    'Can open the media library widget in an xb_page props form',
+    'Can open the media library widget in an canvas_page props form',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.drupalLogin('xbUser', 'xbUser');
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+      cy.drupalLogin('canvasUser', 'canvasUser');
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
 
       cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
       cy.get(
-        '.previewOverlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+        '.previewOverlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       ).should('have.length', 2);
       cy.clickComponentInPreview('Test SDC Image', 0);
       cy.waitForAjax();
@@ -201,7 +203,7 @@ describe('Media Library component instance', () => {
         .click();
 
       cy.waitForAjax();
-      testMediaLibraryInComponentInstanceForm(cy, 'xb_page');
+      testMediaLibraryInComponentInstanceForm(cy, 'canvas_page');
     },
   );
 });

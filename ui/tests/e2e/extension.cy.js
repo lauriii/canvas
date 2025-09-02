@@ -1,6 +1,6 @@
-describe('extending experience builder', () => {
+describe('extending Drupal Canvas', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_extension', 'xb_dev_mode']);
+    cy.drupalCanvasInstall(['canvas_test_extension', 'canvas_dev_mode']);
   });
 
   after(() => {
@@ -8,18 +8,18 @@ describe('extending experience builder', () => {
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   it('Insert, focus, delete a component', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
 
     cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
 
     // Get the components list from the sidebar so it can be compared to the
     // component select dropdown provided by the extension.
-    cy.get('.primaryPanelContent [data-state="open"] [data-xb-name]').then(
+    cy.get('.primaryPanelContent [data-state="open"] [data-canvas-name]').then(
       ($components) => {
         const availableComponents = [];
 
@@ -28,12 +28,12 @@ describe('extending experience builder', () => {
         });
 
         cy.findByLabelText('Extensions').click();
-        cy.findByText('XB Test Extension').click();
+        cy.findByText('Canvas Test Extension').click();
 
         cy.findByTestId('ex-select-component').then(($select) => {
           const extensionComponents = [];
           // Get all the items with values in the extension component list, which
-          // will be compared to the component list from the XB UI.
+          // will be compared to the component list from the Canvas UI.
           $select.find('option').each((index, item) => {
             if (item.value) {
               extensionComponents.push(item.textContent.trim());
@@ -56,18 +56,20 @@ describe('extending experience builder', () => {
       'Confirm that an extension can select an item in the layout, focus it, update it, then delete it',
     );
     cy.waitForElementContentInIframe('div', 'hello, world!');
-    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
+    // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup
     const heroUuid = '208452de-10d6-4fb8-89a1-10e340b3744c';
     cy.findByTestId('ex-select-in-layout').select(heroUuid);
     cy.findByTestId('ex-selected-element').should('be.empty');
     cy.findByTestId('ex-focus').click();
     cy.findByTestId('ex-selected-element').should('have.text', heroUuid);
-    cy.findByTestId('xb-contextual-panel').should('exist');
+    cy.findByTestId('canvas-contextual-panel').should('exist');
     cy.findByTestId('ex-delete').click();
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
 
     // Choose a component to add to the layout.
-    cy.findByTestId('ex-select-component').select('sdc.xb_test_sdc.my-hero');
+    cy.findByTestId('ex-select-component').select(
+      'sdc.canvas_test_sdc.my-hero',
+    );
     // Add it.
     cy.findByTestId('ex-insert').click();
     // Confirm the programmatically inserted component has a non-default value.

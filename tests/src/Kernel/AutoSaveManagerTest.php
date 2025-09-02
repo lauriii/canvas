@@ -2,40 +2,40 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\ClientDataToEntityConverter;
-use Drupal\experience_builder\Controller\ApiLayoutController;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Render\PreviewEnvelope;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\AutoSave\AutoSaveManager
- * @group experience_builder.
+ * @coversDefaultClass \Drupal\canvas\AutoSave\AutoSaveManager
+ * @group canvas.
  */
 class AutoSaveManagerTest extends KernelTestBase {
 
-  use XBFieldTrait;
+  use CanvasFieldTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use ContentTypeCreationTrait;
@@ -44,9 +44,9 @@ class AutoSaveManagerTest extends KernelTestBase {
   private const string UUID_IN_ROOT = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
 
   protected static $modules = [
-    'xb_test_sdc',
+    'canvas_test_sdc',
     'system',
-    'experience_builder',
+    'canvas',
     'file',
     'image',
     'link',
@@ -61,7 +61,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     'field',
     'editor',
     'ckeditor5',
-    'xb_dev_standard',
+    'canvas_dev_standard',
   ];
 
   private static function recursiveReverseSort(array $data): array {
@@ -84,7 +84,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     parent::setUp();
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $this->generateComponentConfig();
   }
 
@@ -95,7 +95,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       $content = NULL;
       foreach ($layout as $region_node) {
         $client_side_region_id = $region_node['id'];
-        if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
+        if ($client_side_region_id === CanvasPageVariant::MAIN_CONTENT_REGION) {
           $content = $region_node;
         }
       }
@@ -107,7 +107,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       $entity = $entity->forAutoSaveData($data, validate: FALSE);
       return $entity;
     }
-    \assert($entity instanceof XbHttpApiEligibleConfigEntityInterface);
+    \assert($entity instanceof CanvasHttpApiEligibleConfigEntityInterface);
     $updated_entity = $entity::create($entity->toArray());
     $updated_entity->updateFromClientSide($data);
     return $updated_entity;
@@ -145,7 +145,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     self::assertNotEmpty($hashReversedData);
     self::assertSame($hashInitial, $hashReversedData);
 
-    if ($entity instanceof XbHttpApiEligibleConfigEntityInterface) {
+    if ($entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
       // Modifying the (config) entity `status` key does NOT result in the
       // auto-save being wiped, but in it being updated.
       $status_key = $entity->getEntityType()->getKey('status');
@@ -177,23 +177,23 @@ class AutoSaveManagerTest extends KernelTestBase {
     self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
   }
 
-  public function testXbPage(): void {
+  public function testCanvasPage(): void {
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
-    $xb_page = Page::create([
+    $canvas_page = Page::create([
       'title' => '5 amazing uses for old toothbrushes',
       'components' => [],
     ]);
-    self::assertCount(0, iterator_to_array($xb_page->validate()));
-    self::assertSame(SAVED_NEW, $xb_page->save());
+    self::assertCount(0, iterator_to_array($canvas_page->validate()));
+    self::assertSame(SAVED_NEW, $canvas_page->save());
 
-    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($xb_page);
+    $envelope = \Drupal::classResolver(ApiLayoutController::class)->get($canvas_page);
     \assert($envelope instanceof PreviewEnvelope);
     $matching_client_data = \array_intersect_key($envelope->additionalData, \array_flip(['layout', 'model', 'entity_form_fields']));
     $new_title_client_data = $matching_client_data;
     $new_title_client_data['entity_form_fields']['title[0][value]'] = '5 MORE amazing uses for old toothbrushes';
-    $this->assertAutoSaveCreated($xb_page, $matching_client_data, $new_title_client_data);
+    $this->assertAutoSaveCreated($canvas_page, $matching_client_data, $new_title_client_data);
 
     // Confirm that adding a component triggers an auto-save entry.
     $new_component_client_data = $matching_client_data;
@@ -202,10 +202,10 @@ class AutoSaveManagerTest extends KernelTestBase {
       'uuid' => 'static-image-udf7d',
       // This is intentionally missing a version AND a non-existent component to
       // confirm that auto-saves do not perform validation.
-      'type' => 'sdc.xb_test_sdc.static_image',
+      'type' => 'sdc.canvas_test_sdc.static_image',
       'slots' => [],
     ];
-    $this->assertAutoSaveCreated($xb_page, $matching_client_data, $new_component_client_data);
+    $this->assertAutoSaveCreated($canvas_page, $matching_client_data, $new_component_client_data);
   }
 
   public function testPageRegion(): void {
@@ -215,7 +215,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       'component_tree' => [
         [
           'uuid' => self::UUID_IN_ROOT,
-          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
             'heading' => 'world',
@@ -272,7 +272,7 @@ class AutoSaveManagerTest extends KernelTestBase {
   }
 
   public function testAssetLibrary(): void {
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $asset_library = AssetLibrary::load('global');
     assert($asset_library instanceof AssetLibrary);
     $asset_library_matching_client_data = $asset_library->normalizeForClientSide()->values;
@@ -292,7 +292,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $this->installConfig('node');
     $this->installConfig('system');
     $this->createContentType(['type' => 'article']);
-    $this->installConfig('xb_dev_standard');
+    $this->installConfig('canvas_dev_standard');
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $this->setUpImages();
     $node = Node::create([
@@ -300,7 +300,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       'title' => '5 amazing uses for old toothbrushes',
       'status' => FALSE,
       'field_hero' => $this->referencedImage,
-      'field_xb_demo' => [],
+      'field_canvas_demo' => [],
       'body' => [
         'value' => '',
         'summary' => '',
@@ -321,7 +321,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $new_component_client_data['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => 'static-image-udf7d',
-      'type' => 'sdc.xb_test_sdc.static_image',
+      'type' => 'sdc.canvas_test_sdc.static_image',
       'slots' => [],
     ];
     $this->assertAutoSaveCreated($node, $matching_client_data, $new_component_client_data);
@@ -333,7 +333,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     $sut = $this->container->get(AutoSaveManager::class);
     self::assertInstanceOf(AutoSaveManager::class, $sut);
     StagedConfigUpdate::createFromClientSide([
-      'id' => 'xb_change_site_name',
+      'id' => 'canvas_change_site_name',
       'label' => 'Change the site name',
       'target' => 'system.site',
       'actions' => [
@@ -346,17 +346,17 @@ class AutoSaveManagerTest extends KernelTestBase {
 
     $list = $sut->getAllAutoSaveList();
     self::assertCount(1, $list);
-    self::assertArrayHasKey('staged_config_update:xb_change_site_name', $list);
+    self::assertArrayHasKey('staged_config_update:canvas_change_site_name', $list);
     self::assertEquals([
       [
         'name' => 'simpleConfigUpdate',
         'input' => ['name' => 'My awesome site'],
       ],
-    ], $list['staged_config_update:xb_change_site_name']['data']['actions']);
+    ], $list['staged_config_update:canvas_change_site_name']['data']['actions']);
 
     // Prove duplicated saves overwrite the previous one.
     StagedConfigUpdate::createFromClientSide([
-      'id' => 'xb_change_site_name',
+      'id' => 'canvas_change_site_name',
       'label' => 'Change the site name',
       'target' => 'system.site',
       'actions' => [
@@ -368,16 +368,16 @@ class AutoSaveManagerTest extends KernelTestBase {
     ])->save();
     $list = $sut->getAllAutoSaveList();
     self::assertCount(1, $list);
-    self::assertArrayHasKey('staged_config_update:xb_change_site_name', $list);
+    self::assertArrayHasKey('staged_config_update:canvas_change_site_name', $list);
     self::assertEquals([
       [
         'name' => 'simpleConfigUpdate',
         'input' => ['name' => 'My SUPER AWESOME site'],
       ],
-    ], $list['staged_config_update:xb_change_site_name']['data']['actions']);
+    ], $list['staged_config_update:canvas_change_site_name']['data']['actions']);
 
     StagedConfigUpdate::createFromClientSide([
-      'id' => 'xb_set_homepage',
+      'id' => 'canvas_set_homepage',
       'label' => 'Update the front page',
       'target' => 'system.site',
       'actions' => [
@@ -389,19 +389,19 @@ class AutoSaveManagerTest extends KernelTestBase {
     ])->save();
     $list = $sut->getAllAutoSaveList();
     self::assertCount(2, $list);
-    self::assertArrayHasKey('staged_config_update:xb_set_homepage', $list);
+    self::assertArrayHasKey('staged_config_update:canvas_set_homepage', $list);
     self::assertEquals([
       [
         'name' => 'simpleConfigUpdate',
         'input' => ['name' => 'My SUPER AWESOME site'],
       ],
-    ], $list['staged_config_update:xb_change_site_name']['data']['actions']);
+    ], $list['staged_config_update:canvas_change_site_name']['data']['actions']);
     self::assertEquals([
       [
         'name' => 'simpleConfigUpdate',
         'input' => ['page.front' => '/home'],
       ],
-    ], $list['staged_config_update:xb_set_homepage']['data']['actions']);
+    ], $list['staged_config_update:canvas_set_homepage']['data']['actions']);
 
     // On config delete, auto-saved staged config updates targeting that config
     // should be deleted. In the current state, that's everything.
@@ -439,7 +439,7 @@ class AutoSaveManagerTest extends KernelTestBase {
       'components' => [
         [
           'uuid' => $uuid,
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => [
             'heading' => 'Cinnamon Temple',
           ],

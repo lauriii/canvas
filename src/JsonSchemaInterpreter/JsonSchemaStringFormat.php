@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\JsonSchemaInterpreter;
+namespace Drupal\canvas\JsonSchemaInterpreter;
 
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
-use Drupal\experience_builder\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\PropShape\StorablePropShape;
-use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
-use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirement;
+use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -73,7 +73,7 @@ enum JsonSchemaStringFormat: string {
 
   /**
    * @param JsonSchema $schema
-   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements {
     return match($this) {
@@ -140,15 +140,15 @@ enum JsonSchemaStringFormat: string {
    * Used for generating a StaticPropSource, for storing a value that fits in
    * this prop shape.
    *
-   * @param \Drupal\experience_builder\PropShape\PropShape $shape
+   * @param \Drupal\canvas\PropShape\PropShape $shape
    *   The prop shape to find the recommended UX (storage + widget) for.
    *
-   * @return \Drupal\experience_builder\PropShape\StorablePropShape|null
-   *   NULL is returned to indicate that Experience Builder + Drupal core do not
+   * @return \Drupal\canvas\PropShape\StorablePropShape|null
+   *   NULL is returned to indicate that Drupal Canvas + Drupal core do not
    *   support a field type that provides a good UX for entering a value of this
    *   shape. Otherwise, a StorablePropShape is returned that specifies that UX.
    *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource
+   * @see \Drupal\canvas\PropSource\StaticPropSource
    */
   public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
     return match($this) {
@@ -192,14 +192,14 @@ enum JsonSchemaStringFormat: string {
       // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
       static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
         // Custom: the targeted resource has `contentMediaType: image/*`.
-        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {// XB only supports either of the two above out of the box. For more
-          // XB only supports either of the two below out of the box. For more
+        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {// Canvas only supports either of the two above out of the box. For more
+          // Canvas only supports either of the two below out of the box. For more
           // complicated needs, use hook_storage_prop_shape_alter().
           !array_key_exists('pattern', $shape->schema) => NULL,
 
           // Browser-accessible image URLs.
-          // @see json-schema-definitions://experience_builder.module/image-uri
-          // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern
+          // @see json-schema-definitions://canvas.module/image-uri
+          // @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern
           $shape->schema['pattern'] === '^(/|https?://)?(?!.*\://)[^\s]+$' => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
@@ -207,8 +207,8 @@ enum JsonSchemaStringFormat: string {
           ),
 
           // Stream wrapper image URIs.
-          // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
-          // @todo Update in https://www.drupal.org/project/experience_builder/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
+          // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
+          // @todo Update in https://www.drupal.org/project/canvas/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
           $shape->schema['pattern'] === '^(?!https?://)[\w\-]+://' => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new ReferenceFieldTypePropExpression(
@@ -218,7 +218,7 @@ enum JsonSchemaStringFormat: string {
             fieldWidget: 'image_image',
           ),
 
-          // XB only supports either of the two above out of the box. For more
+          // Canvas only supports either of the two above out of the box. For more
           // complicated needs, use hook_storage_prop_shape_alter().
           default => NULL,
         },

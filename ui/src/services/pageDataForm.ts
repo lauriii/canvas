@@ -12,7 +12,7 @@ export const pageDataFormApi = createApi({
     getPageDataForm: builder.query<string, void>({
       query: () => {
         return {
-          url: `/xb/api/v0/form/content-entity/{entity_type}/{entity_id}/default?${addAjaxPageState('')}`,
+          url: `/canvas/api/v0/form/content-entity/{entity_type}/{entity_id}/default?${addAjaxPageState('')}`,
         };
       },
       transformResponse: processResponseAssets(),

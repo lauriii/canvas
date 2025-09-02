@@ -57,7 +57,7 @@ site install for testing. All tests in one file are run in serial, whilst
 separate files are run in parallel. You can override this per [test file](https://playwright.dev/docs/test-parallel#parallelize-tests-in-a-single-file)
 and opt into fully parallel mode, however keep in mind that for each test worker
 that starts it will install a new Drupal site. You will also incur any
-additional overhead required to set up Experience Builder for each worker.
+additional overhead required to set up Drupal Canvas for each worker.
 
 However, you should still write each test as if it could run in parallel i.e.
 do not rely on a state from the previous test. This is because when a test fails,
@@ -91,7 +91,7 @@ headed mode then you can install https://github.com/justafish/ddev-drupal-playwr
 
 e.g.
 ```
-ddev exec -d /var/www/html/modules/contrib/experience_builder npx playwright test canary.spec.ts --headed
+ddev exec -d /var/www/html/modules/contrib/canvas npx playwright test canary.spec.ts --headed
 ```
 
 and then watch via web VNC at http://drupal.ddev.site:7905/ or connect directly
@@ -99,13 +99,13 @@ on http://drupal.ddev.site:5905
 
 ## Test Recipe
 If you would like to setup a copy of the site locally to be in the same state as
-running `drupal.setupXBTestSite()` you can do so with the following commands:
+running `drupal.setupCanvasTestSite()` you can do so with the following commands:
 
 ```
 drush site:install minimal
-drush recipe modules/contrib/experience_builder/tests/fixtures/recipes/base
+drush recipe modules/contrib/canvas/tests/fixtures/recipes/base
 ```
-You will then need to allow test modules to be enabled, if you're using `ddev-drupal-xb-dev` you can do this with:
+You will then need to allow test modules to be enabled, if you're using `ddev-drupal-canvas-dev` you can do this with:
 ```
 ddev drupal test:extensions-enable
 ```
@@ -116,8 +116,8 @@ $settings['extension_discovery_scan_tests'] = TRUE;
 
 Then install the test modules and test site content:
 ```
-drush pm:install xb_dev_standard xb_test_sdc xb_test_code_components
-drush recipe modules/contrib/experience_builder/tests/fixtures/recipes/test_site
+drush pm:install canvas_dev_standard canvas_test_sdc canvas_test_code_components
+drush recipe modules/contrib/canvas/tests/fixtures/recipes/test_site
 ```
 
 See the [core recipes documentation](https://www.drupal.org/docs/extending-drupal/drupal-recipes)

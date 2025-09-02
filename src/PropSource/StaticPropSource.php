@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -19,12 +19,12 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
  * Contains unstructured data for 1 explicit input of a component instance.
@@ -133,7 +133,7 @@ final class StaticPropSource extends PropSourceBase {
     // - field type
     // - cardinality
     // @see \Drupal\Core\Field\FieldStorageDefinitionInterface
-    // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of XB's own \Drupal\experience_builder\PropSource\FieldStorageDefinition.
+    // TRICKY: this does not work due to it using BaseFieldDefinition, and BaseFieldDefinition::getOptionsProvider() assuming it to exist on the host entity. Hence the use of Canvas's own \Drupal\canvas\PropSource\FieldStorageDefinition.
     // @see \Drupal\Core\Field\TypedData\FieldItemDataDefinition::createFromDataType()
     // @todo Refactor this after https://www.drupal.org/node/2280639 is fixed.
     // $field_item_definition = $typed_data_manager->createDataDefinition($data_type);
@@ -187,10 +187,10 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   /**
-   * @return \Drupal\experience_builder\PropSource\StaticPropSource
+   * @return \Drupal\canvas\PropSource\StaticPropSource
    *
    * @internal
-   *   This is currently only intended to be used by Experience Builder's tests.
+   *   This is currently only intended to be used by Drupal Canvas's tests.
    */
   public function randomizeValue(): static {
     // Determine how many values to generate.
@@ -244,7 +244,7 @@ final class StaticPropSource extends PropSourceBase {
    *     a temporarily empty state.
    *   Validation will prevent empty values from being stored.
    *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource::isMinimalRepresentation()
+   * @see \Drupal\canvas\PropSource\StaticPropSource::isMinimalRepresentation()
    */
   public function withValue(mixed $value, bool $allow_empty = FALSE): static {
     $field_item_list = clone $this->fieldItemList;
@@ -312,7 +312,7 @@ final class StaticPropSource extends PropSourceBase {
    *
    * @throws \LogicException
    *
-   * @see \Drupal\experience_builder\PropSource\StaticPropSource::denormalizeValue()
+   * @see \Drupal\canvas\PropSource\StaticPropSource::denormalizeValue()
    */
   public static function isMinimalRepresentation(array $sdc_prop_source): void {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
@@ -326,7 +326,7 @@ final class StaticPropSource extends PropSourceBase {
     $field_item_list->setValue($stored_value);
 
     // Detect values considered empty by the field type, and abort early.
-    // @see \Drupal\experience_builder\PropSource\StaticPropSource::withValue()
+    // @see \Drupal\canvas\PropSource\StaticPropSource::withValue()
     $before = $field_item_list->count();
     $field_item_list->filterEmptyItems();
     $after = $field_item_list->count();
@@ -404,7 +404,7 @@ final class StaticPropSource extends PropSourceBase {
 
   public function getValue(): mixed {
     // ⚠️ TRICKY: we cannot use `::isEmpty()`, only `::count()`.
-    // @see https://www.drupal.org/project/experience_builder/issues/3467870#comment-15792177
+    // @see https://www.drupal.org/project/canvas/issues/3467870#comment-15792177
     if ($this->fieldItemList->count() === 0) {
       return match ($this->getCardinality()) {
         1 => NULL,
@@ -460,7 +460,7 @@ final class StaticPropSource extends PropSourceBase {
         // TRICKY: we would need to set a name that uniquely identifies this SDC
         // prop, to avoid the static caching in `options_allowed_values()`
         // interfering. As this name is used in the client UI and can have
-        // consequences, `experience_builder_load_allowed_values_for_component_prop`
+        // consequences, `canvas_load_allowed_values_for_component_prop`
         // won't allow  caching.
         ->setName($prop_name)
         // This is a conjured field storage definition; the widget needs precise
@@ -468,7 +468,7 @@ final class StaticPropSource extends PropSourceBase {
         // @see \Drupal\Core\Field\FieldDefinitionInterface::getDisplayOptions
         ->setDisplayOptions('form', [
           'third_party_settings' => [
-            'experience_builder' => [
+            'canvas' => [
               'component_id' => $component_config_entity_id,
               'component_version' => $component_config_entity_version,
               'explicit_input_prop_name' => $prop_name,
@@ -532,7 +532,7 @@ final class StaticPropSource extends PropSourceBase {
     // is given, then `content` dependencies may appear as well; otherwise the
     // calculated dependencies will be limited to the entity types, bundle (if
     // any) and fields (if any) that this expression depends on.
-    // @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
+    // @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
     $expression_deps = $this->expression->calculateDependencies($this->fieldItemList);
 
     // Let the field type plugin specify its own dependencies, based on storage

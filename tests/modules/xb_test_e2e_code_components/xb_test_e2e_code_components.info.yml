@@ -1,6 +1,0 @@
-name: XB test e2e code components
-description: 'Code components for e2e testing only - not for use by Kernel tests etc.'
-package: Testing
-type: module
-dependencies:
-  - experience_builder:experience_builder

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\Controller\ClientServerConversionTrait;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Controller\ClientServerConversionTrait;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -27,7 +27,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
   label_collection: new TranslatableMarkup("Page region"),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    "access" => XbConfigEntityAccessControlHandler::class,
+    "access" => CanvasConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     "id" => "id",
@@ -61,7 +61,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   /**
    * ID, composed of theme + region.
    *
-   * @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringPartsConstraint
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StringPartsConstraint
    */
   protected string $id;
 
@@ -71,7 +71,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   protected ?string $region;
 
   /**
-   * The theme that this defines a XB Page Region for.
+   * The theme that this defines a Canvas Page Region for.
    */
   protected ?string $theme;
 
@@ -116,7 +116,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
    * @return static
    *   New instance with given values.
    *
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    *   If violations exist and $throwOnViolations is TRUE.
    */
   public function forAutoSaveData(array $autoSaveData, bool $validate): static {
@@ -188,7 +188,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
   }
 
   /**
-   * @return array<string, \Drupal\experience_builder\Entity\PageRegion>
+   * @return array<string, \Drupal\canvas\Entity\PageRegion>
    */
   public static function loadForActiveThemeByClientSideId(): array {
     $regions = self::loadForActiveTheme();
@@ -210,7 +210,7 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
    */
   public function preSave(EntityStorageInterface $storage): void {
     $this->id = $this->id();
-    if ($this->region === XbPageVariant::MAIN_CONTENT_REGION) {
+    if ($this->region === CanvasPageVariant::MAIN_CONTENT_REGION) {
       throw new \LogicException('Attempted to save a PageRegion targeting the main content region, which is not allowed. (This means it bypassed validation.)');
     }
     parent::preSave($storage);
@@ -227,14 +227,14 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
    *   An array of PageRegion config entities, one per theme region, except for
    *   the `content` region. Keys are the corresponding config entity IDs.
    *
-   * @see \Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant::MAIN_CONTENT_REGION
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
    */
   public static function createFromBlockLayout(string $theme): array {
     $theme_info = \Drupal::service('theme_handler')->getTheme($theme);
     $region_names = array_filter(
       array_keys($theme_info->info['regions']),
       // No PageRegion config entity is allowed for the `content` region.
-      fn ($s) => $s !== XbPageVariant::MAIN_CONTENT_REGION,
+      fn ($s) => $s !== CanvasPageVariant::MAIN_CONTENT_REGION,
     );
 
     $blocks = \Drupal::service('entity_type.manager')->getStorage('block')->loadByProperties(['theme' => $theme]);
@@ -243,13 +243,13 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
     foreach ($blocks as $block) {
       $component_id = BlockComponent::componentIdFromBlockPluginId($block->getPluginId());
       if (!Component::load($component_id)) {
-        // This block isn't supported by XB.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\BlockComponent::checkRequirements()
+        // This block isn't supported by Canvas.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::checkRequirements()
         continue;
       }
       $region_name = match ($block->getRegion()) {
         // Move from the `content` region to the first region in the theme.
-        XbPageVariant::MAIN_CONTENT_REGION => reset($region_names),
+        CanvasPageVariant::MAIN_CONTENT_REGION => reset($region_names),
         // Use the original region.
         default => $block->getRegion(),
       };

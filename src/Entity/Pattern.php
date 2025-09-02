@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\Controller\ClientServerConversionTrait;
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -28,7 +28,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
   label_collection: new TranslatableMarkup('Patterns'),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    'access' => ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
+    'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'id',
@@ -42,7 +42,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
   ],
 )]
 
-final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, FolderItemInterface {
+final class Pattern extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, FolderItemInterface {
 
   public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';
@@ -57,7 +57,7 @@ final class Pattern extends ConfigEntityBase implements XbHttpApiEligibleConfigE
   protected string $id;
 
   /**
-   * The human-readable label of the Experience Builder Pattern.
+   * The human-readable label of the Drupal Canvas Pattern.
    */
   protected ?string $label;
 

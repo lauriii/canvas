@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\experience_builder\MissingHostEntityException;
-use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
  * Describes structured data to map to 1 explicit input of a component instance.
  *
- * @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  * @internal
  *
  * @phpstan-import-type PropSourceArray from PropSourceBase
@@ -88,7 +88,7 @@ final class DynamicPropSource extends PropSourceBase {
     // is given, then `content` dependencies may appear as well; otherwise the
     // calculated dependencies will be limited to the entity types, bundle (if
     // any) and fields (if any) that this expression depends on.
-    // @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
+    // @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
     return $this->expression->calculateDependencies($host_entity);
   }
 

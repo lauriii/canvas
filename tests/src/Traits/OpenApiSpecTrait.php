@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 use cebe\openapi\json\JsonPointer;
 use cebe\openapi\Reader;

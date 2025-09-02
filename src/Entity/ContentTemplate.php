@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -14,23 +14,23 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewModeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\EntityHandlers\ContentCreatorVisibleXbConfigEntityAccessControlHandler;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Defines a template for content entities in a particular view mode.
  *
  * This MUST be a new config entity type, because doing something like Layout
- * Builder's `LayoutBuilderEntityViewDisplay` is impossible if XB wants to
+ * Builder's `LayoutBuilderEntityViewDisplay` is impossible if Canvas wants to
  * provide a smooth upgrade path from LB, thanks to
  * `\Drupal\layout_builder\Hook\LayoutBuilderHooks::entityTypeAlter()` -- only
  * one module can do that!
  *
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
- * @phpstan-import-type ExposedSlotDefinitions from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ExposedSlotDefinitions from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -42,7 +42,7 @@ use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
     'id' => 'id',
   ],
   handlers: [
-    'access' => ContentCreatorVisibleXbConfigEntityAccessControlHandler::class,
+    'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
   ],
   admin_permission: self::ADMIN_PERMISSION,
   constraints: [
@@ -74,7 +74,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   /**
    * ID, composed of content entity type ID + bundle + view mode.
    *
-   * @see \Drupal\experience_builder\Plugin\Validation\Constraint\StringPartsConstraint
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StringPartsConstraint
    */
   protected ?string $id;
 
@@ -241,7 +241,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    */
   public function getComponents(): array {
     // A linear list of "components", where each component is a field formatter,
-    // doesn't make sense when using XB.
+    // doesn't make sense when using Canvas.
     return [];
   }
 
@@ -328,13 +328,13 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
       throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
     }
 
-    // The entity is *expected* to have an XB field, or it's not considered
-    // opted in to XB. An entity that isn't opted into XB should never be passed
+    // The entity is *expected* to have an Canvas field, or it's not considered
+    // opted in to Canvas. An entity that isn't opted into Canvas should never be passed
     // to this method, so we don't need to catch the possible exception here.
-    $xb_field_name = \Drupal::service(ComponentTreeLoader::class)
-      ->getXbFieldName($entity);
+    $canvas_field_name = \Drupal::service(ComponentTreeLoader::class)
+      ->getCanvasFieldName($entity);
 
-    $sub_tree_item_list = $entity->get($xb_field_name);
+    $sub_tree_item_list = $entity->get($canvas_field_name);
     \assert($sub_tree_item_list instanceof ComponentTreeItemList);
     return $this->getComponentTree($entity)
       ->injectSubTreeItemList($this->getExposedSlots(), $sub_tree_item_list)
@@ -353,7 +353,7 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
    */
   public function getPluginCollections(): array {
     // Normally, this would be a collection of field formatter instances, but
-    // that doesn't make sense when using XB.
+    // that doesn't make sense when using Canvas.
     return [];
   }
 

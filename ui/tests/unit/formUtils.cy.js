@@ -1,27 +1,28 @@
 import { getPropsValues, formStateToObject } from '@/components/form/formUtil';
 
 let formState = {
-  'xb_component_props[all-props][heading][0][value]': 'hello, world!',
-  'xb_component_props[all-props][subheading][0][value]': '',
-  'xb_component_props[all-props][cta1][0][value]': '',
-  'xb_component_props[all-props][cta1href][0][uri]': 'https://drupal.org',
-  'xb_component_props[all-props][cta1href][0][title]': 'Do it',
-  'xb_component_props[all-props][cta2][0][value]': '',
-  'xb_component_props[all-props][a_boolean][value]': true,
-  'xb_component_props[all-props][options_select]': 'fine thx',
-  'xb_component_props[all-props][unchecked_boolean][value]': false,
-  'xb_component_props[all-props][date][0][value][date]': '2025-02-02',
-  'xb_component_props[all-props][datetime][0][value][date]': '2025-01-31',
-  'xb_component_props[all-props][datetime][0][value][time]': '20:30:33',
-  'xb_component_props[all-props][email][0][value]': 'bob@example.com',
-  'xb_component_props[all-props][number][0][value]': 123,
-  'xb_component_props[all-props][float][0][value]': 123.45,
-  'xb_component_props[all-props][textarea][0][value]': `Hi there
+  'canvas_component_props[all-props][heading][0][value]': 'hello, world!',
+  'canvas_component_props[all-props][subheading][0][value]': '',
+  'canvas_component_props[all-props][cta1][0][value]': '',
+  'canvas_component_props[all-props][cta1href][0][uri]': 'https://drupal.org',
+  'canvas_component_props[all-props][cta1href][0][title]': 'Do it',
+  'canvas_component_props[all-props][cta2][0][value]': '',
+  'canvas_component_props[all-props][a_boolean][value]': true,
+  'canvas_component_props[all-props][options_select]': 'fine thx',
+  'canvas_component_props[all-props][unchecked_boolean][value]': false,
+  'canvas_component_props[all-props][date][0][value][date]': '2025-02-02',
+  'canvas_component_props[all-props][datetime][0][value][date]': '2025-01-31',
+  'canvas_component_props[all-props][datetime][0][value][time]': '20:30:33',
+  'canvas_component_props[all-props][email][0][value]': 'bob@example.com',
+  'canvas_component_props[all-props][number][0][value]': 123,
+  'canvas_component_props[all-props][float][0][value]': 123.45,
+  'canvas_component_props[all-props][textarea][0][value]': `Hi there
 Multiline
 Value`,
-  'xb_component_props[all-props][linkNoTitle][0][uri]': 'http://example.com',
-  'xb_component_props[all-props][linkNoTitleEmpty][0][uri]': '',
-  'xb_component_props[all-props][media][selection][0][target_id]': 3,
+  'canvas_component_props[all-props][linkNoTitle][0][uri]':
+    'http://example.com',
+  'canvas_component_props[all-props][linkNoTitleEmpty][0][uri]': '',
+  'canvas_component_props[all-props][media][selection][0][target_id]': 3,
   form_build_id: 'this-is-a-form-build-id',
   form_token: 'this-is-a-form-token',
   form_id: 'component_instance_form',
@@ -152,8 +153,8 @@ let inputAndUiData = {
 };
 // This metadata is defined in PHP and is duplicated here to improve testability.
 // ⚠️ This should be kept in sync! ⚠️
-// @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
-// @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
+// @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+// @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
 const transformConfig = {
   heading: { mainProperty: {} },
   subheading: { mainProperty: {} },

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
@@ -14,11 +14,11 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSaveEntity;
-use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage;
-use Drupal\experience_builder\EntityHandlers\VisibleWhenDisabledXbConfigEntityAccessControlHandler;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
+use Drupal\canvas\AutoSaveEntity;
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\JavascriptComponentStorage;
+use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\Exception\ConstraintViolationException;
 use Symfony\Component\Validator\ConstraintViolation;
 
 #[ConfigEntityType(
@@ -30,7 +30,7 @@ use Symfony\Component\Validator\ConstraintViolation;
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
     'storage' => JavascriptComponentStorage::class,
-    'access' => VisibleWhenDisabledXbConfigEntityAccessControlHandler::class,
+    'access' => VisibleWhenDisabledCanvasConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'machineName',
@@ -51,9 +51,9 @@ use Symfony\Component\Validator\ConstraintViolation;
     'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
   ],
 )]
-final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInterface, FolderItemInterface {
+final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetInterface, FolderItemInterface {
 
-  use XbAssetLibraryTrait;
+  use CanvasAssetLibraryTrait;
   use ConfigUpdaterAwareEntityTrait;
 
   public const string ENTITY_TYPE_ID = 'js_component';
@@ -127,7 +127,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
         'dataDependencies' => $this->dataDependencies,
       ],
       preview: [
-        '#markup' => '@todo Make something 🆒 in https://www.drupal.org/project/experience_builder/issues/3498889',
+        '#markup' => '@todo Make something 🆒 in https://www.drupal.org/project/canvas/issues/3498889',
       ],
     )->addCacheableDependency($this);
   }
@@ -237,8 +237,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     $definition = [
       'machineName' => (string) $this->id(),
       'extension_type' => 'module',
-      'id' => 'experience_builder:' . $this->id(),
-      'provider' => 'experience_builder',
+      'id' => 'canvas:' . $this->id(),
+      'provider' => 'canvas',
       'name' => (string) $this->label(),
       'props' => [
         'type' => 'object',
@@ -252,7 +252,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
       'template' => 'phony',
     ];
     // Slots are optional. Setting the `slots` key to an empty array is invalid.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
     if ($this->slots) {
       foreach ($this->slots as $slot_name => $slot) {
         // Force empty slots to be an object; ComponentValidator casts non-
@@ -267,7 +267,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     }
     // Required properties are optional. Setting the `props.required` key to an
     // empty array is invalid.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
     if ($this->required) {
       $definition['props']['required'] = $this->required;
     }
@@ -318,13 +318,13 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
     parent::postSave($storage, $update);
-    // The files generated in XbAssetStorage::doSave() have a content-dependent
+    // The files generated in CanvasAssetStorage::doSave() have a content-dependent
     // hash in their name. This has 2 consequences:
     // 1. Cached responses that referred to an older version, continue to work.
     // 2. New responses must use the newly generated files, which requires the
     //    asset library to point to those new files. Hence the library info must
     //    be recalculated.
-    // @see \experience_builder_library_info_build()
+    // @see \canvas_library_info_build()
     Cache::invalidateTags(['library_info']);
   }
 
@@ -336,7 +336,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    * @param array<string> $imported_js_components
    *   The names of the JavaScript components to add as dependencies.
    *
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    *   Thrown if any of the JavaScript components do not exist.
    *
    * @see \Drupal\Core\Config\Entity\ConfigEntityBase::calculateDependencies
@@ -391,9 +391,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
     if (!$isPreview) {
       return $generator->generateString($this->getJsPath());
     }
-    return Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
-      'xb_config_entity_type_id' => self::ENTITY_TYPE_ID,
-      'xb_config_entity' => $this->id(),
+    return Url::fromRoute('canvas.api.config.auto-save.get.js', [
+      'canvas_config_entity_type_id' => self::ENTITY_TYPE_ID,
+      'canvas_config_entity' => $this->id(),
     ])->toString();
   }
 
@@ -401,14 +401,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
    * {@inheritdoc}
    */
   public function getAssetLibrary(bool $isPreview): string {
-    // Inside the XB UI, always load the draft even if there isn't one. Let the
+    // Inside the Canvas UI, always load the draft even if there isn't one. Let the
     // controller logic automatically serve the non-draft assets when a draft
     // disappears. This is necessary to allow for asset library dependencies,
     // and avoids race conditions.
-    // @see \Drupal\experience_builder\Hook\LibraryHooks::libraryInfoBuild()
-    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss()
-    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs()
-    return 'experience_builder/astro_island.' . $this->id() . ($isPreview ? '.draft' : '');
+    // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
+    // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getCss()
+    // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getJs()
+    return 'canvas/astro_island.' . $this->id() . ($isPreview ? '.draft' : '');
   }
 
   private static function shouldLoadAssetFromAutoSave(AutoSaveEntity $autoSave, bool $isPreview) : bool {
@@ -441,10 +441,10 @@ final class JavaScriptComponent extends ConfigEntityBase implements XbAssetInter
   /**
    * {@inheritdoc}
    *
-   * @see \Drupal\experience_builder\Hook\ComponentSourceHooks::jsSettingsAlter()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::jsSettingsAlter()
    */
   public function getAssetLibraryDependencies(): array {
-    return \array_map(static fn (string $dependency): string => \sprintf('experience_builder/xbData.%s', $dependency), $this->dataDependencies['drupalSettings'] ?? []);
+    return \array_map(static fn (string $dependency): string => \sprintf('canvas/canvasData.%s', $dependency), $this->dataDependencies['drupalSettings'] ?? []);
   }
 
 }

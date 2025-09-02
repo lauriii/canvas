@@ -1,6 +1,0 @@
-name: Test XB Patterns
-type: module
-dependencies:
-  - experience_builder:experience_builder
-  - experience_builder:xb_test_sdc
-package: Testing

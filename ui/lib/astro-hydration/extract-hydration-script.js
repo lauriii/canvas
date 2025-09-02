@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // Define the path to the generated index.html
 const indexPath = path.join(__dirname, 'dist', 'index.html');
-const elementPath = path.join(__dirname, 'dist', 'xb-island.js');
+const elementPath = path.join(__dirname, 'dist', 'canvas-island.js');
 // Define the path for the output file
 const outputFilePath = path.join(__dirname, 'dist', 'hydration.js');
 

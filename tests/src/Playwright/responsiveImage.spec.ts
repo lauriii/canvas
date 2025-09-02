@@ -7,12 +7,12 @@ import { Drupal } from './objects/Drupal';
  */
 test.describe('Responsive Image', () => {
   test.beforeAll(
-    'Setup test site with Experience Builder',
+    'Setup test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.applyRecipe(`core/recipes/image_media_type`);
-      await drupal.installModules(['experience_builder', 'xb_test_sdc']);
+      await drupal.installModules(['canvas', 'canvas_test_sdc']);
       await page.close();
     },
   );
@@ -23,14 +23,14 @@ test.describe('Responsive Image', () => {
     xBEditor,
   }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('Homepage', '/homepage');
+    await drupal.createCanvasPage('Homepage', '/homepage');
     await page.goto('/homepage');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent({ id: 'sdc.xb_test_sdc.image' });
+    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.image' });
 
     const frame = page
       .locator(
-        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+        '[data-testid="canvas-editor-frame-scaling"] [data-canvas-swap-active="true"]',
       )
       .contentFrame();
     await expect(frame.locator('img.image')).toBeVisible();
@@ -40,7 +40,7 @@ test.describe('Responsive Image', () => {
     );
     await page.waitForFunction(() => {
       const frame: HTMLIFrameElement = document.querySelector(
-        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+        '[data-testid="canvas-editor-frame-scaling"] [data-canvas-swap-active="true"]',
       );
       const img = frame?.contentWindow.document.querySelector('img.image');
       const imgSrc = img?.getAttribute('src');
@@ -64,13 +64,15 @@ test.describe('Responsive Image', () => {
     expect(matches).toHaveLength(defaultWidths.length);
     defaultWidths.forEach((width) => {
       expect(previewSrcset).toContain(
-        `/styles/xb_parametrized_width--${width}`,
+        `/styles/canvas_parametrized_width--${width}`,
       );
       expect(previewSrcset).toContain(` ${width}w`);
     });
 
     // The default widths also contain 3840 but the source image is smaller so it shouldn't be generated.
-    expect(previewSrcset).not.toContain('/styles/xb_parametrized_width--3840');
+    expect(previewSrcset).not.toContain(
+      '/styles/canvas_parametrized_width--3840',
+    );
     expect(previewSrcset).not.toContain(' 3840w');
 
     await previewIframe.locator('img.image').waitFor({ state: 'attached' });
@@ -80,7 +82,7 @@ test.describe('Responsive Image', () => {
       (image: HTMLImageElement) => image.currentSrc,
     );
     await expect(currentSrc).toContain('gracie');
-    await expect(currentSrc).toContain('/styles/xb_parametrized_width--');
+    await expect(currentSrc).toContain('/styles/canvas_parametrized_width--');
   });
 
   test('Test cards with responsive images', async ({
@@ -92,7 +94,7 @@ test.describe('Responsive Image', () => {
       'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
       async (route) => {
         await route.fulfill({
-          path: './tests/modules/xb_test_sdc/components/card/balloons.png',
+          path: './tests/modules/canvas_test_sdc/components/card/balloons.png',
           headers: {
             'content-type': 'image/png',
           },
@@ -101,22 +103,22 @@ test.describe('Responsive Image', () => {
     );
 
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('Cards', '/cards');
+    await drupal.createCanvasPage('Cards', '/cards');
     await page.goto('/cards');
     await xBEditor.goToEditor();
-    await xBEditor.addComponent({ id: 'sdc.xb_test_sdc.card' });
+    await xBEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await drupal.addMediaImage(
       '../../../fixtures/images/gracie-big.jpg',
       'A cute dog',
     );
     await xBEditor.addComponent({
-      id: 'sdc.xb_test_sdc.card-with-local-image',
+      id: 'sdc.canvas_test_sdc.card-with-local-image',
     });
     await xBEditor.addComponent({
-      id: 'sdc.xb_test_sdc.card-with-remote-image',
+      id: 'sdc.canvas_test_sdc.card-with-remote-image',
     });
     await xBEditor.addComponent({
-      id: 'sdc.xb_test_sdc.card-with-stream-wrapper-image',
+      id: 'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
     });
     await xBEditor.preview();
 
@@ -135,11 +137,13 @@ test.describe('Responsive Image', () => {
     const cardSrcset = await card.getAttribute('srcset');
     expect(cardSrcset.match(/itok=[^&\s]+/g)).toHaveLength(cardWidths);
     defaultWidths.slice(0, cardWidths).forEach((width) => {
-      expect(cardSrcset).toContain(`/styles/xb_parametrized_width--${width}`);
+      expect(cardSrcset).toContain(
+        `/styles/canvas_parametrized_width--${width}`,
+      );
       expect(cardSrcset).toContain(` ${width}w`);
     });
     expect(cardSrcset).not.toContain(
-      `/styles/xb_parametrized_width--${defaultWidths[cardWidths + 1]}`,
+      `/styles/canvas_parametrized_width--${defaultWidths[cardWidths + 1]}`,
     );
     expect(cardSrcset).not.toContain(`${defaultWidths[cardWidths + 1]}w`);
     await expect(card).toHaveAttribute('sizes', 'auto 50vw');
@@ -190,7 +194,7 @@ test.describe('Responsive Image', () => {
     );
     defaultWidths.slice(0, cardStreamWrapperWidths).forEach((width) => {
       expect(cardStreamWrapperSrcset).toContain(
-        `/styles/xb_parametrized_width--${width}`,
+        `/styles/canvas_parametrized_width--${width}`,
       );
       expect(cardStreamWrapperSrcset).toContain(` ${width}w`);
     });
@@ -217,12 +221,12 @@ test.describe('Responsive Image', () => {
     // Ensure the editor frame is updated first.
     const frame = page
       .locator(
-        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+        '[data-testid="canvas-editor-frame-scaling"] [data-canvas-swap-active="true"]',
       )
       .contentFrame();
     await page.waitForFunction(() => {
       const frame: HTMLIFrameElement = document.querySelector(
-        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+        '[data-testid="canvas-editor-frame-scaling"] [data-canvas-swap-active="true"]',
       );
       const img = frame?.contentWindow.document.querySelector(
         '.card--with-stream-wrapper-image img.card--image',
@@ -244,7 +248,7 @@ test.describe('Responsive Image', () => {
     await cardStreamWrapper.scrollIntoViewIfNeeded();
     expect(await cardStreamWrapperUpdatedSrc.getAttribute('src'))
       // The stream wrapper URI must be rewritten to an actually resolvable URL.
-      // @see tests/modules/xb_test_sdc/components/card-with-stream-wrapper-image/card-with-stream-wrapper-image.twig
+      // @see tests/modules/canvas_test_sdc/components/card-with-stream-wrapper-image/card-with-stream-wrapper-image.twig
       .toMatch(/\/sites\/simpletest\/\d+\/files\/.*gracie-big.*\.jpg/);
   });
 });

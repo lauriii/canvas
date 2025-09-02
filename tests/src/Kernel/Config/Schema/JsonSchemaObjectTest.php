@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config\Schema;
+namespace Drupal\Tests\canvas\Kernel\Config\Schema;
 
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
- * @covers \Drupal\experience_builder\Config\Schema\JsonSchemaObject
- * @group experience_builder
+ * @covers \Drupal\canvas\Config\Schema\JsonSchemaObject
+ * @group canvas
  */
 final class JsonSchemaObjectTest extends KernelTestBase {
 
@@ -22,7 +22,7 @@ final class JsonSchemaObjectTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
   ];
 
   /**
@@ -34,13 +34,13 @@ final class JsonSchemaObjectTest extends KernelTestBase {
 
   /**
    * @phpcs:ignore Drupal.Commenting.FunctionComment.SeeAdditionalText
-   * @see `type: experience_builder.json_schema.prop.object`
+   * @see `type: canvas.json_schema.prop.object`
    */
   public function testSchemaDerivation(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('experience_builder.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
       'type' => 'object',
-      '$ref' => 'json-schema-definitions://experience_builder.module/heading',
+      '$ref' => 'json-schema-definitions://canvas.module/heading',
       'title' => $this->randomString(),
       'examples' => [
         [
@@ -58,9 +58,9 @@ final class JsonSchemaObjectTest extends KernelTestBase {
 
   public function testInvalidRef(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('experience_builder.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
       'type' => 'object',
-      '$ref' => 'json-schema-definitions://xb_config_schema_test.module/pony-ballast',
+      '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/pony-ballast',
       'title' => $this->randomString(),
       'examples' => [
         [
@@ -69,15 +69,15 @@ final class JsonSchemaObjectTest extends KernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `experience_builder.json_schema.prop.object.examples` is invalid: the parent '\$ref' property should resolve to an object definition");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property should resolve to an object definition");
     $config->validate();
   }
 
   public function testInvalidDataType(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('experience_builder.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
       'type' => 'object',
-      '$ref' => 'json-schema-definitions://xb_config_schema_test.module/chip-nozzle',
+      '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/chip-nozzle',
       'title' => $this->randomString(),
       'examples' => [
         [
@@ -86,15 +86,15 @@ final class JsonSchemaObjectTest extends KernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `experience_builder.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'special' property that uses an unsupported config schema type 'bonanza'. This is not supported.");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'special' property that uses an unsupported config schema type 'bonanza'. This is not supported.");
     $config->validate();
   }
 
   public function testInvalidDataTypeResolution(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('experience_builder.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
       'type' => 'object',
-      '$ref' => 'json-schema-definitions://xb_config_schema_test.module/escape-goat',
+      '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/escape-goat',
       'title' => $this->randomString(),
       'examples' => [
         [
@@ -103,7 +103,7 @@ final class JsonSchemaObjectTest extends KernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `experience_builder.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'nesting' property that uses an unsupported config schema type 'object'. This is not supported.");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'nesting' property that uses an unsupported config schema type 'object'. This is not supported.");
     $config->validate();
   }
 

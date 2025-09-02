@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\experience_builder\Audit\ComponentAudit;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Entity\Pattern;
+use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 
 /**
  * Controller for components audit page.
@@ -227,7 +227,7 @@ final class ComponentAuditController {
   public function createConfigTable(Component $component, string $config_entity_type_id, \Stringable $sectionTitle, \Stringable $emptyMessage, array $headers, callable $rowCallback): array {
     $rows = [];
     $dependents = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
-    /** @var \Drupal\experience_builder\Entity\PageRegion $region */
+    /** @var \Drupal\canvas\Entity\PageRegion $region */
     foreach ($dependents as $region) {
       $row = $rowCallback($region);
       $rows[] = $row;

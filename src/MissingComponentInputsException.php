@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 class MissingComponentInputsException extends \OutOfRangeException {
 

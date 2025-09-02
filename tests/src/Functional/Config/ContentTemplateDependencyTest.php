@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional\Config;
+namespace Drupal\Tests\canvas\Functional\Config;
 
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Tests\experience_builder\Functional\FunctionalTestBase;
+use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 
 /**
- * @covers \Drupal\experience_builder\Entity\ContentTemplate::onDependencyRemoval
+ * @covers \Drupal\canvas\Entity\ContentTemplate::onDependencyRemoval
  *
- * @group experience_builder
+ * @group canvas
  */
 final class ContentTemplateDependencyTest extends FunctionalTestBase {
 
@@ -23,11 +23,11 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
    */
   protected static $modules = [
     'entity_test',
-    'experience_builder',
+    'canvas',
     'field_ui',
     'link',
     'node',
-    'xb_test_sdc',
+    'canvas_test_sdc',
   ];
 
   /**
@@ -79,11 +79,11 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
       'label' => 'More info',
     ])->save();
 
-    // Opt the content type into XB rendering by adding a component tree field.
+    // Opt the content type into Canvas rendering by adding a component tree field.
     $field_storage = FieldStorageConfig::create([
       'type' => 'component_tree',
       'entity_type' => 'node',
-      'field_name' => 'field_xb_tree',
+      'field_name' => 'field_canvas_tree',
     ]);
     $field_storage->save();
     FieldConfig::create([
@@ -100,7 +100,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
       'component_tree' => [
         [
           'uuid' => '02b766f7-0edc-4359-98bb-3f489e878330',
-          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',
@@ -110,7 +110,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
         ],
         [
           'uuid' => '4ca2cb2e-f9ac-40e5-83be-0f2d08b455b3',
-          'component_id' => 'sdc.xb_test_sdc.my-cta',
+          'component_id' => 'sdc.canvas_test_sdc.my-cta',
           'inputs' => [
             'text' => [
               'sourceType' => 'dynamic',
@@ -138,7 +138,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
   }
 
   public function testRemoveFieldUsedByTemplate(): void {
-    // Create an article node and confirm that XB is rendering it.
+    // Create an article node and confirm that Canvas is rendering it.
     $node = $this->drupalCreateNode([
       'type' => 'article',
       'field_slogan' => 'My slogan',
@@ -206,7 +206,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
     $dependencies = $template->getDependencies();
     $this->assertContains('entity_test', $dependencies['module']);
 
-    // Create an article node and confirm that XB is rendering it.
+    // Create an article node and confirm that Canvas is rendering it.
     $node = $this->drupalCreateNode([
       'type' => 'article',
       'field_motto' => 'My important motto',

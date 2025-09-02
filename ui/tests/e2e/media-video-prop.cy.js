@@ -1,6 +1,6 @@
 describe('Media Library', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_video_fixture']);
+    cy.drupalCanvasInstall(['canvas_test_video_fixture']);
   });
 
   beforeEach(() => {
@@ -14,17 +14,17 @@ describe('Media Library', () => {
   });
 
   it('Can use a video component that uses the media library widget', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.get(
-      '.previewOverlay [data-xb-component-id="sdc.xb_test_sdc.video"]',
+      '.previewOverlay [data-canvas-component-id="sdc.canvas_test_sdc.video"]',
     ).should('have.length', 2);
     cy.clickComponentInPreview('Video', 0);
     cy.waitForAjax();
-    cy.get('[data-testid*="xb-component-form-"]').as('inputForm');
+    cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
     cy.get('@inputForm').recordFormBuildId();
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
@@ -88,14 +88,14 @@ describe('Media Library', () => {
   });
 
   it('Can handle not immediately having a value', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.waitForElementInIframe('video > source');
     cy.findByLabelText('Display width').clear();
     cy.intercept({
-      url: '**/xb/api/v0/layout/xb_page/2',
+      url: '**/canvas/api/v0/layout/canvas_page/2',
       times: 1,
       method: 'PATCH',
     }).as('updatePreview');

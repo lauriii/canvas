@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityForm;

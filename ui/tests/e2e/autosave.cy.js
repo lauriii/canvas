@@ -1,11 +1,11 @@
 describe('Auto-save is working', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,7 +13,7 @@ describe('Auto-save is working', () => {
   });
 
   it('Make a change, and ensure the change is still present on reloading the page', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.clearLocalStorage();
     cy.waitForElementContentInIframe('div', 'hello, world!');
     cy.log('Click and delete the first Hero component.');
@@ -24,7 +24,7 @@ describe('Auto-save is working', () => {
     cy.log(
       'Refresh the page, without clearing the auto-save and confirm the hero is still deleted',
     );
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
   });
 });

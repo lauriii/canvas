@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\ComponentSource;
+namespace Drupal\canvas\ComponentSource;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Schema\Mapping;
@@ -14,9 +14,9 @@ use Drupal\Core\Plugin\PluginBase;
 /**
  * Defines a base class for component source plugins.
  *
- * @see \Drupal\experience_builder\Attribute\ComponentSource
- * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface
- * @see \Drupal\experience_builder\ComponentSource\ComponentSourceManager
+ * @see \Drupal\canvas\Attribute\ComponentSource
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceManager
  */
 abstract class ComponentSourceBase extends PluginBase implements ComponentSourceInterface {
 
@@ -26,11 +26,11 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   public function generateVersionHash(): string {
     // @phpstan-ignore-next-line
     $typed_source_specific_settings = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData(
-      'experience_builder.component_source_settings.' . $this->getPluginId(),
+      'canvas.component_source_settings.' . $this->getPluginId(),
       // TRICKY: the ComponentSource plugin instance always receives the local
       // source ID that identifies the component within that source. But that
       // plugin ID is not part of the config schema.
-      // @see `type: experience_builder.component_source_settings.*`
+      // @see `type: canvas.component_source_settings.*`
       array_diff_key($this->configuration, array_flip(['local_source_id'])),
     );
     assert($typed_source_specific_settings instanceof Mapping);

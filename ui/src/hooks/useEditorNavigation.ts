@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { getBaseUrl, getXbSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
-const xbSettings = getXbSettings();
+const canvasSettings = getCanvasSettings();
 
 /**
  * Hook for editor navigation functions
@@ -32,7 +32,7 @@ export function useEditorNavigation() {
       // Without this timeout, RTK throws an error because it tries to make a request following cache invalidation while
       // the window.location.href is in progress.
       setTimeout(() => {
-        window.location.href = `${baseUrl}xb/${entityType}/${entityId}`;
+        window.location.href = `${baseUrl}canvas/${entityType}/${entityId}`;
       }, 100);
     },
     [baseUrl],
@@ -43,7 +43,7 @@ export function useEditorNavigation() {
     setEditorEntity,
   };
 
-  xbSettings.navUtils = editorNavUtils;
+  canvasSettings.navUtils = editorNavUtils;
 
   return editorNavUtils;
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
@@ -10,7 +10,7 @@ use Drupal\Core\Validation\Attribute\Constraint;
 /**
  * Checks the validated string contains one of the keys of a sequence.
  *
- * @see \Drupal\experience_builder\Plugin\Validation\Constraint\SequenceKeysMustMatchConstraint
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\SequenceKeysMustMatchConstraint
  */
 #[Constraint(
   id: 'SequenceKeyExists',

@@ -1,28 +1,28 @@
 <?php
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Render\Element;
-use Drupal\experience_builder\Form\ClientFormSubmissionHelper;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Form\ClientFormSubmissionHelper;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Form\FormCacheInterface;
-use Drupal\experience_builder\Controller\EntityFormTrait;
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
+use Drupal\canvas\Controller\EntityFormTrait;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormState;
-use Drupal\experience_builder\Controller\ClientServerConversionTrait;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\Controller\ClientServerConversionTrait;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -159,7 +159,7 @@ class ClientDataToEntityConverter {
       // the entity form logic. Allowing the client to set 'changed' could lead
       // to inconsistencies in the entity's changed time, as different edits
       // could be done on different clients and some edits may be done outside
-      // Experience Builder which would use timestamps provided by the server.
+      // Drupal Canvas which would use timestamps provided by the server.
       // \Drupal\Core\Entity\EntityChangedInterface::setChangedTime().
       // @see \Drupal\Core\Entity\ContentEntityForm::updateChangedTime()
       unset($entity_form_fields['changed']);
@@ -171,7 +171,7 @@ class ClientDataToEntityConverter {
     // Expand form values from their respective element name, e.g.
     // ['title[0][value]' => 'Node title'] becomes
     // ['title' => ['value' => 'Node title']].
-    // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
+    // @see \Drupal\canvas\Controller\ApiLayoutController::getEntityData
     \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
 
     // Form tokens are user session-specific. It may be that a user is
@@ -401,7 +401,7 @@ class ClientDataToEntityConverter {
     // shape as the 'name' attributes on each of the form elements built by the
     // form element and avoids needing to smooth out the idiosyncrasies of each
     // widget's structure.
-    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    // @see \Drupal\canvas\Controller\EntityFormController::form
     $values = Query::parse(\http_build_query(\array_intersect_key($values, $entity->toArray())));
     if ($ajax_form_build_id !== NULL) {
       // Update the form build ID.

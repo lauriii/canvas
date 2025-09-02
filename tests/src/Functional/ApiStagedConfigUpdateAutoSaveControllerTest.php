@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
 /**
  * Tests the details of auto-saving Staged Config Update entities.
  *
- * @covers \Drupal\experience_builder\Controller\ApiStagedConfigUpdateAutoSaveController
- * @group experience_builder
+ * @covers \Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController
+ * @group canvas
  */
 class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
@@ -27,7 +27,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['canvas'];
 
   /**
    * {@inheritdoc}
@@ -45,7 +45,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
     $this->httpApiUser = $user;
 
     // Create a user with an arbitrary permission that is not related to
-    // accessing any XB resources.
+    // accessing any Canvas resources.
     $user2 = $this->createUser(['view media']);
     assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
@@ -58,11 +58,11 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
       ],
     ];
     $entity_type_id = StagedConfigUpdate::ENTITY_TYPE_ID;
-    $entity_id = 'xb_change_site_name';
+    $entity_id = 'canvas_change_site_name';
     $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
 
-    $post_url = Url::fromUri('base:/xb/api/v0/staged-update/auto-save');
-    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
+    $post_url = Url::fromUri('base:/canvas/api/v0/staged-update/auto-save');
+    $auto_save_url = Url::fromUri("base:/canvas/api/v0/config/auto-save/$entity_type_id/$entity_id");
 
     $missingPermissionError = "The 'administer site configuration' permission is required.";
 

@@ -191,7 +191,7 @@ export function validateProp(
  */
 export function toPropName(inputName: string, selectedComponent: string) {
   return inputName
-    .replace(`xb_component_props[${selectedComponent}][`, '')
+    .replace(`canvas_component_props[${selectedComponent}][`, '')
     .replace(/\].*$/, '');
 }
 
@@ -235,7 +235,7 @@ export function propInputData(
   // props that have multiple single-value fields associated with them.
   const propsInThisForm: string[] = [];
   Object.keys(formState).forEach((itemKey) => {
-    if (itemKey.includes(`xb_component_props[${selectedComponent}][`)) {
+    if (itemKey.includes(`canvas_component_props[${selectedComponent}][`)) {
       const propName = itemKey.split('][')[1];
       if (propsInThisForm.includes(propName)) {
         // If we hit a prop that is already in `propsInThisForm`, add it
@@ -323,9 +323,9 @@ export const formStateToObject = (
     params.append(key, value);
   });
   const parsed = qs.parse(params.toString());
-  if (isParsedQ(parsed.xb_component_props)) {
-    if (parsed.xb_component_props[componentId]) {
-      return parsed.xb_component_props[componentId] as PropsValues;
+  if (isParsedQ(parsed.canvas_component_props)) {
+    if (parsed.canvas_component_props[componentId]) {
+      return parsed.canvas_component_props[componentId] as PropsValues;
     }
   }
   return {};
@@ -366,9 +366,9 @@ export function getPropsValues(
   // a component input to create propsValues, which will ultimately be
   // used to update this component's model.
   const Drupal = getDrupal() || {
-    Drupal: { xbTransforms: transforms },
+    Drupal: { canvasTransforms: transforms },
   };
-  const transformsList: Transforms = Drupal?.xbTransforms || transforms;
+  const transformsList: Transforms = Drupal?.canvasTransforms || transforms;
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
@@ -468,7 +468,7 @@ export function getPropsValues(
   return { propsValues, selectedModel };
 }
 
-export const COMPONENT_PREVIEW_UPDATE_EVENT = 'xb:component_preview_update';
+export const COMPONENT_PREVIEW_UPDATE_EVENT = 'canvas:component_preview_update';
 
 // A custom event class for communicating model updates to power client-side
 // preview updates.

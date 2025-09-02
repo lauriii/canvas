@@ -46,7 +46,8 @@ const ErrorBoundary: React.FC<{
               error={message}
               resetErrorBoundary={
                 status === 401
-                  ? () => (window.location.href = drupalSettings.xb.loginUrl)
+                  ? () =>
+                      (window.location.href = drupalSettings.canvas.loginUrl)
                   : resetErrorBoundary
               }
               resetButtonText={status === 401 ? 'Go to login' : resetButtonText}

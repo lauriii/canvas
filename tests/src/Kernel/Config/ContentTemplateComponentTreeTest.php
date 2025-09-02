@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -13,8 +13,8 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 /**
  * Tests the component tree aspects of the ContentTemplate config entity type.
  *
- * @group experience_builder
- * @coversDefaultClass \Drupal\experience_builder\Entity\PageRegion
+ * @group canvas
+ * @coversDefaultClass \Drupal\canvas\Entity\PageRegion
  */
 final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTestBase {
 
@@ -42,7 +42,7 @@ final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTest
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installConfig('node');
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $this->createContentType(['type' => 'alpha']);
     FieldStorageConfig::create([
       'field_name' => 'field_test',

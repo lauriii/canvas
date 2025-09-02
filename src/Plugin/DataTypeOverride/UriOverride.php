@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\DataTypeOverride;
+namespace Drupal\canvas\Plugin\DataTypeOverride;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin;
+namespace Drupal\canvas\Plugin;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
@@ -10,7 +10,7 @@ use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 /**
  * For versioned config entities with versionable subset of plugin configuration.
  *
- * @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::preSave()
+ * @see \Drupal\canvas\Entity\VersionedConfigEntityBase::preSave()
  * @internal
  */
 final class VersionedConfigurationSubsetSingleLazyPluginCollection extends DefaultSingleLazyPluginCollection {

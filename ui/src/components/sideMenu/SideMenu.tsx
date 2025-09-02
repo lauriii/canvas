@@ -33,8 +33,8 @@ interface SideMenuProps {}
 export const SideMenu: React.FC<SideMenuProps> = () => {
   const activePanel = useAppSelector(selectActivePanel);
   let hasExtensions = false;
-  if (drupalSettings && drupalSettings.xbExtension) {
-    hasExtensions = Object.values(drupalSettings.xbExtension).length > 0;
+  if (drupalSettings && drupalSettings.canvasExtension) {
+    hasExtensions = Object.values(drupalSettings.canvasExtension).length > 0;
   }
 
   const dispatch = useAppDispatch();
@@ -96,7 +96,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
   }
 
   return (
-    <Flex gap="2" className={styles.sideMenu} data-testid="xb-side-menu">
+    <Flex gap="2" className={styles.sideMenu} data-testid="canvas-side-menu">
       {menuItems.map((item, index) =>
         item.type === 'separator' ? (
           <hr key={index} className={styles.separator} />

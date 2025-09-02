@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\EcosystemSupport;
+namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
 /**
- * Checks that all core field widgets have XB client-side transforms metadata.
+ * Checks that all core field widgets have Canvas client-side transforms metadata.
  *
- * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+ * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
  * @see docs/redux-integrated-field-widgets.md#3.4
- * @group experience_builder
+ * @group canvas
  */
 final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
@@ -56,7 +56,7 @@ final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
     $field_widget_definitions = $this->container->get('plugin.manager.field.widget')->getDefinitions();
     ksort($field_widget_definitions);
-    $supported = array_filter($field_widget_definitions, fn (array $def): bool => array_key_exists('xb', $def) && array_key_exists('transforms', $def['xb']));
+    $supported = array_filter($field_widget_definitions, fn (array $def): bool => array_key_exists('canvas', $def) && array_key_exists('transforms', $def['canvas']));
     $missing = array_diff_key($field_widget_definitions, $supported);
 
     $this->assertSame(self::SUPPORTED, array_keys($supported));

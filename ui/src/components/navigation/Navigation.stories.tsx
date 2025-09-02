@@ -22,12 +22,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/1',
-      'edit-form': '/xb/xb_page/1',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/1',
+      'edit-form': '/canvas/canvas_page/1',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -39,12 +39,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/2',
-      'edit-form': '/xb/xb_page/2',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/2',
+      'edit-form': '/canvas/canvas_page/2',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -56,12 +56,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/3',
-      'edit-form': '/xb/xb_page/3',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/3',
+      'edit-form': '/canvas/canvas_page/3',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -73,12 +73,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/4',
-      'edit-form': '/xb/xb_page/4',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/4',
+      'edit-form': '/canvas/canvas_page/4',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -90,12 +90,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/5',
-      'edit-form': '/xb/xb_page/5',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/5',
+      'edit-form': '/canvas/canvas_page/5',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -107,12 +107,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/6',
-      'edit-form': '/xb/xb_page/6',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/6',
+      'edit-form': '/canvas/canvas_page/6',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -124,12 +124,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/7',
-      'edit-form': '/xb/xb_page/7',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/7',
+      'edit-form': '/canvas/canvas_page/7',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -141,12 +141,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/8',
-      'edit-form': '/xb/xb_page/8',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/8',
+      'edit-form': '/canvas/canvas_page/8',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -158,12 +158,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/9',
-      'edit-form': '/xb/xb_page/9',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/9',
+      'edit-form': '/canvas/canvas_page/9',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
   {
@@ -175,12 +175,12 @@ const items: ContentStub[] = [
     autoSaveLabel: '',
     autoSavePath: '',
     links: {
-      'delete-form': '/xb/api/v0/content/xb_page/10',
-      'edit-form': '/xb/xb_page/10',
-      'https://drupal.org/project/experience_builder#link-rel-duplicate':
-        '/xb/api/v0/content/xb_page',
-      'https://drupal.org/project/experience_builder#link-rel-set-as-homepage':
-        '/xb/api/v0/content/xb_page',
+      'delete-form': '/canvas/api/v0/content/canvas_page/10',
+      'edit-form': '/canvas/canvas_page/10',
+      'https://drupal.org/project/canvas#link-rel-duplicate':
+        '/canvas/api/v0/content/canvas_page',
+      'https://drupal.org/project/canvas#link-rel-set-as-homepage':
+        '/canvas/api/v0/content/canvas_page',
     },
   },
 ];

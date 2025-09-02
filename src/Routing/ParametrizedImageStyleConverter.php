@@ -1,20 +1,20 @@
 <?php
 
-namespace Drupal\experience_builder\Routing;
+namespace Drupal\canvas\Routing;
 
 use Drupal\Core\Http\Exception\CacheableNotFoundHttpException;
 use Drupal\Core\ParamConverter\ParamConverterInterface;
-use Drupal\experience_builder\Entity\ParametrizedImageStyle;
+use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\image\Entity\ImageStyle;
 use Symfony\Component\Routing\Route;
 
 /**
- * @see \Drupal\experience_builder\Entity\ParametrizedImageStyle::buildUrlTemplate()
+ * @see \Drupal\canvas\Entity\ParametrizedImageStyle::buildUrlTemplate()
  */
 final class ParametrizedImageStyleConverter implements ParamConverterInterface {
 
   // @todo Read this from third-party settings - https://drupal.org/i/3533563
-  // @see config/install/image.style.xb_parametrized_width.yml
+  // @see config/install/image.style.canvas_parametrized_width.yml
   // @todo Fix hardcoding these widths in https://www.drupal.org/i/3533563.
   public const array ALLOWED_WIDTHS = [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840];
 
@@ -22,7 +22,7 @@ final class ParametrizedImageStyleConverter implements ParamConverterInterface {
    * {@inheritdoc}
    */
   public function convert($value, $definition, $name, array $defaults) {
-    $style_prefix = 'xb_parametrized_';
+    $style_prefix = 'canvas_parametrized_';
     if (!str_starts_with($value, $style_prefix)) {
       return ImageStyle::load($value);
     }
@@ -35,9 +35,9 @@ final class ParametrizedImageStyleConverter implements ParamConverterInterface {
     $width = $parts[1];
 
     $parametrized_image_style = ParametrizedImageStyle::loadWithParameters(
-      'xb_parametrized_width',
-      // @see \Drupal\experience_builder\Entity\ParametrizedImageStyle::$buildingTemplate()
-      // @see \Drupal\experience_builder\Entity\ParametrizedImageStyle::buildUri()
+      'canvas_parametrized_width',
+      // @see \Drupal\canvas\Entity\ParametrizedImageStyle::$buildingTemplate()
+      // @see \Drupal\canvas\Entity\ParametrizedImageStyle::buildUri()
       [
         'width' => (string) $width,
       ]
@@ -49,7 +49,7 @@ final class ParametrizedImageStyleConverter implements ParamConverterInterface {
     }
 
     // @todo Read this from third-party settings - https://drupal.org/i/3533563
-    // @see config/install/image.style.xb_parametrized_width.yml
+    // @see config/install/image.style.canvas_parametrized_width.yml
     if (!in_array((int) $width, self::ALLOWED_WIDTHS, TRUE)) {
       // Return a 404 (Page Not Found) rather than a 403 (Access Denied) as the
       // image token is for DDoS protection rather than access checking. 404s

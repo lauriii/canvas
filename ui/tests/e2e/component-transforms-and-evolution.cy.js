@@ -1,16 +1,16 @@
 describe('Component transforms', () => {
   before(() => {
-    // Enable xb_test_storage_prop_shape_alter after nodes have been created in
-    // XBTestSetup. The stored nodes make use of a link item, but by enabling
+    // Enable canvas_test_storage_prop_shape_alter after nodes have been created in
+    // CanvasTestSetup. The stored nodes make use of a link item, but by enabling
     // this module, the my-hero component will now make use of an uri item.
     // We should still be able to edit existing data where the source type is
     // link rather than uri.
-    cy.drupalXbInstall(['xb_test_storage_prop_shape_alter']);
+    cy.drupalCanvasInstall(['canvas_test_storage_prop_shape_alter']);
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -18,14 +18,14 @@ describe('Component transforms', () => {
   });
 
   it('Applies transforms based on the stored component instance, not the component metadata for new instances, can edit old versions', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Click a Hero component to open the component form.
     cy.clickComponentInPreview('Hero');
 
-    cy.intercept('PATCH', '**/xb/api/layout/node/1');
+    cy.intercept('PATCH', '**/canvas/api/layout/node/1');
 
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('CTA 1 link')
       .as('componentFormCTA1Link');
 
@@ -35,7 +35,7 @@ describe('Component transforms', () => {
     cy.get('@componentFormCTA1Link').type(newUri, { force: true });
 
     // Assert this uses the old 'link' widget because the component version was
-    // from before XbTestStoragePropShapeAlterHooks::storagePropShapeAlter() was running.
+    // from before CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter() was running.
     cy.get('@componentFormCTA1Link')
       .should('have.attr', 'name')
       .and('match', /\[0]\[uri]$/);
@@ -45,7 +45,7 @@ describe('Component transforms', () => {
       expect($input[0].matches(':invalid')).to.be.false;
     });
 
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('CTA 1 text')
       .as('componentFormCTA1Text');
 
@@ -55,7 +55,7 @@ describe('Component transforms', () => {
 
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      `div[data-component-id="xb_test_sdc:my-hero"] a[href="${newUri}"]`,
+      `div[data-component-id="canvas_test_sdc:my-hero"] a[href="${newUri}"]`,
       linkText,
     );
   });

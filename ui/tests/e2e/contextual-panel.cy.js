@@ -1,11 +1,11 @@
 describe('Contextual panel', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,9 +13,9 @@ describe('Contextual panel', () => {
   });
 
   it('should open the context menu on right-click', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     // Wait for the preview iframe to load and render something that confirms it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.get('iframe[data-canvas-preview]').should('exist');
     // Right-click on the element that should trigger the context menu
     cy.getComponentInPreview('Hero').trigger('contextmenu');
 
@@ -33,9 +33,9 @@ describe('Contextual panel', () => {
   });
 
   it('should open the context menu on right-click in primary content menu', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     // Wait for the preview iframe to load and render something that confirms it is ready.
-    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.get('iframe[data-canvas-preview]').should('exist');
     // Right-click on the element in primary content menu that should trigger the context menu.
     cy.get('.primaryPanelContent')
       .findByText('Two Column')
@@ -56,9 +56,9 @@ describe('Contextual panel', () => {
   });
 
   it('should duplicate the element on clicking the "Duplicate" button', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.getIframeBody()
-      .find('[data-component-id="xb_test_sdc:two_column"]')
+      .find('[data-component-id="canvas_test_sdc:two_column"]')
       .should('have.length', 1);
 
     // Right-click on the element that should trigger the context menu
@@ -79,17 +79,17 @@ describe('Contextual panel', () => {
   });
 
   it('Opens contextual panel on component selection with correct routing', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Find and alias the UUID of the "my-hero" component.
     cy.getComponentInPreview('Hero', 2)
-      .find('[data-xb-uuid]')
-      .invoke('attr', 'data-xb-uuid')
+      .find('[data-canvas-uuid]')
+      .invoke('attr', 'data-canvas-uuid')
       .as('cid1');
     // Find and alias the UUID of the "image" component.
     cy.getComponentInPreview('Test SDC Image', 1)
-      .find('[data-xb-uuid]')
-      .invoke('attr', 'data-xb-uuid')
+      .find('[data-canvas-uuid]')
+      .invoke('attr', 'data-canvas-uuid')
       .as('cid2');
 
     // Ensure both aliases are retrieved and compare them.
@@ -103,15 +103,15 @@ describe('Contextual panel', () => {
     cy.get('@cid1').then((cid1) => {
       cy.clickComponentInPreview('Hero', 2);
       // Make sure the contextual panel opens for the clicked component.
-      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+      cy.findByTestId(`canvas-contextual-panel-${cid1}`).should('exist');
       // Make sure the component form is rendered for the clicked component.
-      cy.findByTestId(`xb-component-form-${cid1}`).should('exist');
+      cy.findByTestId(`canvas-component-form-${cid1}`).should('exist');
       // Now on a path specific to that component.
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid1}, path should include '/xb/node/1/editor/component/${cid1}'`,
-        ).to.contain(`/xb/node/1/editor/component/${cid1}`);
+          `After clicking on ${cid1}, path should include '/canvas/node/1/editor/component/${cid1}'`,
+        ).to.contain(`/canvas/node/1/editor/component/${cid1}`);
       });
     });
 
@@ -120,15 +120,15 @@ describe('Contextual panel', () => {
       cy.clickComponentInPreview('Test SDC Image', 1);
 
       // Make sure the contextual panel opens for the clicked component.
-      cy.findByTestId(`xb-contextual-panel-${cid2}`).should('exist');
+      cy.findByTestId(`canvas-contextual-panel-${cid2}`).should('exist');
       // Make sure the component form is rendered for the clicked component.
-      cy.findByTestId(`xb-component-form-${cid2}`).should('exist');
+      cy.findByTestId(`canvas-component-form-${cid2}`).should('exist');
       // Now on a path specific to that component.
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid2}, path should include '/xb/node/1/editor/component/${cid2}'`,
-        ).to.contain(`/xb/node/1/editor/component/${cid2}`);
+          `After clicking on ${cid2}, path should include '/canvas/node/1/editor/component/${cid2}'`,
+        ).to.contain(`/canvas/node/1/editor/component/${cid2}`);
       });
     });
 
@@ -139,11 +139,11 @@ describe('Contextual panel', () => {
       cy.url().should((url) => {
         expect(
           url,
-          `Hit back once and path should again include '/xb/node/1/editor/component/${cid1}'`,
-        ).to.contain(`/xb/node/1/editor/component/${cid1}`);
+          `Hit back once and path should again include '/canvas/node/1/editor/component/${cid1}'`,
+        ).to.contain(`/canvas/node/1/editor/component/${cid1}`);
       });
       // Returns to the contextual form for the prior component.
-      cy.findByTestId(`xb-contextual-panel-${cid1}`).should('exist');
+      cy.findByTestId(`canvas-contextual-panel-${cid1}`).should('exist');
     });
 
     cy.go('back');
@@ -152,23 +152,23 @@ describe('Contextual panel', () => {
       expect(
         url,
         `Hit back twice and the and path should not have 'component' in it`,
-      ).to.not.contain('/xb/node/1/component');
+      ).to.not.contain('/canvas/node/1/component');
       expect(
         url,
-        `Hit back twice and the path should still have /xb`,
-      ).to.contain('/xb/node/1');
+        `Hit back twice and the path should still have /canvas`,
+      ).to.contain('/canvas/node/1');
     });
   });
 
   it('Handles empty values in required inputs', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Extra debug output for component patching.
-    cy.intercept('PATCH', '**/xb/api/v0/layout/node/1');
+    cy.intercept('PATCH', '**/canvas/api/v0/layout/node/1');
 
     // Make note of the number of Hero components currently in the preview.
     cy.getIframeBody()
-      .find('[data-component-id="xb_test_sdc:my-hero"]')
+      .find('[data-component-id="canvas_test_sdc:my-hero"]')
       .its('length')
       .then((count) => {
         cy.wrap(count).as('initialHeroCount');
@@ -178,7 +178,7 @@ describe('Contextual panel', () => {
     cy.clickComponentInPreview('Hero');
 
     // `@componentFormHeading`
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('Heading')
       .as('componentFormHeading');
 
@@ -195,7 +195,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="xb_test_sdc:my-hero"]')
+        .find('[data-component-id="canvas_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -204,16 +204,16 @@ describe('Contextual panel', () => {
     cy.get('@componentFormHeading').type('New heading text');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      'div[data-component-id="xb_test_sdc:my-hero"] h1',
+      'div[data-component-id="canvas_test_sdc:my-hero"] h1',
       'New heading text',
     );
 
     // `@componentFormCTA1Link`
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('CTA 1 link')
       .as('componentFormCTA1Link');
     // `@componentFormCTA1Text`
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .findByLabelText('CTA 1 text')
       .as('componentFormCTA1Text');
 
@@ -230,7 +230,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="xb_test_sdc:my-hero"]')
+        .find('[data-component-id="canvas_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -249,7 +249,7 @@ describe('Contextual panel', () => {
     cy.get('@componentFormCTA1Text').type('Example link');
     // Ensure the new value shows in the preview.
     cy.waitForElementContentInIframe(
-      'div[data-component-id="xb_test_sdc:my-hero"] a',
+      'div[data-component-id="canvas_test_sdc:my-hero"] a',
       'Example link',
     );
     cy.getIframeBody()
@@ -259,7 +259,7 @@ describe('Contextual panel', () => {
     // Make sure the number of Hero components in the preview hasn't changed.
     cy.get('@initialHeroCount').then((initialHeroCount) => {
       cy.getIframeBody()
-        .find('[data-component-id="xb_test_sdc:my-hero"]')
+        .find('[data-component-id="canvas_test_sdc:my-hero"]')
         .its('length')
         .should('eq', initialHeroCount);
     });
@@ -274,33 +274,33 @@ describe('Contextual panel', () => {
     cy.get('.primaryPanelContent').findByText('Heading').click();
     // Check if heading component has been added in the preview
     cy.waitForElementContentInIframe(
-      'h1[data-component-id="xb_test_sdc:heading"]',
+      'h1[data-component-id="canvas_test_sdc:heading"]',
       'A heading element',
     );
     // Find added Heading component above and click on it
     cy.clickComponentInPreview('Heading');
 
     // Find the Element enum/select component and check for None option - it should not be there
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .find('select[required]')
       .find('option')
       .should('not.contain', '- None -');
 
     // Hitting enter within a field should not submit the form or alter that
     // prop within the layout.
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .find('input[required]')
       .click();
-    cy.findByTestId(/^xb-component-form-.*/)
+    cy.findByTestId(/^canvas-component-form-.*/)
       .find('input[required]')
       .type('{enter}');
     cy.getIframeBody().findByText('A heading element').should('exist');
   });
 
   it('should show "Edit code" option for code components in context menu', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     // Wait for the preview iframe to load
-    cy.get('iframe[data-xb-preview]').should('exist');
+    cy.get('iframe[data-canvas-preview]').should('exist');
 
     // Right-click on the element in the preview should trigger the context menu.
     cy.getComponentInPreview('Test Code Component').trigger('contextmenu');

@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSwitchCasesInterface;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
-use Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
-use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * @internal
- * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
- * @phpstan-import-type ComponentClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
- * @phpstan-import-type RegionClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
- * @phpstan-import-type LayoutClientStructureArray from \Drupal\experience_builder\Controller\ApiLayoutController
+ * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentClientStructureArray from \Drupal\canvas\Controller\ApiLayoutController
+ * @phpstan-import-type RegionClientStructureArray from \Drupal\canvas\Controller\ApiLayoutController
+ * @phpstan-import-type LayoutClientStructureArray from \Drupal\canvas\Controller\ApiLayoutController
  */
 trait ClientServerConversionTrait {
 
@@ -30,10 +30,10 @@ trait ClientServerConversionTrait {
   use ComponentTreeItemListInstantiatorTrait;
 
   /**
-   * @todo Refactor/remove in https://www.drupal.org/project/experience_builder/issues/3467954.
+   * @todo Refactor/remove in https://www.drupal.org/project/canvas/issues/3467954.
    * @param LayoutClientStructureArray $layout
    * @phpstan-return ComponentTreeItemListArray
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
@@ -41,10 +41,10 @@ trait ClientServerConversionTrait {
     // Transform client-side representation to server-side representation.
     $items = [];
     foreach ($layout as $component) {
-      // @todo In https://www.drupal.org/project/experience_builder/issues/3525746, generate `switch` + `case` client-side node types for the Personalization ComponentSource's components — this requires synchronous changes on the client side.
-      // @see https://www.drupal.org/project/experience_builder/issues/3525746#comment-16121437
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem::getClientSideRepresentation()
-      // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::getClientSideRepresentation()
+      // @todo In https://www.drupal.org/project/canvas/issues/3525746, generate `switch` + `case` client-side node types for the Personalization ComponentSource's components — this requires synchronous changes on the client side.
+      // @see https://www.drupal.org/project/canvas/issues/3525746#comment-16121437
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::getClientSideRepresentation()
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getClientSideRepresentation()
       assert(in_array($component['nodeType'], ['component', ComponentSourceWithSwitchCasesInterface::SWITCH, ComponentSourceWithSwitchCasesInterface::CASE]));
       $items = \array_merge($items, self::doClientComponentToServerTree($component, $model, ComponentTreeItemList::ROOT_UUID, NULL));
     }
@@ -90,7 +90,7 @@ trait ClientServerConversionTrait {
     $component_id = $layout['type'] ?? NULL;
     $version = NULL;
     // `type` SHOULD be of the form `<Component config entity ID>@<version>`.
-    // @see \Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()
+    // @see \Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()
     if ($component_id !== NULL && str_contains($component_id, '@')) {
       [$component_id, $version] = explode('@', $component_id, 2);
     }
@@ -124,7 +124,7 @@ trait ClientServerConversionTrait {
   /**
    * @phpcs:ignore
    * @return ComponentTreeItemListArray
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    */
   private static function clientModelToInput(array $items, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
     $component_ids = \array_column($items, 'component_id');
@@ -138,7 +138,7 @@ trait ClientServerConversionTrait {
       $component = $components[$component_id] ?? NULL;
       // If validation is requested, this has already been validated in
       // ::clientToServerTree
-      // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraint
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint
       if (!$validate && !$component) {
         continue;
       }
@@ -172,16 +172,16 @@ trait ClientServerConversionTrait {
   /**
    * @param LayoutClientStructureArray $layout
    * @phpstan-return ComponentTreeItemListArray
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
   protected static function convertClientToServer(array $layout, array $model, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
     // Denormalize the `layout` the client sent into a value that the server-
     // side ComponentTreeStructure expects, abort early if it is invalid.
-    // (This is the value for the `tree` field prop on the XB field type.)
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+    // (This is the value for the `tree` field prop on the Canvas field type.)
+    // @see \Drupal\canvas\Plugin\DataType\ComponentTreeStructure
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
     try {
       return self::clientToServerTree($layout, $model, $entity, $validate);
     }

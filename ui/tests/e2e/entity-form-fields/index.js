@@ -1,21 +1,21 @@
-import * as field_xbt_comment from './field_xbt_comment.js';
-import * as field_xbt_language from './field_xbt_language.js';
-import * as field_xbt_options_buttons from './field_xbt_options_buttons.js';
-import * as field_xbt_telephone from './field_xbt_telephone.js';
-import * as field_xbt_textfield from './field_xbt_textfield.js';
-import * as field_xbt_textfield_multi from './field_xbt_textfield_multi.js';
-import * as field_xbt_textarea from './field_xbt_textarea.js';
-import * as field_xbt_uri from './field_xbt_uri.js';
-import * as field_xbt_entity_autocomplete from './field_xbt_entity_autocomplete.js';
-import * as field_xbt_daterange_default from './field_xbt_daterange_default.js';
-import * as field_xbt_textarea_summary from './field_xbt_textarea_summary.js';
-import * as field_xbt_moderation_state from './field_xbt_moderation_state.js';
-import * as field_xbt_datetime_timestamp from './field_xbt_datetime_timestamp.js';
-import * as field_xbt_daterange_datelist from './field_xbt_daterange_datelist.js';
-import * as field_xbt_datetime_datelist from './field_xbt_datetime_datelist.js';
-import * as field_xbt_boolean_checkbox from './field_xbt_boolean_checkbox.js';
-import * as field_xbt_entity_ref_tags from './field_xbt_entity_ref_tags.js';
-import * as field_xbt_int from './field_xbt_integer.js';
+import * as field_cvt_comment from './field_cvt_comment.js';
+import * as field_cvt_language from './field_cvt_language.js';
+import * as field_cvt_options_buttons from './field_cvt_options_buttons.js';
+import * as field_cvt_telephone from './field_cvt_telephone.js';
+import * as field_cvt_textfield from './field_cvt_textfield.js';
+import * as field_cvt_textfield_multi from './field_cvt_textfield_multi.js';
+import * as field_cvt_textarea from './field_cvt_textarea.js';
+import * as field_cvt_uri from './field_cvt_uri.js';
+import * as field_cvt_entity_autocomplete from './field_cvt_entity_autocomplete.js';
+import * as field_cvt_daterange_default from './field_cvt_daterange_default.js';
+import * as field_cvt_textarea_summary from './field_cvt_textarea_summary.js';
+import * as field_cvt_moderation_state from './field_cvt_moderation_state.js';
+import * as field_cvt_datetime_timestamp from './field_cvt_datetime_timestamp.js';
+import * as field_cvt_daterange_datelist from './field_cvt_daterange_datelist.js';
+import * as field_cvt_datetime_datelist from './field_cvt_datetime_datelist.js';
+import * as field_cvt_boolean_checkbox from './field_cvt_boolean_checkbox.js';
+import * as field_cvt_entity_ref_tags from './field_cvt_entity_ref_tags.js';
+import * as field_cvt_int from './field_cvt_integer.js';
 
 // Expand this to add additional coverage.
 // For each field to be tested, add a new file that exports two methods as
@@ -27,24 +27,24 @@ import * as field_xbt_int from './field_xbt_integer.js';
 // of the entity after the form has been submitted and the entity has been
 // published. It should make use of expect to assert the value was correctly
 // submitted.
-// @see xb_test_article_fields_install for where the fields are created.
+// @see canvas_test_article_fields_install for where the fields are created.
 export default {
-  field_xbt_comment,
-  field_xbt_moderation_state,
-  field_xbt_language,
-  field_xbt_options_buttons,
-  field_xbt_telephone,
-  field_xbt_textfield,
-  field_xbt_textarea,
-  field_xbt_uri,
-  field_xbt_entity_autocomplete,
-  field_xbt_daterange_default,
-  field_xbt_textarea_summary,
-  field_xbt_datetime_timestamp,
-  field_xbt_daterange_datelist,
-  field_xbt_datetime_datelist,
-  field_xbt_entity_ref_tags,
-  field_xbt_boolean_checkbox,
-  field_xbt_textfield_multi,
-  field_xbt_int,
+  field_cvt_comment,
+  field_cvt_moderation_state,
+  field_cvt_language,
+  field_cvt_options_buttons,
+  field_cvt_telephone,
+  field_cvt_textfield,
+  field_cvt_textarea,
+  field_cvt_uri,
+  field_cvt_entity_autocomplete,
+  field_cvt_daterange_default,
+  field_cvt_textarea_summary,
+  field_cvt_datetime_timestamp,
+  field_cvt_daterange_datelist,
+  field_cvt_datetime_datelist,
+  field_cvt_entity_ref_tags,
+  field_cvt_boolean_checkbox,
+  field_cvt_textfield_multi,
+  field_cvt_int,
 };

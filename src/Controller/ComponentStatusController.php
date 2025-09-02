@@ -1,21 +1,21 @@
 <?php
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
-use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\ComponentPluginManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Not every unavailable/disabled SDC will have Component entity, so we're using a controller instead of EntityListBuilder for this.
  *
- * @see \Drupal\experience_builder\Plugin\ComponentPluginManager::setCachedDefinitions()
+ * @see \Drupal\canvas\Plugin\ComponentPluginManager::setCachedDefinitions()
  *
  * @todo Ensure reasons are translated.
  */
@@ -24,7 +24,7 @@ final class ComponentStatusController {
   use StringTranslationTrait;
 
   /**
-   * @param \Drupal\experience_builder\Plugin\ComponentPluginManager $componentPluginManager
+   * @param \Drupal\canvas\Plugin\ComponentPluginManager $componentPluginManager
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
@@ -76,7 +76,7 @@ final class ComponentStatusController {
   /**
    * Calls a method on a component and reloads the listing page.
    *
-   * @param \Drupal\experience_builder\Entity\Component $component
+   * @param \Drupal\canvas\Entity\Component $component
    *   The component being acted upon.
    * @param string $op
    *   The operation to perform, e.g., 'enable' or 'disable'.

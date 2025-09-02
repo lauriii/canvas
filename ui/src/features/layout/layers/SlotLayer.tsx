@@ -64,8 +64,8 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
 
   return (
     <Box
-      data-xb-uuid={slotId}
-      data-xb-type={slot.nodeType}
+      data-canvas-uuid={slotId}
+      data-canvas-type={slot.nodeType}
       aria-labelledby={`layer-${slotId}-name`}
       position="relative"
       onClick={(e) => {
@@ -73,10 +73,10 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
       }}
     >
       <Collapsible.Root
-        className="xb--collapsible-root"
+        className="canvas--collapsible-root"
         open={!isCollapsed}
         onOpenChange={handleOpenChange}
-        data-xb-uuid={slotId}
+        data-canvas-uuid={slotId}
       >
         <SidebarNode
           id={`layer-${slotId}-name`}
@@ -91,7 +91,7 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
             <Flex>
               <Box
                 width={`calc(${indent} * var(--space-2))`}
-                className="xb-layer-indent"
+                className="canvas-layer-indent"
               />
               <Box width="var(--space-4)" mr="1">
                 {slot.components.length > 0 ? (

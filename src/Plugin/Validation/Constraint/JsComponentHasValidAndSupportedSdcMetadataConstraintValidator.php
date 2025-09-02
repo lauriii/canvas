@@ -2,14 +2,14 @@
 
 declare(strict_types = 1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentValidator;
-use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -62,8 +62,8 @@ final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extend
     }
 
     // The JavaScriptComponent has *valid* SDC metadata, but does it also meet
-    // XB's additional requirements? Only then is it supported by XB.
-    // @see \Drupal\experience_builder\ComponentMetadataRequirementsChecker::check()
+    // Canvas's additional requirements? Only then is it supported by Canvas.
+    // @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
     try {
       JsComponent::createConfigEntity($data);
     }

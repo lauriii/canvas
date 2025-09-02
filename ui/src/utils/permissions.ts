@@ -1,6 +1,6 @@
-import { getXbPermissions } from '@/utils/drupal-globals';
+import { getCanvasPermissions } from '@/utils/drupal-globals';
 
-const permissions = getXbPermissions();
+const permissions = getCanvasPermissions();
 const userPermissions: string[] = Object.keys(permissions).filter((key) => {
   return permissions[key] ? key : false;
 });

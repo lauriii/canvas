@@ -23,7 +23,7 @@
       "js/assets/**",
       "js/astro-bundles/**",
       "modules/same_page_preview/**",
-      "modules/xb_vite/**",
+      "modules/canvas_vite/**",
       "node_modules",
       "node_modules/**",
       "package.json",
@@ -32,8 +32,8 @@
       "scripts/tag-release.sh",
       "test-results/**",
       "tests/fixtures/recipes/**/content/**/**",
-      "tests/modules/xb_test_extension/ui/dist/**",
-      "tests/modules/xb_test_semi_coupled/semicoupled_app/dist/**",
+      "tests/modules/canvas_test_extension/ui/dist/**",
+      "tests/modules/canvas_test_semi_coupled/semicoupled_app/dist/**",
       "ui/dist/**",
       "ui/lib/astro-hydration/**",
       "ui/src/local_packages/**",
@@ -53,7 +53,7 @@
         "html",
         "php",
         "softwareTerms",
-        "experience_builder",
+        "canvas",
         "misc",
         "typescript",
         "node",
@@ -75,7 +75,7 @@
         "path": "https://git.drupalcode.org/project/drupal/-/raw/11.x/core/misc/cspell/dictionary.txt"
       },
       {
-          "name": "experience_builder",
+          "name": "canvas",
           "path": "./dictionary.txt"
       }
     ],

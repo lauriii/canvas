@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Audit;
+namespace Drupal\Tests\canvas\Kernel\Audit;
 
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\KernelTests\KernelTestBase;
 abstract class ComponentAuditTestBase extends KernelTestBase {
 
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'file',
     'image',
     'link',
@@ -25,7 +25,7 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     'media',
     'path',
     'user',
-    'xb_test_sdc',
+    'canvas_test_sdc',
     'text',
   ];
 
@@ -41,7 +41,7 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     $this->tree = [
       [
         'uuid' => 'my-component',
-        'component_id' => 'sdc.xb_test_sdc.my-cta',
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
         'inputs' => [
           'text' => StaticPropSource::generate(
             expression: new FieldTypePropExpression('string', 'value'),

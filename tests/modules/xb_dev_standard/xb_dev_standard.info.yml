@@ -1,6 +1,0 @@
-name: 'Develop XB on top of the Standard install profile'
-type: module
-dependencies:
-  - experience_builder:experience_builder
-  - drupal:node
-package: Testing

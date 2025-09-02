@@ -9,5 +9,5 @@ if (PHP_SAPI === 'cli') {
   ini_set('memory_limit', '-1');
 }
 
-// Allow the `xb_dev_standard` hidden module to be installed.
+// Allow the `canvas_dev_standard` hidden module to be installed.
 $settings['extension_discovery_scan_tests'] = TRUE;

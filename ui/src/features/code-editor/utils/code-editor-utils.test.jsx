@@ -270,7 +270,7 @@ describe('Code editor preview utilities', () => {
   it('extracts values from props for preview', () => {
     expect(getPropValuesForPreview(deserializedPropsFixture)).toEqual({
       stringWithNoExampleValue: '',
-      stringWithExampleValue: 'Experience Builder',
+      stringWithExampleValue: 'Drupal Canvas',
       integerWithNoExampleValue: 0,
       integerWithExampleValue: 922,
       numberWithNoExampleValue: 0,
@@ -302,7 +302,7 @@ describe('Code editor preview utilities', () => {
         "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
       videoWithNoExampleValue: '',
       videoWithExampleValue: {
-        src: '/modules/contrib/experience_builder/ui/assets/videos/mountain_wide.mp4',
+        src: '/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4',
         poster: 'https://placehold.co/1920x1080.png?text=Horizontal',
       },
     });

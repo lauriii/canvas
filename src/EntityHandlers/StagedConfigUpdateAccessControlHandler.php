@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EntityHandlers;
+namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -13,8 +13,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\Access\XbUiAccessCheck;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
+use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {
@@ -26,7 +26,7 @@ final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHa
   public function __construct(
     EntityTypeInterface $entity_type,
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly XbUiAccessCheck $xbUiAccessCheck,
+    private readonly CanvasUiAccessCheck $canvasUiAccessCheck,
   ) {
     parent::__construct($entity_type);
     foreach ($this->entityTypeManager->getDefinitions() as $definition) {
@@ -45,7 +45,7 @@ final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHa
     return new self(
       $entity_type,
       $container->get(EntityTypeManagerInterface::class),
-      $container->get(XbUiAccessCheck::class),
+      $container->get(CanvasUiAccessCheck::class),
     );
   }
 
@@ -55,8 +55,8 @@ final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHa
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof StagedConfigUpdate);
     return match ($operation) {
-      // We allow viewing these entities if the user has access to XB.
-      'view' => $this->xbUiAccessCheck->access($account),
+      // We allow viewing these entities if the user has access to Canvas.
+      'view' => $this->canvasUiAccessCheck->access($account),
       // Any other operation (including creating, updating, deleting) is allowed
       // if the user has access update the target configuration.
       default => $this->checkTargetUpdateAccess($entity->getTarget(), $account),

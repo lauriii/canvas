@@ -53,7 +53,7 @@ const PageDataFormRenderer = () => {
     }
 
     setJsxFormContent(
-      <div data-testid="xb-page-data-form">
+      <div data-testid="canvas-page-data-form">
         {hyperscriptify(
           template,
           React.createElement,

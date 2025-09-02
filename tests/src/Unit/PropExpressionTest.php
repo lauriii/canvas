@@ -2,36 +2,36 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit;
+namespace Drupal\Tests\canvas\Unit;
 
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
-use Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest;
 use Drupal\Tests\UnitTestCase;
 use Prophecy\Prophet;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
- * @coversClass \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
- * @see \Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
+ * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
+ * @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
+ * @group canvas
  *
- * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  */
 class PropExpressionTest extends UnitTestCase {
 
@@ -139,19 +139,19 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
         [
           'module' => ['node', 'file'],
-          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.xb_parametrized_width'],
+          'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
         ],
       ],
 
@@ -175,11 +175,11 @@ class PropExpressionTest extends UnitTestCase {
             'node.type.news',
             'node.type.product',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'field.field.node.news.field_photo',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'field.field.node.product.field_product_packaging_photo',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
           ],
         ],
       ],
@@ -197,7 +197,7 @@ class PropExpressionTest extends UnitTestCase {
             'node.type.foo',
             'node.type.xyz',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'field.field.node.foo.bar',
             'field.field.node.xyz.abc',
           ],
@@ -322,10 +322,10 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
           ],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -345,10 +345,10 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
           ],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -357,10 +357,10 @@ class PropExpressionTest extends UnitTestCase {
           'config' => [
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'node.type.article',
             'field.field.node.article.field_image',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
           ],
           'content' => ['file:file:some-image-uuid'],
         ],
@@ -532,9 +532,9 @@ class PropExpressionTest extends UnitTestCase {
             'media.type.baby_photos',
             'media.type.vacation_photos',
             'field.field.media.baby_photos.field_media_image_1',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
             'field.field.media.vacation_photos.field_media_image_2',
-            'image.style.xb_parametrized_width',
+            'image.style.canvas_parametrized_width',
           ],
         ],
       ],
@@ -578,7 +578,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    * @testWith [null]
    *           ["article"]
    */
@@ -597,7 +597,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    * @testWith [null]
    *           ["article"]
    */
@@ -616,7 +616,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    */
   public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -637,7 +637,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    */
   public function testInvalidFieldPropExpressionDueToOnlyNullFieldPropNames(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -657,7 +657,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    */
   public function testInvalidFieldPropExpressionDueToDuplicateBundles(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -671,7 +671,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
    * @testWith [{"foo": "field_media_image", "bar": "field_media_image_1", "baz": "field_media_image_2"}]
    *           [{"foo": "field_media_image", "baz": "field_media_image_2"}]
    *           [{}]
@@ -689,7 +689,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
    */
   public function testInvalidFieldObjectPropsExpressionDueToPropName(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -700,7 +700,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
    */
   public function testInvalidFieldObjectPropsExpressionDueToDelta(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -711,7 +711,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct()
    */
   public function testInvalidFieldObjectPropsExpressionInsideReferenceFieldTypeExpression(): void {
     $this->expectException(\InvalidArgumentException::class);

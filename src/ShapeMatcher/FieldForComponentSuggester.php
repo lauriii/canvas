@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\ShapeMatcher;
+namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
@@ -14,13 +14,13 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropShape\PropShape;
 
 /**
  * @todo Rename things for clarity: this handles all props for an SDC simultaneously, JsonSchemaFieldInstanceMatcher handles a single prop at a time
@@ -42,7 +42,7 @@ final class FieldForComponentSuggester {
    *   Host entity type, if the given component is being used in the context of
    *   an entity.
    *
-   * @return array<string, array{required: bool, instances: array<string, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
+   * @return array<string, array{required: bool, instances: array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
    */
   public function suggest(string $component_plugin_id, ?EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_bundle = $host_entity_type_id = NULL;
@@ -89,7 +89,7 @@ final class FieldForComponentSuggester {
       $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
 
       // Field instances.
-      // @todo Ensure these expressions do not break: https://www.drupal.org/project/experience_builder/issues/3452848
+      // @todo Ensure these expressions do not break: https://www.drupal.org/project/canvas/issues/3452848
       $suggestions[$cpe]['instances'] = [];
       if ($host_entity_type) {
         $suggestions[$cpe]['instances'] = array_combine(
@@ -173,7 +173,7 @@ final class FieldForComponentSuggester {
   }
 
   /**
-   * @return array<string, array{instances: array<int, \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression|\Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\experience_builder\Plugin\Adapter\AdapterInterface>}>
+   * @return array<string, array{instances: array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>}>
    */
   private function getRawMatches(Component $component, ?string $host_entity_type, ?string $host_entity_bundle): array {
     $raw_matches = [];

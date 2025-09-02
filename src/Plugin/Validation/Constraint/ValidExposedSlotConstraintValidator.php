@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\experience_builder\ComponentSource\ComponentSourceWithSlotsInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

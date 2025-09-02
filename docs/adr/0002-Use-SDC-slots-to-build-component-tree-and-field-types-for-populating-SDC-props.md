@@ -2,7 +2,7 @@
 
 Date: 2024-08-14
 
-Issue: <https://www.drupal.org/project/experience_builder/issues/3461490>
+Issue: <https://www.drupal.org/project/canvas/issues/3461490>
 
 ## Status
 
@@ -10,25 +10,25 @@ Superseded by [ADR #6](../0006-One-field-row-per-component-instance.md.md).
 
 ## Context
 
-To get the Experience Builder project off the ground, we must prioritize some things over others. Implementing all product requirements simultaneously is impractical and unrealistic.
+To get the Drupal Canvas project off the ground, we must prioritize some things over others. Implementing all product requirements simultaneously is impractical and unrealistic.
 
-After [the research phase](https://dri.es/evolving-drupal-layout-builder-to-an-experience-builder), work began on [two of the three lanes identified as next steps](https://www.drupal.org/about/core/blog/working-toward-an-experience-builder#:~:text=and%20use%20cases.-,Next%20steps,-We%20have%20identified).
+After [the research phase](https://dri.es/evolving-drupal-layout-builder-to-an-canvas), work began on [two of the three lanes identified as next steps](https://www.drupal.org/about/core/blog/working-toward-an-canvas#:~:text=and%20use%20cases.-,Next%20steps,-We%20have%20identified).
 
 This ADR captures the _back-end_ decisions made for the first lane, which was defined as:
 
 > Creating a revamped user experience that is optimized for creating pages using components, as well as defining the layout for structured data.
 
-In order to build a "revamped user experience", the server (Drupal's Experience Builder module) must provide information to the client (a React UI). The back-end architecture + code will _eventually_ need to be all the things the Drupal community expects: performant, scalable, flexible.  
+In order to build a "revamped user experience", the server (Drupal's Drupal Canvas module) must provide information to the client (a React UI). The back-end architecture + code will _eventually_ need to be all the things the Drupal community expects: performant, scalable, flexible.  
 But in this early phase, it is _unimportant_. **The thing that is important above all else, is achieving a user experience with a higher quality than anything else in the Drupal ecosystem.**
 
 Ideally, all existing Drupal functionality continues to work, because that means:
 
-- Experience Builder gets to start with an existing ecosystem, instead of having to start from zero
+- Drupal Canvas gets to start with an existing ecosystem, instead of having to start from zero
 - prior _investments_ in functionality are not forfeited
 
 Finally, by first building something constrained but with approximately the envisioned user experience, it becomes easier to expand the functionality to meet [all product requirements](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit#gid=1721130122): the user experience bar should not be lowered, while the functionality grows richer.
 
-In other words: until this ADR is superseded, all back-end work is in service of meeting [Milestone 0.1.0: Experience Builder Demo](https://www.drupal.org/project/experience_builder/issues/3454094).
+In other words: until this ADR is superseded, all back-end work is in service of meeting [Milestone 0.1.0: Drupal Canvas Demo](https://www.drupal.org/project/canvas/issues/3454094).
 
 
 ## Decision
@@ -50,15 +50,15 @@ All these pieces need to have fairly strict validation (or at least assumption c
 
 [Details for the data model architecture are documented.](../data-model.md)
 
-(Note: in working towards meeting that first lane, discovery is being realized towards the second lane. It is being captured at [[SPIKE] Comprehensive plan for integrating with SDC](https://www.drupal.org/project/experience_builder/issues/3462705).)
+(Note: in working towards meeting that first lane, discovery is being realized towards the second lane. It is being captured at [[SPIKE] Comprehensive plan for integrating with SDC](https://www.drupal.org/project/canvas/issues/3462705).)
 
 
 ## Consequences
 
-For now, supporting component types other than [Single-Directory Components](https://www.drupal.org/project/sdc) is out of scope. At a minimum, the following component-like building blocks will be integrated into Experience Builder at a later time, at which point this ADR will become obsolete:
+For now, supporting component types other than [Single-Directory Components](https://www.drupal.org/project/sdc) is out of scope. At a minimum, the following component-like building blocks will be integrated into Drupal Canvas at a later time, at which point this ADR will become obsolete:
 1. blocks/block instances (to allow for a migration path from Layout Builder)
 2. layout plugins (to allow for a migration path from Layout Builder)
 3. paragraph types/paragraphs (to allow for a migration path from Paragraphs)
 
-Participate in the discussion at [[META] Support component types other than SDC](https://www.drupal.org/project/experience_builder/issues/3454519), where we are preparing for these to be added in the future.
+Participate in the discussion at [[META] Support component types other than SDC](https://www.drupal.org/project/canvas/issues/3454519), where we are preparing for these to be added in the future.
 

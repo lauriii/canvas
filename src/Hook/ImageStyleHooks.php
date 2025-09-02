@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
-use Drupal\experience_builder\Entity\ParametrizedImageStyle;
+use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\image\Entity\ImageStyle;
 
 final class ImageStyleHooks {
@@ -19,8 +19,8 @@ final class ImageStyleHooks {
     if ($style instanceof ParametrizedImageStyle) {
       return;
     }
-    if ($style->id() === 'xb_parametrized_width') {
-      ParametrizedImageStyle::load('xb_parametrized_width')?->flush($path);
+    if ($style->id() === 'canvas_parametrized_width') {
+      ParametrizedImageStyle::load('canvas_parametrized_width')?->flush($path);
     }
   }
 

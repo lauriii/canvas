@@ -1,6 +1,6 @@
 # Each config entity type that opts to support versioning SHOULD contain values of its versioned properties for prior
 # (non-active) versions. This allows the rest of the system to gradually adopt newer versions of config entities.
-# @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase
+# @see \Drupal\canvas\Entity\VersionedConfigEntityBase
 # @todo Evaluate moving this into Drupal core in https://www.drupal.org/i/3528134
 versioned_config_entity:
   type: config_entity
@@ -18,8 +18,8 @@ versioned_config_entity:
       # - MUST contain the `active_version`.
       # - the order SHOULD be reverse chronological: the first one is the newest version and is always named `active`,
       # the last one is the oldest
-      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::createVersion()
-      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
+      # @see \Drupal\canvas\Entity\VersionedConfigEntityBase::createVersion()
+      # @see \Drupal\canvas\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
       orderby: ~
       sequence:
         label: 'Version-specific properties (keys are versions)'
@@ -30,11 +30,11 @@ versioned_config_entity:
         SequenceKeysMatchRegex:
           pattern: '/^[a-z0-9]{3,}$/'
           message: "The %value key is not a valid version."
-        # @todo Uncomment this in https://www.drupal.org/project/experience_builder/issues/3526703
+        # @todo Uncomment this in https://www.drupal.org/project/canvas/issues/3526703
         #AtLeastOneOf:
         #  constraints:
         #    - Choice:
-        #      # @see \Drupal\experience_builder\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
+        #      # @see \Drupal\canvas\Entity\VersionedConfigEntityBase::ACTIVE_VERSION
         #      choices:
         #        - active
         #    - SequenceKeysMatchRegex:

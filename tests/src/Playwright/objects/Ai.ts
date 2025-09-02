@@ -14,7 +14,7 @@ export class Ai {
   async submitQuery(query: string) {
     await this.page.getByRole('textbox', { name: 'Build me a' }).fill(query);
     await this.page
-      .getByTestId('xb-ai-panel')
+      .getByTestId('canvas-ai-panel')
       .getByRole('button')
       .nth(1)
       .click();

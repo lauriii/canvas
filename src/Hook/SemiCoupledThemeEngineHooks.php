@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Render\Element;
 use Drupal\Core\Form\FormStateInterface;
@@ -12,16 +12,16 @@ use Drupal\Core\Hook\Attribute\Hook;
  * @file
  * Hook implementations that make the Semi-Coupled theme engine work.
  *
- * @see https://www.drupal.org/project/issues/experience_builder?component=Semi-Coupled+theme+engine
+ * @see https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine
  * @see docs/semi-coupled-theme-engine.md
- * @see \Drupal\experience_builder\Hook\SemiCoupledThemeEngineForceTwigHooks
+ * @see \Drupal\canvas\Hook\SemiCoupledThemeEngineForceTwigHooks
  */
 class SemiCoupledThemeEngineHooks {
 
   /**
    * Implements hook_field_widget_complete_form_alter().
    *
-   * Provide additional context to experience_builder_theme_suggestions_alter().
+   * Provide additional context to canvas_theme_suggestions_alter().
    */
   #[Hook('field_widget_complete_form_alter')]
   public function fieldWidgetCompleteFormAlter(array &$field_widget_complete_form, FormStateInterface $form_state, array $context): void {

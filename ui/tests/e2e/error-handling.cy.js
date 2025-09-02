@@ -1,10 +1,10 @@
 describe('Error handling', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -17,19 +17,19 @@ describe('Error handling', () => {
     // Note the times: 1 option, which ensures the request is only intercepted
     // once.
     cy.intercept(
-      { url: '**/xb/api/v0/layout/node/1', times: 1, method: 'GET' },
+      { url: '**/canvas/api/v0/layout/node/1', times: 1, method: 'GET' },
       { statusCode: 418 },
     );
-    cy.drupalRelativeURL('xb/node/1');
+    cy.drupalRelativeURL('canvas/node/1');
 
-    cy.findByTestId('xb-error-alert')
+    cy.findByTestId('canvas-error-alert')
       .should('exist')
       .invoke('text')
       .should('include', 'An unexpected error has occurred');
 
     // Click the reset button to clear the error, and confirm the error message
     // is no longer present.
-    cy.findByTestId('xb-error-reset').click();
+    cy.findByTestId('canvas-error-reset').click();
     cy.contains('An unexpected error has occurred').should('not.exist');
   });
 
@@ -40,7 +40,7 @@ describe('Error handling', () => {
       return false;
     });
 
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.findByLabelText('Title').should('exist');
     cy.intercept(
       '**/session/token**',
@@ -59,19 +59,19 @@ describe('Error handling', () => {
     // Additional editing will trigger a request to a resource that is now
     // unavailable due to being logged out.
     cy.findByLabelText('Title').type('something');
-    cy.get('[data-testid="xb-error-alert"] h1').should(
+    cy.get('[data-testid="canvas-error-alert"] h1').should(
       'include.text',
       'An unexpected error has occurred',
     );
-    cy.get('[data-testid="xb-error-alert"] p').should(
+    cy.get('[data-testid="canvas-error-alert"] p').should(
       'include.text',
       'Error 401: You must be logged in to access this resource.',
     );
     cy.get(
-      '[data-testid="xb-error-alert"] [data-testid="xb-error-reset"]',
+      '[data-testid="canvas-error-alert"] [data-testid="canvas-error-reset"]',
     ).should('include.text', 'Go to login');
     cy.get(
-      '[data-testid="xb-error-alert"] [data-testid="xb-error-reset"]',
+      '[data-testid="canvas-error-alert"] [data-testid="canvas-error-reset"]',
     ).click();
     cy.url().should('contain', 'user/login');
   });

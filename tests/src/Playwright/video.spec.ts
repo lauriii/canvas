@@ -8,11 +8,11 @@ import { Drupal } from './objects/Drupal';
 
 test.describe('Video Component', () => {
   test.beforeAll(
-    'Setup test site with Experience Builder',
+    'Setup test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules(['experience_builder']);
+      await drupal.installModules(['canvas']);
       await page.close();
     },
   );
@@ -23,14 +23,14 @@ test.describe('Video Component', () => {
     xBEditor,
   }) => {
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('Video Test', '/video-test');
+    await drupal.createCanvasPage('Video Test', '/video-test');
     await page.goto('/video-test');
     await xBEditor.goToEditor();
     let previewFrame;
 
     const moduleDir = await getModuleDir();
     const code = await readFile(
-      `${moduleDir}/experience_builder/tests/fixtures/code_components/videos/Video.jsx`,
+      `${moduleDir}/canvas/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
     await xBEditor.createCodeComponent('Video', code);
@@ -75,7 +75,7 @@ test.describe('Video Component', () => {
     // @todo Regular .click() doesn't work for some reason.
     await page.evaluate(() => {
       const button = document.querySelector(
-        '[data-drupal-selector^="edit-xb-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
+        '[data-drupal-selector^="edit-canvas-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
       );
 
       ['mousedown', 'mouseup', 'click'].forEach((eventType) => {
@@ -91,7 +91,7 @@ test.describe('Video Component', () => {
     });
     await expect(
       page.locator(
-        '[data-drupal-selector^="edit-xb-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
+        '[data-drupal-selector^="edit-canvas-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
       ),
     ).not.toBeVisible();
 
@@ -108,7 +108,7 @@ test.describe('Video Component', () => {
     );
     await expect(
       page.locator(
-        '[data-drupal-selector^="edit-xb-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
+        '[data-drupal-selector^="edit-canvas-component-props-"][data-drupal-selector$="-video-0-remove-button"]',
       ),
     ).toBeVisible();
 
@@ -135,7 +135,7 @@ test.describe('Video Component', () => {
   }) => {
     await drupal.applyRecipe('core/recipes/local_video_media_type');
     await drupal.loginAsAdmin();
-    await drupal.createXbPage('Video Media Test', '/video-media-test');
+    await drupal.createCanvasPage('Video Media Test', '/video-media-test');
     await page.goto('/video-media-test');
     await xBEditor.goToEditor();
 
@@ -144,7 +144,7 @@ test.describe('Video Component', () => {
     // Also, if test retries occur then we can't assume that the test above has run.
     const moduleDir = await getModuleDir();
     const code = await readFile(
-      `${moduleDir}/experience_builder/tests/fixtures/code_components/videos/Video.jsx`,
+      `${moduleDir}/canvas/tests/fixtures/code_components/videos/Video.jsx`,
       'utf-8',
     );
     await xBEditor.createCodeComponent('VideoMedia', code);

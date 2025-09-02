@@ -1,7 +1,7 @@
 {
-  "name": "@drupal/experience_builder",
-  "description": "A React application powering the Experience Builder UI.",
-  "homepage": "https://www.drupal.org/project/experience_builder",
+  "name": "@drupal-canvas/ui",
+  "description": "A React application powering the Drupal Canvas UI.",
+  "homepage": "https://www.drupal.org/project/canvas",
   "private": true,
   "workspaces": [
     "lib/astro-hydration"

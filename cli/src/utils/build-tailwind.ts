@@ -1,13 +1,13 @@
 import { compileCss, extractClassNameCandidates } from 'tailwindcss-in-browser';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { upsertClassNameCandidatesInComment } from '@drupal/experience_builder/features/code-editor/utils/classNameCandidates';
+import { upsertClassNameCandidatesInComment } from '@drupal-canvas/ui/features/code-editor/utils/classNameCandidates';
 import { getConfig } from '../config';
 import {
   cleanUpCacheDirectory,
   copyLocalJsSource,
-  downloadJsSourceFromXB,
-  XB_CACHE_DIR,
+  downloadJsSourceFromCanvas,
+  CANVAS_CACHE_DIR,
 } from './process-cache-dir';
 import { transformCss } from '../lib/transform-css';
 import type { Component } from '../types/Component';
@@ -19,18 +19,18 @@ export async function getAllClassNameCandidatesFromCacheDir(
   localComponentsToCopy: string[],
 ) {
   if (Object.keys(componentsToDownload).length > 0) {
-    // Download the JS source of all online code components to ~/.xb.
-    await downloadJsSourceFromXB(componentsToDownload);
+    // Download the JS source of all online code components to ~/.canvas.
+    await downloadJsSourceFromCanvas(componentsToDownload);
   }
-  // Copy local JS source files to ~/.xb.
+  // Copy local JS source files to ~/.canvas.
   await copyLocalJsSource(localComponentsToCopy);
 
-  const cacheEntries = await fs.readdir(XB_CACHE_DIR, {
+  const cacheEntries = await fs.readdir(CANVAS_CACHE_DIR, {
     withFileTypes: true,
   });
   const cacheDirs = cacheEntries
     .filter((entry) => entry.isDirectory())
-    .map((dir) => path.join(XB_CACHE_DIR, dir.name));
+    .map((dir) => path.join(CANVAS_CACHE_DIR, dir.name));
 
   let allClassNameCandidates: string[] = [];
 

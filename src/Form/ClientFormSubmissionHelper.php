@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Form;
+namespace Drupal\canvas\Form;
 
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;

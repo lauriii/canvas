@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropShape;
+namespace Drupal\canvas\PropShape;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 
 /**
  * A prop shape: a normalized component prop's JSON schema.
@@ -46,7 +46,7 @@ final class PropShape {
    * @param JsonSchema $schema
    * @return JsonSchema
    *
-   * @see \Drupal\experience_builder\Plugin\Adapter\AdapterBase::resolveSchemaReferences
+   * @see \Drupal\canvas\Plugin\Adapter\AdapterBase::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
     if (isset($schema['$ref'])) {
@@ -69,7 +69,7 @@ final class PropShape {
   /**
    * @param \Drupal\Core\Plugin\Component $component
    *
-   * @return \Drupal\experience_builder\PropShape\PropShape[]
+   * @return \Drupal\canvas\PropShape\PropShape[]
    */
   public static function getComponentProps(Component $component): array {
     return self::getComponentPropsForMetadata($component->getPluginId(), $component->metadata);
@@ -79,7 +79,7 @@ final class PropShape {
    * @param string $plugin_id
    * @param \Drupal\Core\Theme\Component\ComponentMetadata $metadata
    *
-   * @return \Drupal\experience_builder\PropShape\PropShape[]
+   * @return \Drupal\canvas\PropShape\PropShape[]
    */
   public static function getComponentPropsForMetadata(string $plugin_id, ComponentMetadata $metadata): array {
     $prop_shapes = [];
@@ -95,7 +95,7 @@ final class PropShape {
       // as it's initialized by default.
       // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
       // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
-      // @see `xb_test_sdc:attributes` component template as an example for
+      // @see `canvas_test_sdc:attributes` component template as an example for
       // how to initialize the `Attribute`-typed prop.
       if (in_array(Attribute::class, $prop_schema['type'], TRUE)) {
         continue;
@@ -137,7 +137,7 @@ final class PropShape {
     unset($normalized_prop_schema['examples']);
     unset($normalized_prop_schema['meta:enum']);
     unset($normalized_prop_schema['x-translation-context']);
-    // @todo Add support to `SDC` for `default` in https://www.drupal.org/project/experience_builder/issues/3462705?
+    // @todo Add support to `SDC` for `default` in https://www.drupal.org/project/canvas/issues/3462705?
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);
 

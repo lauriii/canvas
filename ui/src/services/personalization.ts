@@ -10,20 +10,20 @@ export const personalizationApi = createApi({
   endpoints: (builder) => ({
     // Get all segments
     getSegments: builder.query<Record<string, Segment>, void>({
-      query: () => '/xb/api/v0/config/segment',
+      query: () => '/canvas/api/v0/config/segment',
       providesTags: [{ type: 'Segment', id: 'LIST' }],
     }),
 
     // Get individual segment
     getSegment: builder.query<Segment, string>({
-      query: (id) => `/xb/api/v0/config/segment/${id}`,
+      query: (id) => `/canvas/api/v0/config/segment/${id}`,
       providesTags: (result, error, id) => [{ type: 'Segment', id }],
     }),
 
     // Create new segment
     createSegment: builder.mutation<Segment, Partial<Segment>>({
       query: (segment) => ({
-        url: '/xb/api/v0/config/segment',
+        url: '/canvas/api/v0/config/segment',
         method: 'POST',
         body: segment,
       }),
@@ -36,7 +36,7 @@ export const personalizationApi = createApi({
       { id: string; changes: Partial<Segment> }
     >({
       query: ({ id, changes }) => ({
-        url: `/xb/api/v0/config/segment/${id}`,
+        url: `/canvas/api/v0/config/segment/${id}`,
         method: 'PATCH',
         body: { ...changes, id },
       }),
@@ -50,7 +50,7 @@ export const personalizationApi = createApi({
     // Delete segment
     deleteSegment: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/xb/api/v0/config/segment/${id}`,
+        url: `/canvas/api/v0/config/segment/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, id) => [

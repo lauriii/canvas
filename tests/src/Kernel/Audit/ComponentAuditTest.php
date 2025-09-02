@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Audit;
+namespace Drupal\Tests\canvas\Kernel\Audit;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Extension\ModuleInstallerInterface;
-use Drupal\experience_builder\Audit\ComponentAudit;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Entity\Pattern;
+use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Audit\ComponentAudit
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Audit\ComponentAudit
+ * @group canvas
  * @todo Improve in
- *   https://www.drupal.org/project/experience_builder/issues/3522953
+ *   https://www.drupal.org/project/canvas/issues/3522953
  */
 class ComponentAuditTest extends ComponentAuditTestBase {
 
@@ -29,7 +29,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
    */
   public function testGetContentRevisionsUsingComponent(): void {
     $audit = $this->container->get(ComponentAudit::class);
-    $component = Component::load('sdc.xb_test_sdc.my-cta');
+    $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(1, $component->getVersions());
     $old_version = $component->getActiveVersion();
@@ -46,12 +46,12 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $page->set('components', [])->save();
     $page->save();
 
-    // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
+    // Now enable the 'canvas_test_storage_prop_shape_alter' module to change the
     // field type used for populating the href prop.
-    // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
-      ->install(['xb_test_storage_prop_shape_alter']);
-    $component = Component::load('sdc.xb_test_sdc.my-cta');
+      ->install(['canvas_test_storage_prop_shape_alter']);
+    $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(2, $component->getVersions());
     $new_version = $component->getActiveVersion();
@@ -117,7 +117,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
    */
   public function testGetConfigEntityDependenciesUsingComponent(string $config_entity_type_id): void {
     $audit = $this->container->get(ComponentAudit::class);
-    $component = Component::load('sdc.xb_test_sdc.my-cta');
+    $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(1, $component->getVersions());
     $old_version = $component->getActiveVersion();
@@ -130,12 +130,12 @@ class ComponentAuditTest extends ComponentAuditTestBase {
       default => throw new \InvalidArgumentException()
     };
 
-    // Now enable the 'xb_test_storage_prop_shape_alter' module to change the
+    // Now enable the 'canvas_test_storage_prop_shape_alter' module to change the
     // field type used for populating the href prop.
-    // @see \Drupal\xb_test_storage_prop_shape_alter\Hook\XbTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
-      ->install(['xb_test_storage_prop_shape_alter']);
-    $component = Component::load('sdc.xb_test_sdc.my-cta');
+      ->install(['canvas_test_storage_prop_shape_alter']);
+    $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(2, $component->getVersions());
     $new_version = $component->getActiveVersion();

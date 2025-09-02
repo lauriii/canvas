@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
-use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\canvas\Entity\PageRegion;
 
 /**
  * Tests the component tree aspects of the PageRegion config entity type.
  *
- * @group experience_builder
- * @coversDefaultClass \Drupal\experience_builder\Entity\PageRegion
+ * @group canvas
+ * @coversDefaultClass \Drupal\canvas\Entity\PageRegion
  */
 final class PageRegionComponentTreeTest extends ConfigWithComponentTreeTestBase {
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Element;
+namespace Drupal\canvas\Element;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Attribute\RenderElement;
@@ -83,7 +83,7 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
   }
 
   public static function handleComponentException(\Throwable $e, string $componentContext, bool $isPreview, string $componentUuid): array {
-    \Drupal::logger('experience_builder')->error(\sprintf('%s occurred during rendering of component %s in %s: %s', $e::class, $componentUuid, $componentContext, $e->getMessage()));
+    \Drupal::logger('canvas')->error(\sprintf('%s occurred during rendering of component %s in %s: %s', $e::class, $componentUuid, $componentContext, $e->getMessage()));
     if ($isPreview) {
       return [
         '#type' => 'container',

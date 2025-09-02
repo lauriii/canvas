@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Entity;
+namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Pattern;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
@@ -16,16 +16,16 @@ use Drupal\user\UserInterface;
 /**
  * Tests JavascriptComponent access.
  *
- * @group experience_builder
- * @covers \Drupal\experience_builder\Entity\JavaScriptComponent
- * @covers \Drupal\experience_builder\EntityHandlers\XbConfigEntityAccessControlHandler
+ * @group canvas
+ * @covers \Drupal\canvas\Entity\JavaScriptComponent
+ * @covers \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
  */
 final class JavascriptComponentAccessTest extends KernelTestBase {
 
   use UserCreationTrait;
 
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'user',
     'system',
     'datetime',

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\XbAssetInterface;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
- * @covers \Drupal\experience_builder\EntityHandlers\XbAssetStorage
- * @covers \Drupal\experience_builder\Entity\AssetLibrary
- * @group experience_builder
+ * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage
+ * @covers \Drupal\canvas\Entity\AssetLibrary
+ * @group canvas
  * @internal
  */
 class AssetLibraryStorageTest extends KernelTestBase {
@@ -22,10 +22,10 @@ class AssetLibraryStorageTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['canvas'];
 
   /**
-   * @covers \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
+   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
    */
   public function testGeneratedFiles(): void {
     $asset_library = AssetLibrary::create([
@@ -43,7 +43,7 @@ class AssetLibraryStorageTest extends KernelTestBase {
     $this->assertGeneratedFiles($asset_library);
   }
 
-  protected function assertGeneratedFiles(XbAssetInterface $entity): void {
+  protected function assertGeneratedFiles(CanvasAssetInterface $entity): void {
     $this->assertTrue($entity->isNew());
 
     // Before saving, the corresponding files do not yet exist.

@@ -2,35 +2,35 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\PropShape\StorablePropShape;
-use Drupal\experience_builder\PropSource\StaticPropSource;
-use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\canvas\PropSource\StaticPropSource;
+use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 class PropShapeRepositoryTest extends KernelTestBase {
 
@@ -45,13 +45,13 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'system',
     'user',
     // The module being tested.
-    'experience_builder',
+    'canvas',
     // The dependent modules.
     'sdc',
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
-    'xb_test_sdc',
+    'canvas_test_sdc',
     // Modules providing field types and widgets that the PropShapes are using.
     'ckeditor5',
     'datetime',
@@ -75,8 +75,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // @see core/modules/system/config/install/core.date_format.html_datetime.yml
     // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeDefaultWidget::formElement()
     $this->installConfig(['system']);
-    // @see config/install/image.style.xb_parametrized_width.yml
-    $this->installConfig(['experience_builder']);
+    // @see config/install/image.style.canvas_parametrized_width.yml
+    $this->installConfig(['canvas']);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
   }
@@ -91,7 +91,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
 
     $components = $sdc_manager->getAllComponents();
     // Shape matching is only ever relevant to SDCs that may appear in the UI,
-    // and hence also in XB. Omit SDCs with `noUi: true`.
+    // and hence also in Canvas. Omit SDCs with `noUi: true`.
     $components = array_filter(
       $components,
       fn (ComponentPlugin $c) => (property_exists($c->metadata, 'noUi') && $c->metadata->noUi === FALSE)
@@ -107,8 +107,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         // make sense.
         if ($prop_shape->schema['type'] === 'object' && !array_key_exists('$ref', $prop_shape->schema) && empty($prop_shape->schema['properties'] ?? [])) {
           // @see core/modules/system/tests/modules/sdc_test/components/array-to-object/array-to-object.component.yml
-          // @see tests/modules/xb_test_sdc/components/props-invalid-shapes/props-invalid-shapes.component.yml
-          assert($component->getPluginId() === 'sdc_test:array-to-object' || $component->getPluginId() === 'xb_test_sdc:props-invalid-shapes');
+          // @see tests/modules/canvas_test_sdc/components/props-invalid-shapes/props-invalid-shapes.component.yml
+          assert($component->getPluginId() === 'sdc_test:array-to-object' || $component->getPluginId() === 'canvas_test_sdc:props-invalid-shapes');
           continue;
         }
 
@@ -118,8 +118,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
     ksort($unique_prop_shapes);
     $unique_prop_shapes = array_values($unique_prop_shapes);
     $this->assertEquals([
-      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']]),
-      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100], 'maxItems' => 100, 'minItems' => 2]),
@@ -129,21 +129,21 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
-      new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://experience_builder.module/column-width']),
+      new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
       new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
       new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
       new PropShape(['type' => 'integer', 'minimum' => 0]),
       new PropShape(['type' => 'integer', 'minimum' => 1]),
       new PropShape(['type' => 'number']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
+      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
+      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
+      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       new PropShape(['type' => 'string']),
-      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/heading-element']),
-      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
-      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri']),
-      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/textarea']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
@@ -199,7 +199,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
   }
 
   /**
-   * @return \Drupal\experience_builder\PropShape\StorablePropShape[]
+   * @return \Drupal\canvas\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
     return [
@@ -213,12 +213,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
         fieldWidget: 'number',
       ),
-      'type=integer&$ref=json-schema-definitions://experience_builder.module/column-width' => new StorablePropShape(
+      'type=integer&$ref=json-schema-definitions://canvas.module/column-width' => new StorablePropShape(
         shape: new PropShape(['type' => 'integer', 'enum' => [25, 33, 50, 66, 75]]),
         fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=integer&maximum=2147483648&minimum=-2147483648' => new StorablePropShape(
@@ -256,12 +256,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'image_image',
       ),
       // ⚠️Identical to the above, because `$ref` resolves to the above.
-      'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new StorablePropShape(
+      'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
         fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
         fieldWidget: 'image_image',
       ),
-      'type=string&$ref=json-schema-definitions://experience_builder.module/stream-wrapper-image-uri' => new StorablePropShape(
+      'type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
         fieldTypeProp: new ReferenceFieldTypePropExpression(
           referencer: new FieldTypePropExpression('image', 'entity'),
@@ -269,8 +269,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ),
         fieldWidget: 'image_image',
       ),
-      'type=object&$ref=json-schema-definitions://experience_builder.module/image' => new StorablePropShape(
-        shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
+      'type=object&$ref=json-schema-definitions://canvas.module/image' => new StorablePropShape(
+        shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -279,8 +279,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ]),
         fieldWidget: 'image_image',
       ),
-      'type=object&$ref=json-schema-definitions://experience_builder.module/video' => new StorablePropShape(
-        new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
+      'type=object&$ref=json-schema-definitions://canvas.module/video' => new StorablePropShape(
+        new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
         fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
           'src' => new ReferenceFieldTypePropExpression(
             new FieldTypePropExpression('file', 'entity'),
@@ -290,12 +290,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldInstanceSettings: ['file_extensions' => 'mp4'],
         fieldWidget: 'file_generic',
       ),
-      'type=string&$ref=json-schema-definitions://experience_builder.module/heading-element' => new StorablePropShape(
+      'type=string&$ref=json-schema-definitions://canvas.module/heading-element' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'enum' => ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=foo&enum[1]=bar' => new StorablePropShape(
@@ -306,7 +306,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=_blank&enum[1]=_parent&enum[2]=_self&enum[3]=_top' => new StorablePropShape(
@@ -317,7 +317,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=auto&enum[1]=manual' => new StorablePropShape(
@@ -328,7 +328,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=default&enum[1]=primary&enum[2]=success&enum[3]=neutral&enum[4]=warning&enum[5]=danger&enum[6]=text' => new StorablePropShape(
@@ -339,7 +339,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=full&enum[1]=wide&enum[2]=normal&enum[3]=narrow' => new StorablePropShape(
@@ -350,7 +350,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=lazy&enum[1]=eager' => new StorablePropShape(
@@ -361,7 +361,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=moon-stars-fill&enum[1]=moon-stars&enum[2]=star-fill&enum[3]=star&enum[4]=stars&enum[5]=rocket-fill&enum[6]=rocket-takeoff-fill&enum[7]=rocket-takeoff&enum[8]=rocket' => new StorablePropShape(
@@ -372,7 +372,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=prefix&enum[1]=suffix' => new StorablePropShape(
@@ -383,7 +383,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=primary&enum[1]=secondary' => new StorablePropShape(
@@ -394,7 +394,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=primary&enum[1]=success&enum[2]=neutral&enum[3]=warning&enum[4]=danger' => new StorablePropShape(
@@ -405,7 +405,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=primary&enum[1]=secondary&enum[2]=tertiary' => new StorablePropShape(
@@ -416,7 +416,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=small&enum[1]=medium&enum[2]=large' => new StorablePropShape(
@@ -427,7 +427,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=top&enum[1]=bottom&enum[2]=start&enum[3]=end' => new StorablePropShape(
@@ -438,7 +438,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=power&enum[1]=like&enum[2]=external' => new StorablePropShape(
@@ -449,7 +449,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&format=uri' => new StorablePropShape(
@@ -507,8 +507,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',
       ),
-      'type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
+      'type=string&$ref=json-schema-definitions://canvas.module/textarea' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/textarea']),
         fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
         fieldWidget: 'string_textarea',
       ),
@@ -518,7 +518,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'text_textarea',
         fieldInstanceSettings: [
           'allowed_formats' => [
-            'xb_html_block',
+            'canvas_html_block',
           ],
         ],
       ),
@@ -528,7 +528,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'text_textarea',
         fieldInstanceSettings: [
           'allowed_formats' => [
-            'xb_html_block',
+            'canvas_html_block',
           ],
         ],
       ),
@@ -538,7 +538,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'text_textfield',
         fieldInstanceSettings: [
           'allowed_formats' => [
-            'xb_html_inline',
+            'canvas_html_inline',
           ],
         ],
       ),
@@ -550,7 +550,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=array&items[type]=integer' => new StorablePropShape(
@@ -565,8 +565,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         cardinality: 2,
         fieldWidget: 'number',
       ),
-      'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'], 'maxItems' => 2]),
+      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -576,8 +576,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
         cardinality: 2,
         fieldWidget: 'image_image',
       ),
-      'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object' => new StorablePropShape(
-        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']]),
+      'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']]),
         fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
           'src' => new FieldTypePropExpression('image', 'src_with_alternate_widths'),
           'alt' => new FieldTypePropExpression('image', 'alt'),
@@ -603,7 +603,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=_self&enum[1]=_blank' => new StorablePropShape(
@@ -611,7 +611,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=horizontal&enum[1]=vertical' => new StorablePropShape(
@@ -619,7 +619,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=small&enum[1]=big&enum[2]=huge' => new StorablePropShape(
@@ -627,7 +627,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
       'type=string&enum[0]=small&enum[1]=big&enum[2]=huge&enum[3]=contains.dots' => new StorablePropShape(
@@ -635,14 +635,14 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
         fieldStorageSettings: [
-          'allowed_values_function' => 'experience_builder_load_allowed_values_for_component_prop',
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
     ];
   }
 
   /**
-   * @return \Drupal\experience_builder\PropShape\PropShape[]
+   * @return \Drupal\canvas\PropShape\PropShape[]
    */
   public static function getExpectedUnstorablePropShapes(): array {
     return [
@@ -650,7 +650,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=array&items[type]=integer&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
-      'type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),
+      'type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Duration->value]),
       'type=string&format=hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Hostname->value]),
       'type=string&format=idn-hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IdnHostname->value]),
@@ -739,7 +739,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
 
   /**
    * @depends testStorablePropShapes
-   * @param \Drupal\experience_builder\PropShape\StorablePropShape[] $storable_prop_shapes
+   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
    */
   public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
     $this->assertNotEmpty($storable_prop_shapes);
@@ -747,7 +747,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     // A StaticPropSource is never rendered in an abstract context; it's always
     // rendered for a concrete component's prop. So, this test should do the
     // same.
-    // @see \Drupal\experience_builder\Form\ComponentInstanceForm
+    // @see \Drupal\canvas\Form\ComponentInstanceForm
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     $components = $sdc_manager->getAllComponents();
     $some_sdc_prop_for_unique_prop_shape = [];
@@ -837,9 +837,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
 
   /**
    * @depends testStorablePropShapes
-   * @param \Drupal\experience_builder\PropShape\StorablePropShape[] $storable_prop_shapes
+   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
    *
-   * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+   * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
    */
   public function testAllWidgetsForPropShapesHaveTransforms(array $storable_prop_shapes): void {
     self::assertNotEmpty($storable_prop_shapes);
@@ -853,8 +853,8 @@ class PropShapeRepositoryTest extends KernelTestBase {
       $widget_plugin_id = $storable_prop_shape->fieldWidget;
       self::assertArrayHasKey($widget_plugin_id, $definitions);
       $definition = $definitions[$widget_plugin_id];
-      self::assertArrayHasKey('xb', $definition, \sprintf('Found transform for %s', $widget_plugin_id));
-      self::assertArrayHasKey('transforms', $definition['xb']);
+      self::assertArrayHasKey('canvas', $definition, \sprintf('Found transform for %s', $widget_plugin_id));
+      self::assertArrayHasKey('transforms', $definition['canvas']);
     }
   }
 

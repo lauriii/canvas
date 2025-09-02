@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit\TypedData;
+namespace Drupal\Tests\canvas\Unit\TypedData;
 
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\TypedData\LinkUrl;
+use Drupal\canvas\TypedData\LinkUrl;
 use Drupal\link\LinkItemInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentInputs
- * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentInputsDependenciesTest
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @see \Drupal\Tests\canvas\Kernel\DataType\ComponentInputsDependenciesTest
+ * @group canvas
  */
 class LinkUrlTest extends UnitTestCase {
 

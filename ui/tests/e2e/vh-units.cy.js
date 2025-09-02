@@ -1,10 +1,10 @@
 describe('Vh units should not cause issues', () => {
   before(() => {
-    cy.drupalXbInstall(['xb_test_vh_preview']);
+    cy.drupalCanvasInstall(['canvas_test_vh_preview']);
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -12,7 +12,7 @@ describe('Vh units should not cause issues', () => {
   });
 
   it('does not continually increase the height of the iframe when there are elements that have height defined in vh units', () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Hero').click();
     cy.get('.primaryPanelContent').findByText('VH Half').click();

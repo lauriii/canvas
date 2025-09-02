@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\StructuredData;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -39,7 +39,7 @@ final class Evaluator {
   private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): mixed {
     // Evaluating an expression when the evaluation context is NULL is
     // impossible.
-    // @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::isSupported()
+    // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::isSupported()
     if ($entity_or_field === NULL) {
       return match ($is_required) {
         // Optional value: the expression evaluates to NULL.
@@ -123,7 +123,7 @@ final class Evaluator {
               assert(is_string($expr->propName) || (is_array($expr->propName) && is_array($expr->fieldName)));
               $prop_name = match (TRUE) {
                 is_string($expr->propName) => $expr->propName,
-                // @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
+                // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
                 // @phpstan-ignore-next-line offsetAccess.notFound
                 is_array($expr->propName) => $expr->propName[$expr->fieldName[$entity->bundle()]],
               };
@@ -131,7 +131,7 @@ final class Evaluator {
               // an entity type and a subset of those bundles' fields cannot
               // provide the needed value, it is allowed to explicitly opt out
               // using `␀`.
-              // @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::__construct()
+              // @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
               if ($prop_name === StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {
                 return NULL;
               }

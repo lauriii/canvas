@@ -23,7 +23,7 @@ export default function ComponentData({
         return;
       }
       switch (event.data?.type) {
-        case '_xb_useswr_data_fetch':
+        case '_canvas_useswr_data_fetch':
           dispatch(
             addDataFetch({
               id: event.data.id,
@@ -32,7 +32,7 @@ export default function ComponentData({
             }),
           );
           break;
-        case '_xb_useswr_error':
+        case '_canvas_useswr_error':
           dispatch(
             addDataFetch({
               id: event.data.id,

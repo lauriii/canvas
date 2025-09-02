@@ -44,11 +44,11 @@ export function getGroupLabel(entityType: string): string {
   switch (entityType) {
     case 'node':
       return 'Content';
-    case 'xb_page':
+    case 'canvas_page':
       return 'Pages';
     case 'js_component':
       return 'Components';
-    case 'xb_asset_library':
+    case 'asset_library':
       return 'Assets';
     case 'page_region':
       return 'Regions';
@@ -78,7 +78,7 @@ export const getTimeAgo = (timestamp: number) => {
 
   // If the date is older than 1 month, use "dd MMM" format
   if (monthsDifference >= 1) {
-    // @todo Implement Drupal-Specific Date Formatting(https://www.drupal.org/project/experience_builder/issues/3493779)
+    // @todo Implement Drupal-Specific Date Formatting(https://www.drupal.org/project/canvas/issues/3493779)
     return format(inputDate, 'd MMM');
   }
 

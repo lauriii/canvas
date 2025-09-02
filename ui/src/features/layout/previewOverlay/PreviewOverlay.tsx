@@ -9,7 +9,7 @@ import clsx from 'clsx';
 const PreviewOverlay: React.FC = () => {
   return (
     <div
-      id="xbPreviewOverlay"
+      id="canvasPreviewOverlay"
       className={clsx('previewOverlay', styles.overlay)}
     ></div>
   );

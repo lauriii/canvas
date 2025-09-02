@@ -1,0 +1,22 @@
+canvas_ai.canvas_builder:
+  path: '/admin/api/canvas/ai'
+  defaults:
+    _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::render'
+  requirements:
+    _permission: 'use Drupal Canvas ai'
+
+canvas_ai.csrf_token:
+  path: '/admin/api/canvas/token'
+  defaults:
+    _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::getCsrfToken'
+  requirements:
+    _permission: 'use Drupal Canvas ai'
+    _method: 'POST'
+
+canvas_ai.component_description_settings:
+  path: '/admin/config/system/canvas-ai-component-description-settings'
+  defaults:
+    _title: 'Canvas AI Component Description Settings Form'
+    _form: 'Drupal\canvas_ai\Form\CanvasAiComponentDescriptionSettingsForm'
+  requirements:
+    _permission: 'administer components'

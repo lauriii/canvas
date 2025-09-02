@@ -26,7 +26,7 @@ export const InputBehaviorsEntityForm = (
   );
 
   const { attributes } = props;
-  const fieldName = attributes.name || attributes['data-xb-name'];
+  const fieldName = attributes.name || attributes['data-canvas-name'];
   if (!['changed', 'externalUpdates'].includes(fieldName)) {
     let newValue = pageData[fieldName] || null;
 
@@ -39,7 +39,7 @@ export const InputBehaviorsEntityForm = (
       newValue = formState.form_build_id;
     }
 
-    const elementType = attributes.type || attributes['data-xb-type'];
+    const elementType = attributes.type || attributes['data-canvas-type'];
     if (!['radio', 'hidden', 'submit'].includes(elementType as string)) {
       attributes.value = newValue;
     }

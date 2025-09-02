@@ -66,8 +66,8 @@ const testCss = {
 
 describe('The Scope CSS utility', () => {
   beforeEach(() => {
-    cy.drupalXbInstall();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalCanvasInstall();
+    cy.drupalLogin('canvasUser', 'canvasUser');
     // Intercept allowing us to load CSS from the `testCSS` object declared
     // above as if it were loading file contents.
     cy.intercept(`/test-css/*`, (req) => {
@@ -91,7 +91,7 @@ describe('The Scope CSS utility', () => {
       .trim();
 
   it('Wraps styles and accounts for top level selectors', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     cy.waitForElementsToStabilize('[data-dialog-style-from]');
     cy.window().then((win) => {
@@ -138,7 +138,7 @@ describe('The Scope CSS utility', () => {
   });
 
   it('Handles CSS variables and :root', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.get('[data-dialog-style-from]').should('exist');
     cy.waitForElementsToStabilize('[data-dialog-style-from]');
     // Add a class to the AJAX added CSS on load to distinguish them from the

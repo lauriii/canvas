@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
@@ -10,10 +10,10 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Controller\ApiLayoutController;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
@@ -21,40 +21,40 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\ClientDataToEntityConverter;
-use Drupal\experience_builder\Controller\EntityFormTrait;
-use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\experience_builder\Render\PreviewEnvelope;
+use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\Controller\EntityFormTrait;
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
-use Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks;
+use Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @group experience_builder
+ * @group canvas
  * @group #slow
  */
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
-  use XBFieldTrait {
+  use CanvasFieldTrait {
     getValidClientJson as traitGetValidClientJson;
   }
   use ConstraintViolationsTestTrait;
@@ -69,7 +69,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   public function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
     $this->setUpImages();
     $other_user = $this->createUser();
     assert($other_user instanceof User);
@@ -108,16 +108,16 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       $workflow = $this->createEditorialWorkflow();
       $this->addEntityTypeAndBundleToWorkflow($workflow, 'node', 'article');
       $permissions = \array_keys(\Drupal::classResolver(Permissions::class)->transitionPermissions());
-      $xb_role = Role::load('xb');
-      \assert($xb_role instanceof RoleInterface);
+      $canvas_role = Role::load('canvas');
+      \assert($canvas_role instanceof RoleInterface);
       foreach ($permissions as $permission) {
-        $xb_role->grantPermission($permission)->save();
+        $canvas_role->grantPermission($permission)->save();
       }
     }
     // Add a multi-value date and time field.
     $date = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', '2025-04-01T04:15:00');
     \assert($date instanceof \DateTimeImmutable);
-    $date_field = 'field_xbt_datetime_timestamp';
+    $date_field = 'field_cvt_datetime_timestamp';
     self::assertNull(FieldStorageConfig::loadByName('node', $date_field));
     FieldStorageConfig::create([
       'field_name' => $date_field,
@@ -151,7 +151,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
     $account = $this->createUser(values: [
       'roles' => [
-        'xb',
+        'canvas',
       ],
     ]);
     \assert($account instanceof AccountInterface);
@@ -166,13 +166,13 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
 
     $single_propless_component_client_json = $valid_client_json;
-    $component = Component::load('sdc.xb_test_sdc.druplicon');
+    $component = Component::load('sdc.canvas_test_sdc.druplicon');
     $propless_uuid = '4ad36179-a9bd-4bc8-8a4a-241e73dbed25';
     $single_propless_component_client_json['layout']['components'] = [
       [
         'nodeType' => 'component',
         'uuid' => $propless_uuid,
-        'type' => 'sdc.xb_test_sdc.druplicon@8fe3be948e0194e1',
+        'type' => 'sdc.canvas_test_sdc.druplicon@8fe3be948e0194e1',
         'slots' => [],
       ],
     ];
@@ -184,7 +184,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       [],
       'The updated title.'
     );
-    $item_list = $node->get('field_xb_demo');
+    $item_list = $node->get('field_canvas_demo');
     \assert($item_list instanceof ComponentTreeItemList);
     $item = $item_list->getComponentTreeItemByUuid($propless_uuid);
     \assert($item instanceof ComponentTreeItem);
@@ -207,7 +207,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
         'model.' . self::TEST_IMAGE_UUID . '.image' => 'The property image is required.',
       ],
-      // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
+      // The error above happens in `\Drupal\canvas\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.'
     );
@@ -217,7 +217,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertConvert(
       $invalid_heading_client_json,
       ['model.' . self::TEST_HEADING_UUID . '.style' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "not-a-style".'],
-      // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
+      // The error above happens in `\Drupal\canvas\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.',
     );
@@ -230,7 +230,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         'model.' . self::TEST_HEADING_UUID . '.text' => 'The property text is required.',
         'model.' . self::TEST_HEADING_UUID . '.element' => 'The property element is required.',
       ],
-      // The error above happens in `\Drupal\experience_builder\Controller\ClientServerConversionTrait::convertClientToServer()`
+      // The error above happens in `\Drupal\canvas\Controller\ClientServerConversionTrait::convertClientToServer()`
       // therefore the title, as well as other entity fields will not be updated.
       'The original title.',
     );
@@ -360,7 +360,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $this->assertConvert(
       $invalid_form_callback_client_json,
       [
-        'field_xbt_datetime_timestamp.1.value' => 'The Date-time (value 2) date is invalid. Enter a date in the correct format.',
+        'field_cvt_datetime_timestamp.1.value' => 'The Date-time (value 2) date is invalid. Enter a date in the correct format.',
       ],
       // Other valid entity values should be updated for storage in the
       // auto-save store, otherwise there is no change to detect when generating
@@ -385,11 +385,11 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'Modified!',
     );
 
-    $this->container->get('module_installer')->install(['xb_test_article_fields']);
-    // Remove the field_xbt_textarea_summary field installed by
-    // xb_test_article_fields because it is not used in the test and causes
+    $this->container->get('module_installer')->install(['canvas_test_article_fields']);
+    // Remove the field_cvt_textarea_summary field installed by
+    // canvas_test_article_fields because it is not used in the test and causes
     // unrelated validation errors.
-    $field = FieldConfig::load('node.article.field_xbt_textarea_summary');
+    $field = FieldConfig::load('node.article.field_cvt_textarea_summary');
     if ($field) {
       $field->delete();
     }
@@ -405,34 +405,34 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
     // Assert we get access error when the user cannot view the field but the
     // set value is the same as the current value.
-    $no_view_field_access_client_json['entity_form_fields']['field_xbt_comment[0][status]'] = 2;
+    $no_view_field_access_client_json['entity_form_fields']['field_cvt_comment[0][status]'] = 2;
     $test_node = $this->createTestNode();
     /** @var \Drupal\comment\CommentFieldItemList $comment_field */
-    $comment_field = $test_node->get('field_xbt_comment');
+    $comment_field = $test_node->get('field_cvt_comment');
     /** @var \Drupal\comment\Plugin\Field\FieldType\CommentItem $first_comment */
     $first_comment = $comment_field->first();
     $this->assertSame(2, $first_comment->get('status')->getValue());
     $this->assertFalse($comment_field->access('view'));
     $this->assertConvert(
       $no_view_field_access_client_json,
-      ['entity_form_fields.field_xbt_comment' => "The current user is not allowed to update the field 'field_xbt_comment'."],
+      ['entity_form_fields.field_cvt_comment' => "The current user is not allowed to update the field 'field_cvt_comment'."],
       'The updated title.',
       $test_node
     );
 
     // Assert we get access error when the user cannot view the field but the
     // set value is different from the current value.
-    $no_view_field_access_client_json['entity_form_fields']['field_xbt_comment[0][status]'] = 1;
+    $no_view_field_access_client_json['entity_form_fields']['field_cvt_comment[0][status]'] = 1;
     $test_node = $this->createTestNode();
     /** @var \Drupal\comment\CommentFieldItemList $comment_field */
-    $comment_field = $test_node->get('field_xbt_comment');
+    $comment_field = $test_node->get('field_cvt_comment');
     /** @var \Drupal\comment\Plugin\Field\FieldType\CommentItem $first_comment */
     $first_comment = $comment_field->first();
     $this->assertFalse($comment_field->access('view'));
     $this->assertSame(2, $first_comment->get('status')->getValue());
     $this->assertConvert(
       $no_view_field_access_client_json,
-      ['entity_form_fields.field_xbt_comment' => "The current user is not allowed to update the field 'field_xbt_comment'."],
+      ['entity_form_fields.field_cvt_comment' => "The current user is not allowed to update the field 'field_cvt_comment'."],
       'The updated title.',
       $test_node
     );
@@ -450,7 +450,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   /**
    * Tests that the 'changed' field from the client ignored.
    *
-   * \Drupal\experience_builder\ClientDataToEntityConverter::convert() will
+   * \Drupal\canvas\ClientDataToEntityConverter::convert() will
    * automatically update the `changed` field because it creates a form object
    * submits the form.
    *
@@ -460,7 +460,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   public function testClientChangedTimeIgnored(): void {
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    \Drupal::keyValue('xb_test_time')->set('request_time', TestTime::$requestTime);
+    \Drupal::keyValue('canvas_test_time')->set('request_time', TestTime::$requestTime);
     $client_json = $this->getValidClientJson(FALSE);
     // Ensure the server will ignore the value in the 'changed' field by sending
     // a non-int value.
@@ -491,7 +491,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       ...$carry,
       $field->getName() => $field->getValue(),
     ], []);
-    unset($node_values['field_xb_demo']);
+    unset($node_values['field_canvas_demo']);
     if (!\Drupal::currentUser()->hasPermission('create url aliases')) {
       unset($node_values['path']);
     }
@@ -545,7 +545,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'uid' => $this->otherUser->id(),
       'type' => 'article',
       'title' => 'The original title.',
-      'field_xb_demo' => [
+      'field_canvas_demo' => [
         'tree' => [
           ComponentTreeItemList::ROOT_UUID => [],
         ],
@@ -563,8 +563,8 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   }
 
   public function testBooleanCheckboxesNotForBooleanField(): void {
-    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_article_fields']);
-    \Drupal::keyValue(XbTestArticleFieldsHooks::XB_STATE)->set(XbTestArticleFieldsHooks::GRAVY_STATE, TRUE);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_test_article_fields']);
+    \Drupal::keyValue(CanvasTestArticleFieldsHooks::CANVAS_STATE)->set(CanvasTestArticleFieldsHooks::GRAVY_STATE, TRUE);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
     $this->setupCurrentUser(permissions: [
@@ -575,7 +575,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     ]);
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $node->id(),
       'entity_type' => 'node',
     ]);
@@ -584,16 +584,16 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $json = \json_decode($response->getContent() ?: '', TRUE, \JSON_THROW_ON_ERROR);
-    self::assertEquals(TRUE, $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY]);
+    self::assertEquals(TRUE, $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY]);
     self::assertNull($autoSave->getAutoSaveEntity($node)->entity);
-    self::assertEquals('XB Needs This For The Time Being', $json['entity_form_fields']['title[0][value]']);
+    self::assertEquals('Canvas Needs This For The Time Being', $json['entity_form_fields']['title[0][value]']);
 
     // Uncheck this checkbox. This should change the (auto-saved) entity title.
-    // @see \Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks::xbPageEntityGravyBuilder()
-    $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY] = FALSE;
+    // @see \Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks::canvasPageEntityGravyBuilder()
+    $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY] = FALSE;
     unset($json['isNew'], $json['isPublished'], $json['html']);
     $json += $this->getPostContentsDefaults($node);
-    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
+    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $autoSaveEntity = $autoSave->getAutoSaveEntity($node)->entity;
     // @phpstan-ignore-next-line
@@ -601,11 +601,11 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     self::assertSame('Gravy!', $autoSaveEntity->label());
 
     // Re-check it. This should change the (auto-saved) entity title again.
-    // @see \Drupal\xb_test_article_fields\Hook\XbTestArticleFieldsHooks::xbPageEntityGravyBuilder()
-    $json['entity_form_fields'][XbTestArticleFieldsHooks::NO_MORE_GRAVY] = TRUE;
+    // @see \Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks::canvasPageEntityGravyBuilder()
+    $json['entity_form_fields'][CanvasTestArticleFieldsHooks::NO_MORE_GRAVY] = TRUE;
     unset($json['isNew'], $json['isPublished'], $json['html']);
     $json += $this->getPostContentsDefaults($node);
-    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
+    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', server: ['CONTENT_TYPE' => 'application/json'], content: \json_encode($json, \JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $autoSaveEntity = $autoSave->getAutoSaveEntity($node)->entity;
     // @phpstan-ignore-next-line

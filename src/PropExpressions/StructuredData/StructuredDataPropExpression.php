@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\StructuredData;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 final class StructuredDataPropExpression {
 
@@ -14,7 +14,7 @@ final class StructuredDataPropExpression {
    * @param string $representation
    *   The string representation of a structured data expression object.
    *
-   * @return \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
+   * @return \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
    */
   public static function fromString(string $representation): StructuredDataPropExpressionInterface {
     $root_expr = self::parseRootExpression($representation);

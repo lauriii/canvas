@@ -17,7 +17,7 @@ export default function Image(
       try {
         // Parse the `alternateWidths` query string parameter from `src`.
         // Example `src` value:
-        // /sites/default/files/2025-07/maple-street.jpg?alternateWidths=/sites/default/files/styles/xb_parametrized_width--{width}/public/2025-07/maple-street.jpg.webp?itok=…
+        // /sites/default/files/2025-07/maple-street.jpg?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--{width}/public/2025-07/maple-street.jpg.webp?itok=…
         // A base URL is passed to the `URL` constructor to handle the relative
         // path. This is only so we can easily parse the
         let result = new URL(src, 'https://example.com').searchParams.get(

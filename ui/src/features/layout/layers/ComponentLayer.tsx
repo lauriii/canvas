@@ -120,9 +120,9 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       ref={setNodeRef}
       role="treeitem"
       aria-roledescription="Draggable component"
-      data-xb-uuid={componentId}
-      data-xb-type={component.nodeType}
-      data-xb-selected={isSelected}
+      data-canvas-uuid={componentId}
+      data-canvas-type={component.nodeType}
+      data-canvas-selected={isSelected}
       onClick={handleItemClick}
       onDragStart={handleItemDragStart}
       onContextMenu={handleContextMenu}
@@ -131,16 +131,16 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
     >
       <ComponentContextMenu component={component}>
         <Collapsible.Root
-          className="xb--collapsible-root"
+          className="canvas--collapsible-root"
           open={!isCollapsed}
           onOpenChange={handleOpenChange}
-          data-xb-uuid={component.uuid}
+          data-canvas-uuid={component.uuid}
         >
           <SidebarNode
             id={`layer-${componentId}-name`}
             onMouseEnter={handleItemMouseEnter}
             onMouseLeave={handleItemMouseLeave}
-            className="xb-drag-handle"
+            className="canvas-drag-handle"
             title={nodeName}
             variant="component"
             hovered={isHovered}
@@ -157,7 +157,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
               <Flex>
                 <Box
                   width={`calc(${indent} * var(--space-2))`}
-                  className="xb-layer-indent"
+                  className="canvas-layer-indent"
                 />
                 <Box width="var(--space-4)" mr="1">
                   {component.slots.length > 0 ? (

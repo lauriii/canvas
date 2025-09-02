@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem;

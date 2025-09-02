@@ -9,7 +9,7 @@ export const validateMachineNameClientSide = (name: string) => {
   if (/^\d/.test(cleanedName)) {
     return 'Name cannot start with a number';
   }
-  // @see Regex from config/schema/experience_builder.schema.yml#experience_builder.js_component.*.
+  // @see Regex from config/schema/canvas.schema.yml#canvas.js_component.*.
   if (!/^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/.test(cleanedName)) {
     return 'Special characters are not allowed. Name cannot start or end with a hyphen, underscore, or whitespace.';
   }

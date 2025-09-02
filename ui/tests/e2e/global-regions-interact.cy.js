@@ -1,14 +1,14 @@
 // cspell:ignore macbook
 describe('Operate on components + interact in global regions', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
     cy.drupalEnableTheme('olivero');
-    cy.drupalEnableThemeForXb('olivero');
+    cy.drupalEnableThemeForCanvas('olivero');
     cy.viewport('macbook-13');
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -19,13 +19,13 @@ describe('Operate on components + interact in global regions', () => {
     'Can interact with components in global regions',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForCanvasLoaded();
       cy.findByTestId('scale-to-fit').click();
       cy.findByLabelText('Select zoom level').realClick({ force: true });
       cy.get('[role="option"]').contains('50%').click();
-      cy.get('#xbPreviewOverlay').realMouseWheel({ deltaY: -5 });
+      cy.get('#canvasPreviewOverlay').realMouseWheel({ deltaY: -5 });
 
-      cy.get('#xbPreviewOverlay .xb--viewport-overlay')
+      cy.get('#canvasPreviewOverlay .canvas--viewport-overlay')
         .first()
         .as('desktopPreviewOverlay');
       cy.get('.primaryPanelContent').as('layersTree');
@@ -41,7 +41,7 @@ describe('Operate on components + interact in global regions', () => {
 
       cy.get('@layersTree').findAllByText('Hero').first().click();
 
-      cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
+      cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
       cy.log(
         'Move static hero component out of the content region into the highlighted region.',
       );
@@ -58,16 +58,16 @@ describe('Operate on components + interact in global regions', () => {
       let lgPreviewRect = {};
       // Enter the iframe to find an element in the preview iframe and hover over it.
       cy.waitForElementInIframe(
-        '[data-xb-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1',
+        '[data-canvas-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1',
       );
       cy.getIframeBody()
-        // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup
-        .find('[data-xb-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1')
+        // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup
+        .find('[data-canvas-uuid="208452de-10d6-4fb8-89a1-10e340b3744c"] h1')
         .first()
         .then(($h1) => {
           // While in the iframe, get the dimensions of the component so we can
           // compare the outline dimensions to it
-          const $item = $h1.closest('[data-xb-uuid]');
+          const $item = $h1.closest('[data-canvas-uuid]');
           lgPreviewRect = $item[0].getBoundingClientRect();
         });
 

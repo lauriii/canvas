@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\Routing\RouteSubscriberBase;
-use Drupal\experience_builder\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Symfony\Component\Routing\RouteCollection;
 
 /**

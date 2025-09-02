@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Core\Extension\Exception\UnknownExtensionException;
 use Drupal\Core\Extension\Exception\UnknownExtensionTypeException;

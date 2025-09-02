@@ -3,60 +3,66 @@ describe('Empty preview', () => {
     // Unlike most tests, we are installing drupal before each it() as that has
     // demonstrated to be the only reliable way to get tests after the first
     // passing consistently. This occurs regardless of which test runs first.
-    cy.drupalXbInstall(['metatag']);
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalCanvasInstall(['metatag']);
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   afterEach(() => {
     cy.drupalUninstall();
   });
 
-  // @todo test 'xb/page', 'xb/page/2' once XB router isn't tied to URL path
-  //   matching the /xb/{entity_type}/{entity_id} pattern and relies only on
-  //   what exists in `drupalSettings.xb` instead.
-  //   Fix after https://www.drupal.org/project/experience_builder/issues/3489775
-  it(`xb/node/2 can add a component to an empty preview`, () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+  // @todo test 'canvas/page', 'canvas/page/2' once Canvas router isn't tied to URL path
+  //   matching the /canvas/{entity_type}/{entity_id} pattern and relies only on
+  //   what exists in `drupalSettings.canvas` instead.
+  //   Fix after https://www.drupal.org/project/canvas/issues/3489775
+  it(`canvas/node/2 can add a component to an empty preview`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');
 
     // Confirm there is nothing in the preview.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should('not.exist');
+    cy.get('.canvas--viewport-overlay [data-canvas-component-id]').should(
+      'not.exist',
+    );
 
     // For good measure, also confirm the content of the hero component is not
     // in the preview.
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
 
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
+    cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
       'not.exist',
     );
     cy.openLibraryPanel();
 
     // This is the component to be dragged in.
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
+    cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
+      'exist',
+    );
 
-    cy.waitForElementInIframe('.xb--region-empty-placeholder');
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
+    cy.waitForElementInIframe('.canvas--region-empty-placeholder');
+    cy.get(
+      '[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
+    ).realClick();
 
     cy.log('The hero component is now in the iframe');
 
     // The overlay now has a component.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
+    cy.get('.canvas--viewport-overlay [data-canvas-component-id]').should(
       'have.length',
       1,
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-component-id="xb_test_sdc:my-hero"]').should(
+      cy.get('[data-component-id="canvas_test_sdc:my-hero"]').should(
         'have.length',
         1,
       );
     });
   });
 
-  it(`xb/xb_page/2 can add a component to an empty preview`, () => {
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/xb_page/2' });
+  it(`canvas/canvas_page/2 can add a component to an empty preview`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');
@@ -67,34 +73,40 @@ describe('Empty preview', () => {
     cy.get('#edit-seo-settings #edit-description-wrapper').should('exist');
 
     // Confirm there is nothing in the preview.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should('not.exist');
+    cy.get('.canvas--viewport-overlay [data-canvas-component-id]').should(
+      'not.exist',
+    );
 
     // For good measure, also confirm the content of the hero component is not
     // in the preview.
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
 
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
+    cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
       'not.exist',
     );
     cy.openLibraryPanel();
 
     // This is the component to be dragged in.
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
+    cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
+      'exist',
+    );
 
-    cy.waitForElementInIframe('.xb--region-empty-placeholder');
+    cy.waitForElementInIframe('.canvas--region-empty-placeholder');
 
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
+    cy.get(
+      '[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
+    ).realClick();
 
     cy.log('The hero component is now in the iframe');
 
     // The overlay now has a component.
-    cy.get('.xb--viewport-overlay [data-xb-component-id]').should(
+    cy.get('.canvas--viewport-overlay [data-canvas-component-id]').should(
       'have.length',
       1,
     );
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.getIframeBody().within(() => {
-      cy.get('[data-component-id="xb_test_sdc:my-hero"]').should(
+      cy.get('[data-component-id="canvas_test_sdc:my-hero"]').should(
         'have.length',
         1,
       );

@@ -1,7 +1,0 @@
-name: Experience Builder Test Extension
-type: module
-description: 'Test extension functionality'
-package: Testing
-core_version_requirement: ^10 | ^11
-dependencies:
-  - experience_builder:experience_builder

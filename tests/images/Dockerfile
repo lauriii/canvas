@@ -27,8 +27,8 @@ RUN cd ui && npm install && cd ../
 RUN composer create-project drupal/recommended-project _drupal
 RUN cd _drupal && \
     composer config minimum-stability dev && \
-    composer require drupal/core-dev "drupal/experience_builder @dev" drush/drush --with-all-dependencies && \
-    cd web/modules/contrib/experience_builder && \
+    composer require drupal/core-dev "drupal/canvas @dev" drush/drush --with-all-dependencies && \
+    cd web/modules/contrib/canvas && \
     composer run install-dev-deps && \
     cd ../../../../../
 

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\experience_builder\Entity\Pattern;
+use Drupal\canvas\Entity\Pattern;
 
 /**
  * Tests the component tree aspects of the Pattern config entity type.
  *
- * @group experience_builder
- * @coversDefaultClass \Drupal\experience_builder\Entity\Pattern
+ * @group canvas
+ * @coversDefaultClass \Drupal\canvas\Entity\Pattern
  */
 final class PatternComponentTreeTest extends ConfigWithComponentTreeTestBase {
 

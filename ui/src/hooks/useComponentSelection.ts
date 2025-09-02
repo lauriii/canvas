@@ -16,9 +16,9 @@ import {
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { selectDevMode } from '@/features/configuration/configurationSlice';
-import { getXbSettings } from '@/utils/drupal-globals';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
-const xbSettings = getXbSettings();
+const canvasSettings = getCanvasSettings();
 
 /**
  * Filters out any components that are parents or children of components in the selection
@@ -73,7 +73,7 @@ function filterParentChildRelationships(
  * Hook for component selection functionality.
  * Handles selecting and deselecting components, managing multi-selection and ensuring the page URL is updated to
  * show the selectedComponent (when there is exactly one selected)
- * Also exposes functions to drupalSettings.xb.componentSelectionUtils for extensions to use.
+ * Also exposes functions to drupalSettings.canvas.componentSelectionUtils for extensions to use.
  */
 export function useComponentSelection() {
   const layout = useAppSelector(selectLayout);
@@ -262,7 +262,7 @@ export function useComponentSelection() {
   };
 
   // Add to Drupal settings for external access by extensions etc
-  xbSettings.componentSelectionUtils = componentSelectionUtils;
+  canvasSettings.componentSelectionUtils = componentSelectionUtils;
 
   return componentSelectionUtils;
 }

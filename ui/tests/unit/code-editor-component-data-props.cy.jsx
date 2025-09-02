@@ -89,15 +89,15 @@ describe('Component data / props in code editor', () => {
     cy.findAllByLabelText('Type').last().click();
     cy.findByText('List: text').click();
     cy.findByText('Add value').click();
-    cy.findAllByTestId(/xb-prop-enum-value-[0-9a-f-]+-\d/)
+    cy.findAllByTestId(/canvas-prop-enum-value-[0-9a-f-]+-\d/)
       .last()
       .type('Alpha');
     cy.findByText('Add value').click();
-    cy.findAllByTestId(/xb-prop-enum-value-[0-9a-f-]+-\d/)
+    cy.findAllByTestId(/canvas-prop-enum-value-[0-9a-f-]+-\d/)
       .last()
       .type('Bravo');
     cy.findByText('Add value').click();
-    cy.findAllByTestId(/xb-prop-enum-value-[0-9a-f-]+-\d/)
+    cy.findAllByTestId(/canvas-prop-enum-value-[0-9a-f-]+-\d/)
       .last()
       .type('Charlie');
     cy.findByLabelText('Default value').click();
@@ -446,7 +446,7 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Default value').should('not.exist');
 
       // Type a value, make sure "Default value" is shown.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('Alpha');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('Alpha');
       cy.findByLabelText('Default value').should('exist');
       cy.wrap(store).then((store) => {
         expect(
@@ -455,7 +455,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Clear the value, make sure "Default value" is not shown.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).clear();
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).clear();
       cy.findByLabelText('Default value').should('not.exist');
       cy.wrap(store).then((store) => {
         expect(
@@ -464,11 +464,11 @@ describe('Component data / props in code editor', () => {
       });
 
       // Type a value, then add two more values.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('Alpha');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('Alpha');
       cy.findByText('Add value').click();
-      cy.findByTestId(`xb-prop-enum-value-${propId}-1`).type('Bravo');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).type('Bravo');
       cy.findByText('Add value').click();
-      cy.findByTestId(`xb-prop-enum-value-${propId}-2`).type('Charlie');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-2`).type('Charlie');
       cy.wrap(store).then((store) => {
         expect(
           selectCodeComponentProperty('props')(store.getState())[0].enum,
@@ -495,7 +495,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Clear the first value that is also currently the selected default value.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).clear();
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).clear();
       // Verify that the default value is now the second value, and that the
       // dropdown has the remaining values.
       cy.findByLabelText('Default value').should('have.text', 'Bravo');
@@ -530,7 +530,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Modify the third value.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-2`).type('Zulu');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-2`).type('Zulu');
       // The default value should change to the first valid value (currently the
       // second) after the previous default value was modified.
       cy.findByLabelText('Default value').should('have.text', 'Bravo');
@@ -547,7 +547,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Modify the second value — currently default.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-1`).type('Yankee');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).type('Yankee');
       // The modified version should become the new default value, because it
       // happens to be the first valid value.
       cy.findByLabelText('Default value').should('have.text', 'BravoYankee');
@@ -565,12 +565,12 @@ describe('Component data / props in code editor', () => {
 
       // Delete the first value. The previously second value should become the
       // first. Similarly, the previously third value should now be the second.
-      cy.findByTestId(`xb-prop-enum-value-delete-${propId}-0`).click();
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).should(
+      cy.findByTestId(`canvas-prop-enum-value-delete-${propId}-0`).click();
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).should(
         'have.value',
         'BravoYankee',
       );
-      cy.findByTestId(`xb-prop-enum-value-${propId}-1`).should(
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).should(
         'have.value',
         'CharlieZulu',
       );
@@ -589,7 +589,7 @@ describe('Component data / props in code editor', () => {
       // Delete the first value. It was previously used as the default value,
       // but is now deleted, so make sure the default value is updated to the
       // new first valid value.
-      cy.findByTestId(`xb-prop-enum-value-delete-${propId}-0`).click();
+      cy.findByTestId(`canvas-prop-enum-value-delete-${propId}-0`).click();
       cy.findByLabelText('Default value').should('have.text', 'CharlieZulu');
       cy.wrap(store).then((store) => {
         expect(
@@ -604,7 +604,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Modify the first value. Make sure the default value follows it.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('XRay');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('XRay');
       cy.findByLabelText('Default value').should(
         'have.text',
         'CharlieZuluXRay',
@@ -625,7 +625,7 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Required').toggleToggle();
       // Modify the first value. The default value should now be removed, as the
       // prop is not required, and the previously set default value was modified.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('Whiskey');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('Whiskey');
       cy.findByLabelText('Default value').should('have.text', '- None -');
       cy.wrap(store).then((store) => {
         expect(
@@ -660,7 +660,7 @@ describe('Component data / props in code editor', () => {
 
       // Delete the one last remaining value. "Default value" should not be
       // visible, as there are no values left.
-      cy.findByTestId(`xb-prop-enum-value-delete-${propId}-0`).click();
+      cy.findByTestId(`canvas-prop-enum-value-delete-${propId}-0`).click();
       cy.findByLabelText('Default value').should('not.exist');
       cy.wrap(store).then((store) => {
         expect(
@@ -702,16 +702,16 @@ describe('Component data / props in code editor', () => {
       cy.findByLabelText('Default value').should('not.exist');
 
       // Ensure we can't type a string value.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type(
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type(
         'Typing an invalid string value with hopefully no effect',
       );
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).should(
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).should(
         'have.value',
         '',
       );
 
       // Type a value, make sure "Default value" is shown.
-      cy.findByTestId(`xb-prop-enum-value-${propId}-0`).type('1');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('1');
       cy.findByLabelText('Default value').should('exist');
       cy.wrap(store).then((store) => {
         expect(
@@ -743,7 +743,7 @@ describe('Component data / props in code editor', () => {
 
       // Add a second value.
       cy.findByText('Add value').click();
-      cy.findByTestId(`xb-prop-enum-value-${propId}-1`).type('2');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).type('2');
       cy.wrap(store).then((store) => {
         expect(
           selectCodeComponentProperty('props')(store.getState())[0],
@@ -772,7 +772,7 @@ describe('Component data / props in code editor', () => {
       });
 
       // Delete the second value.
-      cy.findByTestId(`xb-prop-enum-value-delete-${propId}-1`).click();
+      cy.findByTestId(`canvas-prop-enum-value-delete-${propId}-1`).click();
       // The default value should now be the first value.
       cy.findByLabelText('Default value').should('have.text', '1');
       cy.wrap(store).then((store) => {
@@ -796,7 +796,7 @@ describe('Component data / props in code editor', () => {
     cy.findByLabelText('Type').click();
     cy.findByText('List: text').click();
     cy.findByText('Add value').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('Alpha');
+    cy.findByTestId(/canvas-prop-enum-value-[0-9a-f-]+-0/).type('Alpha');
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
@@ -806,7 +806,7 @@ describe('Component data / props in code editor', () => {
     // Change the type to List: integer. The enum value should be removed.
     cy.findByLabelText('Type').click();
     cy.findByText('List: integer').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
+    cy.findByTestId(/canvas-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
@@ -814,7 +814,7 @@ describe('Component data / props in code editor', () => {
     });
     // Add an enum value.
     cy.findByText('Add value').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).type('922');
+    cy.findByTestId(/canvas-prop-enum-value-[0-9a-f-]+-0/).type('922');
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
@@ -824,7 +824,7 @@ describe('Component data / props in code editor', () => {
     // Change the type to List: text. The enum value should be removed.
     cy.findByLabelText('Type').click();
     cy.findByText('List: text').click();
-    cy.findByTestId(/xb-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
+    cy.findByTestId(/canvas-prop-enum-value-[0-9a-f-]+-0/).should('not.exist');
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
@@ -988,7 +988,7 @@ describe('Component data / props in code editor', () => {
             alt: 'Example image placeholder',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/image',
+          $ref: 'json-schema-definitions://canvas.module/image',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1007,7 +1007,7 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: '',
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/image',
+          $ref: 'json-schema-definitions://canvas.module/image',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1037,7 +1037,7 @@ describe('Component data / props in code editor', () => {
             alt: 'Example image placeholder',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/image',
+          $ref: 'json-schema-definitions://canvas.module/image',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1070,7 +1070,7 @@ describe('Component data / props in code editor', () => {
             alt: 'Example image placeholder',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/image',
+          $ref: 'json-schema-definitions://canvas.module/image',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1101,7 +1101,7 @@ describe('Component data / props in code editor', () => {
             alt: 'Example image placeholder',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/image',
+          $ref: 'json-schema-definitions://canvas.module/image',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1131,7 +1131,7 @@ describe('Component data / props in code editor', () => {
             poster: 'https://placehold.co/1920x1080.png?text=Widescreen',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/video',
+          $ref: 'json-schema-definitions://canvas.module/video',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1148,7 +1148,7 @@ describe('Component data / props in code editor', () => {
           type: 'object',
           example: '',
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/video',
+          $ref: 'json-schema-definitions://canvas.module/video',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1172,7 +1172,7 @@ describe('Component data / props in code editor', () => {
             poster: 'https://placehold.co/1920x1080.png?text=Widescreen',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/video',
+          $ref: 'json-schema-definitions://canvas.module/video',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1196,7 +1196,7 @@ describe('Component data / props in code editor', () => {
             poster: 'https://placehold.co/1080x1920.png?text=Vertical',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/video',
+          $ref: 'json-schema-definitions://canvas.module/video',
         },
         'Should have the appropriate type, example value, and $ref',
       );
@@ -1221,7 +1221,7 @@ describe('Component data / props in code editor', () => {
             poster: 'https://placehold.co/1080x1920.png?text=Vertical',
           },
           format: undefined,
-          $ref: 'json-schema-definitions://experience_builder.module/video',
+          $ref: 'json-schema-definitions://canvas.module/video',
         },
         'Should have the appropriate type, example value, and $ref',
       );

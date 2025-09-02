@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Plugin\Component;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
-use Drupal\experience_builder\PropExpressions\Component\ComponentPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
@@ -33,8 +33,8 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  * is yielding similar or different field type matches.
  *
  * @see docs/data-model.md
- * @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
- * @group experience_builder
+ * @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest
+ * @group canvas
  */
 class PropShapeToFieldInstanceTest extends KernelTestBase {
 
@@ -49,7 +49,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     'system',
     'user',
     // The module being tested.
-    'experience_builder',
+    'canvas',
     // The dependent modules.
     'sdc',
     'file',
@@ -58,7 +58,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
-    'xb_test_sdc',
+    'canvas_test_sdc',
   ];
 
   /**
@@ -71,7 +71,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('media');
     $this->installEntitySchema('file');
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
   }
 
   /**
@@ -162,7 +162,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     $matches = [];
     $components = $sdc_manager->getAllComponents();
     // Shape matching is only ever relevant to SDCs that may appear in the UI,
-    // and hence also in XB. Omit SDCs with `noUi: true`.
+    // and hence also in Canvas. Omit SDCs with `noUi: true`.
     $components = array_filter(
       $components,
       fn (Component $c) => (property_exists($c->metadata, 'noUi') && $c->metadata->noUi === FALSE)
@@ -180,10 +180,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     ksort($components);
 
     // Removing some test components that have been enabled due to all SDCs now
-    // in xb_test_sdc module.
+    // in canvas_test_sdc module.
     $components_to_remove = ['crash', 'component-no-meta-enum', 'component-mismatch-meta-enum', 'empty-enum', 'deprecated', 'experimental', 'image-gallery', 'image-optional-with-example-and-additional-prop', 'obsolete', 'grid-container', 'html-invalid-format', 'my-cta', 'sparkline', 'sparkline_min_2', 'props-invalid-shapes', 'props-no-examples', 'props-no-slots', 'props-no-title', 'props-slots', 'image-optional-with-example', 'image-optional-without-example', 'image-required-with-example', 'image-required-with-invalid-example', 'image-required-without-example'];
     foreach ($components_to_remove as $key) {
-      unset($components['xb_test_sdc:' . $key]);
+      unset($components['canvas_test_sdc:' . $key]);
     }
 
     foreach ($components as $component) {
@@ -209,15 +209,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         $schema = $prop_shape->resolvedSchema;
 
         // 1. compute viable field type + storage settings + instance settings
-        // @see \Drupal\experience_builder\PropShape\StorablePropShape::toStaticPropSource()
-        // @see \Drupal\experience_builder\PropSource\StaticPropSource()
+        // @see \Drupal\canvas\PropShape\StorablePropShape::toStaticPropSource()
+        // @see \Drupal\canvas\PropSource\StaticPropSource()
         $storable_prop_shape = $prop_shape->getStorage();
         $primitive_type = JsonSchemaType::from($schema['type']);
         // 2. find matching field instances
-        // @see \Drupal\experience_builder\PropSource\DynamicPropSource
+        // @see \Drupal\canvas\PropSource\DynamicPropSource
         $instance_candidates = $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
         // 3. adapters.
-        // @see \Drupal\experience_builder\PropSource\AdaptedPropSource
+        // @see \Drupal\canvas\PropSource\AdaptedPropSource
         $adapter_output_matches = $matcher->findAdaptersByMatchingOutput($schema);
         $adapter_matches_field_type = [];
         $adapter_matches_instance = [];
@@ -246,7 +246,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         // representations of the discovered matches to compare against.
         // Note: this is actually already tested in PropShapeRepositoryTest in
         // detail, but this test tries to provide a comprehensive overview.
-        // @see \Drupal\Tests\experience_builder\Kernel\PropShapeRepositoryTest
+        // @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest
         $matches[$unique_match_key]['static prop source'] = $storable_prop_shape
           ? (string) $storable_prop_shape->fieldTypeProp
           : NULL;
@@ -268,11 +268,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
   public static function provider(): array {
     $cases = [];
 
-    $cases['XB example SDCs + all-props SDC, using ALL core-provided field types + media library without Image-powered media types'] = [
+    $cases['Canvas example SDCs + all-props SDC, using ALL core-provided field types + media library without Image-powered media types'] = [
       'modules' => [
         // The module providing the sample SDC to test all JSON schema types.
         'sdc_test_all_props',
-        'xb_test_sdc',
+        'canvas_test_sdc',
         // All other core modules providing field types.
         'comment',
         'datetime',
@@ -291,18 +291,18 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         // of the JsonSchemaFieldInstanceMatcher; it only affects
         // PropShape::getStorage(). Note that zero Image MediaSource-powered
         // Media Types are installed, hence the matching field instances for
-        // `$ref: json-schema-definitions://experience_builder.module/image` are
+        // `$ref: json-schema-definitions://canvas.module/image` are
         // image fields, not media reference fields!
         // @see media_library_storage_prop_shape_alter()
-        // @see \Drupal\experience_builder\PropShape\PropShape::getStorage()
-        // @see \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+        // @see \Drupal\canvas\PropShape\PropShape::getStorage()
+        // @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
         'media_library',
       ],
       'expected' => [
         'REQUIRED, type=integer' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card-with-remote-image␟width',
-            '⿲xb_test_sdc:card-with-remote-image␟height',
+            '⿲canvas_test_sdc:card-with-remote-image␟width',
+            '⿲canvas_test_sdc:card-with-remote-image␟height',
           ],
           'static prop source' => 'ℹ︎integer␟value',
           'instances' => [],
@@ -325,20 +325,20 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'REQUIRED, type=integer&$ref=json-schema-definitions://experience_builder.module/column-width' => [
+        'REQUIRED, type=integer&$ref=json-schema-definitions://canvas.module/column-width' => [
           'SDC props' => [
-            '⿲xb_test_sdc:two_column␟width',
+            '⿲canvas_test_sdc:two_column␟width',
           ],
           'static prop source' => 'ℹ︎list_integer␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'REQUIRED, type=object&$ref=json-schema-definitions://experience_builder.module/image' => [
+        'REQUIRED, type=object&$ref=json-schema-definitions://canvas.module/image' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card␟image',
-            '⿲xb_test_sdc:image␟image',
-            '⿲xb_test_sdc:image-srcset-candidate-template-uri␟image',
+            '⿲canvas_test_sdc:card␟image',
+            '⿲canvas_test_sdc:image␟image',
+            '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image',
           ],
           'static prop source' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           'instances' => [
@@ -364,9 +364,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'REQUIRED, type=object&$ref=json-schema-definitions://experience_builder.module/video' => [
+        'REQUIRED, type=object&$ref=json-schema-definitions://canvas.module/video' => [
           'SDC props' => [
-            '⿲xb_test_sdc:video␟video',
+            '⿲canvas_test_sdc:video␟video',
           ],
           'static prop source' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_videos|vacation_videos␝field_media_video_file|field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url}',
           'instances' => [
@@ -378,44 +378,44 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string' => [
           'SDC props' => [
+            '⿲canvas_test_sdc:attributes␟not_attributes',
+            '⿲canvas_test_sdc:card-with-local-image␟alt',
+            '⿲canvas_test_sdc:card-with-remote-image␟alt',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟alt',
+            '⿲canvas_test_sdc:heading␟text',
+            '⿲canvas_test_sdc:my-hero␟heading',
+            '⿲canvas_test_sdc:shoe_details␟summary',
+            '⿲canvas_test_sdc:shoe_tab␟label',
+            '⿲canvas_test_sdc:shoe_tab␟panel',
+            '⿲canvas_test_sdc:shoe_tab_panel␟name',
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string',
-            '⿲xb_test_sdc:attributes␟not_attributes',
-            '⿲xb_test_sdc:card-with-local-image␟alt',
-            '⿲xb_test_sdc:card-with-remote-image␟alt',
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟alt',
-            '⿲xb_test_sdc:heading␟text',
-            '⿲xb_test_sdc:my-hero␟heading',
-            '⿲xb_test_sdc:shoe_details␟summary',
-            '⿲xb_test_sdc:shoe_tab␟label',
-            '⿲xb_test_sdc:shoe_tab␟panel',
-            '⿲xb_test_sdc:shoe_tab_panel␟name',
           ],
           'static prop source' => 'ℹ︎string␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝title␞␟value',
             'ℹ︎␜entity:media:baby_videos␝name␞␟value',
             'ℹ︎␜entity:media:vacation_videos␝name␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value',
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
-            'ℹ︎␜entity:xb_page␝title␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'REQUIRED, type=string&$ref=json-schema-definitions://experience_builder.module/heading-element' => [
+        'REQUIRED, type=string&$ref=json-schema-definitions://canvas.module/heading-element' => [
           'SDC props' => [
-            '⿲xb_test_sdc:heading␟element',
+            '⿲canvas_test_sdc:heading␟element',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'REQUIRED, type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => [
+        'REQUIRED, type=string&$ref=json-schema-definitions://canvas.module/image-uri' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card-with-local-image␟src',
-            '⿲xb_test_sdc:card-with-remote-image␟src',
+            '⿲canvas_test_sdc:card-with-local-image␟src',
+            '⿲canvas_test_sdc:card-with-remote-image␟src',
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
           'instances' => [
@@ -437,9 +437,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'REQUIRED, type=string&$ref=json-schema-definitions://experience_builder.module/stream-wrapper-image-uri' => [
+        'REQUIRED, type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟src',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟src',
           ],
           'static prop source' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
           'instances' => [
@@ -477,7 +477,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=default&enum[1]=primary&enum[2]=success&enum[3]=neutral&enum[4]=warning&enum[5]=danger&enum[6]=text' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_button␟variant',
+            '⿲canvas_test_sdc:shoe_button␟variant',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -486,7 +486,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=full&enum[1]=wide&enum[2]=normal&enum[3]=narrow' => [
           'SDC props' => [
-            '⿲xb_test_sdc:one_column␟width',
+            '⿲canvas_test_sdc:one_column␟width',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -495,8 +495,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=lazy&enum[1]=eager' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card␟loading',
-            '⿲xb_test_sdc:card-with-local-image␟loading',
+            '⿲canvas_test_sdc:card␟loading',
+            '⿲canvas_test_sdc:card-with-local-image␟loading',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -505,7 +505,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=moon-stars-fill&enum[1]=moon-stars&enum[2]=star-fill&enum[3]=star&enum[4]=stars&enum[5]=rocket-fill&enum[6]=rocket-takeoff-fill&enum[7]=rocket-takeoff&enum[8]=rocket' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_icon␟name',
+            '⿲canvas_test_sdc:shoe_icon␟name',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -514,7 +514,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=primary&enum[1]=success&enum[2]=neutral&enum[3]=warning&enum[4]=danger' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_badge␟variant',
+            '⿲canvas_test_sdc:shoe_badge␟variant',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -523,7 +523,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&enum[0]=top&enum[1]=bottom&enum[2]=start&enum[3]=end' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_tab_group␟placement',
+            '⿲canvas_test_sdc:shoe_tab_group␟placement',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -536,7 +536,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
-            // @todo This includes relative URLs, fix in https://www.drupal.org/project/experience_builder/issues/3542895
+            // @todo This includes relative URLs, fix in https://www.drupal.org/project/canvas/issues/3542895
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
@@ -552,7 +552,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&format=uri-reference' => [
           'SDC props' => [
-            '⿲xb_test_sdc:my-hero␟cta1href',
+            '⿲canvas_test_sdc:my-hero␟cta1href',
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
@@ -571,22 +571,22 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'REQUIRED, type=string&minLength=2' => [
           'SDC props' => [
-            '⿲xb_test_sdc:my-section␟text',
+            '⿲canvas_test_sdc:my-section␟text',
           ],
           'static prop source' => 'ℹ︎string␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝title␞␟value',
             'ℹ︎␜entity:media:baby_videos␝name␞␟value',
             'ℹ︎␜entity:media:vacation_videos␝name␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value',
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
-            'ℹ︎␜entity:xb_page␝title␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'optional, type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2' => [
+        'optional, type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY',
           ],
@@ -614,7 +614,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
         'optional, type=array&items[type]=integer&maxItems=20&minItems=1' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems',
@@ -625,7 +625,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
         'optional, type=array&items[type]=integer&minItems=1' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minItems',
@@ -636,7 +636,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
         'optional, type=array&items[type]=integer&minItems=2' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple',
@@ -648,25 +648,35 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=boolean' => [
           'SDC props' => [
+            '⿲canvas_test_sdc:shoe_badge␟pill',
+            '⿲canvas_test_sdc:shoe_badge␟pulse',
+            '⿲canvas_test_sdc:shoe_button␟disabled',
+            '⿲canvas_test_sdc:shoe_button␟loading',
+            '⿲canvas_test_sdc:shoe_button␟outline',
+            '⿲canvas_test_sdc:shoe_button␟pill',
+            '⿲canvas_test_sdc:shoe_button␟circle',
+            '⿲canvas_test_sdc:shoe_details␟open',
+            '⿲canvas_test_sdc:shoe_details␟disabled',
+            '⿲canvas_test_sdc:shoe_tab␟active',
+            '⿲canvas_test_sdc:shoe_tab␟closable',
+            '⿲canvas_test_sdc:shoe_tab␟disabled',
+            '⿲canvas_test_sdc:shoe_tab_group␟no_scroll',
+            '⿲canvas_test_sdc:shoe_tab_panel␟active',
             '⿲sdc_test_all_props:all-props␟test_bool_default_false',
             '⿲sdc_test_all_props:all-props␟test_bool_default_true',
-            '⿲xb_test_sdc:shoe_badge␟pill',
-            '⿲xb_test_sdc:shoe_badge␟pulse',
-            '⿲xb_test_sdc:shoe_button␟disabled',
-            '⿲xb_test_sdc:shoe_button␟loading',
-            '⿲xb_test_sdc:shoe_button␟outline',
-            '⿲xb_test_sdc:shoe_button␟pill',
-            '⿲xb_test_sdc:shoe_button␟circle',
-            '⿲xb_test_sdc:shoe_details␟open',
-            '⿲xb_test_sdc:shoe_details␟disabled',
-            '⿲xb_test_sdc:shoe_tab␟active',
-            '⿲xb_test_sdc:shoe_tab␟closable',
-            '⿲xb_test_sdc:shoe_tab␟disabled',
-            '⿲xb_test_sdc:shoe_tab_group␟no_scroll',
-            '⿲xb_test_sdc:shoe_tab_panel␟active',
           ],
           'static prop source' => 'ℹ︎boolean␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝default_langcode␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝default_langcode␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_default␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝status␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝status␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_default␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝status␞␟value',
+            'ℹ︎␜entity:canvas_page␝status␞␟value',
             'ℹ︎␜entity:file␝status␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝status␞␟value',
@@ -709,16 +719,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:path_alias␝status␞␟value',
             'ℹ︎␜entity:user␝default_langcode␞␟value',
             'ℹ︎␜entity:user␝status␞␟value',
-            'ℹ︎␜entity:xb_page␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_default␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝status␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝status␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_default␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝default_langcode␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝status␞␟value',
-            'ℹ︎␜entity:xb_page␝status␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -729,6 +729,20 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎integer␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_created␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_created␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
             'ℹ︎␜entity:file␝filesize␞␟value',
@@ -793,20 +807,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:user␝changed␞␟value',
             'ℹ︎␜entity:user␝created␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_created␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_created␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapter_matches_field_type' => [
             'day_count' => [
@@ -842,6 +842,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎integer␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝access␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:media:baby_videos␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
@@ -858,10 +862,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:user␝access␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -877,7 +877,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=integer&minimum=1' => [
           'SDC props' => [
-            '⿲xb_test_sdc:video␟display_width',
+            '⿲canvas_test_sdc:video␟display_width',
           ],
           'static prop source' => 'ℹ︎integer␟value',
           'instances' => [],
@@ -890,6 +890,20 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎float␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_created␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_created␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝changed␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝created␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
             'ℹ︎␜entity:file␝changed␞␟value',
             'ℹ︎␜entity:file␝created␞␟value',
             'ℹ︎␜entity:file␝filesize␞␟value',
@@ -954,25 +968,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:user␝changed␞␟value',
             'ℹ︎␜entity:user␝created␞␟value',
             'ℹ︎␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_created␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝login␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_created␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝access␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝changed␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝created␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'optional, type=object&$ref=json-schema-definitions://experience_builder.module/image' => [
+        'optional, type=object&$ref=json-schema-definitions://canvas.module/image' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image',
           ],
@@ -999,16 +999,20 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'optional, type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => [
+        'optional, type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_button␟icon',
-            '⿲xb_test_sdc:shoe_details␟expand_icon',
-            '⿲xb_test_sdc:shoe_details␟collapse_icon',
+            '⿲canvas_test_sdc:shoe_button␟icon',
+            '⿲canvas_test_sdc:shoe_details␟expand_icon',
+            '⿲canvas_test_sdc:shoe_details␟collapse_icon',
           ],
           // As shoe-icon has a enum with an empty value, this won't be a valid
           // source.
           'static prop source' => NULL,
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝description␞␟{label↠value}',
+            'ℹ︎␜entity:canvas_page␝image␞␟{label↝entity␜␜entity:media␝revision_log_message␞␟value,slot↝entity␜␜entity:media␝name␞␟value}',
+            'ℹ︎␜entity:canvas_page␝revision_log␞␟{label↠value}',
+            'ℹ︎␜entity:canvas_page␝title␞␟{label↠value}',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{label↠description}',
             'ℹ︎␜entity:media:baby_videos␝name␞␟{label↠value}',
             'ℹ︎␜entity:media:baby_videos␝revision_log_message␞␟{label↠value}',
@@ -1021,15 +1025,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝title␞␟{label↠value}',
             'ℹ︎␜entity:path_alias␝alias␞␟{label↠value}',
             'ℹ︎␜entity:path_alias␝path␞␟{label↠value}',
-            'ℹ︎␜entity:xb_page␝description␞␟{label↠value}',
-            'ℹ︎␜entity:xb_page␝image␞␟{label↝entity␜␜entity:media␝revision_log_message␞␟value,slot↝entity␜␜entity:media␝name␞␟value}',
-            'ℹ︎␜entity:xb_page␝revision_log␞␟{label↠value}',
-            'ℹ︎␜entity:xb_page␝title␞␟{label↠value}',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'optional, type=object&$ref=json-schema-definitions://experience_builder.module/video' => [
+        'optional, type=object&$ref=json-schema-definitions://canvas.module/video' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_video',
           ],
@@ -1054,32 +1054,37 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string' => [
           'SDC props' => [
+            '⿲canvas_test_sdc:card␟heading',
+            '⿲canvas_test_sdc:card␟content',
+            '⿲canvas_test_sdc:card␟footer',
+            '⿲canvas_test_sdc:card␟sizes',
+            '⿲canvas_test_sdc:card-with-local-image␟heading',
+            '⿲canvas_test_sdc:card-with-local-image␟content',
+            '⿲canvas_test_sdc:card-with-local-image␟footer',
+            '⿲canvas_test_sdc:card-with-remote-image␟heading',
+            '⿲canvas_test_sdc:card-with-remote-image␟content',
+            '⿲canvas_test_sdc:card-with-remote-image␟footer',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟heading',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟content',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟footer',
+            '⿲canvas_test_sdc:my-hero␟subheading',
+            '⿲canvas_test_sdc:my-hero␟cta1',
+            '⿲canvas_test_sdc:my-hero␟cta2',
+            '⿲canvas_test_sdc:shoe_button␟label',
+            '⿲canvas_test_sdc:shoe_button␟href',
+            '⿲canvas_test_sdc:shoe_button␟rel',
+            '⿲canvas_test_sdc:shoe_button␟download',
+            '⿲canvas_test_sdc:shoe_icon␟label',
+            '⿲canvas_test_sdc:shoe_icon␟slot',
             '⿲sdc_test_all_props:all-props␟test_string',
-            '⿲xb_test_sdc:card␟heading',
-            '⿲xb_test_sdc:card␟content',
-            '⿲xb_test_sdc:card␟footer',
-            '⿲xb_test_sdc:card␟sizes',
-            '⿲xb_test_sdc:card-with-local-image␟heading',
-            '⿲xb_test_sdc:card-with-local-image␟content',
-            '⿲xb_test_sdc:card-with-local-image␟footer',
-            '⿲xb_test_sdc:card-with-remote-image␟heading',
-            '⿲xb_test_sdc:card-with-remote-image␟content',
-            '⿲xb_test_sdc:card-with-remote-image␟footer',
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟heading',
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟content',
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟footer',
-            '⿲xb_test_sdc:my-hero␟subheading',
-            '⿲xb_test_sdc:my-hero␟cta1',
-            '⿲xb_test_sdc:my-hero␟cta2',
-            '⿲xb_test_sdc:shoe_button␟label',
-            '⿲xb_test_sdc:shoe_button␟href',
-            '⿲xb_test_sdc:shoe_button␟rel',
-            '⿲xb_test_sdc:shoe_button␟download',
-            '⿲xb_test_sdc:shoe_icon␟label',
-            '⿲xb_test_sdc:shoe_icon␟slot',
           ],
           'static prop source' => 'ℹ︎string␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝description␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝name␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_log␞␟value',
+            'ℹ︎␜entity:canvas_page␝title␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟description',
             'ℹ︎␜entity:media:baby_videos␝name␞␟value',
             'ℹ︎␜entity:media:baby_videos␝revision_log_message␞␟value',
@@ -1096,23 +1101,19 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
-            'ℹ︎␜entity:xb_page␝description␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝name␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_log␞␟value',
-            'ℹ︎␜entity:xb_page␝title␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
         // 💡 The matches here are identical to those for
         // `optional, type=string&contentMediaType=image/*&format=uri-reference&pattern=^(/|https?://)?(?!.*\://)[^\s]+$`
-        'optional, type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => [
+        'optional, type=string&$ref=json-schema-definitions://canvas.module/image-uri' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Uri->value . '_image_using_ref',
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1120,7 +1121,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [
             'image_extract_url' => [
@@ -1137,19 +1137,19 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'optional, type=string&$ref=json-schema-definitions://experience_builder.module/textarea' => [
+        'optional, type=string&$ref=json-schema-definitions://canvas.module/textarea' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_multiline',
           ],
           'static prop source' => 'ℹ︎string_long␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝description␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_log␞␟value',
             'ℹ︎␜entity:media:baby_videos␝revision_log_message␞␟value',
             'ℹ︎␜entity:media:vacation_videos␝revision_log_message␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_log_message␞␟value',
             'ℹ︎␜entity:node:foo␝revision_log␞␟value',
-            'ℹ︎␜entity:xb_page␝description␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_log␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1160,6 +1160,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1167,7 +1168,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [
             'image_extract_url' => [
@@ -1213,7 +1213,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_icon␟size',
+            '⿲canvas_test_sdc:shoe_icon␟size',
           ],
           // As shoe-icon has a enum with an empty value, this won't be a valid
           // source.
@@ -1224,7 +1224,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_icon␟color',
+            '⿲canvas_test_sdc:shoe_icon␟color',
           ],
           // As shoe-icon has a enum with an empty value, this won't be a valid
           // source.
@@ -1235,7 +1235,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=_blank&enum[1]=_parent&enum[2]=_self&enum[3]=_top' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_button␟target',
+            '⿲canvas_test_sdc:shoe_button␟target',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1244,7 +1244,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=auto&enum[1]=manual' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_tab_group␟activation',
+            '⿲canvas_test_sdc:shoe_tab_group␟activation',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1262,8 +1262,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=lazy&enum[1]=eager' => [
           'SDC props' => [
-            '⿲xb_test_sdc:card-with-remote-image␟loading',
-            '⿲xb_test_sdc:card-with-stream-wrapper-image␟loading',
+            '⿲canvas_test_sdc:card-with-remote-image␟loading',
+            '⿲canvas_test_sdc:card-with-stream-wrapper-image␟loading',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1272,7 +1272,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=prefix&enum[1]=suffix' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_button␟icon_position',
+            '⿲canvas_test_sdc:shoe_button␟icon_position',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1281,7 +1281,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=primary&enum[1]=secondary' => [
           'SDC props' => [
-            '⿲xb_test_sdc:heading␟style',
+            '⿲canvas_test_sdc:heading␟style',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1290,7 +1290,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&enum[0]=small&enum[1]=medium&enum[2]=large' => [
           'SDC props' => [
-            '⿲xb_test_sdc:shoe_button␟size',
+            '⿲canvas_test_sdc:shoe_button␟size',
           ],
           'static prop source' => 'ℹ︎list_string␟value',
           'instances' => [],
@@ -1345,6 +1345,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎email␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:media:baby_videos␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
@@ -1361,10 +1365,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝init␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝mail␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝mail␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1385,6 +1385,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎email␟value',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝mail␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝init␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:media:baby_videos␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
@@ -1401,10 +1405,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
             'ℹ︎␜entity:user␝init␞␟value',
             'ℹ︎␜entity:user␝mail␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝init␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝mail␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝init␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝mail␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1451,6 +1451,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1467,7 +1468,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1478,6 +1478,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1494,7 +1495,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1545,6 +1545,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1561,7 +1562,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1572,6 +1572,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
@@ -1588,7 +1589,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1605,15 +1605,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&format=uri-template&x-required-variables[0]=width' => [
           'SDC props' => [
-            0 => '⿲xb_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate',
+            '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate',
           ],
           'static prop source' => NULL,
           'instances' => [
-            0 => 'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟srcset_candidate_uri_template',
-            1 => 'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟srcset_candidate_uri_template',
-            2 => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
-            3 => 'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟srcset_candidate_uri_template',
-            4 => 'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟srcset_candidate_uri_template',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟srcset_candidate_uri_template',
+            'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟srcset_candidate_uri_template',
+            'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟srcset_candidate_uri_template',
+            'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟srcset_candidate_uri_template',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1624,6 +1624,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => NULL,
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_user␞␟target_uuid',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝uid␞␟target_uuid',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝uuid␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟target_uuid',
+            'ℹ︎␜entity:canvas_page␝owner␞␟entity␜␜entity:user␝uuid␞␟value',
+            'ℹ︎␜entity:canvas_page␝owner␞␟target_uuid',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟entity␜␜entity:user␝uuid␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_user␞␟target_uuid',
+            'ℹ︎␜entity:canvas_page␝uuid␞␟value',
             'ℹ︎␜entity:file␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             'ℹ︎␜entity:file␝uid␞␟target_uuid',
             'ℹ︎␜entity:file␝uuid␞␟value',
@@ -1658,15 +1667,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝revision_user␞␟target_uuid',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝uid␞␟target_uuid',
-            'ℹ︎␜entity:xb_page␝image␞␟entity␜␜entity:media␝uuid␞␟value',
-            'ℹ︎␜entity:xb_page␝image␞␟target_uuid',
-            'ℹ︎␜entity:xb_page␝owner␞␟entity␜␜entity:user␝uuid␞␟value',
-            'ℹ︎␜entity:xb_page␝owner␞␟target_uuid',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟entity␜␜entity:user␝uuid␞␟value',
-            'ℹ︎␜entity:xb_page␝revision_user␞␟target_uuid',
-            'ℹ︎␜entity:xb_page␝uuid␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],

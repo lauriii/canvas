@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\XbAssetInterface;
-use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\CanvasAssetInterface;
+use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.
  *
- * @covers \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers
- * @group experience_builder
+ * @covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
+ * @group canvas
  */
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
@@ -30,7 +30,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['canvas'];
 
   /**
    * {@inheritdoc}
@@ -51,7 +51,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->httpApiUser = $user;
 
     // Create a user with an arbitrary permission that is not related to
-    // accessing any XB resources.
+    // accessing any Canvas resources.
     $user2 = $this->createUser(['view media']);
     assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
@@ -208,15 +208,15 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     assert(!empty($initial_entity[$id_key]));
     $entity_id = $initial_entity[$id_key];
     $base = rtrim(base_path(), '/');
-    $post_url = Url::fromUri("base:/xb/api/v0/config/$entity_type_id");
-    $auto_save_url = Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id");
-    $js_auto_save_url = Url::fromRoute('experience_builder.api.config.auto-save.get.js', [
-      'xb_config_entity_type_id' => $entity_type_id,
-      'xb_config_entity' => $entity_id,
+    $post_url = Url::fromUri("base:/canvas/api/v0/config/$entity_type_id");
+    $auto_save_url = Url::fromUri("base:/canvas/api/v0/config/auto-save/$entity_type_id/$entity_id");
+    $js_auto_save_url = Url::fromRoute('canvas.api.config.auto-save.get.js', [
+      'canvas_config_entity_type_id' => $entity_type_id,
+      'canvas_config_entity' => $entity_id,
     ]);
-    $css_auto_save_url = Url::fromRoute('experience_builder.api.config.auto-save.get.css', [
-      'xb_config_entity_type_id' => $entity_type_id,
-      'xb_config_entity' => $entity_id,
+    $css_auto_save_url = Url::fromRoute('canvas.api.config.auto-save.get.css', [
+      'canvas_config_entity_type_id' => $entity_type_id,
+      'canvas_config_entity' => $entity_id,
     ]);
 
     $request_options = [
@@ -240,11 +240,11 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $request_options[RequestOptions::JSON] = $initial_entity;
     $this->assertExpectedResponse('POST', $post_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/xb/api/v0/config/$entity_type_id/{$entity_id}",
+        "$base/canvas/api/v0/config/$entity_type_id/{$entity_id}",
       ],
     ]);
     $original_entity = $storage->load($entity_id);
-    \assert($original_entity instanceof XbAssetInterface);
+    \assert($original_entity instanceof CanvasAssetInterface);
     $original_entity_array = $original_entity->toArray();
     assert(is_array($original_entity_array));
 
@@ -252,7 +252,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     // non-draft CSS/JS, and NOT redirect to the non-draft. Otherwise, a race
     // condition occurs when a user loads a preview with draft code components,
     // and at the same time another uses publishes the draft.
-    // @see https://www.drupal.org/project/experience_builder/issues/3508922#comment-16003426
+    // @see https://www.drupal.org/project/canvas/issues/3508922#comment-16003426
     $response = $this->drupalGet($js_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);
     self::assertSame(NestedArray::getValue($initial_entity, $compiled_js_path_in_normalization), $response);

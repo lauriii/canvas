@@ -8,7 +8,7 @@ import styles from './DataFetch.module.css';
 
 const theme = {
   scheme: 'github-light-custom',
-  author: 'xb',
+  author: 'canvas',
   base00: '#ffffff',
   base01: '#f6f8fa',
   base02: '#e1e4e8',

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropShape;
+namespace Drupal\canvas\PropShape;
 
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropSource\StaticPropSource;
 
 /**
  * A storable prop shape: a prop shape with corresponding field type + widget.
  *
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
- * @see \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
- * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+ * @see \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression
+ * @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
+ * @see \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
  * @internal
  */
 final class StorablePropShape {
@@ -58,8 +58,8 @@ final class StorablePropShape {
     // `$this->fieldStorageSettings`, if any, would be acceptable.
     // In practice, we leave this to the Component config entity, because that
     // is where these values of the StorablePropShape object are persisted.
-    // @see \Drupal\experience_builder\Entity\Component
-    // @see `type: experience_builder.component.*`.
+    // @see \Drupal\canvas\Entity\Component
+    // @see `type: canvas.component.*`.
   }
 
   public function toStaticPropSource(): StaticPropSource {

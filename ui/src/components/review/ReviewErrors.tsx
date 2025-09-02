@@ -76,7 +76,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
           let errorPath =
             error?.meta?.entity_type &&
             error?.meta?.entity_id &&
-            `${baseUrl}xb/${error.meta.entity_type}/${error.meta.entity_id}/editor`;
+            `${baseUrl}canvas/${error.meta.entity_type}/${error.meta.entity_id}/editor`;
 
           if (typeof error?.source?.pointer === 'string') {
             const sourcePointerParts = error.source.pointer.split('.');
@@ -150,7 +150,7 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
     );
     return (
       <Box
-        data-testid="xb-review-publish-errors"
+        data-testid="canvas-review-publish-errors"
         maxWidth="360px"
         className={style.reviewErrors}
       >

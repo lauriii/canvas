@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\experience_builder\Controller\ExperienceBuilderController;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\Controller\CanvasController;
+use Drupal\canvas\Entity\Page;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter()
- * @group experience_builder
+ * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter()
+ * @group canvas
  */
 final class LibraryInfoAlterTest extends KernelTestBase {
 
@@ -24,9 +24,9 @@ final class LibraryInfoAlterTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'system',
-    'xb_test_page',
+    'canvas_test_page',
     'media',
     'user',
     'image',
@@ -50,7 +50,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
   }
 
   /**
-   * Tests that libraries with xb.transform prefix are dynamically added.
+   * Tests that libraries with canvas.transform prefix are dynamically added.
    */
   public function testTransformMounting(): void {
     $this->setUpCurrentUser([], [Page::CREATE_PERMISSION]);
@@ -63,20 +63,20 @@ final class LibraryInfoAlterTest extends KernelTestBase {
     $context = new RenderContext();
     $renderer = $this->container->get(RendererInterface::class);
     \assert($renderer instanceof RendererInterface);
-    $out = $renderer->executeInRenderContext($context, fn () => $this->container->get(ExperienceBuilderController::class)(Page::ENTITY_TYPE_ID, $page));
+    $out = $renderer->executeInRenderContext($context, fn () => $this->container->get(CanvasController::class)(Page::ENTITY_TYPE_ID, $page));
     \assert($out instanceof HtmlResponse);
     $attachments = $out->getAttachments();
     self::assertEquals([
-      'experience_builder/xb.transform.mainProperty',
-      'experience_builder/xb.transform.firstRecord',
-      'experience_builder/xb.transform.dateTime',
-      'experience_builder/xb.transform.mediaSelection',
-      'experience_builder/xb.transform.cast',
-      'experience_builder/xb.transform.link',
-      'xb_test_page/xb.transform.diaclone',
+      'canvas/canvas.transform.mainProperty',
+      'canvas/canvas.transform.firstRecord',
+      'canvas/canvas.transform.dateTime',
+      'canvas/canvas.transform.mediaSelection',
+      'canvas/canvas.transform.cast',
+      'canvas/canvas.transform.link',
+      'canvas_test_page/canvas.transform.diaclone',
     ], array_values(array_filter(
       $attachments['library'],
-      fn (string $lib) => str_contains($lib, '/xb.transform.'),
+      fn (string $lib) => str_contains($lib, '/canvas.transform.'),
     )));
   }
 

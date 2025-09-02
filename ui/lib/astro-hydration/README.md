@@ -1,17 +1,17 @@
 # Astro Island Hydration Library
 The purpose of this library is to build the necessary Astro files for the
-JS component source plugin to power in-browser JS components in XB.
+JS component source plugin to power in-browser JS components in Canvas.
 
 ## Why Astro?
 [Astro](https://astro.build/) can bundle JS components from any JS rendering framework. Using Astro's special `<astro-island/>`
 tag and hydration script, we can render JS components server-side and hydrate them by attaching the necessary Astro code.
 
 ## How it works
-This directory is an Astro project and is defined as an [npm workspace](https://docs.npmjs.com/cli/v7/using-npm/workspaces) in ui/package.json. It is built as part of XB UI's build process.
+This directory is an Astro project and is defined as an [npm workspace](https://docs.npmjs.com/cli/v7/using-npm/workspaces) in ui/package.json. It is built as part of Canvas UI's build process.
 
 The build step `astro build` generates bundles for Preact (preact.module.js), hooks (hooks.module.js), etc. that the in-browser-editable components depend on.
 
-`client.js`, `client.css`, and `hydration.js` are defined as libraries in `experience_builder.libraries.yml` to make them accessible to the JS component source plugin.
+`client.js`, `client.css`, and `hydration.js` are defined as libraries in `canvas.libraries.yml` to make them accessible to the JS component source plugin.
 
 The `client.css` file contains basic styling for Astro elements to ensure proper display using `display: contents`.
 

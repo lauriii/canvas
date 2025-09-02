@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Controller;
+namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Tests the Component Audit Controller UI.
  *
- * @group experience_builder
+ * @group canvas
  */
 final class ComponentAuditControllerTest extends KernelTestBase {
 
@@ -39,12 +39,12 @@ final class ComponentAuditControllerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'system',
     'node',
-    'xb_test_sdc',
+    'canvas_test_sdc',
     ...self::PAGE_TEST_MODULES,
-    // XB's dependencies (modules providing field types + widgets).
+    // Canvas's dependencies (modules providing field types + widgets).
     'ckeditor5',
     'editor',
     'field',
@@ -59,8 +59,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    // Experience Builder configuration (creates the global AssetLibrary).
-    $this->installConfig('experience_builder');
+    // Drupal Canvas configuration (creates the global AssetLibrary).
+    $this->installConfig('canvas');
     $this->generateComponentConfig();
 
     $this->container->get('theme_installer')->install(['stark']);
@@ -79,7 +79,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     FieldStorageConfig::create([
       'entity_type' => 'node',
-      'field_name' => 'field_xb_test',
+      'field_name' => 'field_canvas_test',
       'type' => 'component_tree',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ])->save();
@@ -87,13 +87,13 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     FieldConfig::create([
       'entity_type' => 'node',
       'bundle' => 'article',
-      'field_name' => 'field_xb_test',
-      'label' => 'XB Test Field',
+      'field_name' => 'field_canvas_test',
+      'label' => 'Canvas Test Field',
       'required' => TRUE,
     ])->setDefaultValue([
       [
         'uuid' => 'bd4ae317-3f4d-4b82-a3ca-452d916ae715',
-        'component_id' => 'sdc.xb_test_sdc.druplicon',
+        'component_id' => 'sdc.canvas_test_sdc.druplicon',
         'component_version' => '8fe3be948e0194e1',
         'inputs' => [],
       ],
@@ -130,7 +130,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $page1->get('components')->setValue([
       [
         'uuid' => 'component-sdc',
-        'component_id' => 'sdc.xb_test_sdc.druplicon',
+        'component_id' => 'sdc.canvas_test_sdc.druplicon',
         'inputs' => [],
       ],
     ]);
@@ -140,17 +140,17 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $node1 = $storages['node']->load(1);
     assert($node1 instanceof NodeInterface);
-    $node1->get('field_xb_test')->setValue([
+    $node1->get('field_canvas_test')->setValue([
       [
         'uuid' => 'component-sdc',
-        'component_id' => 'sdc.xb_test_sdc.druplicon',
+        'component_id' => 'sdc.canvas_test_sdc.druplicon',
         'inputs' => [],
       ],
     ]);
     $node1->setNewRevision(TRUE);
     $node1->save();
 
-    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.xb_test_sdc.props-slots'])->toString();
+    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.props-slots'])->toString();
     $response = $this->request(Request::create($audit_url));
     assert($response instanceof HtmlResponse);
     $this->assertSame([
@@ -165,33 +165,33 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
-    $this->assertTitle('Audit of XB test SDC with props and slots usages | ');
+    $this->assertTitle('Audit of Canvas test SDC with props and slots usages | ');
 
-    $this->assertTableCellContains('table-content', 1, 1, 'Test entity');
-    $this->assertTableCellContains('table-content', 1, 2, 'Content');
-    $this->assertTableCellContains('table-content', 1, 3, 'Article');
+    $this->assertTableCellContains('table-content', 1, 1, 'Test page');
+    $this->assertTableCellContains('table-content', 1, 2, 'Page');
+    $this->assertTableCellContains('table-content', 1, 3, 'Page');
     $this->assertTableCellContains('table-content', 1, 4, '1');
     $this->assertTableCellContains('table-content', 1, 5, '1');
     $this->assertTableCellContains('table-content', 1, 6, '❌');
     $this->assertTableCellContains('table-content', 1, 7, '❌');
 
-    $this->assertTableCellContains('table-content', 2, 1, 'Test page');
+    $this->assertTableCellContains('table-content', 2, 1, 'Another test page');
     $this->assertTableCellContains('table-content', 2, 2, 'Page');
     $this->assertTableCellContains('table-content', 2, 3, 'Page');
-    $this->assertTableCellContains('table-content', 2, 4, '1');
-    $this->assertTableCellContains('table-content', 2, 5, '1');
-    $this->assertTableCellContains('table-content', 2, 6, '❌');
-    $this->assertTableCellContains('table-content', 2, 7, '❌');
+    $this->assertTableCellContains('table-content', 2, 4, '2');
+    $this->assertTableCellContains('table-content', 2, 5, '2');
+    $this->assertTableCellContains('table-content', 2, 6, '✔');
+    $this->assertTableCellContains('table-content', 2, 7, '✔');
 
-    $this->assertTableCellContains('table-content', 3, 1, 'Another test page');
-    $this->assertTableCellContains('table-content', 3, 2, 'Page');
-    $this->assertTableCellContains('table-content', 3, 3, 'Page');
-    $this->assertTableCellContains('table-content', 3, 4, '2');
-    $this->assertTableCellContains('table-content', 3, 5, '2');
-    $this->assertTableCellContains('table-content', 3, 6, '✔');
-    $this->assertTableCellContains('table-content', 3, 7, '✔');
+    $this->assertTableCellContains('table-content', 3, 1, 'Test entity');
+    $this->assertTableCellContains('table-content', 3, 2, 'Content');
+    $this->assertTableCellContains('table-content', 3, 3, 'Article');
+    $this->assertTableCellContains('table-content', 3, 4, '1');
+    $this->assertTableCellContains('table-content', 3, 5, '1');
+    $this->assertTableCellContains('table-content', 3, 6, '❌');
+    $this->assertTableCellContains('table-content', 3, 7, '❌');
 
-    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.xb_test_sdc.druplicon'])->toString();
+    $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.druplicon'])->toString();
     $response = $this->request(Request::create($audit_url));
     assert($response instanceof HtmlResponse);
     $this->assertSame([
@@ -208,19 +208,19 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $this->assertTitle('Audit of Druplicon usages | ');
 
-    $this->assertTableCellContains('table-content', 1, 1, 'Test entity');
-    $this->assertTableCellContains('table-content', 1, 2, 'Content');
-    $this->assertTableCellContains('table-content', 1, 3, 'Article');
+    $this->assertTableCellContains('table-content', 1, 1, 'Test page');
+    $this->assertTableCellContains('table-content', 1, 2, 'Page');
+    $this->assertTableCellContains('table-content', 1, 3, 'Page');
     $this->assertTableCellContains('table-content', 1, 4, '1');
-    $this->assertTableCellContains('table-content', 1, 5, '2');
+    $this->assertTableCellContains('table-content', 1, 5, '3');
     $this->assertTableCellContains('table-content', 1, 6, '✔');
     $this->assertTableCellContains('table-content', 1, 7, '✔');
 
-    $this->assertTableCellContains('table-content', 2, 1, 'Test page');
-    $this->assertTableCellContains('table-content', 2, 2, 'Page');
-    $this->assertTableCellContains('table-content', 2, 3, 'Page');
+    $this->assertTableCellContains('table-content', 2, 1, 'Test entity');
+    $this->assertTableCellContains('table-content', 2, 2, 'Content');
+    $this->assertTableCellContains('table-content', 2, 3, 'Article');
     $this->assertTableCellContains('table-content', 2, 4, '1');
-    $this->assertTableCellContains('table-content', 2, 5, '3');
+    $this->assertTableCellContains('table-content', 2, 5, '2');
     $this->assertTableCellContains('table-content', 2, 6, '✔');
     $this->assertTableCellContains('table-content', 2, 7, '✔');
   }
@@ -242,7 +242,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'components' => [
               [
                 'uuid' => 'component-sdc',
-                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'component_id' => 'sdc.canvas_test_sdc.props-slots',
                 'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
@@ -260,7 +260,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'components' => [
               [
                 'uuid' => 'component-sdc',
-                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'component_id' => 'sdc.canvas_test_sdc.props-slots',
                 'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',
@@ -279,10 +279,10 @@ final class ComponentAuditControllerTest extends KernelTestBase {
             'title' => 'Test entity',
             'status' => TRUE,
             'type' => 'article',
-            'field_xb_test' => [
+            'field_canvas_test' => [
               [
                 'uuid' => 'component-sdc',
-                'component_id' => 'sdc.xb_test_sdc.props-slots',
+                'component_id' => 'sdc.canvas_test_sdc.props-slots',
                 'inputs' => [
                   'heading' => [
                     'sourceType' => 'static:field_item:string',

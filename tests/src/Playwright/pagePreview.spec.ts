@@ -7,11 +7,11 @@ import { expect } from '@playwright/test';
  */
 test.describe('Preview Link Behavior', () => {
   test.beforeAll(
-    'Setup test site with Experience Builder',
+    'Setup test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules(['experience_builder', 'xb_test_sdc']);
+      await drupal.installModules(['canvas', 'canvas_test_sdc']);
       await page.close();
     },
   );
@@ -25,7 +25,7 @@ test.describe('Preview Link Behavior', () => {
     drupal,
     xBEditor,
   }) => {
-    await drupal.createXbPage('Preview 1', '/preview-page-1');
+    await drupal.createCanvasPage('Preview 1', '/preview-page-1');
     await page.goto('/preview-page-1');
     await xBEditor.goToEditor();
     await xBEditor.addComponent({ name: 'Hero' });
@@ -49,8 +49,8 @@ test.describe('Preview Link Behavior', () => {
       '1024px',
     );
 
-    // /xb/{node|xb_page}/{whateverID}/preview/tablet
-    await expect(page).toHaveURL(/\/xb\/[^/]+\/[^/]+\/preview\/tablet/);
+    // /canvas/{node|canvas_page}/{whateverID}/preview/tablet
+    await expect(page).toHaveURL(/\/canvas\/[^/]+\/[^/]+\/preview\/tablet/);
 
     // Exit preview and wait for editor UI
     await page.getByText('Exit Preview').click();
@@ -62,7 +62,7 @@ test.describe('Preview Link Behavior', () => {
     drupal,
     xBEditor,
   }) => {
-    await drupal.createXbPage('Preview 2', '/preview-page-2');
+    await drupal.createCanvasPage('Preview 2', '/preview-page-2');
     await page.goto('/preview-page-2');
     await xBEditor.goToEditor();
 
@@ -128,7 +128,7 @@ test.describe('Preview Link Behavior', () => {
     drupal,
     xBEditor,
   }) => {
-    await drupal.createXbPage('Preview 3', '/preview-page-3');
+    await drupal.createCanvasPage('Preview 3', '/preview-page-3');
     await page.goto('/preview-page-3');
     await xBEditor.goToEditor();
     await page.getByRole('button', { name: 'Preview', exact: true }).click();

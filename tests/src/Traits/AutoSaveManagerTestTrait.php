@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\experience_builder\Controller\ApiAutoSaveController;
-use Drupal\experience_builder\Entity\PageRegion;
+use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\file\Entity\File;
 use Drupal\image\ImageStyleInterface;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -23,8 +23,8 @@ trait AutoSaveManagerTestTrait {
   use UserCreationTrait;
 
   protected static function generateAutoSaveHash(array $data): string {
-    // Use reflection access private \Drupal\experience_builder\AutoSave\AutoSaveManager::generateHash
-    $autoSaveManager = new \ReflectionClass('Drupal\experience_builder\AutoSave\AutoSaveManager');
+    // Use reflection access private \Drupal\canvas\AutoSave\AutoSaveManager::generateHash
+    $autoSaveManager = new \ReflectionClass('Drupal\canvas\AutoSave\AutoSaveManager');
     $generateHash = $autoSaveManager->getMethod('generateHash');
     $generateHash->setAccessible(TRUE);
     $hash = $generateHash->invokeArgs(NULL, [$data]);
@@ -47,8 +47,8 @@ trait AutoSaveManagerTestTrait {
   }
 
   /**
-   * @see \Drupal\experience_builder\Controller\ApiLayoutController::getClientAutoSaveData()
-   * @todo Remove this method in in https://www.drupal.org/project/experience_builder/issues/3535458
+   * @see \Drupal\canvas\Controller\ApiLayoutController::getClientAutoSaveData()
+   * @todo Remove this method in in https://www.drupal.org/project/canvas/issues/3535458
    */
   protected function getClientAutoSaveData(EntityInterface $entity): array {
     $autoSaveManager = \Drupal::service(AutoSaveManager::class);

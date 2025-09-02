@@ -146,7 +146,7 @@ const UnpublishedChanges = () => {
         dispatch(setUpdatePreview(false));
         // Invalidate the layout query cache of the current entity to ensure that the autoSaves hash is updated
         // ALSO, For example Drupal has hook_entity_presave which allows altering an entity before it is saved.
-        // XB will not be aware of any changes made in custom code here, therefore if XB doesn't re-request
+        // Canvas will not be aware of any changes made in custom code here, therefore if Canvas doesn't re-request
         // after publishing, the auto-save request could wipe out any changes that were made in
         // any hook_entity_presave code
         dispatch(

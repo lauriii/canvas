@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit;
+namespace Drupal\Tests\canvas\Unit;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
+use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
 
 /**
  * Validate the fixtures in the UI against the OpenAPI schema.
  *
- * @group experience_builder
+ * @group canvas
  *
  * @requires function \cebe\openapi\Reader::readFromYaml
  * @requires function \League\OpenAPIValidation\Schema\SchemaValidator::validate

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Controller\ApiLayoutController;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,8 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @covers \Drupal\experience_builder\Controller\ApiLayoutController::get()
- * @group experience_builder
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::get()
+ * @group canvas
  * @group #slow
  */
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
@@ -40,7 +40,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   protected static $modules = [
     // Allows format=uri to be stored using URI field type.
-    'xb_test_storage_prop_shape_alter',
+    'canvas_test_storage_prop_shape_alter',
     'sdc_test',
   ];
 
@@ -50,7 +50,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
     $this->setUpCurrentUser([], ['edit any article content']);
   }
 
@@ -67,7 +67,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       // empty model.
       $region->set('component_tree', [])->save();
     }
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $node->id(),
       'entity_type' => 'node',
     ]);
@@ -80,7 +80,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // By default, there is only the "content" region in the client-side
     // representation.
     $node = $this->assertRegions(1);
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
     $regions = $this->enableGlobalRegions();
@@ -123,7 +123,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $autoSave->saveEntity($stark_highlighted);
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $node1->id(),
       'entity_type' => 'node',
     ]);
@@ -157,9 +157,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $node1 = Node::load(1);
     \assert($node1 instanceof NodeInterface);
     // Remove the adapted image.
-    $tree = $node1->get('field_xb_demo');
+    $tree = $node1->get('field_canvas_demo');
     \assert($tree instanceof ComponentTreeItemList);
-    $delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_ADAPTED_IMAGE);
+    $delta = $tree->getComponentTreeDeltaByUuid(CanvasTestSetup::UUID_ADAPTED_IMAGE);
     \assert($delta !== NULL);
     $tree->removeItem($delta);
     // Update the title.
@@ -208,7 +208,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
-    // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
+    // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
     self::assertEquals([
       [
         "nodeType" => "component",
@@ -233,7 +233,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   protected function assertRegions(int $count): NodeInterface {
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $node->id(),
       'entity_type' => 'node',
     ]);
@@ -258,7 +258,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       $this->assertArrayHasKey('components', $region);
 
       if ($region['id'] === 'highlighted') {
-        // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
+        // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
         $this->assertEquals([
           [
             "nodeType" => "component",
@@ -273,8 +273,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         continue;
       }
       if ($region['id'] === 'sidebar_first') {
-        // @see \Drupal\Tests\experience_builder\TestSite\XBTestSetup::setup()
-        // @see \Drupal\experience_builder\Entity\PageRegion::createFromBlockLayout()
+        // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
+        // @see \Drupal\canvas\Entity\PageRegion::createFromBlockLayout()
         $this->assertSame([
           [
             "nodeType" => "component",
@@ -288,52 +288,52 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), $region['components']));
         continue;
       }
-      if ($region['id'] !== XbPageVariant::MAIN_CONTENT_REGION) {
+      if ($region['id'] !== CanvasPageVariant::MAIN_CONTENT_REGION) {
         $this->assertEmpty($region['components']);
         continue;
       }
       $this->assertSame('Content', $region['name']);
       $this->assertSame([
         [
-          'uuid' => XBTestSetup::UUID_TWO_COLUMN_UUID,
+          'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
           'nodeType' => 'component',
-          'type' => 'sdc.xb_test_sdc.two_column@d99140cbd47c0b51',
+          'type' => 'sdc.canvas_test_sdc.two_column@b1ae1e286c75438e',
           'name' => NULL,
           'slots' => [
             [
-              'id' => XBTestSetup::UUID_TWO_COLUMN_UUID . '/column_one',
+              'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_one',
               'name' => 'column_one',
               'nodeType' => 'slot',
               'components' => [
                 [
-                  'uuid' => XBTestSetup::UUID_STATIC_IMAGE,
+                  'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
+                  'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
-                  'uuid' => XBTestSetup::UUID_STATIC_CARD1,
+                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
-                  'uuid' => XbTestSetup::UUID_CODE_COMPONENT,
+                  'uuid' => CanvasTestSetup::UUID_CODE_COMPONENT,
                   'nodeType' => 'component',
                   'type' => 'js.test-code-component@b09d5da457224c5e',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
-                  'uuid' => XBTestSetup::UUID_ALL_SLOTS_EMPTY,
+                  'uuid' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.one_column@836c8835c850cdc5',
+                  'type' => 'sdc.canvas_test_sdc.one_column@0555ab081a3c8721',
                   'name' => NULL,
                   'slots' => [
                     [
-                      'id' => XBTestSetup::UUID_ALL_SLOTS_EMPTY . '/content',
+                      'id' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY . '/content',
                       'name' => 'content',
                       'nodeType' => 'slot',
                       'components' => [],
@@ -343,28 +343,28 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
               ],
             ],
             [
-              'id' => XBTestSetup::UUID_TWO_COLUMN_UUID . '/column_two',
+              'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_two',
               'name' => 'column_two',
               'nodeType' => 'slot',
               'components' => [
                 [
-                  'uuid' => XBTestSetup::UUID_STATIC_CARD2,
+                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
-                  'uuid' => XBTestSetup::UUID_STATIC_CARD3,
+                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
-                  'uuid' => XBTestSetup::UUID_ADAPTED_IMAGE,
+                  'uuid' => CanvasTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
+                  'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
                   'name' => 'Magnificent image!',
                   'slots' => [],
                 ],
@@ -395,14 +395,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           'expression' => 'ℹ︎uri␟value',
         ],
       ],
-    ], $json['model'][XBTestSetup::UUID_STATIC_CARD2]);
+    ], $json['model'][CanvasTestSetup::UUID_STATIC_CARD2]);
     return $node;
   }
 
   public function testStatusFlags(): void {
     $this->setUpCurrentUser(permissions: [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
 
-    $request = Request::create('/xb/api/v0/content/xb_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
+    $request = Request::create('/canvas/api/v0/content/canvas_page', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([], JSON_THROW_ON_ERROR));
     $content = $this->parentRequest($request)->getContent();
 
     self::assertIsString($content);
@@ -419,7 +419,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   private function assertStatusFlags(int $entity_id, bool $isNew, bool $isPublished): void {
-    $content = $this->parentRequest(Request::create('/xb/api/v0/layout/xb_page/' . $entity_id))->getContent();
+    $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/canvas_page/' . $entity_id))->getContent();
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
     self::assertSame($isNew, $json['isNew']);
@@ -429,7 +429,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   /**
    * Tests that auto-save entries with inaccessible fields do not cause errors.
    *
-   * @covers \Drupal\experience_builder\Controller\ApiLayoutController::buildPreviewRenderable
+   * @covers \Drupal\canvas\Controller\ApiLayoutController::buildPreviewRenderable
    */
   public function testInaccessibleFieldsInAutoSave(): void {
     // Create a node to work with.
@@ -452,7 +452,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $node->set('path', ['alias' => '/test-path']);
     $autoSave->saveEntity($node);
 
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $node->id(),
       'entity_type' => 'node',
     ]);
@@ -473,7 +473,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Expand form values from their respective element name, e.g.
     // ['title[0][value]' => 'Node title'] becomes
     // ['title' => ['value' => 'Node title']].
-    // @see \Drupal\experience_builder\Controller\ApiLayoutController::getEntityData
+    // @see \Drupal\canvas\Controller\ApiLayoutController::getEntityData
     \parse_str(\http_build_query($entity_form_fields), $entity_form_fields);
     self::assertArrayNotHasKey('path', $entity_form_fields);
   }
@@ -489,15 +489,15 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       'title' => 'Test',
     ]);
     $node->save();
-    /** @var \Drupal\experience_builder\Controller\ApiLayoutController $controller */
+    /** @var \Drupal\canvas\Controller\ApiLayoutController $controller */
     $controller = \Drupal::classResolver(ApiLayoutController::class);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('This entity does not have an XB field!');
+    $this->expectExceptionMessage('This entity does not have an Canvas field!');
     $controller->get($node);
   }
 
   /**
-   * @return \Drupal\experience_builder\Entity\PageRegion[]
+   * @return \Drupal\canvas\Entity\PageRegion[]
    */
   protected function enableGlobalRegions(string $theme = 'stark', int $expected_region_count = 11): array {
     $this->container->get('theme_installer')->install([$theme]);
@@ -527,31 +527,31 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     return [
       'no_permissions' => [
         'permissions' => ['access content'],
-        'exception_message' => "The 'edit xb_page' permission is required.",
+        'exception_message' => "The 'edit canvas_page' permission is required.",
       ],
       'entity_edit_only' => [
         'permissions' => [Page::EDIT_PERMISSION],
         'exception_message' => 'You do not have permission to edit this field.',
       ],
       'field_edit_only' => [
-        // @see \xb_test_field_access_entity_field_access()
-        'permissions' => ['edit xb page components'],
-        'exception_message' => "The 'edit xb_page' permission is required.",
+        // @see \canvas_test_field_access_entity_field_access()
+        'permissions' => ['edit canvas page components'],
+        'exception_message' => "The 'edit canvas_page' permission is required.",
       ],
       'both_permissions' => [
-        'permissions' => [Page::EDIT_PERMISSION, 'edit xb page components'],
+        'permissions' => [Page::EDIT_PERMISSION, 'edit canvas page components'],
         'exception_message' => NULL,
       ],
     ];
   }
 
   /**
-   * Tests field access for the Experience Builder API layout.
+   * Tests field access for the Drupal Canvas API layout.
    *
    * @dataProvider fieldAccessProvider
    */
   public function testFieldAccess(array $permissions, ?string $exception_message): void {
-    $this->container->get('module_installer')->install(['xb_test_field_access']);
+    $this->container->get('module_installer')->install(['canvas_test_field_access']);
     $this->setUpCurrentUser([], $permissions);
 
     // Test field access using URL/request approach rather than directly calling controller
@@ -561,8 +561,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       'description' => 'This is a test page.',
       'components' => [
         [
-          'uuid' => XBTestSetup::UUID_COMPONENT_SDC,
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -575,7 +575,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     ]);
     $page->save();
 
-    $url = Url::fromRoute('experience_builder.api.layout.get', [
+    $url = Url::fromRoute('canvas.api.layout.get', [
       'entity' => $page->id(),
       'entity_type' => Page::ENTITY_TYPE_ID,
     ]);

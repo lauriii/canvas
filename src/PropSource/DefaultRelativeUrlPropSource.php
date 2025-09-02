@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\experience_builder\ComponentSource\UrlRewriteInterface;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
-use Drupal\experience_builder\PropShape\PropShape;
+use Drupal\canvas\ComponentSource\UrlRewriteInterface;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\PropShape\PropShape;
 
 /**
  * Prop source that is used to reference default relative URLs.
@@ -20,8 +20,8 @@ use Drupal\experience_builder\PropShape\PropShape;
  * are capable of taking a relative URL and expanding it to an absolute URL
  * that can be used as a default value.
  *
- * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
- * @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+ * @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
  * @internal
  *
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from PropSourceBase

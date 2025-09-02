@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
@@ -11,9 +11,9 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\EntityHandlers\AssetLibraryAccessControlHandler;
-use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
+use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -23,7 +23,7 @@ use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
   label_collection: new TranslatableMarkup('In-browser code libraries'),
   admin_permission: JavaScriptComponent::ADMIN_PERMISSION,
   handlers: [
-    'storage' => XbAssetStorage::class,
+    'storage' => CanvasAssetStorage::class,
     'access' => AssetLibraryAccessControlHandler::class,
   ],
   entity_keys: [
@@ -38,12 +38,12 @@ use Drupal\experience_builder\EntityHandlers\XbAssetStorage;
     'js',
   ],
 )]
-final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
+final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterface {
 
-  use XbAssetLibraryTrait;
+  use CanvasAssetLibraryTrait;
 
-  public const string ENTITY_TYPE_ID = 'xb_asset_library';
-  private const string ASSETS_DIRECTORY = 'assets://xb/';
+  public const string ENTITY_TYPE_ID = 'asset_library';
+  private const string ASSETS_DIRECTORY = 'assets://canvas/';
 
   public const string GLOBAL_ID = 'global';
 
@@ -111,13 +111,13 @@ final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
     parent::postSave($storage, $update);
-    // The files generated in XbAssetStorage::doSave() have a content-dependent
+    // The files generated in CanvasAssetStorage::doSave() have a content-dependent
     // hash in their name. This has 2 consequences:
     // 1. Cached responses that referred to an older version, continue to work.
     // 2. New responses must use the newly generated files, which requires the
     //    asset library to point to those new files. Hence the library info must
     //    be recalculated.
-    // @see \experience_builder_library_info_build()
+    // @see \canvas_library_info_build()
     Cache::invalidateTags(['library_info']);
   }
 
@@ -125,13 +125,13 @@ final class AssetLibrary extends ConfigEntityBase implements XbAssetInterface {
    * {@inheritdoc}
    */
   public function getAssetLibrary(bool $isPreview): string {
-    // Inside the XB UI, always load the draft even if there isn't one. Let the
+    // Inside the Canvas UI, always load the draft even if there isn't one. Let the
     // controller logic automatically serve the non-draft assets when a draft
     // disappears. This is necessary to allow for asset library dependencies,
     // and avoids race conditions.
-    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getCss()
-    // @see \Drupal\experience_builder\Controller\ApiConfigAutoSaveControllers::getJs()
-    return 'experience_builder/asset_library.' . $this->id() . ($isPreview ? '.draft' : '');
+    // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getCss()
+    // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getJs()
+    return 'canvas/asset_library.' . $this->id() . ($isPreview ? '.draft' : '');
   }
 
   /**

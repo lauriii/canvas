@@ -83,13 +83,15 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
 
   useTransitionEndListener(
     previewContainerRef.current
-      ? previewContainerRef.current.closest('.xbEditorFrameScalingContainer')
+      ? previewContainerRef.current.closest(
+          '.canvasEditorFrameScalingContainer',
+        )
       : null,
     updateRect,
   );
 
   useEffect(() => {
-    const targetDiv = document.getElementById('xbPreviewOverlay');
+    const targetDiv = document.getElementById('canvasPreviewOverlay');
     if (targetDiv) {
       setPortalRoot(targetDiv);
     }
@@ -111,7 +113,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   return ReactDOM.createPortal(
     <div
       ref={positionDivRef}
-      className={clsx('xb--viewport-overlay', styles.viewportOverlay, {
+      className={clsx('canvas--viewport-overlay', styles.viewportOverlay, {
         [styles.isZooming]: isZooming,
       })}
       onDoubleClick={handleDoubleClick}

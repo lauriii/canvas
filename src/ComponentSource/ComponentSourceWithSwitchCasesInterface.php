@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\ComponentSource;
+namespace Drupal\canvas\ComponentSource;
 
 /**
  * Defines an interface for component sources that support switch-cases.

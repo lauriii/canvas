@@ -9,7 +9,7 @@ export interface ContentStub {
   links: {
     'delete-form'?: string;
     'edit-form'?: string;
-    'https://drupal.org/project/experience_builder#link-rel-duplicate'?: string;
-    'https://drupal.org/project/experience_builder#link-rel-set-as-homepage'?: string;
+    'https://drupal.org/project/canvas#link-rel-duplicate'?: string;
+    'https://drupal.org/project/canvas#link-rel-set-as-homepage'?: string;
   };
 }

@@ -20,7 +20,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     },
   ];
 
-  cy.drupalLogin('xbUser', 'xbUser');
+  cy.drupalLogin('canvasUser', 'canvasUser');
   // Node 1 includes prop sources that make use of adapters, we need to
   // make sure there are no auto-save entries for that node before we attempt
   // to publish. This test interacts with that node in the "Can open the media
@@ -28,16 +28,16 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   // in auto-save that prevents publishing.
   cy.clearAutoSave('node', 1);
 
-  cy.loadURLandWaitForXBLoaded(loadOptions);
+  cy.loadURLandWaitForCanvasLoaded(loadOptions);
 
-  cy.findByTestId('xb-contextual-panel--page-data').should(
+  cy.findByTestId('canvas-contextual-panel--page-data').should(
     'have.attr',
     'data-state',
     'active',
   );
-  cy.findByTestId('xb-page-data-form').as('entityForm');
+  cy.findByTestId('canvas-page-data-form').as('entityForm');
   // Log all ajax form requests to help with debugging.
-  cy.intercept('POST', '**/xb/api/v0/form/content-entity/**');
+  cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
   // Make a record of the starting form build ID for the form
   cy.get('@entityForm').recordFormBuildId();
 
@@ -47,7 +47,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.findByRole('dialog').should('not.exist');
     cy.get('@entityForm').findByRole(step.expectedAlt).should('not.exist');
     if (ix > 0) {
-      cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+      cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
       cy.get('@entityForm')
         .findByRole('button', { name: step.removeText })
         .should('exist')
@@ -67,7 +67,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.findByRole('dialog', { timeout: 10000 }).as('dialog');
     cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
     cy.get('@dialog').findByLabelText(step.selectNewText).check();
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.get('@dialog')
       .findByRole('button', {
         name: 'Insert selected',
@@ -90,7 +90,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.openLibraryPanel();
   cy.get('.primaryPanelContent').should('contain.text', 'Components');
   cy.get('.primaryPanelContent').findByText('Hero').click();
-  cy.findByTestId('xb-contextual-panel').should('exist');
+  cy.findByTestId('canvas-contextual-panel').should('exist');
   cy.get(
     '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
   ).within(() => {
@@ -99,7 +99,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   const lastStep = iterations.pop();
 
   // Switch back to entity edit form.
-  cy.findByTestId('xb-contextual-panel--page-data').click();
+  cy.findByTestId('canvas-contextual-panel--page-data').click();
   // It can take a bit for the entity form to load, so let's give it a bit
   // longer.
   cy.get('@entityForm')
@@ -122,7 +122,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.publishAllPendingChanges(title);
 
   // Reload the page and ensure the saved value persists.
-  cy.loadURLandWaitForXBLoaded({ ...loadOptions, clearAutoSave: false });
+  cy.loadURLandWaitForCanvasLoaded({ ...loadOptions, clearAutoSave: false });
   // It can take a bit for the entity form to load, so let's give it a bit
   // longer.
   cy.get('@entityForm')
@@ -135,7 +135,7 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
 
 describe('Media Library In Entity (page data) Form', () => {
   before(() => {
-    cy.drupalXbInstall([], {}, ['administer nodes']);
+    cy.drupalCanvasInstall([], {}, ['administer nodes']);
   });
 
   beforeEach(() => {
@@ -152,7 +152,11 @@ describe('Media Library In Entity (page data) Form', () => {
     'Can open the media library widget on a page data entity form',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      testMediaLibraryInEntityForm(cy, { url: 'xb/xb_page/2' }, 'Empty Page');
+      testMediaLibraryInEntityForm(
+        cy,
+        { url: 'canvas/canvas_page/2' },
+        'Empty Page',
+      );
     },
   );
 
@@ -162,7 +166,7 @@ describe('Media Library In Entity (page data) Form', () => {
     () => {
       testMediaLibraryInEntityForm(
         cy,
-        { url: 'xb/node/2' },
+        { url: 'canvas/node/2' },
         'I am an empty node',
       );
     },

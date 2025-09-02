@@ -12,19 +12,21 @@ export const handlers = [
       return HttpResponse.json({}, { status: 401 });
     }
 
-    if (params.get('scope') === 'xb:this-scope-is-invalid') {
+    if (params.get('scope') === 'canvas:this-scope-is-invalid') {
       return HttpResponse.json(
         {
           error: 'invalid_scope',
           error_description:
             'The requested scope is invalid, unknown, or malformed',
-          hint: 'Check the `xb:invalid` scope',
+          hint: 'Check the `canvas:invalid` scope',
         },
         { status: 400 },
       );
     }
 
-    if (params.get('scope') === 'xb:this-scope-is-valid-but-no-permission') {
+    if (
+      params.get('scope') === 'canvas:this-scope-is-valid-but-no-permission'
+    ) {
       return HttpResponse.json({
         access_token: 'test-access-token-no-permission',
       });
@@ -33,7 +35,7 @@ export const handlers = [
     return HttpResponse.json({ access_token: 'test-access-token' });
   }),
 
-  http.get('*/xb/api/v0/config/js_component', async ({ request }) => {
+  http.get('*/canvas/api/v0/config/js_component', async ({ request }) => {
     if (
       request.headers.get('Authorization') ===
       'Bearer test-access-token-no-permission'

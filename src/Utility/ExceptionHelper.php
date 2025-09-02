@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Utility;
+namespace Drupal\canvas\Utility;
 
 /**
  * Provides helper methods for handling exceptions.

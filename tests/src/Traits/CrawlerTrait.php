@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;

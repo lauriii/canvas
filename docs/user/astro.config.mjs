@@ -7,12 +7,12 @@ export default defineConfig({
   trailingSlash: 'never',
   integrations: [
     starlight({
-      title: 'Experience Builder',
+      title: 'Drupal Canvas',
       social: [
         {
           icon: 'gitlab',
           label: 'GitLab',
-          href: 'https://git.drupalcode.org/project/experience_builder/',
+          href: 'https://git.drupalcode.org/project/canvas/',
         },
         {
           icon: 'slack',
@@ -22,7 +22,7 @@ export default defineConfig({
         {
           icon: 'bun',
           label: 'drupal.org',
-          href: 'https://www.drupal.org/project/experience_builder',
+          href: 'https://www.drupal.org/project/canvas',
         },
       ],
       sidebar: [

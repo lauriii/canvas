@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;

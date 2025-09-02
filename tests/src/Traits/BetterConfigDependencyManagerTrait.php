@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\experience_builder\Config\Entity\BetterConfigDependencyManager;
+use Drupal\canvas\Config\Entity\BetterConfigDependencyManager;
 
 /**
  * This exists because existing Configuration System infrastructure falls short.
@@ -20,7 +20,7 @@ use Drupal\experience_builder\Config\Entity\BetterConfigDependencyManager;
  * @see \Drupal\Core\Config\Entity\ConfigEntityDependency::getDependencies()
  * @see \Drupal\Core\Config\Entity\ConfigDependencyManager::getDependentEntities()
  *
- * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  *
  * @internal
  */

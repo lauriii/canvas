@@ -2,17 +2,17 @@
 
 Ensure that the module's dependencies are correctly installed. From the
 root directory of your Drupal installation, where the root `composer.json`
-is located, add the module (altering the path `modules/custom/experience_builder`
+is located, add the module (altering the path `modules/custom/canvas`
 as appropriate):
 
 ```shell
-composer config repositories.drupal/experience_builder --json '{"type": "path", "url": "modules/custom/experience_builder" }'
-composer require "drupal/experience_builder @dev" --with-all-dependencies
+composer config repositories.drupal/canvas --json '{"type": "path", "url": "modules/custom/canvas" }'
+composer require "drupal/canvas @dev" --with-all-dependencies
 ```
 
 Then, from the module directory, add the module's dev dependencies:
 ```
-cd modules/custom/experience_builder
+cd modules/custom/canvas
 composer run install-dev-deps
 ```
 

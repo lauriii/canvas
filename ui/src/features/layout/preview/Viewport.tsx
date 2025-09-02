@@ -66,7 +66,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       return;
     }
 
-    iframe.dataset.testXbContentInitialized = 'true';
+    iframe.dataset.testCanvasContentInitialized = 'true';
     dispatch(setFirstLoadComplete(true));
   }, [dispatch, isReloading]);
 

@@ -1,9 +1,0 @@
-name: Experience Builder AI
-type: module
-description: 'AI for the Experience Builder'
-package: AI Tools
-hidden: true
-core_version_requirement: ^10 | ^11
-dependencies:
-  - experience_builder:experience_builder
-  - ai_agents:ai_agents

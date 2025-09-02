@@ -16,23 +16,24 @@ parameters:
     - src/TypedData/BetterEntityDataDefinition.php
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
+    - scripts/src/ConverterCommand.php
   treatPhpDocTypesAsCertain: false
   drupal:
     entityMapping:
-      xb_asset_library:
-        class: Drupal\experience_builder\Entity\AssetLibrary
+      asset_library:
+        class: Drupal\canvas\Entity\AssetLibrary
       component:
-        class: Drupal\experience_builder\Entity\Component
+        class: Drupal\canvas\Entity\Component
       js_component:
-        class: Drupal\experience_builder\Entity\JavaScriptComponent
-      xb_page:
-        class: Drupal\experience_builder\Entity\Page
+        class: Drupal\canvas\Entity\JavaScriptComponent
+      canvas_page:
+        class: Drupal\canvas\Entity\Page
       page_region:
-        class: Drupal\experience_builder\Entity\PageRegion
+        class: Drupal\canvas\Entity\PageRegion
       pattern:
-        class: Drupal\experience_builder\Entity\Pattern
+        class: Drupal\canvas\Entity\Pattern
       staged_config_update:
-        class: Drupal\experience_builder\Entity\StagedConfigUpdate
+        class: Drupal\canvas\Entity\StagedConfigUpdate
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
@@ -43,7 +44,7 @@ parameters:
     -
       message: "#^Class .* extends @internal class#"
       count: 1
-      path: src/MediaLibraryXbPropOpener.php
+      path: src/MediaLibraryCanvasPropOpener.php
     -
       message: "#^Access to an undefined property#"
       count: 1
@@ -55,6 +56,6 @@ parameters:
         - src/Plugin/BlockManager.php
         - src/Plugin/ComponentPluginManager.php
     -
-      message: "#^Method Drupal\\\\experience_builder\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
+      message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php

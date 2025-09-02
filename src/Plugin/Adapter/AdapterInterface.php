@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Adapter;
+namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Component\Plugin\PluginInspectionInterface;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 interface AdapterInterface extends PluginInspectionInterface {
 

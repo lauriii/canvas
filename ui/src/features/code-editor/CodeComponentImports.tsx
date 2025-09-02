@@ -173,7 +173,7 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
               onClick={handleInsert}
               aria-label="Insert code"
               variant="soft"
-              data-testid="xb-insert-import-button"
+              data-testid="canvas-insert-import-button"
               size="1"
             >
               {inserted ? <CheckIcon /> : <PinBottomIcon />}

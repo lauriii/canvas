@@ -17,8 +17,8 @@ export function handleAutoSavesHashUpdate(
   // key by API endpoint URL
   const url = meta?.request?.url;
   if (typeof url === 'string') {
-    // trim to only part after but including xb/api
-    const startIndex = url.indexOf('xb/api/');
+    // trim to only part after but including canvas/api
+    const startIndex = url.indexOf('canvas/api/');
     if (startIndex !== -1) {
       const requestUrl = url.substring(startIndex);
       dispatch(addOrUpdateAutoSavesHash({ [requestUrl]: autoSaves }));
@@ -26,6 +26,6 @@ export function handleAutoSavesHashUpdate(
     }
   }
   console.error(
-    'Failed to update autoSavesHash: request URL is invalid or missing xb/api/',
+    'Failed to update autoSavesHash: request URL is invalid or missing canvas/api/',
   );
 }

@@ -61,7 +61,7 @@ function useSyncIframeHeightToContent(
             iframeHTML.querySelectorAll('*');
 
           const previewIframe = document.querySelector(
-            'iframe[data-xb-swap-active="true"]',
+            'iframe[data-canvas-swap-active="true"]',
           ) as HTMLIFrameElement | null;
           const multipliers = [1, 3, 8];
           const heightRatios = new WeakMap<HTMLElement, number[]>();
@@ -103,7 +103,7 @@ function useSyncIframeHeightToContent(
                 const maxHeight = ratios[0];
                 element.style.maxHeight = maxHeight ? `${maxHeight}px` : '';
                 element.setAttribute(
-                  'data-xb-preview-max-height',
+                  'data-canvas-preview-max-height',
                   `${maxHeight}`,
                 );
               }

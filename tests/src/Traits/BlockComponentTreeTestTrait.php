@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 /**
- * Any test using these test cases must install the `xb_test_block` module.
+ * Any test using these test cases must install the `canvas_test_block` module.
  */
 trait BlockComponentTreeTestTrait {
 
@@ -15,7 +15,7 @@ trait BlockComponentTreeTestTrait {
         [
           [
             'uuid' => 'block-input-none',
-            'component_id' => 'block.xb_test_block_input_none',
+            'component_id' => 'block.canvas_test_block_input_none',
             'inputs' => [
               'label' => 'Test block with no settings.',
               'label_display' => '',
@@ -28,7 +28,7 @@ trait BlockComponentTreeTestTrait {
         [
           [
             'uuid' => 'block-input-validatable',
-            'component_id' => 'block.xb_test_block_input_validatable',
+            'component_id' => 'block.canvas_test_block_input_validatable',
             'inputs' => [
               'label' => 'Test Block for testing.',
               'label_display' => '',

@@ -1,6 +1,0 @@
-name: XB Test block form
-description: 'Test blocks that need form submission and validation'
-type: module
-dependencies:
-  - experience_builder:experience_builder
-package: Testing

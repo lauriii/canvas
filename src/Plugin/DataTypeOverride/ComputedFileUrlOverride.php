@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\DataTypeOverride;
+namespace Drupal\canvas\Plugin\DataTypeOverride;
 
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
 use Drupal\file\FileInterface;

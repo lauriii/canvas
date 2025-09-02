@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit\Utility;
+namespace Drupal\Tests\canvas\Unit\Utility;
 
-use Drupal\experience_builder\Utility\ExceptionHelper;
-use Drupal\Tests\experience_builder\Doubles\TestVerboseException;
+use Drupal\canvas\Utility\ExceptionHelper;
+use Drupal\Tests\canvas\Doubles\TestVerboseException;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Utility\ExceptionHelper
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Utility\ExceptionHelper
+ * @group canvas
  */
 class ExceptionHelperTest extends UnitTestCase {
 

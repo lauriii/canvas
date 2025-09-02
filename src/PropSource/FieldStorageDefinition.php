@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
@@ -14,7 +14,7 @@ use Drupal\Core\TypedData\OptionsProviderInterface;
  * A variant of BaseFieldDefinition that is for pure field storage definitions.
  *
  * @todo Remove this after https://www.drupal.org/node/2280639 is fixed.
- * @see \Drupal\experience_builder\PropSource\StaticPropSource::conjureFieldItem()
+ * @see \Drupal\canvas\PropSource\StaticPropSource::conjureFieldItem()
  * @see \Drupal\entity_test\FieldStorageDefinition
  *
  * @internal

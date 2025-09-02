@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldType;
+namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Utility\SortArray;
@@ -12,23 +12,23 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\TypedData\TypedDataTrait;
 
 /**
- * @phpstan-import-type ComponentTreeItemListArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
- * @phpstan-import-type SingleComponentInputArray from \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
+ * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
 trait ComponentTreeItemListInstantiatorTrait {
 
   use TypedDataTrait;
 
   /**
-   * Instantiates a (dangling) XB component tree.
+   * Instantiates a (dangling) Canvas component tree.
    */
   protected function createDanglingComponentTreeItemList(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
     return self::staticallyCreateDanglingComponentTreeItemList($this->getTypedDataManager(), $parent);
   }
 
   /**
-   * Instantiates a (dangling) XB component tree.
+   * Instantiates a (dangling) Canvas component tree.
    */
   protected static function staticallyCreateDanglingComponentTreeItemList(TypedDataManagerInterface $typed_data_manager, ?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
     $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');
@@ -49,7 +49,7 @@ trait ComponentTreeItemListInstantiatorTrait {
    *
    * @return array<string, ComponentTreeItemArray>
    *
-   * @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::constructDepthFirstGraph()
+   * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::constructDepthFirstGraph()
    */
   protected static function generateComponentTreeKeys(array $tree): array {
     $graph = [];

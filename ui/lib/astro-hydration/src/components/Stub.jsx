@@ -25,6 +25,6 @@ const {
   getSiteData,
 } = await import('@/lib/drupal-utils');
 const useSwr = await import('@/lib/swr');
-await import('@/lib/xb-island.js');
+await import('@/lib/canvas-island.js');
 
 export default function () {}

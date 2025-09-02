@@ -29,7 +29,7 @@ import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import type { FieldData } from '@/types/Component';
-import type { XBComponent } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 import { componentHasFieldData } from '@/types/Component';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
@@ -124,7 +124,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     // the values from the arg that was passed to the API call which produced
     // the current data.
     const originalUrlSearchParams = new URLSearchParams(originalArgs);
-    const componentId = originalUrlSearchParams.get('form_xb_selected');
+    const componentId = originalUrlSearchParams.get('form_canvas_selected');
     const latestUndoRedoActionId = originalUrlSearchParams.get(
       'latestUndoRedoActionId',
     );
@@ -140,7 +140,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
       // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
       <div
         key={`${componentId}-${latestUndoRedoActionId}`}
-        data-testid={`xb-component-form-${componentId}`}
+        data-testid={`canvas-component-form-${componentId}`}
       >
         {hyperscriptify(
           template,
@@ -260,7 +260,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
   const buildPreparedModel = (
     model: ComponentModel,
-    component: XBComponent,
+    component: CanvasComponent,
   ): ComponentModel => {
     if (!componentHasFieldData(component)) {
       return model;
@@ -329,9 +329,9 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
 
     const tree = findComponentByUuid(layout, selectedComponent);
     const query = new URLSearchParams({
-      form_xb_tree: JSON.stringify(tree),
-      form_xb_props: JSON.stringify(preparedModel),
-      form_xb_selected: selectedComponent,
+      form_canvas_tree: JSON.stringify(tree),
+      form_canvas_props: JSON.stringify(preparedModel),
+      form_canvas_selected: selectedComponent,
       latestUndoRedoActionId,
     });
     setDynamicStaticCardQueryString(`?${query.toString()}`);

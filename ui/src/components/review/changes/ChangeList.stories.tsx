@@ -108,12 +108,12 @@ const createMockChangeGroups = (): UnpublishedChangeGroups => ({
       },
     },
   ],
-  xb_asset_library: [
+  asset_library: [
     {
-      pointer: 'xb_asset_library:1:en',
+      pointer: 'asset_library:1:en',
       label: 'Brand Assets Library',
       updated: Math.floor(Date.now() / 1000) - 24 * 60 * 60, // 1 day ago
-      entity_type: 'xb_asset_library',
+      entity_type: 'asset_library',
       data_hash: 'data-hash-7',
       entity_id: 1,
       langcode: 'en',
@@ -126,10 +126,10 @@ const createMockChangeGroups = (): UnpublishedChangeGroups => ({
       },
     },
     {
-      pointer: 'xb_asset_library:2:en',
+      pointer: 'asset_library:2:en',
       label: 'Image Gallery Assets',
       updated: Math.floor(Date.now() / 1000) - 12 * 60 * 60, // 12 hours ago
-      entity_type: 'xb_asset_library',
+      entity_type: 'asset_library',
       data_hash: 'data-hash-8',
       entity_id: 2,
       langcode: 'en',
@@ -412,7 +412,7 @@ export const AssetsAndRegions: Story = {
   render: InteractiveChangeList,
   args: {
     groups: {
-      xb_asset_library: createMockChangeGroups().xb_asset_library,
+      asset_library: createMockChangeGroups().asset_library,
       page_region: createMockChangeGroups().page_region,
     },
   },

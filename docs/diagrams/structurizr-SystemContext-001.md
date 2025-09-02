@@ -2,7 +2,7 @@
 graph LR
   linkStyle default fill:#ffffff
 
-  subgraph diagram ["Drupal + XB - System Context"]
+  subgraph diagram ["Drupal + Canvas - System Context"]
     style diagram fill:#ffffff,stroke:#ffffff
 
     1["<div style='font-weight: bold'>Ambitious Site Builder</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div>"]
@@ -15,7 +15,7 @@ graph LR
     style 4 fill:#ff0000,stroke:#b20000,color:#ffffff
     5["<div style='font-weight: bold'>Back-End Developer</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div>"]
     style 5 fill:#ff0000,stroke:#b20000,color:#ffffff
-    6("<div style='font-weight: bold'>Drupal + XB</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div>")
+    6("<div style='font-weight: bold'>Drupal + Canvas</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div>")
     style 6 fill:#1168bd,stroke:#0b4884,color:#ffffff
 
     5-. "<div>Develops modules, block<br />plugins, field formatters</div><div style='font-size: 70%'></div>" .->6

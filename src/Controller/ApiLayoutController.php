@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -14,14 +14,14 @@ use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\ClientDataToEntityConverter;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\DisplayVariant\XbPageVariant;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\experience_builder\Render\PreviewEnvelope;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Render\PreviewEnvelope;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -29,7 +29,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-type ComponentClientStructureArray array{nodeType: 'component', uuid: string, type: ComponentConfigEntityId, slots: array<int, mixed>}
  * @phpstan-type RegionClientStructureArray array{nodeType: 'region', id: string, name: string, components: array<int, ComponentClientStructureArray>}
  * @phpstan-type LayoutClientStructureArray array<int, RegionClientStructureArray>
@@ -60,14 +60,14 @@ final class ApiLayoutController {
     // to exist.
     // @see \Drupal\system\Controller\SystemController::themesPage()
     $server_side_ids = array_map(
-      fn (string $region_name): string => $region_name === XbPageVariant::MAIN_CONTENT_REGION
-        ? XbPageVariant::MAIN_CONTENT_REGION
+      fn (string $region_name): string => $region_name === CanvasPageVariant::MAIN_CONTENT_REGION
+        ? CanvasPageVariant::MAIN_CONTENT_REGION
         : "$theme.$region_name",
       array_keys($theme_regions)
     );
     $this->regionsClientSideIds = array_combine($server_side_ids, array_keys($theme_regions));
     $this->regions = array_combine($server_side_ids, $theme_regions);
-    assert(array_key_exists(XbPageVariant::MAIN_CONTENT_REGION, $this->regions));
+    assert(array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $this->regions));
   }
 
   /**
@@ -88,7 +88,7 @@ final class ApiLayoutController {
     $entity_form_fields = $this->getFilteredEntityData($entity);
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
-    $content_layout = $this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $model);
+    $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model);
     $layout = [$content_layout];
     $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
 
@@ -104,12 +104,12 @@ final class ApiLayoutController {
     }
 
     $data = [
-      // Maps to the `tree` property of the XB field type.
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure
+      // Maps to the `tree` property of the Canvas field type.
+      // @see \Drupal\canvas\Plugin\DataType\ComponentTreeStructure
       // @todo Settle on final names and get in sync.
       'layout' => $layout,
-      // Maps to the `inputs` property of the XB field type.
-      // @see \Drupal\experience_builder\Plugin\DataType\ComponentInputs
+      // Maps to the `inputs` property of the Canvas field type.
+      // @see \Drupal\canvas\Plugin\DataType\ComponentInputs
       // @todo Settle on final names and get in sync.
       // If the model is empty return an empty object to ensure it is encoded as
       // an object and not empty array.
@@ -142,11 +142,11 @@ final class ApiLayoutController {
 
   private function getFilteredEntityData(FieldableEntityInterface $entity): array {
     // @todo Try to return this from the form controller instead.
-    // @see https://www.drupal.org/project/experience_builder/issues/3496875
+    // @see https://www.drupal.org/project/canvas/issues/3496875
     // This mirrors a lot of the logic of EntityFormController::form. We want
     // the entity data in the same shape as form state for an entity form so
     // that if matches that of the form built by EntityFormController::form.
-    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    // @see \Drupal\canvas\Controller\EntityFormController::form
     $form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $form_state = $this->buildFormState($form_object, $entity, 'default');
     $form = $this->formBuilder->buildForm($form_object, $form_state);
@@ -160,7 +160,7 @@ final class ApiLayoutController {
     $violations = $this->autoSaveManager->getEntityFormViolations($entity);
     foreach ($violations as $violation) {
       $property_path = $violation->getPropertyPath();
-      // @see \Drupal\experience_builder\ClientDataToEntityConverter::setEntityFields
+      // @see \Drupal\canvas\ClientDataToEntityConverter::setEntityFields
       $parents = \explode('.', $property_path);
       NestedArray::setValue($values, $parents, $violation->getInvalidValue());
     }
@@ -171,7 +171,7 @@ final class ApiLayoutController {
     // shape as the 'name' attributes on each of the form elements built by the
     // form element and avoids needing to smooth out the idiosyncrasies of each
     // widget's structure.
-    // @see \Drupal\experience_builder\Controller\EntityFormController::form
+    // @see \Drupal\canvas\Controller\EntityFormController::form
     return Query::parse(\http_build_query($values));
   }
 
@@ -263,7 +263,7 @@ final class ApiLayoutController {
     $page_regions = PageRegion::loadForActiveThemeByClientSideId();
     if (!empty($page_regions)) {
       $regionForComponentId = $this->getRegionForComponentInstance($data['layout'], $componentInstanceUuid);
-      if ($regionForComponentId !== XbPageVariant::MAIN_CONTENT_REGION && NULL !== $regionForComponentId) {
+      if ($regionForComponentId !== CanvasPageVariant::MAIN_CONTENT_REGION && NULL !== $regionForComponentId) {
         if (!$page_regions[$regionForComponentId]->access('edit')) {
           throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $regionForComponentId));
         }
@@ -296,7 +296,7 @@ final class ApiLayoutController {
     $regions = PageRegion::loadForActiveThemeByClientSideId();
     if (!empty($regions)) {
       foreach ($body['layout'] as $region) {
-        if ($region['id'] !== XbPageVariant::MAIN_CONTENT_REGION) {
+        if ($region['id'] !== CanvasPageVariant::MAIN_CONTENT_REGION) {
           // Check access to regions if any component was added or removed from them.
           if (!$regions[$region['id']]->access('edit')) {
             throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $region['id']));
@@ -335,7 +335,7 @@ final class ApiLayoutController {
     $page_regions = PageRegion::loadForActiveThemeByClientSideId();
     foreach ($layout as $region_node) {
       $client_side_region_id = $region_node['id'];
-      if ($client_side_region_id === XbPageVariant::MAIN_CONTENT_REGION) {
+      if ($client_side_region_id === CanvasPageVariant::MAIN_CONTENT_REGION) {
         $content = $region_node;
       }
       // Save the global region if it has a corresponding enabled PageRegion.
@@ -376,10 +376,10 @@ final class ApiLayoutController {
     }
 
     $build['#prefix'] = !empty($build)
-      ? Markup::create('<!-- xb-region-start-content -->')
-      : Markup::create('<!-- xb-region-start-content --><div class="xb--region-empty-placeholder"></div>');
-    $build['#suffix'] = Markup::create('<!-- xb-region-end-content -->');
-    $build['#attached']['library'][] = 'experience_builder/preview';
+      ? Markup::create('<!-- canvas-region-start-content -->')
+      : Markup::create('<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div>');
+    $build['#suffix'] = Markup::create('<!-- canvas-region-end-content -->');
+    $build['#attached']['library'][] = 'canvas/preview';
     return $build;
   }
 
@@ -434,7 +434,7 @@ final class ApiLayoutController {
     $data['entity_form_fields'] = $this->getFilteredEntityData($build_entity);
     // Build the content region.
     $tree = $this->componentTreeLoader->load($build_entity);
-    $data['layout'] = [$this->buildRegion(XbPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
+    $data['layout'] = [$this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     assert(is_array($data['model']));
 
     $regions = PageRegion::loadForActiveTheme();
@@ -515,7 +515,7 @@ final class ApiLayoutController {
   }
 
   /**
-   * @return \Drupal\experience_builder\Entity\PageRegion[]
+   * @return \Drupal\canvas\Entity\PageRegion[]
    *   The editable regions for the active theme.
    */
   private static function getEditableRegions(): array {

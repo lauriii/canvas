@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Extension\ExtensionPathResolver;
@@ -19,25 +19,25 @@ use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
-use Drupal\experience_builder\Plugin\ComponentPluginManager;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropSource\AdaptedPropSource;
-use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
-use Drupal\experience_builder\PropSource\DynamicPropSource;
-use Drupal\experience_builder\PropSource\PropSource;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropSource\AdaptedPropSource;
+use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
+use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
@@ -46,8 +46,8 @@ use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\PropSource\PropSource
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\PropSource\PropSource
+ * @group canvas
  */
 class PropSourceTest extends KernelTestBase {
 
@@ -66,7 +66,7 @@ class PropSourceTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'field',
     'file',
     'image',
@@ -90,7 +90,7 @@ class PropSourceTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
     $this->installEntitySchema('media');
@@ -173,7 +173,7 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\experience_builder\PropSource\StaticPropSource
+   * @coversClass \Drupal\canvas\PropSource\StaticPropSource
    * @dataProvider providerStaticPropSource
    */
   public function testStaticPropSource(
@@ -208,7 +208,7 @@ class PropSourceTest extends KernelTestBase {
     self::assertSame($expected_dependencies, $prop_source_example->calculateDependencies());
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
-    // @see \Drupal\experience_builder\Entity\Component::$defaults
+    // @see \Drupal\canvas\Entity\Component::$defaults
     \assert(is_array($field_widgets));
     // Ensure we always test the default widget.
     \assert(isset($field_widgets[NULL]));
@@ -416,7 +416,7 @@ class PropSourceTest extends KernelTestBase {
       'expected_dependencies' => [
         'config' => [
           'field.field.media.image.field_media_image',
-          'image.style.xb_parametrized_width',
+          'image.style.canvas_parametrized_width',
           'media.type.image',
         ],
         'content' => [],
@@ -451,13 +451,13 @@ class PropSourceTest extends KernelTestBase {
       ],
       'expected_user_value' => [
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--{width}/public/image-3.jpg.webp?itok=6Jb0oZWl'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.webp?itok=spSF5vvd'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/xb_parametrized_width--{width}/public/image-2.jpg.webp?itok=dQpNrzPR'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.webp?itok=SnSVAYVj'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,
@@ -475,7 +475,7 @@ class PropSourceTest extends KernelTestBase {
           'field.field.media.anything_is_possible.field_media_image_1',
           'field.field.media.image.field_media_image',
           'field.field.media.image_but_not_image_media_source.field_media_test',
-          'image.style.xb_parametrized_width',
+          'image.style.canvas_parametrized_width',
           'media.type.anything_is_possible',
           'media.type.image',
           'media.type.image_but_not_image_media_source',
@@ -494,7 +494,7 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\experience_builder\PropSource\DynamicPropSource
+   * @coversClass \Drupal\canvas\PropSource\DynamicPropSource
    * @dataProvider providerDynamicPropSource
    */
   public function testDynamicPropSource(
@@ -606,7 +606,7 @@ class PropSourceTest extends KernelTestBase {
       // The expression in the context of node 2 (a `bio` node), which surfaces
       // no `content` dependencies because the `srcset_candidate_uri_template`
       // property does not provide such a dependency
-      // @see \Drupal\experience_builder\TypedData\ImageDerivativeWithParametrizedWidth
+      // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth
       $this->assertSame($expected_dependencies_expression_only, $parsed->calculateDependencies($node2));
     }
   }
@@ -673,15 +673,15 @@ class PropSourceTest extends KernelTestBase {
         'node.type.bio',
         'node.type.page',
         'field.field.node.bio.field_photo',
-        'image.style.xb_parametrized_width',
+        'image.style.canvas_parametrized_width',
         'field.field.node.page.field_image',
-        'image.style.xb_parametrized_width',
+        'image.style.canvas_parametrized_width',
       ],
     ];
     // The expression in the context of the `page` node, which surfaces content
     // dependencies because the `src_with_alternate_widths` property DOES
     // provide such dependencies
-    // @see \Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString
+    // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
     $expected_node_1_expression_dependencies = $expected_dependencies_expression;
     $expected_node_1_expression_dependencies['module'][] = 'file';
     $expected_node_1_expression_dependencies['content'][] = 'file:file:a461c159-039a-4de2-96e5-07d1112105df';
@@ -698,7 +698,7 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @covers \Drupal\experience_builder\PropExpressions\StructuredData\Evaluator
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\Evaluator
    * @testWith ["ℹ︎␜entity:user␝name␞␟value", null, "John Doe"]
    *           ["ℹ︎␜entity:user␝name␞0␟value", null, "John Doe"]
    *           ["ℹ︎␜entity:user␝name␞-1␟value", "Requested delta -1, but deltas must be positive integers.", "💩"]
@@ -731,7 +731,7 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\experience_builder\PropSource\AdaptedPropSource
+   * @coversClass \Drupal\canvas\PropSource\AdaptedPropSource
    */
   public function testAdaptedPropSource(): void {
     // 2. user created access
@@ -772,7 +772,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame(1663, $simple_static_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
     self::assertSame([
       'module' => [
-        'experience_builder',
+        'canvas',
         'datetime_range',
         'datetime_range',
       ],
@@ -816,10 +816,10 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame(11874, $simple_dynamic_example->evaluate($user, is_required: TRUE));
     self::assertSame([
       'module' => [
-        'experience_builder',
-        'experience_builder',
+        'canvas',
+        'canvas',
         'user',
-        'experience_builder',
+        'canvas',
         'user',
       ],
     ], $simple_dynamic_example->calculateDependencies($user));
@@ -862,19 +862,19 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
     self::assertSame([
       'module' => [
-        'experience_builder',
+        'canvas',
         'datetime',
-        'experience_builder',
+        'canvas',
         'user',
       ],
     ], $complex_example->calculateDependencies($user));
   }
 
   /**
-   * @coversClass \Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource
+   * @coversClass \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
    */
   public function testDefaultRelativeUrlPropSource(): void {
-    $this->enableModules(['xb_test_sdc', 'link', 'image', 'options']);
+    $this->enableModules(['canvas_test_sdc', 'link', 'image', 'options']);
     // Force rebuilding of the definitions which will create the required
     // component.
     $plugin_manager = $this->container->get(ComponentPluginManager::class);
@@ -913,13 +913,13 @@ class PropSourceTest extends KernelTestBase {
           ],
         ],
       ],
-      componentId: 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+      componentId: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
     );
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
-    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","contentMediaType":"image\/*","format":"uri-reference","pattern":"^(\/|https?:\/\/)?(?!.*\\\\:\/\/)[^\\\\s]+$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","contentMediaType":"image\/*","format":"uri-reference","pattern":"^(\/|https?:\/\/)?(?!.*\\\\:\/\/)[^\\\\s]+$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
     $decoded = json_decode($json_representation, TRUE);
     // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
     // order for the JSON Schema definition it contains.
@@ -927,7 +927,7 @@ class PropSourceTest extends KernelTestBase {
     $source = PropSource::parse($decoded);
     self::assertInstanceOf(DefaultRelativeUrlPropSource::class, $source);
     self::assertSame('default-relative-url', $source->getSourceType());
-    $path = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'xb_test_sdc') . '/components/image-optional-with-example-and-additional-prop';
+    $path = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'canvas_test_sdc') . '/components/image-optional-with-example-and-additional-prop';
     // Prove that using a `$ref` results in the same JSON representation.
     $equivalent_source = new DefaultRelativeUrlPropSource(
       value: [
@@ -937,9 +937,9 @@ class PropSourceTest extends KernelTestBase {
         'height' => 402,
       ],
       jsonSchema: [
-        '$ref' => 'json-schema-definitions://experience_builder.module/image',
+        '$ref' => 'json-schema-definitions://canvas.module/image',
       ],
-      componentId: 'sdc.xb_test_sdc.image-optional-with-example-and-additional-prop',
+      componentId: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
     );
     self::assertSame((string) $equivalent_source, $json_representation);
     // Test that the URL resolves on evaluation.
@@ -950,7 +950,7 @@ class PropSourceTest extends KernelTestBase {
       'height' => 402,
     ], $source->evaluate(NULL, is_required: TRUE));
     self::assertSame([
-      'config' => ['experience_builder.component.sdc.xb_test_sdc.image-optional-with-example-and-additional-prop'],
+      'config' => ['canvas.component.sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop'],
     ], $source->calculateDependencies());
     // This is never a choice presented to the end user; this is a purely internal prop source.
     $this->expectException(\LogicException::class);

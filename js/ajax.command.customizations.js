@@ -459,7 +459,7 @@
   };
 
   /**
-   * Customizing the add_css AjaxCommand for Experience Builder.
+   * Customizing the add_css AjaxCommand for Drupal Canvas.
    *
    * @type {{attach(): void}}
    */

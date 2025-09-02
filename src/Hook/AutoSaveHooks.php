@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,14 +11,14 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\node\Form\NodeRevisionRevertForm;
 
 /**
  * @file
- * Hook implementations for XB's auto-save functionality.
+ * Hook implementations for Canvas's auto-save functionality.
  *
- * @see \Drupal\experience_builder\AutoSave\AutoSaveManager
+ * @see \Drupal\canvas\AutoSave\AutoSaveManager
  */
 class AutoSaveHooks {
 
@@ -59,11 +59,11 @@ class AutoSaveHooks {
           $form['#submit'][] = [self::class, 'revisionRevertSubmit'];
         }
 
-        $form['xb_auto_save_warning'] = [
+        $form['canvas_auto_save_warning'] = [
           '#theme' => 'status_messages',
           '#message_list' => [
             'warning' => [
-              new TranslatableMarkup('This page has unpublished changed in Experience Builder. Reverting to this revision will delete the auto-saved changes.'),
+              new TranslatableMarkup('This page has unpublished changed in Drupal Canvas. Reverting to this revision will delete the auto-saved changes.'),
             ],
           ],
           '#status_headings' => [

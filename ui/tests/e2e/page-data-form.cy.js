@@ -1,11 +1,11 @@
 describe('Page data form', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded();
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded();
   });
 
   after(() => {
@@ -13,7 +13,7 @@ describe('Page data form', () => {
   });
 
   it('Loads and displays the article node form', () => {
-    cy.get('#xbPreviewOverlay .xb--viewport-overlay')
+    cy.get('#canvasPreviewOverlay .canvas--viewport-overlay')
       .first()
       .as('desktopPreviewOverlay');
     cy.get('.primaryPanelContent').as('layersTree');
@@ -21,28 +21,28 @@ describe('Page data form', () => {
     // Open the right sidebar by clicking on a component.
     cy.clickComponentInPreview('Hero');
     // Open the page data form by clicking on the "Page data" tab in the sidebar.
-    cy.findByTestId('xb-contextual-panel--page-data').click();
-    cy.findByTestId('xb-page-data-form')
+    cy.findByTestId('canvas-contextual-panel--page-data').click();
+    cy.findByTestId('canvas-page-data-form')
       .findByLabelText('Title')
-      .should('have.value', 'XB Needs This For The Time Being');
+      .should('have.value', 'Canvas Needs This For The Time Being');
 
     // Type a new value into the title field.
-    cy.findByTestId('xb-page-data-form')
+    cy.findByTestId('canvas-page-data-form')
       .findByLabelText('Title')
       .as('titleField');
     cy.get('@titleField').focus();
     cy.get('@titleField').clear();
     cy.get('@titleField').type('This is a new title');
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.get('@titleField').should('have.value', 'This is a new title');
     cy.wait('@updatePreview');
     // Wait until the alias has been generated and preview updated.
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.get('@titleField').blur();
     cy.wait('@updatePreview');
     cy.get('button[aria-label="Undo"]').should('be.enabled');
     cy.get('button[aria-label="Redo"]').should('be.disabled');
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
+    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.realPress(['Meta', 'Z']);
     cy.wait('@updatePreview');
 
@@ -51,16 +51,16 @@ describe('Page data form', () => {
     cy.realPress(['Meta', 'Z']);
     cy.get('@titleField').should(
       'have.value',
-      'XB Needs This For The Time Being',
+      'Canvas Needs This For The Time Being',
     );
     cy.get('button[aria-label="Undo"]').should('be.disabled');
     cy.get('@layersTree').findByText('Two Column').should('exist');
     cy.get('button[aria-label="Redo"]').should('be.enabled');
 
-    cy.intercept('PATCH', '**/xb/api/v0/layout/node/1').as('patchPreview');
+    cy.intercept('PATCH', '**/canvas/api/v0/layout/node/1').as('patchPreview');
     // Switch back to component instance form.
     cy.clickComponentInPreview('Hero');
-    cy.findByTestId('xb-contextual-panel--settings').click();
+    cy.findByTestId('canvas-contextual-panel--settings').click();
     cy.get(
       '[class*="contextualPanel"] [data-drupal-selector="component-instance-form"]',
     )
@@ -94,10 +94,10 @@ describe('Page data form', () => {
 
     // Changing a field on the data form, should invalidate the redo state for
     // the layoutModel.
-    cy.findByTestId('xb-contextual-panel--page-data').click();
-    cy.findByTestId('xb-page-data-form')
+    cy.findByTestId('canvas-contextual-panel--page-data').click();
+    cy.findByTestId('canvas-page-data-form')
       .findByLabelText('Title')
-      .should('have.value', 'XB Needs This For The Time Being');
+      .should('have.value', 'Canvas Needs This For The Time Being');
 
     cy.get('@titleField').focus();
     cy.get('@titleField').clear();

@@ -1,4 +1,4 @@
-# Experience Builder in-browser code editor
+# Drupal Canvas in-browser code editor
 
 ```mermaid
 flowchart TD

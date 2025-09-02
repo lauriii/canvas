@@ -4,9 +4,10 @@
 $ ln -sv /PATH/TO/DRUPAL/ROOT/core/core/phpcs.xml.dist core.phpcs.xml.dist
 core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
 -->
-<ruleset name="experience_builder">
+<ruleset name="canvas">
   <exclude-pattern>*/modules/same_page_preview/*</exclude-pattern>
-  <exclude-pattern>*/modules/xb_vite/*</exclude-pattern>
+  <exclude-pattern>*/modules/canvas_vite/*</exclude-pattern>
+  <exclude-pattern>scripts/src/ConverterCommand.php</exclude-pattern>
   <!-- Drupal (core) uses stylelint: https://www.drupal.org/list-changes/drupal/published?keywords_description=stylelint-->
   <exclude-pattern>*.css$</exclude-pattern>
   <!-- Drupal (core) uses eslint: https://www.drupal.org/list-changes/drupal/published?keywords_description=eslint-->

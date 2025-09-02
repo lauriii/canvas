@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 // cspell:ignore magnifique
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\ApiRequestTrait;
@@ -18,10 +18,10 @@ use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 /**
  * @todo Add test coverage for dynamic prop sources used in the content type
  *   templates in https://drupal.org/i/3455629. This will most likely require
- *   adding back `experience_builder_entity_prepare_view()` which was removed in
+ *   adding back `canvas_entity_prepare_view()` which was removed in
  *   https://www.drupal.org/i/3481720.
- * @see https://www.drupal.org/project/experience_builder/issues/3455629#comment-15831060
- * @group experience_builder
+ * @see https://www.drupal.org/project/canvas/issues/3455629#comment-15831060
+ * @group canvas
  */
 class TranslationTest extends FunctionalTestBase {
 
@@ -32,8 +32,8 @@ class TranslationTest extends FunctionalTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
-    'xb_test_sdc',
+    'canvas',
+    'canvas_test_sdc',
     'content_translation',
     'language',
   ];
@@ -55,15 +55,15 @@ class TranslationTest extends FunctionalTestBase {
     parent::setUp();
 
     // In 11.2 and above we install modules in groups, which means this module
-    // cannot be installed in the same group as experience_builder
-    \Drupal::service(ModuleInstallerInterface::class)->install(['xb_test_config_node_article']);
+    // cannot be installed in the same group as canvas
+    \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_test_config_node_article']);
 
-    // Display the `field_xb_test` field.
+    // Display the `field_canvas_test` field.
     \Drupal::service('entity_display.repository')
       ->getViewDisplay('node', 'article')
-      ->setComponent('field_xb_test', [
+      ->setComponent('field_canvas_test', [
         'label' => 'hidden',
-        'type' => 'experience_builder_naive_render_sdc_tree',
+        'type' => 'canvas_naive_render_sdc_tree',
       ])
       ->save();
 
@@ -104,13 +104,13 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests translating the XB field.
+   * Tests translating the Canvas field.
    *
    * @param array<string> $translatable_properties
-   *   The properties on the XB field that should be
+   *   The properties on the Canvas field that should be
    *   translatable.
    * @param bool $expect_component_removed_on_translation
-   *   Whether the last component in XB tree is expected to be removed from the
+   *   Whether the last component in Canvas tree is expected to be removed from the
    *   translation. The component is always removed from the default
    *   translation.
    *
@@ -124,26 +124,26 @@ class TranslationTest extends FunctionalTestBase {
 
     $this->drupalGet('admin/config/regional/content-language');
     if ($field_is_translatable) {
-      $page->checkField('settings[node][article][fields][field_xb_test]');
+      $page->checkField('settings[node][article][fields][field_canvas_test]');
       foreach (['tree', 'inputs'] as $field_property) {
         in_array($field_property, $translatable_properties)
-          ? $page->checkField("settings[node][article][columns][field_xb_test][$field_property]")
-          : $page->uncheckField("settings[node][article][columns][field_xb_test][$field_property]");
+          ? $page->checkField("settings[node][article][columns][field_canvas_test][$field_property]")
+          : $page->uncheckField("settings[node][article][columns][field_canvas_test][$field_property]");
       }
     }
     else {
-      $page->uncheckField('settings[node][article][fields][field_xb_test]');
+      $page->uncheckField('settings[node][article][fields][field_canvas_test]');
     }
 
     $page->pressButton('Save configuration');
     $this->assertSession()->pageTextContains('Settings successfully updated.');
-    $original_node = $this->createXbNodeWithTranslation();
+    $original_node = $this->createCanvasNodeWithTranslation();
     $this->assertTrue($original_node->isDefaultTranslation());
     $translated_node = $original_node->getTranslation('fr');
     $this->assertSame('The French title', (string) $translated_node->getTitle());
 
     $this->drupalGet($original_node->toUrl());
-    $hero_component = $assert_session->elementExists('css', '[data-component-id="xb_test_sdc:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="canvas_test_sdc:my-hero"]');
 
     // Confirm the translated property is not on the page anywhere.
     $assert_session->pageTextNotContains('bonjour');
@@ -152,12 +152,12 @@ class TranslationTest extends FunctionalTestBase {
     $this->assertSame('hello, new world!', $hero_component->find('css', 'h1')?->getText());
     // Confirm the heading has been removed from display. This was changed on
     // the default translation.
-    $assert_session->elementsCount('css', '[data-component-id="xb_test_sdc:heading"]', 0);
+    $assert_session->elementsCount('css', '[data-component-id="canvas_test_sdc:heading"]', 0);
 
     $this->drupalGet($translated_node->toUrl());
     $assert_session->elementTextEquals('css', '#block-stark-page-title h1', 'The French title');
 
-    $hero_component = $assert_session->elementExists('css', '[data-component-id="xb_test_sdc:my-hero"]');
+    $hero_component = $assert_session->elementExists('css', '[data-component-id="canvas_test_sdc:my-hero"]');
     if ($field_is_translatable) {
       // If the field is translatable updating inputs in the default translation
       // should not have updated the French translation.
@@ -175,7 +175,7 @@ class TranslationTest extends FunctionalTestBase {
     // expectation.
     $assert_session->elementsCount(
       'css',
-      '[data-component-id="xb_test_sdc:heading"]',
+      '[data-component-id="canvas_test_sdc:heading"]',
       $expect_component_removed_on_translation ? 0 : 1
     );
 
@@ -183,7 +183,7 @@ class TranslationTest extends FunctionalTestBase {
     // original translation — both in the server-side storage, and in the
     // information provided to the client for the UI.
     $get_name = function (NodeInterface $node): ?string {
-      $component_tree = $node->get('field_xb_test');
+      $component_tree = $node->get('field_canvas_test');
       assert($component_tree instanceof ComponentTreeItemList);
       return $component_tree->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c')?->getLabel();
     };
@@ -198,8 +198,8 @@ class TranslationTest extends FunctionalTestBase {
       $layout = json_decode((string) $response->getBody(), TRUE)['layout'];
       return $layout[0]['components'][0]['slots'][0]['components'][0]['name'];
     };
-    self::assertSame($expected_original_label, $get_name_in_api_response('/xb/api/v0/layout/node/1'));
-    self::assertSame("Drupal, c'est magnifique !", $get_name_in_api_response('/fr/xb/api/v0/layout/node/1'));
+    self::assertSame($expected_original_label, $get_name_in_api_response('/canvas/api/v0/layout/node/1'));
+    self::assertSame("Drupal, c'est magnifique !", $get_name_in_api_response('/fr/canvas/api/v0/layout/node/1'));
   }
 
   /**
@@ -208,9 +208,9 @@ class TranslationTest extends FunctionalTestBase {
    * @return \Drupal\node\Entity\Node
    *   The default translation of the node.
    */
-  protected function createXbNodeWithTranslation(): Node {
+  protected function createCanvasNodeWithTranslation(): Node {
     $node = $this->createTestNode();
-    $list = $node->get('field_xb_test');
+    $list = $node->get('field_canvas_test');
     assert($list instanceof ComponentTreeItemList);
     // There are five items in the default values for this field.
     self::assertEquals(5, $list->count());
@@ -232,7 +232,7 @@ class TranslationTest extends FunctionalTestBase {
     // translation.
     $french_inputs = $updated_item_inputs;
     $french_inputs['heading'] = 'bonjour, monde!';
-    $french_list = $translation->get('field_xb_test');
+    $french_list = $translation->get('field_canvas_test');
     assert($french_list instanceof ComponentTreeItemList);
     $french_item = $french_list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
     assert($french_item instanceof ComponentTreeItem);

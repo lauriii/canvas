@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 /**
  * Defines a constraint to validate a configuration entity has a given version.
  *
- * @see \Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()
+ * @see \Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()
  */
 #[Constraint(
   id: self::PLUGIN_ID,

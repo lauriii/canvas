@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropSource;
+namespace Drupal\canvas\PropSource;
 
 /**
  * @phpstan-import-type PropSourceArray from PropSourceBase
@@ -18,7 +18,7 @@ final class PropSource {
     $source_type_prefix = strstr($prop_source['sourceType'], PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR, TRUE);
     // If the prefix separator is not present, then use the full source type.
     // For example: `dynamic` does not need a more detailed source type.
-    // @see \Drupal\experience_builder\PropSource\DynamicPropSource::__toString()
+    // @see \Drupal\canvas\PropSource\DynamicPropSource::__toString()
     if ($source_type_prefix === FALSE) {
       $source_type_prefix = $prop_source['sourceType'];
     }
@@ -27,7 +27,7 @@ final class PropSource {
     // default value for a URL prop shape at storage time, but will then be
     // transformed to a resolvable (working) absolute or root-relative URL at
     // run time.
-    // @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
+    // @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
     if ($source_type_prefix === DefaultRelativeUrlPropSource::getSourceTypePrefix()) {
       return DefaultRelativeUrlPropSource::parse($prop_source);
     }

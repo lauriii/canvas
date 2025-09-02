@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
-use Drupal\experience_builder\PropSource\AdaptedPropSource;
-use Drupal\experience_builder\PropSource\DynamicPropSource;
-use Drupal\experience_builder\PropSource\DefaultRelativeUrlPropSource;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\PropSource\AdaptedPropSource;
+use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
@@ -26,9 +26,9 @@ use Symfony\Component\Validator\Exception\MissingOptionsException;
  *
  * Assumes valid component trees.
  *
- * @see \Drupal\experience_builder\Plugin\Validation\Constraint\ValidComponentTreeItemConstraint
- * @phpstan-import-type PropSourceTypePrefix from \Drupal\experience_builder\PropSource\PropSourceBase
- * @phpstan-import-type ComponentConfigEntityId from \Drupal\experience_builder\Entity\Component
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraint
+ * @phpstan-import-type PropSourceTypePrefix from \Drupal\canvas\PropSource\PropSourceBase
+ * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
 #[Constraint(
   id: 'ComponentTreeMeetRequirements',
@@ -52,7 +52,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
    *
    * @var array{'absence': ?array<PropSourceTypePrefix>, 'presence': ?array<PropSourceTypePrefix>}
    *
-   * @see \Drupal\experience_builder\PropSource\PropSourceBase::getSourceTypePrefix()
+   * @see \Drupal\canvas\PropSource\PropSourceBase::getSourceTypePrefix()
    */
   public array $inputs;
 
@@ -133,7 +133,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       // TRICKY: verifying sensible values are present for $this->tree is
       // impossible, because they refer to Component config entities, which do
       // not yet exist at this time.
-      // @see \Drupal\experience_builder\Entity\Component
+      // @see \Drupal\canvas\Entity\Component
     }
   }
 

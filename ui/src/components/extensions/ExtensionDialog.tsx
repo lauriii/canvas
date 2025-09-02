@@ -47,7 +47,7 @@ const ExtensionDialog: React.FC<ExtensionDialogProps> = () => {
     >
       <Box
         id="extensionPortalContainer"
-        className={`xb-extension-${activeExtension.id}`}
+        className={`canvas-extension-${activeExtension.id}`}
       ></Box>
     </Dialog>
   );

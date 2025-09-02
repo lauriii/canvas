@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\StructuredData;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -15,7 +15,7 @@ use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\field\FieldConfigInterface;
 
 /**
@@ -59,7 +59,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     // `width` and `height` may be optional. Those last 3 could then use ␀ if
     // only a subset of the bundle-specific fields with different field types
     // are able to populate any of those.
-    // @see \Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
+    // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
     if (is_array($fieldName)) {
       $bundles = $entityType->getBundles();
       assert($bundles !== NULL && count($bundles) >= 1);
@@ -69,7 +69,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
       }
 
       // Ensure that the $fieldName ordering matches that of the bundles.
-      // @see \Drupal\experience_builder\TypedData\BetterEntityDataDefinition::create()
+      // @see \Drupal\canvas\TypedData\BetterEntityDataDefinition::create()
       if ($bundles !== array_keys($fieldName)) {
         throw new \InvalidArgumentException('A field name must be specified for every bundle, and in the same order.');
       }
@@ -176,7 +176,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
         $bundle_specific_field_name = $this->fieldName[$bundle];
         $prop_name = match (TRUE) {
           is_string($this->propName) => $this->propName,
-          // @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
+          // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
           is_array($this->propName) => $this->propName[$bundle_specific_field_name],
         };
         if ($prop_name !== StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {

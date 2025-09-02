@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\EcosystemSupport;
+namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
-use Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester;
-use Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -29,22 +29,22 @@ use Drupal\field\Entity\FieldStorageConfig;
  * 1. installs every module providing >=1 field type
  * 2. creates both a required and optional instance of every field type on the
  *    `entity_test` entity type
- * 3. installs the module providing XB's special `all-props` SDC, which has one
+ * 3. installs the module providing Canvas's special `all-props` SDC, which has one
  *    prop of EVERY possible shape (JSON Schema `type`, `format`, etc.)
- * 4. then asks the XB infrastructure for suggesting all compatible field
+ * 4. then asks the Canvas infrastructure for suggesting all compatible field
  *    instances (2.) for the `all-props` SDC (3.)
  *
  * The result is that the purpose of this test is achieved while truly using the
- * very same infrastructure the rest of XB uses.
+ * very same infrastructure the rest of Canvas uses.
  *
- * @todo Also test non-default FieldStorageConfig setting in https://www.drupal.org/project/experience_builder/issues/3512848
+ * @todo Also test non-default FieldStorageConfig setting in https://www.drupal.org/project/canvas/issues/3512848
  *
- * @covers \Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester
- * @see \Drupal\Tests\experience_builder\Kernel\FieldForComponentSuggesterTest
- * @covers \Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher
- * @see \Drupal\Tests\experience_builder\Kernel\PropShapeToFieldInstanceTest
+ * @covers \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
+ * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
+ * @covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ * @see \Drupal\Tests\canvas\Kernel\PropShapeToFieldInstanceTest
  * @see docs/shape-matching-into-field-types.md#3.1.2.a
- * @group experience_builder
+ * @group canvas
  */
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
@@ -95,7 +95,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     ],
     'datetime' => [
       // 🐛 Core bug: this is the computed equivalent of `value`, should be marked internal.
-      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/experience_builder/issues/3512853
+      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/canvas/issues/3512853
       'date' => FALSE,
     ],
     'email' => [],
@@ -103,7 +103,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     'file' => [],
     'file_uri' => [
       // 🐛 Core bug: this is the computed equivalent of `value`, should be marked internal.
-      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/experience_builder/issues/3512853
+      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/canvas/issues/3512853
       'url' => FALSE,
     ],
     'float' => [],
@@ -112,7 +112,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     ],
     'integer' => [],
     'link' => [
-      // @todo Decide in https://www.drupal.org/project/experience_builder/issues/3512849 whether this is okay or not; if it is: document rationale here.
+      // @todo Decide in https://www.drupal.org/project/canvas/issues/3512849 whether this is okay or not; if it is: document rationale here.
       'options' => FALSE,
       // We want to support the computed 'url' field instead as this handles
       // resolving URIs such as entity:node/1, base:/node/1 and
@@ -149,7 +149,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    */
   public const INTENTIONALLY_UNSUPPORTED = JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES;
 
-  private const XB_TEST_FIELD_PREFIX = 'test_';
+  private const CANVAS_TEST_FIELD_PREFIX = 'test_';
 
   /**
    * {@inheritdoc}
@@ -212,7 +212,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $expected_supported_field_props = [];
     foreach ($entity_data->getPropertyDefinitions() as $field_name => $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
-      if (!str_starts_with($field_name, self::XB_TEST_FIELD_PREFIX)) {
+      if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {
         continue;
       }
       $expected_fields[] = $field_name;
@@ -241,14 +241,14 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
           continue;
         }
         $all_field_props[] = "$field_name.$field_prop_name";
-        // All field props are expected to be supported by XB, except the ones
+        // All field props are expected to be supported by Canvas, except the ones
         // that are for known core bugs.
         if (!array_key_exists($field_type, self::SUPPORTED) || (self::SUPPORTED[$field_type][$field_prop_name] ?? TRUE) === TRUE) {
           $expected_field_props[] = "$field_name.$field_prop_name";
         }
         // All known-to-be-supported field types are expected to have all props
         // supported, except the ones known to not yet work, either due to a
-        // core bug, or due to an XB bug.
+        // core bug, or due to an Canvas bug.
         if (array_key_exists($field_type, self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
           $expected_supported_field_props[] = "$field_name.$field_prop_name";
         }
@@ -293,7 +293,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         // in JsonSchemaFieldInstanceMatcher asses one entity type + bundle at
         // time.
         assert(is_string($field_name));
-        if (!str_starts_with($field_name, self::XB_TEST_FIELD_PREFIX)) {
+        if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {
           continue;
         }
 
@@ -356,13 +356,13 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       if ($def['provider'] === 'entity_test') {
         continue;
       }
-      // There is no need to map XB component trees *into* XB component trees.
+      // There is no need to map Canvas component trees *into* Canvas component trees.
       if ($def['class'] === ComponentTreeItem::class) {
         continue;
       }
       foreach ([TRUE, FALSE] as $required) {
         $field_name = implode('', [
-          self::XB_TEST_FIELD_PREFIX,
+          self::CANVAS_TEST_FIELD_PREFIX,
           $required ? 'required__' : 'optional__',
           $field_type_id,
         ]);

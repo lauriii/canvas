@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EntityHandlers;
+namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,14 +11,14 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Decorates a view builder so it can take advantage of content templates.
  *
- * @see \Drupal\experience_builder\Hook\ContentTemplateHooks::entityTypeAlter()
+ * @see \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter()
  */
 final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
 
@@ -27,7 +27,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
    *
    * @var string
    */
-  public const string DECORATED_HANDLER_KEY = 'xb_original_view_builder';
+  public const string DECORATED_HANDLER_KEY = 'canvas_original_view_builder';
 
   /**
    * The decorated view builder.
@@ -39,7 +39,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
   /**
    * The component tree loader service.
    *
-   * @var \Drupal\experience_builder\Storage\ComponentTreeLoader
+   * @var \Drupal\canvas\Storage\ComponentTreeLoader
    */
   private ComponentTreeLoader $componentTreeLoader;
 
@@ -66,11 +66,11 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     $keys = NestedArray::getValue($defaults, ['#cache', 'keys']);
     if ($keys !== NULL) {
       // This entity has render caching, so add a cache key indicating whether
-      // or not it's opted into XB.
+      // or not it's opted into Canvas.
       \assert($entity instanceof FieldableEntityInterface);
       try {
-        $this->componentTreeLoader->getXbFieldName($entity);
-        $keys[] = 'with-xb';
+        $this->componentTreeLoader->getCanvasFieldName($entity);
+        $keys[] = 'with-canvas';
         // We don't want to use the default theme template as preprocess functions
         // etc might make assumptions about various fields being present.
         // @see template_preprocess_node.
@@ -78,7 +78,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
         unset($defaults['#theme']);
       }
       catch (\LogicException) {
-        $keys[] = 'without-xb';
+        $keys[] = 'without-canvas';
       }
       finally {
         NestedArray::setValue($defaults, ['#cache', 'keys'], $keys);
@@ -101,10 +101,10 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
 
       \assert($entity instanceof FieldableEntityInterface);
       try {
-        $this->componentTreeLoader->getXbFieldName($entity);
+        $this->componentTreeLoader->getCanvasFieldName($entity);
       }
       catch (\LogicException) {
-        // This entity isn't opted into XB, so there's nothing else to do.
+        // This entity isn't opted into Canvas, so there's nothing else to do.
         continue;
       }
 
@@ -120,11 +120,11 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     // would do, to stay as close as possible to the original execution flow.
     // This means `hook_entity_prepare_view()` will still be invoked. Then,
     // `ContentTemplate::buildMultiple()` will be called for the entities that
-    // are being rendered by XB, which in turn will call
+    // are being rendered by Canvas, which in turn will call
     // `ComponentTreeHydrated::toRenderable()`.
     // @see \Drupal\Core\Entity\EntityViewBuilder::buildComponents()
-    // @see \Drupal\experience_builder\Entity\ContentTemplate::buildMultiple()
-    // @see \Drupal\experience_builder\Plugin\DataType\ComponentTreeHydrated::toRenderable()
+    // @see \Drupal\canvas\Entity\ContentTemplate::buildMultiple()
+    // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::toRenderable()
     $this->decorated->buildComponents($build, $entities, $displays, $view_mode);
   }
 

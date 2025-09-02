@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
-use Drupal\experience_builder\ExperienceBuilderConfigUpdater;
+use Drupal\canvas\CanvasConfigUpdater;
 
 trait ConfigUpdaterAwareEntityTrait {
 
-  protected static function getConfigUpdater(): ExperienceBuilderConfigUpdater {
-    return \Drupal::service(ExperienceBuilderConfigUpdater::class);
+  protected static function getConfigUpdater(): CanvasConfigUpdater {
+    return \Drupal::service(CanvasConfigUpdater::class);
   }
 
 }

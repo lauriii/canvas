@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Adapter;
+namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -12,10 +12,10 @@ use Drupal\file\FileInterface;
   id: 'image_url_rel_to_abs',
   label: new TranslatableMarkup('Make relative image URL absolute'),
   inputs: [
-    'image' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'],
+    'image' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
   ],
   requiredInputs: ['image'],
-  output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image'],
+  output: ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
 )]
 final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 

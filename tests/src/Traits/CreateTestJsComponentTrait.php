@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\Tests\experience_builder\Kernel\Traits\CiModulePathTrait;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Symfony\Component\Yaml\Yaml;
 
 trait CreateTestJsComponentTrait {
@@ -15,9 +15,9 @@ trait CreateTestJsComponentTrait {
 
   private function createMyCtaComponentFromSdc(): void {
     // Create a "code component" that has the same explicit inputs as the
-    // `xb_sdc_test:my-cta`.
+    // `canvas_sdc_test:my-cta`.
     // @phpstan-ignore-next-line
-    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/xb_test_sdc/components/my-cta/my-cta.component.yml');
+    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/my-cta/my-cta.component.yml');
     $props = array_diff_key(
       $sdc_yaml['props']['properties'],
       // SDC has special infrastructure for a prop named "attributes".

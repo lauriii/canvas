@@ -13,7 +13,7 @@ const ImportButton = () => {
           <IconButton
             aria-label="Import components"
             radius="full"
-            data-testid="xb-import-button"
+            data-testid="canvas-import-button"
             className={styles.importButton}
           >
             <PinBottomIcon />
@@ -21,7 +21,7 @@ const ImportButton = () => {
         </Popover.Trigger>
       </Tooltip>
       <Popover.Content width="100vw" maxWidth="550px" asChild align="center">
-        <Panel className="xb-app">
+        <Panel className="canvas-app">
           <ErrorBoundary
             title={`An unexpected error has occurred while fetching code components.`}
           >

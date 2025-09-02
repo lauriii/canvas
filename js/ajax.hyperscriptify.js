@@ -52,8 +52,8 @@
       if (
         drupalSettings.tableDrag &&
         context?.querySelector &&
-        !!context.querySelector(':scope > [data-xb-multiple-values]') &&
-        !!context.querySelector('[data-xb-tabledrag]')
+        !!context.querySelector(':scope > [data-canvas-multiple-values]') &&
+        !!context.querySelector('[data-canvas-tabledrag]')
       ) {
         context
           .querySelectorAll('.ajax-new-content')
@@ -145,7 +145,7 @@
       if (
         !attachBehaviorsCalled &&
         context?.closest &&
-        context.closest('[data-testid="xb-contextual-panel"]')
+        context.closest('[data-testid="canvas-contextual-panel"]')
       ) {
         Drupal.attachBehaviorsAfterAjaxing(context, settings);
       }

@@ -2,12 +2,12 @@
 // eslint-disable-next-line mocha/no-pending-tests
 describe.skip('Perform CRUD operations on components that require disabled CSS aggregation', () => {
   before(() => {
-    cy.drupalXbInstall([], { disableAggregation: true });
+    cy.drupalCanvasInstall([], { disableAggregation: true });
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -15,9 +15,9 @@ describe.skip('Perform CRUD operations on components that require disabled CSS a
   });
 
   it('The iframe loads the SDC CSS', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.getIframe(
-      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      '[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]',
     )
       .its('head')
       .should('not.be.undefined')
@@ -36,12 +36,12 @@ describe.skip('Perform CRUD operations on components that require disabled CSS a
 // eslint-disable-next-line mocha/no-pending-tests
 describe.skip('Perform CRUD operations on components', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -50,7 +50,7 @@ describe.skip('Perform CRUD operations on components', () => {
 
   it('Can handle empty heading prop in hero component', () => {
     // Load the page and add hero component
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Hero').click();
 
@@ -78,7 +78,10 @@ describe.skip('Perform CRUD operations on components', () => {
     );
 
     // Refresh page
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2', clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({
+      url: 'canvas/node/2',
+      clearAutoSave: false,
+    });
     cy.clickComponentInPreview('Hero');
 
     // Verify preview still loads and heading is empty.
@@ -101,15 +104,19 @@ describe.skip('Perform CRUD operations on components', () => {
   });
 
   it('Should be able to blur autocomplete without problems. See #3519734', () => {
-    cy.intercept('POST', '**/xb/api/v0/layout/**').as('updatePreview');
-    cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+    cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
     cy.get('#edit-title-0-value').should('exist');
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
     cy.openLibraryPanel();
 
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should('exist');
+    cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
+      'exist',
+    );
 
-    cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
+    cy.get(
+      '[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
+    ).realClick();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     const headType = 'Head is different';
     const subType = 'Sub also experienced change';
@@ -118,11 +125,11 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.findByLabelText('Heading').should('have.value', headType);
     cy.findByLabelText('Sub-heading').should('have.value', subType);
     cy.waitForElementContentInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"] h1',
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
       headType,
     );
     cy.waitForElementContentInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"] p',
+      '[data-component-id="canvas_test_sdc:my-hero"] p',
       subType,
     );
 
@@ -140,11 +147,11 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.wait(1000);
 
     cy.waitForElementContentInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"] h1',
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
       headType,
     );
     cy.waitForElementContentInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"] p',
+      '[data-component-id="canvas_test_sdc:my-hero"] p',
       subType,
     );
 
@@ -155,32 +162,37 @@ describe.skip('Perform CRUD operations on components', () => {
   it('Created a node 1 with type article on install', () => {
     cy.drupalRelativeURL('node/1');
     cy.get('h1').should(($h1) => {
-      expect($h1.text()).to.include('XB Needs This');
+      expect($h1.text()).to.include('Canvas Needs This');
     });
-    cy.get('[data-component-id="xb_test_sdc:my-hero"] h1').should(($h1) => {
+    cy.get('[data-component-id="canvas_test_sdc:my-hero"] h1').should(($h1) => {
       expect($h1.text()).to.include('hello, world!');
     });
     cy.get(
-      '[data-component-id="xb_test_sdc:my-hero"] a[href="https://drupal.org"]',
+      '[data-component-id="canvas_test_sdc:my-hero"] a[href="https://drupal.org"]',
     ).should.exist;
     cy.get(
-      '[data-component-id="xb_test_sdc:my-hero"] a[href="https://drupal.org"] ~ button',
+      '[data-component-id="canvas_test_sdc:my-hero"] a[href="https://drupal.org"] ~ button',
     ).should.exist;
   });
 
-  it('Can access XB UI and do basic interactions', () => {
-    cy.loadURLandWaitForXBLoaded();
+  it('Can access Canvas UI and do basic interactions', () => {
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Confirm that some elements in the default layout are present in the
     // default iframe (lg).
-    cy.testInIframe('[data-component-id="xb_test_sdc:my-hero"] h1', (h1s) => {
-      expect(h1s.length).to.equal(3);
-      h1s.forEach((h1, index) =>
-        expect(h1.textContent).to.equal(
-          index === 0 ? 'hello, world!' : 'XB Needs This For The Time Being',
-        ),
-      );
-    });
+    cy.testInIframe(
+      '[data-component-id="canvas_test_sdc:my-hero"] h1',
+      (h1s) => {
+        expect(h1s.length).to.equal(3);
+        h1s.forEach((h1, index) =>
+          expect(h1.textContent).to.equal(
+            index === 0
+              ? 'hello, world!'
+              : 'Canvas Needs This For The Time Being',
+          ),
+        );
+      },
+    );
 
     cy.openLibraryPanel();
     // Confirm the Library panel is open by checking if a component is visible.
@@ -190,7 +202,7 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.get('.listContainer > div')
       .contains('Basic')
       .should(($basicListLabel) => {
-        const $listed = $basicListLabel.parent().find('[data-xb-uuid]');
+        const $listed = $basicListLabel.parent().find('[data-canvas-uuid]');
         const expectedNames = [
           'Deprecated SDC',
           'Experimental SDC',
@@ -216,19 +228,19 @@ describe.skip('Perform CRUD operations on components', () => {
       });
 
     // Confirm no component has a hover outline.
-    cy.get('[data-xb-component-outline]').should('not.exist');
+    cy.get('[data-canvas-component-outline]').should('not.exist');
 
     let lgPreviewRect = {};
     // Enter the iframe to find an element in the preview iframe and hover over it.
     cy.getIframeBody()
-      .find('[data-component-id="xb_test_sdc:my-hero"] h1')
+      .find('[data-component-id="canvas_test_sdc:my-hero"] h1')
       .first()
       .then(($h1) => {
         cy.wrap($h1).trigger('mouseover');
         // While in the iframe, get the dimensions of the component so we can
         // compare the outline dimensions to it
 
-        const $item = $h1.closest('[data-xb-uuid]');
+        const $item = $h1.closest('[data-canvas-uuid]');
         lgPreviewRect = $item[0].getBoundingClientRect();
       });
 
@@ -255,11 +267,11 @@ describe.skip('Perform CRUD operations on components', () => {
   });
 
   it('Can add component by clicking component in library', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Check there are three heroes initially.
     cy.testInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(3);
       },
@@ -270,11 +282,11 @@ describe.skip('Perform CRUD operations on components', () => {
 
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
     // Click the "Hero" SDC-sourced Component.
-    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
     cy.get('.primaryPanelContent').findByText('Hero').click();
     cy.waitForElementContentInIframe('div', 'There goes my hero');
     cy.testInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.equal(4);
       },
@@ -282,10 +294,10 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.log('The newly added Hero component should be selected');
     cy.findAllByLabelText('Hero', { selector: '.componentOverlay' })
       .eq(0)
-      .should('have.attr', 'data-xb-selected', 'true');
+      .should('have.attr', 'data-canvas-selected', 'true');
 
     // Click the "My First Code Component" JS-sourced Component.
-    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
     cy.get('.primaryPanelContent')
       .findByText('My First Code Component')
       .click();
@@ -295,12 +307,12 @@ describe.skip('Perform CRUD operations on components', () => {
       selector: '.componentOverlay',
     })
       .eq(0)
-      .should('have.attr', 'data-xb-selected', 'true');
+      .should('have.attr', 'data-canvas-selected', 'true');
   });
 
   it('Can delete component with delete key', () => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded();
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Check there are three heroes initially.
     cy.getAllComponentsInPreview('Hero').should('have.length', 3);
@@ -315,7 +327,7 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.getAllComponentsInPreview('Hero').should('have.length', 2);
 
     cy.getIframeBody()
-      .find('[data-component-id="xb_test_sdc:two_column"]')
+      .find('[data-component-id="canvas_test_sdc:two_column"]')
       .should('have.length', 1);
 
     // Deleting from the content menu.
@@ -326,19 +338,19 @@ describe.skip('Perform CRUD operations on components', () => {
       .findByLabelText('Two Column')
       .should('not.exist');
     cy.previewReady();
-    cy.get(`#xbPreviewOverlay`)
+    cy.get(`#canvasPreviewOverlay`)
       .findAllByLabelText('Two Column')
       .should('not.exist');
   });
 
   it('Can add a component with empty slots', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // The component begins with one content drop zone.
-    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 1);
+    cy.findAllByTestId('canvas-empty-slot-drop-zone').should('have.length', 1);
 
     // Assert there is an existing two column SDC on the page already.
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findAllByText('Two Column').should('have.length', 1);
     });
     cy.get('.primaryPanelContent').findByText('Two Column').click();
@@ -348,17 +360,17 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.log(
       'There should be 2 new drop zones - 2 added columns in addition to the original',
     );
-    cy.findAllByTestId('xb-empty-slot-drop-zone').should('have.length', 3);
+    cy.findAllByTestId('canvas-empty-slot-drop-zone').should('have.length', 3);
 
     cy.openLayersPanel();
     // Assert that a second two column SDC has been added.
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findAllByText('Two Column').should('have.length', 2);
     });
   });
 
   it('Can add an image component with a preview but empty input', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Delete the two existing image components.
     cy.clickComponentInPreview('Test SDC Image');
@@ -372,18 +384,18 @@ describe.skip('Perform CRUD operations on components', () => {
 
     cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
 
-    cy.intercept('POST', '**/xb/api/v0/layout/node/1').then(cy.log);
+    cy.intercept('POST', '**/canvas/api/v0/layout/node/1').then(cy.log);
 
     // Check the default image src is set.
     cy.waitForElementInIframe(
-      'img[src*="/xb_test_sdc/components/image/600x400.png"]',
-      '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]',
+      'img[src*="/canvas_test_sdc/components/image/600x400.png"]',
+      '[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]',
       40000,
     );
   });
 
   it('Can add an optional image component with a preview but empty input', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Delete the two existing image components.
     cy.clickComponentInPreview('Test SDC Image');
@@ -395,7 +407,7 @@ describe.skip('Perform CRUD operations on components', () => {
 
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent')
-      .findByText('XB test SDC with optional image and heading')
+      .findByText('Canvas test SDC with optional image and heading')
       .click();
 
     // Check the default image src is set.
@@ -404,7 +416,7 @@ describe.skip('Perform CRUD operations on components', () => {
     );
 
     cy.publishAllPendingChanges([
-      'XB Needs This For The Time Being',
+      'Canvas Needs This For The Time Being',
       'I am an empty node',
     ]);
 

@@ -83,7 +83,8 @@ export const InputBehaviorsCommon = ({
   );
 
   const formId = attributes['data-form-id'] as FormId;
-  const fieldName = (attributes.name || attributes['data-xb-name']) as string;
+  const fieldName = (attributes.name ||
+    attributes['data-canvas-name']) as string;
 
   const fieldIdentifier = {
     formId,
@@ -94,7 +95,7 @@ export const InputBehaviorsCommon = ({
   );
   // Include the input's default value in the form state on init - including
   // when an element is added via AJAX.
-  const elementType = attributes.type || attributes['data-xb-type'];
+  const elementType = attributes.type || attributes['data-canvas-type'];
   useEffect(() => {
     if (
       // Ignore radios in indeterminate (initial unset) state.
@@ -200,11 +201,11 @@ export const InputBehaviorsCommon = ({
       // Update the value of the input in the local state.
       setInputValue(newValue);
 
-      // The data-xb-no-update indicates we should return early and not update the
+      // The data-canvas-no-update indicates we should return early and not update the
       // store.
       if (
         typeof e?.target?.hasAttribute === 'function' &&
-        e.target.hasAttribute('data-xb-no-update')
+        e.target.hasAttribute('data-canvas-no-update')
       ) {
         return;
       }

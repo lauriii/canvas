@@ -21,12 +21,12 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import { contentApi } from '@/services/content';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
-import { getXbSettings } from '@/utils/drupal-globals';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 interface PreviewProps {}
 
-const xbSettings = getXbSettings();
-const labelFormKey = `${xbSettings.entityTypeKeys.label}[0][value]`;
+const canvasSettings = getCanvasSettings();
+const labelFormKey = `${canvasSettings.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);

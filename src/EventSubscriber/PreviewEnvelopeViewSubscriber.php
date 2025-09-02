@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\experience_builder\Render\MainContent\XBPreviewRenderer;
-use Drupal\experience_builder\Render\PreviewEnvelope;
+use Drupal\canvas\Render\MainContent\CanvasPreviewRenderer;
+use Drupal\canvas\Render\PreviewEnvelope;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -20,7 +20,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final class PreviewEnvelopeViewSubscriber implements EventSubscriberInterface {
 
   public function __construct(
-    private readonly XBPreviewRenderer $renderer,
+    private readonly CanvasPreviewRenderer $renderer,
     private readonly RouteMatchInterface $routeMatch,
   ) {
   }

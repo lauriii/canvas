@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 // cspell:ignore Bwidth
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\experience_builder\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\image\Entity\ImageStyle;
 
 /**
@@ -41,7 +41,7 @@ final class ParametrizedImageStyle extends ImageStyle {
   }
 
   /**
-   * @see \Drupal\experience_builder\Routing\ParametrizedImageStyleConverter
+   * @see \Drupal\canvas\Routing\ParametrizedImageStyleConverter
    */
   public function buildUrlTemplate(string $path): string {
     $this->buildingTemplate = TRUE;
@@ -100,7 +100,7 @@ final class ParametrizedImageStyle extends ImageStyle {
       $this->buildingTemplate = FALSE;
       // @todo Read this from third-party settings -
       //   https://drupal.org/i/3533563
-      // @see config/install/image.style.xb_parametrized_width.yml
+      // @see config/install/image.style.canvas_parametrized_width.yml
       foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $width) {
         $this->parameters['width'] = $width;
         $derivative_uri = $this->buildUri($path);

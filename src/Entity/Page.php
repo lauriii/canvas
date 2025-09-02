@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
@@ -10,7 +10,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\media\Entity\MediaType;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
@@ -19,17 +19,17 @@ use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\views\EntityViewsData;
 use Drupal\Core\Entity\Form\RevisionDeleteForm;
 use Drupal\Core\Entity\Form\RevisionRevertForm;
-use Drupal\experience_builder\Entity\Routing\XbHtmlRouteProvider;
+use Drupal\canvas\Entity\Routing\CanvasHtmlRouteProvider;
 use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
 
 /**
  * Defines the page entity class.
  *
- * @todo change add-form and edit-form links to use `page` instead of `xb_page`.
- *    This requires updating the UI to use the values from `drupalSettings.xb`
+ * @todo change add-form and edit-form links to use `page` instead of `canvas_page`.
+ *    This requires updating the UI to use the values from `drupalSettings.canvas`
  *    without them matching the URL path. If they don't routing in the UI is
  *    broken and the UI never renders. See `empty-canvas.cy.js`.
- *    Fix after https://www.drupal.org/project/experience_builder/issues/3489775
+ *    Fix after https://www.drupal.org/project/canvas/issues/3489775
  */
 #[ContentEntityType(
     id: self::ENTITY_TYPE_ID,
@@ -44,28 +44,28 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
       "view_builder" => PageViewBuilder::class,
       "views_data" => EntityViewsData::class,
       "form" => [
-        "default" => XbPageForm::class,
+        "default" => CanvasPageForm::class,
         "delete" => ContentEntityDeleteForm::class,
         "revision-delete" => RevisionDeleteForm::class,
         "revision-revert" => RevisionRevertForm::class,
       ],
       "route_provider" => [
-        "html" => XbHtmlRouteProvider::class,
+        "html" => CanvasHtmlRouteProvider::class,
         "revision" => RevisionHtmlRouteProvider::class,
       ],
     ],
-    base_table: "xb_page",
-    revision_table: "xb_page_revision",
-    data_table: "xb_page_field_data",
-    revision_data_table: "xb_page_field_revision",
+    base_table: "canvas_page",
+    revision_table: "canvas_page_revision",
+    data_table: "canvas_page_field_data",
+    revision_data_table: "canvas_page_field_revision",
     show_revision_ui: TRUE,
     links: [
-      "canonical" => "/page/{xb_page}",
-      "delete-form" => "/page/{xb_page}/delete",
-      "edit-form" => "/xb/xb_page/{xb_page}",
-      "revision-delete-form" => "/page/{xb_page}/revisions/{xb_page_revision}/delete",
-      "revision-revert-form" => "/page/{xb_page}/revisions/{xb_page_revision}/revert",
-      "version-history" => "/page/{xb_page}/revisions",
+      "canonical" => "/page/{canvas_page}",
+      "delete-form" => "/page/{canvas_page}/delete",
+      "edit-form" => "/canvas/canvas_page/{canvas_page}",
+      "revision-delete-form" => "/page/{canvas_page}/revisions/{canvas_page_revision}/delete",
+      "revision-revert-form" => "/page/{canvas_page}/revisions/{canvas_page_revision}/revert",
+      "version-history" => "/page/{canvas_page}/revisions",
     ],
     translatable: TRUE,
     entity_keys: [
@@ -87,10 +87,10 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
 final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface {
 
   use EntityOwnerTrait;
-  public const string ENTITY_TYPE_ID = 'xb_page';
-  public const string CREATE_PERMISSION = 'create xb_page';
-  public const string EDIT_PERMISSION = 'edit xb_page';
-  public const string DELETE_PERMISSION = 'delete xb_page';
+  public const string ENTITY_TYPE_ID = 'canvas_page';
+  public const string CREATE_PERMISSION = 'create canvas_page';
+  public const string EDIT_PERMISSION = 'edit canvas_page';
+  public const string DELETE_PERMISSION = 'delete canvas_page';
 
   /**
    * {@inheritdoc}
@@ -138,7 +138,7 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayOptions('view', [
         'label' => 'hidden',
-        'type' => 'experience_builder_naive_render_sdc_tree',
+        'type' => 'canvas_naive_render_sdc_tree',
       ]);
     // @see path_entity_base_field_info().
     $fields['path'] = BaseFieldDefinition::create('path')

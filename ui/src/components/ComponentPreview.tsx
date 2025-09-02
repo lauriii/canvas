@@ -2,12 +2,12 @@ import type React from 'react';
 import { useEffect } from 'react';
 import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
-import type { XBComponent } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 import type { Pattern } from '@/types/Pattern';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 interface ComponentPreviewProps {
-  componentListItem: XBComponent | Pattern;
+  componentListItem: CanvasComponent | Pattern;
 }
 
 const drupalSettings = getDrupalSettings();
@@ -22,11 +22,11 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   const defaultPreviewWidth = 300;
   const defaultPreviewHeight = 200;
 
-  const css = drupalSettings?.xb.globalAssets.css + component.css;
+  const css = drupalSettings?.canvas.globalAssets.css + component.css;
   const js_footer =
-    drupalSettings?.xb.globalAssets.jsFooter + component.js_footer;
+    drupalSettings?.canvas.globalAssets.jsFooter + component.js_footer;
   const js_header =
-    drupalSettings?.xb.globalAssets.jsHeader + component.js_header;
+    drupalSettings?.canvas.globalAssets.jsHeader + component.js_header;
 
   const markup = component.default_markup;
   const base_url = window.location.origin + baseUrl;
@@ -76,10 +76,10 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
       'iframe[data-preview-component-id]',
     ) as HTMLIFrameElement;
     const tooltipElement = document.querySelector(
-      '.xb-previewTooltip',
+      '.canvas-previewTooltip',
     ) as HTMLDivElement;
     const scalingElement = document.querySelector(
-      '.xb-scaled',
+      '.canvas-scaled',
     ) as HTMLDivElement;
 
     if (iframe) {
@@ -115,8 +115,10 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   };
 
   return (
-    <div className={clsx(styles.wrapper, 'xb-app', 'xb-previewTooltip')}>
-      <div className={clsx('xb-scaled', styles.scaled)}>
+    <div
+      className={clsx(styles.wrapper, 'canvas-app', 'canvas-previewTooltip')}
+    >
+      <div className={clsx('canvas-scaled', styles.scaled)}>
         <iframe
           title={component.name}
           width={defaultIframeWidth}

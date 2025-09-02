@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
-use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,13 +26,13 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * @covers \Drupal\experience_builder\Controller\ApiLayoutController::patch()
- * @group experience_builder
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::patch()
+ * @group canvas
  * @group #slow
  */
 final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
-  use XBFieldTrait;
+  use CanvasFieldTrait;
   use AutoSaveRequestTestTrait;
 
   /**
@@ -44,7 +44,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
     $this->setUpCurrentUser([], [
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
@@ -60,7 +60,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage("The 'edit any article content' permission is required.");
 
-    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: json_encode([
+    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -83,7 +83,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       unset($content['autoSaves']);
       $content += $this->getClientAutoSaves([Node::load(1)]);
     }
-    $this->parentRequest(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', server: [
+    $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', server: [
       'CONTENT_TYPE' => 'application/json',
       'HTTP_X_NO_OPENAPI_VALIDATION' => 'turned off because we want to validate the prod response here',
     ], content: \json_encode($content, JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR)));
@@ -107,7 +107,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
+        'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
       ],
     ];
     yield 'No such component in model' => [
@@ -115,7 +115,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
+        'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
@@ -125,7 +125,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'No such component: garry_sensible_jeans',
       NotFoundHttpException::class,
       [
-        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
+        'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
         'componentType' => 'garry_sensible_jeans@jean_shorts',
         'model' => [],
         'autoSaves' => [],
@@ -133,22 +133,22 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       ],
     ];
     yield 'No version provided' => [
-      'Missing version for component sdc.xb_test_sdc.image',
+      'Missing version for component sdc.canvas_test_sdc.image',
       NotFoundHttpException::class,
       [
-        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
-        'componentType' => 'sdc.xb_test_sdc.image',
+        'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
+        'componentType' => 'sdc.canvas_test_sdc.image',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
       ],
     ];
     yield 'Invalid version provided' => [
-      'No such version hamster for component sdc.xb_test_sdc.image',
+      'No such version hamster for component sdc.canvas_test_sdc.image',
       NotFoundHttpException::class,
       [
-        'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
-        'componentType' => 'sdc.xb_test_sdc.image@hamster',
+        'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
+        'componentType' => 'sdc.canvas_test_sdc.image@hamster',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
@@ -178,16 +178,16 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     // Setup additional nesting of components.
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
-    $tree = $node->get('field_xb_demo');
+    $tree = $node->get('field_canvas_demo');
     \assert($tree instanceof ComponentTreeItemList);
-    $static_image = $tree->getComponentTreeItemByUuid(XbTestSetup::UUID_STATIC_IMAGE);
+    $static_image = $tree->getComponentTreeItemByUuid(CanvasTestSetup::UUID_STATIC_IMAGE);
     \assert($static_image instanceof ComponentTreeItem);
-    $static_image->set('parent_uuid', XbTestSetup::UUID_ALL_SLOTS_EMPTY);
+    $static_image->set('parent_uuid', CanvasTestSetup::UUID_ALL_SLOTS_EMPTY);
     $static_image->set('slot', 'content');
     // We need to make sure the delta order reflects that parents come before
     // children otherwise this will happen on POST and create an auto-save entry.
-    $image_delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_STATIC_IMAGE);
-    $parent_delta = $tree->getComponentTreeDeltaByUuid(XBTestSetup::UUID_ALL_SLOTS_EMPTY);
+    $image_delta = $tree->getComponentTreeDeltaByUuid(CanvasTestSetup::UUID_STATIC_IMAGE);
+    $parent_delta = $tree->getComponentTreeDeltaByUuid(CanvasTestSetup::UUID_ALL_SLOTS_EMPTY);
     \assert($image_delta !== NULL);
     \assert($parent_delta !== NULL);
     $values = $tree->getValue();
@@ -197,12 +197,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       ...\array_slice($values, $image_delta, 1),
       ...\array_slice($values, $parent_delta + 1),
     ];
-    $node->set('field_xb_demo', $values);
+    $node->set('field_canvas_demo', $values);
 
     $node->save();
 
     // Load the test data from the layout controller.
-    $response = $this->parentRequest(Request::create('/xb/api/v0/layout/node/1'));
+    $response = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'));
     $this->assertResponseAutoSaves($response, [Node::load(1)], $withGlobal);
     $content = $response->getContent();
     self::assertIsString($content);
@@ -236,7 +236,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // Perform a POST first to trigger the auto-save manager being called.
       // This will not result in an auto-save entry because the content is the
       // same as the saved version.
-      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
       $this->assertResponseAutoSaves($response, [Node::load(1)], $withGlobal);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
       self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
@@ -252,19 +252,19 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     \assert($media instanceof MediaInterface);
 
     // Make sure the current value isn't the same media ID.
-    self::assertNotEmpty($model[XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
-    self::assertNotEquals($media->id(), $model[XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
+    self::assertNotEmpty($model[CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
+    self::assertNotEquals($media->id(), $model[CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']);
 
     // Now patch the layout.
-    $new_model = $model[XbTestSetup::UUID_STATIC_IMAGE];
+    $new_model = $model[CanvasTestSetup::UUID_STATIC_IMAGE];
     // Reference a new media entity.
     $new_model['source']['image']['value'] = $media->id();
     $updateImageClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.xb_test_sdc.image@c06e0be7dd131740',
-      'componentInstanceUuid' => XbTestSetup::UUID_STATIC_IMAGE,
+      'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+      'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
     ] + $this->getPatchContentsDefaults([$node]);
-    $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
+    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
 
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
@@ -277,7 +277,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $image = $media->get('field_media_image')->get(0);
     \assert($image instanceof ImageItemOverride);
     $image_url = $image->get('src_with_alternate_widths')->getValue();
-    self::assertEquals($image_url, $data['model'][XbTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
+    self::assertEquals($image_url, $data['model'][CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
     self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
     foreach ($regions as $region) {
@@ -307,7 +307,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     // There should be two images, one should reference the media item direct
     // (static-image-udf7d) and one should reference the thumbnail style
     // (static-image-static-imageStyle-something7d) because it uses an adapter.
-    // @see \Drupal\experience_builder\Plugin\Adapter\ImageAndStyleAdapter
+    // @see \Drupal\canvas\Plugin\Adapter\ImageAndStyleAdapter
     $images = (new Crawler($data['html']))->filter('img')->extract(['src']);
     $thumbnail = ImageStyle::load('thumbnail');
     \assert($thumbnail instanceof ImageStyleInterface);
@@ -319,7 +319,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
     unset($updateImageClientData['clientInstanceId']);
     $updateImageClientData += $this->getPatchContentsDefaults([$node]);
-    $this->assertRequestAutoSaveConflict(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
+    $this->assertRequestAutoSaveConflict(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
 
     if ($withGlobal) {
       $new_label = $this->randomMachineName();
@@ -335,7 +335,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
         'componentInstanceUuid' => $globalComponentUuid,
       ] + $this->getPatchContentsDefaults([$node]);
-      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
 
       // The new model should contain the updated value.
       $data = self::decodeResponse($response);
@@ -357,12 +357,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // Trying to post the same data again should throw a conflict exception
       // because it does not contain the auto-save hash of the region.
       $updateRegionClientData['clientInstanceId'] .= '-new-client';
-      $this->assertRequestAutoSaveConflict(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $this->assertRequestAutoSaveConflict(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
 
       unset($updateRegionClientData['autoSaves']);
       $updateRegionClientData['clientInstanceId'] .= '-new-client2';
       $updateRegionClientData += $this->getClientAutoSaves([$node], $withGlobal);
-      $response = $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
       $this->assertSame(200, $response->getStatusCode());
     }
   }
@@ -387,7 +387,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $region->save();
     }
     // Load the test data from the layout controller.
-    $this->request(Request::create('/xb/api/v0/layout/node/1'))->getContent();
+    $this->request(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
 
     // Check that content region exist and is wrapped.
     $contentRegion = $this->getRegion('content');
@@ -408,7 +408,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage('Access denied for region highlighted');
 
-    $this->request(Request::create('/xb/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
+    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
       'model' => [
         'resolved' => [
           'label' => $new_label,

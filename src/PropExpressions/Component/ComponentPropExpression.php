@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\Component;
+namespace Drupal\canvas\PropExpressions\Component;
 
 /**
  * For pointing to a prop in a component.

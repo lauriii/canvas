@@ -33,7 +33,7 @@ const ChangeIcon = (props: {
   switch (entityType) {
     case 'js_component':
       return <Component1Icon className={styles.changeIcon} />;
-    case 'xb_asset_library':
+    case 'asset_library':
       return <CodeIcon className={styles.changeIcon} />;
     case 'page_region':
       return <CubeIcon className={styles.changeIcon} />;
@@ -41,7 +41,7 @@ const ChangeIcon = (props: {
       // Currently the only staged config update supported is setting
       // the homepage.
       return <HomeIcon className={styles.changeIcon} />;
-    case 'xb_page':
+    case 'canvas_page':
       if (homepagePath === `/page/${entityId}`) {
         return <HomeIcon className={styles.changeIcon} />;
       } else {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions;
+namespace Drupal\canvas\PropExpressions;
 
 interface PropExpressionInterface extends \Stringable {
 

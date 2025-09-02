@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
- * Decorator to avoid displaying messages on XB API routes.
+ * Decorator to avoid displaying messages on Canvas API routes.
  *
- * No messages should ever be visible in the previews rendered by XB API routes.
+ * No messages should ever be visible in the previews rendered by Canvas API routes.
  *
- * (The only messages relevant in the XB UI are validation errors, and those are
+ * (The only messages relevant in the Canvas UI are validation errors, and those are
  * displayed when reviewing/publishing all auto-saved changes.)
  */
 readonly class Messenger implements MessengerInterface {
@@ -27,7 +27,7 @@ readonly class Messenger implements MessengerInterface {
    */
   public function addMessage($message, $type = MessengerInterface::TYPE_STATUS, $repeat = FALSE): MessengerInterface {
     $routeName = $this->currentRouteMatch->getRouteName();
-    if (!is_string($routeName) || !str_starts_with($routeName, 'experience_builder.api.')) {
+    if (!is_string($routeName) || !str_starts_with($routeName, 'canvas.api.')) {
       $this->messenger->addMessage($message, $type, $repeat);
     }
     return $this;

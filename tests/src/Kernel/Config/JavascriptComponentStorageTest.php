@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
-use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
-use Drupal\Tests\experience_builder\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests JavascriptComponentStorage.
  *
- * @covers \Drupal\experience_builder\EntityHandlers\JavascriptComponentStorage
- * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::createConfigEntity
- * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::updateConfigEntity
+ * @covers \Drupal\canvas\EntityHandlers\JavascriptComponentStorage
+ * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::createConfigEntity
+ * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::updateConfigEntity
  * @group JavaScriptComponents
- * @group experience_builder
+ * @group canvas
  */
 final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
 
@@ -34,10 +34,10 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'user',
     'system',
-    // XB's dependencies (modules providing field types + widgets).
+    // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
     'image',
@@ -57,11 +57,11 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $this->installEntitySchema('user');
     $this->installConfig(['system']);
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
-    $this->installConfig(['experience_builder']);
+    $this->installConfig(['canvas']);
   }
 
   /**
-   * @covers \Drupal\experience_builder\EntityHandlers\XbAssetStorage::generateFiles()
+   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
    */
   public function testGeneratedFiles(): void {
     $js_component = JavaScriptComponent::create([
@@ -85,7 +85,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::createConfigEntity()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::createConfigEntity()
    */
   public function testComponentEntityCreation(): array {
     $js_component_id = $this->randomMachineName();
@@ -133,23 +133,23 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $js_component->save();
 
     // No Component config entity is ever created for JavaScript Components not
-    // explicitly flagged to be added to XB's component library.
+    // explicitly flagged to be added to Canvas's component library.
     $component = Component::load($component_id);
     self::assertEmpty($reason_repository->getReasons()[JsComponent::SOURCE_PLUGIN_ID] ?? []);
     self::assertNull($component);
 
     // Use a non-storable prop shape. The JavaScript Component config entity's
     // config schema SHOULD prevent the component author from choosing props
-    // that the Experience Builder cannot generate an input UX for.
-    // @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
-    // @see the `Choice` constraints on `type: experience_builder.js_component.*`'s for prop `format`.
+    // that the Drupal Canvas cannot generate an input UX for.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+    // @see the `Choice` constraints on `type: canvas.js_component.*`'s for prop `format`.
     $props['title']['format'] = 'hostname';
     $js_component->setProps($props);
     $this->assertSame([
-      '' => 'Experience Builder does not know of a field type/widget to allow populating the <code>title</code> prop, with the shape <code>{"type":"string","format":"hostname"}</code>.',
+      '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>title</code> prop, with the shape <code>{"type":"string","format":"hostname"}</code>.',
       'props.title.format' => 'The value you selected is not a valid choice.',
     ], self::violationsToArray($js_component->getTypedData()->validate()));
-    // @see the `Choice` constraints on `type: experience_builder.js_component.*`'s for prop `type`.
+    // @see the `Choice` constraints on `type: canvas.js_component.*`'s for prop `type`.
     unset($props['title']['format']);
     $props['title']['type'] = 'array';
     $js_component->setProps($props);
@@ -194,7 +194,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * @covers \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent::updateConfigEntity()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::updateConfigEntity()
    * @depends testComponentEntityCreation
    */
   public function testComponentEntityUpdate(array $js_component_values): void {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Access;
+namespace Drupal\canvas\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -8,8 +8,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 
 /**
  * Checks access for editing an entity's component tree.

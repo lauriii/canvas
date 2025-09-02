@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
-use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
-use Drupal\experience_builder\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 
 /**
- * @property ?\Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter $typedData
- * @phpstan-import-type ConfigDependenciesArray from \Drupal\experience_builder\Entity\VersionedConfigEntityInterface
+ * @property ?\Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter $typedData
+ * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  */
 abstract class VersionedConfigEntityBase extends ConfigEntityBase implements VersionedConfigEntityInterface {
 
@@ -157,7 +157,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
         throw new \LogicException('Can only set values on the active version');
       }
       else {
-        // 💡Nobody should see this day-to-day, but while developing XB this
+        // 💡Nobody should see this day-to-day, but while developing Canvas this
         // helps pinpoint problems.
         assert(!$this->isNew());
         // @phpstan-ignore-next-line

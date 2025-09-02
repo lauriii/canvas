@@ -57,7 +57,7 @@ export default defineConfig({
         // @astrojs/preact plugin, but it doesn't produce a bundle that can work
         // in both code components and bundled packages.)
         // @see src/features/code-editor/Preview.tsx
-        // @see src/Plugin/ExperienceBuilder/ComponentSource/JsComponent.php
+        // @see src/Plugin/Canvas/ComponentSource/JsComponent.php
         external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
       },
     },

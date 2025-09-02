@@ -1,10 +1,10 @@
 :root {
-  --xb-media-item-width: 72px;
-  --xb-media-item-height: 72px;
+  --canvas-media-item-width: 72px;
+  --canvas-media-item-height: 72px;
 }
 
 .container {
-  [data-xb-media-library-fieldset] {
+  [data-canvas-media-library-fieldset] {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -21,8 +21,8 @@
   }
 
   /* Manage conditional visibility of weight inputs based on toggle status. */
-  :global(.js-media-library-widget-toggle-weight.active) + [data-xb-media-library-fieldset-wrapper] {
-    [data-xb-media-library-item-weight-wrapper] {
+  :global(.js-media-library-widget-toggle-weight.active) + [data-canvas-media-library-fieldset-wrapper] {
+    [data-canvas-media-library-item-weight-wrapper] {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -30,7 +30,7 @@
       width: 100%;
       margin-bottom: 0;
       label {
-         margin-left: calc(var(--xb-media-item-width) + var(--space-2));
+         margin-left: calc(var(--canvas-media-item-width) + var(--space-2));
       }
       input {
         width: 40px;
@@ -38,12 +38,12 @@
     }
   }
 
-  [data-xb-media-library-item-weight-wrapper] {
+  [data-canvas-media-library-item-weight-wrapper] {
     display: none;
     & > drupal-html-fragment > div[style] {
       /* Override the display: none; style attribute added (and not easily
          overridden) by Drupal Behaviors. The visibility condition is applied
-         to data-xb-media-library-item-weight-wrapper instead. */
+         to data-canvas-media-library-item-weight-wrapper instead. */
       display: flex!important;
     }
   }
@@ -70,7 +70,7 @@
     }
   }
 
-  [data-xb-media-library-fieldset-wrapper] {
+  [data-canvas-media-library-fieldset-wrapper] {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
@@ -85,7 +85,7 @@
     gap: 9px;
 
 
-    [data-xb-media-library-open-button] {
+    [data-canvas-media-library-open-button] {
       position: relative;
       height: 32px;
       white-space: wrap;
@@ -104,7 +104,7 @@
     }
 
     /* Prevent interacting with the open button until ajax is ready */
-    [data-xb-media-library-open-button]:not([data-once="drupal-ajax"]) {
+    [data-canvas-media-library-open-button]:not([data-once="drupal-ajax"]) {
       pointer-events: none;
       color: var(--slate-11);
       border-color: var(--slate-1);
@@ -113,11 +113,11 @@
     }
 
     /* Hide this div when there is no selection so it doesn't take up space */
-    [data-xb-media-library-selection] {
+    [data-canvas-media-library-selection] {
       display: none;
     }
     /* When there is a selection there is a div inside and we can display the selection */
-    [data-xb-media-library-selection]:has(div) {
+    [data-canvas-media-library-selection]:has(div) {
       display: flex;
       overflow-y: auto;
       flex-direction: row;
@@ -139,10 +139,10 @@
           gap: var(--space-2)
         }
 
-        [data-xb-media-remove-button] {
+        [data-canvas-media-remove-button] {
           position: absolute;
           z-index: 1;
-          top: calc((var(--xb-media-item-height) / 2) - 8px);
+          top: calc((var(--canvas-media-item-height) / 2) - 8px);
           right: 4px;
           overflow: hidden;
           width: 16px;
@@ -181,8 +181,8 @@
 
         img {
           display: block;
-          width: var(--xb-media-item-width);
-          height: var(--xb-media-item-height);
+          width: var(--canvas-media-item-width);
+          height: var(--canvas-media-item-height);
           object-fit: cover;
           border: 1.125px solid #E0E1E6;
           border-radius: 8px;
@@ -191,7 +191,7 @@
       }
     }
   }
-  :global(.xb-media-preview-label) {
+  :global(.canvas-media-preview-label) {
     margin-right: 20px;
     word-break: break-word;
     color: var(--slate-11);

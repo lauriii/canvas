@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
  * Tests ComponentIncompatibilityReasonRepository.
  *
- * @covers \Drupal\experience_builder\ComponentIncompatibilityReasonRepository
+ * @covers \Drupal\canvas\ComponentIncompatibilityReasonRepository
  * @group JavaScriptComponents
- * @group experience_builder
+ * @group canvas
  */
 final class ComponentIncompatibilityReasonRepositoryTest extends KernelTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['experience_builder'];
+  protected static $modules = ['canvas'];
 
   /**
    * Covers ComponentIncompatibilityReasonRepository.

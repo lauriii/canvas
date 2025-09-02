@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Traits;
+namespace Drupal\Tests\canvas\Traits;
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\Controller\ApiAutoSaveController;
+use Drupal\canvas\Controller\ApiAutoSaveController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +35,7 @@ trait AutoSaveRequestTestTrait {
       $data = $this->getAutoSaveStatesFromServer();
     }
     $request = Request::create(
-      Url::fromRoute('experience_builder.api.auto-save.post')->toString(),
+      Url::fromRoute('canvas.api.auto-save.post')->toString(),
       'POST',
       content: (string) json_encode($data),
     );

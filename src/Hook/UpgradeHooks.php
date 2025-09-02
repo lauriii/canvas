@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
-use Drupal\experience_builder\ExperienceBuilderConfigUpdater;
+use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\field\Entity\FieldConfig;
 
 final class UpgradeHooks {
 
   public function __construct(
-    private readonly ExperienceBuilderConfigUpdater $configUpdater,
+    private readonly CanvasConfigUpdater $configUpdater,
   ) {
   }
 

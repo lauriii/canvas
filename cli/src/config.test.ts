@@ -35,7 +35,7 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
-        scope: 'xb:js_component xb:asset_library',
+        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './components',
         verbose: false,
       });
@@ -50,7 +50,7 @@ describe('config', () => {
         siteUrl: 'https://example.com',
         clientId: 'test-client',
         clientSecret: '',
-        scope: 'xb:js_component xb:asset_library',
+        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './components',
         verbose: false,
       });
@@ -172,8 +172,8 @@ describe('config', () => {
       vi.stubEnv('HOME', '/home/user');
     });
 
-    it('should load from home directory .xbrc file only', async () => {
-      const mockHomeEnvPath = '/home/user/.xbrc';
+    it('should load from home directory .canvasrc file only', async () => {
+      const mockHomeEnvPath = '/home/user/.canvasrc';
       const mockLocalEnvPath = '/current/dir/.env';
       vi.mocked(path.resolve)
         .mockReturnValueOnce(mockHomeEnvPath)
@@ -189,7 +189,7 @@ describe('config', () => {
     });
 
     it('should load from local .env file only', async () => {
-      const mockHomeEnvPath = '/home/user/.xbrc';
+      const mockHomeEnvPath = '/home/user/.canvasrc';
       const mockLocalEnvPath = '/current/dir/.env';
       vi.mocked(path.resolve)
         .mockReturnValueOnce(mockHomeEnvPath)
@@ -202,8 +202,8 @@ describe('config', () => {
       expect(dotenv.config).toHaveBeenCalledWith({ path: mockLocalEnvPath });
     });
 
-    it('should give precedence to local .env over home .xbrc', async () => {
-      const mockHomeEnvPath = '/home/user/.xbrc';
+    it('should give precedence to local .env over home .canvasrc', async () => {
+      const mockHomeEnvPath = '/home/user/.canvasrc';
       const mockLocalEnvPath = '/current/dir/.env';
       vi.mocked(path.resolve)
         .mockReturnValueOnce(mockHomeEnvPath)
@@ -218,15 +218,12 @@ describe('config', () => {
     });
 
     it('should initialize config with environment variables', async () => {
-      vi.stubEnv('EXPERIENCE_BUILDER_SITE_URL', 'https://test.example.com');
-      vi.stubEnv('EXPERIENCE_BUILDER_CLIENT_ID', 'test-client');
-      vi.stubEnv('EXPERIENCE_BUILDER_CLIENT_SECRET', 'test-secret');
-      vi.stubEnv(
-        'EXPERIENCE_BUILDER_SCOPE',
-        'xb:js_component xb:asset_library',
-      );
-      vi.stubEnv('EXPERIENCE_BUILDER_COMPONENT_DIR', './test-components');
-      vi.stubEnv('EXPERIENCE_BUILDER_VERBOSE', 'true');
+      vi.stubEnv('CANVAS_SITE_URL', 'https://test.example.com');
+      vi.stubEnv('CANVAS_CLIENT_ID', 'test-client');
+      vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
+      vi.stubEnv('CANVAS_SCOPE', 'canvas:js_component canvas:asset_library');
+      vi.stubEnv('CANVAS_COMPONENT_DIR', './test-components');
+      vi.stubEnv('CANVAS_VERBOSE', 'true');
 
       // Re-import config to trigger initialization
       const { getConfig } = await import('./config');
@@ -235,7 +232,7 @@ describe('config', () => {
         siteUrl: 'https://test.example.com',
         clientId: 'test-client',
         clientSecret: 'test-secret',
-        scope: 'xb:js_component xb:asset_library',
+        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './test-components',
         verbose: true,
       });
@@ -251,7 +248,7 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
-        scope: 'xb:js_component xb:asset_library',
+        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './components',
         verbose: false,
       });

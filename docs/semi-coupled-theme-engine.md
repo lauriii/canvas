@@ -1,43 +1,43 @@
-# Experience Builder's Semi-Coupled theme engine
+# Drupal Canvas's Semi-Coupled theme engine
 
-In the rest of this document, `Experience Builder` will be written as `XB`.
+In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️
-Related XB issue queue components:
-- [Semi-Coupled theme engine](https://www.drupal.org/project/issues/experience_builder?component=Semi-Coupled+theme+engine)
-- [Redux-integrated field widgets](https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets)
+Related Canvas issue queue components:
+- [Semi-Coupled theme engine](https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine)
+- [Redux-integrated field widgets](https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets)
 
 ## 1. Terminology
 
-### 1.1 Existing Drupal terminology that is crucial for XB
+### 1.1 Existing Drupal terminology that is crucial for Canvas
 
 - `render array`: A PHP array used by Drupal that can be processed by Drupal's Render API to become markup.
 - `render element`: A renderable item within a `render array` (also an array).
-- `template`: A file that is a mixture of markup and content provided by a render array. Usually this is `Twig`, but XB's `Semi-Coupled theme engine` allows `React component`s to be used as well.
+- `template`: A file that is a mixture of markup and content provided by a render array. Usually this is `Twig`, but Canvas's `Semi-Coupled theme engine` allows `React component`s to be used as well.
 - `theme engine`: A Drupal extension type that allows themes to be developed in a particular `template` language.
 - `theme suggestions`: Templates are determined based on their name — theme suggestions provide additional filename candidates for which template is used, allowing for broad templates such as ones that render all nodes, or more specific templates like ones that are only used for nodes of a specific content type.
 - [`Twig`](https://twig.symfony.com/): A PHP-based `template` language, used by Drupal's default `theme engine`.
 
-### 1.2 Existing non-Drupal terminology that is crucial for XB
+### 1.2 Existing non-Drupal terminology that is crucial for Canvas
 
 - [`JSX`](https://react.dev/learn/writing-markup-with-jsx): A syntax extension to JavaScript that allows writing HTML-like markup, and hence is essentially a JS-based template language.
 - [`React`](https://react.dev): A JavaScript library used to create highly interactive user interfaces.
-- [`React component`](https://react.dev/learn/your-first-component): a reusable building block consisting of at least markup and potentially functionality. These are created in `js|jsx|ts|tsx` files and typically written using `JSX` syntax. In this document, it is NOT to be confused with `component` as in [`XB Components` doc](components.md).
+- [`React component`](https://react.dev/learn/your-first-component): a reusable building block consisting of at least markup and potentially functionality. These are created in `js|jsx|ts|tsx` files and typically written using `JSX` syntax. In this document, it is NOT to be confused with `component` as in [`Canvas Components` doc](components.md).
 - `React element` is what is returned by a `React component`: an object describing the DOM nodes that a `React component` represents. When passed as an arg to `React.render()`, the markup it represents is returned.
 - [HTML `<template>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template)
 - [HTML `slot` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/slot)
 
-### 1.3 XB terminology
+### 1.3 Canvas terminology
 
-- `component`: see [`XB Components` doc](components.md)
-- `Semi-Coupled theme engine`: An XB-provided `theme engine` that allows a mixture of `Twig` and `React component`s as `template`s.
-- [`Hyperscriptify`](https://github.com/drupal-jsx/hyperscriptify): A JS library created for XB that converts `Semi-Coupled theme engine` markup (provided by `Twig` and `JSX` templates) into `React elements`.
+- `component`: see [`Canvas Components` doc](components.md)
+- `Semi-Coupled theme engine`: An Canvas-provided `theme engine` that allows a mixture of `Twig` and `React component`s as `template`s.
+- [`Hyperscriptify`](https://github.com/drupal-jsx/hyperscriptify): A JS library created for Canvas that converts `Semi-Coupled theme engine` markup (provided by `Twig` and `JSX` templates) into `React elements`.
 
 ## 2. Product requirements
 
-This uses the terms defined above to explain which XB product requirements need the `Semi-Coupled theme engine`.
+This uses the terms defined above to explain which Canvas product requirements need the `Semi-Coupled theme engine`.
 
-(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's supported components.)
+(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect Canvas's supported components.)
 
 - MUST allow continuing to use existing Drupal functionality (notably: certain forms).
 - MUST have UI chrome that is visually distinct from both the Drupal theme and admin theme.
@@ -47,19 +47,19 @@ This uses the terms defined above to explain which XB product requirements need 
 ### 3. Using a `React component` instead of a `Twig` `template` for a given `render element`.
 _For details on what these steps are doing, see "Implementation" below._
 
-- The routes for the XB UI's Props Edit form and Entity Edit form are automatically rendered with the `XB Stark` theme, which uses the `Semi-Coupled theme engine` (additional routes will likely be use the `XB stark` theme in the future)
+- The routes for the Canvas UI's Props Edit form and Entity Edit form are automatically rendered with the `Canvas Stark` theme, which uses the `Semi-Coupled theme engine` (additional routes will likely be use the `Canvas stark` theme in the future)
 - The `Semi-Coupled theme engine` makes it so a `render` array can use a pages that area a combination of `Twig` templates and `React component`s .
 
 For a `render element` to use a `React component` instead of a `Twig` `template`:
 
-  1. In the `/templates` directory (be it in Experience Builder or another module), the template __must__ be in a subdirectory named `process_as_jsx` (at any level of depth)
+  1. In the `/templates` directory (be it in Drupal Canvas or another module), the template __must__ be in a subdirectory named `process_as_jsx` (at any level of depth)
   2. The template naming (and discovery) is the same as if it were a Twig template, with the `.html.twig` extension. However, the contents of these templates are different....
   3. The content will not be Twig, but a JSON object (see "Specifications for the JSON object..." section below). In that sense, this is a "pseudo `Twig` `template`": its name claims it contains `Twig` syntax, but it is treated differently based on it being in a `process_as_jsx` directory.
-      - ⚠️This is being improved in <https://www.drupal.org/project/experience_builder/issues/3480224>.
+      - ⚠️This is being improved in <https://www.drupal.org/project/canvas/issues/3480224>.
   3. Create a `React component` equivalent of the `Twig` template — see `/ui/src/components/form` for examples of this.
   4. Update the object `ui/src/components/form/twig-to-jsx-component-map.js` to map the  template to the corresponding `React component`. The property is the template name without extension prefixed by `drupal-` and the value is a reference to the React component. E.g. the `form-element.html.twig` maps to a `FormElement` `React component`.
      - `drupal-form-element': FormElement`.
-      - ⚠️This is being improved in <https://www.drupal.org/project/experience_builder/issues/3480224>.
+      - ⚠️This is being improved in <https://www.drupal.org/project/canvas/issues/3480224>.
 
 ## 4. Implementation
 
@@ -131,7 +131,7 @@ Please note this is a *very* broad overview of a complex process.
 When a `render array` is processed by the `Semi-Coupled theme engine`, it generates markup that
 is not intended for human eyeballs. This markup is instead built to be processed by `hyperscriptify()`,
 which converts the markup into a full `React` application. (Hyperscriptify can work with other libraries,
-but in XB that library happens to be `React`)
+but in Canvas that library happens to be `React`)
 
 The `theme engine` may return something like this:
 ```html
@@ -179,11 +179,11 @@ hyperscriptify(
 )
 ```
 
-## Using `<xb-something>` elements in Twig templates
+## Using `<canvas-something>` elements in Twig templates
 This is not technically part of the "engine" part of the  `Semi-Coupled theme engine`, but is syntax that can be used within Twig templates to indicate it should be rendered by a React component. For example:
-- You can use the `<xb-text>` element in a Twig template.
-- That element is then mapped in `ui/src/components/form/twig-to-jsx-component-map.js` to the `XbText` React component. 
-- The attributes from `<xb-text>` are passed as props to the `XbText` component.
+- You can use the `<canvas-text>` element in a Twig template.
+- That element is then mapped in `ui/src/components/form/twig-to-jsx-component-map.js` to the `CanvasText` React component. 
+- The attributes from `<canvas-text>` are passed as props to the `CanvasText` component.
 
 This approach makes it possible to render text with the React-defined theming without having to fully override a template to be processed by the `Semi-Coupled theme engine`. This approach could also be used for more complex components as the need arises.
 

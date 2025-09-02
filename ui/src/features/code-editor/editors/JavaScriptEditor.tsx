@@ -22,7 +22,7 @@ const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
     <>
       <ImportButton />
       <CodeMirror
-        className="xb-code-mirror-editor"
+        className="canvas-code-mirror-editor"
         value={value}
         onChange={onChangeHandler}
         theme={githubLight}

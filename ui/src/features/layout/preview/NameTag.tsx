@@ -35,7 +35,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
 
   return (
     <div
-      data-testid="xb-name-tag"
+      data-testid="canvas-name-tag"
       className={clsx(styles.nameTag, {
         [styles.slot]: nodeType === 'slot',
         [styles.region]: nodeType === 'region',

@@ -1,5 +1,5 @@
 export default function getStarterComponentTemplate(componentName: string) {
-  return `// See https://project.pages.drupalcode.org/experience_builder/ for documentation on how to build a code component
+  return `// See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
 
 const Component = ({
   text = "${componentName}",

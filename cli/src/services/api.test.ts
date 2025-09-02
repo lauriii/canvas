@@ -4,10 +4,10 @@ import { server } from './__mocks__/server';
 
 describe('api service', () => {
   const mockConfig = {
-    siteUrl: 'https://xb-mock',
+    siteUrl: 'https://canvas-mock',
     clientId: 'cli',
     clientSecret: 'secret',
-    scope: 'xb:js_component xb:asset_library',
+    scope: 'canvas:js_component canvas:asset_library',
   };
 
   beforeAll(() => {
@@ -45,17 +45,17 @@ describe('api service', () => {
       await expect(
         ApiService.create({
           ...mockConfig,
-          scope: 'xb:this-scope-is-invalid',
+          scope: 'canvas:this-scope-is-invalid',
         }),
       ).rejects.toThrow(
-        'API Error (400): invalid_scope | The requested scope is invalid, unknown, or malformed | Check the `xb:invalid` scope',
+        'API Error (400): invalid_scope | The requested scope is invalid, unknown, or malformed | Check the `canvas:invalid` scope',
       );
     });
 
     it('should handle no permission', async () => {
       const client = await ApiService.create({
         ...mockConfig,
-        scope: 'xb:this-scope-is-valid-but-no-permission',
+        scope: 'canvas:this-scope-is-valid-but-no-permission',
       });
       await expect(client.listComponents()).rejects.toThrow(
         'You do not have permission to perform this action. Check your configured scope.',

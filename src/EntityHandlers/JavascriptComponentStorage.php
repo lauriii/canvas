@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\EntityHandlers;
+namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
-use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\JsComponent;
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines storage handler for JavascriptComponents.
  */
-final class JavascriptComponentStorage extends XbAssetStorage {
+final class JavascriptComponentStorage extends CanvasAssetStorage {
 
   private ConfigInstallerInterface $configInstaller;
   private EntityTypeManagerInterface $entityTypeManager;
@@ -60,7 +60,7 @@ final class JavascriptComponentStorage extends XbAssetStorage {
   /**
    * Gets the corresponding component entity for the given JS component.
    *
-   * @param \Drupal\experience_builder\Entity\JavaScriptComponent $entity
+   * @param \Drupal\canvas\Entity\JavaScriptComponent $entity
    *   Javascript component being saved.
    */
   protected function createOrUpdateComponentEntity(JavaScriptComponent $entity): void {
@@ -80,8 +80,8 @@ final class JavascriptComponentStorage extends XbAssetStorage {
       return;
     }
 
-    // Before exposing a JavaScriptComponent as an XB Component for the first
-    // time it must be flagged as being added to XB's component library.
+    // Before exposing a JavaScriptComponent as an Canvas Component for the first
+    // time it must be flagged as being added to Canvas's component library.
     if ($entity->status() === FALSE) {
       return;
     }

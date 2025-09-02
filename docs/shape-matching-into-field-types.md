@@ -1,18 +1,18 @@
 
-# Experience Builder's Shape Matching into Field Types
+# Drupal Canvas's Shape Matching into Field Types
 
-In the rest of this document, `Experience Builder` will be written as `XB`.
+In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
-This builds on top of the [`XB Components` doc](components.md). Please read that first.
+This builds on top of the [`Canvas Components` doc](components.md). Please read that first.
 
 **Also see the [diagram](diagrams/data-model.md).**
 
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️
-Related XB issue queue components:
-- [Shape matching](https://www.drupal.org/project/issues/experience_builder?component=Shape+matching) (see section
+Related Canvas issue queue components:
+- [Shape matching](https://www.drupal.org/project/issues/canvas?component=Shape+matching) (see section
    3.1.2 below, and specifically 3.1.2.a)
-- [Redux-integrated field widgets](https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets)
-- [Data model](https://www.drupal.org/project/issues/experience_builder?component=Data+model)
+- [Redux-integrated field widgets](https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets)
+- [Data model](https://www.drupal.org/project/issues/canvas?component=Data+model)
 
 Those issue queue components also have corresponding entries in [`CODEOWNERS`](../CODEOWNERS).
 
@@ -21,14 +21,14 @@ to one of us! 😊 🙏
 
 ## 1. Terminology
 
-### 1.1 Existing Drupal Terminology that is crucial for XB
+### 1.1 Existing Drupal Terminology that is crucial for Canvas
 
 - `computed field prop`: not every `field prop` has their value _stored_, some may have their value _computed_ (for example: the `file_uri` field type's `url` prop)
 - `base field`: a `field instance` that exists for _all_ bundles of an entity type, typically defined in code
 - `bundle field`: a `field instance` that exists for _some_ bundles of an entity type, typically defined in config
 - `content entity`: an entity that can be created by a Content Creator, containing various `field`s of a particular entity type (e.g. "node")
 - `content type`: a definition for content entities of a certain entity type and bundle, and hence every `content entity` of this bundle is guaranteed to contain the same `bundle field`s
-- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\experience_builder\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
+- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\canvas\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
 - `field`: synonym of `field item list`
 - `field prop`: a property defined by a `field type`, with a value for that property on such a `field item`, represented by a `data type`. Often a single prop exists (typically: `value`), but not always (for example: the `image` field type: `target_id`, `entity`, `alt`, `title`, `width`, `height` — with `entity` a `computed field prop`)
 - `field instance`: a definition for instantiating a `field type` into a `field item list` containing >=1 `field item`
@@ -36,14 +36,14 @@ to one of us! 😊 🙏
 - `field item list`: to support multiple-cardinality values, Drupal core has opted to wrap every `field item` in a list — even if a particular `field instance` is single-cardinality
 - `field type`: metadata plus a class defining the `field prop`s that exist on this field type, requires a `field instance` to be used
 - `field widget`: see [`Redux-integrated field widgets` doc](redux-integrated-field-widgets.md)
-- `SDC`: see [`XB Components` doc](components.md)
+- `SDC`: see [`Canvas Components` doc](components.md)
 
-### 1.2 XB terminology
+### 1.2 Canvas terminology
 
-- `component`: see [`XB Components` doc](components.md)
-- `component input`: see [`XB Components` doc](components.md)
-- `Component Source Plugin`: see [`XB Components` doc](components.md)
-- `component type`: see [`XB Components` doc](components.md)
+- `component`: see [`Canvas Components` doc](components.md)
+- `component input`: see [`Canvas Components` doc](components.md)
+- `Component Source Plugin`: see [`Canvas Components` doc](components.md)
+- `component type`: see [`Canvas Components` doc](components.md)
 - `conjured field`: a `field instance` that is not backed by code nor config, but generated dynamically to edit/store a value for a `component input` as `unstructured data`
 - `prop expression`: a (compact) string representing what context (entity type+bundle or field type) is required for retrieving one or more properties stored inside of that context; also has a typed PHP object representation to facilitate logic
 - `prop shape`: a normalized representation of the schema for a `component input`, without metadata that does not affect the _shape_: a title or description does not affect what values _fit into this shape_; only necessary for `Component Source Plugins` that DO NOT provide their own input UX.
@@ -58,9 +58,9 @@ to one of us! 😊 🙏
 
 This uses the terms defined above.
 
-This adds to the product requirements listed in [`XB Components` doc](components.md).
+This adds to the product requirements listed in [`Canvas Components` doc](components.md).
 
-(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's data model.)
+(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect Canvas's data model.)
 
 - MUST allow continuing to use existing Drupal functionality (notably: `field type`s and `field widget`s for `Component Source Plugin`s that do not have their own input UX)
 - SHOULD encourage Content Creators to use `structured data` whenever possible, `unstructured data` should be minimized except where necessary
@@ -70,14 +70,14 @@ This adds to the product requirements listed in [`XB Components` doc](components
 
 This uses the terms defined above.
 
-### 3.1 Data Model: from Front-End Developer to an XB data model that empowers the Content Creator
+### 3.1 Data Model: from Front-End Developer to an Canvas data model that empowers the Content Creator
 
 ⚠️ This only applies to `component`s originating from a `Component Source Plugin` that DO NOT have an input UX (such as
 `SDC`), for others the UX and storage are both simply the existing one, and NOTHING in this document applies! ⚠️
 
 #### 3.1.1 Interpreting `component`s without input UX: `prop shapes`
 
-See `\Drupal\experience_builder\PropShape\PropShape`.
+See `\Drupal\canvas\PropShape\PropShape`.
 
 Each `component input` must have a schema that defines the primitive type (string, number,  integer, object, array or
 boolean), with typically additional restrictions (e.g. a  string containing a URI vs a date,  or an integer in a certain
@@ -92,7 +92,7 @@ different `prop shape`s. For example: Drupal's "datetime" `field type` can, depe
 - date only
 - date and time
 
-So, the settings for a `field type` are critical: a `field type` alone is insufficient. How can `XB` determine the
+So, the settings for a `field type` are critical: a `field type` alone is insufficient. How can `Canvas` determine the
 appropriate field settings for a `prop shape`? And what about existing `structured data` versus `unstructured data`?
 
 ⚠️ _Why even have `unstructured data`? Why not create `structured data` to populate all `component input`s?_, you might
@@ -109,11 +109,11 @@ ask. Because:
 ##### 3.1.2.a `structured data` → matching `field instance`s ⇒ `dynamic prop source`
 
 See:
-- `\Drupal\experience_builder\ShapeMatcher\JsonSchemaFieldInstanceMatcher`
-- `\Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()`
+- `\Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher`
+- `\Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()`
 
 All `structured data` in every `content entity` in Drupal is found in `base field`s and `bundle field`s. These already
-have field settings defined. Hence `XB` must **match** a `field instance` for a given `prop shape`.
+have field settings defined. Hence `Canvas` must **match** a `field instance` for a given `prop shape`.
 
 How can this reliably be matched? Drupal's validation constraints for `field type`s and `data type`s determine the
 precise shapes of values that are allowed … exactly like a `prop shape` (i.e. the JSON schema for a `component input`)!
@@ -132,19 +132,19 @@ versus required occurrences of a `prop shape`:
 The found `field instance` can then be used in a `dynamic prop source`, that can be _evaluated_ to retrieve the stored
 value that fits in the `prop shape`.
 
-See `\Drupal\experience_builder\PropSource\DynamicPropSource`.
+See `\Drupal\canvas\PropSource\DynamicPropSource`.
 
 ⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
-suggested by `\Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester`. The Content Creator or Site Builder
+suggested by `\Drupal\canvas\ShapeMatcher\FieldForComponentSuggester`. The Content Creator or Site Builder
 will choose one.
 
-ℹ️ The completeness of this is tested by `\Drupal\Tests\experience_builder\Kernel\EcosystemSupport\FieldTypeSupportTest`.
+ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldTypeSupportTest`.
 
 ##### 3.1.2.b `unstructured data` → generating `conjured field`s ⇒ `static prop source`
 
 See:
-- `\Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()`
-- `\Drupal\experience_builder\PropShape\StorablePropShape`
+- `\Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()`
+- `\Drupal\canvas\PropShape\StorablePropShape`
 - `hook_storage_prop_shape_alter()`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
@@ -154,30 +154,30 @@ optional `component input`s.
 
 Contributed modules can implement `hook_storage_prop_shape_alter()` to make different choices.
 
-The computed `\Drupal\experience_builder\PropShape\StorablePropShape` can be used to create a `static prop source`
+The computed `\Drupal\canvas\PropShape\StorablePropShape` can be used to create a `static prop source`
 (which contains all information for the `conjured field` that powers it), that can be _evaluated_ to retrieve the stored
 value that fits in the `prop shape`.
 
-See `\Drupal\experience_builder\PropSource\StaticPropSource`.
+See `\Drupal\canvas\PropSource\StaticPropSource`.
 
-⚠️ When choosing to use `unstructured data` to populate a `component input`, XB decides
+⚠️ When choosing to use `unstructured data` to populate a `component input`, Canvas decides
 using the aforementioned logic what `field type`, `field widget` et cetera to use. Only when using `structured data`,
 there is a need for an additional choice (see the `FieldForComponentSuggester` mentioned in 3.1.2.a).
 
 #### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
 
 See
-- `\Drupal\experience_builder\PropExpressions\StructuredData\Evaluator`
-- `\Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface`
-- `\Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression`
-- `\Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression`
-- `\Drupal\Tests\experience_builder\Unit\PropExpressionTest`
+- `\Drupal\canvas\PropExpressions\StructuredData\Evaluator`
+- `\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface`
+- `\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression`
+- `\Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression`
+- `\Drupal\Tests\canvas\Unit\PropExpressionTest`
 
 Many `field type`s contain a single `field prop` (typically named "value"), but not all. Most `field type`s have one
 required "main prop", many have additional optional props or even computed props.
 
 To reliable retrieve the value from a `static prop source` or `dynamic prop source`, the `field item` alone is
-insufficient: `XB` needs to know exactly which `field prop`(s) to retrieve from a `field item`. Plus, it may need to
+insufficient: `Canvas` needs to know exactly which `field prop`(s) to retrieve from a `field item`. Plus, it may need to
 arrange those retrieved values in a particular layout (for `prop shape`s that use the "object" primitive type the right
 key-value pairs must be assembled).
 
@@ -208,15 +208,15 @@ Examples:
     `content entity` that is referenced by the "image" `field type`
   - the second one being "alt", which can be retrieved directly from the "image" `field item`
 
-For more examples, see `\Drupal\Tests\experience_builder\Unit\PropExpressionTest`.
+For more examples, see `\Drupal\Tests\canvas\Unit\PropExpressionTest`.
 
 ### 3.2 Additional functionality overlaid on top of the SDC JSON Schema
 
-Experience Builder extends SDC JSON Schema to support additional prop shapes to complete the content editing experience.
+Drupal Canvas extends SDC JSON Schema to support additional prop shapes to complete the content editing experience.
 
 #### 3.2.1 HTML Content with CKEditor 5 Integration
 
-Experience Builder supports rich text editing for `prop shape`s through CKEditor 5 integration. This allows SDC
+Drupal Canvas supports rich text editing for `prop shape`s through CKEditor 5 integration. This allows SDC
 developers to define props that can contain formatted HTML content.
 
 ##### JSON Schema Extensions
@@ -239,13 +239,13 @@ heading:
 
 ##### Text Formats
 
-To allow populating such props, Experience Builder provides two predefined text formats:
+To allow populating such props, Drupal Canvas provides two predefined text formats:
 
-1. **XB HTML Inline Format**
+1. **Canvas HTML Inline Format**
    - Allows only inline elements: `<strong>`, `<em>`, `<u>`, `<a href>`
    - Appropriate for headings, labels, and other inline content
 
-2. **XB HTML Block Format**
+2. **Canvas HTML Block Format**
    - Allows both inline elements and block elements: `<p>`, `<br>`, `<ul>`, `<ol>`, `<li>`
    - Appropriate for longer content blocks, descriptions, etc.
 

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit;
+namespace Drupal\Tests\canvas\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\ErrorHandler\BufferingLogger;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\experience_builder\Controller\ApiLogController;
+use Drupal\canvas\Controller\ApiLogController;
 use Drupal\Core\Logger\RfcLogLevel;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiLogController
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Controller\ApiLogController
+ * @group canvas
  */
 class ApiLogControllerTest extends TestCase {
 

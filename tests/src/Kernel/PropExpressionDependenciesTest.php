@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
-use Drupal\experience_builder\PropSource\StaticPropSource;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -24,21 +24,21 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\experience_builder\Unit\PropExpressionTest;
+use Drupal\Tests\canvas\Unit\PropExpressionTest;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\user\Entity\User;
 
 /**
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies()
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies()
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies()
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies()
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies()
- * @covers \Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies()
- * @see \Drupal\Tests\experience_builder\Unit\PropExpressionTest
- * @group experience_builder
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies()
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies()
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies()
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies()
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies()
+ * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies()
+ * @see \Drupal\Tests\canvas\Unit\PropExpressionTest
+ * @group canvas
  */
 class PropExpressionDependenciesTest extends KernelTestBase {
 
@@ -65,7 +65,7 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     'media_library',
     'views',
     // Ensure field type overrides are installed and hence testable.
-    'experience_builder',
+    'canvas',
   ];
 
   /**

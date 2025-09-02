@@ -1,18 +1,18 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\Field\FieldFormatter;
+namespace Drupal\canvas\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Field\Attribute\FieldFormatter;
 use Drupal\Core\Field\FormatterBase;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * @todo This is naive and insufficient: this needs to take over the rendering of the entire entity, not just of this single field. Still, for PoC/data model purposes, this is sufficient initially.
  */
 #[FieldFormatter(
-  id: 'experience_builder_naive_render_sdc_tree',
+  id: 'canvas_naive_render_sdc_tree',
   label: new TranslatableMarkup('Render SDC tree'),
   field_types: [
     'component_tree',

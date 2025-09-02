@@ -1,11 +1,11 @@
 describe('Can save and load patterns', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -19,8 +19,8 @@ describe('Can save and load patterns', () => {
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.viewport(2000, 1320);
-      cy.loadURLandWaitForXBLoaded();
-      cy.get('.xb--viewport-overlay')
+      cy.loadURLandWaitForCanvasLoaded();
+      cy.get('.canvas--viewport-overlay')
         .findByLabelText('Two Column')
         .realClick({ position: 'bottomRight' });
       cy.log(
@@ -31,13 +31,13 @@ describe('Can save and load patterns', () => {
       // due to the test not creating them in a way that allows the media entity
       // to be found based on filename.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       )
         .first()
         .trigger('contextmenu');
       cy.findByText('Delete').click();
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.image"]',
+        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
       )
         .first()
         .trigger('contextmenu');
@@ -71,21 +71,23 @@ describe('Can save and load patterns', () => {
         .as('panel')
         .should('contain.text', patternName);
 
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
       cy.get('#edit-title-0-value').should('exist');
       cy.waitForElementContentNotInIframe('div', 'There goes my hero');
       cy.openLibraryPanel();
 
-      cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').should(
+      cy.get('[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]').should(
         'exist',
       );
 
-      cy.get('[data-xb-component-id="sdc.xb_test_sdc.my-hero"]').realClick();
+      cy.get(
+        '[data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
+      ).realClick();
       cy.waitForElementContentInIframe('div', 'There goes my hero');
 
       // There should be one Hero added.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.my-hero"]',
+        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
       ).should('have.length', 1);
 
       // Add the pattern that was created earlier in this test.
@@ -98,18 +100,18 @@ describe('Can save and load patterns', () => {
 
       // After adding the pattern, there should be four Hero components.
       cy.get(
-        '.xb--viewport-overlay [data-xb-component-id="sdc.xb_test_sdc.my-hero"]',
+        '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.my-hero"]',
         { timeout: 10000 },
       ).should('have.length', 4);
 
       // The Two Column component that is the top level element of the pattern
       // should be the currently selected layer.
       cy.openLayersPanel();
-      cy.findByTestId('xb-primary-panel').within(() => {
+      cy.findByTestId('canvas-primary-panel').within(() => {
         cy.findAllByText('Two Column').should('have.length', 1);
         cy.findAllByLabelText('Two Column').should(
           'have.attr',
-          'data-xb-selected',
+          'data-canvas-selected',
           'true',
         );
       });

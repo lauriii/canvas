@@ -263,7 +263,7 @@
       "properties": {
         "src": {
           "title": "Image URL",
-          "$ref": "json-schema-definitions://experience_builder.module/image-uri"
+          "$ref": "json-schema-definitions://canvas.module/image-uri"
         },
         "alt": {
           "title": "Alternative text",
@@ -293,7 +293,7 @@
         },
         "poster": {
           "title": "Poster image URL",
-          "$ref": "json-schema-definitions://experience_builder.module/image-uri"
+          "$ref": "json-schema-definitions://canvas.module/image-uri"
         }
       }
     },

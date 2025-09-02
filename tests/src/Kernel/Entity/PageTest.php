@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Entity;
+namespace Drupal\Tests\canvas\Kernel\Entity;
 
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Kernel\Traits\PageTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 final class PageTest extends KernelTestBase {
 
@@ -24,11 +24,11 @@ final class PageTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'block',
     'sdc',
     'sdc_test',
-    'xb_test_sdc',
+    'canvas_test_sdc',
     // Modules providing field types + widgets for the SDC Components'
     // `prop_field_definitions`.
     'file',
@@ -51,12 +51,12 @@ final class PageTest extends KernelTestBase {
     self::assertNotNull($sut);
     self::assertEquals(
       [
-        'canonical' => '/page/{xb_page}',
-        'delete-form' => '/page/{xb_page}/delete',
-        'edit-form' => '/xb/xb_page/{xb_page}',
-        'revision-delete-form' => '/page/{xb_page}/revisions/{xb_page_revision}/delete',
-        'revision-revert-form' => '/page/{xb_page}/revisions/{xb_page_revision}/revert',
-        'version-history' => '/page/{xb_page}/revisions',
+        'canonical' => '/page/{canvas_page}',
+        'delete-form' => '/page/{canvas_page}/delete',
+        'edit-form' => '/canvas/canvas_page/{canvas_page}',
+        'revision-delete-form' => '/page/{canvas_page}/revisions/{canvas_page_revision}/delete',
+        'revision-revert-form' => '/page/{canvas_page}/revisions/{canvas_page_revision}/revert',
+        'version-history' => '/page/{canvas_page}/revisions',
       ],
       $sut->getLinkTemplates()
     );
@@ -113,7 +113,7 @@ final class PageTest extends KernelTestBase {
       'components' => [
         [
           'uuid' => '09365c2d-1ee1-47fd-b5a3-7e4f34866186',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => ['heading' => $test_heading_text],
         ],
         [
@@ -143,7 +143,7 @@ final class PageTest extends KernelTestBase {
       [
         ComponentTreeItemList::ROOT_UUID => [
           '09365c2d-1ee1-47fd-b5a3-7e4f34866186' => [
-            'component' => 'sdc.xb_test_sdc.props-slots',
+            'component' => 'sdc.canvas_test_sdc.props-slots',
             'props' => [
               'heading' => $test_heading_text,
             ],
@@ -167,14 +167,14 @@ final class PageTest extends KernelTestBase {
       ],
       $hydrated_value->getTree(),
     );
-    // See \Drupal\Tests\experience_builder\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
-    // \Drupal\Tests\experience_builder\Unit\PropExpressionTest for extended test coverage,
-    // which combined with \Drupal\Tests\experience_builder\Kernel\PropSourceTest::testDynamicPropSource,
+    // See \Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
+    // \Drupal\Tests\canvas\Unit\PropExpressionTest for extended test coverage,
+    // which combined with \Drupal\Tests\canvas\Kernel\PropSourceTest::testDynamicPropSource,
     // does already prove that this will work correctly for EVERYTHING.
     $dependencies = $components->calculateDependencies();
     $this->assertSame([
-      'experience_builder.component.sdc.xb_test_sdc.props-slots',
-      'experience_builder.component.block.system_branding_block',
+      'canvas.component.sdc.canvas_test_sdc.props-slots',
+      'canvas.component.block.system_branding_block',
     ], $dependencies['config']);
     $this->assertSame([], $dependencies['content']);
     $this->assertSame([], $dependencies['module']);

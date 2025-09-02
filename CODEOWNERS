@@ -20,7 +20,7 @@
 # Hybrid side: the bridges connecting client & server sides.
 #
 
-# Issues: https://www.drupal.org/project/issues/search/experience_builder?issue_tags=openapi
+# Issues: https://www.drupal.org/project/issues/search/canvas?issue_tags=openapi
 [OpenAPI] @traviscarden @larowlan
 /src/EventSubscriber/ApiMessageValidatorBase.php
 /src/EventSubscriber/ApiRequestValidator.php
@@ -29,19 +29,19 @@
 /tests/src/Unit/OpenApiSpecValidationTest.php
 /tests/src/Unit/UiFixturesValidationTest.php
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Semi-Coupled+theme+engine
+# Issues: https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine
 [Semi-Coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
 /src/Hook/SemiCoupledThemeEngineHooks.php
 /src/Hook/SemiCoupledThemeEngineForceTwigHooks.php
-/src/Theme/XBThemeNegotiator.php
+/src/Theme/CanvasThemeNegotiator.php
 /themes/engines/semi_coupled/
 /ui/src/components/form/*.tsx
 /ui/src/components/form/twig-to-jsx-component-map.js
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Redux-integrated+field+widgets
+# Issues: https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets
 [Redux-integrated field widgets] @bnjmnm @effulgentsia @balintbrews @larowlan
 /src/Hook/ReduxIntegratedFieldWidgetHooks.php
-/src/MediaLibraryXbPropOpener.php
+/src/MediaLibraryCanvasPropOpener.php
 /ui/src/components/form/inputBehaviors.tsx
 /tests/src/Cypress/cypress/e2e/media-library.cy.js
 /tests/src/Cypress/cypress/e2e/prop-types.cy.js
@@ -57,13 +57,13 @@
 [Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan @penyaskito
 /src/
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Component+sources
+# Issues: https://www.drupal.org/project/issues/canvas?component=Component+sources
 [Component sources] @f.mazeikis @longwave @larowlan @wimleers
 /src/ComponentSource/
 /src/Hook/ComponentSourceHooks.php
-/tests/src/Kernel/Plugin/ExperienceBuilder/ComponentSource/
+/tests/src/Kernel/Plugin/Canvas/ComponentSource/
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Config+management
+# Issues: https://www.drupal.org/project/issues/canvas?component=Config+management
 [Config management] @f.mazeikis @wimleers @larowlan
 /docs/config-management.md
 /docs/diagrams/config-management.md
@@ -75,7 +75,7 @@
 /tests/src/Kernel/Config/
 /tests/src/Functional/Config/
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Data+model
+# Issues: https://www.drupal.org/project/issues/canvas?component=Data+model
 [Data model] @effulgentsia @tedbow @wimleers @larowlan
 /docs/data-model.md
 /docs/diagrams/data-model.md
@@ -86,18 +86,18 @@
 /src/Plugin/Field/FieldType/
 /tests/src/Kernel/Plugin/Field/FieldType/
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Page
+# Issues: https://www.drupal.org/project/issues/canvas?component=Page
 [Page] @mglaman
 /src/Entity/Routing/
 /src/Entity/Page.php
 /src/Entity/PageAccessControlHandler.php
 /src/Entity/PageViewBuilder.php
 /src/Hook/PageHooks.php
-/tests/modules/xb_test_page/
+/tests/modules/canvas_test_page/
 /tests/src/Kernel/Entity/
 /tests/src/Kernel/Traits/Page*
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Auto-save
+# Issues: https://www.drupal.org/project/issues/canvas?component=Auto-save
 [Auto-save] @tedbow @larowlan
 /src/AutoSaveData.php
 /src/AutoSave/
@@ -116,7 +116,7 @@
 # the JSONable-PHP-objects representing the different sources to retrieve a prop value
 /src/PropSource/
 
-# Issues: https://www.drupal.org/project/issues/experience_builder?component=Shape+matching
+# Issues: https://www.drupal.org/project/issues/canvas?component=Shape+matching
 # @see https://en.wikipedia.org/wiki/Schema_matching
 [Shape matching] @wimleers @tedbow
 /src/Hook/ShapeMatchingHooks.php
@@ -148,7 +148,7 @@
 /ui/*.config.ts
 
 [DX: hot reload] @hooroomoo @balintbrews
-/modules/xb_vite/
+/modules/canvas_vite/
 
 [DX: PHP] @effulgentsia @wimleers @larowlan
 /phpcs.xml
@@ -156,5 +156,5 @@
 /tests/src/Unit/DxRouteConsistencyTest.php
 
 [Personalization] @penyaskito @effulgentsia
-/modules/xb_personalization
+/modules/canvas_personalization
 /docs/personalization.md

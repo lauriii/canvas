@@ -1,11 +1,11 @@
 describe('Expand Slots on Component Selection', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,7 +13,7 @@ describe('Expand Slots on Component Selection', () => {
   });
 
   it('should expand slots when a component is selected', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     cy.get('.primaryPanelContent').as('layersTree');
 
@@ -36,7 +36,7 @@ describe('Expand Slots on Component Selection', () => {
       cy.findByText('Column Two').should('not.exist');
     });
 
-    cy.findAllByLabelText('Exit Experience Builder').click();
+    cy.findAllByLabelText('Exit Drupal Canvas').click();
     cy.go('back');
     cy.previewReady();
 

@@ -1,15 +1,15 @@
 {
-  "name": "@drupal/xb-cli",
-  "description": "CLI tool for managing Drupal Experience Builder code components",
+  "name": "@drupal-canvas/cli",
+  "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://git.drupalcode.org/project/experience_builder.git"
+    "url": "git+https://git.drupalcode.org/project/canvas.git"
   },
-  "bugs": "https://www.drupal.org/project/issues/experience_builder",
+  "bugs": "https://www.drupal.org/project/issues/canvas",
   "main": "dist/index.js",
   "bin": {
-    "xb": "./dist/index.js"
+    "canvas": "./dist/index.js"
   },
   "type": "module",
   "scripts": {
@@ -26,7 +26,7 @@
     "README.md"
   ],
   "keywords": [
-    "experience-builder",
+    "canvas",
     "drupal",
     "cli"
   ],

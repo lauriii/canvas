@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\text\Plugin\Field\FieldType\TextItem;
 
 /**
@@ -26,7 +26,7 @@ class TextItemOverride extends TextItem {
       // considered required, too.
       ->setRequired(TRUE)
       ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
-    // Convey to schema-matching systems like Experience Builder to deduce that
+    // Convey to schema-matching systems like Drupal Canvas to deduce that
     // only `processed` contains actually relevant information for humans.
     $properties['format']->setSetting('is source for', 'processed');
     $properties['value']->setSetting('is source for', 'processed');

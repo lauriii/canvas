@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Traits;
+namespace Drupal\Tests\canvas\Kernel\Traits;
 
 /**
  * @internal
@@ -37,8 +37,8 @@ trait CiModulePathTrait {
       $modules_index = \array_search('modules', $parts);
     }
     \assert($modules_index !== FALSE);
-    // This should now be 'modules/custom/experience_builder',
-    // 'modules/experience_builder' or 'modules/contrib/experience_builder'
+    // This should now be 'modules/custom/canvas',
+    // 'modules/canvas' or 'modules/contrib/canvas'
     // depending on what folder this file is in.
     $path = '/' . \ltrim(\implode(\DIRECTORY_SEPARATOR, \array_slice($parts, $modules_index)), '/');
     return $path;

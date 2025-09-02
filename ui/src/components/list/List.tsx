@@ -53,7 +53,7 @@ const List: React.FC<ListProps> = (props) => {
     <div className={clsx('listContainer', styles.listContainer)}>
       <Box className={isDragging ? 'list-dragging' : ''}>
         <Skeleton
-          data-testid="xb-components-library-loading"
+          data-testid="canvas-components-library-loading"
           loading={isLoading}
           height="1.2rem"
           width="100%"

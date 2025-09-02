@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Form;
+namespace Drupal\canvas\Form;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Storage\ComponentTreeLoader;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Allows editing a component instance.
  *
- * @see \Drupal\experience_builder\ComponentSource\ComponentSourceInterface::buildComponentInstanceForm()
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::buildComponentInstanceForm()
  */
 final class ComponentInstanceForm extends FormBase {
 
@@ -55,14 +55,14 @@ final class ComponentInstanceForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?FieldableEntityInterface $entity = NULL): array {
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
-    // @see \Drupal\experience_builder\Controller\ApiLayoutController
+    // @see \Drupal\canvas\Controller\ApiLayoutController
     if (is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
     $this->componentTreeLoader->load($entity);
 
     $request = $this->getRequest();
-    $tree = $request->get('form_xb_tree');
+    $tree = $request->get('form_canvas_tree');
     [$component_id, $version] = \explode('@', \json_decode($tree, TRUE)['type']);
     if (empty($version)) {
       throw new \UnexpectedValueException('No component version specified.');
@@ -74,23 +74,23 @@ final class ComponentInstanceForm extends FormBase {
     // component-source specific settings, such as the field type/widget for a
     // particular SDC or code component prop.
     $component->loadVersion($version);
-    $component_instance_uuid = $request->get('form_xb_selected');
+    $component_instance_uuid = $request->get('form_canvas_selected');
 
-    $props = $request->get('form_xb_props');
+    $props = $request->get('form_canvas_props');
     $client_model = json_decode($props, TRUE);
 
     // Make sure these get sent in subsequent AJAX requests.
     // Note: they're prefixed with `form_` to avoid storage in the UI state.
     // @see ui/src/components/form/inputBehaviors.tsx
-    $form['form_xb_selected'] = [
+    $form['form_canvas_selected'] = [
       '#type' => 'hidden',
       '#value' => $component_instance_uuid,
     ];
-    $form['form_xb_tree'] = [
+    $form['form_canvas_tree'] = [
       '#type' => 'hidden',
       '#value' => $tree,
     ];
-    $form['form_xb_props'] = [
+    $form['form_canvas_props'] = [
       '#type' => 'hidden',
       '#value' => $props,
     ];
@@ -107,9 +107,9 @@ final class ComponentInstanceForm extends FormBase {
     $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = self::FORM_ID;
 
-    $parents = ['xb_component_props', $component_instance_uuid];
+    $parents = ['canvas_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
-    $form['xb_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+    $form['canvas_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render

@@ -1,11 +1,11 @@
 describe('Copy and paste a node using keyboard shortcuts', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -13,7 +13,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
   });
 
   it('Copy and paste a node using keyboard shortcuts', () => {
-    // Transfer message listener from Cypress window to the XB application
+    // Transfer message listener from Cypress window to the Canvas application
     // window.
     cy.window().then((win) => {
       win.top.addEventListener('message', (e) => {
@@ -21,13 +21,13 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
       });
     });
 
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.clearLocalStorage();
     cy.getIframeBody().findAllByText('hello, world!').should('have.length', 1);
 
     // text occurs 3 times (one is the page title)
     cy.getIframeBody()
-      .findAllByText('XB Needs This For The Time Being')
+      .findAllByText('Canvas Needs This For The Time Being')
       .should('have.length', 3);
 
     cy.log('Click and copy the first Hero component.');
@@ -51,7 +51,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.findByText('Delete').click();
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
     cy.getIframeBody()
-      .findAllByText('XB Needs This For The Time Being')
+      .findAllByText('Canvas Needs This For The Time Being')
       .should('have.length', 1);
 
     cy.log(
@@ -69,7 +69,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
 
     // this text should now occur only once (the page title)
     cy.getIframeBody()
-      .findAllByText('XB Needs This For The Time Being')
+      .findAllByText('Canvas Needs This For The Time Being')
       .should('have.length', 1);
 
     cy.log('The Hero that was pasted should be selected');
@@ -80,7 +80,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
       });
 
     cy.log('Refresh the page and confirm the component can still be pasted');
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
 
     cy.getAllLocalStorage().then((ls) => {
       expect(Object.keys(ls).length).to.equal(1);
@@ -91,12 +91,12 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.clickComponentInPreview('Hero', 2);
 
     cy.realPress(['Meta', 'v']);
-    cy.waitForElementInIframe('.column-two [data-xb-uuid]:nth-child(4)');
+    cy.waitForElementInIframe('.column-two [data-canvas-uuid]:nth-child(4)');
     cy.getIframeBody().findAllByText('hello, world!').should('have.length', 2);
   });
 
   it('Copy and paste a node with children using keyboard shortcuts', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.clearLocalStorage();
 
     cy.clickComponentInLayersView('Two Column');

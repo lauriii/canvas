@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Adapter;
+namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -12,10 +12,10 @@ use Drupal\file\FileInterface;
   id: 'image_extract_url',
   label: new TranslatableMarkup('Extract image URL'),
   inputs: [
-    'imageUri' => ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'],
+    'imageUri' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri'],
   ],
   requiredInputs: ['image'],
-  output: ['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri'],
+  output: ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image-uri'],
 )]
 final class ImageUriAdapter extends AdapterBase implements ContainerFactoryPluginInterface {
 

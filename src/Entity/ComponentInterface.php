@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 
 /**
  * Defines an interface for Component config entities.
@@ -26,7 +26,7 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
   /**
    * Gets the component source plugin.
    *
-   * @return \Drupal\experience_builder\ComponentSource\ComponentSourceInterface
+   * @return \Drupal\canvas\ComponentSource\ComponentSourceInterface
    *   The component source plugin.
    */
   public function getComponentSource(): ComponentSourceInterface;

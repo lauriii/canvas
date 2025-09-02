@@ -24,7 +24,7 @@ services:
           composer config minimum-stability dev
           composer config repositories.tugboat path $TUGBOAT_ROOT
           composer require \
-            drupal/experience_builder \
+            drupal/canvas \
             drupal/demo_design_system \
             drupal/components \
             drupal/default_content
@@ -40,7 +40,7 @@ services:
             site:install standard
 
           # Require settings.local.php increase CLI memory limit, add trusted
-          # host patterns, and allow for enabling hidden xb_dev_standard module.
+          # host patterns, and allow for enabling hidden canvas_dev_standard module.
           echo "require_once '$TUGBOAT_ROOT/.tugboat/settings.local.php';" >> $DOCROOT/sites/default/settings.php
 
           # Set up the files directory permissions.
@@ -51,8 +51,8 @@ services:
 
           # Enable the module.
           vendor/bin/drush --yes pm:install \
-            experience_builder \
-            xb_dev_standard \
+            canvas \
+            canvas_dev_standard \
             media_library \
             components \
             default_content
@@ -76,7 +76,7 @@ services:
           composer install --optimize-autoloader
           # Update packages and dependencies.
           composer update --with-all-dependencies \
-            drupal/experience_builder \
+            drupal/canvas \
             drupal/demo_design_system \
             drupal/components \
             drupal/default_content

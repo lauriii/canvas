@@ -15,12 +15,12 @@ export const patternApi = createApi({
   tagTypes: ['Patterns'],
   endpoints: (builder) => ({
     getPatterns: builder.query<PatternsList, void>({
-      query: () => `/xb/api/v0/config/pattern`,
+      query: () => `/canvas/api/v0/config/pattern`,
       providesTags: () => [{ type: 'Patterns', id: 'LIST' }],
     }),
     savePattern: builder.mutation<{ html: string }, SavePatternData>({
       query: (body) => ({
-        url: '/xb/api/v0/config/pattern',
+        url: '/canvas/api/v0/config/pattern',
         method: 'POST',
         body,
       }),
@@ -28,7 +28,7 @@ export const patternApi = createApi({
     }),
     deletePattern: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/xb/api/v0/config/pattern/${id}`,
+        url: `/canvas/api/v0/config/pattern/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],

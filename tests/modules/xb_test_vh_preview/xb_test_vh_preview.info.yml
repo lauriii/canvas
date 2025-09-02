@@ -1,4 +1,0 @@
-name: 'XB Test VH In preview'
-type: module
-description: 'Provides components that set height with VH units.'
-package: Testing

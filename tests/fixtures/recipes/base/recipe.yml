@@ -1,6 +1,6 @@
 name: 'Base'
 description: 'Provides a base site'
-type: 'XB'
+type: 'Canvas'
 
 recipes:
   - ./core/recipes/basic_block_type

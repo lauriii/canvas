@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
+use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
- * @internal This HTTP API is intended only for the XB UI. These controllers
+ * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  */
 class ApiControllerBase {

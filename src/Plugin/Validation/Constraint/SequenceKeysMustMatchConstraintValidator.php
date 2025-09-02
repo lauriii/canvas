@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraint;
 use Symfony\Component\Validator\Constraint;

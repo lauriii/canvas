@@ -12,7 +12,7 @@ const preview: Preview = {
         panelBackground="solid"
         appearance="light"
       >
-        <div className="xb-app">
+        <div className="canvas-app">
           {Story()}
         </div>
       </Theme>

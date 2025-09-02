@@ -8,7 +8,7 @@ export function loadEnvFiles() {
   // Load from the user's home directory (for global settings).
   const homeDir = process.env.HOME || process.env.USERPROFILE || '';
   if (homeDir) {
-    const homeEnvPath = path.resolve(homeDir, '.xbrc');
+    const homeEnvPath = path.resolve(homeDir, '.canvasrc');
     if (fs.existsSync(homeEnvPath)) {
       dotenv.config({ path: homeEnvPath });
     }
@@ -34,13 +34,12 @@ export interface Config {
 }
 
 let config: Config = {
-  siteUrl: process.env.EXPERIENCE_BUILDER_SITE_URL || '',
-  clientId: process.env.EXPERIENCE_BUILDER_CLIENT_ID || '',
-  clientSecret: process.env.EXPERIENCE_BUILDER_CLIENT_SECRET || '',
-  scope:
-    process.env.EXPERIENCE_BUILDER_SCOPE || 'xb:js_component xb:asset_library',
-  componentDir: process.env.EXPERIENCE_BUILDER_COMPONENT_DIR || './components',
-  verbose: process.env.EXPERIENCE_BUILDER_VERBOSE === 'true',
+  siteUrl: process.env.CANVAS_SITE_URL || '',
+  clientId: process.env.CANVAS_CLIENT_ID || '',
+  clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
+  scope: process.env.CANVAS_SCOPE || 'canvas:js_component canvas:asset_library',
+  componentDir: process.env.CANVAS_COMPONENT_DIR || './components',
+  verbose: process.env.CANVAS_VERBOSE === 'true',
 };
 
 export function getConfig(): Config {

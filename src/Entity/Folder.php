@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -10,7 +10,7 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\ClientSideRepresentation;
+use Drupal\canvas\ClientSideRepresentation;
 
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
@@ -38,10 +38,10 @@ use Drupal\experience_builder\ClientSideRepresentation;
   additional: [
     // The client-side representation uses `id` as the identifier, not `uuid`.
     // @see ::normalizeForClientSide()
-    'xb_client_id_key' => 'id',
+    'canvas_client_id_key' => 'id',
   ],
 )]
-final class Folder extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface {
+final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface {
 
   public const string ENTITY_TYPE_ID = 'folder';
   public const string ADMIN_PERMISSION = 'administer folders';

@@ -6,7 +6,7 @@ import { queries } from '@testing-library/dom';
 
 // This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
 const initializedReadyPreviewIframeSelector =
-  '[data-test-xb-content-initialized="true"][data-xb-swap-active="true"]';
+  '[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]';
 
 const commandAsWebserver = (command) => {
   if (Cypress.env('testWebserverUser')) {
@@ -99,17 +99,17 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('drupalEnableThemeForXb', (themeMachineName) => {
+Cypress.Commands.add('drupalEnableThemeForCanvas', (themeMachineName) => {
   cy.drupalLoginAsAdmin(() => {
     cy.drupalRelativeURL(`admin/appearance/settings/${themeMachineName}`);
-    cy.get(`input[name="use_xb"]`).click();
+    cy.get(`input[name="use_canvas"]`).click();
     cy.get('form').submit('#system-theme-settings');
-    cy.get(`input[name="use_xb"]`).should('be.checked');
+    cy.get(`input[name="use_canvas"]`).should('be.checked');
   });
 });
 
 Cypress.Commands.add(
-  'drupalXbInstall',
+  'drupalCanvasInstall',
   (extraModules = [], options = {}, extraPermissions = []) => {
     cy.task('log', `The setup file ${Cypress.env('setupFile')}`);
     cy.task('log', `Extra modules ${extraModules}`);
@@ -140,17 +140,17 @@ Cypress.Commands.add(
       setupFile = setupFile ? `--setup-file "${setupFile}"` : '';
       installProfile = `--install-profile "${installProfile}"`;
       extraModules = extraModules.length
-        ? `XB_EXTRA_MODULES=${extraModules.join()}`
+        ? `CANVAS_EXTRA_MODULES=${extraModules.join()}`
         : '';
 
       const disableAggregationEnv =
         Object.prototype.hasOwnProperty.call(options, 'disableAggregation') &&
         options.disableAggregation
-          ? 'XB_DISABLE_AGGREGATION=true'
+          ? 'CANVAS_DISABLE_AGGREGATION=true'
           : '';
 
       extraPermissions = extraPermissions.length
-        ? `XB_EXTRA_PERMISSIONS="${extraPermissions.join()}"`
+        ? `CANVAS_EXTRA_PERMISSIONS="${extraPermissions.join()}"`
         : '';
 
       const langcodeOption = langcode ? `--langcode "${langcode}"` : '';
@@ -317,7 +317,7 @@ Cypress.Commands.add('drupalRelativeURL', (pathname, callback) => {
 });
 
 Cypress.Commands.add('drupalUninstall', (callback) => {
-  // immediately leave XB - otherwise when running headed the auto-save poll can fire during/after the db wipe and leave
+  // immediately leave Canvas - otherwise when running headed the auto-save poll can fire during/after the db wipe and leave
   // the env in a weird state.
   cy.visit('/');
   const prefix = Cypress.env('drupalDbPrefix');
@@ -359,7 +359,7 @@ Cypress.Commands.add('drupalUserIsLoggedIn', (callback) => {
 Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
   cy.request({
     method: 'GET',
-    url: `/xb-test/clear-auto-save/${type}/${id}`,
+    url: `/canvas-test/clear-auto-save/${type}/${id}`,
   }).then((response) => {
     expect(response.status).to.eq(200);
   });
@@ -368,7 +368,7 @@ Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
 Cypress.Commands.add('setKeyValue', (collection, values) => {
   cy.request({
     method: 'POST',
-    url: `/xb-test/set-key-value/${collection}`,
+    url: `/canvas-test/set-key-value/${collection}`,
     body: values,
   }).then((response) => {
     expect(response.status).to.eq(200);
@@ -399,7 +399,7 @@ Cypress.Commands.add(
   'previewReady',
   (iframeSelector = initializedReadyPreviewIframeSelector) => {
     // Not logging these assertions to try and keep the command log a bit tidier
-    cy.get('.xbEditorFrameScalingContainer', { log: false }).should(
+    cy.get('.canvasEditorFrameScalingContainer', { log: false }).should(
       'have.css',
       'opacity',
       '1',
@@ -639,12 +639,12 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('openLibraryPanel', () => {
-  cy.findByTestId('xb-side-menu').findByLabelText('Add').click();
-  cy.findByTestId('xb-components-library-loading').should('not.exist');
+  cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
+  cy.findByTestId('canvas-components-library-loading').should('not.exist');
 });
 
 Cypress.Commands.add('openLayersPanel', () => {
-  cy.findByTestId('xb-side-menu').findByLabelText('Layers').click();
+  cy.findByTestId('canvas-side-menu').findByLabelText('Layers').click();
 });
 
 /**
@@ -689,18 +689,18 @@ Cypress.Commands.add(
 );
 
 /**
- * Loads the XB page and waits to ensure initial backend requests have been returned and that the preview
+ * Loads the Canvas page and waits to ensure initial backend requests have been returned and that the preview
  * iFrame is initialized and ready to be interacted with.
  *
  * * @param {Object} options
  *  *   An options object to configure the command.
  *  * @param {string} options.url
- *  *   The URL you want to visit - defaults to '/xb/node/1'.
+ *  *   The URL you want to visit - defaults to '/canvas/node/1'.
  *  * @param {boolean} options.clearAutoSave
  *  *   Can be set to false if you want the auto-save data to persist on loading a new page - defaults to true.
  *  */
-Cypress.Commands.add('loadURLandWaitForXBLoaded', (options = {}) => {
-  const { url = 'xb/node/1', clearAutoSave = true } = options;
+Cypress.Commands.add('loadURLandWaitForCanvasLoaded', (options = {}) => {
+  const { url = 'canvas/node/1', clearAutoSave = true } = options;
 
   if (clearAutoSave) {
     const [, entityType, entityId] = url.split('/');
@@ -764,7 +764,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('getElementScaledDimensions', ($item) => {
-  cy.findByTestId('xb-editor-frame-scaling').then(($parent) => {
+  cy.findByTestId('canvas-editor-frame-scaling').then(($parent) => {
     const computedStyle = window.getComputedStyle($parent[0]);
     const matrix = computedStyle.transform;
     if (matrix !== 'none') {
@@ -795,7 +795,7 @@ Cypress.Commands.add(
   'clickComponentInPreview',
   (componentName, index = 0, regionId = 'content') => {
     cy.get(
-      `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
+      `#canvasPreviewOverlay .canvas--viewport-overlay .canvas--region-overlay__${regionId}`,
     )
       .findAllByLabelText(componentName)
       .eq(index)
@@ -809,7 +809,7 @@ Cypress.Commands.add(
   (componentName, index = 0, regionId = 'content') => {
     return cy
       .get(
-        `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
+        `#canvasPreviewOverlay .canvas--viewport-overlay .canvas--region-overlay__${regionId}`,
       )
       .findAllByLabelText(componentName)
       .eq(index);
@@ -821,7 +821,7 @@ Cypress.Commands.add(
   (componentName, regionId = 'content') => {
     return cy
       .get(
-        `#xbPreviewOverlay .xb--viewport-overlay .xb--region-overlay__${regionId}`,
+        `#canvasPreviewOverlay .canvas--viewport-overlay .canvas--region-overlay__${regionId}`,
       )
       .findAllByLabelText(componentName);
   },
@@ -924,10 +924,10 @@ Cypress.Commands.add('hidePanels', () => {
     $el.css({ display: 'none' });
   }
 
-  cy.findByTestId('xb-primary-panel').then(hide);
-  cy.findByTestId('xb-topbar').then(hide);
-  cy.findByTestId('xb-contextual-panel').then(hide);
-  cy.findByTestId('xb-editor-frame-controls').then(hide);
+  cy.findByTestId('canvas-primary-panel').then(hide);
+  cy.findByTestId('canvas-topbar').then(hide);
+  cy.findByTestId('canvas-contextual-panel').then(hide);
+  cy.findByTestId('canvas-editor-frame-controls').then(hide);
 });
 
 /**
@@ -938,21 +938,21 @@ Cypress.Commands.add('showPanels', () => {
     $el.css({ display: '' });
   }
 
-  cy.findByTestId('xb-primary-panel').then(show);
-  cy.findByTestId('xb-topbar').then(show);
-  cy.findByTestId('xb-contextual-panel').then(show);
-  cy.findByTestId('xb-editor-frame-controls').then(show);
+  cy.findByTestId('canvas-primary-panel').then(show);
+  cy.findByTestId('canvas-topbar').then(show);
+  cy.findByTestId('canvas-contextual-panel').then(show);
+  cy.findByTestId('canvas-editor-frame-controls').then(show);
 });
 
 /**
  * Set the editor frame to be static and scrollable so that Cypress is better able to interact with elements in the editor frame.
  */
 Cypress.Commands.add('disableEditorPanning', () => {
-  cy.findByTestId('xb-editor-frame').then(($editorFrame) => {
+  cy.findByTestId('canvas-editor-frame').then(($editorFrame) => {
     $editorFrame.css({ padding: '100px 0 0 0' });
   });
 
-  cy.findByTestId('xb-editor-frame')
+  cy.findByTestId('canvas-editor-frame')
     .parent()
     .then(($parent) => {
       $parent.css({
@@ -970,11 +970,11 @@ Cypress.Commands.add('disableEditorPanning', () => {
  * Reset the editor frame to its normal behavior after disabling it with cy.disableEditorPanning();
  */
 Cypress.Commands.add('reEnableCanvasPanning', () => {
-  cy.findByTestId('xb-editor-frame').then(($editorFrame) => {
+  cy.findByTestId('canvas-editor-frame').then(($editorFrame) => {
     $editorFrame.css({ padding: '' });
   });
 
-  cy.findByTestId('xb-editor-frame')
+  cy.findByTestId('canvas-editor-frame')
     .parent()
     .then(($parent) => {
       $parent.css({ overflow: '', display: '', position: '' });
@@ -1017,7 +1017,7 @@ Cypress.Commands.add('toggleToggle', { prevSubject: 'element' }, (subject) => {
 
 Cypress.Commands.add('editHeroComponent', () => {
   // The right panel has opened.
-  cy.findByTestId('xb-contextual-panel').should('exist');
+  cy.findByTestId('canvas-contextual-panel').should('exist');
 
   const expectedLabels = [
     'Heading',
@@ -1094,8 +1094,8 @@ Cypress.Commands.add('editHeroComponent', () => {
   };
 
   // Monitor the endpoint that processes changed values in the prop edit form.
-  cy.intercept('POST', '**/xb/api/v0/layout/node/1').as('getPreview');
-  cy.intercept('PATCH', '**/xb/api/v0/layout/node/1').as('patchPreview');
+  cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
+  cy.intercept('PATCH', '**/canvas/api/v0/layout/node/1').as('patchPreview');
   expectedLabels.forEach((label) => {
     // Type a new value into a given input.
     cy.findByLabelText(label).focus();
@@ -1156,12 +1156,12 @@ Cypress.Commands.add('focusRegion', (regionName) => {
   cy.get('@layersTree').findByText(regionName).dblclick();
 });
 Cypress.Commands.add('returnToContentRegion', () => {
-  cy.findByTestId('xb-topbar')
+  cy.findByTestId('canvas-topbar')
     .findByLabelText('Back to Content region')
     .click();
 });
 Cypress.Commands.add('sendComponentToRegion', (componentName, regionName) => {
-  cy.findByTestId('xb-primary-panel').as('layersTree');
+  cy.findByTestId('canvas-primary-panel').as('layersTree');
   cy.get('@layersTree')
     .findAllByText(componentName)
     .first()
@@ -1187,8 +1187,8 @@ Cypress.Commands.add(
     // the button whilst it is loading.
     cy.get('@review').click();
     // Enable extended debug output from failed publishing.
-    cy.intercept('**/xb/api/v0/auto-saves/publish');
-    cy.findByTestId('xb-publish-reviews-content')
+    cy.intercept('**/canvas/api/v0/auto-saves/publish');
+    cy.findByTestId('canvas-publish-reviews-content')
       .as('publishReview')
       .should('exist');
     // We put the whole publish review step in a single should so it can be
@@ -1206,7 +1206,7 @@ Cypress.Commands.add(
       });
       await Promise.all(matchers);
     });
-    cy.findByTestId('xb-publish-review-select-all').click();
+    cy.findByTestId('canvas-publish-review-select-all').click();
     cy.findByText(`Publish ${changeCount} selected`).click();
     if (expectNoErrors) {
       cy.findByText('All changes published!').should('exist');

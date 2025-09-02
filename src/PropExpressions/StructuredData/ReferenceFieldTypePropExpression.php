@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\PropExpressions\StructuredData;
+namespace Drupal\canvas\PropExpressions\StructuredData;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;

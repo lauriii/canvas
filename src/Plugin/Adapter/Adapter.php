@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Adapter;
+namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Component\Plugin\Attribute\Plugin;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -12,11 +12,11 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *
  * Plugin Namespace: Plugin\Adapter
  *
- * @see \Drupal\experience_builder\Plugin\Adapter\AdapterInterface
- * @see \Drupal\experience_builder\Plugin\AdapterManager
+ * @see \Drupal\canvas\Plugin\Adapter\AdapterInterface
+ * @see \Drupal\canvas\Plugin\AdapterManager
  * @see plugin_api
  *
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
 class Adapter extends Plugin {

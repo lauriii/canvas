@@ -94,7 +94,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
           [styles.dropTarget]: region.id === targetSlot,
           [styles.hovered]: showHovered,
         },
-        `xb--region-overlay__${region.id}`,
+        `canvas--region-overlay__${region.id}`,
       )}
       style={overlayStyles}
       onMouseOver={handleItemMouseOver}
@@ -106,12 +106,12 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ iframeRef, region }) => {
           <div
             aria-label={`Global region ${region.name}`}
             className={styles.regionItem}
-            data-xb-overlay="true"
+            data-canvas-overlay="true"
           />
         </RegionContextMenu>
       )}
 
-      <div className={clsx(styles.xbNameTag)}>
+      <div className={clsx(styles.canvasNameTag)}>
         <RegionNameTag
           name={region.name}
           id={region.id}

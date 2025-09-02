@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\AutoSave;
+namespace Drupal\canvas\AutoSave;
 
 use Drupal\Core\TempStore\SharedTempStore;
 
@@ -13,7 +13,7 @@ use Drupal\Core\TempStore\SharedTempStore;
  * ::getAll method but it isn't part of the SharedTempStore public API. We
  * extend SharedTempStore to expose the ability to call this method.
  *
- * @see \Drupal\experience_builder\AutoSave\AutoSaveManager::getAllAutoSaveList
+ * @see \Drupal\canvas\AutoSave\AutoSaveManager::getAllAutoSaveList
  */
 final class AutoSaveTempStore extends SharedTempStore {
 

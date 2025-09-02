@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore thisisatestpattern
 
-use Drupal\experience_builder\Entity\Pattern;
-use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\canvas\Entity\Pattern;
+use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -23,10 +23,10 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
-    'xb_test_sdc',
+    'canvas',
+    'canvas_test_sdc',
     'block',
-    // XB's dependencies (modules providing field types + widgets).
+    // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
     'image',
@@ -50,7 +50,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => '8c59b08a-59f7-4c33-b1b6-06af8f153e73',
-          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
@@ -59,7 +59,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
         [
           'uuid' => 'cdaf905d-4b07-4f3c-a691-4b9d07891124',
-          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
@@ -67,8 +67,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
         [
           'uuid' => '02f06f2a-c3af-4f71-8920-5f74169a88a5',
-          'component_id' => 'sdc.xb_test_sdc.heading',
-          'component_version' => '9616e3c4ab9b4fce',
+          'component_id' => 'sdc.canvas_test_sdc.heading',
+          'component_version' => '8dd7b865998f53b0',
           'inputs' => [
             'text' => $generate_static_prop_source('heading level three'),
             'element' => [
@@ -104,9 +104,9 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     $this->assertSame(
       [
         'config' => [
-          'experience_builder.component.block.local_tasks_block',
-          'experience_builder.component.sdc.xb_test_sdc.heading',
-          'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+          'canvas.component.block.local_tasks_block',
+          'canvas.component.sdc.canvas_test_sdc.heading',
+          'canvas.component.sdc.canvas_test_sdc.props-no-slots',
         ],
         'module' => [
           'options',
@@ -116,14 +116,14 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     );
     $this->assertSame([
       'config' => [
-        'experience_builder.component.block.local_tasks_block',
-        'experience_builder.component.sdc.xb_test_sdc.heading',
-        'experience_builder.component.sdc.xb_test_sdc.props-no-slots',
+        'canvas.component.block.local_tasks_block',
+        'canvas.component.sdc.canvas_test_sdc.heading',
+        'canvas.component.sdc.canvas_test_sdc.props-no-slots',
       ],
       'module' => [
         'options',
-        'experience_builder',
-        'xb_test_sdc',
+        'canvas',
+        'canvas_test_sdc',
       ],
     ], $this->getAllDependencies($this->entity));
   }
@@ -131,7 +131,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * Pattern config entities atypically do not need an ID to be specified.
    *
-   * @see \Drupal\experience_builder\Entity\Pattern::preCreate()
+   * @see \Drupal\canvas\Entity\Pattern::preCreate()
    */
   public function testValidWithoutIdSpecified(): void {
     $this->assertCount(1, Pattern::loadMultiple());
@@ -174,7 +174,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**
    * @dataProvider providerInvalidComponentTree
-   * @covers \Drupal\experience_builder\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
+   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
     $this->entity->set('component_tree', $component_tree);
@@ -186,7 +186,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => '8c59b08a-59f7-4c33-b1b6-06af8f153e73',
-          'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'component_version' => '95f4f1d5ee47663b',
           'inputs' => [
             'heading' => [
@@ -205,7 +205,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => '62602a53-de40-4e33-aad5-241a7cf74499',
-          'component_id' => 'sdc.xb_test_sdc.druplicon',
+          'component_id' => 'sdc.canvas_test_sdc.druplicon',
           'component_version' => '8fe3be948e0194e1',
           'inputs' => [],
         ],
@@ -242,7 +242,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
@@ -252,7 +252,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'slot' => 'the_body',
           'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
@@ -268,7 +268,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
@@ -278,7 +278,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'slot' => 'banana',
           'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
@@ -286,7 +286,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.xb_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
+        'component_tree.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
       ],
     ];
 
@@ -294,7 +294,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
@@ -311,7 +311,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'abc',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
@@ -319,7 +319,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.xb_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
+        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
       ],
     ];
 
@@ -327,7 +327,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'component_tree' => [
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
-          'component_id' => 'sdc.xb_test_sdc.props-slots',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => 'ab4d3ddce315cf64',
           'inputs' => [
             'heading' => [

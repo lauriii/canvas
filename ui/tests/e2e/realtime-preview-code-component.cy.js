@@ -1,7 +1,7 @@
 // @cspell:ignore Meatspace
 describe('⚡️ Real time code component previews', () => {
   beforeEach(() => {
-    cy.drupalXbInstall(['xb_test_code_components']);
+    cy.drupalCanvasInstall(['canvas_test_code_components']);
     cy.drupalSession();
     // A larger viewport makes it easier to debug in the test runner app.
     cy.viewport(2000, 1000);
@@ -15,8 +15,8 @@ describe('⚡️ Real time code component previews', () => {
     'Scalar code component props update the preview in real time',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.drupalLogin('xbUser', 'xbUser');
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+      cy.drupalLogin('canvasUser', 'canvasUser');
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
       cy.openLibraryPanel();
       // Wait for the component list to load.
       cy.get('.primaryPanelContent').should('contain.text', 'Components');
@@ -25,15 +25,15 @@ describe('⚡️ Real time code component previews', () => {
       // Check the default values display in the preview.
       cy.waitForElementContentInIframe(
         'div',
-        'Component With props, Hello XB, 40 years old.',
+        'Component With props, Hello Canvas, 40 years old.',
       );
-      cy.get('[data-testid*="xb-component-form-"]').as('inputForm');
+      cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
       let previewHasUpdated = false;
       // Catch the PATCH request to the API Layout controller.
       cy.intercept(
         {
           method: 'PATCH',
-          url: '**/xb/api/v0/layout/node/2',
+          url: '**/canvas/api/v0/layout/node/2',
           // Should only happen once, polled until the user-entry has settled
           times: 1,
         },

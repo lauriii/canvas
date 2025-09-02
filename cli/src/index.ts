@@ -11,10 +11,8 @@ const version = packageJson.version;
 
 const program = new Command();
 program
-  .name('xb')
-  .description(
-    'CLI tool for managing Drupal Experience Builder code components',
-  )
+  .name('canvas')
+  .description('CLI tool for managing Drupal Canvas code components')
   .version(version ?? '0.0.0');
 
 // Register commands

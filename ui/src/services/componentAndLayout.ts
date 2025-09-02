@@ -39,7 +39,7 @@ export const componentAndLayoutApi = createApi({
       ComponentsList,
       getComponentsQueryOptions | void
     >({
-      query: () => `xb/api/v0/config/component`,
+      query: () => `canvas/api/v0/config/component`,
       providesTags: () => [{ type: 'Components', id: 'LIST' }],
       transformResponse: (response: ComponentsList) => {
         return Object.fromEntries(
@@ -50,7 +50,7 @@ export const componentAndLayoutApi = createApi({
       },
     }),
     getLayoutById: builder.query<LayoutApiResponse, string>({
-      query: (nodeId) => `xb/api/v0/layout/{entity_type}/${nodeId}`,
+      query: (nodeId) => `canvas/api/v0/layout/{entity_type}/${nodeId}`,
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         try {
@@ -70,7 +70,7 @@ export const componentAndLayoutApi = createApi({
       Record<string, CodeComponentSerialized>,
       { status?: boolean } | void
     >({
-      query: () => 'xb/api/v0/config/js_component',
+      query: () => 'canvas/api/v0/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
       transformResponse: (
         response: Record<string, CodeComponentSerialized>,
@@ -99,7 +99,7 @@ export const componentAndLayoutApi = createApi({
       },
     }),
     getCodeComponent: builder.query<CodeComponentSerialized, string>({
-      query: (id) => `xb/api/v0/config/js_component/${id}`,
+      query: (id) => `canvas/api/v0/config/js_component/${id}`,
       providesTags: (result, error, id) => [{ type: 'CodeComponents', id }],
     }),
     createCodeComponent: builder.mutation<
@@ -107,7 +107,7 @@ export const componentAndLayoutApi = createApi({
       Partial<CodeComponentSerialized>
     >({
       query: (body) => ({
-        url: 'xb/api/v0/config/js_component',
+        url: 'canvas/api/v0/config/js_component',
         method: 'POST',
         body,
       }),
@@ -118,7 +118,7 @@ export const componentAndLayoutApi = createApi({
       { id: string; changes: Partial<CodeComponentSerialized> }
     >({
       query: ({ id, changes }) => ({
-        url: `xb/api/v0/config/js_component/${id}`,
+        url: `canvas/api/v0/config/js_component/${id}`,
         method: 'PATCH',
         body: changes,
       }),
@@ -132,7 +132,7 @@ export const componentAndLayoutApi = createApi({
     }),
     deleteCodeComponent: builder.mutation<void, string>({
       query: (id) => ({
-        url: `xb/api/v0/config/js_component/${id}`,
+        url: `canvas/api/v0/config/js_component/${id}`,
         method: 'DELETE',
       }),
       // Manually delete the cache entry for the deleted component.
@@ -165,7 +165,7 @@ export const componentAndLayoutApi = createApi({
     }),
     createFolder: builder.mutation<any, any>({
       query: (body) => ({
-        url: 'xb/api/v0/config/folder',
+        url: 'canvas/api/v0/config/folder',
         method: 'POST',
         body: {
           items: body.items || [],
@@ -177,7 +177,7 @@ export const componentAndLayoutApi = createApi({
       invalidatesTags: [{ type: 'Folders', id: 'LIST' }],
     }),
     getFolders: builder.query<any, any>({
-      query: () => 'xb/api/v0/config/folder',
+      query: () => 'canvas/api/v0/config/folder',
       providesTags: () => [{ type: 'Folders', id: 'LIST' }],
       transformResponse: (response: any) => {
         // Create a mapping of component IDs to folder IDs for quick access.
@@ -205,7 +205,7 @@ export const componentAndLayoutApi = createApi({
       { data: CodeComponentSerialized; autoSaves: AutoSavesHash },
       string
     >({
-      query: (id) => `xb/api/v0/config/auto-save/js_component/${id}`,
+      query: (id) => `canvas/api/v0/config/auto-save/js_component/${id}`,
       providesTags: (result, error, id) => [
         { type: 'CodeComponentAutoSave', id },
       ],
@@ -229,7 +229,7 @@ export const componentAndLayoutApi = createApi({
       }
     >({
       query: ({ id, data }) => ({
-        url: `xb/api/v0/config/auto-save/js_component/${id}`,
+        url: `canvas/api/v0/config/auto-save/js_component/${id}`,
         method: 'PATCH',
         body: { data },
       }),

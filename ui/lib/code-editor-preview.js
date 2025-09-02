@@ -6,7 +6,7 @@
  * content:
  *
  * @code
- * <script id="xb-code-editor-preview-data" type="application/json">
+ * <script id="canvas-code-editor-preview-data" type="application/json">
  *   {
  *     "compiledJsUrl": ...,
  *     "propValues": ...,
@@ -22,7 +22,7 @@
 import { h, render } from 'preact';
 
 // Get the data from the script tag.
-const dataElement = document.getElementById('xb-code-editor-preview-data');
+const dataElement = document.getElementById('canvas-code-editor-preview-data');
 if (!dataElement) {
   throw new Error('Could not find code editor preview data element');
 }
@@ -94,7 +94,7 @@ Promise.all([import(compiledJsUrl), import(compiledJsForSlotsUrl)]).then(
     // Render the component.
     render(
       h(mainModule.default, propsAndSlots),
-      document.getElementById('xb-code-editor-preview-root'),
+      document.getElementById('canvas-code-editor-preview-root'),
     );
   },
 );

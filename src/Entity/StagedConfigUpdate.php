@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\ClientSideRepresentation;
-use Drupal\experience_builder\EntityHandlers\StagedConfigUpdateAccessControlHandler;
-use Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage;
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\StagedConfigUpdateAccessControlHandler;
+use Drupal\canvas\EntityHandlers\StagedConfigUpdateStorage;
 
 /**
  * @phpstan-type StagedConfigUpdateActions array<string, array{name: string, input: array<string, mixed>}>
@@ -37,7 +37,7 @@ use Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage;
     'actions',
   ],
 )]
-final class StagedConfigUpdate extends ConfigEntityBase implements XbHttpApiEligibleConfigEntityInterface, AutoSavePublishAwareInterface {
+final class StagedConfigUpdate extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, AutoSavePublishAwareInterface {
 
   public const string ENTITY_TYPE_ID = 'staged_config_update';
 
@@ -128,7 +128,7 @@ final class StagedConfigUpdate extends ConfigEntityBase implements XbHttpApiElig
    * {@inheritdoc}
    */
   public function autoSavePublish(): self {
-    // @see \Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage::save()
+    // @see \Drupal\canvas\EntityHandlers\StagedConfigUpdateStorage::save()
     $this->setStatus(TRUE);
     return $this;
   }

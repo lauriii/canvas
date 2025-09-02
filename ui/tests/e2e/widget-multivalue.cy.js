@@ -3,12 +3,12 @@ describe('Multivalue widget drag and drop', () => {
   // entity-form-field-types-test.cy.js and this test is only about drag and
   // drop support.
   before(() => {
-    cy.drupalXbInstall(['xb_test_article_fields']);
+    cy.drupalCanvasInstall(['canvas_test_article_fields']);
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -16,10 +16,10 @@ describe('Multivalue widget drag and drop', () => {
   });
 
   it('can use a multivalue widget in the page data form', () => {
-    cy.loadURLandWaitForXBLoaded();
-    cy.findByTestId('xb-page-data-form').as('entityForm');
+    cy.loadURLandWaitForCanvasLoaded();
+    cy.findByTestId('canvas-page-data-form').as('entityForm');
     cy.get('@entityForm').recordFormBuildId();
-    cy.findByRole('heading', { name: 'XB Unlimited Text' })
+    cy.findByRole('heading', { name: 'Canvas Unlimited Text' })
       .parents('.js-form-wrapper')
       .as('unlimited-text');
 
@@ -67,7 +67,7 @@ describe('Multivalue widget drag and drop', () => {
     // @todo Remove in https://drupal.org/i/3521641
     const waitForPreview = () => {
       cy.intercept({
-        url: '**/xb/api/v0/layout/node/1',
+        url: '**/canvas/api/v0/layout/node/1',
         times: 1,
         method: 'POST',
       }).as('updatePreview');
@@ -83,7 +83,7 @@ describe('Multivalue widget drag and drop', () => {
       .click();
     cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
     // Wait for ajax behaviors to finish.
-    cy.get('body[data-xb-ajax-behaviors="true"]').should('not.exist');
+    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 3);
 
     // Populate the new item.
@@ -118,7 +118,7 @@ describe('Multivalue widget drag and drop', () => {
       scrollBehavior: false,
     };
     cy.get(
-      '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(3) [title="Change order"]',
+      '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(3) [title="Change order"]',
     ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
 
     confirmTextInputs([
@@ -132,7 +132,7 @@ describe('Multivalue widget drag and drop', () => {
       .click();
     cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
     // Wait for ajax behaviors to finish.
-    cy.get('body[data-xb-ajax-behaviors="true"]').should('not.exist');
+    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 4);
 
     cy.log(
@@ -169,7 +169,7 @@ describe('Multivalue widget drag and drop', () => {
     // Ensure the drop target is in the viewport.
     cy.get('@unlimited-text').findAllByRole('textbox').eq(0).scrollIntoView();
     cy.get(
-      '[data-drupal-selector="edit-field-xbt-unlimited-text"] tr.draggable:nth-child(4) [title="Change order"]',
+      '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(4) [title="Change order"]',
     ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
     cy.get('@unlimited-text')
       .findAllByRole('textbox')

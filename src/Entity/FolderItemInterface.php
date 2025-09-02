@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Entity;
+namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
  * Allows config entities of this type to be organized in Folders.
  *
- * @see \Drupal\experience_builder\Entity\Folder
+ * @see \Drupal\canvas\Entity\Folder
  *
  * @internal
  */

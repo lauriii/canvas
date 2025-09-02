@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\Entity\ConfigEntityDependency;
@@ -11,9 +11,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Audit\ComponentAudit;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\ComponentInterface;
+use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 
 /**
  * Defines an uninstall validator for content entity uses of Components.

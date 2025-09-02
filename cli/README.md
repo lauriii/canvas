@@ -1,23 +1,23 @@
-# Experience Builder CLI
+# Drupal Canvas CLI
 
-A command-line interface for managing Drupal Experience Builder code components,
-which are built with standard React and JavaScript. While Experience Builder
-includes a built-in browser-based code editor for working with these components,
-this CLI tool makes it possible to create, build, and manage components outside
-of that UI environment.
+A command-line interface for managing Drupal Canvas code components, which are
+built with standard React and JavaScript. While Drupal Canvas includes a
+built-in browser-based code editor for working with these components, this CLI
+tool makes it possible to create, build, and manage components outside of that
+UI environment.
 
 ## Installation
 
 ```bash
-npm install @drupal/xb-cli
+npm install @drupal-canvas/cli
 ```
 
 ## Setup
 
-1. Install the Experience Builder OAuth module (`xb_oauth`), which is shipped as
-   a submodule of Experience Builder.
+1. Install the Drupal Canvas OAuth module (`canvas_oauth`), which is shipped as
+   a submodule of Drupal Canvas.
 2. Follow the
-   [configuration steps of the module](https://git.drupalcode.org/project/experience_builder/-/tree/1.x/modules/xb_oauth#22-configuration)
+   [configuration steps of the module](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_oauth#22-configuration)
    to set up a client with an ID and secret.
 
 ### Configuration
@@ -27,25 +27,25 @@ Settings can be configured using:
 1. Command-line arguments;
 1. Environment variables;
 1. A project `.env` file;
-1. A global `.xbrc` file in your home directory.
+1. A global `.canvasrc` file in your home directory.
 
 These are applied in order of precedence from highest to lowest. You can copy
 the
-[`.env.example` file](https://git.drupalcode.org/project/experience_builder/-/blob/1.x/cli/.env.example)
+[`.env.example` file](https://git.drupalcode.org/project/canvas/-/blob/1.x/cli/.env.example)
 to get started.
 
-| CLI argument      | Environment variable               | Description                                                   |
-| ----------------- | ---------------------------------- | ------------------------------------------------------------- |
-| `--site-url`      | `EXPERIENCE_BUILDER_SITE_URL`      | Base URL of your Drupal site.                                 |
-| `--client-id`     | `EXPERIENCE_BUILDER_CLIENT_ID`     | OAuth client ID.                                              |
-| `--client-secret` | `EXPERIENCE_BUILDER_CLIENT_SECRET` | OAuth client secret.                                          |
-| `--dir`           | `EXPERIENCE_BUILDER_COMPONENT_DIR` | Directory where code components are stored in the filesystem. |
-| `--verbose`       | `EXPERIENCE_BUILDER_VERBOSE`       | Verbose CLI output for troubleshooting. Defaults to `false`.  |
-| `--scope`         | `EXPERIENCE_BUILDER_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request.   |
+| CLI argument      | Environment variable   | Description                                                   |
+| ----------------- | ---------------------- | ------------------------------------------------------------- |
+| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site.                                 |
+| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID.                                              |
+| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret.                                          |
+| `--dir`           | `CANVAS_COMPONENT_DIR` | Directory where code components are stored in the filesystem. |
+| `--verbose`       | `CANVAS_VERBOSE`       | Verbose CLI output for troubleshooting. Defaults to `false`.  |
+| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request.   |
 
 **Note:** The `--scope` parameter defaults to
-`"xb:js_component xb:asset_library"`, which are the default scopes provided by
-the Experience Builder OAuth module (`xb_oauth`).
+`"canvas:js_component canvas:asset_library"`, which are the default scopes
+provided by the Drupal Canvas OAuth module (`canvas_oauth`).
 
 ## Commands
 
@@ -56,7 +56,7 @@ Download components to your local filesystem.
 **Usage:**
 
 ```bash
-npx xb download [options]
+npx canvas download [options]
 ```
 
 **Options:**
@@ -73,10 +73,10 @@ available.
 
 ### `scaffold`
 
-Create a new code component scaffold for Experience Builder.
+Create a new code component scaffold for Drupal Canvas.
 
 ```bash
-npx xb scaffold [options]
+npx canvas scaffold [options]
 ```
 
 **Options:**
@@ -93,7 +93,7 @@ Creates a new component directory with example files (`component.yml`,
 Build local components and Tailwind CSS assets.
 
 ```bash
-npx xb build [options]
+npx canvas build [options]
 ```
 
 **Options:**
@@ -114,7 +114,7 @@ be created, which will be used for the generated Tailwind CSS assets.
 Build and upload local components and global CSS assets.
 
 ```bash
-npx xb upload [options]
+npx canvas upload [options]
 ```
 
 **Options:**

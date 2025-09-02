@@ -54,13 +54,13 @@ describe('Prop types editing', () => {
   };
 
   before(() => {
-    cy.drupalXbInstall(['sdc_test_all_props']);
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalCanvasInstall(['sdc_test_all_props']);
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded();
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded();
     cy.get('.primaryPanelContent').findByText('Two Column').click();
     cy.findByLabelText('Column Width').should('exist');
     cy.openLibraryPanel();
@@ -122,9 +122,10 @@ describe('Prop types editing', () => {
     'Single textfields - valid input',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.intercept('PATCH', '**/xb/api/v0/form/component-instance/node/1*').as(
-        'patch',
-      );
+      cy.intercept(
+        'PATCH',
+        '**/canvas/api/v0/form/component-instance/node/1*',
+      ).as('patch');
       Object.entries(textFieldIterations).forEach(([testName, testData]) => {
         cy.log(`Test ${testName}`);
         cy.findByLabelText(testData.labelText).should(
@@ -186,7 +187,7 @@ describe('Prop types editing', () => {
     cy.get('@select').select(0, { force: true });
     cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.findByLabelText('String - Enum').should('have.value', '_none');
@@ -604,7 +605,7 @@ describe('Prop types editing', () => {
     cy.findByLabelText(labelText).should('have.value', valuePre);
     cy.findByLabelText(labelText).clear({ force: true });
     cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
-    cy.loadURLandWaitForXBLoaded({ clearAutoSave: false });
+    cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.waitForElementContentInIframe(
@@ -618,8 +619,8 @@ describe('Prop types editing', () => {
     'HTML block formatting field uses CKEditor with appropriate configuration',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.loadURLandWaitForXBLoaded({ url: 'xb/node/2' });
+      cy.loadURLandWaitForCanvasLoaded();
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
 
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('All props').click();
@@ -668,7 +669,7 @@ describe('Prop types editing', () => {
       // Verify text format configuration
       cy.window().then((win) => {
         const editorConfig =
-          win.drupalSettings?.editor.formats.xb_html_block.editorSettings;
+          win.drupalSettings?.editor.formats.canvas_html_block.editorSettings;
         expect(editorConfig).to.exist;
         expect(editorConfig.toolbar.items).to.include(
           'bold',
@@ -698,7 +699,7 @@ describe('Prop types editing', () => {
   );
 
   it('Select prop with _none', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Heading').click();
     cy.findByLabelText('Style').should('have.value', 'primary');

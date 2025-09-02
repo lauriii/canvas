@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit\Entity\Routing;
+namespace Drupal\Tests\canvas\Unit\Entity\Routing;
 
 use Drupal\Core\Routing\RouteObjectInterface;
-use Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer;
+use Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
-use Drupal\experience_builder\Controller\ExperienceBuilderController;
+use Drupal\canvas\Controller\CanvasController;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Entity\Routing\XbHtmlRouteEnhancer
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer
+ * @group canvas
  */
 final class RouteEnhancerTest extends UnitTestCase {
 
@@ -24,7 +24,7 @@ final class RouteEnhancerTest extends UnitTestCase {
    * @dataProvider data
    */
   public function testEnhance(array $original, array $enhanced): void {
-    $sut = new XbHtmlRouteEnhancer();
+    $sut = new CanvasHtmlRouteEnhancer();
     $route = new Route('/');
     $route->setDefaults($original);
     $defaults = [
@@ -42,19 +42,19 @@ final class RouteEnhancerTest extends UnitTestCase {
 
   public static function data(): array {
     return [
-      'with _experience_builder' => [
+      'with _canvas' => [
         [
-          '_experience_builder' => TRUE,
+          '_canvas' => TRUE,
           'entity_type_id' => 'node',
         ],
         [
-          '_controller' => ExperienceBuilderController::class,
+          '_controller' => CanvasController::class,
           'entity_type_id' => 'node',
           'entity_type' => 'node',
           'entity' => NULL,
         ],
       ],
-      'without _experience_builder' => [
+      'without _canvas' => [
         [
           'entity_type_id' => 'node',
         ],

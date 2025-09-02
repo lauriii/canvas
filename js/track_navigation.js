@@ -1,5 +1,5 @@
 (function () {
-  const STORAGE_KEY = 'XBPreviousURL';
+  const STORAGE_KEY = 'CanvasPreviousURL';
   const currentUrl = window.location.href;
   const inIframe = window.self !== window.top || currentUrl === 'about:srcdoc';
 

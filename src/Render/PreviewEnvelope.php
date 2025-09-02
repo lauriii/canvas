@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Render;
+namespace Drupal\canvas\Render;
 
 use Symfony\Component\HttpFoundation\Response;
 

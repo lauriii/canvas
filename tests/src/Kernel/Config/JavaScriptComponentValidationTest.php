@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore sofie componente extraño
 
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 
 /**
  * Tests validation of JavaScriptComponent entities.
  *
- * @group experience_builder
+ * @group canvas
  * @group JavaScriptComponents
  */
 class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
@@ -24,8 +24,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
-    // XB's dependencies (the subset that is needed for these tests).
+    'canvas',
+    // Canvas's dependencies (the subset that is needed for these tests).
     'file',
     'image',
     'link',
@@ -109,17 +109,17 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     $this->assertSame(
       [
         'config' => [
-          'experience_builder.js_component.other',
+          'canvas.js_component.other',
         ],
       ],
       $this->entity->getDependencies()
     );
     $this->assertSame([
       'config' => [
-        'experience_builder.js_component.other',
+        'canvas.js_component.other',
       ],
       'module' => [
-        'experience_builder',
+        'canvas',
       ],
     ], $this->getAllDependencies($this->entity));
   }
@@ -260,8 +260,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           ],
         ],
       ],
-      // ⚠️ For now, XB does not support `enum` on `type: number` to match core and for better usability.
-      // @see https://www.drupal.org/project/experience_builder/issues/3534758
+      // ⚠️ For now, Canvas does not support `enum` on `type: number` to match core and for better usability.
+      // @see https://www.drupal.org/project/canvas/issues/3534758
       'Number' => [
         'number',
         [3.14, 1.0],
@@ -272,7 +272,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
             'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
           ],
-          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
+          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type canvas.json_schema.prop.number).",
         ],
       ],
       'Invalid number' => [
@@ -286,7 +286,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'The "meta:enum" keys for the "tested_enum_prop" prop enum cannot contain a dot. Offending key: "3.14"',
             'The values for the "tested_enum_prop" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
           ],
-          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type experience_builder.json_schema.prop.number).",
+          'props.tested_enum_prop' => "'enum' is an unknown key because props.tested_enum_prop.type is number (see config schema type canvas.json_schema.prop.number).",
           'props.tested_enum_prop.examples.0' => 'This value should be of the correct primitive type.',
           'props.tested_enum_prop.examples.3' => 'This value should not be null.',
         ],
@@ -310,7 +310,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
     ]);
     $this->assertValidationErrors([
-      'props.some_boolean' => "'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type experience_builder.json_schema.prop.boolean).",
+      'props.some_boolean' => "'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type canvas.json_schema.prop.boolean).",
       'props.some_boolean.examples.1' => 'This value should not be null.',
     ]);
   }
@@ -327,7 +327,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    *           [{"format": "uri"}, "/node/1", "Invalid URL format"]
    *           [{"format": "uri"}, "bunny.jpg", "Invalid URL format"]
    *
-   * @todo Expand this test coverage in https://www.drupal.org/project/experience_builder/issues/3542890 — this shows what is allowed by the two choices offered by the UI.
+   * @todo Expand this test coverage in https://www.drupal.org/project/canvas/issues/3542890 — this shows what is allowed by the two choices offered by the UI.
    */
   public function testStringFormatPropDefinition(array $string_definition, string $example, ?string $validation_error): void {
     $this->entity->set('props', [
@@ -353,7 +353,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     $this->entity->set('props', [
       'some_object' => [
         'type' => 'object',
-        '$ref' => 'json-schema-definitions://experience_builder.module/image',
+        '$ref' => 'json-schema-definitions://canvas.module/image',
         'title' => $this->randomString(),
         'enum' => [NULL],
         'meta:enum' => [NULL => 'Test'],
@@ -473,10 +473,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'dataDependencies' => [],
         ],
         [
-          '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-unknown-prop-type".',
+          '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "canvas:test-unknown-prop-type".',
           'props.mixed_up_prop' => [
-            "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
-            "'meta:enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+            "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
+            "'meta:enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
           ],
           'props.mixed_up_prop.type' => 'The value you selected is not a valid choice.',
         ],
@@ -688,7 +688,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
-              '$ref' => "json-schema-definitions://experience_builder.module/image",
+              '$ref' => "json-schema-definitions://canvas.module/image",
               'examples' => [
                 [
                   'src' => 'https://example.com/image.png',
@@ -723,7 +723,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
-              '$ref' => "json-schema-definitions://experience_builder.module/image",
+              '$ref' => "json-schema-definitions://canvas.module/image",
             ],
           ],
           'slots' => [],
@@ -749,7 +749,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
-              '$ref' => "json-schema-definitions://experience_builder.module/image",
+              '$ref' => "json-schema-definitions://canvas.module/image",
             ],
           ],
           'slots' => [],
@@ -797,7 +797,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ],
         [
           '' => 'Prop "image" is of type "object" without a $ref, which is not supported',
-          'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type experience_builder.json_schema.prop.object).',
+          'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type canvas.json_schema.prop.object).',
           'props.image.examples.0.alt' => "'alt' is not a supported key.",
           'props.image.examples.0.height' => "'height' is not a supported key.",
           'props.image.examples.0.src' => "'src' is not a supported key.",
@@ -812,7 +812,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'image' => [
               'title' => 'Image title',
               'type' => 'object',
-              '$ref' => "json-schema-definitions://experience_builder.module/heading",
+              '$ref' => "json-schema-definitions://canvas.module/heading",
               'examples' => [
                 [
                   'src' => 'https://example.com/image.png',
@@ -855,7 +855,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             'textarea' => [
               'title' => 'Textarea',
               'type' => 'string',
-              '$ref' => "json-schema-definitions://experience_builder.module/textarea",
+              '$ref' => "json-schema-definitions://canvas.module/textarea",
               'examples' => [
                 'Simple',
                 'Example',
@@ -924,7 +924,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     ];
     $this->entity->set('props', $prop_colliding_with_slot);
     $this->assertValidationErrors([
-      '' => 'The component "experience_builder:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
+      '' => 'The component "canvas:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
     ]);
 
     // Verify that if there's a lower-level problem, that both the low-level and
@@ -932,7 +932,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     unset($prop_colliding_with_slot['test-slot']['examples']);
     $this->entity->set('props', $prop_colliding_with_slot);
     $this->assertValidationErrors([
-      '' => 'The component "experience_builder:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
+      '' => 'The component "canvas:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
     ]);
   }
 

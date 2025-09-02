@@ -104,7 +104,7 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
     <Flex
       className={styles.toolbar}
       gap="2"
-      data-testid="xb-editor-frame-controls"
+      data-testid="canvas-editor-frame-controls"
     >
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>

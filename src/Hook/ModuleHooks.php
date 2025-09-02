@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\experience_builder\Form\FormIdPreRender;
+use Drupal\canvas\Form\FormIdPreRender;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotEqualTo;
 use Symfony\Component\Validator\Constraints\Unique;
@@ -34,7 +34,7 @@ class ModuleHooks {
     // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
     // unknown reasons. Do it defensively, to not break when this changes.
     if (!isset($definitions['NotEqualTo'])) {
-      // @see `type: experience_builder.page_region.*`
+      // @see `type: canvas.page_region.*`
       $definitions['NotEqualTo'] = [
         'label' => 'Not equal to',
         'class' => NotEqualTo::class,
@@ -44,7 +44,7 @@ class ModuleHooks {
       ];
     }
     if (!isset($definitions['Unique'])) {
-      // @see `type: experience_builder.folder.*`
+      // @see `type: canvas.folder.*`
       $definitions['Unique'] = [
         'label' => 'Unique',
         'class' => Unique::class,
@@ -60,8 +60,8 @@ class ModuleHooks {
    */
   #[Hook('page_attachments')]
   public function pageAttachments(array &$page): void {
-    // Adds `track_navigation` library to all pages, to allow XB's "Back" link to know which URL to go back to.
-    $page['#attached']['library'][] = 'experience_builder/track_navigation';
+    // Adds `track_navigation` library to all pages, to allow Canvas's "Back" link to know which URL to go back to.
+    $page['#attached']['library'][] = 'canvas/track_navigation';
   }
 
   /**
@@ -69,14 +69,14 @@ class ModuleHooks {
    *
    * For the "page data" tab aka the content entity form.
    *
-   * @see \Drupal\experience_builder\Controller\EntityFormController
+   * @see \Drupal\canvas\Controller\EntityFormController
    */
   #[Hook('form_alter', order: Order::Last)]
   public function formAlter(array &$form, FormStateInterface $form_state, string $form_id): void {
     $route_name = $this->routeMatch->getRouteName();
     $form_object = $form_state->getFormObject();
-    if ($route_name === 'experience_builder.api.form.content_entity' && $form_object instanceof EntityForm) {
-      // Hide submit buttons on the entity form accessed via the XB app.
+    if ($route_name === 'canvas.api.form.content_entity' && $form_object instanceof EntityForm) {
+      // Hide submit buttons on the entity form accessed via the Canvas app.
       $form['actions']['#access'] = \FALSE;
       // Add form ID to elements.
       $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];

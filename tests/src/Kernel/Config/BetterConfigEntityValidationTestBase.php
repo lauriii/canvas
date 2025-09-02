@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
@@ -25,7 +25,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
     // Drupal core's ConfigSchemaChecker performs additional config schema
     // checking beyond just validation: it also checks the completeness.
     // Unfortunately (and understandably), it only runs for *saved* config
-    // entities. For Experience Builder, we want to be maximally confident that
+    // entities. For Drupal Canvas, we want to be maximally confident that
     // its config is fully covered by config schema, so apply it during all
     // validation checks too, even for unsaved config.
     // @see \Drupal\Core\Config\Development\ConfigSchemaChecker::onConfigSave()
@@ -62,7 +62,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
         // For example, schema error for `props.some_boolean.enum` but a
         // validation error for `props.some_boolean` like:
         // @code
-        // 'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type experience_builder.json_schema.prop.boolean).
+        // 'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type canvas.json_schema.prop.boolean).
         // @endcode
         $parts = explode('.', $relative_property_path);
         $popped = array_pop($parts);

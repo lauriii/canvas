@@ -4,7 +4,7 @@ const mockDrupalSettings = {
   path: {
     baseUrl: '/',
   },
-  xb: {},
+  canvas: {},
 };
 
 vi.stubGlobal('URL', {
@@ -18,17 +18,17 @@ vi.mock('@/utils/drupal-globals', () => ({
     url: (path) => `http://mock-drupal-url/${path}`,
   }),
   getDrupalSettings: () => mockDrupalSettings,
-  getXbSettings: () => mockDrupalSettings.xb,
+  getCanvasSettings: () => mockDrupalSettings.canvas,
   getBasePath: () => mockDrupalSettings.path.baseUrl,
-  setXbDrupalSetting: (property, value) => {
-    if (mockDrupalSettings?.xb?.[property]) {
-      mockDrupalSettings.xb[property] = {
-        ...mockDrupalSettings.xb[property],
+  setCanvasDrupalSetting: (property, value) => {
+    if (mockDrupalSettings?.canvas?.[property]) {
+      mockDrupalSettings.canvas[property] = {
+        ...mockDrupalSettings.canvas[property],
         ...value,
       };
     }
   },
-  getXbModuleBaseUrl: () => '/modules/contrib/experience_builder',
+  getCanvasModuleBaseUrl: () => '/modules/contrib/canvas',
 }));
 
 vi.mock('@swc/wasm-web', () => ({

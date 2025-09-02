@@ -9,11 +9,11 @@
   pointer-events: none;
   border: 1px solid #ccc;
 
-  &[data-xb-swap-active="true"] {
+  &[data-canvas-swap-active="true"] {
     opacity: 1;
   }
 
-  &[data-xb-swap-active="false"] {
+  &[data-canvas-swap-active="false"] {
     display: none;
     pointer-events: none !important;
     opacity: 0;

@@ -91,10 +91,10 @@ const mockChanges: Record<string, UnpublishedChange[]> = {
   ],
   assets: [
     {
-      pointer: 'xb_asset_library:1:en',
+      pointer: 'asset_library:1:en',
       label: 'Brand Assets Library',
       updated: Math.floor(Date.now() / 1000) - 24 * 60 * 60, // 1 day ago
-      entity_type: 'xb_asset_library',
+      entity_type: 'asset_library',
       data_hash: 'data-hash-6',
       entity_id: 1,
       langcode: 'en',
@@ -200,7 +200,7 @@ It provides group-level selection functionality and displays all changes of a sp
   argTypes: {
     entityType: {
       control: 'select',
-      options: ['node', 'js_component', 'xb_asset_library', 'page_region'],
+      options: ['node', 'js_component', 'asset_library', 'page_region'],
       description: 'The entity type that determines the group label',
     },
     changes: {
@@ -275,7 +275,7 @@ export const ComponentsGroup: Story = {
 export const AssetsGroup: Story = {
   render: InteractiveChangeGroup,
   args: {
-    entityType: 'xb_asset_library',
+    entityType: 'asset_library',
     changes: mockChanges.assets,
   },
   parameters: {

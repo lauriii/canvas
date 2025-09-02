@@ -26,20 +26,20 @@ const ManageLibrary = () => {
           <Tabs.List justify="start" mx="4" size="1">
             <Tabs.Trigger
               value="components"
-              data-testid="xb-manage-library-components-tab-select"
+              data-testid="canvas-manage-library-components-tab-select"
             >
               Components
             </Tabs.Trigger>
             <Tabs.Trigger
               value="patterns"
-              data-testid="xb-manage-library-patterns-tab-select"
+              data-testid="canvas-manage-library-patterns-tab-select"
             >
               Patterns
             </Tabs.Trigger>
             <PermissionCheck hasPermission="codeComponents">
               <Tabs.Trigger
                 value="code"
-                data-testid="xb-manage-library-code-tab-select"
+                data-testid="canvas-manage-library-code-tab-select"
               >
                 Code
               </Tabs.Trigger>
@@ -49,7 +49,7 @@ const ManageLibrary = () => {
             <Tabs.Content
               value={'components'}
               className={styles.tabContent}
-              data-testid="xb-manage-library-components-tab-content"
+              data-testid="canvas-manage-library-components-tab-content"
             >
               <AddFolderButton type="component" />
               <ComponentList />
@@ -57,7 +57,7 @@ const ManageLibrary = () => {
             <Tabs.Content
               value={'patterns'}
               className={styles.tabContent}
-              data-testid="xb-manage-library-patterns-tab-content"
+              data-testid="canvas-manage-library-patterns-tab-content"
             >
               <AddFolderButton type="pattern" />
               <PatternList />
@@ -66,7 +66,7 @@ const ManageLibrary = () => {
               <Tabs.Content
                 value={'code'}
                 className={styles.tabContent}
-                data-testid="xb-manage-library-code-tab-content"
+                data-testid="canvas-manage-library-code-tab-content"
               >
                 <AddFolderButton type="js_component" />
                 <CodeComponentList />
@@ -112,7 +112,7 @@ const AddFolderButton = ({ type }: { type: FolderType }) => {
             Add new folder
           </Button>
         </Popover.Trigger>
-        <Popover.Content data-testid="xb-manage-library-add-folder-content">
+        <Popover.Content data-testid="canvas-manage-library-add-folder-content">
           <Box py="3" px="2" m="0">
             {isOpen && (
               <Form.Root
@@ -126,7 +126,7 @@ const AddFolderButton = ({ type }: { type: FolderType }) => {
                     </Text>
                   </Form.Label>
                   <TextField.Root
-                    data-testid="xb-manage-library-new-folder-name"
+                    data-testid="canvas-manage-library-new-folder-name"
                     id="folder-name"
                     variant="surface"
                     onChange={(e) => setFolderName(e.target.value)}
@@ -136,7 +136,7 @@ const AddFolderButton = ({ type }: { type: FolderType }) => {
                 </Form.Field>
                 <Form.Submit asChild>
                   <Button
-                    data-testid="xb-manage-library-new-folder-name-submit"
+                    data-testid="canvas-manage-library-new-folder-name-submit"
                     variant="solid"
                     size="1"
                     mt="2"

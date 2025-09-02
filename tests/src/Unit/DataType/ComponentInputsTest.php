@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit\DataType;
+namespace Drupal\Tests\canvas\Unit\DataType;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\TypedData\DataDefinitionInterface;
-use Drupal\experience_builder\ComponentSource\ComponentSourceInterface;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\MissingComponentInputsException;
-use Drupal\experience_builder\Plugin\DataType\ComponentInputs;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Plugin\DataType\ComponentInputs
- * @see \Drupal\Tests\experience_builder\Kernel\DataType\ComponentInputsDependenciesTest
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @see \Drupal\Tests\canvas\Kernel\DataType\ComponentInputsDependenciesTest
+ * @group canvas
  */
 class ComponentInputsTest extends UnitTestCase {
 

@@ -1,5 +1,5 @@
-# Experience Builder
-This document outlines how to contribute to Experience Builder.
+# Drupal Canvas
+This document outlines how to contribute to Drupal Canvas.
 
 ## Local development environment
 There are two supported options for creating a local development environment: DDEV (containers) and native (or "bare metal").
@@ -8,29 +8,29 @@ There are two supported options for creating a local development environment: DD
 - **Native development** involves installing system dependencies directly on your machine (i.e., not inside a container). Its main drawbacks are lack of isolation and the amount of manual configuration required to set it up. It's main benefit may be the number of core contributors that already work this way. There's no reason to switch away from this approach if you prefer it.
 
 ### DDEV
-DDEV setup is fully automated through our custom add-on: https://github.com/TravisCarden/ddev-drupal-xb-dev. Follow the instructions there to get started.
+DDEV setup is fully automated through our custom add-on: https://github.com/TravisCarden/ddev-drupal-canvas-dev. Follow the instructions there to get started.
 
 ### Native development
 
 #### Prerequisites
-- Enable the Experience Builder module
+- Enable the Drupal Canvas module
 
 #### Build steps
-1. `npm install` from /modules/experience_builder/ui
+1. `npm install` from /modules/canvas/ui
 2. `npm run build`
 
 ##### Development mode
-1. `npm install` from /modules/experience_builder/ui
+1. `npm install` from /modules/canvas/ui
 2. Next, you'll start a development server that runs at `http://localhost:5173` (ensure port is available)
     - To use a different URL (e.g., for DDEV containers), set `VITE_SERVER_ORIGIN` in `.env`
-      - Note: this is already handled if you use the XB DDEV add-on ([`TravisCarden/ddev-drupal-xb-dev`](https://github.com/TravisCarden/ddev-drupal-xb-dev))
+      - Note: this is already handled if you use the Canvas DDEV add-on ([`TravisCarden/ddev-drupal-canvas-dev`](https://github.com/TravisCarden/ddev-drupal-canvas-dev))
     - By default, the Vite dev server will allow cross-origin requests. To restrict cross-origin requests, set `VITE_SERVER_CORS_ALLOW_ORIGIN` in `.env`.
       - You may want to do this if you're developing in an environment where your Vite dev server is accessible on a public network, e.g. GitHub Codespaces.
       - See the [Vite docs](https://vite.dev/config/server-options#cors) for more information.
 3. `npm run drupaldev`
-4. Enable the Experience Builder Vite Integration module (`xb_vite`)
+4. Enable the Drupal Canvas Vite Integration module (`canvas_vite`)
 5. Clear cache (`drush cr` or `/admin/config/development/performance`)
-6. Navigate to `/xb` to view app
+6. Navigate to `/canvas` to view app
 
 #### Running Unit/Component Tests
 - `npm run cy:component`
@@ -53,7 +53,7 @@ You can add the `cy.debugPause()` command anywhere else you want to pause the te
 Our testing strategy leverages [Cypress.io](https://www.cypress.io) for both end-to-end (e2e) and component testing, integrated with [Testing Library](https://testing-library.com/) to ensure robust and maintainable tests.
 
 ### Principles
-1. We are not testing Drupal core functionality outside the Experience Builder — any global setup tasks should be in a base install profile where possible
+1. We are not testing Drupal core functionality outside the Drupal Canvas — any global setup tasks should be in a base install profile where possible
 2. All specs are isolated and start from a fresh database and filesystem import created (e.g. no dependencies between tests)
 3. Every spec file is responsible for setting up the test environment for that set of scenarios (e.g. package imports, enabling contrib modules outside the basic install)
 
@@ -81,7 +81,7 @@ We will periodically evaluate using Cypress for our **unit tests** and compare i
 
 ## Styling
 
-Experience Builder uses the [Radix Themes component library](https://www.radix-ui.com/themes/docs/overview/getting-started). Custom styling is done using [CSS modules](https://github.com/css-modules/css-modules) and relying on design tokens provided by Radix Themes as much as possible. Custom components should leverage [Radix primitives](https://www.radix-ui.com/primitives/docs/overview/introduction) as appropriate.
+Drupal Canvas uses the [Radix Themes component library](https://www.radix-ui.com/themes/docs/overview/getting-started). Custom styling is done using [CSS modules](https://github.com/css-modules/css-modules) and relying on design tokens provided by Radix Themes as much as possible. Custom components should leverage [Radix primitives](https://www.radix-ui.com/primitives/docs/overview/introduction) as appropriate.
 
 
 ### Design Tokens
@@ -89,7 +89,7 @@ Experience Builder uses the [Radix Themes component library](https://www.radix-u
 Design tokens are defined in the `ui/src/styles/tokens` directory. File naming conventions follow the [Radix Themes token naming conventions](https://www.radix-ui.com/themes/docs/theme/overview#tokens) ([source code](https://github.com/radix-ui/themes/tree/main/packages/radix-ui-themes/src/styles/tokens)).
 
 * Customizing design tokens provided by Radix Themes should be done by redefining CSS variables under the `.radix-themes` class.
-* New design tokens are added under the `.xb-app` class.
+* New design tokens are added under the `.canvas-app` class.
 
 ### Styling Code Setup
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestBase {
@@ -13,7 +13,7 @@ class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestB
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
   ];
 
   /**

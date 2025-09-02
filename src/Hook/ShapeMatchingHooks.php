@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,29 +11,29 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\editor\EditorInterface;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\FloatItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\LinkItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextLongItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\TextWithSummaryItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UriItemOverride;
-use Drupal\experience_builder\Plugin\Field\FieldTypeOverride\UuidItemOverride;
-use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropShape\CandidateStorablePropShape;
-use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\FileItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\FloatItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\LinkItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ListIntegerItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\StringItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\StringLongItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\TextItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\TextLongItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\TextWithSummaryItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\UriItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\UuidItemOverride;
+use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropShape\CandidateStorablePropShape;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\filter\FilterFormatInterface;
 use Drupal\media\Entity\MediaType;
 use Drupal\media\MediaTypeInterface;
@@ -46,16 +46,16 @@ use Symfony\Component\Validator\Constraints\Ip;
  * @file
  * Hook implementations that make shape matching work.
  *
- * @see https://www.drupal.org/project/issues/experience_builder?component=Shape+matching
+ * @see https://www.drupal.org/project/issues/canvas?component=Shape+matching
  * @see docs/shape-matching-into-field-types.md, section 3.1.2.a
  */
 class ShapeMatchingHooks {
 
   const SCHEMA_TO_MEDIA_SOURCE = [
     // @see \Drupal\media\Plugin\media\Source\Image
-    'json-schema-definitions://experience_builder.module/image' => Image::class,
+    'json-schema-definitions://canvas.module/image' => Image::class,
     // @see \Drupal\media\Plugin\media\Source\VideoFile
-    'json-schema-definitions://experience_builder.module/video' => VideoFile::class,
+    'json-schema-definitions://canvas.module/video' => VideoFile::class,
   ];
 
   /**
@@ -67,8 +67,8 @@ class ShapeMatchingHooks {
     // \Drupal\Core\Validation\ConstraintManager::registerDefinitions() for
     // unknown reasons. Do it defensively, to not break when this changes.
     if (!isset($definitions['Hostname'])) {
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Hostname
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::IdnHostname
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::Hostname
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::IdnHostname
       $definitions['Hostname'] = [
         'label' => 'Hostname',
         'class' => Hostname::class,
@@ -78,8 +78,8 @@ class ShapeMatchingHooks {
       ];
     }
     if (!isset($definitions['Ip'])) {
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv4
-      // @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv6
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv4
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::Ipv6
       $definitions['Ip'] = [
         'label' => 'IP address',
         'class' => Ip::class,
@@ -127,10 +127,10 @@ class ShapeMatchingHooks {
     // The File entity type's `filename` and `filemime` base fields use the
     // `string` field type but are NOT prose (which is the default semantic for
     // that field type).
-    // @see \Drupal\experience_builder\Plugin\Field\FieldType\StringItemOverride
+    // @see \Drupal\canvas\Plugin\Field\FieldType\StringItemOverride
     if ($entity_type->id() === 'file') {
       // Override the default string semantics of the "string" field type.
-      // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\StringItemOverride::propertyDefinitions()
+      // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\StringItemOverride::propertyDefinitions()
       $fields['filename']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
       $fields['filemime']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
       $fields['uri']->setRequired(\TRUE);
@@ -143,22 +143,22 @@ class ShapeMatchingHooks {
   /**
    * Implements hook_filter_format_access().
    *
-   * Prevents any operations on Experience Builder's text formats.
+   * Prevents any operations on Drupal Canvas's text formats.
    */
   #[Hook('filter_format_access')]
   public function filterFormatAccess(FilterFormatInterface $format, string $operation, AccountInterface $account): AccessResult {
     $protected_formats = [
-      'xb_html_inline',
-      'xb_html_block',
+      'canvas_html_inline',
+      'canvas_html_block',
     ];
     if (in_array($format->id(), $protected_formats, TRUE)) {
       return match($operation) {
         // It is guaranteed that these text formats/editors are available only
-        // for XB's component instance form.
+        // for Canvas's component instance form.
         // @see \Drupal\filter\Element\TextFormat::processFormats()
-        // @see \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::processTextFormat()
+        // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::processTextFormat()
         'use' => AccessResult::allowed()->addCacheableDependency($format),
-        default => AccessResult::forbidden('Experience Builder text formats cannot be modified.')
+        default => AccessResult::forbidden('Drupal Canvas text formats cannot be modified.')
           ->addCacheableDependency($format)
       };
     }
@@ -170,16 +170,16 @@ class ShapeMatchingHooks {
   /**
    * Implements hook_editor_access().
    *
-   * Prevents any operations on Experience Builder's editors.
+   * Prevents any operations on Drupal Canvas's editors.
    */
   #[Hook('editor_access')]
   public function editorAccess(EditorInterface $editor, string $operation, AccountInterface $account): AccessResult {
     $protected_editors = [
-      'xb_html_inline',
-      'xb_html_block',
+      'canvas_html_inline',
+      'canvas_html_block',
     ];
     if (in_array($editor->id(), $protected_editors, TRUE)) {
-      return AccessResult::forbidden('Experience Builder editors cannot be modified.')
+      return AccessResult::forbidden('Drupal Canvas editors cannot be modified.')
         ->addCacheableDependency($editor);
     }
 
@@ -190,15 +190,15 @@ class ShapeMatchingHooks {
   /**
    * Implements hook_entity_operation_alter().
    *
-   * Removes all operations for Experience Builder's text formats and editors from list builders.
+   * Removes all operations for Drupal Canvas's text formats and editors from list builders.
    */
   #[Hook('entity_operation_alter')]
   public function entityOperationAlter(array &$operations, EntityInterface $entity): void {
     // Handle FilterFormat entities.
     if ($entity instanceof FilterFormatInterface) {
       $protected_formats = [
-        'xb_html_inline',
-        'xb_html_block',
+        'canvas_html_inline',
+        'canvas_html_block',
       ];
 
       if (in_array($entity->id(), $protected_formats, TRUE)) {
@@ -210,8 +210,8 @@ class ShapeMatchingHooks {
     // Handle Editor entities.
     if ($entity instanceof EditorInterface) {
       $protected_editors = [
-        'xb_html_inline',
-        'xb_html_block',
+        'canvas_html_inline',
+        'canvas_html_block',
       ];
 
       if (in_array($entity->id(), $protected_editors, TRUE)) {
@@ -228,27 +228,27 @@ class ShapeMatchingHooks {
    *
    * Overrides the default: the "image" field type + widget. Note that this used
    * to run only for sites that install the Media Library module, but to achieve
-   * the intended authoring experience, XB depends on the Media Library module
+   * the intended authoring experience, Canvas depends on the Media Library module
    * since https://www.drupal.org/i/3474226.
    *
-   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
    * @todo Move to Media Library module, eventually.
    */
   #[Hook('storage_prop_shape_alter', module: 'media_library')]
   public function mediaLibraryStoragePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
     $media_type_ids = NULL;
 
-    // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+    // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
     if ($storable_prop_shape->shape->schema['type'] === 'string' &&
       (
         isset($storable_prop_shape->shape->schema['$ref']) &&
-        $storable_prop_shape->shape->schema['$ref'] === 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'
+        $storable_prop_shape->shape->schema['$ref'] === 'json-schema-definitions://canvas.module/stream-wrapper-image-uri'
       )
       || (
         isset($storable_prop_shape->shape->schema['contentMediaType'])
         && $storable_prop_shape->shape->schema['contentMediaType'] === 'image/*'
-        // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
-        // @todo Update in https://www.drupal.org/project/experience_builder/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
+        // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
+        // @todo Update in https://www.drupal.org/project/canvas/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
         && ($storable_prop_shape->shape->schema['pattern'] ?? '') === '^(?!https?://)[\w\-]+://'
       )
     ) {
@@ -301,7 +301,7 @@ class ShapeMatchingHooks {
    *
    * (On behalf of the Date Range module.)
    *
-   * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
    * @see \Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem
    */
   #[Hook('storage_prop_shape_alter', module: 'datetime_range')]
@@ -315,7 +315,7 @@ class ShapeMatchingHooks {
         'to' => new FieldTypePropExpression('daterange', 'value'),
       ]);
       $storable_prop_shape->fieldStorageSettings = ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATE];
-      // @todo Make this actually work in component instance forms in https://www.drupal.org/project/experience_builder/issues/3523379
+      // @todo Make this actually work in component instance forms in https://www.drupal.org/project/canvas/issues/3523379
       $storable_prop_shape->fieldWidget = 'daterange_default';
     }
   }
@@ -348,7 +348,7 @@ class ShapeMatchingHooks {
    * @param array $media_type_ids
    * @param string $media_source_class
    *
-   * @return array|\Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression[]
+   * @return array|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression[]
    */
   protected function getFieldTypeProps(array $media_types, array $media_type_ids, string $media_source_class): array {
     $source_field_names = array_map(
@@ -361,8 +361,8 @@ class ShapeMatchingHooks {
       Image::class => [
         'src' => new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression('entity_reference', 'entity'),
-          // TRICKY: Additional computed property on image fields added by Experience Builder.
-          // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\ImageItemOverride
+          // TRICKY: Additional computed property on image fields added by Drupal Canvas.
+          // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
           new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'src_with_alternate_widths'),
         ),
         'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'alt')),

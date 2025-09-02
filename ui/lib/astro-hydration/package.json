@@ -1,7 +1,8 @@
 {
-  "name": "@drupal/experience_builder-astro-hydration",
+  "name": "@drupal-canvas/astro-hydration",
   "type": "module",
   "version": "0.0.0",
+  "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "astro build && node extract-hydration-script.js"
   },

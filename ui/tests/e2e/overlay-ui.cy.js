@@ -1,10 +1,10 @@
-describe('Experience Builder overlay UI interactions', () => {
+describe('Drupal Canvas overlay UI interactions', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -15,8 +15,8 @@ describe('Experience Builder overlay UI interactions', () => {
     'Component and slot label behavior should work correctly',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.get('.xb--viewport-overlay').as('desktopPreviewOverlay');
+      cy.loadURLandWaitForCanvasLoaded();
+      cy.get('.canvas--viewport-overlay').as('desktopPreviewOverlay');
 
       cy.clickComponentInLayersView('Two Column');
 
@@ -27,7 +27,7 @@ describe('Experience Builder overlay UI interactions', () => {
       cy.get('@desktopPreviewOverlay').within(() => {
         // For perf. reasons we only ever render one name tag at a time - because the name tag relies on checking
         // lots of global state e.g. hoveredComponent or isDragging - having a lot of rendered but invisible nameTags is bad.
-        cy.findAllByTestId('xb-name-tag').should('have.length', 1);
+        cy.findAllByTestId('canvas-name-tag').should('have.length', 1);
         cy.findByText('Two Column').should('be.visible');
       });
 
@@ -35,7 +35,7 @@ describe('Experience Builder overlay UI interactions', () => {
 
       cy.log('After selecting a "child" component it should show its label.');
       cy.get('@desktopPreviewOverlay').within(() => {
-        cy.findAllByTestId('xb-name-tag').should('have.length', 1);
+        cy.findAllByTestId('canvas-name-tag').should('have.length', 1);
         cy.findByText('Hero').should('be.visible');
       });
 
@@ -46,8 +46,11 @@ describe('Experience Builder overlay UI interactions', () => {
         cy.findAllByLabelText('Test SDC Image')
           .eq(1)
           .realHover({ scrollBehavior: 'center' });
-        cy.findAllByTestId('xb-name-tag').should('have.length', 1);
-        cy.findAllByTestId('xb-name-tag').should('have.text', 'Test SDC Image');
+        cy.findAllByTestId('canvas-name-tag').should('have.length', 1);
+        cy.findAllByTestId('canvas-name-tag').should(
+          'have.text',
+          'Test SDC Image',
+        );
       });
     },
   );

@@ -17,7 +17,7 @@ const DrupalTextArea = ({
   wrapperAttributes?: Attributes;
 }) => {
   const defaultFormatName =
-    (attributes?.['data-xb-text-format'] as string) || '';
+    (attributes?.['data-canvas-text-format'] as string) || '';
   const [format, setFormat] = useState<FormatType>(
     (defaultFormatName &&
       drupalSettings?.editor?.formats?.[defaultFormatName]) || {
@@ -27,13 +27,13 @@ const DrupalTextArea = ({
 
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const availableFormats =
-    (attributes?.['data-xb-available-formats'] &&
-      JSON.parse(attributes['data-xb-available-formats'] as string)) ||
+    (attributes?.['data-canvas-available-formats'] &&
+      JSON.parse(attributes['data-canvas-available-formats'] as string)) ||
     null;
 
   const selectAttributes =
-    (attributes?.['data-xb-format-select-attributes'] &&
-      JSON.parse(`${attributes['data-xb-format-select-attributes']}`)) ||
+    (attributes?.['data-canvas-format-select-attributes'] &&
+      JSON.parse(`${attributes['data-canvas-format-select-attributes']}`)) ||
     {};
 
   return (

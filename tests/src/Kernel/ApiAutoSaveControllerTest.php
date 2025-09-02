@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
@@ -13,28 +13,28 @@ use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Controller\ApiAutoSaveController;
-use Drupal\experience_builder\Controller\ErrorCodesEnum;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\ContentTemplate;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Entity\PageRegion;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Controller\ErrorCodesEnum;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\image\ImageStyleInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\experience_builder\TestSite\XBTestSetup;
-use Drupal\Tests\experience_builder\Traits\AutoSaveManagerTestTrait;
-use Drupal\Tests\experience_builder\Traits\AutoSaveRequestTestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\OpenApiSpecTrait;
-use Drupal\Tests\experience_builder\Traits\XBFieldTrait;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
+use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
@@ -43,8 +43,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Controller\ApiAutoSaveController
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Controller\ApiAutoSaveController
+ * @group canvas
  * @group #slow
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
@@ -56,7 +56,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   use OpenApiSpecTrait;
   use BlockCreationTrait;
   use RequestTrait;
-  use XBFieldTrait;
+  use CanvasFieldTrait;
   use VfsPublicStreamUrlTrait;
 
   /**
@@ -67,7 +67,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     'path_alias',
     'path',
     'test_user_config',
-    'xb_force_publish_error',
+    'canvas_force_publish_error',
   ];
 
   /**
@@ -77,7 +77,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     parent::setUp();
     $this->installConfig('system');
     $this->installEntitySchema('path_alias');
-    (new XBTestSetup())->setup();
+    (new CanvasTestSetup())->setup();
   }
 
   public function testApiAutoSaveControllerGet(): void {
@@ -95,7 +95,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert($anonAccountContent instanceof NodeInterface);
     // Trigger a new hash.
     $anonAccountContent->setRevisionUserId(2);
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($anonAccountContent);
 
@@ -183,7 +183,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($library);
 
     $staged_set_homepage = StagedConfigUpdate::create([
-      'id' => 'xb_set_homepage',
+      'id' => 'canvas_set_homepage',
       'label' => 'Update the front page',
       'target' => 'system.site',
       'actions' => [
@@ -195,7 +195,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $staged_set_homepage->save();
 
-    $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
+    $request = Request::create(Url::fromRoute('canvas.api.auto-save.get')->toString());
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -206,13 +206,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $content = \json_decode($response->getContent() ?: '{}', TRUE);
     $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
     self::assertEquals([
+      'asset_library:global',
       'js_component:test_code',
       'node:1:en',
       'node:2:en',
       $anonContentIdentifier,
       'page_region:stark.highlighted',
-      'staged_config_update:xb_set_homepage',
-      'xb_asset_library:global',
+      'staged_config_update:canvas_set_homepage',
     ], \array_keys($content));
     // We don't assert the exact value of these because of clock-drift during
     // the test, asserting their presence is enough.
@@ -221,15 +221,15 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert(\is_array($content['page_region:stark.highlighted']));
     \assert(\is_array($content[$anonContentIdentifier]));
     \assert(\is_array($content['js_component:test_code']));
-    \assert(\is_array($content['staged_config_update:xb_set_homepage']));
-    \assert(\is_array($content['xb_asset_library:global']));
+    \assert(\is_array($content['staged_config_update:canvas_set_homepage']));
+    \assert(\is_array($content['asset_library:global']));
     self::assertArrayHasKey('updated', $content['node:1:en']);
     self::assertArrayHasKey('updated', $content['node:2:en']);
     self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
     self::assertArrayHasKey('updated', $content['page_region:stark.highlighted']);
     self::assertArrayHasKey('updated', $content['js_component:test_code']);
-    self::assertArrayHasKey('updated', $content['staged_config_update:xb_set_homepage']);
-    self::assertArrayHasKey('updated', $content['xb_asset_library:global']);
+    self::assertArrayHasKey('updated', $content['staged_config_update:canvas_set_homepage']);
+    self::assertArrayHasKey('updated', $content['asset_library:global']);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiAutoSaveController::AVATAR_IMAGE_STYLE);
     self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
     // Smoke test this is of the expected format.
@@ -267,7 +267,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // This should not leak the anonymous user implementation details -
       // AutoSaveTempSTore uses a random hash that is stored in the session as
       // the owner ID for anonymous users.
-      // @see \Drupal\experience_builder\AutoSave\AutoSaveTempStoreFactory::get
+      // @see \Drupal\canvas\AutoSave\AutoSaveTempStoreFactory::get
       'owner' => [
         'id' => 0,
         'name' => $anonAccount->getDisplayName(),
@@ -311,7 +311,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $staged_set_homepage->label(),
-    ], \array_diff_key($content['staged_config_update:xb_set_homepage'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content['staged_config_update:canvas_set_homepage'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $library->getEntityTypeId(),
@@ -323,7 +323,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $library->label(),
-    ], \array_diff_key($content['xb_asset_library:global'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content['asset_library:global'], \array_flip(['updated', 'data_hash'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
@@ -340,7 +340,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert($article instanceof NodeInterface);
     // Trigger a new hash.
     $article->setRevisionUserId(2);
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($article);
 
@@ -348,7 +348,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     \assert($page instanceof Page);
     // Trigger a new hash.
     $page->set('title', 'New title');
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($page);
 
@@ -413,7 +413,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($region);
 
     $staged_set_homepage = StagedConfigUpdate::create([
-      'id' => 'xb_set_homepage',
+      'id' => 'canvas_set_homepage',
       'label' => 'Update the front page',
       'target' => 'system.site',
       'actions' => [
@@ -429,13 +429,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     assert($user instanceof AccountInterface);
     $this->setCurrentUser($user);
 
-    $request = Request::create(Url::fromRoute('experience_builder.api.auto-save.get')->toString());
+    $request = Request::create(Url::fromRoute('canvas.api.auto-save.get')->toString());
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
-      'config:experience_builder.js_component.test_code',
-      'config:experience_builder.page_region.stark.highlighted',
+      'config:canvas.js_component.test_code',
+      'config:canvas.page_region.stark.highlighted',
       'config:system.site',
       'user:0',
       'config:user.settings',
@@ -450,10 +450,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // We can view code components, contents and staged config updates
     // but not the page region entity.
     self::assertEquals([
+      'canvas_page:2:en',
       'js_component:test_code',
       $anonContentIdentifier,
-      'staged_config_update:xb_set_homepage',
-      'xb_page:2:en',
+      'staged_config_update:canvas_set_homepage',
     ], \array_keys($content));
   }
 
@@ -471,13 +471,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   public function testPost(bool $authorized, bool $withGlobal, ?string $expected_403_message): void {
     $this->setUpImages();
     $this->assertSiteHomepage('/user/login');
-    $this->container->get(ModuleInstallerInterface::class)->install(['xb_test_validation']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_validation']);
     $entity_type_manager = $this->container->get('entity_type.manager');
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
     $permissions = [
       PageRegion::ADMIN_PERMISSION,
@@ -499,13 +499,13 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertNoAutoSaveData();
 
     $template_tree = [
-      // A static marker so we can easily tell if we're rendering with XB.
+      // A static marker so we can easily tell if we're rendering with Canvas.
       [
         'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
-        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
         'component_version' => '95f4f1d5ee47663b',
         'inputs' => [
-          'heading' => 'XB is large and in charge!',
+          'heading' => 'Canvas is large and in charge!',
         ],
       ],
       // The node body, which needs to be using a dynamic prop source
@@ -513,7 +513,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // source.
       [
         'uuid' => '6cf8297a-fc60-4019-be81-c336fd828c39',
-        'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
         'component_version' => '95f4f1d5ee47663b',
         'inputs' => [
           'heading' => [
@@ -606,7 +606,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($page);
 
     $staged_set_homepage = StagedConfigUpdate::create([
-      'id' => 'xb_set_homepage',
+      'id' => 'canvas_set_homepage',
       'label' => 'Update the front page',
       'target' => 'system.site',
       'actions' => [
@@ -646,7 +646,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     unset($validClientJson['autoSaves']);
     $validClientJson += $this->getClientAutoSaves([$node1]);
     // Auto-save node 1.
-    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
+    $response = $this->request(Request::create(Url::fromRoute('canvas.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node1->id(),
     ])->toString(), method: 'POST', server: [
@@ -655,11 +655,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Auto-save node 2 with only the heading and an invalid prop.
-    $node2->set('field_xb_demo', [
+    $node2->set('field_canvas_demo', [
       [
         'uuid' => self::TEST_HEADING_UUID,
-        'component_id' => 'sdc.xb_test_sdc.heading',
-        'component_version' => '9616e3c4ab9b4fce',
+        'component_id' => 'sdc.canvas_test_sdc.heading',
+        'component_version' => '8dd7b865998f53b0',
         'inputs' => [
           'style' => 'flared',
           'element' => 'h3',
@@ -668,8 +668,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
       [
         'uuid' => 'af42c3b3-6d62-4ea8-ad07-670c7b9ccf75',
-        'component_id' => 'sdc.xb_test_sdc.heading',
-        'component_version' => '9616e3c4ab9b4fce',
+        'component_id' => 'sdc.canvas_test_sdc.heading',
+        'component_version' => '8dd7b865998f53b0',
         'inputs' => [
           // Missing input for required `element` prop.
           'text' => 'Crumbling castle',
@@ -709,12 +709,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
     catch (CacheableAccessDeniedHttpException $exception) {
       // Get access denied as expected. The label is the new one that we set.
-      $this->assertSame("Unable to update entities: 'New name', 'Update the front page', 'New label'.", $exception->getMessage());
+      $this->assertSame("Unable to update entities: 'New label', 'New name', 'Update the front page'.", $exception->getMessage());
       $this->assertSame([
-        'config:experience_builder.js_component.test-component',
+        'config:canvas.asset_library.global',
         AutoSaveManager::CACHE_TAG,
+        'config:canvas.js_component.test-component',
         'config:system.site',
-        'config:experience_builder.xb_asset_library.global',
       ], $exception->getCacheTags());
       $this->assertSame(['user.permissions'], $exception->getCacheContexts());
     }
@@ -750,7 +750,20 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $json = json_decode($response->getContent() ?: '', TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     $errors[] = [
-      'detail' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "experience_builder:test-component".',
+      'detail' => 'This value should not be null.',
+      'source' => [
+        'pointer' => 'css.original',
+      ],
+      'meta' => [
+        'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
+        'entity_id' => $library->id(),
+        // The label should not be updated if model validation failed.
+        'label' => $library->label(),
+        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($library),
+      ],
+    ];
+    $errors[] = [
+      'detail' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "canvas:test-component".',
       'source' => [
         'pointer' => '',
       ],
@@ -763,7 +776,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
-      'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type experience_builder.json_schema.prop.*).",
+      'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
       'source' => [
         'pointer' => 'props.mixed_up_prop',
       ],
@@ -790,7 +803,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ];
     // Before publishing empty string properties are unset to enforce the
     // 'required' validation.
-    // @see \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList::unsetEmptyProps()
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::unsetEmptyProps()
     $errors[] = [
       'detail' => 'The property text is required.',
       'source' => [
@@ -830,19 +843,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
       ],
     ];
-    $errors[] = [
-      'detail' => 'This value should not be null.',
-      'source' => [
-        'pointer' => 'css.original',
-      ],
-      'meta' => [
-        'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
-        'entity_id' => $library->id(),
-        // The label should not be updated if model validation failed.
-        'label' => $library->label(),
-        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($library),
-      ],
-    ];
 
     self::assertEquals($errors, $json['errors']);
     // Ensure none of the entities are updated if one is invalid.
@@ -863,7 +863,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // Note: no additional error appears for the invalid auto-saved layout for
       // the PageTemplate, because missing regions are automatically added from
       // the active/stored PageTemplate.
-      // @see \Drupal\experience_builder\Entity\PageRegion::forAutoSaveData()
+      // @see \Drupal\canvas\Entity\PageRegion::forAutoSaveData()
       $page_region = PageRegion::load('stark.header');
       self::assertInstanceOf(PageRegion::class, $page_region);
       self::assertSame([], $page_region->getComponentTree()->getValue());
@@ -877,7 +877,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     unset($validClientJson['layout'][0]['components'][1]);
     unset($validClientJson['autoSaves']);
     $validClientJson += $this->getClientAutoSaves([$node2]);
-    $response = $this->request(Request::create(Url::fromRoute('experience_builder.api.layout.post', [
+    $response = $this->request(Request::create(Url::fromRoute('canvas.api.layout.post', [
       'entity_type' => 'node',
       'entity' => $node2->id(),
     ])->toString(), method: 'POST', server: [
@@ -969,7 +969,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSiteHomepage('/user/login');
 
     // Try publishing something with a field change that we don't have access to.
-    $this->container->get('module_installer')->install(['xb_test_field_access']);
+    $this->container->get('module_installer')->install(['canvas_test_field_access']);
     try {
       $this->makePublishAllRequest();
       $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
@@ -978,7 +978,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // Access denied as expected, the title listed must be the new one.
       $this->assertSame('Unable to update field title for entity "The updated title.".', $exception->getMessage());
     }
-    $this->container->get('module_installer')->uninstall(['xb_test_field_access']);
+    $this->container->get('module_installer')->uninstall(['canvas_test_field_access']);
 
     self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
     $response = $this->makePublishAllRequest();
@@ -991,7 +991,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertNodeValues(
       $node2,
       [
-        'sdc.xb_test_sdc.heading',
+        'sdc.canvas_test_sdc.heading',
         'block.system_branding_block',
       ],
       \array_intersect_key($this->getValidConvertedInputs(), \array_flip([self::TEST_HEADING_UUID, self::TEST_BLOCK])),
@@ -1042,14 +1042,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Now save both nodes with the same titles and expect to fail. To avoid
     // affecting other tests the validator will only be applied to if the title
     // contains the string 'unique!'.
-    // @see \Drupal\xb_test_validation\Plugin\Validation\Constraint\UniqueTitleConstraintValidator
+    // @see \Drupal\canvas_test_validation\Plugin\Validation\Constraint\UniqueTitleConstraintValidator
     $node1_auto_save_key = 'node:' . $node1->id() . ':en';
     $node1->set('title', 'I am not unique!');
     $autoSave->saveEntity($node1);
     $node2_auto_save_key = 'node:' . $node2->id() . ':en';
     $node2->set('title', 'I am not unique!');
     // Remove the invalid prop set above.
-    $node2->set('field_xb_demo', []);
+    $node2->set('field_canvas_demo', []);
     $autoSave->saveEntity($node2);
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $response = $this->makePublishAllRequest([
@@ -1120,7 +1120,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $node->save();
 
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     // Update something so the auto-save entry generates a different hash.
     $node->setTitle('Updated Title');
@@ -1132,7 +1132,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($global);
 
     // Verify auto-save data exists.
-    // Set up a user that can access the XB UI, and has 'view label' access to
+    // Set up a user that can access the Canvas UI, and has 'view label' access to
     // both entities.
     $this->setUpCurrentUser(permissions: [
       Page::EDIT_PERMISSION,
@@ -1145,7 +1145,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $account = $this->createUser([]);
     \assert($account instanceof AccountInterface);
     $this->setCurrentUser($account);
-    $url = Url::fromRoute('experience_builder.api.auto-save.delete', [
+    $url = Url::fromRoute('canvas.api.auto-save.delete', [
       'entity_type' => 'node',
       'entity' => $node->id(),
     ]);
@@ -1209,7 +1209,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       json_decode((string) $response->getContent(), TRUE)
     );
 
-    $asset_library_url = Url::fromRoute('experience_builder.api.auto-save.delete', [
+    $asset_library_url = Url::fromRoute('canvas.api.auto-save.delete', [
       'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
       'entity' => $global->id(),
     ]);
@@ -1243,10 +1243,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    * Tests enforcement of global asset library publishing with code components.
    *
    * @covers ::validateExpectedAutoSaves
-   * @testWith [true, ["js_component:test-enforce-component", "xb_asset_library:global"], 200, "Successfully published 2 items."]
+   * @testWith [true, ["js_component:test-enforce-component", "asset_library:global"], 200, "Successfully published 2 items."]
    *           [true, ["js_component:test-enforce-component"], 424]
    *           [false, ["js_component:test-enforce-component"], 200, "Successfully published 1 item."]
-   * @todo Adjust this in https://www.drupal.org/project/experience_builder/issues/3535038
+   * @todo Adjust this in https://www.drupal.org/project/canvas/issues/3535038
    */
   public function testEnforceGlobalAssetPublish(bool $global_asset_library_auto_save_exists, array $auto_save_keys_to_publish, int $expected_status_code, ?string $expected_message = NULL): void {
     $this->setUpCurrentUser(permissions: [
@@ -1257,7 +1257,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       AutoSaveManager::PUBLISH_PERMISSION,
     ]);
 
-    /** @var \Drupal\experience_builder\AutoSave\AutoSaveManager $autoSave */
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);
 
     $code_component = JavaScriptComponent::create([

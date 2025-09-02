@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Storage;
+namespace Drupal\canvas\Storage;
 
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
  * Handles loading a component tree from entities.
@@ -22,36 +22,36 @@ final class ComponentTreeLoader {
   /**
    * Loads a component tree from an entity.
    *
-   * @param \Drupal\experience_builder\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity that stores the component tree. If it does not specifically
    *   implement ComponentTreeEntityInterface, then it is expected to be a
    *   fieldable entity with at least one field that stores a component tree.
    *
-   * @return \Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
    */
   public function load(ComponentTreeEntityInterface|FieldableEntityInterface $entity): ComponentTreeItemList {
     if ($entity instanceof ComponentTreeEntityInterface) {
       return $entity->getComponentTree();
     }
-    $field_name = $this->getXbFieldName($entity);
+    $field_name = $this->getCanvasFieldName($entity);
     $item = $entity->get($field_name);
     assert($item instanceof ComponentTreeItemList);
     return $item;
   }
 
   /**
-   * Gets the XB field name from the entity.
+   * Gets the Canvas field name from the entity.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity.
    *
    * @return string
-   *   The XB field name, or throws an exception
+   *   The Canvas field name, or throws an exception
    *   if not found or not supported entity type/bundle.
    *
    * @throws \LogicException
    */
-  public function getXbFieldName(FieldableEntityInterface $entity): string {
+  public function getCanvasFieldName(FieldableEntityInterface $entity): string {
     $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
 
     foreach ($map[$entity->getEntityTypeId()] ?? [] as $field_name => $info) {
@@ -59,7 +59,7 @@ final class ComponentTreeLoader {
         return $field_name;
       }
     }
-    throw new \LogicException("This entity does not have an XB field!");
+    throw new \LogicException("This entity does not have an Canvas field!");
   }
 
 }

@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\experience_builder\Entity\ParametrizedImageStyle;
-use Drupal\experience_builder\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Entity\ParametrizedImageStyle;
+use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileRepositoryInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * @coversDefaultClass \Drupal\experience_builder\Entity\ParametrizedImageStyle
- * @group experience_builder
+ * @coversDefaultClass \Drupal\canvas\Entity\ParametrizedImageStyle
+ * @group canvas
  */
 class ParametrizedImageStyleTest extends KernelTestBase {
 
@@ -33,7 +33,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
   protected static $modules = [
     'system',
     'user',
-    'experience_builder',
+    'canvas',
     'image',
     'file',
   ];
@@ -45,7 +45,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     parent::setUp();
 
     ImageStyle::create(
-      Yaml::parseFile(__DIR__ . '/../../../config/install/image.style.xb_parametrized_width.yml')
+      Yaml::parseFile(__DIR__ . '/../../../config/install/image.style.canvas_parametrized_width.yml')
     )->save();
 
     // Fixate the private key & hash salt to get predictable `itok`.
@@ -63,9 +63,9 @@ class ParametrizedImageStyleTest extends KernelTestBase {
    */
   public function testBuildUrlTemplate(): void {
     // ::buildUrlTemplate() returns an absolute URL, just like ::buildUrl().
-    $parametrized_image_style_url = ParametrizedImageStyle::load('xb_parametrized_width')?->buildUrlTemplate('public://2025-04/cat.jpg');
+    $parametrized_image_style_url = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate('public://2025-04/cat.jpg');
     self::assertSame(
-      PublicStream::baseUrl() . '/styles/xb_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=ebZalNOg',
+      PublicStream::baseUrl() . '/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=DnW_VIs-',
       $parametrized_image_style_url
     );
 
@@ -74,7 +74,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     assert($file_url_generator instanceof FileUrlGeneratorInterface);
     $parametrized_image_style_relative_url = $file_url_generator->transformRelative($parametrized_image_style_url);
     self::assertSame(
-      \base_path() . $this->siteDirectory . '/files/styles/xb_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=ebZalNOg',
+      \base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=DnW_VIs-',
       $parametrized_image_style_relative_url
     );
   }
@@ -96,7 +96,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     $uris = [$original_uri];
     self::assertFileExists($original_uri);
     foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $width) {
-      $style = ParametrizedImageStyle::loadWithParameters('xb_parametrized_width', ['width' => $width]);
+      $style = ParametrizedImageStyle::loadWithParameters('canvas_parametrized_width', ['width' => $width]);
       \assert($style instanceof ParametrizedImageStyle);
       $destination = $style->buildUri($original_uri);
       $style->createDerivative($original_uri, $destination);
@@ -115,7 +115,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     \assert(\is_string($new_uri));
     self::assertFileExists($new_uri);
     foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $width) {
-      $style = ParametrizedImageStyle::loadWithParameters('xb_parametrized_width', ['width' => $width]);
+      $style = ParametrizedImageStyle::loadWithParameters('canvas_parametrized_width', ['width' => $width]);
       \assert($style instanceof ParametrizedImageStyle);
       $destination = $style->buildUri($new_uri);
       $style->createDerivative($new_uri, $destination);

@@ -10,7 +10,7 @@ dayjs.extend(timezone);
 // The time chosen here is during daylight savings for the timezone
 // that core uses for testing (Australia/Sydney). This is by design so
 // that we can test oddities like daylight savings.
-// @see \xb_test_article_fields_install().
+// @see \canvas_test_article_fields_install().
 // @see bootstrap.php
 const tz = 'Australia/Sydney';
 export const defaultValue = dayjs()

@@ -1,14 +1,14 @@
 // cspell:ignore macbook
 describe('Operate on components in global regions', () => {
   before(() => {
-    cy.drupalXbInstall();
+    cy.drupalCanvasInstall();
     cy.drupalEnableTheme('olivero');
-    cy.drupalEnableThemeForXb('olivero');
+    cy.drupalEnableThemeForCanvas('olivero');
     cy.viewport('macbook-13');
   });
 
   beforeEach(() => {
-    cy.drupalLogin('xbUser', 'xbUser');
+    cy.drupalLogin('canvasUser', 'canvasUser');
   });
 
   after(() => {
@@ -16,44 +16,44 @@ describe('Operate on components in global regions', () => {
   });
 
   it('Visits a global region URL directly', () => {
-    cy.drupalRelativeURL(`xb/node/1/editor/region/breadcrumb`);
+    cy.drupalRelativeURL(`canvas/node/1/editor/region/breadcrumb`);
     cy.previewReady();
 
-    cy.url().should('contain', `/xb/node/1/editor/region/breadcrumb`);
+    cy.url().should('contain', `/canvas/node/1/editor/region/breadcrumb`);
     // We should be in a region and so there should be an option to go back to the content region.
-    cy.findByTestId('xb-topbar').findByLabelText('Back to Content region');
+    cy.findByTestId('canvas-topbar').findByLabelText('Back to Content region');
   });
 
   it(
     'Can hover global regions',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
+      cy.loadURLandWaitForCanvasLoaded();
       cy.findByTestId('scale-to-fit').click();
       cy.findByLabelText('Select zoom level').realClick({ force: true });
       cy.get('[role="option"]').contains('50%').click();
-      cy.get('#xbPreviewOverlay').realMouseWheel({ deltaY: -5 });
+      cy.get('#canvasPreviewOverlay').realMouseWheel({ deltaY: -5 });
       cy.log(
         'Can hover a region in the library and see the overlay in the preview (checking for the nameTag)',
       );
       cy.get('.primaryPanelContent')
         .findByText('Content Above')
         .trigger('mouseover', { force: true, scrollBehavior: false });
-      cy.get('.xb--viewport-overlay .xb--region-overlay__content_above')
+      cy.get('.canvas--viewport-overlay .canvas--region-overlay__content_above')
         .should('have.length', 1)
         .and('be.visible');
 
-      cy.get('.xb--viewport-overlay').within(() => {
+      cy.get('.canvas--viewport-overlay').within(() => {
         cy.findByText('Content Above').should('be.visible');
       });
 
       cy.get('.primaryPanelContent')
         .findByText('Breadcrumb')
         .trigger('mouseover', { force: true, scrollBehavior: false });
-      cy.get('.xb--viewport-overlay .xb--region-overlay__breadcrumb')
+      cy.get('.canvas--viewport-overlay .canvas--region-overlay__breadcrumb')
         .should('have.length', 1)
         .and('be.visible');
-      cy.get('.xb--viewport-overlay').within(() => {
+      cy.get('.canvas--viewport-overlay').within(() => {
         cy.findByText('Breadcrumb').should('be.visible');
       });
 
@@ -61,12 +61,11 @@ describe('Operate on components in global regions', () => {
         'Can hover a region in the preview and it is marked as hovered in the Library',
       );
 
-      cy.get('.xb--viewport-overlay .xb--region-overlay__header').trigger(
-        'mouseover',
-        { force: true, scrollBehavior: false },
-      );
       cy.get(
-        '.xb--viewport-overlay .xb--region-overlay__header [data-testid="xb-name-tag"] #header-name',
+        '.canvas--viewport-overlay .canvas--region-overlay__header',
+      ).trigger('mouseover', { force: true, scrollBehavior: false });
+      cy.get(
+        '.canvas--viewport-overlay .canvas--region-overlay__header [data-testid="canvas-name-tag"] #header-name',
       ).should('have.text', 'Header');
 
       cy.get('.primaryPanelContent')
@@ -80,7 +79,7 @@ describe('Operate on components in global regions', () => {
   );
 
   it('Can focus on global regions and see their child components', () => {
-    cy.loadURLandWaitForXBLoaded();
+    cy.loadURLandWaitForCanvasLoaded();
     cy.focusRegion('Content Above');
     cy.get('.spotlight').should('exist');
     cy.get('.spotlight')
@@ -89,25 +88,24 @@ describe('Operate on components in global regions', () => {
       .should('have.css', 'pointer-events', 'all');
 
     cy.get('.spotlight')
-      .findByTestId('xb-region-spotlight-highlight')
+      .findByTestId('canvas-region-spotlight-highlight')
       .should('have.css', 'pointer-events', 'none');
 
     cy.log('The overlay for the other regions should not be rendering');
-    cy.get('.xb--viewport-overlay [class*="xb--region-overlay__"]').should(
-      'have.length',
-      1,
-    );
+    cy.get(
+      '.canvas--viewport-overlay [class*="canvas--region-overlay__"]',
+    ).should('have.length', 1);
   });
 
   it(
     'Can move components between global regions',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForXBLoaded();
-      cy.findByTestId('xb-primary-panel').as('layersTree');
+      cy.loadURLandWaitForCanvasLoaded();
+      cy.findByTestId('canvas-primary-panel').as('layersTree');
 
       cy.focusRegion('Breadcrumb');
-      cy.findByTestId('xb-topbar')
+      cy.findByTestId('canvas-topbar')
         .findByLabelText('Back to Content region')
         .should('exist');
 
@@ -120,7 +118,7 @@ describe('Operate on components in global regions', () => {
       // spotlight isn't showing anymore
       cy.get('.spotlight').should('not.exist');
       // option to navigate back to content is gone.
-      cy.findByTestId('xb-topbar')
+      cy.findByTestId('canvas-topbar')
         .findByLabelText('Back to Content region')
         .should('not.exist');
 

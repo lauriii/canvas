@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\TypedData;
+namespace Drupal\canvas\TypedData;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
-use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 
 /**
  * A typed data definition class for describing a versioned config entity.

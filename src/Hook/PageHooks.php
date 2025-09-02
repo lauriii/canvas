@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Hook;
+namespace Drupal\canvas\Hook;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
@@ -16,13 +16,13 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\experience_builder\Entity\Page;
+use Drupal\canvas\Entity\Page;
 
 /**
  * @file
- * Hook implementations that makes XB's Page content entity type work.
+ * Hook implementations that makes Canvas's Page content entity type work.
  *
- * @see https://www.drupal.org/project/issues/experience_builder?component=Page
+ * @see https://www.drupal.org/project/issues/canvas?component=Page
  * @see docs/adr/0004-page-entity-type.md
  */
 final class PageHooks {
@@ -62,11 +62,11 @@ final class PageHooks {
           ])
           ->setDisplayConfigurable('form', \TRUE)
           ->setDefaultValue(Json::encode([
-            'title' => '[xb_page:title] | [site:name]',
-            'description' => '[xb_page:description]',
-            'canonical_url' => '[xb_page:url]',
+            'title' => '[canvas_page:title] | [site:name]',
+            'description' => '[canvas_page:description]',
+            'canonical_url' => '[canvas_page:url]',
             // @see https://stackoverflow.com/a/19274942
-            'image_src' => '[xb_page:image:entity:field_media_image:entity:url]',
+            'image_src' => '[canvas_page:image:entity:field_media_image:entity:url]',
           ]))
           ->setInternal(\TRUE)
           ->setProvider('metatag');

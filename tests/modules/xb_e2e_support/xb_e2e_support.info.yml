@@ -1,6 +1,0 @@
-name: Support module for E2E tests
-type: module
-description: 'Support module for E2E tests.'
-package: Testing
-dependencies:
-  - experience_builder:experience_builder

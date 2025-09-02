@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Unit;
+namespace Drupal\Tests\canvas\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * @group experience_builder.
+ * @group canvas.
  *
- * @covers experience_builder.routing.yml
+ * @covers canvas.routing.yml
  * @covers openapi.yml
  */
 final class DxRouteConsistencyTest extends UnitTestCase {
 
   public function testRoutingYmlDx(): array {
-    $routes = Yaml::parseFile(__DIR__ . '/../../../experience_builder.routing.yml');
+    $routes = Yaml::parseFile(__DIR__ . '/../../../canvas.routing.yml');
     assert(is_array($routes));
 
     // All route definitions must be alphabetically ordered.
@@ -25,40 +25,40 @@ final class DxRouteConsistencyTest extends UnitTestCase {
     sort($expected_routers_order);
     $this->assertSame($expected_routers_order, $actual_routes_order);
 
-    // All XB API routes must:
-    // - have a `path` that starts with '/xb/api/v0/'
+    // All Canvas API routes must:
+    // - have a `path` that starts with '/canvas/api/v0/'
     // - specify `methods`
-    $xb_api_routes = array_filter($routes, fn ($k) => str_starts_with($k, 'experience_builder.api.'), ARRAY_FILTER_USE_KEY);
-    foreach ($xb_api_routes as $xb_api_route_name => $xb_api_route) {
-      $this->assertStringStartsWith('/xb/api/v0/', $xb_api_route['path'], "`$xb_api_route_name` route path starts with '/xb/api/v0/'." . print_r($xb_api_route, TRUE));
-      $this->assertArrayHasKey('methods', $xb_api_route, "`$xb_api_route_name` route definition specifies `methods`.");
+    $canvas_api_routes = array_filter($routes, fn ($k) => str_starts_with($k, 'canvas.api.'), ARRAY_FILTER_USE_KEY);
+    foreach ($canvas_api_routes as $canvas_api_route_name => $canvas_api_route) {
+      $this->assertStringStartsWith('/canvas/api/v0/', $canvas_api_route['path'], "`$canvas_api_route_name` route path starts with '/canvas/api/v0/'." . print_r($canvas_api_route, TRUE));
+      $this->assertArrayHasKey('methods', $canvas_api_route, "`$canvas_api_route_name` route definition specifies `methods`.");
     }
 
-    return $xb_api_routes;
+    return $canvas_api_routes;
   }
 
   /**
    * @depends testRoutingYmlDx
    */
-  public function testAuthenticationRequiredPermission(array $xb_api_routes): void {
-    foreach ($xb_api_routes as $xb_api_route_name => $xb_api_route) {
-      $this->assertArrayHasKey('_xb_authentication_required', $xb_api_route['requirements'], "`$xb_api_route_name` needs to include the _xb_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated.");
+  public function testAuthenticationRequiredPermission(array $canvas_api_routes): void {
+    foreach ($canvas_api_routes as $canvas_api_route_name => $canvas_api_route) {
+      $this->assertArrayHasKey('_canvas_authentication_required', $canvas_api_route['requirements'], "`$canvas_api_route_name` needs to include the _canvas_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated.");
     }
   }
 
   /**
    * @depends testRoutingYmlDx
    */
-  public function testOpenApiCompleteness(array $xb_api_routes): void {
-    // Map XB API route definitions keyed by route name to being keyed by path
+  public function testOpenApiCompleteness(array $canvas_api_routes): void {
+    // Map Canvas API route definitions keyed by route name to being keyed by path
     // and method, with the path resolved where possible.
-    $route_defined_xb_api_operations = self::resolveRouteDefinitionsToOperations($xb_api_routes);
-    $route_defined_xb_api_operations = self::includeDynamicPersonalizationPaths($route_defined_xb_api_operations);
+    $route_defined_canvas_api_operations = self::resolveRouteDefinitionsToOperations($canvas_api_routes);
+    $route_defined_canvas_api_operations = self::includeDynamicPersonalizationPaths($route_defined_canvas_api_operations);
 
-    $normalized_route_defined_xb_api_operations = self::ignoreDynamicPathPartNames($route_defined_xb_api_operations);
+    $normalized_route_defined_canvas_api_operations = self::ignoreDynamicPathPartNames($route_defined_canvas_api_operations);
     // Note: while routes were already guaranteed to be alphabetically sorted,
     // after resolving static path parts that may no longer be true.
-    ksort($normalized_route_defined_xb_api_operations);
+    ksort($normalized_route_defined_canvas_api_operations);
 
     // Extract OpenAPI operations per path to the same key structure as above,
     // but with an OpenAPI operation spec as values.
@@ -72,7 +72,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
         }
       }
     }
-    $this->assertSame(array_keys($normalized_route_defined_xb_api_operations), array_keys($normalized_openapi_defined_operations), 'OpenAPI path and operation specs exist for every XB API route, and appear in alphabetical order.');
+    $this->assertSame(array_keys($normalized_route_defined_canvas_api_operations), array_keys($normalized_openapi_defined_operations), 'OpenAPI path and operation specs exist for every Canvas API route, and appear in alphabetical order.');
   }
 
   private static function resolveRouteDefinitionsToOperations(array $routes_by_name): array {
@@ -103,8 +103,8 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       // No need to resolve: add the operations for the route.
       // Unlike other paths documented in openapi.yml, the openapi.yml does not
       // have a separate paths for each of the possible config entity types for
-      // `xb_config_entity_type_id` under `requirements`.
-      if (empty($static_path_part_requirements) || $original_path === '/xb/api/v0/config/auto-save/{xb_config_entity_type_id}/{xb_config_entity}') {
+      // `canvas_config_entity_type_id` under `requirements`.
+      if (empty($static_path_part_requirements) || $original_path === '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}') {
         $operations = [...$operations, ...$operations_for_route];
         continue;
       }
@@ -150,8 +150,8 @@ final class DxRouteConsistencyTest extends UnitTestCase {
    * - in the openapi.yml file are intended for human readers that do not need
    *   to know Drupal internals
    * So: strip their contents to allow for simple comparisons.
-   * For example, both `/xb/api/some/path/{id1}/{id2}` and
-   * `/xb/api/some/path/{id1}` become `/xb/api/some/path/{}`.
+   * For example, both `/canvas/api/some/path/{id1}/{id2}` and
+   * `/canvas/api/some/path/{id1}` become `/canvas/api/some/path/{}`.
    */
   private static function ignoreDynamicPathPartNames(array $array_with_paths_as_keys): array {
     return array_combine(
@@ -173,11 +173,11 @@ final class DxRouteConsistencyTest extends UnitTestCase {
    */
   private static function includeDynamicPersonalizationPaths(array $array_with_paths_as_keys): array {
     $routes = array_merge($array_with_paths_as_keys, [
-      '/xb/api/v0/config/segment GET' => ['methods' => ['GET']],
-      '/xb/api/v0/config/segment POST' => ['methods' => ['POST']],
-      '/xb/api/v0/config/segment/{segment} GET' => ['methods' => ['GET']],
-      '/xb/api/v0/config/segment/{segment} PATCH' => ['methods' => ['PATCH']],
-      '/xb/api/v0/config/segment/{segment} DELETE' => ['methods' => ['DELETE']],
+      '/canvas/api/v0/config/segment GET' => ['methods' => ['GET']],
+      '/canvas/api/v0/config/segment POST' => ['methods' => ['POST']],
+      '/canvas/api/v0/config/segment/{segment} GET' => ['methods' => ['GET']],
+      '/canvas/api/v0/config/segment/{segment} PATCH' => ['methods' => ['PATCH']],
+      '/canvas/api/v0/config/segment/{segment} DELETE' => ['methods' => ['DELETE']],
     ]);
     ksort($routes);
     return $routes;

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Functional;
+namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
-use Drupal\experience_builder\Entity\ContentTemplate;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
@@ -24,10 +24,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'node',
-    'xb_test_sdc',
-    'xb_test_code_components',
+    'canvas_test_sdc',
+    'canvas_test_code_components',
   ];
 
   /**
@@ -100,12 +100,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   /**
    * @dataProvider providerSuggestions
-   * @see \Drupal\Tests\experience_builder\Kernel\FieldForComponentSuggesterTest
+   * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
    */
   public function testSuggestions(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri("base:/xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/$content_entity_type_id/$bundle/$component_config_entity_id"),
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/$content_entity_type_id/$bundle/$component_config_entity_id"),
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: NULL,
@@ -127,8 +127,8 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     ];
     $hash_for_choice = fn (array $choice) =>  \hash('xxh64', $choice['source']['expression']);
 
-    yield 'a simple primitive example (sdc.xb_test_sdc.heading, entity:node:article)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.heading',
+    yield 'a simple primitive example (sdc.canvas_test_sdc.heading, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.heading',
       'content_entity_type_id' => 'node',
       'bundle' => 'article',
       'expected' => [
@@ -139,8 +139,8 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'element' => [],
       ],
     ];
-    yield 'a simple primitive example (sdc.xb_test_sdc.heading, entity:user:user)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.heading',
+    yield 'a simple primitive example (sdc.canvas_test_sdc.heading, entity:user:user)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.heading',
       'content_entity_type_id' => 'user',
       'bundle' => 'user',
       'expected' => [
@@ -150,21 +150,21 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       ],
     ];
 
-    yield 'a propless example (sdc.xb_test_sdc.druplicon, entity:node:article)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.druplicon',
+    yield 'a propless example (sdc.canvas_test_sdc.druplicon, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.druplicon',
       'content_entity_type_id' => 'node',
       'bundle' => 'article',
       'expected' => [],
     ];
-    yield 'a propless example (sdc.xb_test_sdc.druplicon, entity:user:user)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.druplicon',
+    yield 'a propless example (sdc.canvas_test_sdc.druplicon, entity:user:user)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.druplicon',
       'content_entity_type_id' => 'user',
       'bundle' => 'user',
       'expected' => [],
     ];
 
-    yield 'a simple object example (sdc.xb_test_sdc.image-required-with-example, entity:node:article)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.image-required-with-example',
+    yield 'a simple object example (sdc.canvas_test_sdc.image-required-with-example, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.image-required-with-example',
       'content_entity_type_id' => 'node',
       'bundle' => 'article',
       'expected' => [
@@ -173,8 +173,8 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         ],
       ],
     ];
-    yield 'an OPTIONAL simple object example (sdc.xb_test_sdc.image-optional-with-example, entity:node:article)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.image-optional-with-example',
+    yield 'an OPTIONAL simple object example (sdc.canvas_test_sdc.image-optional-with-example, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.image-optional-with-example',
       'content_entity_type_id' => 'node',
       'bundle' => 'article',
       'expected' => [
@@ -183,27 +183,27 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         ],
       ],
     ];
-    yield 'a simple object example (sdc.xb_test_sdc.image-required-with-example, entity:user:user)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.image-required-with-example',
+    yield 'a simple object example (sdc.canvas_test_sdc.image-required-with-example, entity:user:user)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.image-required-with-example',
       'content_entity_type_id' => 'user',
       'bundle' => 'user',
       'expected' => [
         'image' => [],
       ],
     ];
-    yield 'an OPTIONAL simple object example (sdc.xb_test_sdc.image-optional-with-example, entity:user:user)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.image-optional-with-example',
+    yield 'an OPTIONAL simple object example (sdc.canvas_test_sdc.image-optional-with-example, entity:user:user)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.image-optional-with-example',
       'content_entity_type_id' => 'user',
       'bundle' => 'user',
       'expected' => [
         'image' => [
-          // @todo This SHOULD find the `user_picture` field, fix in https://www.drupal.org/project/experience_builder/issues/3541361
+          // @todo This SHOULD find the `user_picture` field, fix in https://www.drupal.org/project/canvas/issues/3541361
         ],
       ],
     ];
 
-    yield 'an array of object values example (sdc.xb_test_sdc.image-gallery, entity:node:article)' => [
-      'component_config_entity_id' => 'sdc.xb_test_sdc.image-gallery',
+    yield 'an array of object values example (sdc.canvas_test_sdc.image-gallery, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.image-gallery',
       'content_entity_type_id' => 'node',
       'bundle' => 'article',
       'expected' => [
@@ -246,16 +246,16 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   /**
    * @testWith ["a/b/c", 404, "The component c does not exist."]
-   *           ["a/b/sdc.xb_test_sdc.image", 404, "The `a` content entity type does not exist."]
-   *           ["node/b/sdc.xb_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."]
+   *           ["a/b/sdc.canvas_test_sdc.image", 404, "The `a` content entity type does not exist."]
+   *           ["node/b/sdc.canvas_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."]
    *           ["node/article/block.user_login_block", 400, "Only components that define their inputs using JSON Schema and use fields to populate their inputs are currently supported."]
-   *           ["node/article/js.xb_test_code_components_with_link_prop", 400, "Code components are not supported yet."]
-   *           ["node/article/js.xb_test_code_components_with_no_props", 400, "Code components are not supported yet."]
+   *           ["node/article/js.canvas_test_code_components_with_link_prop", 400, "Code components are not supported yet."]
+   *           ["node/article/js.canvas_test_code_components_with_no_props", 400, "Code components are not supported yet."]
    */
   public function testSuggestionsClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
       request_options: [],
       expected_status: $expected_status_code,
       expected_cache_contexts: NULL,
@@ -272,7 +272,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->drupalLogin($this->limitedPermissionsUser);
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/xb/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
       request_options: [],
       expected_status: Response::HTTP_FORBIDDEN,
       expected_cache_contexts: ['user.permissions'],

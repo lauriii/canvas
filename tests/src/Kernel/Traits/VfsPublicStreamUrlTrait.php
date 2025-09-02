@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Traits;
+namespace Drupal\Tests\canvas\Kernel\Traits;
 
 /**
  * Avoids `public://cat.jpg` resolving to `/vfs://root/sites/…/cat.jpg`.

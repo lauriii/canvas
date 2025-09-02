@@ -1,8 +1,0 @@
-name: XB Test Invalid Field
-type: module
-description: 'Test module for field validation in Experience Builder.'
-package: Testing
-dependencies:
-  - drupal:node
-  - experience_builder:xb_test_article_fields
-core_version_requirement: ^11

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\AutoSave;
+namespace Drupal\canvas\AutoSave;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\TempStore\SharedTempStoreFactory;

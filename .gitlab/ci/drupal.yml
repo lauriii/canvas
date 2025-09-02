@@ -17,7 +17,7 @@
   # Get Drupal
   - composer create-project drupal/recommended-project:$DRUPAL_CORE _drupal
   - cd _drupal
-  # Add core-dev and Experience Builder
+  # Add core-dev and Drupal Canvas
   - |
     composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
   - composer require drupal/core-dev "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
@@ -19,6 +19,6 @@ final class ComponentStatusConstraint extends SymfonyConstraint {
    *
    * @var string
    */
-  public string $message = "The component '%component' cannot be enabled because it does not meet the requirements of Experience Builder.";
+  public string $message = "The component '%component' cannot be enabled because it does not meet the requirements of Drupal Canvas.";
 
 }

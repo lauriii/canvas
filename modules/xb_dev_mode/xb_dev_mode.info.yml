@@ -1,6 +1,0 @@
-name: Experience Builder dev mode
-description: 'Puts XB into dev mode - which shows the extensions toolbar (for now)'
-core_version_requirement: ^10.4 || ^11.1
-type: module
-dependencies:
-  - experience_builder:experience_builder

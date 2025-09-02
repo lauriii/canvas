@@ -1,22 +1,22 @@
-# The Experience Builder Data Model
+# The Drupal Canvas Data Model
 
-In the rest of this document, `Experience Builder` will be written as `XB`.
+In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
-This builds on top of the [`XB Components` doc](components.md). Please read that first.
+This builds on top of the [`Canvas Components` doc](components.md). Please read that first.
 
 Some of the examples here refer to details that `component type`s that use
-[`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md). It should be possible to first read this
+[`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md). It should be possible to first read this
 without having read that, to understand the big picture. It is recommended to first read this, then that one, followed
 by a second pass of this document.
 
-It also builds on top of the [`XB Config Management` doc](config-management.md), which itself refers back to this one
+It also builds on top of the [`Canvas Config Management` doc](config-management.md), which itself refers back to this one
 for a few things. The data model is built on top of the configuration architecture.
 
 **Also see the [diagram](diagrams/data-model.md).**
 
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️
-Related XB issue queue components:
-1. [Data model](https://www.drupal.org/project/issues/experience_builder?component=Data+model)
+Related Canvas issue queue components:
+1. [Data model](https://www.drupal.org/project/issues/canvas?component=Data+model)
 
 Those issue queue components also have corresponding entries in [`CODEOWNERS`](../CODEOWNERS).
 
@@ -25,52 +25,52 @@ to one of us! 😊 🙏
 
 ## 1. Terminology
 
-### 1.1 Existing Drupal Terminology that is crucial for XB
+### 1.1 Existing Drupal Terminology that is crucial for Canvas
 
-- `content entity`: an entity that can be created by a Content Creator, containing various `field`s, potentially including the `XB field type`, of a particular entity type (e.g. "node")
-- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\experience_builder\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
+- `content entity`: an entity that can be created by a Content Creator, containing various `field`s, potentially including the `Canvas field type`, of a particular entity type (e.g. "node")
+- `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\canvas\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
 - `field`: synonym of `field item list`
 - `field prop`: a property defined by a `field type`, with a value for that property on such a `field item`, represented by a `data type`. Often a single prop exists (typically: `value`), but not always (for example: the `image` field type: `target_id`, `entity`, `alt`, `title`, `width`, `height` — with `entity` a `computed field prop`)
 - `field instance`: a definition for instantiating a `field type` into a `field item list` containing >=1 `field item`
 - `field item`: the instantiation of a `field type`
 - `field item list`: to support multiple-cardinality values, Drupal core has opted to wrap every `field item` in a list — even if a particular `field instance` is single-cardinality
 - `field type`: metadata plus a class defining the `field prop`s that exist on this field type, requires a `field instance` to be used
-- `SDC`: see [`XB Components` doc](components.md)
-- `theme region`: see [`XB Config Management` doc](config-management.md)
+- `SDC`: see [`Canvas Components` doc](components.md)
+- `theme region`: see [`Canvas Config Management` doc](config-management.md)
 - `view mode`: view modes lets a `content entity` be displayed in multiple ways
 
-### 1.2 XB terminology
+### 1.2 Canvas terminology
 
-- `component`: see [`XB Components` doc](components.md)
-- `Component config entity`: see [`XB Config Management` doc](config-management.md)
+- `component`: see [`Canvas Components` doc](components.md)
+- `Component config entity`: see [`Canvas Config Management` doc](config-management.md)
 - `component instance`: a UUID uniquely identifying this instance + `component version` + values for each required `component input` (if any) + optionally values for its `component slot`s (if any)
 - `component node`: one of the node types in the UI data model, representing a `component instance` in the `component tree`
-- `component input`: see [`XB Components` doc](components.md)
-- `component slot`: see [`XB Components` doc](components.md)
-- `Component Source Plugin`: see [`XB Components` doc](components.md)
+- `component input`: see [`Canvas Components` doc](components.md)
+- `component slot`: see [`Canvas Components` doc](components.md)
+- `Component Source Plugin`: see [`Canvas Components` doc](components.md)
 - `component tree`: a tree of `component instance`s, by placing >=1 `component instance`s in a particular order in another `component instance`'s slot
-- `component tree field type`: XB's field type that allows storing a `component tree` ⚠️ This is currently limited to the "default" `view mode`, and hence one component tree per `content entity`. ⚠️
+- `component tree field type`: Canvas's field type that allows storing a `component tree` ⚠️ This is currently limited to the "default" `view mode`, and hence one component tree per `content entity`. ⚠️
 - `component tree root`: the root of the `component tree` is the special case: it does not exist in another `component`, but it behaves the same as any other `component slot`
-- `component type`: see [`XB Components` doc](components.md)
+- `component type`: see [`Canvas Components` doc](components.md)
 - `component version`: a version (a deterministic hash) identifying the _version_ of a `Component config entity` either because the underlying `component` itself changed, or because the default `static prop source`s changed due to modified shape matching
-- `content type template`: see [`XB Config Management` doc](config-management.md).
+- `content type template`: see [`Canvas Config Management` doc](config-management.md).
 - `layout`: synonym of `component tree`
-- `prop expression`: see [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
-- `prop source`: see [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
-- `static prop source`: see [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
-- `dynamic prop source`: see [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
+- `prop expression`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
+- `prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
+- `static prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
+- `dynamic prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
 - `region node`: one of the node types in the UI data model, representing a `theme region`'s `component tree`
 - `slot node`: one of the node types in the UI data model, representing a `component instance`'s `component slot`
-- `XB field`: an instance of the `component tree field type`
-- `XB field type`: see `component tree field type`
+- `Canvas field`: an instance of the `component tree field type`
+- `Canvas field type`: see `component tree field type`
 
 ## 2. Product requirements
 
 This uses the terms defined above.
 
-This adds to the product requirements listed in [`XB Components` doc](components.md) and [`XB Config Management` doc](config-management.md).
+This adds to the product requirements listed in [`Canvas Components` doc](components.md) and [`Canvas Config Management` doc](config-management.md).
 
-(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect XB's data model.)
+(There are [more](https://docs.google.com/spreadsheets/d/1OpETAzprh6DWjpTsZG55LWgldWV_D8jNe9AM73jNaZo/edit?gid=1721130122#gid=1721130122), but these in particular affect Canvas's data model.)
 
 - MUST have validation logic that generates consistent validation error messages for either content (a `component tree` created by the Content Creator and stored in a `content entity`) or config (a `component tree` created by the Site Builder and stored in a `content type template`)
 - MUST support both symmetric and asymmetric translations (same vs different `layout` per translation, respectively)
@@ -80,25 +80,25 @@ This adds to the product requirements listed in [`XB Components` doc](components
 
 This uses the terms defined above.
 
-Given a component developed by a [Front-End Developer](diagrams/structurizr-SystemContext-001.md): how does XB allow a
+Given a component developed by a [Front-End Developer](diagrams/structurizr-SystemContext-001.md): how does Canvas allow a
 Content Creator to place a `component instance` in the `component tree`, specify values for the `component input`s and
 `component slot`s?
 
-### 3.1 Data Model: from Front-End Developer to an XB data model that empowers the Content Creator
+### 3.1 Data Model: from Front-End Developer to an Canvas data model that empowers the Content Creator
 
-Moved to the [`XB Shape Matching into Field Types` doc](shape-matching-into-field-types.md).
+Moved to the [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md).
 
 
 ### 3.2 Data Model: storing a component tree
 
-The `component tree` is represented by a `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList`, which
+The `component tree` is represented by a `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList`, which
 contains one field value for each `component instance` in the tree.
-Each `component instance` is represented by a `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem`, which
+Each `component instance` is represented by a `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem`, which
 each allow accessing the `Component config entity` and `Component Source Plugin` that represents the `component`.
 
-See `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` + its validation constraint.
+See `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem` + its validation constraint.
 
-XB defines a new `XB field type` with the following `field prop`s:
+Canvas defines a new `Canvas field type` with the following `field prop`s:
 - _uuid_ — A unique ID for this `component instance`
 - _component_id_ — This is the ID of the `Component config entity` this `component instance` references
 - _parent_uuid_ — If this `component instance` is placed inside another `component instance` in the tree, the UUID of the parent `component instance`
@@ -109,7 +109,7 @@ When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root
 
 Additionally there are two computed `field prop`s:
 - _component_ - this is an entity reference to the `Component config entity` the `component instance` uses, meaning also the appropriate version will be loaded. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
-- _parent_item_ - this is a data reference to the sibling `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent_item')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
+- _parent_item_ - this is a data reference to the sibling `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem` in the tree that represents the `component instance`'s parent `component instance` in the `component tree`. If the `component instance` has no parent, this will be NULL. Any methods on the parent `component instance` can be chained, e.g. `$item->get('parent_item')->getComponent()?->getComponentSource()?->getSlotDefinitions()`
 
 Additionally, convenience methods for accessing/setting values on the `ComponentTreeItem` exist including:
 - `getParentUuid(): ?string` - gets the value of _parent_uuid_ if it exists
@@ -137,12 +137,12 @@ Storing these as separate `field prop`s simplifies supporting both symmetric and
 
 The `uuid`, `component_id`, `component_version`, `parent_uuid` and `slot` columns model the tree structure.
 
-See `\Drupal\experience_builder\Plugin\DataType\ComponentTreeStructure` + its validation constraint.
+See `\Drupal\canvas\Plugin\DataType\ComponentTreeStructure` + its validation constraint.
 
 These columns always meet the following requirements
 1. every `component instance` is represented by a "uuid, component_id, component_version" triple, with:
   - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
-  - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\experience_builder\Entity\VersionedConfigEntityInterface::getVersions()`)
+  - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()`)
   - the "uuid" being a randomly generated UUID
 2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
@@ -155,9 +155,9 @@ These columns always meet the following requirements
 #### 3.2.2 The column (`field prop`) storing the `component input` values
 
 See
-- `\Drupal\experience_builder\Plugin\DataType\ComponentInputs`
-- `\Drupal\experience_builder\ComponentSource\ComponentSourceInterface::getExplicitInput()`
-- `\Drupal\experience_builder\ComponentSource\ComponentSourceInterface::validateComponentInput()`
+- `\Drupal\canvas\Plugin\DataType\ComponentInputs`
+- `\Drupal\canvas\ComponentSource\ComponentSourceInterface::getExplicitInput()`
+- `\Drupal\canvas\ComponentSource\ComponentSourceInterface::validateComponentInput()`
 
 _This uses 3.1._
 
@@ -175,7 +175,7 @@ Note: a welcome bonus is that when real-time collaborative editing is eventually
 This is because editing will be specific to a `component instance`, which is modeled as a single delta.
 
 No validation is necessary for this `field prop`, because it is more easily validated at the `field item` level of the
-`XB field type`, not at the `field prop` level — there, the aforementioned `::validateComponentInput()` method is called
+`Canvas field type`, not at the `field prop` level — there, the aforementioned `::validateComponentInput()` method is called
 for every `component instance` encountered in the stored `component tree`. If the `Component Source Plugin` complains, a
 validation error occurs.
 
@@ -183,7 +183,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 ```php
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
-  'component_id' => 'sdc.xb_test_sdc.props-slots',
+  'component_id' => 'sdc.canvas_test_sdc.props-slots',
   'component_version' => 'ab4d3ddce315cf64',
   'inputs' => [
     'heading' => [
@@ -195,7 +195,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 ],
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
-  'component_id' => 'sdc.xb_test_sdc.props-no-slots',
+  'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
   'component_version' => '95f4f1d5ee47663b',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
@@ -225,7 +225,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 
 #### 3.2.3 Validation
 
-Assuming the _tree_ column groups (`uuid`, `component_id`, `parent_uuid` and `slot`) has already been validated, a `component tree` described in an `XB field` then is valid
+Assuming the _tree_ column groups (`uuid`, `component_id`, `parent_uuid` and `slot`) has already been validated, a `component tree` described in an `Canvas field` then is valid
 when: for each `component instance` in the _tree_ `field prop`:
 1. getting the explicit input using `ComponentSourceInterface::getExplicitInput()` (which for `Block` requires no extra
    work but for `SDC` involves resolving the stored `prop source`s, resulting in values to be passed to the
@@ -249,14 +249,14 @@ require logic somewhat like this:
 3. Insert the updated _inputs_ JSON blob into that specific delta.
 
 The above sequence assumes doing this per-entity. But this can actually be done _per entity-type_, or more precisely:
-per `XB field`. So if the `XB field type` is only used for one entity type but is used in many bundles (i.e. many
+per `Canvas field`. So if the `Canvas field type` is only used for one entity type but is used in many bundles (i.e. many
 different `content entity type`s), then a single query can find all `component instances` of the evolving `component`.
 After that point, the typical Drupal update path best practices apply. The key observation here: it is possible to
 efficiently find all uses of a `component`.
 
 ### 3.3 Data Model: rendering a stored `component tree`
 
-See `\Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItemList`.
+See `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList`.
 
 _This uses 3.2.1, 3.2.2 and 3.2.3._
 
@@ -328,7 +328,7 @@ instance` specified by the Content Creator:
   "nodeType": "component",
   "id": "380aaa26-5678-4c86-9b32-12161ea34196",
   "name": "Most Important Heading",
-  "type": "sdc.xb_test_sdc.heading@1b4f8df7c94d7e3c",
+  "type": "sdc.canvas_test_sdc.heading@1b4f8df7c94d7e3c",
   "slots": []
 }
 ```
@@ -338,7 +338,7 @@ An example simple `component instance` of a `component` with a single `component
 {
   "nodeType": "component",
   "id": "177122af-1679-4ee4-b700-dcf5ab376c4a",
-  "type": "sdc.xb_test_sdc.one_column@f6a3a392e98e8342",
+  "type": "sdc.canvas_test_sdc.one_column@f6a3a392e98e8342",
   "slots": [
     {
       "id": "177122af-1679-4ee4-b700-dcf5ab376c4a/content",
@@ -434,7 +434,7 @@ A complete example, with three `region node`s:
         {
           "nodeType": "component",
           "id": "97fb7bb9-4c8e-4fdc-87a8-c39ac9e8e618",
-          "type": "sdc.xb_test_sdc.two_column@e5ef92acda2ee2d1",
+          "type": "sdc.canvas_test_sdc.two_column@e5ef92acda2ee2d1",
           "slots": [
             {
               "nodeType": "slot",
@@ -443,13 +443,13 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "e8ecc571-0221-40d8-9ab2-262389fabd58",
-                  "type": "sdc.xb_test_sdc.heading@1b4f8df7c94d7e3c",
+                  "type": "sdc.canvas_test_sdc.heading@1b4f8df7c94d7e3c",
                   "slots": []
                 },
                 {
                   "nodeType": "component",
                   "id": "baf231e8-b214-4e3e-93d3-5d3f03a1eae9",
-                  "type": "sdc.xb_test_sdc.druplicon@some-version-string",
+                  "type": "sdc.canvas_test_sdc.druplicon@some-version-string",
                   "slots": []
                 }
               ]
@@ -461,7 +461,7 @@ A complete example, with three `region node`s:
                 {
                   "nodeType": "component",
                   "id": "39648574-b937-4a5a-b1b2-9db0f30ae315",
-                  "type": "sdc.xb_test_sdc.one_column@f6a3a392e98e8342",
+                  "type": "sdc.canvas_test_sdc.one_column@f6a3a392e98e8342",
                   "slots": [
                     {
                       "nodeType": "slot",
@@ -470,7 +470,7 @@ A complete example, with three `region node`s:
                         {
                           "nodeType": "component",
                           "id": "a1cfa9f1-0088-45d9-b837-39571485b75e",
-                          "type": "sdc.xb_test_sdc.my-hero",
+                          "type": "sdc.canvas_test_sdc.my-hero",
                           "slots": []
                         }
                       ]

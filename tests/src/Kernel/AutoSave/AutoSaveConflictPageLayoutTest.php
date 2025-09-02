@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\AutoSave;
+namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\Tests\experience_builder\Kernel\ApiLayoutControllerTestBase;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Page;
+use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 final class AutoSaveConflictPageLayoutTest extends ApiLayoutControllerTestBase {
@@ -38,7 +38,7 @@ final class AutoSaveConflictPageLayoutTest extends ApiLayoutControllerTestBase {
   }
 
   protected function getAutoSaveUrl(): string {
-    return Url::fromRoute('experience_builder.api.layout.get', [
+    return Url::fromRoute('canvas.api.layout.get', [
       'entity' => $this->entity->id(),
       'entity_type' => Page::ENTITY_TYPE_ID,
     ])->toString();

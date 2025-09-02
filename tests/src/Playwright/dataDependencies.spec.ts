@@ -10,12 +10,12 @@ import { Drupal } from './objects/Drupal';
 
 test.describe('Data dependencies', () => {
   test.beforeAll(
-    'Setup test site with Experience Builder',
+    'Setup test site with Drupal Canvas',
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules(['experience_builder']);
-      await drupal.createXbPage('Homepage', '/homepage');
+      await drupal.installModules(['canvas']);
+      await drupal.createCanvasPage('Homepage', '/homepage');
       await page.close();
     },
   );
@@ -30,12 +30,12 @@ test.describe('Data dependencies', () => {
     await xBEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
-      `${moduleDir}/experience_builder/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
+      `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
       'utf-8',
     );
     await xBEditor.createCodeComponent('PageTitle', code);
     const preview = xBEditor.getCodePreviewFrame();
-    // @see \Drupal\experience_builder\Controller\ExperienceBuilderController::__invoke
+    // @see \Drupal\canvas\Controller\CanvasController::__invoke
     await expect(
       preview.getByRole('heading', {
         name: 'This is a page title for testing purposes',
@@ -48,7 +48,7 @@ test.describe('Data dependencies', () => {
     await xBEditor.publishAllChanges(['Homepage']);
     await page.goto('/homepage');
     await expect(
-      page.locator('xb-island').getByRole('heading', { name: 'Homepage' }),
+      page.locator('canvas-island').getByRole('heading', { name: 'Homepage' }),
     ).toBeVisible();
   });
 });

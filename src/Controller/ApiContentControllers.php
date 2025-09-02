@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResult;
@@ -27,11 +27,11 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\Page;
-use Drupal\experience_builder\Resource\XbResourceLink;
-use Drupal\experience_builder\Resource\XbResourceLinkCollection;
-use Drupal\experience_builder\XbUriDefinitions;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Resource\CanvasResourceLink;
+use Drupal\canvas\Resource\CanvasResourceLinkCollection;
+use Drupal\canvas\CanvasUriDefinitions;
 use http\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,9 +40,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
- * HTTP API for interacting with XB-eligible Content entity types.
+ * HTTP API for interacting with Canvas-eligible Content entity types.
  *
- * @internal This HTTP API is intended only for the XB UI. These controllers
+ * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  *
  * @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types
@@ -85,8 +85,8 @@ final class ApiContentControllers {
     }
     else {
       // Note: this intentionally does not catch content entity type storage
-      // handler exceptions: the generic XB API exception subscriber handles them.
-      // @see \Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber
+      // handler exceptions: the generic Canvas API exception subscriber handles them.
+      // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
       $entity_type_definition = $this->entityTypeManager->getDefinition($entity_type);
       $new = $this->entityTypeManager->getStorage($entity_type)->create([
         'title' => static::defaultTitle($entity_type_definition),
@@ -104,7 +104,7 @@ final class ApiContentControllers {
   /**
    * Deletes entity.
    *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $xb_page
+   * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
    *   Entity to delete.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
@@ -112,24 +112,24 @@ final class ApiContentControllers {
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public function delete(ContentEntityInterface $xb_page): JsonResponse {
-    $xb_page->delete();
+  public function delete(ContentEntityInterface $canvas_page): JsonResponse {
+    $canvas_page->delete();
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
   /**
-   * Returns a list of XB Page content entities, with only high-level metadata.
+   * Returns a list of Canvas Page content entities, with only high-level metadata.
    *
-   * TRICKY: there are reasons XB has its own internal HTTP API rather than
+   * TRICKY: there are reasons Canvas has its own internal HTTP API rather than
    * using Drupal core's JSON:API. As soon as this method is updated to return
    * all fields instead of just high-level metadata, those reasons may start to
    * outweigh the downsides of adding a dependency on JSON:API.
    *
-   * @see https://www.drupal.org/project/experience_builder/issues/3500052#comment-15966496
+   * @see https://www.drupal.org/project/canvas/issues/3500052#comment-15966496
    */
   public function list(string $entity_type, Request $request): CacheableJsonResponse {
     if ($entity_type !== Page::ENTITY_TYPE_ID) {
-      throw new BadRequestHttpException('Only the `xb_page` content entity type is supported right now, will be generalized in a child issue of https://www.drupal.org/project/experience_builder/issues/3498525.');
+      throw new BadRequestHttpException('Only the `canvas_page` content entity type is supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
     $storage = $this->entityTypeManager->getStorage($entity_type);
 
@@ -147,7 +147,7 @@ final class ApiContentControllers {
       $content_entity_type = $this->entityTypeManager->getDefinition($entity_type);
       assert($content_entity_type instanceof ContentEntityTypeInterface);
       $revision_created_field_name = $content_entity_type->getRevisionMetadataKey('revision_created');
-      // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/experience_builder/issues/3498525.
+      // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/canvas/issues/3498525.
       assert(is_string($revision_created_field_name));
 
       $entity_query = $storage->getQuery()
@@ -330,7 +330,7 @@ final class ApiContentControllers {
     // Get temp data of original entity.
     if ($entity = $this->autoSaveManager->getAutoSaveEntity($entity)->entity) {
       // Before merging temp data remove path value to avoid collision.
-      // @todo Remove hardcoded field name when https://www.drupal.org/project/experience_builder/issues/3503446 lands.
+      // @todo Remove hardcoded field name when https://www.drupal.org/project/canvas/issues/3503446 lands.
       $duplicate = $entity->createDuplicate();
       \assert($duplicate instanceof ContentEntityInterface);
     }
@@ -379,19 +379,19 @@ final class ApiContentControllers {
     return new TranslatableMarkup('Untitled @singular_entity_type_label', ['@singular_entity_type_label' => $entity_type->getSingularLabel()]);
   }
 
-  public function getEntityOperations(EntityPublishedInterface $content_entity): XbResourceLinkCollection {
-    $links = new XbResourceLinkCollection([]);
+  public function getEntityOperations(EntityPublishedInterface $content_entity): CanvasResourceLinkCollection {
+    $links = new CanvasResourceLinkCollection([]);
     // Link relation type => route name.
     $possible_operations = [
-      XbUriDefinitions::LINK_REL_DELETE => ['route_name' => 'experience_builder.api.content.delete', 'op' => 'delete'],
-      XbUriDefinitions::LINK_REL_EDIT => ['route_name' => 'experience_builder.boot.entity', 'op' => 'update'],
+      CanvasUriDefinitions::LINK_REL_DELETE => ['route_name' => 'canvas.api.content.delete', 'op' => 'delete'],
+      CanvasUriDefinitions::LINK_REL_EDIT => ['route_name' => 'canvas.boot.entity', 'op' => 'update'],
       // Setting the homepage is a staged configuration update, the UI will
-      // call `experience_builder.api.config.post` but for the access check
+      // call `canvas.api.config.post` but for the access check
       // use the content entity's access.
       // Conceptually, this is an operation on the content entity, so expose it
       // as a non-standard link operation.
-      XbUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'experience_builder.boot.entity', 'op' => 'update'],
-      XbUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'experience_builder.api.content.create', 'op' => 'create'],
+      CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'canvas.boot.entity', 'op' => 'update'],
+      CanvasUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'canvas.api.content.create', 'op' => 'create'],
     ];
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
       $access = $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
@@ -403,7 +403,7 @@ final class ApiContentControllers {
       if ($access->isAllowed()) {
         $links = $links->withLink(
           $link_rel,
-          new XbResourceLink($access, $this->getUrlFromRoute($content_entity, $route_name), $link_rel)
+          new CanvasResourceLink($access, $this->getUrlFromRoute($content_entity, $route_name), $link_rel)
         );
       }
       else {

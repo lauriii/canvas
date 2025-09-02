@@ -84,11 +84,11 @@ interface SiteData {
 
 export const getPageData = (): PageData => {
   const pageData = {
-    pageTitle: window.drupalSettings?.xbData?.v0?.pageTitle || '',
-    breadcrumbs: window.drupalSettings?.xbData?.v0?.breadcrumbs || [],
+    pageTitle: window.drupalSettings?.canvasData?.v0?.pageTitle || '',
+    breadcrumbs: window.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
   };
   window.parent.postMessage({
-    type: '_xb_useswr_data_fetch',
+    type: '_canvas_useswr_data_fetch',
     id: 'getPageData()',
     data: pageData,
   });
@@ -97,15 +97,15 @@ export const getPageData = (): PageData => {
 
 export const getSiteData = (): SiteData => {
   const siteData = {
-    branding: window.drupalSettings?.xbData?.v0?.branding || {
+    branding: window.drupalSettings?.canvasData?.v0?.branding || {
       homeUrl: '',
       siteName: '',
       siteSlogan: '',
     },
-    baseUrl: window.drupalSettings?.xbData?.v0?.baseUrl || '/',
+    baseUrl: window.drupalSettings?.canvasData?.v0?.baseUrl || '/',
   };
   window.parent.postMessage({
-    type: '_xb_useswr_data_fetch',
+    type: '_canvas_useswr_data_fetch',
     id: 'getSiteData()',
     data: siteData,
   });

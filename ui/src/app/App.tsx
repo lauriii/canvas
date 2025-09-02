@@ -64,35 +64,35 @@ const App: React.FC = () => {
   });
   const sensors = useSensors(pointerSensor);
   return (
-    <div className="xb-app">
-      <div className={styles.xbCalloutContainer}>
+    <div className="canvas-app">
+      <div className={styles.canvasCalloutContainer}>
         <Box maxWidth="500px">
           <Callout.Root color="orange" size="2">
             <Callout.Icon>
               <InfoCircledIcon />
             </Callout.Icon>
             <Callout.Text>
-              Experience Builder requires a browser window at least 1024 pixels
-              wide to function properly.
+              Drupal Canvas requires a browser window at least 1024 pixels wide
+              to function properly.
             </Callout.Text>
             <Callout.Text>
               Please resize your browser window or switch to a device with a
-              larger screen to continue using Experience Builder.
+              larger screen to continue using Drupal Canvas.
             </Callout.Text>
           </Callout.Root>
         </Box>
       </div>
-      <div className={styles.xbAppContent}>
+      <div className={styles.canvasAppContent}>
         <ErrorBoundary
           variant="alert"
-          title="Experience Builder has encountered an unexpected error."
+          title="Drupal Canvas has encountered an unexpected error."
         >
           <DndContext
             sensors={sensors}
             collisionDetection={customCollisionDetectionAlgorithm}
           >
             <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-              <Flex className={styles.xbContainer} gap="0">
+              <Flex className={styles.canvasContainer} gap="0">
                 <ErrorBoundary variant="page">
                   <AiPanel />
                   <Outlet />

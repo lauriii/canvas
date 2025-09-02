@@ -19,7 +19,7 @@ const CssEditor = ({ isLoading }: { isLoading: boolean }) => {
   }
   return (
     <CodeMirror
-      className="xb-code-mirror-editor"
+      className="canvas-code-mirror-editor"
       value={value}
       onChange={onChangeHandler}
       theme={githubLight}

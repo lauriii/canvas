@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Access;
+namespace Drupal\canvas\Access;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Access\AccessResult;

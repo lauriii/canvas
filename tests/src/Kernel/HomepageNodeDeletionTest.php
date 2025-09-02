@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 class HomepageNodeDeletionTest extends KernelTestBase {
 
@@ -26,7 +26,7 @@ class HomepageNodeDeletionTest extends KernelTestBase {
    */
   protected static $modules = [
     'node',
-    'experience_builder',
+    'canvas',
     'system',
     'user',
     'media',
@@ -39,8 +39,8 @@ class HomepageNodeDeletionTest extends KernelTestBase {
     'options',
     'path',
     'media',
-    'xb_test_sdc',
-    'xb_test_config_node_article',
+    'canvas_test_sdc',
+    'canvas_test_config_node_article',
   ];
 
   /**
@@ -51,7 +51,7 @@ class HomepageNodeDeletionTest extends KernelTestBase {
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->generateComponentConfig();
-    $this->installConfig('xb_test_config_node_article');
+    $this->installConfig('canvas_test_config_node_article');
   }
 
   public function testNodeForDeleteOperationInList(): void {

@@ -174,7 +174,7 @@ function EnumValuesForm({
             <FormElement>
               <TextField.Root
                 autoComplete="off"
-                data-testid={`xb-prop-enum-value-${propId}-${index}`}
+                data-testid={`canvas-prop-enum-value-${propId}-${index}`}
                 type={['integer', 'number'].includes(type) ? 'number' : 'text'}
                 step={type === 'integer' ? 1 : undefined}
                 value={value}
@@ -192,7 +192,7 @@ function EnumValuesForm({
             </FormElement>
           </Box>
           <Button
-            data-testid={`xb-prop-enum-value-delete-${propId}-${index}`}
+            data-testid={`canvas-prop-enum-value-delete-${propId}-${index}`}
             size="1"
             color="red"
             variant="soft"

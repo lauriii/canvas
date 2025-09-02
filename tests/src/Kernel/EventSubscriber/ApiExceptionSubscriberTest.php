@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\EventSubscriber;
+namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\experience_builder\EventSubscriber\ApiExceptionSubscriber;
-use Drupal\Tests\experience_builder\Doubles\TestVerboseException;
+use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
+use Drupal\Tests\canvas\Doubles\TestVerboseException;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Route;
 
 /**
- * @group experience_builder
+ * @group canvas
  */
 class ApiExceptionSubscriberTest extends KernelTestBase {
 
@@ -24,7 +24,7 @@ class ApiExceptionSubscriberTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'system',
     'user',
   ];
@@ -36,7 +36,7 @@ class ApiExceptionSubscriberTest extends KernelTestBase {
    */
   public function test500Response(string $exception_class, array $exception_arguments, string $expected_message): void {
     $sut = new ApiExceptionSubscriber(
-      new RouteMatch('experience_builder.api.test', new Route('/test-path')),
+      new RouteMatch('canvas.api.test', new Route('/test-path')),
       \Drupal::service('config.factory'),
       User::create(),
     );

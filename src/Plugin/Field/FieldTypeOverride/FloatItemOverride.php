@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Field\FieldTypeOverride;
+namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\FloatItem;

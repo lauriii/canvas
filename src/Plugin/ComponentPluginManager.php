@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin;
+namespace Drupal\canvas\Plugin;
 
 use Drupal\Component\Plugin\CategorizingPluginManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -18,14 +18,14 @@ use Drupal\Core\Theme\Component\SchemaCompatibilityChecker;
 use Drupal\Core\Theme\ComponentNegotiator;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\experience_builder\ComponentDoesNotMeetRequirementsException;
-use Drupal\experience_builder\ComponentIncompatibilityReasonRepository;
-use Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 
 /**
- * Decorator that auto-creates/updates an Experience Builder Component entity per SDC.
+ * Decorator that auto-creates/updates an Drupal Canvas Component entity per SDC.
  *
- * @see \Drupal\experience_builder\Entity\Component
+ * @see \Drupal\canvas\Entity\Component
  */
 class ComponentPluginManager extends CoreComponentPluginManager implements CategorizingPluginManagerInterface {
 
@@ -58,8 +58,8 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
   protected function setCachedDefinitions($definitions): array {
     parent::setCachedDefinitions($definitions);
 
-    // Do not auto-create/update XB configuration when syncing config/deploying.
-    // @todo Introduce a "XB development mode" similar to Twig's: https://www.drupal.org/node/3359728
+    // Do not auto-create/update Canvas configuration when syncing config/deploying.
+    // @todo Introduce a "Canvas development mode" similar to Twig's: https://www.drupal.org/node/3359728
     // @phpstan-ignore-next-line
     if (\Drupal::isConfigSyncing()) {
       return $definitions;
@@ -125,7 +125,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
         $component->save();
       }
       catch (SchemaIncompleteException $exception) {
-        if (!str_starts_with($exception->getMessage(), 'Schema errors for experience_builder.component.sdc.sdc_test_all_props.all-props with the following errors:')) {
+        if (!str_starts_with($exception->getMessage(), 'Schema errors for canvas.component.sdc.sdc_test_all_props.all-props with the following errors:')) {
           throw $exception;
         }
       }

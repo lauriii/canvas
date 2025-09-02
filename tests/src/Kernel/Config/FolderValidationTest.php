@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Config;
+namespace Drupal\Tests\canvas\Kernel\Config;
 
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\Component;
-use Drupal\experience_builder\Entity\Folder;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Tests\ConfigTestTrait;
-use Drupal\Tests\experience_builder\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\experience_builder\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 class FolderValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -22,9 +22,9 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   use GenerateComponentConfigTrait;
 
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'sdc',
-    // XB's dependencies (modules providing field types + widgets).
+    // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
     'image',
@@ -38,7 +38,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('experience_builder');
+    $this->installConfig('canvas');
     $this->entity = Folder::create([
       'name' => 'Test folder, please ignore',
       'configEntityTypeId' => Component::ENTITY_TYPE_ID,
@@ -51,7 +51,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testItemsConstraintValidation(): void {
-    $this->enableModules(['xb_test_sdc']);
+    $this->enableModules(['canvas_test_sdc']);
 
     // 1. A Component-targeting Folder containing all actual Component config
     // entities. Empty all Folders so we're effectively starting from scratch.
@@ -71,25 +71,25 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // 2. A Component-targeting Folder containing 1 actual Asset Library config
     // entity name, 2 non-existing IDs and a code component ID.
     $items = [
-      'experience_builder.xb_asset_library.global',
+      'canvas.asset_library.global',
       'global',
       'fake_component',
     ];
     $this->entity->set('items', $items);
     $this->assertValidationErrors([
-      'items.0' => 'The \'experience_builder.component.experience_builder.xb_asset_library.global\' config does not exist.',
-      'items.1' => 'The \'experience_builder.component.global\' config does not exist.',
-      'items.2' => 'The \'experience_builder.component.fake_component\' config does not exist.',
+      'items.0' => 'The \'canvas.component.canvas.asset_library.global\' config does not exist.',
+      'items.1' => 'The \'canvas.component.global\' config does not exist.',
+      'items.2' => 'The \'canvas.component.fake_component\' config does not exist.',
     ]);
 
     // 3. A JavaScriptComponent-targeting Folder containing:
     // - 1 code component ID
     // - The full config name for that same code component.
     // - The original code component ID again (so: duplication).
-    self::assertTrue($this->container->get('module_installer')->install(['xb_test_code_components']));
+    self::assertTrue($this->container->get('module_installer')->install(['canvas_test_code_components']));
     $code_components = JavaScriptComponent::loadMultiple();
-    self::assertArrayHasKey('xb_test_code_components_using_imports', $code_components);
-    $test_code_component = $code_components['xb_test_code_components_using_imports'];
+    self::assertArrayHasKey('canvas_test_code_components_using_imports', $code_components);
+    $test_code_component = $code_components['canvas_test_code_components_using_imports'];
     $cool_code_components_folder = Folder::create([
       'name' => 'My cool code components',
       'configEntityTypeId' => JavaScriptComponent::ENTITY_TYPE_ID,
@@ -105,7 +105,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     $this->entity = $cool_code_components_folder;
     $this->assertValidationErrors([
       'items' => 'This collection should contain only unique elements.',
-      'items.1' => "The 'experience_builder.js_component.experience_builder.js_component.xb_test_code_components_using_imports' config does not exist.",
+      'items.1' => "The 'canvas.js_component.canvas.js_component.canvas_test_code_components_using_imports' config does not exist.",
     ]);
   }
 
@@ -115,7 +115,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
       'configEntityTypeId' => AssetLibrary::ENTITY_TYPE_ID,
     ]);
     $this->assertValidationErrors([
-      'configEntityTypeId' => 'The \'xb_asset_library\' plugin must implement or extend Drupal\experience_builder\Entity\FolderItemInterface.',
+      'configEntityTypeId' => 'The \'asset_library\' plugin must implement or extend Drupal\canvas\Entity\FolderItemInterface.',
     ]);
   }
 
@@ -153,7 +153,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // If we don't set a random name here, we will get unrelated validation
     // errors, because the same folder name will then be used multiple times
     // for the same folder type.
-    // @see \Drupal\experience_builder\Plugin\Validation\Constraint\UniqueNamePerFolderTypeConstraint
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\UniqueNamePerFolderTypeConstraint
     $this->entity->set('name', self::randomString());
     parent::testImmutableProperties([
       'configEntityTypeId' => JavaScriptComponent::ENTITY_TYPE_ID,
@@ -161,7 +161,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testOneFolderPerItemLimitConstraintValidation(): void {
-    $this->enableModules(['xb_test_sdc']);
+    $this->enableModules(['canvas_test_sdc']);
 
     // 1. A Component-targeting Folder containing all actual Component config
     // entities. Empty all folders so we're effectively starting from scratch.
@@ -177,7 +177,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     $this->entity->set('items', $items);
     $this->assertValidationErrors([]);
     $this->entity->save();
-    $test_item = 'sdc.xb_test_sdc.video';
+    $test_item = 'sdc.canvas_test_sdc.video';
 
     // 2. A Component-targeting Folder, that contains a Component that already
     // belongs to previously saved Folder.
@@ -187,7 +187,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
       'items' => [$test_item],
     ]);
     $this->assertValidationErrors([
-      'items.0' => 'Folder item <em class="placeholder">sdc.xb_test_sdc.video</em> is already assigned to folder <em class="placeholder">Test folder, please ignore</em>',
+      'items.0' => 'Folder item <em class="placeholder">sdc.canvas_test_sdc.video</em> is already assigned to folder <em class="placeholder">Test folder, please ignore</em>',
     ]);
 
     // 3. Import config containing multiple invalid Folders. Import will succeed
@@ -197,14 +197,14 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // ⚠️ This is testing an extreme edge case that can only be caused by developers.
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.sync'));
     $sync = \Drupal::service('config.storage.sync');
-    $sync->write('experience_builder.folder.fe79d3f7-9cd4-46b7-a285-43d2a22b0048', [
+    $sync->write('canvas.folder.fe79d3f7-9cd4-46b7-a285-43d2a22b0048', [
       'uuid' => 'fe79d3f7-9cd4-46b7-a285-43d2a22b0048',
       'name' => 'Test Folder, please ignore 3',
       'configEntityTypeId' => Component::ENTITY_TYPE_ID,
       'weight' => 0,
       'items' => [$test_item],
     ]);
-    $sync->write('experience_builder.folder.fe79d3f7-9cd4-46b7-a285-43d2a22b0049', [
+    $sync->write('canvas.folder.fe79d3f7-9cd4-46b7-a285-43d2a22b0049', [
       'uuid' => 'fe79d3f7-9cd4-46b7-a285-43d2a22b0049',
       'name' => 'Test Folder, please ignore 4',
       'configEntityTypeId' => Component::ENTITY_TYPE_ID,

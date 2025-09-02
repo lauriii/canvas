@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\Validation\Constraint;
+namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\ChoiceValidator;
 use Symfony\Component\Validator\Exception\UnexpectedValueException;

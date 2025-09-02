@@ -1,17 +1,17 @@
 describe('Multi-select components', () => {
   before(() => {
     // Temp. while multi-selection is still in development
-    cy.drupalXbInstall(['xb_dev_mode']);
+    cy.drupalCanvasInstall(['canvas_dev_mode']);
   });
 
   beforeEach(() => {
     cy.drupalSession();
-    cy.drupalLogin('xbUser', 'xbUser');
-    cy.loadURLandWaitForXBLoaded();
+    cy.drupalLogin('canvasUser', 'canvasUser');
+    cy.loadURLandWaitForCanvasLoaded();
 
     // Make sure we have multiple components visible for testing
     cy.testInIframe(
-      '[data-component-id="xb_test_sdc:my-hero"]',
+      '[data-component-id="canvas_test_sdc:my-hero"]',
       (myHeroComponent) => {
         expect(myHeroComponent.length).to.be.at.least(
           2,
@@ -33,16 +33,16 @@ describe('Multi-select components', () => {
     // Check that the component is selected
     cy.getAllComponentsInPreview('Hero')
       .eq(0)
-      .should('have.attr', 'data-xb-selected', 'true');
+      .should('have.attr', 'data-canvas-selected', 'true');
 
     // Check that only one component is selected (no multiselect active)
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 1);
 
     // Check that the single-component panel is shown
-    cy.get('[data-testid="xb-contextual-panel"]').should('exist');
-    cy.get('[data-testid="xb-contextual-panel--settings"]').should('exist');
+    cy.get('[data-testid="canvas-contextual-panel"]').should('exist');
+    cy.get('[data-testid="canvas-contextual-panel--settings"]').should('exist');
     cy.findByLabelText('Heading').should('have.value', 'hello, world!');
 
     // Verify URL contains the component ID
@@ -65,11 +65,11 @@ describe('Multi-select components', () => {
 
     // Both components should be selected
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 2);
 
     // The multi-select panel should show with count
-    cy.get('[data-testid="xb-contextual-panel"]')
+    cy.get('[data-testid="canvas-contextual-panel"]')
       .contains('2 items selected')
       .should('be.visible');
 
@@ -89,7 +89,7 @@ describe('Multi-select components', () => {
 
     // Check both are selected
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 2);
 
     // URL should not contain component ID for multi-selection
@@ -103,14 +103,14 @@ describe('Multi-select components', () => {
 
     // Only one should remain selected
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 1);
 
     // Assert that the URL has the correct /component/:componentId in the URL
     cy.location('pathname').should('include', '/component/');
 
     // Assert that the multi select panel is no longer shown
-    cy.get('[data-testid="xb-contextual-panel"]')
+    cy.get('[data-testid="canvas-contextual-panel"]')
       .contains('items selected')
       .should('not.exist');
   });
@@ -119,7 +119,7 @@ describe('Multi-select components', () => {
     cy.previewReady();
 
     // Find and click Hero components in layers view
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findAllByText('Hero') // Try to find by text instead of label
         .first()
         .click();
@@ -127,11 +127,11 @@ describe('Multi-select components', () => {
 
     // Verify a component is selected in preview
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 1);
 
     // Try to select a second one with meta key
-    cy.findByTestId('xb-primary-panel')
+    cy.findByTestId('canvas-primary-panel')
       .findAllByText('Hero')
       .eq(1)
       .click({ metaKey: true, force: true });
@@ -139,11 +139,11 @@ describe('Multi-select components', () => {
 
     // Both should be selected in preview
     cy.getAllComponentsInPreview('Hero')
-      .filter('[data-xb-selected="true"]')
+      .filter('[data-canvas-selected="true"]')
       .should('have.length', 2);
 
     // Multi-select UI should be shown
-    cy.get('[data-testid="xb-contextual-panel"]')
+    cy.get('[data-testid="canvas-contextual-panel"]')
       .contains('items selected')
       .should('exist');
   });
@@ -156,8 +156,8 @@ describe('Multi-select components', () => {
     cy.previewReady();
 
     // Verify that selection is reflected in the layers panel
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('exist');
 
     // Select a second component in preview with meta key
@@ -167,8 +167,8 @@ describe('Multi-select components', () => {
     cy.previewReady();
 
     // Should find at least 2 selected items in layers panel
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('have.length.at.least', 2);
   });
 
@@ -176,45 +176,45 @@ describe('Multi-select components', () => {
     cy.previewReady();
 
     cy.log('Select the parent');
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findByText('Two Column').click();
     });
 
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('have.length', 1);
 
     cy.log('Try to multi select one of its children');
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findByText('One Column').click({ metaKey: true });
     });
 
     cy.log(
       'Still should have one item selected, selecting a child replaces the parent in the selection',
     );
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('have.length', 1);
 
     cy.log('Select a sibling child');
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findAllByText('Hero').first().click({ metaKey: true });
     });
 
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('have.length', 2);
 
     cy.log('Multi select the parent again');
-    cy.findByTestId('xb-primary-panel').within(() => {
+    cy.findByTestId('canvas-primary-panel').within(() => {
       cy.findByText('Two Column').click({ metaKey: true });
     });
 
     cy.log(
       'Should have one item selected, selecting a parent replaces the children in the selection',
     );
-    cy.findByTestId('xb-primary-panel')
-      .find('[data-xb-selected="true"]')
+    cy.findByTestId('canvas-primary-panel')
+      .find('[data-canvas-selected="true"]')
       .should('have.length', 1);
   });
 });

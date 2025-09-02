@@ -17,7 +17,7 @@
  * Which would be derived as the "link" type. The same shape without the
  * "format" property would be derived as the "text" type.
  *
- * @see config/schema/experience_builder.schema.yml#experience_builder.js_component.*.mapping.props
+ * @see config/schema/canvas.schema.yml#canvas.js_component.*.mapping.props
  */
 
 import type { CodeComponentPropSerialized } from '@/types/CodeComponent';
@@ -71,7 +71,7 @@ const derivedPropTypes = [
       prop.type === 'object' && prop.$ref?.includes('image'),
     init: {
       type: 'object',
-      $ref: 'json-schema-definitions://experience_builder.module/image',
+      $ref: 'json-schema-definitions://canvas.module/image',
     },
   },
   {
@@ -81,7 +81,7 @@ const derivedPropTypes = [
       prop.type === 'object' && prop.$ref?.includes('video'),
     init: {
       type: 'object',
-      $ref: 'json-schema-definitions://experience_builder.module/video',
+      $ref: 'json-schema-definitions://canvas.module/video',
     },
   },
   {

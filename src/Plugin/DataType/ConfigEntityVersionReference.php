@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -10,8 +10,8 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\DataReferenceDefinition;
 use Drupal\Core\TypedData\TypedDataInterface;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 
 /**
  * Defines a 'config_entity_version_reference' data type.
@@ -20,7 +20,7 @@ use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
  * version of a config entity.
  *
  * The plain value of this reference is the config entity object, i.e. an
- * instance of \Drupal\experience_builder\Entity\VersionedConfigEntityInterface.
+ * instance of \Drupal\canvas\Entity\VersionedConfigEntityInterface.
  * For setting the value the entity object or the entity ID may be passed.
  *
  * @property ?\Drupal\Core\TypedData\TypedDataInterface $target
@@ -57,7 +57,7 @@ final class ConfigEntityVersionReference extends EntityReference {
    */
   public function getTargetDefinition(): EntityDataDefinitionInterface {
     \assert($this->definition instanceof DataReferenceDefinition);
-    /** @var \Drupal\experience_builder\TypedData\ConfigEntityVersionDataDefinition */
+    /** @var \Drupal\canvas\TypedData\ConfigEntityVersionDataDefinition */
     return $this->definition->getTargetDefinition();
   }
 

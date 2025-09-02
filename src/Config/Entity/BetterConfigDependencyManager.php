@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Config\Entity;
+namespace Drupal\canvas\Config\Entity;
 
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
 
 /**
  * @internal
  * @todo Add the getAllDependencies() method to core's ConfigDependencyManager in https://www.drupal.org/project/drupal/issues/2724835, then remove this trait.
- * @see \Drupal\Tests\experience_builder\Traits\BetterConfigDependencyManagerTrait
+ * @see \Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait
  */
 final class BetterConfigDependencyManager extends ConfigDependencyManager {
 

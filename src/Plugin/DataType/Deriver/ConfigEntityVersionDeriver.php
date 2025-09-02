@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\DataType\Deriver;
+namespace Drupal\canvas\Plugin\DataType\Deriver;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
-use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
-use Drupal\experience_builder\Plugin\DataType\ConfigEntityVersionAdapter;
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

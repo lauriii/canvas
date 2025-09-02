@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel;
+namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\experience_builder\PropShape\PropShape;
-use Drupal\experience_builder\PropShape\StorablePropShape;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
- * @covers \Drupal\experience_builder\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
- * @covers \Drupal\experience_builder\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
- * @group experience_builder
+ * @covers \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+ * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
+ * @group canvas
  */
 class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
 
@@ -68,22 +68,22 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
   public static function getExpectedUnstorablePropShapes(): array {
     $unstorable_prop_shapes = parent::getExpectedUnstorablePropShapes();
     unset(
-      $unstorable_prop_shapes['type=object&$ref=json-schema-definitions://experience_builder.module/video'],
+      $unstorable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/video'],
     );
     return $unstorable_prop_shapes;
   }
 
   /**
-   * @return \Drupal\experience_builder\PropShape\StorablePropShape[]
+   * @return \Drupal\canvas\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();
     $image_shapes = array_intersect_key(
       $storable_prop_shapes,
       array_flip([
-        'type=object&$ref=json-schema-definitions://experience_builder.module/image',
-        'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object',
-        'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2',
+        'type=object&$ref=json-schema-definitions://canvas.module/image',
+        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object',
+        'type=array&items[$ref]=json-schema-definitions://canvas.module/image&items[type]=object&maxItems=2',
       ]),
     );
     foreach ($image_shapes as $k => $image_shape) {
@@ -108,8 +108,8 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
       );
     }
 
-    $storable_prop_shapes['type=object&$ref=json-schema-definitions://experience_builder.module/video'] = new StorablePropShape(
-      shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/video']),
+    $storable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/video'] = new StorablePropShape(
+      shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
       // @phpstan-ignore-next-line
       fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_videos|vacation_videos␝field_media_video_file|field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url}'),
       fieldWidget: 'media_library_widget',
@@ -127,7 +127,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
       ],
     );
 
-    $storable_prop_shapes['type=string&$ref=json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'] = new StorablePropShape(
+    $storable_prop_shapes['type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri'] = new StorablePropShape(
       shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
       // @phpstan-ignore-next-line
       fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟value'),

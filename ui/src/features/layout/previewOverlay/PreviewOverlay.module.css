@@ -386,7 +386,7 @@
   }
 }
 
-.xbNameTag {
+.canvasNameTag {
   position: absolute;
   top: var(--name-tag-vertical-offset);
 }

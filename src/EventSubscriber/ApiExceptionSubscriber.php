@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\experience_builder\EventSubscriber;
+namespace Drupal\canvas\EventSubscriber;
 
-use Drupal\experience_builder\Controller\ApiAutoSaveController;
+use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -10,9 +10,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Utility\ExceptionHelper;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Utility\ExceptionHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * Handle exceptions for Experience Builder API routes.
+ * Handle exceptions for Drupal Canvas API routes.
  */
 final class ApiExceptionSubscriber implements EventSubscriberInterface {
 
@@ -45,16 +45,16 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
     // @see \Drupal\Core\Routing\Enhancer\ParamConversionEnhancer::onException()
     $previous_exception = $event->getThrowable()->getPrevious();
 
-    // Only handle XB API routes. Special care is needed for 404s caused by
+    // Only handle Canvas API routes. Special care is needed for 404s caused by
     // requests to individual config entities that do not exist. This is not a
     // challenge in the generic (HTTP) exception handling because that
-    // determined by the (wrapper) format, whereas XB API routes *always* return
+    // determined by the (wrapper) format, whereas Canvas API routes *always* return
     // a JSON response.
     // @see \Drupal\Core\EventSubscriber\HttpExceptionSubscriberBase::onException()
-    // @todo Consider adding a `_format` requirement to all XB API routes, that
+    // @todo Consider adding a `_format` requirement to all Canvas API routes, that
     // might allow this to be simplified.
     $route_name = $this->routeMatch->getRouteName() ?? ($previous_exception instanceof ParamNotConvertedException ? $previous_exception->getRouteName() : NULL);
-    if (str_starts_with($route_name ?? '', 'experience_builder.api.')) {
+    if (str_starts_with($route_name ?? '', 'canvas.api.')) {
       $exception = $event->getThrowable();
 
       $status = match (TRUE) {

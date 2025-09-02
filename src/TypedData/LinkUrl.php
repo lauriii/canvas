@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\TypedData;
+namespace Drupal\canvas\TypedData;
 
 use Drupal\Core\TypedData\Plugin\DataType\StringData;
 use Drupal\Core\TypedData\Type\UriInterface;

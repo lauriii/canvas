@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -23,14 +23,14 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\AssetLibrary;
-use Drupal\experience_builder\Entity\AutoSavePublishAwareInterface;
-use Drupal\experience_builder\Entity\EntityConstraintViolationList;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Exception\ConstraintViolationException;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\experience_builder\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
@@ -49,7 +49,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   use ConstraintPropertyPathTranslatorTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
-  public const AVATAR_IMAGE_STYLE = 'xb_avatar';
+  public const AVATAR_IMAGE_STYLE = 'canvas_avatar';
 
   public function __construct(
     private readonly Connection $database,
@@ -57,7 +57,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly AutoSaveManager $autoSaveManager,
-    #[Autowire(service: 'logger.channel.experience_builder')]
+    #[Autowire(service: 'logger.channel.canvas')]
     private readonly LoggerInterface $logger,
     private readonly AccountInterface $currentUser,
   ) {}
@@ -101,7 +101,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
     // If any JavaScriptComponents are being published ensure the global
     // AssetLibrary is also being published.
-    // @todo Improve this in https://www.drupal.org/project/experience_builder/issues/3535038
+    // @todo Improve this in https://www.drupal.org/project/canvas/issues/3535038
     $global_asset = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     if ($global_asset !== NULL) {
       $global_asset_key = AutoSaveManager::getAutoSaveKey($global_asset);
@@ -174,7 +174,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // Remove 'data', 'client_id', 'entity' keys because this will reduce the amount of
     // data sent to the client and back to the server. Also, 'client_id' is only
     // used to determine if the client has the latest changes when editing an
-    // entity in Experience Builder and not needed for the publishing process.
+    // entity in Drupal Canvas and not needed for the publishing process.
     $filtered = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'client_id', 'entity'])), $filtered);
 
     $withUserDetails = \array_map(fn(array $item) => [
@@ -313,8 +313,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // Always set the revision user to the current user. Even though we
         // might not be creating a new revision, this would only be in the case
         // where this entity should be considered new, which means it has never
-        // published before in Experience Builder.
-        // @see \Drupal\experience_builder\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
+        // published before in Drupal Canvas.
+        // @see \Drupal\canvas\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
         if ($revision_user = $entity_definition->getRevisionMetadataKey('revision_user')) {
           assert(is_string($revision_user));
           $entity->set($revision_user, $this->currentUser->id());
@@ -439,7 +439,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to validate.
    *
-   * @throws \Drupal\experience_builder\Exception\ConstraintViolationException
+   * @throws \Drupal\canvas\Exception\ConstraintViolationException
    */
   private static function ensureEntityIsValid(EntityInterface $entity): void {
     $violations = new ConstraintViolationList();
@@ -462,7 +462,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     if ($entity instanceof ConfigEntityInterface) {
       return $violations;
     }
-    // Violations for XB field inputs should show against the 'model'
+    // Violations for Canvas field inputs should show against the 'model'
     // property.
     $map = \array_reduce(
       \array_keys(
@@ -479,7 +479,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         ...$carry,
         ...\array_combine(
           // Key the map by the field name for each delta.
-          // e.g. field_xb_demo.0.inputs
+          // e.g. field_canvas_demo.0.inputs
           \array_map(static fn (int|string $delta) => \sprintf('%s.%d.inputs', $field_name, (int) $delta), \array_keys($entity->get($field_name)->getValue())),
           // And map this to 'model'.
           \array_fill(0, $entity->get($field_name)->count(), 'model'),

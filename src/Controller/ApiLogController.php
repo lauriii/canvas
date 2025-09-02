@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Controller;
+namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Logger\RfcLogLevel;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final class ApiLogController {
 
   public function __construct(
-    #[Autowire(service: 'logger.channel.experience_builder')]
+    #[Autowire(service: 'logger.channel.canvas')]
     private readonly LoggerInterface $logger,
   ) {}
 

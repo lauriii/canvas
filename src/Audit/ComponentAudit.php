@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Audit;
+namespace Drupal\canvas\Audit;
 
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -14,12 +14,12 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
-use Drupal\experience_builder\Entity\ComponentInterface;
-use Drupal\experience_builder\Entity\ComponentTreeEntityInterface;
-use Drupal\experience_builder\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
- * @todo Improve in https://www.drupal.org/project/experience_builder/issues/3522953.
+ * @todo Improve in https://www.drupal.org/project/canvas/issues/3522953.
  */
 final class ComponentAudit {
 

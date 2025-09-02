@@ -8,7 +8,7 @@ import type {
 } from './layoutModelSlice';
 import { NodeType } from './layoutModelSlice';
 import { v4 as uuidv4 } from 'uuid';
-import { setXbDrupalSetting } from '@/utils/drupal-globals';
+import { setCanvasDrupalSetting } from '@/utils/drupal-globals';
 import { isConsecutive } from '@/utils/function-utils';
 import type { ComponentsList } from '@/types/Component';
 
@@ -790,4 +790,4 @@ const layoutUtils = {
   findParent,
   findSiblings,
 };
-setXbDrupalSetting('layoutUtils', layoutUtils);
+setCanvasDrupalSetting('layoutUtils', layoutUtils);

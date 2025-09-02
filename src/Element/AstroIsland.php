@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Element;
+namespace Drupal\canvas\Element;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
@@ -37,7 +37,7 @@ use Drupal\Core\Render\Element\RenderElementBase;
  * - #import_maps: Keyed array of importmap entries where the keys are the bare
  *   import names and the values are the resolved URL.
  *
- * @see \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor::processAttachments
+ * @see \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor::processAttachments
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
  *
  * Usage example:
@@ -96,7 +96,7 @@ final class AstroIsland extends RenderElementBase {
       return ['#plain_text' => \sprintf('You must pass a #name for an element of #type %s', self::PLUGIN_ID)];
     }
 
-    $client = \Drupal::service(LibraryDiscoveryInterface::class)->getLibraryByName('experience_builder', 'astro.client');
+    $client = \Drupal::service(LibraryDiscoveryInterface::class)->getLibraryByName('canvas', 'astro.client');
     assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
     $renderer_url = base_path() . $client['js'][0]['data'];
 
@@ -104,9 +104,9 @@ final class AstroIsland extends RenderElementBase {
       'raw',
       $prop_value,
     ],
-      \array_diff_key($element['#props'], \array_flip(['xb_uuid', 'xb_slot_ids', 'xb_is_preview']))
+      \array_diff_key($element['#props'], \array_flip(['canvas_uuid', 'canvas_slot_ids', 'canvas_is_preview']))
     );
-    $element['#attached']['library'][] = 'experience_builder/astro.hydration';
+    $element['#attached']['library'][] = 'canvas/astro.hydration';
     if (\count($mapped_props) === 0) {
       // We must always represent props as an object in JSON notation. We can't
       // use the JSON_FORCE_OBJECT flag because that will force
@@ -132,10 +132,10 @@ final class AstroIsland extends RenderElementBase {
           'value' => $element['#framework'] ?? 'preact',
         ], JSON_THROW_ON_ERROR),
           // Add slots as named variables so the point they're printed can be
-          // wrapped by XbWrapperNode and any passed meta props to enable
-        // XbWrapperNode to wrap slots with HTML comments.
+          // wrapped by CanvasWrapperNode and any passed meta props to enable
+        // CanvasWrapperNode to wrap slots with HTML comments.
       ] + \array_map(static fn(array|string $slot) => \is_array($slot) ? $slot : ['#plain_text' => $slot], $element['#slots'] ?? []) +
-      \array_intersect_key($element['#props'] ?? [], \array_flip(['xb_uuid', 'xb_slot_ids', 'xb_is_preview'])),
+      \array_intersect_key($element['#props'] ?? [], \array_flip(['canvas_uuid', 'canvas_slot_ids', 'canvas_is_preview'])),
     ];
     // Return this as a new child element so that process callbacks are executed
     // for the new render array.
@@ -143,7 +143,7 @@ final class AstroIsland extends RenderElementBase {
     // Scope any import-maps.
     if (\array_key_exists('#import_maps', $element)) {
       // Convert these to attachments that can be processed.
-      // @see \Drupal\experience_builder\Render\ImportMapResponseAttachmentsProcessor::processAttachments
+      // @see \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor::processAttachments
       $element['#attached']['import_maps'] = $element['#import_maps'];
     }
     $element['#attached']['html_head_link'][] = [
@@ -166,7 +166,7 @@ final class AstroIsland extends RenderElementBase {
    */
   protected static function generateTemplate(array $slot_names): string {
     $has_slots = !empty($slot_names);
-    $template = '<xb-island uid="{{ __aie_uuid }}"
+    $template = '<canvas-island uid="{{ __aie_uuid }}"
       component-url="{{ __aie_component_url }}"
       component-export="default"'
       . ($has_slots ? ' await-children=""' : '') . '
@@ -182,7 +182,7 @@ final class AstroIsland extends RenderElementBase {
     // because with Astro's client="only" directive, Astro waits until the
     // entire page is loaded before hydrating islands.
     // @todo Investigate if it's possible to hydrate islands immediately
-    //   after the <xb-island> element is parsed rather than on page load.
+    //   after the <canvas-island> element is parsed rather than on page load.
     $template .= '<script type="module" src="{{ __aie_renderer }}" blocking="render"></script>';
     $template .= '<script type="module" src="{{ __aie_component_url }}" blocking="render"></script>';
 
@@ -195,7 +195,7 @@ final class AstroIsland extends RenderElementBase {
       }
       $template .= \sprintf('<template data-astro-template="%s">{{ %s }}</template>', $escaped_slot_name, $escaped_slot_name);
     }
-    $template .= '</xb-island>';
+    $template .= '</canvas-island>';
     return $template;
   }
 

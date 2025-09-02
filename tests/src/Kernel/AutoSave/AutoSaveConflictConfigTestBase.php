@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\AutoSave;
+namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\Core\Url;
-use Drupal\experience_builder\Entity\JavaScriptComponent;
-use Drupal\experience_builder\Entity\XbHttpApiEligibleConfigEntityInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\experience_builder\Kernel\Traits\RequestTrait;
-use Drupal\Tests\experience_builder\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -40,7 +40,7 @@ abstract class AutoSaveConflictConfigTestBase extends KernelTestBase {
   protected function getAutoSaveUrl(): string {
     $entity_type_id = $this->entity->getEntityTypeId();
     $entity_id = $this->entity->id();
-    return Url::fromUri("base:/xb/api/v0/config/auto-save/$entity_type_id/$entity_id")->toString();
+    return Url::fromUri("base:/canvas/api/v0/config/auto-save/$entity_type_id/$entity_id")->toString();
   }
 
   protected function modifyJsonToSendAsAutoSave(array &$json, string $text): void {
@@ -49,7 +49,7 @@ abstract class AutoSaveConflictConfigTestBase extends KernelTestBase {
 
   protected function assertCurrentAutoSaveText(string $text): void {
     $entity = $this->getAutoSaveManager()->getAutoSaveEntity($this->entity)->entity;
-    self::assertInstanceOf(XbHttpApiEligibleConfigEntityInterface::class, $entity);
+    self::assertInstanceOf(CanvasHttpApiEligibleConfigEntityInterface::class, $entity);
     self::assertSame($text, $entity->get($this->updateKey));
   }
 

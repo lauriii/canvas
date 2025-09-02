@@ -17,41 +17,41 @@ const pageHTML = `<!DOCTYPE html>
             <div class="region region--content grid-full layout--pass--content-medium" id="content">
                 <div class="block block-system block-system-main-block">
                     <div class="block__content">
-                        <div data-xb-uuid="content" data-xb-region="content">
-                            <!-- xb-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91 -->
-                            <div data-component-id="xb_test_sdc:my-hero"
+                        <div data-canvas-uuid="content" data-canvas-region="content">
+                            <!-- canvas-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91 -->
+                            <div data-component-id="canvas_test_sdc:my-hero"
                                  class="my-hero__container">
                                 <h1 class="my-hero__heading">
-                                    <!-- xb-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/heading -->
+                                    <!-- canvas-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/heading -->
                                     There goes my hero
-                                    <!-- xb-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/heading --></h1>
+                                    <!-- canvas-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/heading --></h1>
                                 <p class="my-hero__subheading">
-                                    <!-- xb-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/subheading -->
+                                    <!-- canvas-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/subheading -->
                                     Watch him as he goes!
-                                    <!-- xb-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/subheading --></p>
+                                    <!-- canvas-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/subheading --></p>
                                 <div class="my-hero__actions">
                                     <a href="https://example.com"
                                        class="my-hero__cta my-hero__cta--primary">
-                                        <!-- xb-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta1 -->
+                                        <!-- canvas-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta1 -->
                                         View
-                                        <!-- xb-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta1 --></a>
+                                        <!-- canvas-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta1 --></a>
                                     <button class="my-hero__cta">
-                                        <!-- xb-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta2 -->
+                                        <!-- canvas-prop-start-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta2 -->
                                         Click
-                                        <!-- xb-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta2 --></button>
+                                        <!-- canvas-prop-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91/cta2 --></button>
                                 </div>
                             </div>
-                            <!-- xb-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91 -->
-                            <!-- xb-start-3c88f148-94e2-47c1-b734-24b5017e9e60 --><h2
+                            <!-- canvas-end-fce5e0e3-175f-48b5-a62c-176dbc5f3e91 -->
+                            <!-- canvas-start-3c88f148-94e2-47c1-b734-24b5017e9e60 --><h2
                                 class="my-section__h2">Our Mission</h2>
                             <div class="my-section__wrapper">
                                 <div class="my-section__content-wrapper">
                                     <p class="my-section__paragraph">
-                                        <!-- xb-prop-start-3c88f148-94e2-47c1-b734-24b5017e9e60/text -->
+                                        <!-- canvas-prop-start-3c88f148-94e2-47c1-b734-24b5017e9e60/text -->
                                         Our mission is to deliver the best products and services to
                                         our customers. We strive to exceed expectations and
                                         continuously improve our offerings.
-                                        <!-- xb-prop-end-3c88f148-94e2-47c1-b734-24b5017e9e60/text -->
+                                        <!-- canvas-prop-end-3c88f148-94e2-47c1-b734-24b5017e9e60/text -->
                                     </p>
                                     <p class="my-section__paragraph">
                                         Join us on our journey to innovation and excellence. Your
@@ -64,21 +64,21 @@ const pageHTML = `<!DOCTYPE html>
                                          src="/test.png">
                                 </div>
                             </div>
-                            <!-- xb-end-3c88f148-94e2-47c1-b734-24b5017e9e60 -->
-                            <!-- xb-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><div data-component-id="xb_test_sdc:two_column" data-xb-uuid="ad3eff8e-2180-4be1-a60f-df3f2c5ac393">
-          <div class="column-one width-25" data-xb-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one">
-            <!-- xb-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one --><!-- xb-start-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><h1 data-component-id="xb_test_sdc:heading" class="primary" data-xb-uuid="9bee944d-a92d-42b9-a0ae-abae0080cdfa">A heading element</h1>
-<!-- xb-end-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><!-- xb-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one -->
+                            <!-- canvas-end-3c88f148-94e2-47c1-b734-24b5017e9e60 -->
+                            <!-- canvas-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><div data-component-id="canvas_test_sdc:two_column" data-canvas-uuid="ad3eff8e-2180-4be1-a60f-df3f2c5ac393">
+          <div class="column-one width-25" data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one">
+            <!-- canvas-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one --><!-- canvas-start-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><h1 data-component-id="canvas_test_sdc:heading" class="primary" data-canvas-uuid="9bee944d-a92d-42b9-a0ae-abae0080cdfa">A heading element</h1>
+<!-- canvas-end-9bee944d-a92d-42b9-a0ae-abae0080cdfa --><!-- canvas-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one -->
         </div>
 
-          <div class="column-two width-75" data-xb-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two">
-            <!-- xb-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two --><p>This is column 2 content</p><!-- xb-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two -->
+          <div class="column-two width-75" data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two">
+            <!-- canvas-slot-start-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two --><p>This is column 2 content</p><!-- canvas-slot-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two -->
         </div>
     </div>
-<!-- xb-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- xb-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="xb_test_sdc:one_column" class="width-full" data-xb-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-xb-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
-      <!-- xb-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="xb--slot-empty-placeholder"></div><!-- xb-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
+<!-- canvas-end-ad3eff8e-2180-4be1-a60f-df3f2c5ac393 --><!-- canvas-start-49132256-b0c2-4753-9800-fdc147fafae8 --><div data-component-id="canvas_test_sdc:one_column" class="width-full" data-canvas-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content" data-canvas-uuid="49132256-b0c2-4753-9800-fdc147fafae8">
+      <!-- canvas-slot-start-49132256-b0c2-4753-9800-fdc147fafae8/content --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-49132256-b0c2-4753-9800-fdc147fafae8/content -->
   </div>
-<!-- xb-end-49132256-b0c2-4753-9800-fdc147fafae8 --></div>
+<!-- canvas-end-49132256-b0c2-4753-9800-fdc147fafae8 --></div>
                     </div>
                 </div>
             </div>
@@ -106,19 +106,19 @@ describe('mapComponents', () => {
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393': {
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         elements: [
-          doc.querySelector('[data-component-id="xb_test_sdc:two_column"]'),
+          doc.querySelector('[data-component-id="canvas_test_sdc:two_column"]'),
         ],
       },
       '9bee944d-a92d-42b9-a0ae-abae0080cdfa': {
         componentUuid: '9bee944d-a92d-42b9-a0ae-abae0080cdfa',
         elements: [
-          doc.querySelector('[data-component-id="xb_test_sdc:heading"]'),
+          doc.querySelector('[data-component-id="canvas_test_sdc:heading"]'),
         ],
       },
       '49132256-b0c2-4753-9800-fdc147fafae8': {
         componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
         elements: [
-          doc.querySelector('[data-component-id="xb_test_sdc:one_column"]'),
+          doc.querySelector('[data-component-id="canvas_test_sdc:one_column"]'),
         ],
       },
     };
@@ -130,7 +130,7 @@ describe('mapComponents', () => {
 });
 
 describe('getElementsByIdInHTMLComment', () => {
-  it('should return elements between xb-start and xb-end comments for a given ID', () => {
+  it('should return elements between canvas-start and canvas-end comments for a given ID', () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(pageHTML, 'text/html');
 
@@ -168,7 +168,7 @@ describe('mapSlots', () => {
     const expectedSlotsMap = {
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one': {
         element: doc.querySelector(
-          '[data-xb-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one"]',
+          '[data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one"]',
         ),
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         slotName: 'column_one',
@@ -176,7 +176,7 @@ describe('mapSlots', () => {
       },
       'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two': {
         element: doc.querySelector(
-          '[data-xb-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two"]',
+          '[data-canvas-slot-id="ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_two"]',
         ),
         componentUuid: 'ad3eff8e-2180-4be1-a60f-df3f2c5ac393',
         slotName: 'column_two',
@@ -184,7 +184,7 @@ describe('mapSlots', () => {
       },
       '49132256-b0c2-4753-9800-fdc147fafae8/content': {
         element: doc.querySelector(
-          '[data-xb-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content"]',
+          '[data-canvas-slot-id="49132256-b0c2-4753-9800-fdc147fafae8/content"]',
         ),
         componentUuid: '49132256-b0c2-4753-9800-fdc147fafae8',
         slotName: 'content',
@@ -199,7 +199,7 @@ describe('mapSlots', () => {
 });
 
 describe('getSlotParentsByHTMLComments', () => {
-  it('should return an array of parent elements for each xb-slot-start comment', () => {
+  it('should return an array of parent elements for each canvas-slot-start comment', () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(pageHTML, 'text/html');
 

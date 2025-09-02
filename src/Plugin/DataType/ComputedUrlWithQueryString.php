@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -10,9 +10,9 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
-use Drupal\experience_builder\PropExpressions\StructuredData\Evaluator;
-use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 
 #[DataType(
   id: self::PLUGIN_ID,

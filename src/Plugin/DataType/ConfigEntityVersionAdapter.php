@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin\DataType;
+namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\Attribute\DataType;
 use Drupal\Core\TypedData\ComplexDataInterface;
-use Drupal\experience_builder\Entity\VersionedConfigEntityInterface;
-use Drupal\experience_builder\Plugin\DataType\Deriver\ConfigEntityVersionDeriver;
-use Drupal\experience_builder\TypedData\ConfigEntityVersionDataDefinition;
+use Drupal\canvas\Entity\VersionedConfigEntityInterface;
+use Drupal\canvas\Plugin\DataType\Deriver\ConfigEntityVersionDeriver;
+use Drupal\canvas\TypedData\ConfigEntityVersionDataDefinition;
 
 /**
  * Defines the "config_entity_version" data type.
@@ -35,7 +35,7 @@ final class ConfigEntityVersionAdapter extends ConfigEntityAdapter implements \I
    * {@inheritdoc}
    */
   public function getValue(): VersionedConfigEntityInterface {
-    /** @var \Drupal\experience_builder\Entity\VersionedConfigEntityInterface */
+    /** @var \Drupal\canvas\Entity\VersionedConfigEntityInterface */
     return parent::getValue();
   }
 

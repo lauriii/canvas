@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\Entity;
+namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultReasonInterface;
@@ -12,9 +12,9 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Recipe\InvalidConfigException;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
-use Drupal\experience_builder\Entity\StagedConfigUpdate;
-use Drupal\experience_builder\EntityHandlers\StagedConfigUpdateStorage;
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\canvas\EntityHandlers\StagedConfigUpdateStorage;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,7 +29,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
   protected bool $usesSuperUserAccessPolicy = FALSE;
 
   protected static $modules = [
-    'experience_builder',
+    'canvas',
     'user',
     'system',
     'datetime',
@@ -65,7 +65,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     $map = $container->getParameter('hook_implementations_map');
     self::assertIsArray($map);
     $map['config_schema_info_alter'][StagedConfigUpdateTest::class] = [
-      'makeSystemSiteValidated' => 'experience_builder',
+      'makeSystemSiteValidated' => 'canvas',
     ];
     $container->setParameter('hook_implementations_map', $map);
   }
@@ -280,7 +280,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     $sut = $this->container->get('entity_type.manager')
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
-        'id' => 'xb_change_site_name',
+        'id' => 'canvas_change_site_name',
         'label' => 'Change the site name',
         'target' => 'system.site',
         'actions' => [
@@ -329,7 +329,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     $sut = $this->container->get('entity_type.manager')
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
-        'id' => 'xb_change_site_email',
+        'id' => 'canvas_change_site_email',
         'label' => 'Change the site email',
         'target' => 'system.site',
         'actions' => [
@@ -368,7 +368,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     $sut = $this->container->get('entity_type.manager')
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
-        'id' => 'xb_change_site_name',
+        'id' => 'canvas_change_site_name',
         'label' => 'Change the site name',
         'target' => 'system.site',
         'actions' => [

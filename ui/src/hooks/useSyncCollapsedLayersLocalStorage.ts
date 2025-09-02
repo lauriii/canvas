@@ -23,7 +23,7 @@ const useSyncCollapsedLayersLocalStorage = () => {
   const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const isInitialized = useRef(false);
   // Key the storage by edited entity
-  const key = `XB.collapsedLayers.${entityType}.${entityId}`;
+  const key = `Canvas.collapsedLayers.${entityType}.${entityId}`;
 
   // Initialize Redux state from local storage - run only once on component mount
   useEffect(() => {

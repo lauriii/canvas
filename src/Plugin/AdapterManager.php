@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder\Plugin;
+namespace Drupal\canvas\Plugin;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\experience_builder\Plugin\Adapter\Adapter;
-use Drupal\experience_builder\Plugin\Adapter\AdapterInterface;
+use Drupal\canvas\Plugin\Adapter\Adapter;
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 
 /**
- * @phpstan-import-type JsonSchema from \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType
+ * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 final class AdapterManager extends DefaultPluginManager {
 
@@ -27,16 +27,16 @@ final class AdapterManager extends DefaultPluginManager {
       $module_handler,
       AdapterInterface::class,
       Adapter::class,
-      'Drupal\experience_builder\Annotation\Adapter'
+      'Drupal\canvas\Annotation\Adapter'
     );
-    $this->alterInfo('experience_builder_adapter_manager_info');
-    $this->setCacheBackend($cache_backend, 'experience_builder_adapters');
+    $this->alterInfo('canvas_adapter_manager_info');
+    $this->setCacheBackend($cache_backend, 'canvas_adapters');
   }
 
   /**
    * @param JsonSchema $schema
    *
-   * @return \Drupal\experience_builder\Plugin\Adapter\AdapterInterface[]
+   * @return \Drupal\canvas\Plugin\Adapter\AdapterInterface[]
    * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
   public function getDefinitionsByOutputSchema(array $schema): array {

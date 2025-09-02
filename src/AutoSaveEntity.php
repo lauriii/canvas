@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\experience_builder;
+namespace Drupal\canvas;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\experience_builder\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 
 final class AutoSaveEntity implements CacheableDependencyInterface {
 

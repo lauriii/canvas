@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\experience_builder\Kernel\AutoSave;
+namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
-use Drupal\experience_builder\Entity\AssetLibrary;
+use Drupal\canvas\Entity\AssetLibrary;
 
 /**
  * Tests auto-save conflict handling for asset libraries.
  *
- * @see \Drupal\experience_builder\Entity\AssetLibrary
+ * @see \Drupal\canvas\Entity\AssetLibrary
  */
 final class AutoSaveConflictAssetLibraryTest extends AutoSaveConflictConfigTestBase {
 

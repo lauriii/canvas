@@ -31,13 +31,13 @@ import {
   selectModel,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
-import type { XBComponent } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 import type {
   LayoutModelSliceState,
   ComponentNode,
 } from '@/features/layout/layoutModelSlice';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
-import fixtureProps from '../../../../modules/xb_ai/src/PropsSchema.json';
+import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
 
 const DB_NAME = 'aiWizardDB';
 const STORE_NAME = 'chatHistory';
@@ -210,7 +210,7 @@ const operationsHandler = {
       ) {
         for (const component of op.components) {
           if (component.id && availableComponents[component.id]) {
-            const componentToUse: XBComponent =
+            const componentToUse: CanvasComponent =
               availableComponents[component.id];
             dispatch(
               layoutUtils.addNewComponentToLayout(
@@ -288,9 +288,9 @@ const AiWizard = () => {
       pageData,
     };
   }, [codeComponentName, textPropsMapString, pageData]);
-  // Access layoutUtils and componentSelectionUtils from drupalSettings.xb
-  const layoutUtils = drupalSettings.xb?.layoutUtils as any;
-  const componentSelectionUtils = drupalSettings.xb
+  // Access layoutUtils and componentSelectionUtils from drupalSettings.canvas
+  const layoutUtils = drupalSettings.canvas?.layoutUtils as any;
+  const componentSelectionUtils = drupalSettings.canvas
     ?.componentSelectionUtils as any;
 
   // Get the current layout, selected component, and available components from Redux state
@@ -371,7 +371,7 @@ const AiWizard = () => {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const response = await fetch('/admin/api/xb/token', {
+        const response = await fetch('/admin/api/canvas/token', {
           credentials: 'same-origin',
         });
         if (!response.ok) {
@@ -383,7 +383,7 @@ const AiWizard = () => {
         setCsrfToken(token);
       } catch (error) {
         console.error('Failed to fetch CSRF token:', error);
-        const event = new CustomEvent('xb-csrf-token-error', {
+        const event = new CustomEvent('canvas-csrf-token-error', {
           detail: {
             error,
             time: new Date(),
@@ -493,9 +493,7 @@ const AiWizard = () => {
           </Flex>
           <Flex direction="row" align="center" gap="0">
             <Box className={styles.aiWizardTitleContainer}>
-              <Text className={styles.aiWizardTitle}>
-                Experience Builder AI
-              </Text>
+              <Text className={styles.aiWizardTitle}>Drupal Canvas AI</Text>
               <Text className={styles.aiWizardBeta}>Beta</Text>
             </Box>
           </Flex>
@@ -559,9 +557,9 @@ const AiWizard = () => {
                   requestBody = body as FormData;
                   requestBody.append(
                     'entity_type',
-                    drupalSettings.xb.entityType,
+                    drupalSettings.canvas.entityType,
                   );
-                  requestBody.append('entity_id', drupalSettings.xb.entity);
+                  requestBody.append('entity_id', drupalSettings.canvas.entity);
                   requestBody.append(
                     'selected_component',
                     currentValuesRef.current.codeComponentName,
@@ -573,8 +571,8 @@ const AiWizard = () => {
                 } else {
                   requestBody = JSON.stringify({
                     ...body,
-                    entity_type: drupalSettings.xb.entityType,
-                    entity_id: drupalSettings.xb.entity,
+                    entity_type: drupalSettings.canvas.entityType,
+                    entity_id: drupalSettings.canvas.entity,
                     selected_component:
                       currentValuesRef.current.codeComponentName,
                     layout: currentValuesRef.current.textPropsMapString,
@@ -590,7 +588,7 @@ const AiWizard = () => {
                   });
                   headers['Content-Type'] = 'application/json';
                 }
-                const response = await fetch('/admin/api/xb/ai', {
+                const response = await fetch('/admin/api/canvas/ai', {
                   method: 'POST',
                   headers,
                   body: requestBody,

@@ -30,7 +30,7 @@ export class ApiService {
       headers: {
         'Content-Type': 'application/json',
         // Add the CLI marker header to identify CLI requests
-        'X-Experience-Builder-CLI': '1',
+        'X-Canvas-CLI': '1',
       },
       // Allow longer timeout for uploads
       timeout: 30000,
@@ -95,7 +95,9 @@ export class ApiService {
    */
   async listComponents(): Promise<Record<string, Component>> {
     try {
-      const response = await this.client.get('/xb/api/v0/config/js_component');
+      const response = await this.client.get(
+        '/canvas/api/v0/config/js_component',
+      );
       return response.data;
     } catch (error) {
       this.handleApiError(error);
@@ -104,7 +106,7 @@ export class ApiService {
   }
 
   /**
-   * Create a new component in XB.
+   * Create a new component in Canvas.
    */
   async createComponent(
     component: Component,
@@ -112,7 +114,7 @@ export class ApiService {
   ): Promise<Component> {
     try {
       const response = await this.client.post(
-        '/xb/api/v0/config/js_component',
+        '/canvas/api/v0/config/js_component',
         component,
       );
       return response.data;
@@ -132,7 +134,7 @@ export class ApiService {
   async getComponent(machineName: string): Promise<Component> {
     try {
       const response = await this.client.get(
-        `/xb/api/v0/config/js_component/${machineName}`,
+        `/canvas/api/v0/config/js_component/${machineName}`,
       );
       return response.data;
     } catch (error) {
@@ -150,7 +152,7 @@ export class ApiService {
   ): Promise<Component> {
     try {
       const response = await this.client.patch(
-        `/xb/api/v0/config/js_component/${machineName}`,
+        `/canvas/api/v0/config/js_component/${machineName}`,
         component,
       );
       return response.data;
@@ -166,7 +168,7 @@ export class ApiService {
   async getGlobalAssetLibrary(): Promise<AssetLibrary> {
     try {
       const response = await this.client.get(
-        '/xb/api/v0/config/xb_asset_library/global',
+        '/canvas/api/v0/config/asset_library/global',
       );
       return response.data;
     } catch (error) {
@@ -183,7 +185,7 @@ export class ApiService {
   ): Promise<AssetLibrary> {
     try {
       const response = await this.client.patch(
-        '/xb/api/v0/config/xb_asset_library/global',
+        '/canvas/api/v0/config/asset_library/global',
         assetLibrary,
       );
       return response.data;
@@ -320,25 +322,25 @@ export function createApiService(): Promise<ApiService> {
 
   if (!config.siteUrl) {
     throw new Error(
-      'Site URL is required. Set it in the EXPERIENCE_BUILDER_SITE_URL environment variable or pass it with --site-url.',
+      'Site URL is required. Set it in the CANVAS_SITE_URL environment variable or pass it with --site-url.',
     );
   }
 
   if (!config.clientId) {
     throw new Error(
-      'Client ID is required. Set it in the EXPERIENCE_BUILDER_CLIENT_ID environment variable or pass it with --client-id.',
+      'Client ID is required. Set it in the CANVAS_CLIENT_ID environment variable or pass it with --client-id.',
     );
   }
 
   if (!config.clientSecret) {
     throw new Error(
-      'Client secret is required. Set it in the EXPERIENCE_BUILDER_CLIENT_SECRET environment variable or pass it with --client-secret.',
+      'Client secret is required. Set it in the CANVAS_CLIENT_SECRET environment variable or pass it with --client-secret.',
     );
   }
 
   if (!config.scope) {
     throw new Error(
-      'Scope is required. Set it in the EXPERIENCE_BUILDER_SCOPE environment variable or pass it with --scope.',
+      'Scope is required. Set it in the CANVAS_SCOPE environment variable or pass it with --scope.',
     );
   }
 
