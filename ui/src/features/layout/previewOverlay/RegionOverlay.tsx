@@ -1,28 +1,31 @@
-import type React from 'react';
 import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { useParams } from 'react-router';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import type { RegionNode } from '@/features/layout/layoutModelSlice';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
+import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
+import { RegionNameTag } from '@/features/layout/preview/NameTag';
+import RegionContextMenu from '@/features/layout/preview/RegionContextMenu';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
-import styles from './PreviewOverlay.module.css';
+import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
+import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
 import {
   DEFAULT_REGION,
-  selectEditorViewPortScale,
   selectDragging,
+  selectEditorViewPortScale,
   selectIsComponentHovered,
   selectTargetSlot,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import { RegionNameTag } from '@/features/layout/preview/NameTag';
-import clsx from 'clsx';
-import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import RegionDropZone from '@/features/layout/previewOverlay/RegionDropZone';
-import EmptyRegionDropZone from '@/features/layout/previewOverlay/EmptyRegionDropZone';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
-import { useParams } from 'react-router';
-import RegionContextMenu from '@/features/layout/preview/RegionContextMenu';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+
+import type React from 'react';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
+
+import styles from './PreviewOverlay.module.css';
 
 interface RegionOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;

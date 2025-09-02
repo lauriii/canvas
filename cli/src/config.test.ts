@@ -1,4 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as p from '@clack/prompts';
+
 import {
   ensureConfig,
   getConfig,
@@ -6,10 +11,6 @@ import {
   promptForConfig,
   setConfig,
 } from './config';
-import * as p from '@clack/prompts';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as dotenv from 'dotenv';
 
 vi.mock('fs');
 vi.mock('path');

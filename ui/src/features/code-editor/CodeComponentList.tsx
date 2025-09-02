@@ -1,25 +1,28 @@
 import React, { useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { useErrorBoundary } from 'react-error-boundary';
-import { Callout, ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import UnifiedMenu from '@/components/UnifiedMenu';
-import {
-  useGetCodeComponentsQuery,
-  useGetFoldersQuery,
-} from '@/services/componentAndLayout';
-import {
-  openDeleteDialog,
-  openRenameDialog,
-} from '@/features/ui/codeComponentDialogSlice';
-import { useAppDispatch } from '@/app/hooks';
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
-import styles from './CodeComponentList.module.css';
+import { useNavigate, useParams } from 'react-router-dom';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Callout, ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
+
+import { useAppDispatch } from '@/app/hooks';
 import FolderList, {
   folderfyComponents,
   sortFolderList,
 } from '@/components/list/FolderList';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
+import UnifiedMenu from '@/components/UnifiedMenu';
+import {
+  openDeleteDialog,
+  openRenameDialog,
+} from '@/features/ui/codeComponentDialogSlice';
+import {
+  useGetCodeComponentsQuery,
+  useGetFoldersQuery,
+} from '@/services/componentAndLayout';
+
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
+
+import styles from './CodeComponentList.module.css';
 
 export interface FolderCodeComponent {
   id: string;

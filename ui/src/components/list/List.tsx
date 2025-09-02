@@ -1,15 +1,18 @@
-import type React from 'react';
-import { useRef, useMemo } from 'react';
-import styles from './List.module.css';
-import { selectDragging } from '@/features/ui/uiSlice';
-import { useAppSelector } from '@/app/hooks';
-import { Box, Callout, Flex, Skeleton } from '@radix-ui/themes';
+import { useMemo, useRef } from 'react';
 import clsx from 'clsx';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Box, Callout, Flex, Skeleton } from '@radix-ui/themes';
+
+import { useAppSelector } from '@/app/hooks';
 import ListItem from '@/components/list/ListItem';
+import { selectDragging } from '@/features/ui/uiSlice';
+
+import type React from 'react';
+import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import type { ComponentsList } from '@/types/Component';
 import type { PatternsList } from '@/types/Pattern';
-import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+
+import styles from './List.module.css';
 
 export interface ListProps {
   items: ComponentsList | PatternsList | undefined;

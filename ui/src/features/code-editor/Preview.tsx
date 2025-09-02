@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { parse } from '@babel/parser';
+import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ErrorCard from '@/components/error/ErrorCard';
 import {
   clearDataFetches,
   selectCodeComponentProperty,
@@ -8,15 +12,6 @@ import {
   selectStatus,
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
-import { parse } from '@babel/parser';
-import type { File } from '@babel/types';
-import styles from './Preview.module.css';
-import ErrorCard from '@/components/error/ErrorCard';
-import MissingDefaultExportMessage, {
-  CodeBlock,
-  TextBlock,
-} from './errors/MissingDefaultExportMessage';
-import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import {
   getDataDependenciesFromAst,
   getImportsFromAst,
@@ -26,10 +21,19 @@ import {
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   getBaseUrl,
+  getCanvasSettings,
   getDrupal,
   getDrupalSettings,
-  getCanvasSettings,
 } from '@/utils/drupal-globals';
+
+import MissingDefaultExportMessage, {
+  CodeBlock,
+  TextBlock,
+} from './errors/MissingDefaultExportMessage';
+
+import type { File } from '@babel/types';
+
+import styles from './Preview.module.css';
 
 const Drupal = getDrupal();
 const CANVAS_MODULE_UI_PATH =

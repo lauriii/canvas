@@ -1,12 +1,14 @@
 import { Box } from '@radix-ui/themes';
-import AiWizard from './AiWizard';
-import styles from './AiPanel.module.css';
 
-import {
-  selectOpenLayoutItems,
-  LayoutItemType,
-} from '@/features/ui/primaryPanelSlice';
 import { useAppSelector } from '@/app/hooks';
+import {
+  LayoutItemType,
+  selectOpenLayoutItems,
+} from '@/features/ui/primaryPanelSlice';
+
+import AiWizard from './AiWizard';
+
+import styles from './AiPanel.module.css';
 
 interface AiPanelProps {}
 

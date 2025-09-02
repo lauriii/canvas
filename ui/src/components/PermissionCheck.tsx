@@ -1,9 +1,10 @@
-import type React from 'react';
 import {
+  hasAnyPermission as _hasAnyPermission,
   hasPermission as _hasPermission,
   hasPermissions as _hasPermissions,
-  hasAnyPermission as _hasAnyPermission,
 } from '@/utils/permissions';
+
+import type React from 'react';
 
 type RequireOnlyOnePermission =
   | {

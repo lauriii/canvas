@@ -1,5 +1,6 @@
-import factory from '../factory';
 import { camelCase, mapKeys, mapValues, set } from 'lodash-es';
+
+import factory from '../factory';
 import htmlElementAttributeToPropMap from './reactHtmlAttributeToPropertyMap';
 
 const basePropsify = factory({

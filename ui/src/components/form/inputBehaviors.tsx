@@ -1,12 +1,18 @@
-import type * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { getDefaultValue } from '@/components/form/formUtil';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { debounce } from 'lodash';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { getDefaultValue } from '@/components/form/formUtil';
+
+import type * as React from 'react';
+
 import './InputBehaviors.css';
-import type { PropsValues } from '@/types/Form';
-import type { Attributes } from '@/types/DrupalAttribute';
-import type { FormId } from '@/features/form/formStateSlice';
+
+import Ajv from 'ajv';
+
+import { InputBehaviorsComponentPropsForm } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { InputBehaviorsEntityForm } from '@/components/form/InputBehaviorsEntityForm';
+import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldError,
   selectFieldError,
@@ -14,13 +20,13 @@ import {
   setFieldError,
   setFieldValue,
 } from '@/features/form/formStateSlice';
-import type { ErrorObject } from 'ajv/dist/types';
-import { FORM_TYPES } from '@/features/form/constants';
-import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
-import { InputBehaviorsEntityForm } from '@/components/form/InputBehaviorsEntityForm';
-import { InputBehaviorsComponentPropsForm } from '@/components/form/InputBehaviorsComponentPropsForm';
-import Ajv from 'ajv';
+
+import type { ErrorObject } from 'ajv/dist/types';
+import type { FormId } from '@/features/form/formStateSlice';
+import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
+import type { Attributes } from '@/types/DrupalAttribute';
+import type { PropsValues } from '@/types/Form';
 
 const ajv = new Ajv();
 

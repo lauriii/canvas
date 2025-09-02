@@ -1,5 +1,6 @@
 import { Provider } from 'react-redux';
-import { getPropMachineName } from '@/features/code-editor/utils';
+import { Theme } from '@radix-ui/themes';
+
 import { makeStore } from '@/app/store';
 import {
   addProp,
@@ -7,9 +8,9 @@ import {
   toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
-import { Theme } from '@radix-ui/themes';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
 import { parseExampleSrc as parseImageExampleSrc } from '@/features/code-editor/component-data/forms/FormPropTypeImage';
+import { getPropMachineName } from '@/features/code-editor/utils';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';

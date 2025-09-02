@@ -1,28 +1,31 @@
-import type React from 'react';
-import type { CanvasComponent, JSComponent } from '@/types/Component';
-import type { Pattern } from '@/types/Pattern';
 import { useState } from 'react';
 import clsx from 'clsx';
-import styles from '@/components/list/List.module.css';
+import { useParams } from 'react-router';
+import { useDraggable } from '@dnd-kit/core';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Theme } from '@radix-ui/themes';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ComponentPreview from '@/components/ComponentPreview';
+import ExposedJsComponent from '@/components/list/ExposedJsComponent';
+import PatternNode from '@/components/list/PatternNode';
+import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import ComponentPreview from '@/components/ComponentPreview';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import useComponentSelection from '@/hooks/useComponentSelection';
-import ExposedJsComponent from '@/components/list/ExposedJsComponent';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { useDraggable } from '@dnd-kit/core';
-import PatternNode from '@/components/list/PatternNode';
-import { useParams } from 'react-router';
+import useComponentSelection from '@/hooks/useComponentSelection';
+
+import type React from 'react';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
-import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
+import type { CanvasComponent, JSComponent } from '@/types/Component';
+import type { Pattern } from '@/types/Pattern';
+
+import styles from '@/components/list/List.module.css';
 
 const ListItem: React.FC<{
   item: CanvasComponent | Pattern;

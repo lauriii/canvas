@@ -1,12 +1,14 @@
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useCallback } from 'react';
+
+import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+
 import type {
+  ComponentNode,
   LayoutChildNode,
   LayoutNode,
-  ComponentNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
 import type { ComponentsList } from '@/types/Component';
 
 const useGetComponentName = (

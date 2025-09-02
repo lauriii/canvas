@@ -1,6 +1,7 @@
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { Callout, Box, Flex, TextField } from '@radix-ui/themes';
 import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
+import { Box, Callout, Flex, TextField } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   addSlot,
   removeSlot,
@@ -8,12 +9,13 @@ import {
   selectCodeComponentProperty,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
-import FormPropTypeSlot from '@/features/code-editor/component-data/forms/FormPropTypeSlot';
-import SortableList from '@/features/code-editor/component-data/SortableList';
 import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
+import FormPropTypeSlot from '@/features/code-editor/component-data/forms/FormPropTypeSlot';
+import SortableList from '@/features/code-editor/component-data/SortableList';
+
 import type { CodeComponentSlot } from '@/types/CodeComponent';
 
 export default function Slots() {

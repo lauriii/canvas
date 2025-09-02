@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 

@@ -1,11 +1,12 @@
 import { Provider } from 'react-redux';
+import { Theme } from '@radix-ui/themes';
+
 import { makeStore } from '@/app/store';
 import {
   addSlot,
   selectCodeComponentProperty,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
-import { Theme } from '@radix-ui/themes';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
 
 import '@/styles/radix-themes';

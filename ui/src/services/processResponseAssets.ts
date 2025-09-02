@@ -1,5 +1,6 @@
-import type { PropsValues } from '@/types/Form';
 import { getDrupal } from '@/utils/drupal-globals';
+
+import type { PropsValues } from '@/types/Form';
 
 const Drupal = getDrupal();
 

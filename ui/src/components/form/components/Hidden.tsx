@@ -1,8 +1,10 @@
-import { a2p } from '@/local_packages/utils';
-import type { Attributes } from '@/types/DrupalAttribute';
 import { useEffect, useRef, useState } from 'react';
+
 import useMutationObserver from '@/hooks/useMutationObserver';
+import { a2p } from '@/local_packages/utils';
 import { VALUE_THAT_MEANS_REMOVE } from '@/utils/function-utils';
+
+import type { Attributes } from '@/types/DrupalAttribute';
 
 const Hidden = ({ attributes }: { attributes?: Attributes }) => {
   const [value, setValue] = useState(attributes?.value || '');

@@ -1,35 +1,44 @@
-import type React from 'react';
-import { useLayoutEffect } from 'react';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import styles from './EditorFrame.module.css';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
-import Preview from '@/features/layout/preview/Preview';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useParams } from 'react-router';
+import { useDebouncedCallback } from 'use-debounce';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import Preview from '@/features/layout/preview/Preview';
+import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
+import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import {
-  selectEditorViewPort,
   editorViewPortZoomIn,
   editorViewPortZoomOut,
-  setEditorFrameViewPort,
-  setIsPanning,
+  selectDragging,
+  selectEditorViewPort,
   selectFirstLoadComplete,
+  selectPanning,
   setEditorFrameModeEditing,
   setEditorFrameModeInteractive,
+  setEditorFrameViewPort,
+  setIsPanning,
   setIsZooming,
-  selectPanning,
-  selectDragging,
 } from '@/features/ui/uiSlice';
-import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
-import { deleteNode } from '../layout/layoutModelSlice';
-import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useComponentSelection from '@/hooks/useComponentSelection';
-import { useUndoRedo } from '@/hooks/useUndoRedo';
-import ViewportToolbar from '@/features/layout/preview/ViewportToolbar';
-import { useDebouncedCallback } from 'use-debounce';
-import { getHalfwayScrollPosition } from '@/utils/function-utils';
-import { useParams } from 'react-router';
+import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useResizeObserver from '@/hooks/useResizeObserver';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { getHalfwayScrollPosition } from '@/utils/function-utils';
+
+import { deleteNode } from '../layout/layoutModelSlice';
+
+import type React from 'react';
+
+import styles from './EditorFrame.module.css';
 
 const EditorFrame = () => {
   const dispatch = useAppDispatch();

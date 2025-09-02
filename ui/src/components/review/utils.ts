@@ -2,9 +2,10 @@
  * Provides utility functions for the PublishReview components
  */
 
-import { FallbackColor } from '@/types/Review';
 import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
 import { kebabCase } from 'lodash';
+
+import { FallbackColor } from '@/types/Review';
 
 // @todo https://www.drupal.org/i/3501449 - this color randomizer should be replaced with a proper solution
 const colors = Object.values(FallbackColor);

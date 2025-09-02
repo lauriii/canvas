@@ -1,10 +1,11 @@
+import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
 import type {
   BaseQueryApi,
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
-import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/app/store';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 

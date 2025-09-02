@@ -2,21 +2,24 @@
  * ⚠️ This is highly experimental and *will* be refactored.
  */
 import clsx from 'clsx';
-import styles from '@/components/sidePanel/PrimaryPanel.module.css';
+import { Cross2Icon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Heading, ScrollArea } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import ExtensionsList from '@/components/extensions/ExtensionsList';
 import Library from '@/components/sidePanel/Library';
 import ManageLibrary from '@/components/sidePanel/ManageLibrary';
+import Layers from '@/features/layout/layers/Layers';
 import {
   selectActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import Layers from '@/features/layout/layers/Layers';
-import ExtensionsList from '@/components/extensions/ExtensionsList';
-import { Cross2Icon } from '@radix-ui/react-icons';
+
 import AiWizard from '../aiExtension/AiWizard';
+
+import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 
 export const PrimaryPanel = () => {
   const activePanel = useAppSelector(selectActivePanel);

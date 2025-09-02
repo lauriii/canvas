@@ -1,8 +1,9 @@
-import { Button } from '@radix-ui/themes';
-import { PlusIcon } from '@radix-ui/react-icons';
-import { openAddDialog } from '@/features/ui/codeComponentDialogSlice';
-import { useAppDispatch } from '@/app/hooks';
 import { useCallback } from 'react';
+import { PlusIcon } from '@radix-ui/react-icons';
+import { Button } from '@radix-ui/themes';
+
+import { useAppDispatch } from '@/app/hooks';
+import { openAddDialog } from '@/features/ui/codeComponentDialogSlice';
 import {
   LayoutItemType,
   setOpenLayoutItem,

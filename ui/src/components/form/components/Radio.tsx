@@ -1,6 +1,9 @@
-import { a2p } from '@/local_packages/utils.js';
-import type { Attributes } from '@/types/DrupalAttribute';
 import clsx from 'clsx';
+
+import { a2p } from '@/local_packages/utils.js';
+
+import type { Attributes } from '@/types/DrupalAttribute';
+
 import styles from './Radio.module.css';
 
 const RadioGroup = ({

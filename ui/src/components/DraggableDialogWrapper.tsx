@@ -1,11 +1,13 @@
-import { Dialog } from 'radix-ui';
-import type { ReactNode } from 'react';
-import React, { useCallback, useRef, useState, useMemo } from 'react';
-
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
-import styles from './DraggableDialogWrapper.module.css';
+import { Dialog } from 'radix-ui';
 import { Box, Theme } from '@radix-ui/themes';
+
 import Panel from '@/components/Panel';
+
+import type { ReactNode } from 'react';
+
+import styles from './DraggableDialogWrapper.module.css';
 
 interface DraggableDialogWrapperProps {
   onOpenChange: Function;

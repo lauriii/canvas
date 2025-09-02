@@ -1,20 +1,23 @@
-import EditorFrame from '@/features/editorFrame/EditorFrame';
+import { useEffect } from 'react';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import ExtensionDialog from '@/components/extensions/ExtensionDialog';
+import ContextualPanel from '@/components/panel/ContextualPanel';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import ContextualPanel from '@/components/panel/ContextualPanel';
+import ConflictWarning from '@/features/editor/ConflictWarning';
+import EditorFrame from '@/features/editorFrame/EditorFrame';
+import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import Layout from '@/features/layout/Layout';
-import { useEffect } from 'react';
-import { setFirstLoadComplete } from '@/features/ui/uiSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
+import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
-import styles from './Editor.module.css';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
-import ConflictWarning from '@/features/editor/ConflictWarning';
+
+import styles from './Editor.module.css';
+
 const Editor = () => {
   const dispatch = useAppDispatch();
   useLayoutWatcher();

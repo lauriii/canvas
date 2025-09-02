@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDeleteCodeComponentMutation } from '@/services/componentAndLayout';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
 import {
   closeAllDialogs,
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import Dialog from '@/components/Dialog';
+import { useDeleteCodeComponentMutation } from '@/services/componentAndLayout';
 
 const DeleteCodeComponentDialog = () => {
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);

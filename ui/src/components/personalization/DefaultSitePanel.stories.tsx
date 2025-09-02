@@ -1,6 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
+
 import DefaultSitePanel from './DefaultSitePanel';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof DefaultSitePanel> = {
   title: 'Personalization/DefaultSitePanel',

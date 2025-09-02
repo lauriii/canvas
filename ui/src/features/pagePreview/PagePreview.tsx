@@ -1,18 +1,20 @@
-import styles from './PagePreview.module.css';
-import { usePostPreviewMutation } from '@/services/preview';
-import { useAppSelector } from '@/app/hooks';
-import {
-  selectUpdatePreview,
-  selectLayout,
-  selectModel,
-} from '@/features/layout/layoutModelSlice';
 import { useCallback, useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useParams } from 'react-router';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
+
+import { useAppSelector } from '@/app/hooks';
+import {
+  selectLayout,
+  selectModel,
+  selectUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
+import { usePostPreviewMutation } from '@/services/preview';
 import { viewportSizes } from '@/types/Preview';
-import { useParams } from 'react-router';
+
+import styles from './PagePreview.module.css';
 
 const PagePreview = () => {
   const layout = useAppSelector(selectLayout);

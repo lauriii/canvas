@@ -1,15 +1,17 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQueryWithAutoSaves } from '@/services/baseQuery';
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
-import type { ComponentsList, libraryTypes } from '@/types/Component';
-import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+
 import {
-  setPageData,
   setInitialPageData,
+  setPageData,
 } from '@/features/pageData/pageDataSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
-import type { AutoSavesHash } from '@/types/AutoSaves';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+
+import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type { AutoSavesHash } from '@/types/AutoSaves';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import type { ComponentsList, libraryTypes } from '@/types/Component';
 
 type getComponentsQueryOptions = {
   libraries: libraryTypes[];

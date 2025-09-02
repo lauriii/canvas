@@ -42,6 +42,7 @@ hyperscriptification
 hyperscriptified
 hyperscriptify
 hyperscriptifying
+ianvs
 importmap
 inwidget
 jangregor

@@ -1,7 +1,9 @@
 import { exec as execNode } from 'node:child_process';
-import { promisify } from 'util';
-import { getRootDir, getVendorDir } from './DrupalFilesystem';
 import * as path from 'node:path';
+import { promisify } from 'util';
+
+import { getRootDir, getVendorDir } from './DrupalFilesystem';
+
 const execPromise = promisify(execNode);
 
 export const exec = async (command: string, cwd?: string): Promise<string> => {

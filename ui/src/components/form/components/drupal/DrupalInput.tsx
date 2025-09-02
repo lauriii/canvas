@@ -1,14 +1,14 @@
 import clsx from 'clsx';
 
-import { a2p } from '@/local_packages/utils.js';
-
-import InputBehaviors from '@/components/form/inputBehaviors';
-import TextField from '@/components/form/components/TextField';
+import Checkbox from '@/components/form/components/Checkbox';
 import { DrupalRadioItem } from '@/components/form/components/drupal/DrupalRadio';
 import Hidden from '@/components/form/components/Hidden';
-import Checkbox from '@/components/form/components/Checkbox';
-import type { Attributes } from '@/types/DrupalAttribute';
+import TextField from '@/components/form/components/TextField';
 import TextFieldAutocomplete from '@/components/form/components/TextFieldAutocomplete';
+import InputBehaviors from '@/components/form/inputBehaviors';
+import { a2p } from '@/local_packages/utils.js';
+
+import type { Attributes } from '@/types/DrupalAttribute';
 
 const DrupalInput = ({
   attributes = {},

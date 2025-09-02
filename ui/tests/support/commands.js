@@ -1,8 +1,11 @@
 import '@testing-library/cypress/add-commands.js';
+
 import { realType } from 'cypress-real-events'; // eslint-disable-line  @typescript-eslint/no-unused-vars
+
+import { queries } from '@testing-library/dom';
+
 import { realDnd } from './realDnd.js';
 import { onlyVisibleChars } from './utils.js';
-import { queries } from '@testing-library/dom';
 
 // This selector gets the preview iframe ensuring that it is initialized and that it is the currently active/swapped in element.
 const initializedReadyPreviewIframeSelector =

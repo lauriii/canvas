@@ -1,4 +1,5 @@
 import { createAppSlice } from '@/app/createAppSlice';
+
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface PrimaryPanelState {

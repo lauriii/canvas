@@ -1,11 +1,15 @@
-import {
-  setPageData,
-  selectPageDataHistory,
-  pageDataSlice,
-} from '@/features/pageData/pageDataSlice';
-import { selectUndoType, pushUndo, initialState } from '@/features/ui/uiSlice';
 import { makeStore } from '@/app/store';
-import { UndoRedoActionCreators } from '@/features/ui/uiSlice';
+import {
+  pageDataSlice,
+  selectPageDataHistory,
+  setPageData,
+} from '@/features/pageData/pageDataSlice';
+import {
+  initialState,
+  pushUndo,
+  selectUndoType,
+  UndoRedoActionCreators,
+} from '@/features/ui/uiSlice';
 
 let pageData = {
   title: [{ value: 'Some title' }],

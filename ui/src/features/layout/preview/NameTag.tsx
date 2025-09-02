@@ -1,21 +1,23 @@
-import styles from './NameTag.module.css';
 import clsx from 'clsx';
+import { useParams } from 'react-router';
 import {
   BoxModelIcon,
   Component1Icon,
   CubeIcon,
   FileIcon,
 } from '@radix-ui/react-icons';
+
 import { useAppSelector } from '@/app/hooks';
 import {
   DEFAULT_REGION,
   selectDragging,
   selectIsComponentHovered,
   selectNoComponentIsHovered,
+  selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
-import { useParams } from 'react-router';
+
+import styles from './NameTag.module.css';
 
 const VARIANTS = {
   component: <Component1Icon width={10} height={10} />,

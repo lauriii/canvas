@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
-import { Box, Separator } from '@radix-ui/themes';
-import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import RegionLayer from '@/features/layout/layers/RegionLayer';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useParams } from 'react-router';
-import useSyncCollapsedLayersLocalStorage from '@/hooks/useSyncCollapsedLayersLocalStorage';
+import { Box, Separator } from '@radix-ui/themes';
+
+import { useAppSelector } from '@/app/hooks';
+import RegionLayer from '@/features/layout/layers/RegionLayer';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import useExpandParentsOnSelection from '@/hooks/useExpandParentsOnSelection';
+import useSyncCollapsedLayersLocalStorage from '@/hooks/useSyncCollapsedLayersLocalStorage';
 
 interface LayersProps {}
 

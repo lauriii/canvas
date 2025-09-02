@@ -1,28 +1,31 @@
+import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
-  Flex,
-  Text,
-  Heading,
-  ScrollArea,
   Checkbox,
+  Flex,
+  Heading,
+  Popover,
+  ScrollArea,
   Spinner,
+  Text,
 } from '@radix-ui/themes';
-import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
-import { useMemo, useState, useEffect } from 'react';
-import { Popover } from '@radix-ui/themes';
 
-import styles from './PublishReview.module.css';
+import PermissionCheck from '@/components/PermissionCheck';
+import ReviewErrors from '@/components/review/ReviewErrors';
+import { Divider } from '@/features/code-editor/component-data/FormElement';
+
+import ChangeList from './changes/ChangeList';
+
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 import type {
   UnpublishedChange,
   UnpublishedChangeGroups,
 } from '@/types/Review';
-import ReviewErrors from '@/components/review/ReviewErrors';
-import PermissionCheck from '@/components/PermissionCheck';
-import { Divider } from '@/features/code-editor/component-data/FormElement';
-import ChangeList from './changes/ChangeList';
-import clsx from 'clsx';
+
+import styles from './PublishReview.module.css';
 
 export const DEFAULT_TITLE = 'Unpublished changes';
 

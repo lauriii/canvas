@@ -1,4 +1,5 @@
 import { transformSync } from '@swc/wasm';
+
 import type { Options as SwcOptions } from '@swc/wasm';
 
 // @see src/features/code-editor/hooks/useCompileJavaScript.ts

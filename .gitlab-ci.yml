@@ -257,9 +257,17 @@ eslint:
   allow_failure: false
   before_script:
     # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI eslint` job below.
+    # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
     - rm -rf ui
     - rm -rf tests/src/Playwright playwright.config.ts eslint.config.mjs
-  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+    # This job runs ESLint and Prettier checks using what's installed in Drupal core.
+    # Delete our custom .prettierrc.json, and use the one from Drupal core instead. This avoids problems with Prettier
+    # plugins that are not installed in Drupal core, e.g., @ianvs/prettier-plugin-sort-imports.
+    - rm -rf .prettierrc.json
+    # The eslint job in gitlab_templates creates a symlink if a Prettier config file is not found.
+    # However, some misterious race condition recreates the file before the symlink is created, so we create the symlink
+    # here with the -f (force) option.
+    - ln -sf $CI_PROJECT_DIR/$_WEB_ROOT/core/.prettierrc.json .
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

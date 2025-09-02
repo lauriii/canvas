@@ -1,7 +1,8 @@
 // cspell:ignore networkidle
-import type { Page } from '@playwright/test';
-import { expect } from '@playwright/test';
 import nodePath from 'node:path';
+import { expect } from '@playwright/test';
+
+import type { Page } from '@playwright/test';
 
 export class CanvasEditor {
   readonly page: Page;

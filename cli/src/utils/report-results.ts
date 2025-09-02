@@ -1,6 +1,7 @@
 import chalk from 'chalk';
-import * as p from '@clack/prompts';
 import { table } from 'table';
+import * as p from '@clack/prompts';
+
 import type { Result } from '../types/Result';
 
 /**

@@ -1,9 +1,10 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
+
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
-import type { AssetLibrary } from '@/types/CodeComponent';
 import type { AutoSavesHash } from '@/types/AutoSaves';
+import type { AssetLibrary } from '@/types/CodeComponent';
 
 export const assetLibraryApi = createApi({
   reducerPath: 'assetLibraryApi',

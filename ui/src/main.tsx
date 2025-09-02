@@ -1,29 +1,33 @@
 import React from 'react';
 import ReactDom from 'react-dom';
-import type { FC, ReactHTMLElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import * as ReactRedux from 'react-redux';
+import { Theme } from '@radix-ui/themes';
 import * as ReduxToolkit from '@reduxjs/toolkit';
+
 import AppRoutes from '@/app/AppRoutes';
 import { makeStore } from '@/app/store';
-import { Theme } from '@radix-ui/themes';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
-import { initialState } from '@/features/configuration/configurationSlice';
-import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import { initialState } from '@/features/configuration/configurationSlice';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard';
-import type { EnhancedStore } from '@reduxjs/toolkit';
 import transforms from '@/utils/transforms';
+
+import type { FC, ReactHTMLElement } from 'react';
+import type { EnhancedStore } from '@reduxjs/toolkit';
+import type { AppConfiguration } from '@/features/configuration/configurationSlice';
+
 import '@/styles/radix-themes';
 import '@/styles/index.css';
+
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import {
   getBaseUrl,
-  getDrupal,
   getCanvasSettings,
+  getDrupal,
   getDrupalSettings,
 } from '@/utils/drupal-globals';
 

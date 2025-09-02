@@ -1,18 +1,19 @@
 import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import List from '@/components/list/List';
-import { useGetPatternsQuery } from '@/services/patterns';
-import {
-  LayoutItemType,
-  selectUniqueListId,
-} from '@/features/ui/primaryPanelSlice';
-import { useAppSelector } from '@/app/hooks';
-import { useGetFoldersQuery } from '@/services/componentAndLayout';
 
+import { useAppSelector } from '@/app/hooks';
 import FolderList, {
   folderfyComponents,
   sortFolderList,
 } from '@/components/list/FolderList';
+import List from '@/components/list/List';
+import {
+  LayoutItemType,
+  selectUniqueListId,
+} from '@/features/ui/primaryPanelSlice';
+import { useGetFoldersQuery } from '@/services/componentAndLayout';
+import { useGetPatternsQuery } from '@/services/patterns';
+
 import type { PatternsList } from '@/types/Pattern';
 
 const PatternList = () => {

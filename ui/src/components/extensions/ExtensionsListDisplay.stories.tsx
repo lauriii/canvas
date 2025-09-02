@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import { ExtensionsListDisplay } from '@/components/extensions/ExtensionsList';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const kittenBase64 =
   /* cspell:disable-next-line */

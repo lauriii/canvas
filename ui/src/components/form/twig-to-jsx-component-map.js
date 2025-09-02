@@ -1,21 +1,21 @@
+import CanvasBox from '@/components/form/canvas-components/CanvasBox';
+import CanvasText from '@/components/form/canvas-components/CanvasText';
+import {
+  DrupalContainerTextFormatFilterGuidelines,
+  DrupalContainerTextFormatFilterHelp,
+} from '@/components/form/components/drupal/DrupalContainerTextFormat';
 import DrupalDetails from '@/components/form/components/drupal/DrupalDetails';
 import DrupalForm from '@/components/form/components/drupal/DrupalForm';
 import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
 import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import DrupalPathWidget from '@/components/form/components/drupal/DrupalPathWidget';
+import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
 import DrupalTextArea from '@/components/form/components/drupal/DrupalTextArea';
 import DrupalToggle from '@/components/form/components/drupal/DrupalToggle';
 import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVerticalTabs';
-import {
-  DrupalContainerTextFormatFilterGuidelines,
-  DrupalContainerTextFormatFilterHelp,
-} from '@/components/form/components/drupal/DrupalContainerTextFormat';
-import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
-import CanvasText from '@/components/form/canvas-components/CanvasText';
-import CanvasBox from '@/components/form/canvas-components/CanvasBox';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
 // @see \Drupal\canvas\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()

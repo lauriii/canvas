@@ -1,21 +1,22 @@
-import {
-  selectLayoutHistory,
-  deleteNode,
-  moveNode,
-  sortNode,
-  layoutModelSlice,
-  setLayoutModel,
-  initialState,
-  duplicateNode,
-  shiftNode,
-} from '@/features/layout/layoutModelSlice';
 import { makeStore } from '@/app/store';
 import {
-  selectUndoType,
-  UndoRedoActionCreators,
-  initialState as uiInitialState,
-} from '@/features/ui/uiSlice';
+  deleteNode,
+  duplicateNode,
+  initialState,
+  layoutModelSlice,
+  moveNode,
+  selectLayoutHistory,
+  setLayoutModel,
+  shiftNode,
+  sortNode,
+} from '@/features/layout/layoutModelSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectUndoType,
+  initialState as uiInitialState,
+  UndoRedoActionCreators,
+} from '@/features/ui/uiSlice';
+
 import layoutFixture from '../fixtures/layout-default.json';
 
 let layout;

@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import * as Accordion from '@radix-ui/react-accordion';
-import { Box, Flex, Text } from '@radix-ui/themes';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
+import { Box, Flex, Text } from '@radix-ui/themes';
 
 import type { ReactNode } from 'react';
 import type { TextProps } from '@radix-ui/themes';

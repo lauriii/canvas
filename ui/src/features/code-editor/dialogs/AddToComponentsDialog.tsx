@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
 import {
   closeAllDialogs,
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import Dialog from '@/components/Dialog';
+import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for adding a JS component to components. This changes
 // the component from being "internal" to "exposed".

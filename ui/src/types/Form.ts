@@ -1,8 +1,8 @@
-import type { ComponentsList } from '@/types/Component';
 import type {
-  LayoutNode,
   ComponentModels,
+  LayoutNode,
 } from '@/features/layout/layoutModelSlice';
+import type { ComponentsList } from '@/types/Component';
 
 export interface PropsValues {
   [key: string]: any;

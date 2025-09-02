@@ -7,39 +7,43 @@ import React, {
 } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { Spinner, Text } from '@radix-ui/themes';
-import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
-import hyperscriptify from '@/local_packages/hyperscriptify';
-import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
-import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
-import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import type {
-  RegionNode,
-  ComponentModel,
-  EvaluatedComponentModel,
+import { getPropsValues } from '@/components/form/formUtil';
+import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import { clearFieldValues } from '@/features/form/formStateSlice';
+import {
+  isEvaluatedComponentModel,
+  selectLayout,
+  selectModel,
 } from '@/features/layout/layoutModelSlice';
-import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
-import { selectModel, selectLayout } from '@/features/layout/layoutModelSlice';
+import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
-import { clearFieldValues } from '@/features/form/formStateSlice';
-import type { FieldData } from '@/types/Component';
-import type { CanvasComponent } from '@/types/Component';
-import { componentHasFieldData } from '@/types/Component';
-import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
-import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
-import type { InputUIData } from '@/types/Form';
+import hyperscriptify from '@/local_packages/hyperscriptify';
+import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
 import {
   selectUpdateComponentLoadingState,
   useUpdateComponentMutation,
 } from '@/services/preview';
-import { getPropsValues } from '@/components/form/formUtil';
-import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import { componentHasFieldData } from '@/types/Component';
+import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
+
+import type {
+  ComponentModel,
+  EvaluatedComponentModel,
+  RegionNode,
+} from '@/features/layout/layoutModelSlice';
+import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
+import type { CanvasComponent, FieldData } from '@/types/Component';
+import type { InputUIData } from '@/types/Form';
 import type { TransformConfig } from '@/utils/transforms';
 
 const TransformsContext = createContext<TransformConfig | undefined>(undefined);

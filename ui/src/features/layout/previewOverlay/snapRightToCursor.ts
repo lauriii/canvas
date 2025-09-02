@@ -1,5 +1,6 @@
-import type { Modifier } from '@dnd-kit/core';
 import { getEventCoordinates } from '@dnd-kit/utilities';
+
+import type { Modifier } from '@dnd-kit/core';
 
 // Store the most recent mouse/touch position while dragging
 let currentMousePosition: { x: number; y: number } | null = null;

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+
 import 'dotenv-defaults/config';
 
 /**

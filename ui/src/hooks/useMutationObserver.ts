@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+
 import type { MutableRefObject } from 'react';
+
 interface ObserverOptions {
   attributes?: boolean;
   characterData?: boolean;

@@ -1,4 +1,11 @@
 /* cspell:ignore Insertable */
+import { useEffect, useMemo, useState } from 'react';
+import { useErrorBoundary } from 'react-error-boundary';
+import {
+  CheckIcon,
+  InfoCircledIcon,
+  PinBottomIcon,
+} from '@radix-ui/react-icons';
 import {
   Box,
   Callout,
@@ -8,25 +15,20 @@ import {
   Select,
   Tooltip,
 } from '@radix-ui/themes';
-import {
-  FormElement,
-  Label,
-} from '@/features/code-editor/component-data/FormElement';
-import { useEffect, useState, useMemo } from 'react';
-import styles from '@/features/code-editor/Import.module.css';
-import {
-  CheckIcon,
-  InfoCircledIcon,
-  PinBottomIcon,
-} from '@radix-ui/react-icons';
-import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useErrorBoundary } from 'react-error-boundary';
+import {
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
 import { formatToValidImportName } from '@/features/code-editor/utils';
+import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
+
+import styles from '@/features/code-editor/Import.module.css';
 
 const CodeComponentImports = () => {
   const currentComponentId = useAppSelector(

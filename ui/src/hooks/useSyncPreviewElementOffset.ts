@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import {
-  getDistanceBetweenElements,
   elemIsVisible,
+  getDistanceBetweenElements,
 } from '@/utils/function-utils';
 
 /**

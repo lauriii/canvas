@@ -1,27 +1,31 @@
+import { useCallback, useMemo } from 'react';
 import {
-  Text,
-  Flex,
-  Checkbox,
-  Avatar,
-  Tooltip,
-  Box,
-  IconButton,
-  DropdownMenu,
-} from '@radix-ui/themes';
-import {
-  CubeIcon,
-  FileIcon,
-  Component1Icon,
   CodeIcon,
+  Component1Icon,
+  CubeIcon,
   DotsVerticalIcon,
+  FileIcon,
   HomeIcon,
 } from '@radix-ui/react-icons';
-import { useCallback, useMemo } from 'react';
-import styles from './ChangeRow.module.css';
-import type { UnpublishedChange } from '@/types/Review';
-import { getAvatarInitialColor, getTimeAgo } from '../utils';
+import {
+  Avatar,
+  Box,
+  Checkbox,
+  DropdownMenu,
+  Flex,
+  IconButton,
+  Text,
+  Tooltip,
+} from '@radix-ui/themes';
+
 import { useAppSelector } from '@/app/hooks';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+
+import { getAvatarInitialColor, getTimeAgo } from '../utils';
+
+import type { UnpublishedChange } from '@/types/Review';
+
+import styles from './ChangeRow.module.css';
 
 const ChangeIcon = (props: {
   entityType: string;

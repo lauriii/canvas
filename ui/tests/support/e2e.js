@@ -18,7 +18,9 @@ import '@cypress/skip-test/support.js';
 import './commands.js';
 import 'cypress-axe';
 import 'cypress-real-events';
+
 import installLogsCollector from 'cypress-terminal-report/src/installLogsCollector.js';
+
 installLogsCollector();
 
 // Alternatively you can use CommonJS syntax:

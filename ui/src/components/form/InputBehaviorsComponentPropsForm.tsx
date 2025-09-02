@@ -1,23 +1,7 @@
+import { useRef } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  selectCurrentComponent,
-  selectFormValues,
-} from '@/features/form/formStateSlice';
-import type {
-  ComponentModels,
-  ResolvedValues,
-  Sources,
-} from '@/features/layout/layoutModelSlice';
-import {
-  isEvaluatedComponentModel,
-  selectLayout,
-  selectModel,
-} from '@/features/layout/layoutModelSlice';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useComponentTransforms } from '@/components/DummyPropsEditForm';
-import { findComponentByUuid } from '@/features/layout/layoutUtils';
-import type { InputUIData, PropsValues } from '@/types/Form';
-import { useUpdateComponentMutation } from '@/services/preview';
 import {
   ComponentPreviewUpdateEvent,
   getPropSchemas,
@@ -27,16 +11,34 @@ import {
   toPropName,
   validateProp,
 } from '@/components/form/formUtil';
-import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
-import { flaggedForRemoval, parseValue } from '@/utils/function-utils';
 import {
   InputBehaviorsCommon,
   POLLED_BACKGROUND_TIMEOUT,
 } from '@/components/form/inputBehaviors';
 import { FORM_TYPES } from '@/features/form/constants';
-import type { CanvasComponent } from '@/types/Component';
+import {
+  selectCurrentComponent,
+  selectFormValues,
+} from '@/features/form/formStateSlice';
+import {
+  isEvaluatedComponentModel,
+  selectLayout,
+  selectModel,
+} from '@/features/layout/layoutModelSlice';
+import { findComponentByUuid } from '@/features/layout/layoutUtils';
+import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { useUpdateComponentMutation } from '@/services/preview';
 import { componentHasFieldData } from '@/types/Component';
-import { useRef } from 'react';
+import { flaggedForRemoval, parseValue } from '@/utils/function-utils';
+
+import type {
+  ComponentModels,
+  ResolvedValues,
+  Sources,
+} from '@/features/layout/layoutModelSlice';
+import type { CanvasComponent } from '@/types/Component';
+import type { InputUIData, PropsValues } from '@/types/Form';
 
 export const InputBehaviorsComponentPropsForm = (
   OriginalInput: React.FC,

@@ -1,12 +1,12 @@
-import type { PropsValues } from '@/types/Form';
+import type { PendingChanges } from '@/services/pendingChangesApi';
 import type {
-  SlotsMap,
+  BoundingRect,
   ComponentsMap,
   RegionsMap,
+  SlotsMap,
   StackDirection,
-  BoundingRect,
 } from '@/types/Annotations';
-import type { PendingChanges } from '@/services/pendingChangesApi';
+import type { PropsValues } from '@/types/Form';
 
 export function handleNonWorkingBtn(): void {
   alert('Not yet supported.');

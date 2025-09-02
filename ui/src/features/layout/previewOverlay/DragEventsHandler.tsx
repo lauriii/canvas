@@ -1,21 +1,12 @@
-import type React from 'react';
 import { useState } from 'react';
-import type {
-  DragEndEvent,
-  DragOverEvent,
-  DragStartEvent,
-} from '@dnd-kit/core';
+import clsx from 'clsx';
+import _ from 'lodash';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import {
   restrictToFirstScrollableAncestor,
   restrictToWindowEdges,
 } from '@dnd-kit/modifiers';
-import {
-  snapRightToCursor,
-  cleanupMouseTracking,
-  initMouseTracking,
-} from './snapRightToCursor';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   _addNewComponentToLayout,
@@ -23,7 +14,7 @@ import {
   moveNode,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
-import styles from './DragOverlay.module.css';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import {
   setListDragging,
   setPreviewDragging,
@@ -32,10 +23,23 @@ import {
   setUpdatingComponent,
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
-import _ from 'lodash';
 import useComponentSelection from '@/hooks/useComponentSelection';
+
+import {
+  cleanupMouseTracking,
+  initMouseTracking,
+  snapRightToCursor,
+} from './snapRightToCursor';
+
+import type React from 'react';
+import type {
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
 import type { Pattern } from '@/types/Pattern';
-import clsx from 'clsx';
+
+import styles from './DragOverlay.module.css';
 
 const DragEventsHandler: React.FC = () => {
   const layout = useAppSelector(selectLayout);

@@ -1,21 +1,23 @@
-import { Box } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import type { RegionNode } from '@/features/layout/layoutModelSlice';
-import ComponentLayer from '@/features/layout/layers/ComponentLayer';
-import type React from 'react';
 import { useCallback } from 'react';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Box } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
+import ComponentLayer from '@/features/layout/layers/ComponentLayer';
+import RegionContextMenu, {
+  RegionContextMenuContent,
+} from '@/features/layout/preview/RegionContextMenu';
 import {
   DEFAULT_REGION,
   selectIsComponentHovered,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import RegionContextMenu, {
-  RegionContextMenuContent,
-} from '@/features/layout/preview/RegionContextMenu';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
+
+import type React from 'react';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 
 const RegionLayer: React.FC<{ region: RegionNode; isPage?: boolean }> = ({
   region,

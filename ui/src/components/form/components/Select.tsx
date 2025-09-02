@@ -1,7 +1,10 @@
 import clsx from 'clsx';
-import styles from './Select.module.css';
+
 import { a2p } from '@/local_packages/utils';
+
 import type { Attributes } from '@/types/DrupalAttribute';
+
+import styles from './Select.module.css';
 
 interface SelectProps {
   attributes?: Attributes;

@@ -1,4 +1,5 @@
 import { Provider } from 'react-redux';
+
 import { makeStore } from '@/app/store';
 
 describe('<Preview /> for code editor', () => {

@@ -1,17 +1,19 @@
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { useDroppable } from '@dnd-kit/core';
+import { BoxModelIcon } from '@radix-ui/react-icons';
+
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+
 import type React from 'react';
-import { useState } from 'react';
-import { useEffect } from 'react';
 import type {
   ComponentNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import clsx from 'clsx';
+
 import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
-import { useDroppable } from '@dnd-kit/core';
-import { useAppSelector } from '@/app/hooks';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
-import { BoxModelIcon } from '@radix-ui/react-icons';
 
 export interface EmptySlotDropZoneProps {
   slot: SlotNode;

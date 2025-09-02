@@ -1,10 +1,10 @@
-import { mergeTests } from '@playwright/test';
-import { test as base } from '@playwright/test';
-import { Drupal } from '../objects/Drupal';
+import { test as base, mergeTests } from '@playwright/test';
+
+import { Ai } from '../objects/Ai';
 import { CanvasEditor } from '../objects/CanvasEditor';
+import { Drupal } from '../objects/Drupal';
 import { exec } from '../utilities/DrupalExec';
 import { hasDrush } from '../utilities/DrupalFilesystem';
-import { Ai } from '../objects/Ai';
 
 export type DrupalSite = {
   dbPrefix: string;

@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import type { RefObject } from 'react';
+
 import { getDrupal } from '@/utils/drupal-globals';
+
+import type { RefObject } from 'react';
 
 const Drupal = getDrupal();
 

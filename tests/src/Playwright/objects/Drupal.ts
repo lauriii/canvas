@@ -1,9 +1,11 @@
-import type { Page } from '@playwright/test';
-import { expect } from '@playwright/test';
-import { exec, execDrush } from '../utilities/DrupalExec';
-import * as nodePath from 'node:path';
 import * as fs from 'node:fs';
+import * as nodePath from 'node:path';
+import { expect } from '@playwright/test';
+
+import { exec, execDrush } from '../utilities/DrupalExec';
 import { getModuleDir, getRootDir } from '../utilities/DrupalFilesystem';
+
+import type { Page } from '@playwright/test';
 import type { DrupalSite } from '../fixtures/DrupalSite';
 
 export class Drupal {

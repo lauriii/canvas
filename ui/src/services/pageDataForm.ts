@@ -1,8 +1,9 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
+
+import addAjaxPageState from '@/services/addAjaxPageState';
 import { baseQuery } from '@/services/baseQuery';
 import processResponseAssets from '@/services/processResponseAssets';
-import addAjaxPageState from '@/services/addAjaxPageState';
 
 export const pageDataFormApi = createApi({
   reducerPath: 'pageDataFormApi',

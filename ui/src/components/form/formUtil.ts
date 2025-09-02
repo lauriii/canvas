@@ -1,20 +1,23 @@
-import type { FieldDataItem } from '@/types/Component';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import addDraft2019 from 'ajv-formats-draft2019';
+import qs from 'qs';
+
 import { componentHasFieldData } from '@/types/Component';
-import type { InputUIData, PropsValues } from '@/types/Form';
+import { getDrupal } from '@/utils/drupal-globals';
+import transforms from '@/utils/transforms';
+
+import type * as React from 'react';
+import type { SchemaObject, ValidateFunction } from 'ajv';
+import type { ParsedQs } from 'qs';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
-import Ajv from 'ajv';
-import type { SchemaObject, ValidateFunction } from 'ajv';
-import type * as React from 'react';
-import addFormats from 'ajv-formats';
-import type { ParsedQs } from 'qs';
+import type { FieldDataItem } from '@/types/Component';
+import type { InputUIData, PropsValues } from '@/types/Form';
 import type { TransformConfig, Transforms } from '@/utils/transforms';
-import transforms from '@/utils/transforms';
-import qs from 'qs';
-import addDraft2019 from 'ajv-formats-draft2019';
-import { getDrupal } from '@/utils/drupal-globals';
+
 const ajv = new Ajv();
 addFormats(ajv);
 addDraft2019(ajv);

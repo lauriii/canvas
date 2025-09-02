@@ -1,14 +1,15 @@
 // cspell:ignore uuidv
-import type { RootState, AppThunk } from '@/app/store';
-import type { ComponentsList, CanvasComponent } from '@/types/Component';
-import { componentHasFieldData } from '@/types/Component';
-import type { UUID } from '@/types/UUID';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import { createSelector } from '@reduxjs/toolkit';
-import { createSlice } from '@reduxjs/toolkit';
-import type { StateWithHistory } from 'redux-undo';
 import { v4 as uuidv4 } from 'uuid';
-import { setCanvasDrupalSetting } from '@/utils/drupal-globals';
+import { createSelector, createSlice } from '@reduxjs/toolkit';
+
+import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { previewApi } from '@/services/preview';
+import { componentHasFieldData } from '@/types/Component';
+import {
+  getCanvasSettings,
+  setCanvasDrupalSetting,
+} from '@/utils/drupal-globals';
+
 import {
   findComponentByUuid,
   findNodePathByUuid,
@@ -18,9 +19,13 @@ import {
   removeComponentByUuid,
   replaceUUIDsAndUpdateModel,
 } from './layoutUtils';
-import { previewApi } from '@/services/preview';
-import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
-import { getCanvasSettings } from '@/utils/drupal-globals';
+
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { StateWithHistory } from 'redux-undo';
+import type { AppThunk, RootState } from '@/app/store';
+import type { CanvasComponent, ComponentsList } from '@/types/Component';
+import type { UUID } from '@/types/UUID';
+
 const canvasSettings = getCanvasSettings();
 
 export enum NodeType {

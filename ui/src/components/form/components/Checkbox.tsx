@@ -1,8 +1,11 @@
-import { a2p } from '@/local_packages/utils';
-import clsx from 'clsx';
 import { useState } from 'react';
-import styles from './Checkbox.module.css';
+import clsx from 'clsx';
+
+import { a2p } from '@/local_packages/utils';
+
 import type { Attributes } from '@/types/DrupalAttribute';
+
+import styles from './Checkbox.module.css';
 
 interface CheckboxTarget extends EventTarget {
   checked: boolean;

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-
-import { Command } from 'commander';
 import chalk from 'chalk';
+import { Command } from 'commander';
+
+import packageJson from '../package.json';
+import { buildCommand } from './commands/build';
 import { downloadCommand } from './commands/download';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
-import { buildCommand } from './commands/build';
-import packageJson from '../package.json';
+
 const version = packageJson.version;
 
 const program = new Command();

@@ -1,4 +1,4 @@
-import { getPropsValues, formStateToObject } from '@/components/form/formUtil';
+import { formStateToObject, getPropsValues } from '@/components/form/formUtil';
 
 let formState = {
   'canvas_component_props[all-props][heading][0][value]': 'hello, world!',

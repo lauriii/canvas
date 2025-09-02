@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
 import { exec as execNode } from 'node:child_process';
 import * as path from 'node:path';
+import { resolve } from 'path';
 import { promisify } from 'util';
+
 const exec = promisify(execNode);
 
 export const getRootDir = (): string => {

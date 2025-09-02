@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { Spotlight } from '@/components/spotlight/Spotlight';
 import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import {
   clearSelection,
   DEFAULT_REGION,
   selectDragging,
 } from '@/features/ui/uiSlice';
-import { Spotlight } from '@/components/spotlight/Spotlight';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import { useParams } from 'react-router';
 
 export const RegionSpotlight = () => {
   const { regionsMap } = useDataToHtmlMapValue();

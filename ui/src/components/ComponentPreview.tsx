@@ -1,10 +1,13 @@
-import type React from 'react';
 import { useEffect } from 'react';
-import styles from './ComponentPreview.module.css';
 import clsx from 'clsx';
+
+import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
+
+import type React from 'react';
 import type { CanvasComponent } from '@/types/Component';
 import type { Pattern } from '@/types/Pattern';
-import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
+
+import styles from './ComponentPreview.module.css';
 
 interface ComponentPreviewProps {
   componentListItem: CanvasComponent | Pattern;

@@ -1,16 +1,19 @@
+import { Cross2Icon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
-  Dialog as ThemedDialog,
   Flex,
   IconButton,
   Text,
+  Dialog as ThemedDialog,
 } from '@radix-ui/themes';
-import ErrorCard from '@/components/error/ErrorCard';
-import styles from './Dialog.module.css';
+
 import DraggableDialogWrapper from '@/components/DraggableDialogWrapper';
+import ErrorCard from '@/components/error/ErrorCard';
+
 import type React from 'react';
-import { Cross2Icon } from '@radix-ui/react-icons';
+
+import styles from './Dialog.module.css';
 
 export interface DialogProps {
   open: boolean;

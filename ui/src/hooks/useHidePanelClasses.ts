@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import styles from '@/components/Panel.module.css';
+
 import { useAppSelector } from '@/app/hooks';
-import { selectEditorFrameMode } from '@/features/ui/uiSlice';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
+import { selectEditorFrameMode } from '@/features/ui/uiSlice';
+
+import styles from '@/components/Panel.module.css';
 
 function useHidePanelClasses(side: 'left' | 'right'): string[] {
   const editorFrameMode = useAppSelector(selectEditorFrameMode);

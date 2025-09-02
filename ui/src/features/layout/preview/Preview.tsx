@@ -1,27 +1,28 @@
-import type React from 'react';
-import { useRef } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
+import Viewport from '@/features/layout/preview/Viewport';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectPreviewBackgroundUpdate,
+  selectPreviewHtml,
+} from '@/features/pagePreview/previewSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { contentApi } from '@/services/content';
 import {
   selectUpdateComponentLoadingState,
   usePostPreviewMutation,
 } from '@/services/preview';
-import Viewport from '@/features/layout/preview/Viewport';
-import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
-import {
-  selectPreviewHtml,
-  selectPreviewBackgroundUpdate,
-} from '@/features/pagePreview/previewSlice';
-import { contentApi } from '@/services/content';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
+
+import type React from 'react';
 
 interface PreviewProps {}
 

@@ -19,7 +19,6 @@
     "lint:cspell": "cspell .",
     "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "lint": "npx npm-run-all --parallel --continue-on-error lint:*"
-
   },
   "repository": {
     "type": "git",
@@ -31,6 +30,7 @@
     "@axe-core/playwright": "^4.10.2",
     "@eslint/compat": "^1.3.1",
     "@eslint/js": "^9.26.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@playwright/test": "^1.51.1",
     "@types/node": "^22.14.0",
     "cspell": "^9.2.0",

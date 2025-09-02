@@ -1,4 +1,5 @@
-import { Card, Flex, Button, Text } from '@radix-ui/themes';
+import { Button, Card, Flex, Text } from '@radix-ui/themes';
+
 import styles from './DefaultSitePanel.module.css';
 
 interface DefaultSitePanelProps {

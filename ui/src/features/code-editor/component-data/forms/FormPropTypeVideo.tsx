@@ -1,17 +1,19 @@
+import { useEffect, useState } from 'react';
 import { Flex, Select } from '@radix-ui/themes';
-import {
-  FormElement,
-  Label,
-  Divider,
-} from '@/features/code-editor/component-data/FormElement';
+
 import { useAppDispatch } from '@/app/hooks';
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
+import {
+  Divider,
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
+import { getCanvasModuleBaseUrl } from '@/utils/drupal-globals';
+
 import type {
   CodeComponentProp,
   CodeComponentPropVideoExample,
 } from '@/types/CodeComponent';
-import { useState, useEffect } from 'react';
-import { getCanvasModuleBaseUrl } from '@/utils/drupal-globals';
 
 const moduleBaseUrl = getCanvasModuleBaseUrl() || '';
 

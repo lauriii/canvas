@@ -1,18 +1,20 @@
+import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQueryWithAutoSaves } from '@/services/baseQuery';
-import type { AutoSavesHash } from '@/types/AutoSaves';
+
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
+import { setLayoutModel } from '@/features/layout/layoutModelSlice';
+import { setHtml } from '@/features/pagePreview/previewSlice';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { pendingChangesApi } from '@/services/pendingChangesApi';
+import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+
+import type { RootState } from '@/app/store';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
-import { setLayoutModel } from '@/features/layout/layoutModelSlice';
-import { setHtml } from '@/features/pagePreview/previewSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
-import { pendingChangesApi } from '@/services/pendingChangesApi';
-import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@/app/store';
-import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+import type { AutoSavesHash } from '@/types/AutoSaves';
 
 type UpdateComponentResultType = {
   html: string;

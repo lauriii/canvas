@@ -8,7 +8,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import initSwc, { transformSync } from '@swc/wasm-web';
-import { getCanvasSettings, getBaseUrl } from '@/utils/drupal-globals';
+
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+
 import type { Options as SwcOptions } from '@swc/wasm-web';
 
 const SWC_OPTIONS: SwcOptions = {

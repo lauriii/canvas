@@ -1,11 +1,13 @@
+import { useEffect } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
 import {
   selectDialogOpen,
   setDialogWithDataClosed,
 } from '@/features/ui/dialogSlice';
 import { useDeletePatternMutation } from '@/services/patterns';
-import Dialog from '@/components/Dialog';
-import { useEffect } from 'react';
+
 import type { Pattern } from '@/types/Pattern';
 
 const DeletePatternDialog = () => {

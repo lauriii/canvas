@@ -1,8 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import ErrorPage from './ErrorPage';
 import { Text } from '@radix-ui/themes';
-import ErrorCard from '@/components/error/ErrorCard';
 import { fn } from '@storybook/test';
+
+import ErrorCard from '@/components/error/ErrorCard';
+
+import ErrorPage from './ErrorPage';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof ErrorPage> = {
   title: 'Components/Errors/ErrorPage',

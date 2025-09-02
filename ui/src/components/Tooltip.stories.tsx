@@ -1,8 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import Tooltip from './Tooltip';
-import { IconButton } from '@radix-ui/themes';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { IconButton } from '@radix-ui/themes';
+
 import Avatar from '@/components/Avatar';
+
+import Tooltip from './Tooltip';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof Tooltip> = {
   title: 'Components/Tooltip',

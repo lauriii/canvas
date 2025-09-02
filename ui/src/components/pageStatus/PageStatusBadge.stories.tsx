@@ -1,7 +1,8 @@
 // PageStatusBadge.stories.tsx
+import { PageStatusBadge } from './PageStatus';
+
 import type { Meta, StoryFn } from '@storybook/react';
 import type { PageStatusBadgeProps } from './PageStatus';
-import { PageStatusBadge } from './PageStatus';
 
 export default {
   title: 'Components/PageStatusBadge',

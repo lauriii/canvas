@@ -1,20 +1,21 @@
 import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import List from '@/components/list/List';
+
 import { useAppSelector } from '@/app/hooks';
+import FolderList, {
+  folderfyComponents,
+  sortFolderList,
+} from '@/components/list/FolderList';
+import List from '@/components/list/List';
 import {
   LayoutItemType,
   selectUniqueListId,
 } from '@/features/ui/primaryPanelSlice';
 import {
-  useGetFoldersQuery,
   useGetComponentsQuery,
+  useGetFoldersQuery,
 } from '@/services/componentAndLayout';
 
-import FolderList, {
-  folderfyComponents,
-  sortFolderList,
-} from '@/components/list/FolderList';
 import type { ComponentsList } from '@/types/Component';
 
 const ComponentList = () => {

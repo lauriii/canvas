@@ -1,10 +1,13 @@
-import { Box, Text, Flex, Checkbox } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { kebabCase } from 'lodash';
-import styles from './ChangeGroup.module.css';
-import type { UnpublishedChange } from '@/types/Review';
+import { Box, Checkbox, Flex, Text } from '@radix-ui/themes';
+
 import { getGroupLabel } from '../utils';
 import ChangeRow from './ChangeRow';
+
+import type { UnpublishedChange } from '@/types/Review';
+
+import styles from './ChangeGroup.module.css';
 
 interface ChangeGroupProps {
   entityType: string;

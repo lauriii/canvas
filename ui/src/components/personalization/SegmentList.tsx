@@ -1,37 +1,38 @@
 import {
-  Card,
-  Flex,
-  Button,
-  Text,
-  Table,
-  Badge,
-  IconButton,
-  DropdownMenu,
-} from '@radix-ui/themes';
-import {
-  PlusIcon,
-  EyeOpenIcon,
-  Crosshair2Icon,
-  DragHandleDots2Icon,
-  DotsHorizontalIcon,
-} from '@radix-ui/react-icons';
-import {
-  DndContext,
   closestCenter,
+  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
+  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  Crosshair2Icon,
+  DotsHorizontalIcon,
+  DragHandleDots2Icon,
+  EyeOpenIcon,
+  PlusIcon,
+} from '@radix-ui/react-icons';
+import {
+  Badge,
+  Button,
+  Card,
+  DropdownMenu,
+  Flex,
+  IconButton,
+  Table,
+  Text,
+} from '@radix-ui/themes';
+
+import type { DragEndEvent } from '@dnd-kit/core';
 import type { Segment } from '@/types/Personalization';
 
 import styles from './SegmentList.module.css';

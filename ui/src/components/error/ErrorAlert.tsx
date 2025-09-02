@@ -1,5 +1,5 @@
-import { AlertDialog, Box, Button, Flex } from '@radix-ui/themes';
 import { ExclamationTriangleIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { AlertDialog, Box, Button, Flex } from '@radix-ui/themes';
 
 const DEFAULT_TITLE = 'An unexpected error has occurred.';
 const DEFAULT_RESET_BUTTON_TEXT = 'Try again';

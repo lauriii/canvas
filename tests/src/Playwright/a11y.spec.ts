@@ -1,7 +1,8 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
+
 import { test } from './fixtures/DrupalSite';
 import { Drupal } from './objects/Drupal';
-import AxeBuilder from '@axe-core/playwright';
 
 /**
  * Perfunctory accessibility scan.

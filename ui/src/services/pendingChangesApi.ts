@@ -1,11 +1,12 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery } from '@/services/baseQuery';
+
 import {
   setConflicts,
   setErrors,
   setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
+import { baseQuery } from '@/services/baseQuery';
 
 interface Owner {
   name: string;

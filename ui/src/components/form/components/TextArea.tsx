@@ -1,10 +1,10 @@
+import { forwardRef } from 'react';
 import { TextArea as TextAreaRadixThemes } from '@radix-ui/themes';
 
+import type { ForwardedRef } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 import styles from './TextArea.module.css';
-import type { ForwardedRef } from 'react';
-import { forwardRef } from 'react';
 
 const TextArea = forwardRef(function TextArea(
   {

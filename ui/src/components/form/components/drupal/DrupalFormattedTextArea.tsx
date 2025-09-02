@@ -1,8 +1,10 @@
-import { a2p } from '@/local_packages/utils.js';
-import { useRef, forwardRef } from 'react';
-import type { Attributes } from '@/types/DrupalAttribute';
+import { forwardRef, useRef } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
+
+import { a2p } from '@/local_packages/utils.js';
+
 import type { Editor } from '@ckeditor/ckeditor5-core';
+import type { Attributes } from '@/types/DrupalAttribute';
 
 // Type definitions for CKEditor
 interface RegExpConfig {

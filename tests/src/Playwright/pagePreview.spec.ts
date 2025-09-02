@@ -1,6 +1,7 @@
+import { expect } from '@playwright/test';
+
 import { test } from './fixtures/DrupalSite';
 import { Drupal } from './objects/Drupal';
-import { expect } from '@playwright/test';
 
 /**
  * This test suite will verify that links in the preview are intercepted.

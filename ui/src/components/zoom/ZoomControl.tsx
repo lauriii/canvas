@@ -1,13 +1,15 @@
-import styles from '@/components/zoom/ZoomControl.module.css';
-import { Flex, Select } from '@radix-ui/themes';
+import clsx from 'clsx';
 import { ZoomInIcon } from '@radix-ui/react-icons';
+import { Flex, Select } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   scaleValues,
   selectEditorViewPortScale,
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import clsx from 'clsx';
+
+import styles from '@/components/zoom/ZoomControl.module.css';
 
 const ZoomControl = (props: { buttonClass: string }) => {
   const { buttonClass } = props;

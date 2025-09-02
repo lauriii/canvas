@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
+import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import {
   isRouteErrorResponse,
   useAsyncError,
   useRouteError,
 } from 'react-router-dom';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+
 import ErrorAlert from '@/components/error/ErrorAlert';
 import ErrorCard from '@/components/error/ErrorCard';
 import ErrorPage from '@/components/error/ErrorPage';

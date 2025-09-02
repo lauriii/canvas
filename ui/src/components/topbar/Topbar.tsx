@@ -1,7 +1,5 @@
-import * as Menubar from '@radix-ui/react-menubar';
-import styles from './Topbar.module.css';
-import { Button, Flex, Grid, Tooltip, Box } from '@radix-ui/themes';
-import UndoRedo from '@/components/UndoRedo';
+import clsx from 'clsx';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DropIcon from '@assets/icons/drop.svg?react';
 import {
   CardStackPlusIcon,
@@ -9,15 +7,20 @@ import {
   EyeOpenIcon,
   PersonIcon,
 } from '@radix-ui/react-icons';
-import { useLocation, useNavigate } from 'react-router-dom';
-import clsx from 'clsx';
-import UnpublishedChanges from '@/components/review/UnpublishedChanges';
-import PageInfo from '../pageInfo/PageInfo';
-import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
-import AIToggleButton from '@/components/aiExtension/AiToggleButton';
-import { getDrupalSettings } from '@/utils/drupal-globals';
-import { pageDataFormApi } from '@/services/pageDataForm';
+import * as Menubar from '@radix-ui/react-menubar';
+import { Box, Button, Flex, Grid, Tooltip } from '@radix-ui/themes';
+
 import { useAppDispatch } from '@/app/hooks';
+import AIToggleButton from '@/components/aiExtension/AiToggleButton';
+import UnpublishedChanges from '@/components/review/UnpublishedChanges';
+import UndoRedo from '@/components/UndoRedo';
+import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
+import { pageDataFormApi } from '@/services/pageDataForm';
+import { getDrupalSettings } from '@/utils/drupal-globals';
+
+import PageInfo from '../pageInfo/PageInfo';
+
+import styles from './Topbar.module.css';
 
 const PREVIOUS_URL_STORAGE_KEY = 'CanvasPreviousURL';
 

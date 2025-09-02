@@ -1,18 +1,20 @@
-import type React from 'react';
 import { useMemo } from 'react';
-import type {
-  ComponentNode,
-  SlotNode,
-} from '@/features/layout/layoutModelSlice';
-import { selectLayout, moveNode } from '@/features/layout/layoutModelSlice';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
+import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   findNodePathByUuid,
   findSiblings,
   getDisplayNameForNode,
 } from '@/features/layout/layoutUtils';
-import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { unsetHoveredComponent } from '@/features/ui/uiSlice';
+
+import type React from 'react';
+import type {
+  ComponentNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
 import type { ComponentsList } from '@/types/Component';
 
 const SiblingSlotsSubMenu: React.FC<{

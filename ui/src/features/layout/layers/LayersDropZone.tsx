@@ -1,16 +1,18 @@
-import React from 'react';
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { useDroppable } from '@dnd-kit/core';
+
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+
 import type {
   ComponentNode,
   RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import clsx from 'clsx';
+
 import styles from '@/features/layout/layers/LayersDropZone.module.css';
-import { useDroppable } from '@dnd-kit/core';
-import { useAppSelector } from '@/app/hooks';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 
 export interface LayersDropZoneProps {
   layer: ComponentNode | SlotNode;

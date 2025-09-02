@@ -1,29 +1,31 @@
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { Outlet } from 'react-router-dom';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 import {
+  Box,
+  Button,
+  Callout,
   Flex,
   ScrollArea,
-  Box,
   Tabs,
-  Button,
   Text,
-  Callout,
 } from '@radix-ui/themes';
-import styles from './ContextualPanel.module.css';
-import type React from 'react';
-import { useEffect } from 'react';
-import { useState } from 'react';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
-import clsx from 'clsx';
-import useHidePanelClasses from '@/hooks/useHidePanelClasses';
-import { Outlet } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
-  selectSelectedComponentUuid,
   selectIsMultiSelect,
+  selectSelectedComponentUuid,
   selectSelection,
 } from '@/features/ui/uiSlice';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+
+import type React from 'react';
+
+import styles from './ContextualPanel.module.css';
 
 interface ContextualPanelProps {}
 

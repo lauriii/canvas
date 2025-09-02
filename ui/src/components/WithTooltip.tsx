@@ -1,5 +1,6 @@
-import { IconButton, Tooltip } from '@radix-ui/themes';
 import { PlusIcon } from '@radix-ui/react-icons';
+import { IconButton, Tooltip } from '@radix-ui/themes';
+
 import type * as React from 'react';
 
 export interface PropsForWithTooltip {

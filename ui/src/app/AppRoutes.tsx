@@ -4,21 +4,23 @@ import {
   Outlet,
   RouterProvider,
 } from 'react-router-dom';
-import App from '@/app/App';
-import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
-import PagePreview from '@/features/pagePreview/PagePreview';
-import Editor from '@/features/editor/Editor';
-import DummyPropsEditForm from '@/components/DummyPropsEditForm';
-import type React from 'react';
-import MosaicContainer from '@/features/code-editor/MosaicContainer';
-import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
-import SideMenu from '@/components/sideMenu/SideMenu';
-import PermissionCheck from '@/components/PermissionCheck';
-import ErrorCard from '@/components/error/ErrorCard';
 import { Flex } from '@radix-ui/themes';
-import SegmentPanel from '@/features/personalization/SegmentPanel';
+
+import App from '@/app/App';
+import DummyPropsEditForm from '@/components/DummyPropsEditForm';
+import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
+import ErrorCard from '@/components/error/ErrorCard';
+import PermissionCheck from '@/components/PermissionCheck';
+import SideMenu from '@/components/sideMenu/SideMenu';
+import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
+import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
+import MosaicContainer from '@/features/code-editor/MosaicContainer';
+import Editor from '@/features/editor/Editor';
+import PagePreview from '@/features/pagePreview/PagePreview';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
+import SegmentPanel from '@/features/personalization/SegmentPanel';
+
+import type React from 'react';
 
 interface AppRoutesInterface {
   basePath: string;

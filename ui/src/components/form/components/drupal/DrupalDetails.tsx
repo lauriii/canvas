@@ -1,9 +1,9 @@
 import clsx from 'clsx';
 import { Box } from '@radix-ui/themes';
 
-import { a2p } from '@/local_packages/utils.js';
 import { AccordionDetails } from '@/components/form/components/Accordion';
 import Details from '@/components/form/components/Details';
+import { a2p } from '@/local_packages/utils.js';
 
 import type { ReactNode } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';

@@ -1,16 +1,18 @@
+import { useEffect, useState } from 'react';
 import { Box, Flex, Select } from '@radix-ui/themes';
-import {
-  FormElement,
-  Label,
-  Divider,
-} from '@/features/code-editor/component-data/FormElement';
+
 import { useAppDispatch } from '@/app/hooks';
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
+import {
+  Divider,
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
+
 import type {
   CodeComponentProp,
   CodeComponentPropImageExample,
 } from '@/types/CodeComponent';
-import { useState, useEffect } from 'react';
 
 const IMAGE_SERVICE_URL = 'https://placehold.co/';
 

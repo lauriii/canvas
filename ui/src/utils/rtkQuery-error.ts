@@ -1,11 +1,13 @@
 import { isRejectedWithValue } from '@reduxjs/toolkit';
+
+import { setLatestError } from '@/features/error-handling/queryErrorSlice';
+
 import type {
-  MiddlewareAPI,
   Middleware,
+  MiddlewareAPI,
   SerializedError,
 } from '@reduxjs/toolkit';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { setLatestError } from '@/features/error-handling/queryErrorSlice';
 import type { queryError } from '@/features/error-handling/queryErrorSlice';
 
 /**

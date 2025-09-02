@@ -1,19 +1,21 @@
-import { Button, Flex, Tooltip } from '@radix-ui/themes';
+import { useCallback } from 'react';
+import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
 import {
+  Component1Icon,
   FileTextIcon,
   LayersIcon,
   PlusIcon,
-  Component1Icon,
 } from '@radix-ui/react-icons';
-import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
-import styles from './SideMenu.module.css';
-import { useCallback } from 'react';
+import { Button, Flex, Tooltip } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectActivePanel,
   setActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+
+import styles from './SideMenu.module.css';
 
 interface SideMenuButton {
   type: 'button';

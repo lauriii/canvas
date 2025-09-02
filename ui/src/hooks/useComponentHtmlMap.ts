@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { mapComponents, mapRegions, mapSlots } from '@/utils/function-utils';
+
 import { useDataToHtmlMapUpdater } from '@/features/layout/preview/DataToHtmlMapContext';
+import { mapComponents, mapRegions, mapSlots } from '@/utils/function-utils';
 
 export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
   const { updateRegionsMap, updateComponentsMap, updateSlotsMap } =

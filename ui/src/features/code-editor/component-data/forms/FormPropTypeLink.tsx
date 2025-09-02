@@ -2,16 +2,19 @@
 // @ts-nocheck
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Box, Flex, Select, TextField, Text } from '@radix-ui/themes';
+import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
+
+import { useAppDispatch } from '@/app/hooks';
+import { jsonSchemaValidate } from '@/components/form/formUtil';
+import { updateProp } from '@/features/code-editor/codeEditorSlice';
 import {
+  Divider,
   FormElement,
   Label,
-  Divider,
 } from '@/features/code-editor/component-data/FormElement';
-import { useAppDispatch } from '@/app/hooks';
-import { updateProp } from '@/features/code-editor/codeEditorSlice';
-import { jsonSchemaValidate } from '@/components/form/formUtil';
+
 import type { CodeComponentProp } from '@/types/CodeComponent';
+
 import styles from '@/features/code-editor/component-data/FormElement.module.css';
 
 const BASE_URL = window.location.origin;

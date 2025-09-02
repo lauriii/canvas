@@ -1,12 +1,14 @@
-import { Provider } from 'react-redux';
-import { Theme } from '@radix-ui/themes';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import { DndProvider } from 'react-dnd';
 import { HTML5toTouch } from 'rdndmb-html5-to-touch';
+import { DndProvider } from 'react-dnd';
 import { MultiBackend } from 'react-dnd-multi-backend';
-import type { AppStore } from '@/app/store';
+import { Provider } from 'react-redux';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Theme } from '@radix-ui/themes';
+
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+
 import type { PropsWithChildren } from 'react';
+import type { AppStore } from '@/app/store';
 
 const AppWrapper = ({
   store,

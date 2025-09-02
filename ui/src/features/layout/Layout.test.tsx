@@ -1,9 +1,11 @@
-import { beforeEach, describe, it, vi, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import { makeStore } from '@/app/store';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
+
+import { makeStore } from '@/app/store';
 import Layout from '@/features/layout/Layout';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+
 import type { AppStore } from '@/app/store';
 
 vi.mock('@/services/componentAndLayout', async () => {

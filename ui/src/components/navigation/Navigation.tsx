@@ -1,4 +1,13 @@
-import type { ContentStub } from '@/types/Content';
+import { useEffect } from 'react';
+import {
+  ChevronDownIcon,
+  DotsVerticalIcon,
+  FileIcon,
+  HomeIcon,
+  InfoCircledIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+} from '@radix-ui/react-icons';
 import {
   AlertDialog,
   Box,
@@ -12,20 +21,14 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import {
-  DotsVerticalIcon,
-  FileIcon,
-  InfoCircledIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  ChevronDownIcon,
-  HomeIcon,
-} from '@radix-ui/react-icons';
-import styles from './Navigation.module.css';
-import type { FormEvent } from 'react';
-import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+
 import { useAppSelector } from '@/app/hooks';
-import { useEffect } from 'react';
+import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+
+import type { FormEvent } from 'react';
+import type { ContentStub } from '@/types/Content';
+
+import styles from './Navigation.module.css';
 
 const hasPermission = (
   permission: 'edit' | 'duplicate' | 'homepage' | 'delete',

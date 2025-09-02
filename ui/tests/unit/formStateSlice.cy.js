@@ -1,14 +1,13 @@
+import { makeStore } from '@/app/store';
 import {
+  clearFieldError,
+  clearFieldValues,
   formStateSlice,
   initialState,
+  setCurrentComponent,
   setFieldError,
   setFieldValue,
-  clearFieldValues,
-  clearFieldError,
-  setCurrentComponent,
 } from '@/features/form/formStateSlice';
-
-import { makeStore } from '@/app/store';
 
 const formId = 'component_instance_form';
 const fieldName = 'b741';

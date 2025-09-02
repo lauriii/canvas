@@ -1,7 +1,9 @@
+import { createSelector } from '@reduxjs/toolkit';
+
 import { createAppSlice } from '@/app/createAppSlice';
+
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
-import { createSelector } from '@reduxjs/toolkit';
 
 interface CodeComponentDialogState {
   selectedCodeComponent: CodeComponentSerialized | null;

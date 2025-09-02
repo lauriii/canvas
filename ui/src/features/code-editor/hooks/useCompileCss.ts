@@ -8,9 +8,9 @@
 
 import { useCallback } from 'react';
 import {
+  compileCss as compileTailwindCss,
   extractClassNameCandidates,
   transformCss,
-  compileCss as compileTailwindCss,
 } from 'tailwindcss-in-browser';
 
 const useCompileCss = (): {

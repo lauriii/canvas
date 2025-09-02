@@ -1,5 +1,6 @@
-import { Switch } from '@radix-ui/themes';
 import { useRef } from 'react';
+import { Switch } from '@radix-ui/themes';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 
 const Toggle = ({

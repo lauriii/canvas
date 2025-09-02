@@ -1,5 +1,7 @@
-import styles from './Spotlight.module.css';
 import clsx from 'clsx';
+
+import styles from './Spotlight.module.css';
+
 type Props = {
   top: number;
   left: number;

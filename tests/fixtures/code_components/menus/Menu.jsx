@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import useSWR from 'swr';
 import { JsonApiClient } from '@drupal-api-client/json-api-client';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { sortMenu as jsonapiSortMenu } from '@/lib/jsonapi-utils';
+
 import { sortMenu as drupalSortMenu } from '@/lib/drupal-utils';
+import { sortMenu as jsonapiSortMenu } from '@/lib/jsonapi-utils';
+import { cn } from '@/lib/utils';
 
 const client = new JsonApiClient();
 

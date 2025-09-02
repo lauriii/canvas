@@ -1,13 +1,21 @@
-import type { Dispatch, SetStateAction, Ref } from 'react';
-import { useCallback } from 'react';
-import { useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { forwardRef } from 'react';
-import styles from '@/features/layout/preview/Preview.module.css';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
+
 import { useAppSelector } from '@/app/hooks';
-import { selectDragging } from '@/features/ui/uiSlice';
-import type { ComponentPreviewUpdateEvent } from '@/components/form/formUtil';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/formUtil';
+import { selectDragging } from '@/features/ui/uiSlice';
+
+import type { Dispatch, Ref, SetStateAction } from 'react';
+import type { ComponentPreviewUpdateEvent } from '@/components/form/formUtil';
+
+import styles from '@/features/layout/preview/Preview.module.css';
 
 interface IFrameSwapperProps {
   srcDocument: string;

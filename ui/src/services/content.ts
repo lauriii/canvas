@@ -1,8 +1,10 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQuery } from '@/services/baseQuery';
-import type { ContentStub } from '@/types/Content';
-import type { StagedConfig } from '@/types/Config';
+
 import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
+import { baseQuery } from '@/services/baseQuery';
+
+import type { StagedConfig } from '@/types/Config';
+import type { ContentStub } from '@/types/Content';
 
 export interface ContentListResponse {
   [key: string]: ContentStub;

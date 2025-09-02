@@ -1,26 +1,27 @@
-import type React from 'react';
 import { useCallback } from 'react';
-import { Flex, Box } from '@radix-ui/themes';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-
-import type {
-  ComponentNode,
-  SlotNode,
-} from '@/features/layout/layoutModelSlice';
-import useGetComponentName from '@/hooks/useGetComponentName';
-import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
+import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
+import { Box, Flex } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import ComponentLayer from '@/features/layout/layers/ComponentLayer';
+import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import {
   selectCollapsedLayers,
   setHoveredComponent,
   toggleCollapsedLayer,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import LayersDropZone from '@/features/layout/layers/LayersDropZone';
+import useGetComponentName from '@/hooks/useGetComponentName';
+
+import type React from 'react';
+import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
+import type {
+  ComponentNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
 
 interface SlotLayerProps {
   slot: SlotNode;

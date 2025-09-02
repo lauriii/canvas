@@ -1,21 +1,22 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
+import {
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
+} from '@/features/code-editor/codeEditorSlice';
 import {
   closeAllDialogs,
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
 import {
-  selectCodeComponentProperty,
-  setCodeComponentProperty,
-} from '@/features/code-editor/codeEditorSlice';
-import {
   LayoutItemType,
   setOpenLayoutItem,
 } from '@/features/ui/primaryPanelSlice';
-import Dialog from '@/components/Dialog';
+import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for removing a JS component from components. This changes
 // the component from being "exposed" to "internal".

@@ -1,12 +1,16 @@
-import { a2p } from '@/local_packages/utils.js';
-import TextArea from '@/components/form/components/TextArea';
-import InputBehaviors from '@/components/form/inputBehaviors';
 import { useRef, useState } from 'react';
 import { Flex } from '@radix-ui/themes';
-import type { Attributes } from '@/types/DrupalAttribute';
-import DrupalFormattedTextArea from './DrupalFormattedTextArea';
+
+import TextArea from '@/components/form/components/TextArea';
+import InputBehaviors from '@/components/form/inputBehaviors';
+import { a2p } from '@/local_packages/utils.js';
 import { getDrupalSettings } from '@/utils/drupal-globals';
+
+import DrupalFormattedTextArea from './DrupalFormattedTextArea';
+
+import type { Attributes } from '@/types/DrupalAttribute';
 import type { FormatType } from '@/types/FormatType';
+
 const drupalSettings = getDrupalSettings();
 
 const DrupalTextArea = ({

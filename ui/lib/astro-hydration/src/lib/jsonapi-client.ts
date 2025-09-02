@@ -1,10 +1,10 @@
-/* cspell:ignore Jsona jsona */
-import {
-  JsonApiClient,
-  type JsonApiClientOptions,
-} from '@drupal-api-client/json-api-client';
-import { type BaseUrl } from '@drupal-api-client/api-client';
+// cspell:ignore Jsona jsona
+
 import { Jsona } from 'jsona';
+import { type BaseUrl } from '@drupal-api-client/api-client';
+import { JsonApiClient } from '@drupal-api-client/json-api-client';
+
+import type { JsonApiClientOptions } from '@drupal-api-client/json-api-client';
 
 class CanvasJsonApiClient extends JsonApiClient {
   constructor(baseUrl?: BaseUrl, options?: JsonApiClientOptions) {
@@ -14,9 +14,11 @@ class CanvasJsonApiClient extends JsonApiClient {
       );
     }
 
-    const clientBaseUrl = baseUrl || window.drupalSettings?.canvasData?.v0?.baseUrl;
+    const clientBaseUrl =
+      baseUrl || window.drupalSettings?.canvasData?.v0?.baseUrl;
     const clientOptions = {
-      apiPrefix: window.drupalSettings?.canvasData?.v0?.jsonapiSettings?.apiPrefix,
+      apiPrefix:
+        window.drupalSettings?.canvasData?.v0?.jsonapiSettings?.apiPrefix,
       serializer: new Jsona(),
       ...options,
     };

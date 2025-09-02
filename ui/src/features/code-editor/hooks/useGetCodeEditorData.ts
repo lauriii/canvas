@@ -8,14 +8,16 @@
 
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import {
-  useGetCodeComponentQuery,
-  useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
-} from '@/services/componentAndLayout';
+
 import {
   useGetAssetLibraryQuery,
   useGetAutoSaveQuery as useGetAutoSaveQueryAssetLibrary,
 } from '@/services/assetLibrary';
+import {
+  useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
+  useGetCodeComponentQuery,
+} from '@/services/componentAndLayout';
+
 import type {
   AssetLibrary,
   CodeComponentSerialized,

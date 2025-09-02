@@ -1,7 +1,9 @@
-import type React from 'react';
-import { SegmentedControl } from '@radix-ui/themes';
 import { useNavigate } from 'react-router-dom';
+import { SegmentedControl } from '@radix-ui/themes';
+
 import { viewportSizes } from '@/types/Preview';
+
+import type React from 'react';
 
 interface PreviewWidthSelectorProps {}
 

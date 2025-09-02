@@ -1,6 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import ErrorAlert from './ErrorAlert';
 import { fn } from '@storybook/test';
+
+import ErrorAlert from './ErrorAlert';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 // Metadata for the story
 const meta: Meta<typeof ErrorAlert> = {

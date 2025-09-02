@@ -1,8 +1,8 @@
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  UndoRedoActionCreators,
-  selectUndoType,
   selectRedoType,
+  selectUndoType,
+  UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
 interface UndoRedoState {

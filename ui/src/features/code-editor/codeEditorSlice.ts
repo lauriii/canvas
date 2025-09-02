@@ -1,12 +1,14 @@
-import type { PayloadAction } from '@reduxjs/toolkit';
-import { createSlice, createSelector } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
-import type { RootState } from '@/app/store';
+import { createSelector, createSlice } from '@reduxjs/toolkit';
+
 import {
   getPropMachineName,
   serializeProps,
   serializeSlots,
 } from '@/features/code-editor/utils';
+
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { RootState } from '@/app/store';
 import type {
   AssetLibrary,
   CodeComponent,

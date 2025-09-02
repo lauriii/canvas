@@ -1,15 +1,16 @@
+import { useEffect, useState } from 'react';
 import { Badge } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 import {
   selectEntityId,
   selectEntityType,
   setHomepageStagedConfigExists,
 } from '@/features/configuration/configurationSlice';
-import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
-import { useEffect, useState } from 'react';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 import { findInChanges } from '@/utils/function-utils';
-import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 
 export interface PageStatusBadgeProps {
   isNew: boolean;

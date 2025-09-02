@@ -1,6 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
+
 import SegmentList from './SegmentList';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof SegmentList> = {
   title: 'Personalization/SegmentList',

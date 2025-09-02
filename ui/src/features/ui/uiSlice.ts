@@ -1,6 +1,8 @@
-import { createAppSlice } from '@/app/createAppSlice';
-import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSelector } from '@reduxjs/toolkit';
+
+import { createAppSlice } from '@/app/createAppSlice';
+
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 export interface DraggingStatus {
   isDragging: boolean;

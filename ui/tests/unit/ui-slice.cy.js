@@ -1,7 +1,7 @@
 import {
-  uiSlice,
   initialState,
   setHoveredComponent,
+  uiSlice,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
 

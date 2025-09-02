@@ -1,9 +1,11 @@
 import { Box } from '@radix-ui/themes';
+
+import ChangeGroup from './ChangeGroup';
+
 import type {
   UnpublishedChange,
   UnpublishedChangeGroups,
 } from '@/types/Review';
-import ChangeGroup from './ChangeGroup';
 
 interface ChangeListProps {
   groups: UnpublishedChangeGroups;

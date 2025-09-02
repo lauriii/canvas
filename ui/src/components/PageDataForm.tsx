@@ -1,19 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { Box, Spinner } from '@radix-ui/themes';
-import hyperscriptify from '@/local_packages/hyperscriptify';
-import { useGetPageDataFormQuery } from '@/services/pageDataForm';
-import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
-import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
-import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
-import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
-import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
-import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
-import { FORM_TYPES } from '@/features/form/constants';
-import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import { FORM_TYPES } from '@/features/form/constants';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
+import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
+import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import hyperscriptify from '@/local_packages/hyperscriptify';
+import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import { useGetPageDataFormQuery } from '@/services/pageDataForm';
+import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
+
+import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 
 const PageDataFormRenderer = () => {
   const { currentData, error, isFetching } = useGetPageDataFormQuery();

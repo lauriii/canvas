@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  selectCollapsedLayers,
-  setCollapsedLayers,
-  removeCollapsedLayers,
-} from '@/features/ui/uiSlice';
-import { selectModel } from '@/features/layout/layoutModelSlice';
 import {
   selectEntityId,
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
+import { selectModel } from '@/features/layout/layoutModelSlice';
+import {
+  removeCollapsedLayers,
+  selectCollapsedLayers,
+  setCollapsedLayers,
+} from '@/features/ui/uiSlice';
 
 /**
  * Hook to ensure that when the collapsed layers are updated, they are stored in localStorage. The allows the user's

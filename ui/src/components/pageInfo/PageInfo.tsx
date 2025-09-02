@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
+import { useErrorBoundary } from 'react-error-boundary';
+import { NavLink, useParams } from 'react-router-dom';
 import {
   ChevronLeftIcon,
   CodeIcon,
   CubeIcon,
   FileIcon,
+  HomeIcon,
   SectionIcon,
   StackIcon,
-  HomeIcon,
 } from '@radix-ui/react-icons';
 import {
   Badge,
@@ -14,41 +17,39 @@ import {
   Flex,
   Popover,
 } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
-import type { ReactElement } from 'react';
-import { useEffect } from 'react';
-import useDebounce from '@/hooks/useDebounce';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { NavLink, useParams } from 'react-router-dom';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
-import Navigation from '@/components/navigation/Navigation';
-import {
-  useDeleteContentMutation,
-  useGetContentListQuery,
-  useCreateContentMutation,
-  useSetStagedConfigMutation,
-  useGetStagedConfigQuery,
-} from '@/services/content';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
-import { useErrorBoundary } from 'react-error-boundary';
-import { useState } from 'react';
-import type { ContentStub } from '@/types/Content';
 import ErrorCard from '@/components/error/ErrorCard';
+import Navigation from '@/components/navigation/Navigation';
 import PageStatus from '@/components/pageStatus/PageStatus';
 import Panel from '@/components/Panel';
+import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import {
+  extractHomepagePathFromStagedConfig,
   selectEntityId,
   selectEntityType,
   selectHomepagePath,
-  setHomepagePath,
-  extractHomepagePathFromStagedConfig,
   selectHomepageStagedConfigExists,
+  setHomepagePath,
 } from '@/features/configuration/configurationSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
+import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import useDebounce from '@/hooks/useDebounce';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
+import {
+  useCreateContentMutation,
+  useDeleteContentMutation,
+  useGetContentListQuery,
+  useGetStagedConfigQuery,
+  useSetStagedConfigMutation,
+} from '@/services/content';
+import { pageDataFormApi } from '@/services/pageDataForm';
 import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
-import { pageDataFormApi } from '@/services/pageDataForm';
+
+import type { ReactElement } from 'react';
+import type { ContentStub } from '@/types/Content';
 
 interface PageType {
   [key: string]: ReactElement;

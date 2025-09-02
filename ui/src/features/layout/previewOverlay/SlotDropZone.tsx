@@ -1,15 +1,18 @@
+import clsx from 'clsx';
+import { useDroppable } from '@dnd-kit/core';
+
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+
 import type React from 'react';
 import type {
   ComponentNode,
   RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import clsx from 'clsx';
+
 import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
-import { useDroppable } from '@dnd-kit/core';
-import { useAppSelector } from '@/app/hooks';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 
 export interface SlotDropZoneProps {
   slot: SlotNode;

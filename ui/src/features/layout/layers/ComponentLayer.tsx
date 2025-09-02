@@ -1,34 +1,37 @@
-import type React from 'react';
 import { useCallback } from 'react';
-import { Box, Flex } from '@radix-ui/themes';
+import clsx from 'clsx';
+import { useDraggable } from '@dnd-kit/core';
+import { CollapsibleContent } from '@radix-ui/react-collapsible';
+import * as Collapsible from '@radix-ui/react-collapsible';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
+import { Box, Flex } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
+import LayersDropZone from '@/features/layout/layers/LayersDropZone';
+import SlotLayer from '@/features/layout/layers/SlotLayer';
+import ComponentContextMenu, {
+  ComponentContextMenuContent,
+} from '@/features/layout/preview/ComponentContextMenu';
 import {
+  selectCollapsedLayers,
   selectComponentIsSelected,
   selectIsComponentHovered,
   setHoveredComponent,
-  unsetHoveredComponent,
   toggleCollapsedLayer,
-  selectCollapsedLayers,
+  unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
+import useComponentSelection from '@/hooks/useComponentSelection';
+import useGetComponentName from '@/hooks/useGetComponentName';
+
+import type React from 'react';
+import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import type {
   ComponentNode,
   LayoutNode,
 } from '@/features/layout/layoutModelSlice';
-import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
-import { CollapsibleContent } from '@radix-ui/react-collapsible';
-import ComponentContextMenu, {
-  ComponentContextMenuContent,
-} from '@/features/layout/preview/ComponentContextMenu';
-import useGetComponentName from '@/hooks/useGetComponentName';
-import * as Collapsible from '@radix-ui/react-collapsible';
-import SlotLayer from '@/features/layout/layers/SlotLayer';
-import useComponentSelection from '@/hooks/useComponentSelection';
+
 import styles from './ComponentLayer.module.css';
-import clsx from 'clsx';
-import { useDraggable } from '@dnd-kit/core';
-import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 
 interface ComponentLayerProps {
   component: ComponentNode;

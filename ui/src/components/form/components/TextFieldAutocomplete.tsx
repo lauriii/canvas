@@ -1,9 +1,12 @@
-import clsx from 'clsx';
 import { useRef } from 'react';
-import type { Attributes } from '@/types/DrupalAttribute';
-import styles from './TextField.module.css';
-import { a2p } from '@/local_packages/utils';
+import clsx from 'clsx';
+
 import useMutationObserver from '@/hooks/useMutationObserver';
+import { a2p } from '@/local_packages/utils';
+
+import type { Attributes } from '@/types/DrupalAttribute';
+
+import styles from './TextField.module.css';
 
 const { jQuery } = window;
 

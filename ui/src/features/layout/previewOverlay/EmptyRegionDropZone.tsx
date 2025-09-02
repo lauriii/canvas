@@ -1,13 +1,16 @@
-import type React from 'react';
 import { useEffect, useState } from 'react';
-import type { RegionNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
 import clsx from 'clsx';
-import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
 import { useDroppable } from '@dnd-kit/core';
-import { useAppSelector } from '@/app/hooks';
 import { FileIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
+
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+
+import type React from 'react';
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
+
+import styles from '@/features/layout/previewOverlay/PreviewOverlay.module.css';
 
 export interface EmptyRegionDropZoneProps {
   region: RegionNode;

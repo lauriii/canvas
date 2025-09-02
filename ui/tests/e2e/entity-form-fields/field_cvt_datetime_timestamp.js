@@ -1,4 +1,5 @@
 import { localDefaultValue } from './default-date.js';
+
 export const edit = (cy) => {
   cy.findByRole('group', { name: 'Canvas DateTime (Timestamp)' }).as(
     'dateTimestamp',

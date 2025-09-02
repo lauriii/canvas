@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { Button } from '@radix-ui/themes';
 import { ResetIcon } from '@radix-ui/react-icons';
-import styles from '@/components/topbar/Topbar.module.css';
+import { Button } from '@radix-ui/themes';
+
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+
+import styles from '@/components/topbar/Topbar.module.css';
 
 const UndoRedo = () => {
   const { isUndoable, isRedoable, dispatchUndo, dispatchRedo } = useUndoRedo();

@@ -1,20 +1,21 @@
-import {
-  setPageData,
-  selectPageDataHistory,
-} from '@/features/pageData/pageDataSlice';
-import { selectUndoType, selectRedoType } from '@/features/ui/uiSlice';
 import { makeStore } from '@/app/store';
 import {
-  UndoRedoActionCreators,
-  initialState as uiInitialState,
-} from '@/features/ui/uiSlice';
-import {
-  selectLayoutHistory,
+  deleteNode,
   initialState,
   insertNodes,
+  selectLayoutHistory,
   setLayoutModel,
-  deleteNode,
 } from '@/features/layout/layoutModelSlice';
+import {
+  selectPageDataHistory,
+  setPageData,
+} from '@/features/pageData/pageDataSlice';
+import {
+  selectRedoType,
+  selectUndoType,
+  initialState as uiInitialState,
+  UndoRedoActionCreators,
+} from '@/features/ui/uiSlice';
 
 let pageData = {
   title: [{ value: 'Some title' }],

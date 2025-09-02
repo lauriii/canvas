@@ -1,5 +1,5 @@
-import type { PropsValues } from '@/types/Form';
 import type { DrupalSettings } from '@/types/DrupalSettings';
+import type { PropsValues } from '@/types/Form';
 
 const { Drupal, drupalSettings } = window as any;
 

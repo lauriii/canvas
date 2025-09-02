@@ -1,22 +1,24 @@
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  DEFAULT_REGION,
-  selectSelectedComponentUuid,
-  selectSelection,
-  setSelection,
-} from '@/features/ui/uiSlice';
 import { useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectDevMode } from '@/features/configuration/configurationSlice';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   areConsecutiveSiblings,
   findComponentByUuid,
   findParentRegion,
   isParentOf,
 } from '@/features/layout/layoutUtils';
-import type { RegionNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectDevMode } from '@/features/configuration/configurationSlice';
+import {
+  DEFAULT_REGION,
+  selectSelectedComponentUuid,
+  selectSelection,
+  setSelection,
+} from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
+
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
 
 const canvasSettings = getCanvasSettings();
 

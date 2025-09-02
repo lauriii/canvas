@@ -1,4 +1,5 @@
 import { Code, Flex, Text } from '@radix-ui/themes';
+
 import styles from './error.module.css';
 
 const MissingDefaultExportMessage = () => {

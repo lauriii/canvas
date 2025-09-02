@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
-import * as p from '@clack/prompts';
+import path from 'path';
 import chalk from 'chalk';
+import * as p from '@clack/prompts';
 
 export const CANVAS_CACHE_DIR = path.join(os.homedir(), '.canvas');
 

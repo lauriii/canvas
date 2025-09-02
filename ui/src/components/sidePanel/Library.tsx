@@ -1,21 +1,23 @@
 import { Flex } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import {
-  AccordionRoot,
   AccordionDetails,
+  AccordionRoot,
 } from '@/components/form/components/Accordion';
 import ComponentList from '@/components/list/ComponentList';
 import PatternList from '@/components/list/PatternList';
-import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import {
-  selectOpenLayoutItems,
-  setOpenLayoutItem,
-  setCloseLayoutItem,
-  LayoutItemType,
-} from '@/features/ui/primaryPanelSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import styles from './Library.module.css';
 import PermissionCheck from '@/components/PermissionCheck';
+import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
+import {
+  LayoutItemType,
+  selectOpenLayoutItems,
+  setCloseLayoutItem,
+  setOpenLayoutItem,
+} from '@/features/ui/primaryPanelSlice';
+
+import styles from './Library.module.css';
 
 const Library = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);

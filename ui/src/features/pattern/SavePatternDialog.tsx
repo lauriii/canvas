@@ -1,23 +1,25 @@
-import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Flex, TextField } from '@radix-ui/themes';
-import Dialog, { DialogFieldLabel } from '@/components/Dialog';
-import {
-  selectDialogOpen,
-  setDialogOpen,
-  setDialogClosed,
-} from '@/features/ui/dialogSlice';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import { selectLayout, selectModel } from '@/features/layout/layoutModelSlice';
 import {
   findComponentByUuid,
   recurseNodes,
 } from '@/features/layout/layoutUtils';
-import { useSavePatternMutation } from '@/services/patterns';
-import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import type { SerializedError } from '@reduxjs/toolkit';
-import useGetComponentName from '@/hooks/useGetComponentName';
+import {
+  selectDialogOpen,
+  setDialogClosed,
+  setDialogOpen,
+} from '@/features/ui/dialogSlice';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import useGetComponentName from '@/hooks/useGetComponentName';
+import { useSavePatternMutation } from '@/services/patterns';
+
+import type React from 'react';
+import type { SerializedError } from '@reduxjs/toolkit';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 
 interface ErrorData {
   message?: string;

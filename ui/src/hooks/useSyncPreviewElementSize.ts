@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import { calculateBoundingRect, elemIsVisible } from '@/utils/function-utils';
 
 /**

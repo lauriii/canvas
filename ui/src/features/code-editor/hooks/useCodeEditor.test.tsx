@@ -1,21 +1,10 @@
-import { beforeEach, describe, it, vi, expect } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import { makeStore } from '@/app/store';
-import AppWrapper from '@tests/vitest/components/AppWrapper';
-import useCodeEditor from '@/features/code-editor/hooks/useCodeEditor';
-import {
-  useGetCodeComponentQuery,
-  useGetCodeComponentsQuery,
-  useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
-  useUpdateAutoSaveMutation as useUpdateAutoSaveMutationCodeComponent,
-} from '@/services/componentAndLayout';
-import {
-  useGetAssetLibraryQuery,
-  useGetAutoSaveQuery as useGetAutoSaveQueryAssetLibrary,
-  useUpdateAutoSaveMutation as useUpdateAutoSaveMutationAssetLibrary,
-} from '@/services/assetLibrary';
 import { compileCss } from 'tailwindcss-in-browser';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import AppWrapper from '@tests/vitest/components/AppWrapper';
+
+import { makeStore } from '@/app/store';
 import {
   addProp,
   addSlot,
@@ -26,6 +15,19 @@ import {
   updateProp,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
+import useCodeEditor from '@/features/code-editor/hooks/useCodeEditor';
+import {
+  useGetAssetLibraryQuery,
+  useGetAutoSaveQuery as useGetAutoSaveQueryAssetLibrary,
+  useUpdateAutoSaveMutation as useUpdateAutoSaveMutationAssetLibrary,
+} from '@/services/assetLibrary';
+import {
+  useGetAutoSaveQuery as useGetAutoSaveQueryCodeComponent,
+  useGetCodeComponentQuery,
+  useGetCodeComponentsQuery,
+  useUpdateAutoSaveMutation as useUpdateAutoSaveMutationCodeComponent,
+} from '@/services/componentAndLayout';
+
 import type { AppStore } from '@/app/store';
 
 vi.mock('@/services/componentAndLayout', async () => {

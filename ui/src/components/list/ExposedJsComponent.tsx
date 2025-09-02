@@ -1,23 +1,25 @@
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import type React from 'react';
 import { useEffect } from 'react';
-import UnifiedMenu from '@/components/UnifiedMenu';
+import { useErrorBoundary } from 'react-error-boundary';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ContextMenu } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  openDeleteDialog,
-  openRenameDialog,
-  openRemoveFromComponentsDialog,
-  openInLayoutDialog,
-} from '@/features/ui/codeComponentDialogSlice';
-import { useGetCodeComponentQuery } from '@/services/componentAndLayout';
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import PermissionCheck from '@/components/PermissionCheck';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
+import UnifiedMenu from '@/components/UnifiedMenu';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { componentExistsInLayout } from '@/features/layout/layoutUtils';
-import { useErrorBoundary } from 'react-error-boundary';
+import {
+  openDeleteDialog,
+  openInLayoutDialog,
+  openRemoveFromComponentsDialog,
+  openRenameDialog,
+} from '@/features/ui/codeComponentDialogSlice';
+import { useGetCodeComponentQuery } from '@/services/componentAndLayout';
+
+import type React from 'react';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { JSComponent } from '@/types/Component';
-import { useNavigate, useParams } from 'react-router-dom';
-import PermissionCheck from '@/components/PermissionCheck';
 
 function removeJsPrefix(input: string): string {
   if (input.startsWith('js.')) {

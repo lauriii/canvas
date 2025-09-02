@@ -1,7 +1,9 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import Panel from './Panel';
 import { Heading } from '@radix-ui/themes';
+
+import Panel from './Panel';
+
 import type React from 'react';
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof Panel> = {
   title: 'Components/Panel',

@@ -1,6 +1,7 @@
-import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { githubLight } from '@uiw/codemirror-theme-github';
+import CodeMirror from '@uiw/react-codemirror';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,

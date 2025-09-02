@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
+
 import type { Component } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 

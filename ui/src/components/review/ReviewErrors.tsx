@@ -1,3 +1,11 @@
+import { useState } from 'react';
+import clsx from 'clsx';
+import * as Collapsible from '@radix-ui/react-collapsible';
+import {
+  ExclamationTriangleIcon,
+  FileIcon,
+  OpenInNewWindowIcon,
+} from '@radix-ui/react-icons';
 import {
   Box,
   ChevronDownIcon,
@@ -6,18 +14,13 @@ import {
   Separator,
   Text,
 } from '@radix-ui/themes';
-import * as Collapsible from '@radix-ui/react-collapsible';
-import {
-  ExclamationTriangleIcon,
-  FileIcon,
-  OpenInNewWindowIcon,
-} from '@radix-ui/react-icons';
-import style from '@/components/review/ReviewErrors.module.css';
-import detailsStyle from '@/components/form/components/AccordionAndDetails.module.css';
-import type { ErrorResponse } from '@/services/pendingChangesApi';
-import { useState } from 'react';
-import clsx from 'clsx';
+
 import { getBaseUrl } from '@/utils/drupal-globals';
+
+import type { ErrorResponse } from '@/services/pendingChangesApi';
+
+import detailsStyle from '@/components/form/components/AccordionAndDetails.module.css';
+import style from '@/components/review/ReviewErrors.module.css';
 
 interface ReviewErrorsProps {
   errorState: ErrorResponse | undefined;

@@ -1,12 +1,14 @@
 // cspell:ignore Balint Takacs Chueka
-import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
 import { useState } from 'react';
+import { fn } from '@storybook/test';
+
+import ChangeList from './ChangeList';
+
+import type { Meta, StoryObj } from '@storybook/react';
 import type {
   UnpublishedChange,
   UnpublishedChangeGroups,
 } from '@/types/Review';
-import ChangeList from './ChangeList';
 
 // Mock data for comprehensive testing
 const createMockChangeGroups = (): UnpublishedChangeGroups => ({

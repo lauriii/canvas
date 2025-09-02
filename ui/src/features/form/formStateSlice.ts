@@ -1,11 +1,10 @@
-import {
-  createSelector,
-  createSlice,
-  type PayloadAction,
-} from '@reduxjs/toolkit';
+import { createSelector, createSlice } from '@reduxjs/toolkit';
+
+import { FORM_TYPES } from '@/features/form/constants';
+
+import type { PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
 import type { InputMessage } from '@/types/Form';
-import { FORM_TYPES } from '@/features/form/constants';
 
 export interface FormState {
   values: Record<string, any>;

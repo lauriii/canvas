@@ -1,20 +1,23 @@
-import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 import { useState } from 'react';
-import type { ReactNode } from 'react';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import clsx from 'clsx';
-import listStyles from '@/components/list/List.module.css';
-import { Flex, Text } from '@radix-ui/themes';
-import { ChevronRightIcon } from '@radix-ui/react-icons';
 import FolderIcon from '@assets/icons/folder.svg?react';
+import * as Collapsible from '@radix-ui/react-collapsible';
+import { ChevronRightIcon } from '@radix-ui/react-icons';
+import { Flex, Text } from '@radix-ui/themes';
+
+import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
+
+import type { ReactNode } from 'react';
+import type { FolderCodeComponent } from '@/features/code-editor/CodeComponentList';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type {
   ComponentsList,
   FolderInList,
   FoldersInList,
 } from '@/types/Component';
 import type { PatternsList } from '@/types/Pattern';
-import type { FolderCodeComponent } from '@/features/code-editor/CodeComponentList';
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
+
+import listStyles from '@/components/list/List.module.css';
 
 interface FolderData {
   componentIndexedFolders: Record<string, string>;

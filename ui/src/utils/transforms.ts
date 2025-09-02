@@ -1,6 +1,8 @@
+import type {
+  PropSource,
+  StaticPropSource,
+} from '@/features/layout/layoutModelSlice';
 import type { PropsValues } from '@/types/Form';
-import type { StaticPropSource } from '@/features/layout/layoutModelSlice';
-import type { PropSource } from '@/features/layout/layoutModelSlice';
 
 export interface TransformOptions {
   [key: string]: any;

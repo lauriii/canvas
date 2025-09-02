@@ -1,8 +1,9 @@
+import { useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+
 import type { ReactNode } from 'react';
 import type React from 'react';
-import { useRef, useEffect } from 'react';
 import type { Root } from 'react-dom/client';
-import { createRoot } from 'react-dom/client';
 
 interface ShadowWrapperProps {
   children: ReactNode;

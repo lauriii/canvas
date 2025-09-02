@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
 import * as p from '@clack/prompts';
 
 // Load environment variables.

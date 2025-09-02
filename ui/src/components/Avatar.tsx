@@ -1,4 +1,5 @@
 import * as Avatar from '@radix-ui/react-avatar';
+
 import styles from './Avatar.module.css';
 
 const AvatarComponent = ({

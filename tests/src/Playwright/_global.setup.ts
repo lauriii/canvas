@@ -1,6 +1,7 @@
-import { test as setup } from '@playwright/test';
-import { getRootDir } from './utilities/DrupalFilesystem';
 import { chmodSync, existsSync, mkdirSync } from 'node:fs';
+import { test as setup } from '@playwright/test';
+
+import { getRootDir } from './utilities/DrupalFilesystem';
 
 setup('Create sites/simpletest folder', async () => {
   const rootDir = getRootDir();

@@ -1,40 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import type { PendingChanges } from '@/services/pendingChangesApi';
-import { pendingChangesApi } from '@/services/pendingChangesApi';
-import { CONFLICT_CODE } from '@/services/pendingChangesApi';
-import {
-  useGetAllPendingChangesQuery,
-  usePublishAllPendingChangesMutation,
-  useDiscardPendingChangeMutation,
-} from '@/services/pendingChangesApi';
-import type { UnpublishedChange } from '@/types/Review';
-import PublishReview from '@/components/review/PublishReview';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import PublishReview from '@/components/review/PublishReview';
 import {
-  selectPreviousPendingChanges,
   selectConflicts,
+  selectErrors,
+  selectPreviousPendingChanges,
   setConflicts,
   setPreviousPendingChanges,
-  selectErrors,
 } from '@/components/review/PublishReview.slice';
-import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   selectEntityId,
   selectEntityType,
 } from '@/features/configuration/configurationSlice';
-import { findInChanges } from '@/utils/function-utils';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import {
   selectPageData,
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
+import {
+  CONFLICT_CODE,
+  pendingChangesApi,
+  useDiscardPendingChangeMutation,
+  useGetAllPendingChangesQuery,
+  usePublishAllPendingChangesMutation,
+} from '@/services/pendingChangesApi';
 import {
   usePostPreviewMutation,
   useUpdateComponentMutation,
 } from '@/services/preview';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { findInChanges } from '@/utils/function-utils';
+
+import type { PendingChanges } from '@/services/pendingChangesApi';
+import type { UnpublishedChange } from '@/types/Review';
 
 const REFETCH_INTERVAL_MS = 10000;
 

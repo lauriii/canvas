@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { ApiService } from './api';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { server } from './__mocks__/server';
+import { ApiService } from './api';
 
 describe('api service', () => {
   const mockConfig = {

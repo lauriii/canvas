@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
-import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 import { selectEntityId } from '@/features/configuration/configurationSlice';
+import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+
+import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 
 const Layout = () => {
   const dispatch = useAppDispatch();

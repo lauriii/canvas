@@ -1,43 +1,47 @@
 /**
  * ⚠️ This is highly experimental and *will* be refactored.
  */
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
-  useCallback,
   useSyncExternalStore,
 } from 'react';
 import { DeepChat } from 'deep-chat-react';
-import styles from './AiWizard.module.css';
+import { useNavigate } from 'react-router-dom';
+import AiWelcome from '@assets/icons/ai-welcome.svg?react';
+import { Box, Flex, Text } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
-import { useNavigate } from 'react-router-dom';
 import {
-  useCreateCodeComponentMutation,
-  useGetComponentsQuery,
-} from '@/services/componentAndLayout';
-import { getDrupalSettings } from '@/utils/drupal-globals';
-import { Box, Flex, Text } from '@radix-ui/themes';
-import type { CodeComponent } from '@/types/CodeComponent';
+  selectModel,
+  setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
 import {
   selectPageData,
   updatePageDataExternally,
 } from '@/features/pageData/pageDataSlice';
 import {
-  selectModel,
-  setUpdatePreview,
-} from '@/features/layout/layoutModelSlice';
-import type { CanvasComponent } from '@/types/Component';
-import type {
-  LayoutModelSliceState,
-  ComponentNode,
-} from '@/features/layout/layoutModelSlice';
-import AiWelcome from '@assets/icons/ai-welcome.svg?react';
+  useCreateCodeComponentMutation,
+  useGetComponentsQuery,
+} from '@/services/componentAndLayout';
+import { getDrupalSettings } from '@/utils/drupal-globals';
+
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
+
+import type {
+  ComponentNode,
+  LayoutModelSliceState,
+} from '@/features/layout/layoutModelSlice';
+import type { CodeComponent } from '@/types/CodeComponent';
+import type { CanvasComponent } from '@/types/Component';
+
+import styles from './AiWizard.module.css';
 
 const DB_NAME = 'aiWizardDB';
 const STORE_NAME = 'chatHistory';

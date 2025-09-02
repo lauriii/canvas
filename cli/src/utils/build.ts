@@ -1,9 +1,11 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+
 import { compileJS } from '../lib/compile-js';
-import type { Result } from '../types/Result';
 import { transformCss } from '../lib/transform-css';
 import { fileExists } from './utils';
+
+import type { Result } from '../types/Result';
 
 export async function buildComponent(componentDir: string): Promise<Result> {
   const componentName = path.basename(componentDir);

@@ -1,6 +1,7 @@
-import { Button, Callout, Flex, Text } from '@radix-ui/themes';
-import type React from 'react';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Button, Callout, Flex, Text } from '@radix-ui/themes';
+
+import type React from 'react';
 
 const ConflictWarning: React.FC<{ children?: React.ReactNode }> = () => {
   const handleRefreshClick = () => {

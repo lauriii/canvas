@@ -1,9 +1,9 @@
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
 import {
   closeAllDialogs,
   selectDialogStates,
 } from '@/features/ui/codeComponentDialogSlice';
-import Dialog from '@/components/Dialog';
 
 const ComponentInLayoutDialog = () => {
   const dispatch = useAppDispatch();

@@ -1,6 +1,8 @@
-import { Box } from '@radix-ui/themes';
 import clsx from 'clsx';
+import { Box } from '@radix-ui/themes';
+
 import { a2p } from '@/local_packages/utils.js';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 
 interface DrupalContainerTextFormatFilterProps {

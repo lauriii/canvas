@@ -1,23 +1,24 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
 import ReactDOM from 'react-dom';
-import type React from 'react';
-import { useCallback } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import styles from './PreviewOverlay.module.css';
-import { useAppSelector } from '@/app/hooks';
-import useWindowResizeListener from '@/hooks/useWindowResizeListener';
-import useResizeObserver from '@/hooks/useResizeObserver';
+import { useNavigate, useParams } from 'react-router-dom';
 
+import { useAppSelector } from '@/app/hooks';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   DEFAULT_REGION,
-  selectEditorViewPortScale,
   selectDragging,
+  selectEditorViewPortScale,
   selectZooming,
 } from '@/features/ui/uiSlice';
-import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
-import clsx from 'clsx';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { useNavigate, useParams } from 'react-router-dom';
+import useResizeObserver from '@/hooks/useResizeObserver';
 import useTransitionEndListener from '@/hooks/useTransitionEndListener';
+import useWindowResizeListener from '@/hooks/useWindowResizeListener';
+
+import type React from 'react';
+
+import styles from './PreviewOverlay.module.css';
 
 interface ViewportOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;

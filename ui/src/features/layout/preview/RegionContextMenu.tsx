@@ -1,9 +1,12 @@
+import { ContextMenu } from '@radix-ui/themes';
+
+import { UnifiedMenu } from '@/components/UnifiedMenu';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
+
 import type React from 'react';
 import type { ReactNode } from 'react';
-import { ContextMenu } from '@radix-ui/themes';
-import { UnifiedMenu, type UnifiedMenuType } from '@/components/UnifiedMenu';
+import type { UnifiedMenuType } from '@/components/UnifiedMenu';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 interface RegionContextMenuProps {
   children: ReactNode;

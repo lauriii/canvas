@@ -1,7 +1,8 @@
-import { useParams } from 'react-router-dom';
-import { selectIsMultiSelect, setSelection } from '@/features/ui/uiSlice';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectIsMultiSelect, setSelection } from '@/features/ui/uiSlice';
 
 // A one way sync to make sure that if the URL is updated, the state is updated too.
 function useSyncParamsToState() {

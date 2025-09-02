@@ -1,6 +1,8 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi } from '@reduxjs/toolkit/query/react';
+
 import { baseQuery } from '@/services/baseQuery';
+
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 import type { PatternsList } from '@/types/Pattern';
 

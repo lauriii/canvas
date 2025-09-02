@@ -1,4 +1,4 @@
-import { localDefaultValue, localDefaultEndValue } from './default-date.js';
+import { localDefaultEndValue, localDefaultValue } from './default-date.js';
 
 export const edit = (cy) => {
   cy.findByRole('group', { name: 'Canvas Date Range (Default)' }).as(

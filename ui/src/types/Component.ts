@@ -1,6 +1,6 @@
-import type { TransformConfig } from '@/utils/transforms';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { PatternsList } from '@/types/Pattern';
+import type { TransformConfig } from '@/utils/transforms';
 
 export interface FieldData {
   [key: string]: FieldDataItem;

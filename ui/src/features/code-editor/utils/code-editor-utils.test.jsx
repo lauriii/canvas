@@ -1,18 +1,19 @@
 /* cspell:ignore Mycomponentname HelloWorldexample */
-import { describe, it, expect } from 'vitest';
-import {
-  deserializeProps,
-  serializeProps,
-  serializeSlots,
-  deserializeSlots,
-  getPropValuesForPreview,
-  formatToValidImportName,
-  getImportsFromAst,
-  getDataDependenciesFromAst,
-} from '@/features/code-editor/utils';
+import { describe, expect, it } from 'vitest';
+import { parse } from '@babel/parser';
 import fixtureProps from '@tests/fixtures/code-component-props.json';
 import fixtureSlots from '@tests/fixtures/code-component-slots.json';
-import { parse } from '@babel/parser';
+
+import {
+  deserializeProps,
+  deserializeSlots,
+  formatToValidImportName,
+  getDataDependenciesFromAst,
+  getImportsFromAst,
+  getPropValuesForPreview,
+  serializeProps,
+  serializeSlots,
+} from '@/features/code-editor/utils';
 
 const {
   deserialized: deserializedPropsFixture,

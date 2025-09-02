@@ -1,10 +1,12 @@
-import { a2p } from '@/local_packages/utils.js';
 import clsx from 'clsx';
+
+import { a2p } from '@/local_packages/utils.js';
+
+import type { Attributes } from '@/types/DrupalAttribute';
+
 // @todo Import styles in a standalone <FormElement> component.
 // https://www.drupal.org/i/3491293
 import styles from '../FormElement.module.css';
-
-import type { Attributes } from '@/types/DrupalAttribute';
 
 export type Description = {
   content?: string;

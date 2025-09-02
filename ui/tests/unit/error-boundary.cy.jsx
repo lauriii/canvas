@@ -5,9 +5,10 @@ import {
   json,
   RouterProvider,
 } from 'react-router-dom';
+
 import ErrorBoundary, {
-  RouteErrorBoundary,
   RouteAsyncErrorBoundary,
+  RouteErrorBoundary,
 } from '@/components/error/ErrorBoundary';
 
 beforeEach(() => {

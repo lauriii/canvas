@@ -1,12 +1,14 @@
-import SidebarNode from '@/components/sidePanel/SidebarNode';
-import type React from 'react';
-import UnifiedMenu from '@/components/UnifiedMenu';
 import { ContextMenu } from '@radix-ui/themes';
+
 import { useAppDispatch } from '@/app/hooks';
-import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
-import type { Pattern } from '@/types/Pattern';
 import PermissionCheck from '@/components/PermissionCheck';
 import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
+import UnifiedMenu from '@/components/UnifiedMenu';
+import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
+
+import type React from 'react';
+import type { Pattern } from '@/types/Pattern';
 
 const PatternNode: React.FC<{
   pattern: Pattern;

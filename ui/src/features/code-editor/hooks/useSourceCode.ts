@@ -18,14 +18,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import useCompileCss from '@/features/code-editor/hooks/useCompileCss';
-import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScript';
-import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
-import {
-  detectValidPropOrSlotChange,
-  getJsForSlotsPreview,
-} from '@/features/code-editor/utils';
 import {
   selectCodeComponentProperty,
   selectGlobalAssetLibraryProperty,
@@ -35,6 +29,14 @@ import {
   setPreviewCompiledJsForSlots,
   setStatus,
 } from '@/features/code-editor/codeEditorSlice';
+import useCompileCss from '@/features/code-editor/hooks/useCompileCss';
+import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScript';
+import {
+  detectValidPropOrSlotChange,
+  getJsForSlotsPreview,
+} from '@/features/code-editor/utils';
+import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
+
 import type {
   CodeComponentProp,
   CodeComponentSlot,

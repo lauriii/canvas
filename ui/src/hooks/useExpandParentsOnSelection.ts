@@ -1,9 +1,9 @@
-import { findNodeParents } from '@/features/layout/layoutUtils';
-
 import { useEffect } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { removeCollapsedLayers, selectSelection } from '@/features/ui/uiSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { findNodeParents } from '@/features/layout/layoutUtils';
+import { removeCollapsedLayers, selectSelection } from '@/features/ui/uiSlice';
 
 /**
  * Hook that watches the user's selection and ensures that any component that is selected is visible in the

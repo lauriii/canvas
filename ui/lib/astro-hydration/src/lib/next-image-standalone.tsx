@@ -1,4 +1,5 @@
 import NextImage from 'next-image-standalone';
+
 import type { ImageLoaderParams, ImageProps } from 'next-image-standalone';
 
 export default function Image(

@@ -1,14 +1,17 @@
+import { javascript } from '@codemirror/lang-javascript';
 import { Flex } from '@radix-ui/themes';
-import {
-  FormElement,
-  Label,
-  Divider,
-} from '@/features/code-editor/component-data/FormElement';
+import CodeMirror from '@uiw/react-codemirror';
+
 import { useAppDispatch } from '@/app/hooks';
 import { updateSlot } from '@/features/code-editor/codeEditorSlice';
+import {
+  Divider,
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
+
 import type { CodeComponentSlot } from '@/types/CodeComponent';
-import CodeMirror from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
+
 import styles from './FormPropTypeSlot.module.css';
 
 export default function FormPropTypeSlot({

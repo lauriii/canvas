@@ -1,6 +1,8 @@
 import clsx from 'clsx';
 import * as Tooltip from '@radix-ui/react-tooltip';
+
 import type { ReactElement } from 'react';
+
 import styles from './Tooltip.module.css';
 
 const TooltipComponent = ({

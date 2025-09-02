@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Flex, TextField } from '@radix-ui/themes';
-import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog, { DialogFieldLabel } from '@/components/Dialog';
+import {
+  selectCodeComponentProperty,
+  setCodeComponentProperty,
+} from '@/features/code-editor/codeEditorSlice';
 import {
   closeAllDialogs,
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import {
-  selectCodeComponentProperty,
-  setCodeComponentProperty,
-} from '@/features/code-editor/codeEditorSlice';
-import Dialog, { DialogFieldLabel } from '@/components/Dialog';
+import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 const RenameCodeComponentDialog = () => {
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);

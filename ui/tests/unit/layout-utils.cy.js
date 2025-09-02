@@ -2,13 +2,14 @@
 import {
   areConsecutiveSiblings,
   componentExistsInLayout,
+  findParent,
   findParentInfo,
   findParentRegion,
+  findSiblings,
   isChildNode,
   replaceUUIDsAndUpdateModel,
-  findParent,
-  findSiblings,
 } from '@/features/layout/layoutUtils';
+
 import layoutFixture from '../fixtures/layout-default.json';
 import regionsLayoutFixture from '../fixtures/layout-regions.json';
 

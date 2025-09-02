@@ -1,9 +1,11 @@
 // cspell:ignore Balint Takacs Chueka
-import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
 import { useState } from 'react';
-import type { UnpublishedChange } from '@/types/Review';
+import { fn } from '@storybook/test';
+
 import ChangeRow from './ChangeRow';
+
+import type { Meta, StoryObj } from '@storybook/react';
+import type { UnpublishedChange } from '@/types/Review';
 
 // Mock data for different entity types and scenarios
 const mockChanges: Record<string, UnpublishedChange> = {

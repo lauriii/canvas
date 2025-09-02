@@ -1,15 +1,4 @@
-import type React from 'react';
-import { Outlet } from 'react-router-dom';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import type { CollisionDetection } from '@dnd-kit/core';
-import {
-  DndContext,
-  PointerSensor,
-  pointerWithin,
-  rectIntersection,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
+import { HTML5toTouch } from 'rdndmb-html5-to-touch';
 // `react-mosaic` (https://github.com/nomcopter/react-mosaic) uses `react-dnd`
 // for its drag & drop functionality. The primary component of `react-mosaic`,
 // `Mosaic` doesn't require to be wrapped in `DndProvider`, it does that on its
@@ -21,16 +10,30 @@ import {
 // @see https://drupal.org/i/3510436
 // @see https://drupal.org/i/3520994
 import { DndProvider } from 'react-dnd';
-import { HTML5toTouch } from 'rdndmb-html5-to-touch';
 import { MultiBackend } from 'react-dnd-multi-backend';
-import Topbar from '@/components/topbar/Topbar';
-import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
-import styles from '@/features/editor/Editor.module.css';
-import { Flex, Callout, Box } from '@radix-ui/themes';
+import { Outlet } from 'react-router-dom';
+import {
+  DndContext,
+  PointerSensor,
+  pointerWithin,
+  rectIntersection,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Box, Callout, Flex } from '@radix-ui/themes';
+
+import AiPanel from '@/components/aiExtension/AiPanel';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
-import AiPanel from '@/components/aiExtension/AiPanel';
+import Topbar from '@/components/topbar/Topbar';
+import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+
+import type React from 'react';
+import type { CollisionDetection } from '@dnd-kit/core';
+
+import styles from '@/features/editor/Editor.module.css';
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback

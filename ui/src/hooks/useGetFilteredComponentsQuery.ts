@@ -1,5 +1,7 @@
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useMemo } from 'react';
+
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+
 import type { ComponentsList, libraryTypes } from '@/types/Component';
 
 type getComponentsQueryOptions = {

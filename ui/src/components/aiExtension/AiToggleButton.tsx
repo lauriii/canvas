@@ -1,12 +1,12 @@
 import { IconButton, Tooltip } from '@radix-ui/themes';
 
-import {
-  selectOpenLayoutItems,
-  setOpenLayoutItem,
-  setCloseLayoutItem,
-  LayoutItemType,
-} from '@/features/ui/primaryPanelSlice';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  LayoutItemType,
+  selectOpenLayoutItems,
+  setCloseLayoutItem,
+  setOpenLayoutItem,
+} from '@/features/ui/primaryPanelSlice';
 
 const AiToggleButton = () => {
   const openItems = useAppSelector(selectOpenLayoutItems);

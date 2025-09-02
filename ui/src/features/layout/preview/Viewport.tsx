@@ -1,7 +1,10 @@
-import styles from './Preview.module.css';
-import { useRef, useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useEffect, useRef, useState } from 'react';
 import { Progress } from '@radix-ui/themes';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import IframeSwapper from '@/features/layout/preview/IframeSwapper';
+import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
+import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
   EditorFrameMode,
   selectEditorFrameMode,
@@ -10,11 +13,10 @@ import {
   setFirstLoadComplete,
   unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
-import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
-import IframeSwapper from '@/features/layout/preview/IframeSwapper';
-import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
-import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
+import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
+
+import styles from './Preview.module.css';
 
 export interface ViewportProps {
   isFetching: boolean;

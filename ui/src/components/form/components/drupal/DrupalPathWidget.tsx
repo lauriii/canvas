@@ -1,14 +1,17 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useAppSelector } from '@/app/hooks';
 import TextField from '@/components/form/components/TextField';
+import InputBehaviors from '@/components/form/inputBehaviors';
+import { selectEntityId } from '@/features/configuration/configurationSlice';
+import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { a2p } from '@/local_packages/utils.js';
+import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import { getCanvasSettings, getDrupalSettings } from '@/utils/drupal-globals';
+
 import type { Attributes } from '@/types/DrupalAttribute';
 import type { transliterate as TransliterateType } from '@/types/transliterate';
-import { useAppSelector } from '@/app/hooks';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
-import { getDrupalSettings, getCanvasSettings } from '@/utils/drupal-globals';
-import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
-import { selectEntityId } from '@/features/configuration/configurationSlice';
-import InputBehaviors from '@/components/form/inputBehaviors';
+
 const getTransliterate = (): TransliterateType => {
   const { transliterate: drupalTransliterate } = window;
   return drupalTransliterate;

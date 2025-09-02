@@ -1,13 +1,11 @@
-import type React from 'react';
-import type { RefObject } from 'react';
 import { useLayoutEffect } from 'react';
-import { Button, DropdownMenu, Flex, Tooltip } from '@radix-ui/themes';
-import ScaleToFitIcon from '@assets/icons/justify-stretch.svg?react';
-import styles from './ViewportToolbar.module.css';
-import ZoomControl from '@/components/zoom/ZoomControl';
 import clsx from 'clsx';
+import ScaleToFitIcon from '@assets/icons/justify-stretch.svg?react';
+import { Button, DropdownMenu, Flex, Tooltip } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import type { ScaleValue } from '@/features/ui/uiSlice';
+import BreakpointIcon from '@/components/BreakpointIcon';
+import ZoomControl from '@/components/zoom/ZoomControl';
 import {
   scaleValues,
   selectViewportWidth,
@@ -15,10 +13,15 @@ import {
   setViewportMinHeight,
   setViewportWidth,
 } from '@/features/ui/uiSlice';
-import { getHalfwayScrollPosition } from '@/utils/function-utils';
-import BreakpointIcon from '@/components/BreakpointIcon';
-import type { viewportSize } from '@/types/Preview';
 import { viewportSizes } from '@/types/Preview';
+import { getHalfwayScrollPosition } from '@/utils/function-utils';
+
+import type React from 'react';
+import type { RefObject } from 'react';
+import type { ScaleValue } from '@/features/ui/uiSlice';
+import type { viewportSize } from '@/types/Preview';
+
+import styles from './ViewportToolbar.module.css';
 
 interface ViewportToolbarProps {
   editorPaneRef: RefObject<HTMLElement>;

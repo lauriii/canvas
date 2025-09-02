@@ -1,7 +1,9 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import ErrorCard from './ErrorCard';
 import { Box } from '@radix-ui/themes';
 import { fn } from '@storybook/test';
+
+import ErrorCard from './ErrorCard';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof ErrorCard> = {
   title: 'Components/Errors/ErrorCard',

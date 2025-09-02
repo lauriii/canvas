@@ -1,25 +1,29 @@
-import type React from 'react';
-import { useEffect, useState, useMemo } from 'react';
-import styles from './PreviewOverlay.module.css';
+import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { useParams } from 'react-router';
+
 import { useAppSelector } from '@/app/hooks';
+import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
+import { SlotNameTag } from '@/features/layout/preview/NameTag';
+import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
+import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
 import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
-import clsx from 'clsx';
-import { SlotNameTag } from '@/features/layout/preview/NameTag';
-import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
+import useGetComponentName from '@/hooks/useGetComponentName';
+import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
+import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
+
+import type React from 'react';
 import type {
   ComponentNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
-import useGetComponentName from '@/hooks/useGetComponentName';
-import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
-import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
-import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
-import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
-import { useParams } from 'react-router';
+
+import styles from './PreviewOverlay.module.css';
+
 // import SlotDropZone from '@/features/layout/previewOverlay/SlotDropZone';
 
 export interface SlotOverlayProps {

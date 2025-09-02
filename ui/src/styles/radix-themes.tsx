@@ -15,7 +15,6 @@
 
 // Base theme tokens
 import '@radix-ui/themes/tokens/base.css';
-
 // Colors
 
 // Add more colors as needed.
@@ -45,7 +44,6 @@ import '@radix-ui/themes/tokens/colors/iris.css';
 import '@radix-ui/themes/tokens/colors/pink.css';
 import '@radix-ui/themes/tokens/colors/ruby.css';
 import '@radix-ui/themes/tokens/colors/grass.css';
-
 // Components and utilities
 import '@radix-ui/themes/components.css';
 import '@radix-ui/themes/utilities.css';

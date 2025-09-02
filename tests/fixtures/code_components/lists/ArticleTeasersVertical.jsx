@@ -1,6 +1,7 @@
+import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
 import useSWR from 'swr';
 import { JsonApiClient } from '@drupal-api-client/json-api-client';
-import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
+
 import { getNodePath } from '@/lib/jsonapi-utils';
 
 const client = new JsonApiClient();

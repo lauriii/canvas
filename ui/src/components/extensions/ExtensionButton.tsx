@@ -1,12 +1,15 @@
+import { useCallback } from 'react';
 import clsx from 'clsx';
 import { Flex, Text, Tooltip } from '@radix-ui/themes';
-import styles from './ExtensionsList.module.css';
-import type React from 'react';
-import { useCallback } from 'react';
-import type { ExtensionDefinition } from '@/types/Extensions';
+
 import { useAppDispatch } from '@/app/hooks';
-import { setDialogOpen } from '@/features/ui/dialogSlice';
 import { setActiveExtension } from '@/features/extensions/extensionsSlice';
+import { setDialogOpen } from '@/features/ui/dialogSlice';
+
+import type React from 'react';
+import type { ExtensionDefinition } from '@/types/Extensions';
+
+import styles from './ExtensionsList.module.css';
 
 const ExtensionButton: React.FC<ExtensionsPopoverProps> = ({ extension }) => {
   const { name, imgSrc, description } = extension;

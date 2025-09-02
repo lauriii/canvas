@@ -1,16 +1,17 @@
 // cspell:ignore CCMR
-import type React from 'react';
-import { UnifiedMenu } from '@/components/UnifiedMenu';
 import { useCallback, useMemo } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
+import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
+import { findParentRegion } from '@/features/layout/layoutUtils';
+import useComponentSelection from '@/hooks/useComponentSelection';
+
+import type React from 'react';
 import type {
   ComponentNode,
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
-import { moveNode } from '@/features/layout/layoutModelSlice';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { findParentRegion } from '@/features/layout/layoutUtils';
-import useComponentSelection from '@/hooks/useComponentSelection';
 
 interface CCMRProps {
   component: ComponentNode;

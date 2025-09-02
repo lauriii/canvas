@@ -1,17 +1,19 @@
-import { compileCss, extractClassNameCandidates } from 'tailwindcss-in-browser';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { compileCss, extractClassNameCandidates } from 'tailwindcss-in-browser';
 import { upsertClassNameCandidatesInComment } from '@drupal-canvas/ui/features/code-editor/utils/classNameCandidates';
+
 import { getConfig } from '../config';
+import { transformCss } from '../lib/transform-css';
+import { createApiService } from '../services/api';
 import {
+  CANVAS_CACHE_DIR,
   cleanUpCacheDirectory,
   copyLocalJsSource,
   downloadJsSourceFromCanvas,
-  CANVAS_CACHE_DIR,
 } from './process-cache-dir';
-import { transformCss } from '../lib/transform-css';
+
 import type { Component } from '../types/Component';
-import { createApiService } from '../services/api';
 import type { Result } from '../types/Result';
 
 export async function getAllClassNameCandidatesFromCacheDir(

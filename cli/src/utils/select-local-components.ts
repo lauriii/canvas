@@ -1,7 +1,8 @@
-import * as p from '@clack/prompts';
 import path from 'path';
-import { findComponentDirectories } from './find-component-directories.js';
+import * as p from '@clack/prompts';
+
 import { getConfig } from '../config.js';
+import { findComponentDirectories } from './find-component-directories.js';
 
 /**
  * Utility function to select local components for building/processing.

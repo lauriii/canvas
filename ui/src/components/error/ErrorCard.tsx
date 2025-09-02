@@ -1,5 +1,6 @@
-import { Box, Button, Callout } from '@radix-ui/themes';
 import { ExclamationTriangleIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { Box, Button, Callout } from '@radix-ui/themes';
+
 import type React from 'react';
 
 const DEFAULT_TITLE = 'An unexpected error has occurred.';

@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 
-import { a2p } from '@/local_packages/utils.js';
 import FormElementLabel from '@/components/form/components/FormElementLabel';
+import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 

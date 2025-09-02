@@ -1,21 +1,23 @@
+import { useParams } from 'react-router';
+import { v4 as uuidv4 } from 'uuid';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  findComponentByUuid,
-  findNodePathByUuid,
-  recurseNodes,
-} from '@/features/layout/layoutUtils';
-import type {
-  ComponentNode,
-  LayoutModelPiece,
-} from '@/features/layout/layoutModelSlice';
 import {
   insertNodes,
   selectLayout,
   selectModel,
 } from '@/features/layout/layoutModelSlice';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  findComponentByUuid,
+  findNodePathByUuid,
+  recurseNodes,
+} from '@/features/layout/layoutUtils';
 import useComponentSelection from '@/hooks/useComponentSelection';
-import { useParams } from 'react-router';
+
+import type {
+  ComponentNode,
+  LayoutModelPiece,
+} from '@/features/layout/layoutModelSlice';
 
 interface CopyPasteFunctions {
   copySelectedComponent: (component?: string) => void;

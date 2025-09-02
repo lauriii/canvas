@@ -1,6 +1,7 @@
-import InputBehaviors from '@/components/form/inputBehaviors';
-import type { Attributes } from '@/types/DrupalAttribute';
 import Select from '@/components/form/components/Select';
+import InputBehaviors from '@/components/form/inputBehaviors';
+
+import type { Attributes } from '@/types/DrupalAttribute';
 
 export interface DrupalSelectProps {
   attributes?: Attributes;

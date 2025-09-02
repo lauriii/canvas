@@ -1,18 +1,19 @@
-import Dialog from '@/components/Dialog';
-import type React from 'react';
 import { useCallback } from 'react';
-
 import { Box } from '@radix-ui/themes';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import Dialog from '@/components/Dialog';
+import {
+  selectActiveExtension,
+  unsetActiveExtension,
+} from '@/features/extensions/extensionsSlice';
 import {
   selectDialogOpen,
   setDialogClosed,
   setDialogOpen,
 } from '@/features/ui/dialogSlice';
-import {
-  selectActiveExtension,
-  unsetActiveExtension,
-} from '@/features/extensions/extensionsSlice';
+
+import type React from 'react';
 
 interface ExtensionDialogProps {}
 

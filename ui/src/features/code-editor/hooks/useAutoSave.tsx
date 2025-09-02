@@ -5,17 +5,17 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useAppSelector } from '@/app/hooks';
+
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   selectGlobalAssetLibraryProperty,
   selectStatus,
+  setStatus,
 } from '@/features/code-editor/codeEditorSlice';
-import { useUpdateAutoSaveMutation as updateCodeComponentMutation } from '@/services/componentAndLayout';
-import { useUpdateAutoSaveMutation as updateGlobalAssetLibraryMutation } from '@/services/assetLibrary';
 import { serializeProps, serializeSlots } from '@/features/code-editor/utils';
-import { setStatus } from '@/features/code-editor/codeEditorSlice';
-import { useAppDispatch } from '@/app/hooks';
+import { useUpdateAutoSaveMutation as updateGlobalAssetLibraryMutation } from '@/services/assetLibrary';
+import { useUpdateAutoSaveMutation as updateCodeComponentMutation } from '@/services/componentAndLayout';
 
 const useAutoSave = (requestedComponentId: string): void => {
   const dispatch = useAppDispatch();

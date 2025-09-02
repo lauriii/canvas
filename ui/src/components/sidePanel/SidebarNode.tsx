@@ -1,5 +1,5 @@
 import * as React from 'react';
-
+import { clsx } from 'clsx';
 import {
   BoxModelIcon,
   CodeIcon,
@@ -12,7 +12,6 @@ import {
   SectionIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
-import { clsx } from 'clsx';
 
 import styles from './SidebarNode.module.css';
 

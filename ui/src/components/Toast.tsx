@@ -1,5 +1,6 @@
 import { Toaster } from 'sonner';
 import { Spinner } from '@radix-ui/themes';
+
 import type { CSSProperties } from 'react';
 
 const toastStyles: CSSProperties = {

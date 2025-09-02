@@ -1,6 +1,7 @@
 import { createAppSlice } from '@/app/createAppSlice';
+
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { ExtensionDefinition, ActiveExtension } from '@/types/Extensions';
+import type { ActiveExtension, ExtensionDefinition } from '@/types/Extensions';
 
 export interface ExtensionsSliceState {
   activeExtension: ActiveExtension;

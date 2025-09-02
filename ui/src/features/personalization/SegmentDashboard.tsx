@@ -1,17 +1,19 @@
-import DefaultSitePanel from '@/components/personalization/DefaultSitePanel';
-import SegmentList from '@/components/personalization/SegmentList';
-import type { Segment } from '@/types/Personalization';
-import { Button, Flex } from '@radix-ui/themes';
-import {
-  useGetSegmentsQuery,
-  useCreateSegmentMutation,
-  useUpdateSegmentMutation,
-  useDeleteSegmentMutation,
-} from '@/services/personalization';
 import { useCallback } from 'react';
-import { PlusIcon } from '@radix-ui/react-icons';
 import snakeCase from 'lodash/snakeCase';
 import { useNavigate } from 'react-router-dom';
+import { PlusIcon } from '@radix-ui/react-icons';
+import { Button, Flex } from '@radix-ui/themes';
+
+import DefaultSitePanel from '@/components/personalization/DefaultSitePanel';
+import SegmentList from '@/components/personalization/SegmentList';
+import {
+  useCreateSegmentMutation,
+  useDeleteSegmentMutation,
+  useGetSegmentsQuery,
+  useUpdateSegmentMutation,
+} from '@/services/personalization';
+
+import type { Segment } from '@/types/Personalization';
 
 export default function SegmentDashboard() {
   const navigate = useNavigate();

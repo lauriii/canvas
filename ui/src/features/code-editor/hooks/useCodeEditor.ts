@@ -11,21 +11,23 @@
  */
 
 import { useEffect } from 'react';
+import { useParams } from 'react-router';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   initializeCodeEditor,
   resetCodeEditor,
+  selectCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
+import useAutoSave from '@/features/code-editor/hooks/useAutoSave';
 import useGetCodeEditorData from '@/features/code-editor/hooks/useGetCodeEditorData';
 import useSourceCode from '@/features/code-editor/hooks/useSourceCode';
-import useAutoSave from '@/features/code-editor/hooks/useAutoSave';
 import { deserializeCodeComponent } from '@/features/code-editor/utils';
-import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
+
 import type {
   AssetLibrary,
   CodeComponentSerialized,
 } from '@/types/CodeComponent';
-import { useParams } from 'react-router';
 
 const useCodeEditor: () => {
   isLoading: boolean;

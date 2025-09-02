@@ -1,13 +1,15 @@
-import { Flex, Link, Grid } from '@radix-ui/themes';
 import { ExternalLinkIcon } from '@radix-ui/react-icons';
+import { Flex, Grid, Link } from '@radix-ui/themes';
+
 import ExtensionButton from '@/components/extensions/ExtensionButton';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
-import type React from 'react';
 import {
   getBaseUrl,
-  getDrupalSettings,
   getCanvasSettings,
+  getDrupalSettings,
 } from '@/utils/drupal-globals';
+import { handleNonWorkingBtn } from '@/utils/function-utils';
+
+import type React from 'react';
 
 interface ExtensionsPopoverProps {}
 

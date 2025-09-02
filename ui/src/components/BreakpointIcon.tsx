@@ -1,5 +1,6 @@
-import type React from 'react';
 import { DesktopIcon, LaptopIcon, MobileIcon } from '@radix-ui/react-icons';
+
+import type React from 'react';
 
 interface BreakpointIconProps {
   width: number;

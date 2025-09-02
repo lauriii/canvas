@@ -1,30 +1,32 @@
-import type React from 'react';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ContextMenu } from '@radix-ui/themes';
-import { UnifiedMenu } from '@/components/UnifiedMenu';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  selectEditorViewPortScale,
-  unsetHoveredComponent,
-} from '@/features/ui/uiSlice';
-import type { UnifiedMenuType } from '@/components/UnifiedMenu';
-import type { ComponentNode } from '@/features/layout/layoutModelSlice';
+import PermissionCheck from '@/components/PermissionCheck';
+import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
   deleteNode,
   duplicateNode,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
-import { setDialogOpen } from '@/features/ui/dialogSlice';
-import useGetComponentName from '@/hooks/useGetComponentName';
-import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
-import useComponentSelection from '@/hooks/useComponentSelection';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
-import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { useNavigate } from 'react-router-dom';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
-import PermissionCheck from '@/components/PermissionCheck';
+import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
+import { setDialogOpen } from '@/features/ui/dialogSlice';
+import {
+  selectEditorViewPortScale,
+  selectSelectedComponentUuid,
+  unsetHoveredComponent,
+} from '@/features/ui/uiSlice';
+import useComponentSelection from '@/hooks/useComponentSelection';
+import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import useGetComponentName from '@/hooks/useGetComponentName';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+
+import type React from 'react';
+import type { ReactNode } from 'react';
+import type { UnifiedMenuType } from '@/components/UnifiedMenu';
+import type { ComponentNode } from '@/features/layout/layoutModelSlice';
 
 interface ComponentContextMenuProps {
   children: ReactNode;

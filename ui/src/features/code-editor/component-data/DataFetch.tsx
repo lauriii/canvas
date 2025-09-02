@@ -1,9 +1,11 @@
+import { Accordion } from 'radix-ui';
 import { JSONTree } from 'react-json-tree';
+import { ChevronDownIcon, InfoCircledIcon } from '@radix-ui/react-icons';
+import { Box, Callout } from '@radix-ui/themes';
+
 import { useAppSelector } from '@/app/hooks';
 import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
-import { Box, Callout } from '@radix-ui/themes';
-import { ChevronDownIcon, InfoCircledIcon } from '@radix-ui/react-icons';
-import { Accordion } from 'radix-ui';
+
 import styles from './DataFetch.module.css';
 
 const theme = {

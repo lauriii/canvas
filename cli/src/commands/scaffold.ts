@@ -1,9 +1,11 @@
-import type { Command } from 'commander';
-import * as p from '@clack/prompts';
 import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
+import * as p from '@clack/prompts';
+
 import { getConfig, setConfig } from '../config.js';
+
+import type { Command } from 'commander';
 
 interface ScaffoldOptions {
   name?: string;

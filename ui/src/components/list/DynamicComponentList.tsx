@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useGetFilteredComponentsQuery } from '@/hooks/useGetFilteredComponentsQuery';
+import { Skeleton } from '@radix-ui/themes';
+
+import ErrorBoundary from '@/components/error/ErrorBoundary';
+import {
+  AccordionDetails,
+  AccordionRoot,
+} from '@/components/form/components/Accordion';
 import List from '@/components/list/List';
 import {
   LayoutItemType,
   setOpenLayoutItem,
 } from '@/features/ui/primaryPanelSlice';
-import {
-  AccordionDetails,
-  AccordionRoot,
-} from '@/components/form/components/Accordion';
+import { useGetFilteredComponentsQuery } from '@/hooks/useGetFilteredComponentsQuery';
+
 import styles from '@/components/sidePanel/Library.module.css';
-import ErrorBoundary from '@/components/error/ErrorBoundary';
-import clsx from 'clsx';
-import { Skeleton } from '@radix-ui/themes';
 
 const DynamicComponentList = () => {
   const {

@@ -1,7 +1,7 @@
 import {
   defaultValue,
-  localDefaultValue,
   localDefaultEndValue,
+  localDefaultValue,
 } from './default-date.js';
 
 export const edit = (cy) => {

@@ -1,3 +1,11 @@
+import { v4 as uuidv4 } from 'uuid';
+
+import { setCanvasDrupalSetting } from '@/utils/drupal-globals';
+import { isConsecutive } from '@/utils/function-utils';
+
+import { NodeType } from './layoutModelSlice';
+
+import type { ComponentsList } from '@/types/Component';
 import type {
   ComponentModels,
   ComponentNode,
@@ -6,11 +14,6 @@ import type {
   RegionNode,
   SlotNode,
 } from './layoutModelSlice';
-import { NodeType } from './layoutModelSlice';
-import { v4 as uuidv4 } from 'uuid';
-import { setCanvasDrupalSetting } from '@/utils/drupal-globals';
-import { isConsecutive } from '@/utils/function-utils';
-import type { ComponentsList } from '@/types/Component';
 
 type NodeFunction = (
   node: ComponentNode,

@@ -1,14 +1,16 @@
-import { Button, Box, Flex, Text, TextField, Select } from '@radix-ui/themes';
+import { useEffect, useMemo, useState } from 'react';
 import { PlusIcon, TrashIcon } from '@radix-ui/react-icons';
-import {
-  FormElement,
-  Label,
-  Divider,
-} from '@/features/code-editor/component-data/FormElement';
+import { Box, Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
+
 import { useAppDispatch } from '@/app/hooks';
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
+import {
+  Divider,
+  FormElement,
+  Label,
+} from '@/features/code-editor/component-data/FormElement';
+
 import type { CodeComponentProp } from '@/types/CodeComponent';
-import { useState, useEffect, useMemo } from 'react';
 
 const NONE_VALUE = '_none_';
 

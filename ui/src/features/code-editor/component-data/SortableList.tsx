@@ -1,13 +1,12 @@
 import clsx from 'clsx';
 import {
-  DndContext,
   closestCenter,
+  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -15,12 +14,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Flex } from '@radix-ui/themes';
 import {
   DragHandleDots2Icon,
   PlusIcon,
   TrashIcon,
 } from '@radix-ui/react-icons';
+import { Button, Flex } from '@radix-ui/themes';
+
+import type { DragEndEvent } from '@dnd-kit/core';
+
 import styles from './SortableList.module.css';
 
 interface SortableListProps<T> {
