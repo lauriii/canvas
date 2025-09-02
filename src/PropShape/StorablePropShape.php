@@ -7,6 +7,7 @@ namespace Drupal\experience_builder\PropShape;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropSource\StaticPropSource;
 
 /**
@@ -27,7 +28,7 @@ final class StorablePropShape {
     public readonly PropShape $shape,
     // The corresponding UX for the prop shape:
     // - field type to use + which field properties to extract from an instance of the field type
-    public readonly FieldTypePropExpression|FieldTypeObjectPropsExpression $fieldTypeProp,
+    public readonly FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $fieldTypeProp,
     // - which widget to use to populate an instance of the field type
     public readonly string $fieldWidget,
     // - (optionally) which cardinality to use in case of a list (`type: array`)

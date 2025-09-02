@@ -729,7 +729,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
 
       $props[$cpe->propName] = [
-        'field_type' => $storable_prop_shape->fieldTypeProp->fieldType,
+        'field_type' => $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression
+          ? $storable_prop_shape->fieldTypeProp->referencer->fieldType
+          : $storable_prop_shape->fieldTypeProp->fieldType,
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
         'default_value' => self::computeDefaultFieldValue($storable_prop_shape, $component_plugin->metadata, $cpe->propName),
@@ -817,6 +819,15 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * @see \Drupal\experience_builder\ComponentSource\UrlRewriteInterface
    */
   public static function exampleValueRequiresEntity(StorablePropShape $storable_prop_shape): bool {
+    if ($storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression) {
+      return TRUE;
+    }
+
+    if ($storable_prop_shape->fieldTypeProp instanceof FieldTypePropExpression) {
+      return self::fieldTypePropExpressionExampleRequiresEntity($storable_prop_shape->fieldTypeProp) ?? FALSE;
+    }
+
+    // @phpstan-ignore-next-line instanceof.alwaysTrue
     if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
       if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
         return TRUE;
@@ -832,19 +843,25 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           // also be relying on a (referenced) entity.
           // @see \Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString
           // @todo Consider dropping this in favor of adding adapter support in https://www.drupal.org/project/experience_builder/issues/3464003
-          if ($field_type_prop instanceof FieldTypePropExpression) {
-            $property = TypedDataHelper::conjureFieldItemObject($field_type_prop->fieldType)->getProperties(TRUE)[$field_type_prop->propName] ?? NULL;
-            assert($property !== NULL);
-            // Detect if this is a field property relying on other properties.
-            if (!$property instanceof DependentPluginInterface) {
-              continue;
-            }
-            return JsonSchemaFieldInstanceMatcher::propertyDependsOnReferencedEntity($property->getDataDefinition());
+          $indirectly_uses_entity = self::fieldTypePropExpressionExampleRequiresEntity($field_type_prop);
+          if ($indirectly_uses_entity === NULL) {
+            continue;
           }
+          return $indirectly_uses_entity;
         }
       }
     }
     return FALSE;
+  }
+
+  private static function fieldTypePropExpressionExampleRequiresEntity(FieldTypePropExpression $field_type_prop): ?bool {
+    $property = TypedDataHelper::conjureFieldItemObject($field_type_prop->fieldType)->getProperties(TRUE)[$field_type_prop->propName] ?? NULL;
+    assert($property !== NULL);
+    // Detect if this is a field property relying on other properties.
+    if (!$property instanceof DependentPluginInterface) {
+      return NULL;
+    }
+    return JsonSchemaFieldInstanceMatcher::propertyDependsOnReferencedEntity($property->getDataDefinition());
   }
 
   /**

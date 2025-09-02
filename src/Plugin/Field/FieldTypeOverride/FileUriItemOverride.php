@@ -31,8 +31,10 @@ class FileUriItemOverride extends FileUriItem {
       // The `url` property is computed using the `value` property, which is
       // required. Hence this value is guaranteed to exist.
       ->setRequired(TRUE)
-      // The ComputedFileUrl data type generates a browser-accessible URL.
-      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?/"]);
+      // The ComputedFileUrl data type generates a browser-accessible URL (root-
+      // relative, absolute using HTTP, absolute using HTTPs or relative).
+      // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern()
+      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?(?!.*\:\/\/)[^\s]+$/"]);
     return $properties;
   }
 

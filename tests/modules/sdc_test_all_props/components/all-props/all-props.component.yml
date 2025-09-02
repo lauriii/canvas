@@ -144,15 +144,22 @@ props:
       examples:
         - https://uri.example.com
     test_string_format_uri_image:
-      title: 'String, format=uri, images only'
+      title: 'String, format=uri, relative or absolute images only — using contentMediaType=image/* directly'
+      type: string
+      format: uri-reference
+      contentMediaType: image/*
+      # @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern()
+      pattern: '^(/|https?://)?(?!.*\://)[^\s]+$'
+    test_string_format_uri_image_using_ref:
+      title: 'String, format=uri, relative or absolute images only — using $ref'
       $ref: json-schema-definitions://experience_builder.module/image-uri
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: string
       # ⚠️ The reference above is equivalent to:
       # type: string
-      # format: uri
-      # # @see \Drupal\image\Plugin\Field\FieldType\ImageItem::defaultFieldSettings()
-      # pattern: '\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])$'
+      # format: uri-reference
+      # contentMediaType: image/*
+      # pattern: '^(/|https?://)?(?!.*\://)[^\s]+$'
     test_string_format_uri_reference:
       title: 'String, format=uri-reference'
       type: string

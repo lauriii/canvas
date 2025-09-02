@@ -7,6 +7,7 @@ namespace Drupal\Tests\experience_builder\Kernel;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\experience_builder\Entity\Component;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaStringFormat;
@@ -89,6 +90,16 @@ class PropShapeRepositoryTest extends KernelTestBase {
     assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
 
     $components = $sdc_manager->getAllComponents();
+    // Shape matching is only ever relevant to SDCs that may appear in the UI,
+    // and hence also in XB. Omit SDCs with `noUi: true`.
+    $components = array_filter(
+      $components,
+      fn (ComponentPlugin $c) => (property_exists($c->metadata, 'noUi') && $c->metadata->noUi === FALSE)
+        // The above only works on Drupal core >=11.3.
+        // @todo Remove in https://www.drupal.org/i/3537695
+        // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
+        || ($c->getPluginDefinition()['noUi'] ?? FALSE) === FALSE,
+    );
     $unique_prop_shapes = [];
     foreach ($components as $component) {
       foreach (PropShape::getComponentProps($component) as $prop_shape) {
@@ -131,7 +142,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/textarea']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
@@ -235,6 +248,26 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape(['type' => 'string']),
         fieldTypeProp: new FieldTypePropExpression('string', 'value'),
         fieldWidget: 'string_textfield',
+      ),
+      // ⚠️Identical to the below, because its `$ref` resolves to this.
+      'type=string&contentMediaType=image/*&format=uri-reference&pattern=^(/|https?://)?(?!.*\://)[^\s]+$' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
+        fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+        fieldWidget: 'image_image',
+      ),
+      // ⚠️Identical to the above, because `$ref` resolves to the above.
+      'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
+        fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+        fieldWidget: 'image_image',
+      ),
+      'type=string&$ref=json-schema-definitions://experience_builder.module/stream-wrapper-image-uri' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
+        fieldTypeProp: new ReferenceFieldTypePropExpression(
+          referencer: new FieldTypePropExpression('image', 'entity'),
+          referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+        ),
+        fieldWidget: 'image_image',
       ),
       'type=object&$ref=json-schema-definitions://experience_builder.module/image' => new StorablePropShape(
         shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/image']),
@@ -617,7 +650,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=array&items[type]=integer&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
-      'type=string&$ref=json-schema-definitions://experience_builder.module/image-uri' => new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://experience_builder.module/image-uri']),
       'type=object&$ref=json-schema-definitions://experience_builder.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://experience_builder.module/shoe-icon']),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Duration->value]),
       'type=string&format=hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Hostname->value]),
@@ -794,7 +826,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
         $validator->getErrors(),
         sprintf("Sample value %s generated by field type %s for %s is invalid!",
           json_encode($random_value),
-          $storable_prop_shape->fieldTypeProp->fieldType,
+          $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression
+            ? $storable_prop_shape->fieldTypeProp->referencer->fieldType
+            : $storable_prop_shape->fieldTypeProp->fieldType,
           $storable_prop_shape->shape->uniquePropSchemaKey()
         )
       );

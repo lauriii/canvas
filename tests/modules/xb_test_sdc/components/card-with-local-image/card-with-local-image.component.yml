@@ -31,8 +31,7 @@ props:
       type: string
       # Note: the xb_test_sdc:card SDC uses `json-schema-definitions://experience_builder.module/image`, and that shape
       # uses the below for its `src` prop. Hence this SDC's implementation can reuse xb_test_sdc:card.
-      # @todo This is the correct schema. Add this in https://www.drupal.org/project/experience_builder/issues/3530351.
-      # $ref: json-schema-definitions://experience_builder.module/image-uri
+      $ref: json-schema-definitions://experience_builder.module/image-uri
       description: Local path starting with "/"
       examples:
         - '/core/misc/druplicon.png'

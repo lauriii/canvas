@@ -46,6 +46,8 @@ class PropExpressionDependenciesTest extends KernelTestBase {
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
 
+  public const NODE_1_UUID = '406ff859-f31b-4247-8b76-56cda80c06b9';
+
   /**
    * {@inheritdoc}
    */
@@ -87,6 +89,8 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     $this->installEntitySchema('media');
 
     $this->createMediaType('image', ['id' => 'image']);
+    $this->createMediaType('image', ['id' => 'baby_photos']);
+    $this->createMediaType('image', ['id' => 'vacation_photos']);
 
     // `article` node type.
     NodeType::create([
@@ -180,6 +184,7 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     ]);
     $image_media->save();
     Node::create([
+      'uuid' => self::NODE_1_UUID,
       'title' => 'dummy_title',
       'type' => 'article',
       'uid' => 1,

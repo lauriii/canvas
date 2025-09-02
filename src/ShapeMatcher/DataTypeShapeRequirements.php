@@ -9,7 +9,7 @@ namespace Drupal\experience_builder\ShapeMatcher;
  *
  * @see \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement
  */
-final class DataTypeShapeRequirements {
+final class DataTypeShapeRequirements implements \IteratorAggregate {
 
   /**
    * @param \Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement[] $requirements
@@ -22,6 +22,10 @@ final class DataTypeShapeRequirements {
         throw new \LogicException();
       }
     }
+  }
+
+  public function getIterator(): \Traversable {
+    return new \ArrayIterator($this->requirements);
   }
 
 }

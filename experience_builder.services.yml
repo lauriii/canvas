@@ -9,6 +9,7 @@ services:
     arguments:
       $constraintManager: '@validation.constraint'
       $cache: '@cache.static'
+      $extensionMimeTypeGuesser: '@file.mime_type.guesser.extension'
   Drupal\experience_builder\ShapeMatcher\FieldForComponentSuggester:
     public: true
   Drupal\experience_builder\ComponentIncompatibilityReasonRepository: {}

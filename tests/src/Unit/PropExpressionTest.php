@@ -16,6 +16,7 @@ use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypeP
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
+use Drupal\Tests\experience_builder\Kernel\PropExpressionDependenciesTest;
 use Drupal\Tests\UnitTestCase;
 use Prophecy\Prophet;
 
@@ -505,6 +506,36 @@ class PropExpressionTest extends UnitTestCase {
         [
           'module' => ['image', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
+        ],
+      ],
+
+      // Reference field type that fetches a reference of a reference.
+      [
+        'ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image_1|field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value',
+        new ReferenceFieldTypePropExpression(
+          new FieldTypePropExpression('entity_reference', 'entity'),
+          new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', ['baby_photos', 'vacation_photos']), ['baby_photos' => 'field_media_image_1', 'vacation_photos' => 'field_media_image_2'], \NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+          ),
+        ),
+        [
+          'content' => [
+            'node:article:' . PropExpressionDependenciesTest::NODE_1_UUID,
+          ],
+          'module' => [
+            'media',
+            'file',
+            'file',
+          ],
+          'config' => [
+            'media.type.baby_photos',
+            'media.type.vacation_photos',
+            'field.field.media.baby_photos.field_media_image_1',
+            'image.style.xb_parametrized_width',
+            'field.field.media.vacation_photos.field_media_image_2',
+            'image.style.xb_parametrized_width',
+          ],
         ],
       ],
     ];

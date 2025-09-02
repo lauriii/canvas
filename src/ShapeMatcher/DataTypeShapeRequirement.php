@@ -10,7 +10,7 @@ namespace Drupal\experience_builder\ShapeMatcher;
  * @see \Drupal\Core\TypedData\Attribute\DataType
  * @see \Drupal\experience_builder\JsonSchemaInterpreter\DataTypeShapeRequirements
  */
-final class DataTypeShapeRequirement {
+final class DataTypeShapeRequirement implements \IteratorAggregate {
 
   /**
    * @param array<mixed> $constraintOptions
@@ -27,6 +27,10 @@ final class DataTypeShapeRequirement {
     if ($this->interface !== NULL && $this->constraint !== 'PrimitiveType') {
       throw new \DomainException('An interface restriction only makes sense when the `PrimitiveType` constraint is used.');
     }
+  }
+
+  public function getIterator(): \Traversable {
+    return new \ArrayIterator([$this]);
   }
 
 }

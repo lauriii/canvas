@@ -236,30 +236,55 @@ class ShapeMatchingHooks {
    */
   #[Hook('storage_prop_shape_alter', module: 'media_library')]
   public function mediaLibraryStoragePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
+    $media_type_ids = NULL;
+
+    // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+    if ($storable_prop_shape->shape->schema['type'] === 'string' &&
+      (
+        isset($storable_prop_shape->shape->schema['$ref']) &&
+        $storable_prop_shape->shape->schema['$ref'] === 'json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'
+      )
+      || (
+        isset($storable_prop_shape->shape->schema['contentMediaType'])
+        && $storable_prop_shape->shape->schema['contentMediaType'] === 'image/*'
+        // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+        // @todo Update in https://www.drupal.org/project/experience_builder/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
+        && ($storable_prop_shape->shape->schema['pattern'] ?? '') === '^(?!https?://)[\w\-]+://'
+      )
+    ) {
+      $media_types = self::getMediaTypesForSource(Image::class);
+      if (!empty($media_types)) {
+        $media_type_ids = array_keys($media_types);
+        $source_field_names = array_map(
+        // @phpstan-ignore-next-line
+          fn(MediaTypeInterface $type): string => $type->getSource()->getSourceFieldDefinition($type)->getName(),
+          $media_types
+        );
+        $storable_prop_shape->fieldTypeProp = new ReferenceFieldTypePropExpression(
+          new FieldTypePropExpression('entity_reference', 'entity'),
+          new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+          ),
+        );
+      }
+    }
+
     if ($storable_prop_shape->shape->schema['type'] === 'object' &&
       isset($storable_prop_shape->shape->schema['$ref']) &&
       array_key_exists($storable_prop_shape->shape->schema['$ref'], self::SCHEMA_TO_MEDIA_SOURCE)
     ) {
       $media_source_class = self::SCHEMA_TO_MEDIA_SOURCE[$storable_prop_shape->shape->schema['$ref']];
-      // Allow all MediaTypes that use the "image" MediaSource.
-      // @see \Drupal\media\Plugin\media\Source\Image
-      $media_types = array_filter(
-        MediaType::loadMultiple(),
-        fn (MediaTypeInterface $type): bool => is_a($type->getSource(), $media_source_class)
-      );
-      if (empty($media_types)) {
-        return;
+      $media_types = self::getMediaTypesForSource($media_source_class);
+      if (!empty($media_types)) {
+        $media_type_ids = array_keys($media_types);
+        $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('entity_reference',
+          $this->getFieldTypeProps($media_types, $media_type_ids, $media_source_class)
+        );
       }
-      ksort($media_types);
-      $media_type_ids = array_map(
-      // @phpstan-ignore-next-line
-        fn (MediaTypeInterface $type): string => $type->id(),
-        $media_types
-      );
+    }
 
-      $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('entity_reference',
-        $this->getFieldTypeProps($media_types, $media_type_ids, $media_source_class)
-      );
+    if (!empty($media_type_ids)) {
       $storable_prop_shape->fieldStorageSettings = ['target_type' => 'media'];
       $storable_prop_shape->fieldInstanceSettings = [
         'handler' => 'default:media',
@@ -293,6 +318,27 @@ class ShapeMatchingHooks {
       // @todo Make this actually work in component instance forms in https://www.drupal.org/project/experience_builder/issues/3523379
       $storable_prop_shape->fieldWidget = 'daterange_default';
     }
+  }
+
+  /**
+   * @param class-string $media_source_class
+   *
+   * @return array
+   */
+  private static function getMediaTypesForSource(string $media_source_class) : array {
+    // Allow all MediaTypes that use the "image" MediaSource, for example.
+    // @see \Drupal\media\Plugin\media\Source\Image
+    $media_types = array_filter(
+      MediaType::loadMultiple(),
+      fn (MediaTypeInterface $type): bool => is_a($type->getSource(), $media_source_class)
+    );
+    ksort($media_types);
+    $media_type_ids = array_map(
+    // @phpstan-ignore-next-line
+      fn (MediaTypeInterface $type): string => $type->id(),
+      $media_types
+    );
+    return array_combine($media_type_ids, $media_types);
   }
 
   /**

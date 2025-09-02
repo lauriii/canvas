@@ -7,11 +7,16 @@ namespace Drupal\experience_builder\JsonSchemaInterpreter;
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
 use Drupal\experience_builder\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
+use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\experience_builder\PropShape\PropShape;
 use Drupal\experience_builder\PropShape\StorablePropShape;
 use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirement;
+use Drupal\experience_builder\ShapeMatcher\DataTypeShapeRequirements;
+use Drupal\experience_builder\TypedData\BetterEntityDataDefinition;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -70,7 +75,7 @@ enum JsonSchemaStringFormat: string {
    * @param JsonSchema $schema
    * @see \Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
    */
-  public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement {
+  public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements {
     return match($this) {
       // Built-in formats: dates and times.
       // @see https://json-schema.org/understanding-json-schema/reference/string#dates-and-times
@@ -101,7 +106,16 @@ enum JsonSchemaStringFormat: string {
       // @see https://json-schema.org/understanding-json-schema/reference/string#resource-identifiers
       static::Uuid => new DataTypeShapeRequirement('Uuid', []),
       // TRICKY: Drupal core does not support RFC3987 aka IRIs, but it's a superset of RFC3986.
-      static::UriReference, static::Uri, static::Iri, static::IriReference => new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
+      static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
+        // Custom: the targeted resource has `contentMediaType: image/*` or
+        // `contentMediaType: video/*`.
+        // @see https://github.com/json-schema-org/json-schema-spec/issues/1557
+        array_key_exists('contentMediaType', $schema) && in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
+          new DataTypeShapeRequirement(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => $schema['contentMediaType']]),
+          new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
+        ]),
+        default => new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
+      },
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
@@ -176,16 +190,49 @@ enum JsonSchemaStringFormat: string {
       // instead use the link widget which is more permissive about the URI/IRI content.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
       // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
-      static::UriReference, static::Uri, static::IriReference, static::Iri => new StorablePropShape(
-        shape: $shape,
-        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
-        fieldInstanceSettings: [
-          // This shape only needs the URI, not a title.
-          'title' => 0,
-        ],
-        fieldWidget: 'link_default',
-      ),
+      static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
+        // Custom: the targeted resource has `contentMediaType: image/*`.
+        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {// XB only supports either of the two above out of the box. For more
+          // XB only supports either of the two below out of the box. For more
+          // complicated needs, use hook_storage_prop_shape_alter().
+          !array_key_exists('pattern', $shape->schema) => NULL,
+
+          // Browser-accessible image URLs.
+          // @see json-schema-definitions://experience_builder.module/image-uri
+          // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern
+          $shape->schema['pattern'] === '^(/|https?://)?(?!.*\://)[^\s]+$' => new StorablePropShape(
+            shape: $shape,
+            fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+            fieldWidget: 'image_image',
+          ),
+
+          // Stream wrapper image URIs.
+          // @see json-schema-definitions://experience_builder.module/stream-wrapper-image-uri
+          // @todo Update in https://www.drupal.org/project/experience_builder/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
+          $shape->schema['pattern'] === '^(?!https?://)[\w\-]+://' => new StorablePropShape(
+            shape: $shape,
+            fieldTypeProp: new ReferenceFieldTypePropExpression(
+              new FieldTypePropExpression('image', 'entity'),
+              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+            ),
+            fieldWidget: 'image_image',
+          ),
+
+          // XB only supports either of the two above out of the box. For more
+          // complicated needs, use hook_storage_prop_shape_alter().
+          default => NULL,
+        },
+        default => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new FieldTypePropExpression('link', 'url'),
+          // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
+          fieldInstanceSettings: [
+            // This shape only needs the URI, not a title.
+            'title' => 0,
+          ],
+          fieldWidget: 'link_default',
+        ),
+      },
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template

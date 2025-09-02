@@ -60,10 +60,10 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
   }
 
   public static function fromString(string $representation): static {
-    $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation);
+    $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation, 2);
     $referencer = FieldTypePropExpression::fromString($parts[0]);
     $referenced = StructuredDataPropExpression::fromString(static::PREFIX . static::PREFIX_ENTITY_LEVEL . $parts[1]);
-    assert($referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
+    assert($referenced instanceof FieldPropExpression || $referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
     return new static($referencer, $referenced);
   }
 

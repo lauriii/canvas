@@ -6,6 +6,7 @@ namespace Drupal\experience_builder\PropShape;
 
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 
 /**
  * A candidate storable prop shape: for hook_storage_prop_shape_alter().
@@ -20,7 +21,7 @@ final class CandidateStorablePropShape {
 
   public function __construct(
     public readonly PropShape $shape,
-    public FieldTypePropExpression|FieldTypeObjectPropsExpression|null $fieldTypeProp = NULL,
+    public FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression|null $fieldTypeProp = NULL,
     public string|null $fieldWidget = NULL,
     public int|null $cardinality = NULL,
     public array|null $fieldStorageSettings = NULL,

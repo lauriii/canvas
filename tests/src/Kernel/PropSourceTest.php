@@ -230,8 +230,6 @@ class PropSourceTest extends KernelTestBase {
       $this->fail("Not a minimal representation: $json_representation.");
     }
     $this->assertSame($value, $prop_source_example->getValue());
-    // @todo Remove in https://www.drupal.org/project/experience_builder/issues/3530351, which will add better validation of `type: string, format: uri` and `type: string, format: uri-reference`.
-    $this->assertStringStartsNotWith('/vfs://root/', \base_path() . $this->siteDirectory);
     // Test the functionality of a StaticPropSource:
     // - evaluate it to populate an SDC prop
     if (isset($expected_user_value['src'])) {
@@ -896,8 +894,9 @@ class PropSourceTest extends KernelTestBase {
         'properties' => [
           'src' => [
             'type' => 'string',
+            'contentMediaType' => 'image/*',
             'format' => 'uri-reference',
-            'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+            'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
             'title' => 'Image URL',
           ],
           'alt' => [
@@ -920,7 +919,7 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
-    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","format":"uri-reference","pattern":"^(\/|https?:\/\/)?.*\\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\\?.*)?(#.*)?$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","contentMediaType":"image\/*","format":"uri-reference","pattern":"^(\/|https?:\/\/)?(?!.*\\\\:\/\/)[^\\\\s]+$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.xb_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
     $decoded = json_decode($json_representation, TRUE);
     // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
     // order for the JSON Schema definition it contains.

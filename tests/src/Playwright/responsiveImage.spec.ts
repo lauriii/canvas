@@ -205,20 +205,46 @@ test.describe('Responsive Image', () => {
     const allImages = await images.all();
     await Promise.all(allImages.map((img) => expect(img).toBeVisible()));
 
-    // Valid stream wrapper, but non-existent file.
+    // Pick image media from the library, verify that the `public://` stream wrapper URI is rewritten to a
+    // browser-accessible URL.
     await xBEditor.exitPreview();
     await xBEditor.openLayersPanel();
     await xBEditor.openComponent('Card with stream wrapper image');
-    await xBEditor.editComponentProp('src', 'public://balloons2.png');
+    await drupal.addMediaImage(
+      '../../../fixtures/images/gracie-big.jpg',
+      'A cute dog',
+    );
+    // Ensure the editor frame is updated first.
+    const frame = page
+      .locator(
+        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+      )
+      .contentFrame();
+    await page.waitForFunction(() => {
+      const frame: HTMLIFrameElement = document.querySelector(
+        '[data-testid="xb-editor-frame-scaling"] [data-xb-swap-active="true"]',
+      );
+      const img = frame?.contentWindow.document.querySelector(
+        '.card--with-stream-wrapper-image img.card--image',
+      );
+      const imgSrc = img?.getAttribute('src');
+      return imgSrc && imgSrc.includes('gracie');
+    });
+    frame
+      .locator('.card--with-stream-wrapper-image img.card--image')
+      .waitFor({ state: 'visible' });
+    // Then also inspect the page preview.
     await xBEditor.preview();
-    const cardStreamWrapperInvalidSrc = previewIframe.locator(
+    const updatedPreviewIframe = page
+      .locator('iframe[class^="_PagePreviewIframe"]')
+      .contentFrame();
+    const cardStreamWrapperUpdatedSrc = updatedPreviewIframe.locator(
       '.card--with-stream-wrapper-image img.card--image',
     );
     await cardStreamWrapper.scrollIntoViewIfNeeded();
-    expect(await cardStreamWrapperInvalidSrc.getAttribute('src')).toContain(
+    expect(await cardStreamWrapperUpdatedSrc.getAttribute('src'))
       // The stream wrapper URI must be rewritten to an actually resolvable URL.
       // @see tests/modules/xb_test_sdc/components/card-with-stream-wrapper-image/card-with-stream-wrapper-image.twig
-      'files/balloons2.png',
-    );
+      .toMatch(/\/sites\/simpletest\/\d+\/files\/.*gracie-big.*\.jpg/);
   });
 });

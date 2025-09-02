@@ -129,18 +129,18 @@ enum JsonSchemaType: string {
           'choices' => $schema['enum'],
         ], NULL),
         array_key_exists('pattern', $schema) && array_key_exists('format', $schema) => new DataTypeShapeRequirements([
-          JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements($schema),
+          ...iterator_to_array(JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements($schema)),
           // TRICKY: `pattern` in JSON schema requires no start/end delimiters,
           // but `preg_match()` in PHP does.
           // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
           // @see \Symfony\Component\Validator\Constraints\Regex
-          new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/', $schema['pattern']) . '/']),
+          new DataTypeShapeRequirement('Regex', ['pattern' => self::patternToPcre($schema['pattern'])]),
         ]),
         // TRICKY: `pattern` in JSON schema requires no start/end delimiters,
         // but `preg_match()` in PHP does.
         // @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
         // @see \Symfony\Component\Validator\Constraints\Regex
-        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => '/' . str_replace('/', '\/', $schema['pattern']) . '/']),
+        array_key_exists('pattern', $schema) => new DataTypeShapeRequirement('Regex', ['pattern' => self::patternToPcre($schema['pattern'])]),
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->toDataTypeShapeRequirements($schema),
         // Otherwise, it's an unrestricted string. Simply surfacing all
         // structured data containing strings would be meaningless though. To
@@ -276,9 +276,10 @@ enum JsonSchemaType: string {
             ],
           ),
         },
+        // @todo Add support for both `format` and `pattern` being present: the latter often just restricts the former.
+        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->computeStorablePropShape($shape),
         // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
         array_key_exists('pattern', $schema) => NULL,
-        array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->computeStorablePropShape($shape),
         // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
         // @todo Support `minLength`.  ⚠️
         array_key_exists('maxLength', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield', fieldStorageSettings: [
@@ -365,6 +366,18 @@ enum JsonSchemaType: string {
         default => NULL,
       },
     };
+  }
+
+  /**
+   * Converts JSON schema `pattern` to PCRE.
+   *
+   * `pattern` in JSON schema requires no start/end delimiters, but PHP's
+   * `preg_match()` does.
+   *
+   * @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
+   */
+  public static function patternToPcre(string $pattern): string {
+    return '/' . str_replace('/', '\/', $pattern) . '/';
   }
 
 }

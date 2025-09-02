@@ -10,6 +10,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\experience_builder\Plugin\DataType\ComputedUrlWithQueryString;
 use Drupal\experience_builder\Plugin\DataType\UriTemplate;
 use Drupal\experience_builder\Plugin\Validation\Constraint\StringSemanticsConstraint;
+use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
 use Drupal\experience_builder\Plugin\Validation\Constraint\UriTemplateWithVariablesConstraint;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -86,8 +87,11 @@ class ImageItemOverride extends ImageItem {
           self::ALT_WIDTHS_QUERY_PARAM => (string) (new FieldTypePropExpression('image', 'srcset_candidate_uri_template')),
         ],
       ])
-      // This computes a browser-accessible URL.
-      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?/"])
+      ->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => 'image/*'])
+      // The ComputedFileUrl data type generates a browser-accessible URL (root-
+      // relative, absolute using HTTP, absolute using HTTPs or relative).
+      // @see \Drupal\Tests\experience_builder\Unit\SchemaJsonPatternsTest::testImageUriPattern()
+      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?(?!.*\:\/\/)[^\s]+$/"])
       ->setClass(ComputedUrlWithQueryString::class);
 
     return $properties;

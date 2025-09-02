@@ -78,10 +78,13 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
    */
   public static function getExpectedStorablePropShapes(): array {
     $storable_prop_shapes = parent::getExpectedStorablePropShapes();
-    $image_shapes = array_filter(
+    $image_shapes = array_intersect_key(
       $storable_prop_shapes,
-      fn (string $k) => str_contains($k, 'json-schema-definitions://experience_builder.module/image'),
-      ARRAY_FILTER_USE_KEY
+      array_flip([
+        'type=object&$ref=json-schema-definitions://experience_builder.module/image',
+        'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object',
+        'type=array&items[$ref]=json-schema-definitions://experience_builder.module/image&items[type]=object&maxItems=2',
+      ]),
     );
     foreach ($image_shapes as $k => $image_shape) {
       $storable_prop_shapes[$k] = new StorablePropShape(
@@ -119,6 +122,25 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
           'target_bundles' => [
             'baby_videos' => 'baby_videos',
             'vacation_videos' => 'vacation_videos',
+          ],
+        ],
+      ],
+    );
+
+    $storable_prop_shapes['type=string&$ref=json-schema-definitions://experience_builder.module/stream-wrapper-image-uri'] = new StorablePropShape(
+      shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
+      // @phpstan-ignore-next-line
+      fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟value'),
+      fieldWidget: 'media_library_widget',
+      fieldStorageSettings: [
+        'target_type' => 'media',
+      ],
+      fieldInstanceSettings: [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => [
+            'baby_photos' => 'baby_photos',
+            'vacation_photos' => 'vacation_photos',
           ],
         ],
       ],

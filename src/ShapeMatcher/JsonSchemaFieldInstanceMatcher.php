@@ -20,6 +20,8 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\MapItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
+use Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser;
+use Drupal\Core\ProxyClass\File\MimeType\ExtensionMimeTypeGuesser as LazyExtensionMimeTypeGuesser;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
@@ -34,6 +36,8 @@ use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
 use Drupal\experience_builder\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\experience_builder\Plugin\AdapterManager;
+use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
+use Drupal\experience_builder\Plugin\Validation\Constraint\UriTargetMediaTypeConstraintValidator;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\experience_builder\PropExpressions\StructuredData\ReferenceFieldPropExpression;
@@ -112,6 +116,7 @@ final class JsonSchemaFieldInstanceMatcher {
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly AdapterManager $adapterManager,
     private readonly CacheBackendInterface $cache,
+    private readonly ExtensionMimeTypeGuesser|LazyExtensionMimeTypeGuesser $extensionMimeTypeGuesser,
   ) {
   }
 
@@ -431,7 +436,6 @@ final class JsonSchemaFieldInstanceMatcher {
           // Extra care is necessary when matching properties on File entities:
           // any properties on the `uri` field is crucial for shape matching
           // against the expected *type* of file.
-          // @todo Refactor or ideally remove in https://www.drupal.org/project/experience_builder/issues/3530351.
 
           // A property in a File entity's URI field.
           $is_file_uri_field = $entity_data_definition->getEntityTypeId() === 'file'
@@ -461,36 +465,9 @@ final class JsonSchemaFieldInstanceMatcher {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
               $transformed_property_data_definition = clone $property_definition;
-              // JSON schema does not support case-insensitive matching (?i)! https://json-schema.org/understanding-json-schema/reference/regular_expressions
-              // But we can bypass it with a regexp without modifiers.
-              $ci_extensions = $this->buildCaseInsensitiveExtensionRegex($file_entity_constraints['FileExtension']['extensions']);
-              $trailing_uri_regex_pattern = '\.(' . $ci_extensions . ')(\?.*)?(#.*)?$';
-              // If a `Regex` constraint exists, expand it to also match the trailing part.
-              // @todo verify the regex constraint currently only matches the leading part.
-              if ($regex_constraint = $transformed_property_data_definition->getConstraint('Regex')) {
-                assert(str_starts_with($regex_constraint['pattern'], '/^'));
-                // Because we are concatenating the regex pattern with another
-                // pattern that applies to the end of the line the existing
-                // pattern cannot contain a `$` which is the end of line
-                // metacharacter.
-                // @todo Make this check smarter to handle cases like:
-                //   '\$/': should not match because this is literal '$'
-                //   '\\$/': should match because '$' is an end of line
-                if (str_ends_with($regex_constraint['pattern'], '$/')) {
-                  throw new \LogicException(sprintf('The property %s for the field %s uses Regex constraint pattern, %s, that includes an end-of-line metacharacter, `$`,  which is not allowed when also using a FileExtension constraint', $property_name, $regex_constraint['pattern'], $field_definition->getName()));
-                }
-                assert(str_ends_with($regex_constraint['pattern'], '/'));
-                // Trim the trailing slash away. (Using `rtrim()` is incorrect:
-                // it would trim _all_ trailing slashes away.)
-                $regex_constraint['pattern'] = substr($regex_constraint['pattern'], 0, -1);
-                $regex_constraint['pattern'] .= '.*' . $trailing_uri_regex_pattern . '/';
-                $transformed_property_data_definition->addConstraint('Regex', $regex_constraint);
-              }
-              else {
-                $transformed_property_data_definition->addConstraint('Regex', [
-                  'pattern' => $trailing_uri_regex_pattern,
-                ]);
-              }
+              $transformed_property_data_definition->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, [
+                'mimeType' => $this->fileExtensionsToTargetContentMediaType(explode(' ', $file_entity_constraints['FileExtension']['extensions'])),
+              ]);
               $property_definition = $transformed_property_data_definition;
             }
           }
@@ -526,31 +503,47 @@ final class JsonSchemaFieldInstanceMatcher {
   }
 
   /**
-   * Converts file extensions into a case-insensitive regexp without modifiers.
+   * Maps a set of file extensions to their corresponding media types.
    *
-   * @param string $extensions
-   *   The extensions as Drupal stores it (e.g. "png gif" or "mp4").
+   * @param string[] $extensions
+   *   A list of file extensions, such as ["avif", "jpg", "gif"].
    *
    * @return string
-   *   The corresponding case-insensitive regexp. For example:
-   *   - `png` becomes `[Pp][Nn][Gg]`
-   *   - `mp4` becomes `[Mm][Pp]4`
+   *   The target wildcard target content media type, such as "image/*" or
+   *   "video/*".
+   *
+   * @throws \OutOfRangeException
+   *   Thrown when the list of file extensions maps to >1 content media type.
    */
-  private function buildCaseInsensitiveExtensionRegex(string $extensions): string {
-    $ext_list = preg_split('/\s+/', trim($extensions));
-    if (!is_array($ext_list)) {
-      return '';
+  private function fileExtensionsToTargetContentMediaType(array $extensions): string {
+    // @see https://github.com/json-schema-org/json-schema-spec/issues/1557
+    // Determine the MIME types without inspecting any file: files are
+    // not available anyway (this is operating on Typed Data
+    // definitions, not concrete data). It is the responsibility of
+    // the field type storing files to validate the uploaded files to
+    // ensure security.
+    // @see \Drupal\Tests\file\Kernel\Plugin\Validation\Constraint\FileExtensionConstraintValidatorTest
+    // @see \Drupal\file\Validation\FileValidatorInterface
+    $mime_types = array_filter(array_map(
+      fn (string $extension): ?string => $this->extensionMimeTypeGuesser->guessMimeType("Jack.$extension"),
+      $extensions
+    ));
+    // Strip subtypes, suffixes and parameters.
+    // @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types#structure_of_a_mime_type
+    // @see https://en.wikipedia.org/wiki/Media_type#Structure
+    $mime_media_type_names = array_map(
+      fn (string $mime_type): string => explode('/', $mime_type, 2)[0],
+      $mime_types,
+    );
+    // Matching against multiple targeted media type names is for a
+    // distant future; JSON Schema doesn't allow this either.
+    // @see https://json-schema.org/understanding-json-schema/reference/non_json_data#contentmediatype-and-contentencoding
+    if (count(array_unique($mime_media_type_names)) > 1) {
+      throw new \OutOfRangeException();
     }
-
-    $patterns = array_map(function ($ext) {
-      return implode('', array_map(fn ($char) => match (TRUE) {
-        ctype_digit($char) => $char,
-        ctype_alpha($char) => '[' . strtoupper($char) . strtolower($char) . ']',
-        default => throw new \LogicException(),
-      }, str_split($ext)));
-    }, $ext_list);
-
-    return implode('|', $patterns);
+    $target_content_media_type = sprintf("%s/*", array_unique($mime_media_type_names)[0]);
+    assert(UriTargetMediaTypeConstraintValidator::isValidWildCard($target_content_media_type));
+    return $target_content_media_type;
   }
 
   /**
@@ -638,8 +631,22 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
+   *   The JSON schema of the SDC prop to mach against the given field property.
    */
   private function dataLeafMatchesFormat(TypedDataInterface $data, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema, ?array $schema): bool {
+    // phpcs:disable Drupal.Commenting.InlineComment.NotCapital
+    // 💡 Debugging tip: put a conditional breakpoint here when figuring out why
+    // a particular field instance property is not being matched, use
+    // @code
+    // $schema['type'] == 'string' && isset($schema['contentMediaType']) && $data->getRoot()->getDataDefinition()->getDataType() == 'field_item:file_uri'
+    // @endcode
+    // to check:
+    // - either the SDC prop for which no match is being found (by checking
+    //   information in $schema)
+    // - or the field type which has a field property for which a match was
+    //   expected but is not being found
+    // - or both (which is the case in the provided example)
+    // phpcs:enable
     if (!$data->getParent()) {
       throw new \LogicException('must be a property with a field item as context for format checking');
     }

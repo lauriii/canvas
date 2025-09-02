@@ -1162,16 +1162,12 @@ activation="auto">
             'expression' => 'ℹ︎list_string␟value',
           ],
           'src' => [
-            'field_type' => 'string',
+            'field_type' => 'image',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => '/core/misc/druplicon.png',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
           ],
         ],
       ],
@@ -1252,16 +1248,12 @@ activation="auto">
             'expression' => 'ℹ︎list_string␟value',
           ],
           'src' => [
-            'field_type' => 'string',
+            'field_type' => 'image',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
           ],
           'width' => [
             'field_type' => 'integer',
@@ -1342,16 +1334,12 @@ activation="auto">
             'expression' => 'ℹ︎list_string␟value',
           ],
           'src' => [
-            'field_type' => 'string',
+            'field_type' => 'image',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'public://balloons.png',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
           ],
         ],
       ],
@@ -1990,22 +1978,38 @@ activation="auto">
         ],
       ],
       'sdc.xb_test_sdc.card-with-local-image' => [
+        'config' => [
+          0 => 'image.style.xb_parametrized_width',
+        ],
         'module' => [
           'core',
+          'file',
+          'image',
           'options',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.card-with-remote-image' => [
+        'config' => [
+          0 => 'image.style.xb_parametrized_width',
+        ],
         'module' => [
           'core',
+          'file',
+          'image',
           'options',
           'xb_test_sdc',
         ],
       ],
       'sdc.xb_test_sdc.card-with-stream-wrapper-image' => [
+        'config' => [
+          0 => 'image.style.xb_parametrized_width',
+        ],
+        'content' => [],
         'module' => [
           'core',
+          'file',
+          'image',
           'options',
           'xb_test_sdc',
         ],
@@ -2304,7 +2308,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -2435,16 +2440,16 @@ activation="auto">
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
+              'title' => 'Image URL',
               'type' => 'string',
+              'format' => 'uri-reference',
+              'contentMediaType' => 'image/*',
+              'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
             ],
-            'sourceType' => 'static:field_item:string',
-            'expression' => 'ℹ︎string␟value',
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
             'default_values' => [
-              'source' => [
-                [
-                  'value' => '/core/misc/druplicon.png',
-                ],
-              ],
+              'source' => [],
               'resolved' => '/core/misc/druplicon.png',
             ],
           ],
@@ -2551,16 +2556,16 @@ activation="auto">
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
+              'title' => 'Image URL',
               'type' => 'string',
+              'format' => 'uri-reference',
+              'contentMediaType' => 'image/*',
+              'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
             ],
-            'sourceType' => 'static:field_item:string',
-            'expression' => 'ℹ︎string␟value',
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
             'default_values' => [
-              'source' => [
-                [
-                  'value' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
-                ],
-              ],
+              'source' => [],
               'resolved' => 'https://mdn.github.io/shared-assets/images/examples/balloons.jpg',
             ],
           ],
@@ -2699,16 +2704,16 @@ activation="auto">
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
+              'title' => 'Stream wrapper image URI',
               'type' => 'string',
+              'format' => 'uri',
+              'contentMediaType' => 'image/*',
+              'pattern' => '^(?!https?://)[\w\-]+://',
             ],
-            'sourceType' => 'static:field_item:string',
-            'expression' => 'ℹ︎string␟value',
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
             'default_values' => [
-              'source' => [
-                [
-                  'value' => 'public://balloons.png',
-                ],
-              ],
+              'source' => [],
               'resolved' => 'public://balloons.png',
             ],
           ],
@@ -3022,7 +3027,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3085,7 +3091,8 @@ activation="auto">
                     'title' => 'Image URL',
                     'type' => 'string',
                     'format' => 'uri-reference',
-                    'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                    'contentMediaType' => 'image/*',
+                    'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                   ],
                   'alt' => [
                     'title' => 'Alternative text',
@@ -3154,7 +3161,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3213,7 +3221,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3262,7 +3271,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3304,7 +3314,8 @@ activation="auto">
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -4059,13 +4070,15 @@ activation="auto">
                   'title' => 'Video URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\.([Mm][Pp]4)(\?.*)?(#.*)?$',
+                  'contentMediaType' => 'video/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'poster' => [
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\?.*)?(#.*)?$',
+                  'contentMediaType' => 'image/*',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
               ],
             ],
@@ -4146,8 +4159,9 @@ activation="auto">
               'properties' => [
                 'src' => [
                   'type' => 'string',
+                  'contentMediaType' => 'image/*',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?.*\\.([Pp][Nn][Gg]|[Gg][Ii][Ff]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp]|[Aa][Vv][Ii][Ff])(\\?.*)?(#.*)?$',
+                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
                 ],
                 'alt' => [
                   'type' => 'string',
