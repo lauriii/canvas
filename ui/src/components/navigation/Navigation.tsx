@@ -261,11 +261,13 @@ const Navigation = ({
   onSetHomepage?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
 }) => {
-  // Reset search when the component mounts
+  // Reset search when the component unmounts
   useEffect(() => {
-    if (onSearch) {
-      onSearch('');
-    }
+    return () => {
+      if (onSearch) {
+        onSearch('');
+      }
+    };
   }, [onSearch]);
 
   return (
