@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -127,6 +128,67 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     return (new CacheableJsonResponse($normalizations))
       ->addCacheableDependency($total_cacheability);
+  }
+
+  /**
+   * Transforms ::list() result for the ContentTemplate listing.
+   */
+  public function listContentTemplatesAsHierarchy(): CacheableJsonResponse {
+    // Reuse the default ::list(), and transform the result from a flat list to
+    // a hierarchy, with labels for each level.
+    $response = $this->list(ContentTemplate::ENTITY_TYPE_ID);
+    // @phpstan-ignore-next-line argument.type
+    $flat_json = json_decode($response->getContent(), TRUE);
+    $hierarchical_json = [];
+
+    $bundle_labels_cacheability = new CacheableMetadata();
+    foreach ($flat_json as $template_id => $normalization) {
+      // Determine hierarchy using the ID.
+      // @see \Drupal\canvas\Entity\ContentTemplate::id()
+      [$entity_type_id, $bundle, $view_mode] = explode('.', $template_id);
+      $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+      $bundle_entity_type_id = $entity_type->getBundleEntityType();
+
+      // Add bundle collection label.
+      if (!array_key_exists($entity_type_id, $hierarchical_json)) {
+        $label = $entity_type->getCollectionLabel();
+        if ($bundle_entity_type_id) {
+          $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
+          $label = $bundle_entity_type->getCollectionLabel();
+          // Add list cache tag for the bundle config entity type, because this
+          // will list every bundle of the given content entity type, and all
+          // their labels. Rather than adding many individual cache tags, it is
+          // more efficient to only add this one.
+          $bundle_labels_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
+        }
+        $hierarchical_json[$entity_type_id] = [
+          'label' => $label,
+          'bundles' => [],
+        ];
+      }
+
+      // Add bundle label, if any. (A content entity type may not have bundles.)
+      if (!array_key_exists($bundle, $hierarchical_json[$entity_type_id]['bundles'])) {
+        // When there are no bundles, specify NULL as the label.
+        $label = NULL;
+        if ($bundle_entity_type_id !== NULL) {
+          $bundle_entity = $this->entityTypeManager->getStorage($bundle_entity_type_id)->load($bundle);
+          assert($bundle_entity !== NULL);
+          $label = $bundle_entity->label();
+        }
+        $hierarchical_json[$entity_type_id]['bundles'][$bundle] = [
+          'label' => $label,
+          'viewModes' => [],
+        ];
+      }
+
+      // Place the original normalization in its place in the hierarchy.
+      $hierarchical_json[$entity_type_id]['bundles'][$bundle]['viewModes'][$view_mode] = $normalization;
+    }
+
+    // Overwrite data, and add to the already existing cacheability.
+    return $response->setData($hierarchical_json)
+      ->addCacheableDependency($bundle_labels_cacheability);
   }
 
   public function get(Request $request, CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): CacheableJsonResponse {

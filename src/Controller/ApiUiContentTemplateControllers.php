@@ -2,9 +2,10 @@
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -35,6 +36,8 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
+    private readonly EntityTypeBundleInfoInterface $bundleInfo,
+    private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
   ) {}
 
   /**
@@ -131,55 +134,73 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
   }
 
   public function suggestPreviewContentEntities(string $entity_type_id, string $bundle): CacheableJsonResponse {
+    $entity_query = ContentTemplate::getPreviewSuggestionQuery(
+      $entity_type_id,
+      $bundle,
+      10,
+    );
+
     $entity_definition = $this->entityTypeManager->getDefinition($entity_type_id);
     $entity_storage = $this->entityTypeManager->getStorage($entity_type_id);
 
-    $metadata = new CacheableMetadata();
-
-    $id_key = $entity_definition->getKey('id');
-    assert(is_string($id_key));
-    $entity_query = $entity_storage->getQuery()
-      ->accessCheck(TRUE)
-      ->range(0, 10);
-    if ($entity_definition->hasKey('bundle')) {
-      $bundle_key = $entity_definition->getKey('bundle');
-      assert(is_string($bundle_key));
-      $entity_query->condition($bundle_key, $bundle);
-    }
-    // @todo Remove conditionality in https://www.drupal.org/i/3498525
-    if ($entity_definition->hasKey('published')) {
-      $published_key = $entity_definition->getKey('published');
-      assert(is_string($published_key));
-      $entity_query->condition($published_key, TRUE);
-    }
-    // @todo Remove conditionality in https://www.drupal.org/i/3498525
-    if ($entity_definition->entityClassImplements(EntityChangedInterface::class)) {
-      $entity_query->sort('changed', 'DESC');
-    }
-    else {
-      $entity_query->sort($id_key, 'DESC');
-    }
-
     $entity_ids = $entity_query->execute();
+    assert(is_array($entity_ids));
+    $entity_query_cacheability = (new CacheableMetadata())
+      ->addCacheTags($entity_definition->getBundleListCacheTags($bundle))
+      ->addCacheContexts($entity_storage->getEntityType()->getListCacheContexts());
+
     $entities = $entity_storage->loadMultiple($entity_ids);
 
-    $entities = array_filter($entities, function ($entity) use ($metadata): bool {
+    $entities = array_filter($entities, function ($entity) use ($entity_query_cacheability): bool {
       $access = $entity->access('view', return_as_object: TRUE);
       if ($access->isAllowed()) {
-        $metadata->addCacheableDependency($access);
-        $metadata->addCacheableDependency($entity);
+        $entity_query_cacheability->addCacheableDependency($access);
+        $entity_query_cacheability->addCacheableDependency($entity);
       }
       return $access->isAllowed();
     });
-    $metadata->addCacheTags($entity_definition->getBundleListCacheTags($bundle));
 
     $entities_data = array_map(fn (EntityInterface $entity) => [
       'id' => $entity->id(),
       'label' => $entity->label(),
     ], $entities);
     $response = new CacheableJsonResponse($entities_data);
-    $response->addCacheableDependency($metadata);
+    $response->addCacheableDependency($entity_query_cacheability);
     return $response;
+  }
+
+  public function listViewModes(): JsonResponse {
+    $data = [];
+
+    // @todo Generalize to other content entity types in https://www.drupal.org/i/3498525
+    $entity_type_id = 'node';
+    $entity_view_modes = $this->entityDisplayRepository->getViewModeOptions($entity_type_id);
+
+    foreach ($entity_view_modes as $view_mode => $view_mode_label) {
+      // @see \Drupal\Core\Entity\Entity\EntityViewMode
+      if ($view_mode === 'default') {
+        continue;
+      }
+
+      $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
+      $template_keys = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getQuery()
+        // TRICKY: not checking access is acceptable because the route requires
+        // "create" access for ContentTemplates. This is only exposing labels
+        // (the "view label" operation) and whether a ContentTemplate exists.
+        ->accessCheck(FALSE)
+        ->condition('content_entity_type_id', $entity_type_id)
+        ->condition('content_entity_type_view_mode', $view_mode)
+        ->execute();
+      foreach (array_keys($bundle_info) as $bundle) {
+        $template_id = "$entity_type_id.$bundle.$view_mode";
+        $data[$entity_type_id][$bundle][$view_mode] = [
+          'label' => $view_mode_label,
+          'hasTemplate' => in_array($template_id, $template_keys, TRUE),
+        ];
+      }
+    }
+
+    return new JsonResponse(data: $data, status: Response::HTTP_OK);
   }
 
 }

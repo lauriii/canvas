@@ -121,7 +121,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
   options:
     parameters:
       canvas_config_entity:
@@ -140,7 +140,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -153,25 +153,40 @@ canvas.api.config.get:
     canvas_external_api: true
   methods: [GET]
 
-canvas.api.config.list:
+canvas.api.config.list: &config_list_route
   path: '/canvas/api/v0/config/{canvas_config_entity_type_id}'
-  defaults:
+  defaults: &config_list_route_defaults
     _controller: 'Drupal\canvas\Controller\ApiConfigControllers::list'
-  requirements:
+  requirements: &config_list_route_requirements
     _canvas_authentication_required: TRUE
     # Any internal HTTP API-eligible Canvas config entity type.
     _canvas_http_eligible_config_entity: 'TRUE'
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|component|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
-  options:
+  options: &config_list_route_options
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: [GET]
+
+# Specialized version of the `canvas.api.config.list` for ContentTemplates.
+canvas.api.config.list.content_template:
+  <<: *config_list_route
+  path: '/canvas/api/v0/config/content_template'
+  defaults:
+    <<: *config_list_route_defaults
+    _controller: 'Drupal\canvas\Controller\ApiConfigControllers::listContentTemplatesAsHierarchy'
+    canvas_config_entity_type_id: 'content_template'
+  requirements:
+    <<: *config_list_route_requirements
+  options:
+    <<: *config_list_route_options
+  methods: [GET]
+
 canvas.api.config.patch:
   path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:
@@ -201,7 +216,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(folder|pattern|js_component|asset_library)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -422,6 +437,17 @@ canvas.api.ui.content_template.suggestions.structured_data_for_prop_shapes:
   path: '/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{content_entity_type_id}/{bundle}/{component_config_entity_id}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::suggestStructuredDataForPropShapes'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_entity_create_access: 'content_template'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.ui.content_template.view_modes.list:
+  path: '/canvas/api/v0/ui/content_template/view_modes/node'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::listViewModes'
   requirements:
     _canvas_authentication_required: TRUE
     _canvas_entity_create_access: 'content_template'

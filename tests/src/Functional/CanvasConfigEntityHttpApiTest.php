@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Random;
@@ -234,6 +235,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
       Folder::ADMIN_PERMISSION,
+      ContentTemplate::ADMIN_PERMISSION,
     ]);
     assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
@@ -1922,6 +1924,140 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertDeletionAndEmptyList(Url::fromUri('base:/canvas/api/v0/config/folder/' . $id), $list_url, 'config:folder_list', $folders_with_a_delete);
 
     // This was now tested full circle! ✅
+  }
+
+  public function testContentTemplate(): void {
+    $this->drupalCreateContentType([
+      'type' => 'article',
+      'name' => 'Full content',
+    ]);
+
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $this->assertAuthenticationAndAuthorization(ContentTemplate::ENTITY_TYPE_ID);
+
+    $list_url = Url::fromUri('base:/canvas/api/v0/config/content_template');
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    $entity_type_id = 'node';
+    $bundle = 'article';
+    $view_mode = 'full';
+    $content_template_to_send = [
+      'bundle' => $bundle,
+      'viewMode' => $view_mode,
+    ];
+
+    $request_options[RequestOptions::JSON] = $content_template_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/content_template]. [Keyword validation failed: Required property \'entityType\' must be present in the object in entityType]',
+    ], $body, 'Fails with missing data.');
+
+    // Get the pattern list the Canvas HTTP API should not return unpublished ones.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+
+    // Add missing crucial data, but leave a required shape violation: 500,
+    // courtesy of OpenAPI.
+    $content_template_to_send['entityType'] = 1;
+    $request_options[RequestOptions::JSON] = $content_template_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/content_template]. [Value expected to be \'string\', but \'integer\' given in entityType]',
+    ], $body, 'Fails with invalid shape.');
+
+    // Meet data shape requirements, but violate constraint in `entityType`
+    $content_template_to_send['entityType'] = 'fake_entity_type';
+    $request_options[RequestOptions::JSON] = $content_template_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The \'fake_entity_type\' plugin does not exist.',
+          'source' => ['pointer' => 'content_entity_type_id'],
+        ],
+        [
+          'detail' => 'The value you selected is not a valid choice.',
+          'source' => ['pointer' => 'content_entity_type_id'],
+        ],
+        [
+          'detail' => 'The \'article\' bundle does not exist on the \'fake_entity_type\' entity type.',
+          'source' => ['pointer' => 'content_entity_type_bundle'],
+        ],
+        [
+          'detail' => 'The \'core.entity_view_mode.fake_entity_type.full\' config does not exist.',
+          'source' => ['pointer' => 'content_entity_type_view_mode'],
+        ],
+      ],
+    ], $body);
+
+    // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame([], $body);
+
+    // Create a ContentTemplate via the Canvas HTTP API, correctly: 201.
+    $content_template_to_send['entityType'] = $entity_type_id;
+    $request_options[RequestOptions::JSON] = $content_template_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    assert(is_array($body));
+    ksort($content_template_to_send);
+    $new_content_template = ContentTemplate::load($body['id']);
+    assert($new_content_template instanceof ContentTemplate);
+    $this->assertEquals($new_content_template->normalizeForClientSide()->values, $body);
+
+    // Re-retrieve list: 200, changed, Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+
+    $template_values = $new_content_template->normalizeForClientSide()->values;
+    $template_values['label'] = (string) $template_values['label'];
+    $this->assertSame([
+      $entity_type_id => [
+        'label' => 'Content types',
+        'bundles' => [
+          $bundle => [
+            'label' => 'Full content',
+            'viewModes' => [
+              $view_mode => $template_values,
+            ],
+          ],
+        ],
+      ],
+    ], $body);
+
+    // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame([
+      $entity_type_id => [
+        'label' => 'Content types',
+        'bundles' => [
+          $bundle => [
+            'label' => 'Full content',
+            'viewModes' => [
+              $view_mode => $template_values,
+            ],
+          ],
+        ],
+      ],
+    ], $body);
+
+    // Creating a Folder with an already-in-use entity type, bundle, view mode and id: 409.
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => ['\'content_template\' entity with ID \'node.article.full\' already exists.'],
+    ], $body);
+
+    // @todo A Content Templates creation via API with non-empty component_tree would be nice here.
+
+    // Delete the Content Template via the Canvas HTTP API: 204.
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/' . $new_content_template->id()), [], 204, NULL, NULL, NULL, NULL);
+
+    // Re-retrieve empty list: 200. Dynamic Page Cache miss.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
   }
 
 }

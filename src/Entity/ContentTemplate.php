@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewModeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -42,7 +48,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
     'id' => 'id',
   ],
   handlers: [
-    'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
+    'access' => VisibleWhenDisabledCanvasConfigEntityAccessControlHandler::class,
   ],
   admin_permission: self::ADMIN_PERMISSION,
   constraints: [
@@ -62,7 +68,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
     'exposed_slots',
   ],
 )]
-final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
+final class ContentTemplate extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
   use ComponentTreeItemListInstantiatorTrait;
   use ConfigUpdaterAwareEntityTrait;
@@ -400,6 +406,121 @@ final class ContentTemplate extends ConfigEntityBase implements ComponentTreeEnt
   public function autoSavePublish(): self {
     $this->setStatus(TRUE);
     return $this;
+  }
+
+  public function normalizeForClientSide(): ClientSideRepresentation {
+    $entity_type_manager = $this->entityTypeManager();
+    $content_entity_type = $entity_type_manager->getDefinition($this->content_entity_type_id);
+    $storage = $entity_type_manager->getStorage($this->getTargetEntityTypeId());
+
+    // Determine the preview entity (if any), and ensure correct cacheability:
+    // - for the query in ::getSuggestedPreviewEntity()
+    // - for the access checking here
+    $preview_entity = $this->getSuggestedPreviewEntity();
+    $preview_entity_cacheability = (new CacheableMetadata())
+      ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
+      ->addCacheTags($storage->getEntityType()->getBundleListCacheTags($this->getTargetBundle()));
+    if ($preview_entity !== NULL) {
+      $preview_entity_access = $preview_entity->access('view', return_as_object: TRUE);
+      $preview_entity_cacheability->addCacheableDependency($preview_entity_access);
+      if (!$preview_entity_access->isAllowed()) {
+        // Do not return preview entity ID if not viewable.
+        $preview_entity = NULL;
+      }
+    }
+
+    return ClientSideRepresentation::create(
+      values: [
+        'entityType' => $this->content_entity_type_id,
+        'bundle' => $this->content_entity_type_bundle,
+        'viewMode' => $this->content_entity_type_view_mode,
+        'viewModeLabel' => $this->getViewMode()->label(),
+        'label' => $this->label(),
+        'status' => $this->status,
+        'id' => $this->id(),
+        'suggestedPreviewEntityId' => $preview_entity?->id(),
+      ],
+      preview: NULL,
+    )
+      ->addCacheableDependency($preview_entity_cacheability)
+      // Cacheability metadata for the suggested preview entity.
+      ->addCacheTags($content_entity_type->getListCacheContexts())
+      // @phpstan-ignore-next-line argument.type
+      ->addCacheTags($content_entity_type->getBundleListCacheTags($this->content_entity_type_bundle));
+  }
+
+  public static function createFromClientSide(array $data): static {
+    ['entityType' => $entity_type, 'bundle' => $bundle, 'viewMode' => $view_mode] = $data;
+    return self::create([
+      'id' => "$entity_type.$bundle.$view_mode",
+      'content_entity_type_id' => $entity_type,
+      'content_entity_type_bundle' => $bundle,
+      'content_entity_type_view_mode' => $view_mode,
+      'component_tree' => [],
+      'status' => FALSE,
+    ]);
+  }
+
+  public function updateFromClientSide(array $data): void {
+    // This config entity is updated indirectly, using the editor frame.
+    // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
+    throw new \LogicException();
+  }
+
+  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
+    // Nothing to do.
+  }
+
+  public static function getPreviewSuggestionQuery(string $entity_type_id, string $bundle, int $limit): QueryInterface {
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $entity_definition = $entity_type_manager->getDefinition($entity_type_id);
+
+    $id_key = $entity_definition->getKey('id');
+    assert(is_string($id_key));
+    $entity_query = $entity_type_manager->getStorage($entity_type_id)->getQuery()
+      ->accessCheck(TRUE)
+      ->range(0, $limit);
+    if ($entity_definition->hasKey('bundle')) {
+      $bundle_key = $entity_definition->getKey('bundle');
+      assert(is_string($bundle_key));
+      $entity_query->condition($bundle_key, $bundle);
+    }
+    // @todo Remove conditionality in https://www.drupal.org/i/3498525
+    if ($entity_definition->hasKey('published')) {
+      $published_key = $entity_definition->getKey('published');
+      assert(is_string($published_key));
+      $entity_query->condition($published_key, TRUE);
+    }
+    // @todo Remove conditionality in https://www.drupal.org/i/3498525
+    if ($entity_definition->entityClassImplements(EntityChangedInterface::class)) {
+      $entity_query->sort('changed', 'DESC');
+    }
+    else {
+      $entity_query->sort($id_key, 'DESC');
+    }
+    return $entity_query;
+  }
+
+  private function getSuggestedPreviewEntity(): ?ContentEntityInterface {
+    assert($this->content_entity_type_id !== NULL);
+
+    $query = self::getPreviewSuggestionQuery(
+      $this->getTargetEntityTypeId(),
+      $this->getTargetBundle(),
+      1
+    );
+    $results = $query->execute();
+    assert(is_array($results));
+
+    if (empty($results)) {
+      return NULL;
+    }
+
+    $entity = $this->entityTypeManager()
+      ->getStorage($this->getTargetEntityTypeId())
+      ->load(reset($results));
+    assert($entity instanceof ContentEntityInterface);
+    return $entity;
   }
 
 }

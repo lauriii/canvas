@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   use GenerateComponentConfigTrait;
+  use OpenApiSpecTrait;
 
   /**
    * {@inheritdoc}
@@ -295,6 +297,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
+        'user.node_grants:view',
         'user.permissions',
       ],
       expected_cache_tags: [
@@ -329,6 +332,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
+        'user.node_grants:view',
         'user.permissions',
       ],
       expected_cache_tags: [
@@ -356,6 +360,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
+        'user.node_grants:view',
         'user.permissions',
       ],
       expected_cache_tags: [
@@ -384,6 +389,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
+        'user.node_grants:view',
         'user.permissions',
       ],
       expected_cache_tags: [
@@ -408,6 +414,144 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       5 => ['id' => '5', 'label' => 'Entity 5'],
     ];
     $this->assertSame($expected, $json);
+  }
+
+  public function testViewModesList(): void {
+    // 1. Test endpoint response when no Template entities are available.
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+
+    // All View Modes for Article bundle are returned, no ContentTemplates exist.
+    self::assertEquals([
+      'node' => [
+        'article' => [
+          'teaser' => [
+            'label' => 'Teaser',
+            'hasTemplate' => FALSE,
+          ],
+          'full' => [
+            'label' => 'Full content',
+            'hasTemplate' => FALSE,
+          ],
+          'rss' => [
+            'label' => 'RSS',
+            'hasTemplate' => FALSE,
+          ],
+          'search_index' => [
+            'label' => 'Search index',
+            'hasTemplate' => FALSE,
+          ],
+          'search_result' => [
+            'label' => 'Search result highlighting input',
+            'hasTemplate' => FALSE,
+          ],
+        ],
+      ],
+    ], $json);
+
+    $template_data = [
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+    ];
+
+    // 2. Create ContentTemplate for Full View Mode of Article bundle.
+    $template = ContentTemplate::create($template_data);
+    $template->save();
+
+    // 3. Test endpoint response, validate Full View Mode `hasTemplate` property of TRUE.
+    $json = self::assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+
+    self::assertEquals([
+      'node' => [
+        'article' => [
+          'teaser' => [
+            'label' => 'Teaser',
+            'hasTemplate' => FALSE,
+          ],
+          'full' => [
+            'label' => 'Full content',
+            'hasTemplate' => TRUE,
+          ],
+          'rss' => [
+            'label' => 'RSS',
+            'hasTemplate' => FALSE,
+          ],
+          'search_index' => [
+            'label' => 'Search index',
+            'hasTemplate' => FALSE,
+          ],
+          'search_result' => [
+            'label' => 'Search result highlighting input',
+            'hasTemplate' => FALSE,
+          ],
+        ],
+      ],
+    ], $json);
+
+    // 4. Create ContentTemplate for Teaser View Mode.
+    $template_data['content_entity_type_view_mode'] = 'teaser';
+    $template_data['id'] = 'node.article.teaser';
+    $template = ContentTemplate::create($template_data);
+    $template->save();
+
+    // 5. Test endpoint response, validate Full and Teaser View Modes have `hasTemplate` property values of TRUE.
+    $json = self::assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: NULL,
+      expected_cache_tags: NULL,
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (no cacheability)',
+    );
+
+    self::assertEquals([
+      'node' => [
+        'article' => [
+          'teaser' => [
+            'label' => 'Teaser',
+            'hasTemplate' => TRUE,
+          ],
+          'full' => [
+            'label' => 'Full content',
+            'hasTemplate' => TRUE,
+          ],
+          'rss' => [
+            'label' => 'RSS',
+            'hasTemplate' => FALSE,
+          ],
+          'search_index' => [
+            'label' => 'Search index',
+            'hasTemplate' => FALSE,
+          ],
+          'search_result' => [
+            'label' => 'Search result highlighting input',
+            'hasTemplate' => FALSE,
+          ],
+        ],
+      ],
+    ], $json);
   }
 
 }

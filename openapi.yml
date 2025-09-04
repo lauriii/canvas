@@ -487,6 +487,115 @@ paths:
                 # @see \Drupal\Core\Plugin\Component::$machineName
                 additionalProperties:
                   $ref: '#/components/schemas/Component'
+  /canvas/api/v0/config/content_template:
+    description: Provides a list of Templates
+    get:
+      description: Get a list of Templates
+      responses:
+        '200':
+          description: List of Templates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTemplateList'
+              examples:
+                multiple content entity types, previews available:
+                  value:
+                    node:
+                      label: Content types
+                      bundles:
+                        article:
+                          label: Article
+                          viewModes:
+                            full:
+                              entityType: node
+                              bundle: article
+                              viewMode: full
+                              viewModeLabel: Full content
+                              label: Article content items — Full content view
+                              status: true
+                              id: node.article.full
+                              suggestedPreviewEntityId: 1
+                        page:
+                          label: Basic page
+                          viewModes:
+                            full:
+                              entityType: node
+                              bundle: page
+                              viewMode: full
+                              viewModeLabel: Full content
+                              label: Basic page content items — Full content view
+                              status: false
+                              id: node.page.full
+                              suggestedPreviewEntityId: 4
+                single content entity type, no preview available:
+                  summary: Single content entity type with no preview entity available
+                  value:
+                    node:
+                      label: Content types
+                      bundles:
+                        article:
+                          label: Article
+                          viewModes:
+                            full:
+                              entityType: 'node'
+                              bundle: 'article'
+                              viewMode: 'full'
+                              status: false
+                              id: 'node.article.full'
+                              suggestedPreviewEntityId: null
+                              viewModeLabel: 'Full content'
+                              label: 'article content items — Full content view'
+    post:
+      description: Creates new Content Template.
+      requestBody:
+        description: Creates new Content Template.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewContentTemplate'
+            examples:
+              new content template:
+                entityType: 'node'
+                bundle: 'article'
+                viewMode: 'full'
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTemplate'
+              examples:
+                newly created content template:
+                  entityType: 'node'
+                  bundle: 'article'
+                  viewMode: 'full'
+                  status: false
+                  id: 'node.article.full'
+                  suggestedPreviewEntityId: NULL
+                  viewModeLabel: 'Full content'
+                  label: 'article content items — Full content view'
+  /canvas/api/v0/config/content_template/{configEntityId}:
+    description: Specific ContentTemplate endpoints.
+    get:
+      description: Fetches single ContentTemplate.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual ContentTemplate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTemplate'
+    delete:
+      description: Deletes a ContentTemplate.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual ContentTemplate entity.
   /canvas/api/v0/config/folder:
     description: TODO
     get:
@@ -1914,6 +2023,71 @@ paths:
         '404':
           description: Non-existent content entity type, bundle or Component.
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/ui/content_template/view_modes/node:
+    get:
+      responses:
+        '200':
+          description: List of Entity View Displays
+          content:
+            application/json:
+              schema:
+                title: List of Entity Types
+                type: object
+                # There may be 0 props for this component.
+                minProperties: 0
+                additionalProperties:
+                  title: List of Entity Bundles
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    bundles:
+                      type: object
+                      minProperties: 0
+                      additionalProperties:
+                        title: List of Entity View Displays
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            description: Entity View Display Id
+                          hasTemplate:
+                            type: boolean
+                            description: Boolean flag indicating if ContentTemplate for this Entity View Display exists
+              examples:
+                node:
+                  article:
+                    rss:
+                      label: RSS
+                      hasTemplate: false
+                    search_index:
+                      label: Search index
+                      hasTemplate: false
+                    search_result:
+                      label: Search result highlighting input
+                      hasTemplate: false
+                    full:
+                      label: Full content
+                      hasTemplate: true
+                    teaser:
+                      label: Teaser
+                      hasTemplate: false
+                  page:
+                    rss:
+                      label: RSS
+                      hasTemplate: false
+                    search_index:
+                      label: Search index
+                      hasTemplate: false
+                    search_result:
+                      label: Search result highlighting input
+                      hasTemplate: false
+                    full:
+                      label: Full content
+                      hasTemplate: true
+                    teaser:
+                      label: Teaser
+                      hasTemplate: true
 # @see https://spec.openapis.org/oas/v3.1.0.html#components-object
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
@@ -2582,6 +2756,95 @@ components:
               input:
                 type: object
                 description: The action input.
+    ContentTemplateList:
+      title: List of Content templates grouped by entity type, bundles and view modes.
+      type: object
+      minProperties: 0
+      additionalProperties:
+        type: object
+        required:
+          - label
+          - bundles
+        properties:
+          label:
+            type: string
+          bundles:
+            type: object
+            minProperties: 0
+            additionalProperties:
+              type: object
+              description: Individual bundle.
+              required:
+                - label
+                - viewModes
+              additionalProperties: false
+              properties:
+                label:
+                  type: string
+                  description: Label of the bundle
+                viewModes:
+                  type: object
+                  description: Named array of View Modes keyed by View Mode ID.
+                  minProperties: 0
+                  additionalProperties:
+                    $ref: '#/components/schemas/ContentTemplate'
+    NewContentTemplate:
+      title: ContentTemplate as it is send by the client for creation server side.
+      type: object
+      additionalProperties: false
+      required:
+        - entityType
+        - bundle
+        - viewMode
+      properties:
+        entityType:
+          type: string
+          description: Entity Type
+        bundle:
+          type: string
+          description: Entity Bundle
+        viewMode:
+          type: string
+          description: Drupal View Mode
+    ContentTemplate:
+      title: ContentTemplate as it appears in ContentTemplateList
+      type: object
+      additionalProperties: false
+      required:
+        - entityType
+        - bundle
+        - viewMode
+        - status
+        - id
+        - suggestedPreviewEntityId
+        - label
+        - viewModeLabel
+      properties:
+        entityType:
+          type: string
+          description: Entity Type
+        bundle:
+          type: string
+          description: Entity Bundle
+        viewMode:
+          type: string
+          description: Drupal View Mode
+        status:
+          type: boolean
+          description: ContentTemplate entity status
+        id:
+          type: string
+          description: ContentTemplate id, follows format of `entity_type.bundle.view_mode`.
+        suggestedPreviewEntityId:
+          type: integer
+          description: Suggested content entity ID to use for preview. Can be null if no preview entity is available.
+          nullable: true
+        label:
+          type: string
+          description: Content Template entity label.
+        viewModeLabel:
+          type: string
+          description: Entity View Mode label.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
     FormResponse:
