@@ -292,7 +292,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
             );
           }
         }
-        $use_existing_revision_id = AutoSaveManager::contentEntityIsConsideredNew($entity);
+        $use_existing_revision_id = AutoSaveManager::entityIsConsideredNew($entity);
 
         if ($entity instanceof EntityPublishedInterface) {
           $entity->setPublished();

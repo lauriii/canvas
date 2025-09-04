@@ -299,44 +299,68 @@ canvas.api.form.content_entity:
     # Used by Drupal's AJAX system.
     - POST
 
-canvas.api.layout.get:
+canvas.api.layout.get: &layout_get_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiLayoutController::get'
     # We need a title callback because we use the HTML renderer to generate the preview.
     _title_callback: 'Drupal\canvas\Controller\ApiLayoutController::getLabel'
-  requirements:
+  requirements: &layout_get_route_requirements
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
-  options:
+    _format: 'json'
+  options: &layout_get_route_options
     _canvas_use_template_draft: TRUE
     parameters:
       entity:
         type: entity:{entity_type}
-    _format: 'json'
   methods: [GET]
 
-canvas.api.layout.patch:
+# Specialized version of the `canvas.api.layout.get` route, with one additional route parameter.
+canvas.api.layout.get.content_template:
+  <<: *layout_get_route
+  path: '/canvas/api/v0/layout-content-template/{entity}/{preview_entity}'
+  requirements:
+    <<: *layout_get_route_requirements
+    _canvas_preview_entity_view_access: TRUE
+  options:
+    <<: *layout_get_route_options
+    parameters: &layout_get_route_content_template_parameters
+      # Specialized, so locked to ContentTemplate config entities.
+      entity:
+        type: entity:content_template
+      preview_entity:
+        # @see \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
+        type: canvas_content_template_preview_entity
+
+canvas.api.layout.patch: &layout_patch_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiLayoutController::patch'
     # We need a title callback because we use the HTML renderer to generate the preview.
     _title_callback: 'Drupal\canvas\Controller\ApiLayoutController::getLabel'
   requirements:
-    _canvas_authentication_required: TRUE
-    _canvas_component_tree_edit_access: TRUE
-    _entity_access: 'entity.update'
-    _format: json
+    <<: *layout_get_route_requirements
   options:
     _canvas_use_template_draft: TRUE
     parameters:
       entity:
         type: entity:{entity_type}
-    _format: 'json'
   methods: [PATCH]
 
-canvas.api.layout.post:
+# Specialized version of the `canvas.api.layout.patch` route, with one additional route parameter.
+canvas.api.layout.patch.content_template:
+  <<: *layout_patch_route
+  path: '/canvas/api/v0/layout-content-template/{entity}/{preview_entity}'
+  requirements:
+    <<: *layout_get_route_requirements
+    _canvas_preview_entity_view_access: TRUE
+  options:
+    parameters:
+      <<: *layout_get_route_content_template_parameters
+
+canvas.api.layout.post: &layout_post_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiLayoutController::post'
@@ -351,8 +375,18 @@ canvas.api.layout.post:
     parameters:
       entity:
         type: entity:{entity_type}
-    _format: 'json'
   methods: [POST]
+
+# Specialized version of the `canvas.api.layout.post` route, with one additional route parameter.
+canvas.api.layout.post.content_template:
+  <<: *layout_post_route
+  path: '/canvas/api/v0/layout-content-template/{entity}/{preview_entity}'
+  options:
+    requirements:
+      <<: *layout_get_route_requirements
+      _canvas_preview_entity_view_access: TRUE
+    parameters:
+      <<: *layout_get_route_content_template_parameters
 
 canvas.api.log_error:
   path: '/canvas/api/v0/log-error'

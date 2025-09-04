@@ -1292,6 +1292,187 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
+  '/canvas/api/v0/layout-content-template/{configEntityId}/{entityId}':
+    description: Layout content template endpoints for managing layout components with preview entity context
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+      - $ref: '#/components/parameters/entityId'
+    get:
+      description: Retrieves the layout for a content template with preview entity context
+      responses:
+        '200':
+          description: "The layout that the current user is allowed to edit: regions not editable by the current user are omitted."
+          content:
+            application/json:
+              examples:
+                emptyComponentTree:
+                  value:
+                    html: '<html>The preview would be here</html>'
+                    layout:
+                      - nodeType: region
+                        name: content
+                        components: []
+                    model: {}
+                    isNew: true
+                componentTreeWithRootLevelOnly:
+                  value:
+                    html: '<html>The preview would be here</html>'
+                    layout:
+                      - nodeType: region
+                        name: header
+                        components: []
+                      - nodeType: region
+                        name: content
+                        components:
+                          - nodeType: component
+                            uuid: f0f03e3b-08e6-4f57-9f06-8f68d347d98f
+                            type: 'canvas:druplicon'
+                            name: null
+                          - nodeType: component
+                            uuid: bce8d97e-8d44-4609-adc3-5e1015342b49
+                            type: 'sdc_test:my-cta'
+                            name: 'Content Creator-provided optional label for this component instance'
+                    model:
+                      bce8d97e-8d44-4609-adc3-5e1015342b49:
+                        resolved:
+                          text: 'My first article node!'
+                          href: 'https://drupal.org'
+                        name: My Test CTA Component
+                        source:
+                          text:
+                            sourceType: dynamic
+                            expression: 'ℹ︎␜entity:node:article␝title␞␟value'
+                          href:
+                            sourceType: static:field_item:uri,
+                            expression: 'ℹ︎uri␟value'
+                    isNew: false
+              schema:
+                type: object
+                required:
+                  - layout
+                  - model
+                  - isNew
+                  - html
+                properties:
+                  html:
+                    type: string
+                    description: HTML preview of the layout
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  isNew:
+                    type: boolean
+                    # @see \Drupal\canvas\Controller\ApiLayoutController::contentEntityIsConsideredNew()
+                    # @see https://www.drupal.org/project/canvas/issues/3505118#comment-15982801
+                    description: Whether the edited content entity is considered new.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      description: >
+        Update a single component in the content template and return a preview as well
+        as the updated model and layout. The new layout is stored as an auto-save entry
+        (until such time as it is published)
+      requestBody:
+        $ref: '#/components/requestBodies/PatchLayout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - model
+                  - layout
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      type: object
+                      schema:
+                        $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  autoSaves:
+                    type: object
+                    description: Auto-saved entries with hash values for concurrency control
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
+    post:
+      description: >
+        Update the layout or model field values in the content template and return a preview as well.
+        The new layout is stored as an auto-save entry (until such time as it is published)
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  autoSaves:
+                    type: object
+                    description: Auto-saved entries with hash values for concurrency control
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
   '/canvas/api/v0/layout/{entityTypeId}/{entityId}':
     description: TODO
     get:

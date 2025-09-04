@@ -30,10 +30,11 @@ final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTest
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Add expected violation for missing dynamic prop source in
+   *   https://drupal.org/i/3541054.
    */
-  protected static $expectedViolations = [
-    'component_tree' => "The 'dynamic' prop source type must be present.",
-  ];
+  protected static $expectedViolations = [];
 
   /**
    * {@inheritdoc}

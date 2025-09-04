@@ -62,17 +62,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
   /**
    * {@inheritdoc}
-   *
-   * @phpstan-ignore property.defaultValue
-   */
-  protected static array $propertiesWithRequiredKeys = [
-    'component_tree' => [
-      "The 'dynamic' prop source type must be present.",
-    ],
-  ];
-
-  /**
-   * {@inheritdoc}
    */
   protected static $configSchemaCheckerExclusions = [
     // We need to create a component with invalid source-defined slot names in
@@ -250,7 +239,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     yield "missing `component_tree` property" => [
       'component_tree' => [],
       'expected_messages' => [
-        'component_tree' => 'The \'dynamic\' prop source type must be present.',
+        // @todo Add back message when we require dynamic prop sources in
+        //   https://drupal.org/i/3541054.
+        // 'component_tree' => 'The \'dynamic\' prop source type must be present.',
       ],
     ];
 
@@ -264,7 +255,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         ],
       ],
       'expected_messages' => [
-        'component_tree' => "The 'dynamic' prop source type must be present.",
+        // @todo Add back message when we require dynamic prop sources in
+        //   https://drupal.org/i/3541054.
+        // 'component_tree' => "The 'dynamic' prop source type must be present.",
       ],
     ];
 

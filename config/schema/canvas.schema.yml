@@ -746,10 +746,10 @@ canvas.content_template.*.*.*:
           inputs:
             absence:
               - adapter
-            # This tree MUST contain at least one dynamic prop source, or it's not much of a template;
-            # it's just presenting static data.
-            presence:
-              - dynamic
+            presence: ~
+            # @todo For now we removed the `dynamic` requirement to allow
+            #   publishing before we add UI for mapping dynamic props. This will
+            #   be re-added in https://drupal.org/i/3541057.
           tree:
             absence:
               # Components implementing either of these 2 interfaces are only allowed to live at

@@ -112,6 +112,9 @@ services:
   Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer:
     tags:
       - { name: route_enhancer }
+  Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter:
+    tags:
+      - { name: paramconverter }
   Drupal\canvas\Routing\ParametrizedImageStyleConverter:
     tags:
       - { name: paramconverter }
@@ -126,6 +129,9 @@ services:
   Drupal\canvas\Access\ComponentTreeEditAccessCheck:
     tags:
       - { name: access_check, applies_to: _canvas_component_tree_edit_access }
+  Drupal\canvas\Access\PreviewEntityViewAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _canvas_preview_entity_view_access }
   Drupal\canvas\Access\CanvasUiAccessCheck:
     tags:
       - { name: access_check, applies_to: _canvas_ui_access }

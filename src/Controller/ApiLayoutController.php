@@ -17,6 +17,8 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -37,6 +39,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class ApiLayoutController {
 
   use AutoSaveValidateTrait;
+  use ClientServerConversionTrait;
   use EntityFormTrait;
   private array $regions;
   private array $regionsClientSideIds;
@@ -73,24 +76,23 @@ final class ApiLayoutController {
   /**
    * Returns JSON for the entity layout and fields that the user can edit.
    */
-  public function get(ContentEntityInterface&EntityPublishedInterface $entity): PreviewEnvelope {
+  public function get((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
+    assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $regions = PageRegion::loadForActiveTheme();
-
-    $is_published = $entity->isPublished();
 
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
       $entity = $autoSaveData->entity;
-      \assert($entity instanceof ContentEntityInterface);
+      \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
     }
 
     $model = [];
-    $entity_form_fields = $this->getFilteredEntityData($entity);
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
     $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model);
     $layout = [$content_layout];
-    $is_new = AutoSaveManager::contentEntityIsConsideredNew($entity);
+    $is_new = AutoSaveManager::entityIsConsideredNew($entity);
 
     if ($regions) {
       \assert($model !== NULL);
@@ -114,11 +116,13 @@ final class ApiLayoutController {
       // If the model is empty return an empty object to ensure it is encoded as
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
-      'entity_form_fields' => $entity_form_fields,
       'isNew' => $is_new,
-      'isPublished' => $is_published,
       'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
     ];
+    if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
+      $data['isPublished'] = $entity->isPublished();
+      $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
+    }
     return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
   }
 
@@ -205,7 +209,9 @@ final class ApiLayoutController {
   /**
    * PATCH request updates the auto-saved model and returns a preview.
    */
-  public function patch(Request $request, FieldableEntityInterface $entity): PreviewEnvelope {
+  public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
+    assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
       throw new BadRequestHttpException('Missing componentInstanceUuid');
@@ -284,11 +290,15 @@ final class ApiLayoutController {
    *
    * @todo Remove this in https://drupal.org/i/3492065
    */
-  public function post(Request $request, FieldableEntityInterface $entity): PreviewEnvelope {
+  public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
+    assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $body = json_decode($request->getContent(), TRUE);
     \assert(\array_key_exists('model', $body));
     \assert(\array_key_exists('layout', $body));
-    \assert(\array_key_exists('entity_form_fields', $body));
+    if ($entity instanceof ContentEntityInterface) {
+      \assert(\array_key_exists('entity_form_fields', $body));
+    }
     \assert(\array_key_exists('clientInstanceId', $body));
     \assert(\array_key_exists('autoSaves', $body));
     $this->validateAutoSaves(array_merge([$entity], self::getEditableRegions()), $body['autoSaves'], $body['clientInstanceId']);
@@ -306,7 +316,7 @@ final class ApiLayoutController {
     }
     $autoSave = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSave->isEmpty()) {
-      \assert($autoSave->entity instanceof FieldableEntityInterface);
+      \assert($autoSave->entity instanceof $entity);
       // We want to work with the auto-save entity from this point so that any
       // previously saved values from e.g. another user are respected.
       $entity = $autoSave->entity;
@@ -349,23 +359,34 @@ final class ApiLayoutController {
     }
 
     assert(isset($content));
-    \assert($entity instanceof FieldableEntityInterface);
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
+
+    $data = [
+      'layout' => $content,
+      // An empty model needs to be represented as \stdClass so that it is
+      // correctly json encoded. But we need to convert it to an array before
+      // we can extract it.
+      'model' => (array) $model,
+    ];
 
     // Store the auto-save entry.
     if ($updateAutoSave) {
-      $this->converter->convert([
-        'layout' => $content,
-        // An empty model needs to be represented as \stdClass so that it is
-        // correctly json encoded. But we need to convert it to an array before
-        // we can extract it.
-        'model' => (array) $model,
+      if ($entity instanceof FieldableEntityInterface) {
         // If we are not auto-saving there is no reason to convert the
         // 'entity_form_fields'. This can cause access issue for just viewing the
         // preview. This runs the conversion as if the user had no access to edit
         // the entity fields which is all the that is necessary when not
         // auto-saving.
-        'entity_form_fields' => $body['entity_form_fields'],
-      ], $entity, validate: FALSE);
+        $data['entity_form_fields'] = $body['entity_form_fields'];
+      }
+      if ($entity instanceof FieldableEntityInterface) {
+        $this->converter->convert($data, $entity, validate: FALSE);
+      }
+      else {
+        // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
+        //   as well in https://drupal.org/i/3543197.
+        $entity->set('component_tree', self::convertClientToServer($content['components'], (array) $model, NULL, FALSE));
+      }
       $this->autoSaveManager->saveEntity($entity, $body['clientInstanceId']);
     }
     $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
@@ -420,19 +441,22 @@ final class ApiLayoutController {
    * Get last stored data, taking auto-saved data into account if any.
    */
   private function getLastStoredData(EntityInterface $entity, bool $includeAllRegions = FALSE): array {
-    assert($entity instanceof FieldableEntityInterface);
+    assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
     $data = NULL;
     $build_entity = $entity;
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
       // There are no changes (everything is published), read back the original
       // model.
-      \assert($autoSaveData->entity instanceof FieldableEntityInterface);
+      \assert($autoSaveData->entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
       $build_entity = $autoSaveData->entity;
     }
     $data['model'] = [];
-    $data['entity_form_fields'] = $this->getFilteredEntityData($build_entity);
+    if ($build_entity instanceof FieldableEntityInterface) {
+      $data['entity_form_fields'] = $this->getFilteredEntityData($build_entity);
+    }
     // Build the content region.
+    assert($build_entity instanceof ComponentTreeEntityInterface || $build_entity instanceof FieldableEntityInterface);
     $tree = $this->componentTreeLoader->load($build_entity);
     $data['layout'] = [$this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'])];
     assert(is_array($data['model']));

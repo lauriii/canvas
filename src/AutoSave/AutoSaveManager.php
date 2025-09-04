@@ -20,6 +20,7 @@ use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -412,7 +413,10 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $events;
   }
 
-  public static function contentEntityIsConsideredNew(ContentEntityInterface $entity): bool {
+  public static function entityIsConsideredNew(ContentEntityInterface|ContentTemplate $entity): bool {
+    if ($entity instanceof ContentTemplate) {
+      return !$entity->status();
+    }
     return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
   }
 
