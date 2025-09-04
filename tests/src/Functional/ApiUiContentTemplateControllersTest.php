@@ -89,6 +89,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
     $account = $this->createUser([
       ContentTemplate::ADMIN_PERMISSION,
+      'edit any article content',
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);
@@ -99,10 +100,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @dataProvider providerSuggestions
+   * @dataProvider providerSuggestStructuredDataForPropShapes
    * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
    */
-  public function testSuggestions(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
+  public function testSuggestStructuredDataForPropShapes(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
       url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/$content_entity_type_id/$bundle/$component_config_entity_id"),
@@ -116,7 +117,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->assertSame($expected, $json);
   }
 
-  public static function providerSuggestions(): \Generator {
+  public static function providerSuggestStructuredDataForPropShapes(): \Generator {
     $choice_article_title = [
       'label' => "This Article's Title",
       'source' => ['sourceType' => 'dynamic', 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value'],
@@ -252,7 +253,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    *           ["node/article/js.canvas_test_code_components_with_link_prop", 400, "Code components are not supported yet."]
    *           ["node/article/js.canvas_test_code_components_with_no_props", 400, "Code components are not supported yet."]
    */
-  public function testSuggestionsClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
+  public function testSuggestStructuredDataForPropShapesClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
       url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
@@ -281,6 +282,132 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_dynamic_page_cache: NULL,
     );
     $this->assertSame(['errors' => [sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
+  }
+
+  public function testSuggestPreviewContentEntities(): void {
+    $content_entity_type_id = 'node';
+    $bundle = 'article';
+
+    // There are no entities, so we get an empty list.
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+    $this->assertSame([], $json);
+
+    // As soon as we create some, we are going to return those.
+    $entity_storage = $this->container->get('entity_type.manager')->getStorage($content_entity_type_id);
+    for ($i = 1; $i <= 5; ++$i) {
+      $entity_storage->create([
+        'title' => 'Entity ' . $i,
+        'type' => $bundle,
+        'changed' => \time() - $i * 1000,
+      ])->save();
+    }
+
+    $expected = [
+      1 => ['id' => '1', 'label' => 'Entity 1'],
+      2 => ['id' => '2', 'label' => 'Entity 2'],
+      3 => ['id' => '3', 'label' => 'Entity 3'],
+      4 => ['id' => '4', 'label' => 'Entity 4'],
+      5 => ['id' => '5', 'label' => 'Entity 5'],
+    ];
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . ':4',
+        $content_entity_type_id . ':5',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+    $this->assertSame($expected, $json);
+
+    // Just because there is a new node doesn't MISS the cache and returns the new one.
+    $entity_storage->create([
+      'title' => 'Entity LAST',
+      'type' => $bundle,
+    ])->save();
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . ':4',
+        $content_entity_type_id . ':5',
+        $content_entity_type_id . ':6',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+    $expected = [6 => ['id' => '6', 'label' => 'Entity LAST']] + $expected;
+    $this->assertSame($expected, $json);
+
+    /** @var \Drupal\node\NodeInterface $updated_entity */
+    $updated_entity = $entity_storage->load(3);
+    $updated_entity->setTitle('Updated article')
+      ->save();
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . ':4',
+        $content_entity_type_id . ':5',
+        $content_entity_type_id . ':6',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+    $expected = [
+      3 => ['id' => '3', 'label' => 'Updated article'],
+      6 => ['id' => '6', 'label' => 'Entity LAST'],
+      1 => ['id' => '1', 'label' => 'Entity 1'],
+      2 => ['id' => '2', 'label' => 'Entity 2'],
+      4 => ['id' => '4', 'label' => 'Entity 4'],
+      5 => ['id' => '5', 'label' => 'Entity 5'],
+    ];
+    $this->assertSame($expected, $json);
   }
 
 }

@@ -2,6 +2,10 @@
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -49,7 +53,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
    * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
    * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    */
-  public function suggestions(string $content_entity_type_id, string $bundle, string $component_config_entity_id): JsonResponse {
+  public function suggestStructuredDataForPropShapes(string $content_entity_type_id, string $bundle, string $component_config_entity_id): JsonResponse {
     // @see \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber
     $this->validateRequest($content_entity_type_id, $bundle, $component_config_entity_id);
     // @phpstan-ignore-next-line
@@ -124,6 +128,58 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     if (!array_key_exists($bundle, $this->entityTypeBundleInfo->getBundleInfo($content_entity_type_id))) {
       throw new NotFoundHttpException(sprintf("The `%s` content entity type does not have a `%s` bundle.", $content_entity_type_id, $bundle));
     }
+  }
+
+  public function suggestPreviewContentEntities(string $entity_type_id, string $bundle): CacheableJsonResponse {
+    $entity_definition = $this->entityTypeManager->getDefinition($entity_type_id);
+    $entity_storage = $this->entityTypeManager->getStorage($entity_type_id);
+
+    $metadata = new CacheableMetadata();
+
+    $id_key = $entity_definition->getKey('id');
+    assert(is_string($id_key));
+    $entity_query = $entity_storage->getQuery()
+      ->accessCheck(TRUE)
+      ->range(0, 10);
+    if ($entity_definition->hasKey('bundle')) {
+      $bundle_key = $entity_definition->getKey('bundle');
+      assert(is_string($bundle_key));
+      $entity_query->condition($bundle_key, $bundle);
+    }
+    // @todo Remove conditionality in https://www.drupal.org/i/3498525
+    if ($entity_definition->hasKey('published')) {
+      $published_key = $entity_definition->getKey('published');
+      assert(is_string($published_key));
+      $entity_query->condition($published_key, TRUE);
+    }
+    // @todo Remove conditionality in https://www.drupal.org/i/3498525
+    if ($entity_definition->entityClassImplements(EntityChangedInterface::class)) {
+      $entity_query->sort('changed', 'DESC');
+    }
+    else {
+      $entity_query->sort($id_key, 'DESC');
+    }
+
+    $entity_ids = $entity_query->execute();
+    $entities = $entity_storage->loadMultiple($entity_ids);
+
+    $entities = array_filter($entities, function ($entity) use ($metadata): bool {
+      $access = $entity->access('view', return_as_object: TRUE);
+      if ($access->isAllowed()) {
+        $metadata->addCacheableDependency($access);
+        $metadata->addCacheableDependency($entity);
+      }
+      return $access->isAllowed();
+    });
+    $metadata->addCacheTags($entity_definition->getBundleListCacheTags($bundle));
+
+    $entities_data = array_map(fn (EntityInterface $entity) => [
+      'id' => $entity->id(),
+      'label' => $entity->label(),
+    ], $entities);
+    $response = new CacheableJsonResponse($entities_data);
+    $response->addCacheableDependency($metadata);
+    return $response;
   }
 
 }

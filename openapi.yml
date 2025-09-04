@@ -1813,6 +1813,54 @@ paths:
                     examples:
                       - Missing data
                       - Missing clientInstanceId
+  /canvas/api/v0/ui/content_template/suggestions/preview/{entityTypeId}/{bundle}:
+    description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
+    get:
+      description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
+      parameters:
+        - $ref: '#/components/parameters/entityTypeId'
+        - $ref: '#/components/parameters/bundle'
+      responses:
+        '200':
+          description: Provides content that can be used for previewing content template targeting the specified entity type and bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+                # There may be 0 content suggestions for this content template.
+                minProperties: 0
+                additionalProperties:
+                  type: object
+                properties:
+                  id:
+                    type: integer
+                    examples:
+                      - 24
+                  label:
+                    type: string
+                    examples:
+                      - Black Mamba
+              examples:
+                Suggestions for a node articles:
+                  value:
+                    23:
+                      id: 23
+                      label: "This Article's Title"
+                    42:
+                      id: 42
+                      label: "The answer to everything"
+        # @todo fix in https://www.drupal.org/i/3541366
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        # @todo fix in https://www.drupal.org/i/3541366
+        '400':
+          description: Invalid request from the UI.
+          $ref: '#/components/responses/ClientErrorResponse'
+        # @todo fix in https://www.drupal.org/i/3541366
+        '404':
+          description: Non-existent content entity type or bundle.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{entityTypeId}/{bundle}/{configEntityId}:
     description: Provides suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
     get:
