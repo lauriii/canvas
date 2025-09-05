@@ -438,7 +438,7 @@ final class ContentTemplate extends ConfigEntityBase implements CanvasHttpApiEli
         'label' => $this->label(),
         'status' => $this->status,
         'id' => $this->id(),
-        'suggestedPreviewEntityId' => $preview_entity?->id(),
+        'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
       ],
       preview: NULL,
     )

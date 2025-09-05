@@ -300,7 +300,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ]);
     $pattern->save();
-    // Get the pattern list the Canvas HTTP API should not return unpublished ones.
+
+    // The list response MUST NOT contain unpublished Patterns.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
@@ -1957,7 +1958,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/content_template]. [Keyword validation failed: Required property \'entityType\' must be present in the object in entityType]',
     ], $body, 'Fails with missing data.');
 
-    // Get the pattern list the Canvas HTTP API should not return unpublished ones.
+    // The list response MUST contain unpublished ContentTemplates.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([], $body);
 
@@ -2014,6 +2015,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     $template_values = $new_content_template->normalizeForClientSide()->values;
     $template_values['label'] = (string) $template_values['label'];
+    self::assertNull($template_values['suggestedPreviewEntityId']);
     $this->assertSame([
       $entity_type_id => [
         'label' => 'Content types',
@@ -2044,7 +2046,42 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ], $body);
 
-    // Creating a Folder with an already-in-use entity type, bundle, view mode and id: 409.
+    // Create a node of the bundle that now will be used as the suggested
+    // preview entity.
+    $node = Node::create([
+      'type' => $bundle,
+      'title' => "Test $bundle for Content Template",
+    ]);
+    self::assertCount(0, $node->validate());
+    $node->save();
+
+    // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page Cache miss.
+    $node_tag = $node->getCacheTags()[0];
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', $node_tag, 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      $entity_type_id => [
+        'label' => 'Content types',
+        'bundles' => [
+          $bundle => [
+            'label' => 'Full content',
+            'viewModes' => [
+              'full' => [
+                'entityType' => 'node',
+                'bundle' => 'article',
+                'viewMode' => 'full',
+                'viewModeLabel' => 'Full content',
+                'label' => 'Full content content items — Full content view',
+                'status' => FALSE,
+                'id' => 'node.article.full',
+                'suggestedPreviewEntityId' => (int) $node->id(),
+              ],
+            ],
+          ],
+        ],
+      ],
+    ], $body);
+
+    // Creating a Content Template with an already-in-use entity type, bundle, view mode and id: 409.
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'errors' => ['\'content_template\' entity with ID \'node.article.full\' already exists.'],
