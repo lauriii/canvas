@@ -10,6 +10,8 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageException;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
@@ -42,6 +44,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityTypeBundleInfoInterface $bundleInfo,
     private readonly RendererInterface $renderer,
     private readonly AssetRenderer $assetRenderer,
     #[Autowire(param: 'renderer.config')]
@@ -139,57 +142,71 @@ final class ApiConfigControllers extends ApiControllerBase {
     $response = $this->list(ContentTemplate::ENTITY_TYPE_ID);
     // @phpstan-ignore-next-line argument.type
     $flat_json = json_decode($response->getContent(), TRUE);
-    $hierarchical_json = [];
 
-    $bundle_labels_cacheability = new CacheableMetadata();
-    ksort($flat_json);
-    foreach ($flat_json as $template_id => $normalization) {
-      // Determine hierarchy using the ID.
-      // @see \Drupal\canvas\Entity\ContentTemplate::id()
-      [$entity_type_id, $bundle, $view_mode] = explode('.', $template_id);
+    // @todo Generalize beyond nodes in https://www.drupal.org/i/3498525
+    $supported_entity_type_ids = ['node'];
+
+    // 1. Create the hierarchy:
+    // - all supported content entity types with their bundle collection label
+    // - all bundles for each supported content entity type with their label
+    $hierarchical_json = [];
+    $additional_cacheability = new CacheableMetadata();
+    // Update whenever the list of entity types changes, not just when the set
+    // of ContentTemplates config entities changes.
+    // @todo Uncomment in https://www.drupal.org/i/3498525
+    // $additional_cacheability->addCacheTags(['entity_types']);
+    // Update whenever the list of bundles changes. Bundles may be defined via
+    // hook_entity_bundle_info()  or via a bundle entity type.
+    // @see \Drupal\Core\Entity\EntityTypeBundleInfo::getAllBundleInfo()
+    $additional_cacheability->addCacheTags(['entity_bundles']);
+    foreach ($supported_entity_type_ids as $entity_type_id) {
       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+      assert($entity_type instanceof EntityTypeInterface);
       $bundle_entity_type_id = $entity_type->getBundleEntityType();
 
-      // Add bundle collection label.
-      if (!array_key_exists($entity_type_id, $hierarchical_json)) {
-        $label = $entity_type->getCollectionLabel();
-        if ($bundle_entity_type_id) {
-          $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
-          $label = $bundle_entity_type->getCollectionLabel();
-          // Add list cache tag for the bundle config entity type, because this
-          // will list every bundle of the given content entity type, and all
-          // their labels. Rather than adding many individual cache tags, it is
-          // more efficient to only add this one.
-          $bundle_labels_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
-        }
-        $hierarchical_json[$entity_type_id] = [
-          'label' => $label,
-          'bundles' => [],
-        ];
+      $label = $entity_type->getCollectionLabel();
+      if ($bundle_entity_type_id) {
+        $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
+        assert($bundle_entity_type instanceof EntityTypeInterface);
+        $label = $bundle_entity_type->getCollectionLabel();
       }
-
-      // Add bundle label, if any. (A content entity type may not have bundles.)
-      if (!array_key_exists($bundle, $hierarchical_json[$entity_type_id]['bundles'])) {
-        // When there are no bundles, specify NULL as the label.
-        $label = NULL;
-        if ($bundle_entity_type_id !== NULL) {
-          $bundle_entity = $this->entityTypeManager->getStorage($bundle_entity_type_id)->load($bundle);
-          assert($bundle_entity !== NULL);
-          $label = $bundle_entity->label();
-        }
-        $hierarchical_json[$entity_type_id]['bundles'][$bundle] = [
-          'label' => $label,
-          'viewModes' => [],
-        ];
+      $hierarchical_json[$entity_type_id] = [
+        'label' => $label,
+        // Ensure all bundles' labels are present, even for those without a
+        // ContentTemplate.
+        'bundles' => array_map(
+          fn (array $bundle_info) => [
+            'label' => $bundle_info['label'],
+            'viewModes' => [],
+          ],
+          $this->bundleInfo->getBundleInfo($entity_type_id),
+        ),
+      ];
+      // For bundleless content entity types, omit the label.
+      // For example: the `User` content entity type does not have any bundles,
+      // so listing "User" twice as the label is pointless.
+      if (array_keys($hierarchical_json[$entity_type_id]['bundles']) === [$entity_type_id]) {
+        $hierarchical_json[$entity_type_id]['bundles'][$entity_type_id]['label'] = NULL;
       }
+      if ($bundle_entity_type_id) {
+        // @phpstan-ignore-next-line variable.undefined
+        $additional_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
+      }
+    }
 
-      // Place the original normalization in its place in the hierarchy.
+    // 2. Populate the hierarchy, which makes the nested `viewModes` key no
+    // longer contain the empty array, for those that have ContentTemplates.
+    foreach ($flat_json as $template_id => $normalization) {
+      // Place the original normalization in its place in the hierarchy;
+      // determine hierarchy using the ID.
+      // @see \Drupal\canvas\Entity\ContentTemplate::id()
+      [$entity_type_id, $bundle, $view_mode] = explode('.', $template_id);
       $hierarchical_json[$entity_type_id]['bundles'][$bundle]['viewModes'][$view_mode] = $normalization;
     }
 
     // Overwrite data, and add to the already existing cacheability.
     return $response->setData($hierarchical_json)
-      ->addCacheableDependency($bundle_labels_cacheability);
+      ->addCacheableDependency($additional_cacheability);
   }
 
   public function get(Request $request, CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): CacheableJsonResponse {

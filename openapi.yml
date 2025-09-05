@@ -499,6 +499,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContentTemplateList'
               examples:
+                no content templates, multiple node bundles available:
+                  value:
+                    node:
+                      label: Content types
+                      bundles:
+                        article:
+                          label: Article
+                          viewModes: []
+                        page:
+                          label: Basic page
+                          viewModes: []
                 multiple content entity types, previews available:
                   value:
                     node:
@@ -2781,7 +2792,8 @@ components:
               properties:
                 label:
                   type: string
-                  description: Label of the bundle
+                  description: Label of the bundle. Can be null if the content entity type does not have any bundles.
+                  nullable: true
                 viewModes:
                   type: object
                   description: Named array of View Modes keyed by View Mode ID.
