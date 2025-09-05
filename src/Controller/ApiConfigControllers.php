@@ -142,6 +142,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     $hierarchical_json = [];
 
     $bundle_labels_cacheability = new CacheableMetadata();
+    ksort($flat_json);
     foreach ($flat_json as $template_id => $normalization) {
       // Determine hierarchy using the ID.
       // @see \Drupal\canvas\Entity\ContentTemplate::id()

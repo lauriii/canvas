@@ -23,6 +23,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
@@ -485,6 +486,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'js_footer' => '',
     ];
     $this->assertSame($expected_pattern_normalization, $body);
+    // The same normalization should be present when GETting the `Location`.
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/config/pattern/testpatternpleaseignore"), [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_pattern_normalization, $body);
 
     // Creating a Pattern with an already-in-use ID: 409.
     $request_options[RequestOptions::JSON] = ['id' => 'testpatternpleaseignore'] + $pattern_to_send;
@@ -570,8 +574,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
-    // Use the individual URL in the list response body.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    // Use the individual URL in the list response body. Already requested
+    // immediately after POSTing it, so should be a Dynamic Page Cache hit.
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $expected_individual_body_normalization = $expected_pattern_normalization;
     $expected_individual_body_normalization['js_footer'] = str_replace('canvas\/api\/config\/pattern', 'canvas\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
     $this->assertSame($expected_individual_body_normalization, $individual_body);
@@ -676,31 +681,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'dataDependencies' => [],
     ]);
     $jsComponent->save();
-    // Get the Code Components list via the Canvas HTTP API should return
-    // unpublished ones too.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([
-      'disabled_js_component' => [
-        'machineName' => 'disabled_js_component',
-        'name' => 'Disabled JavaScript Component',
-        'status' => FALSE,
-        'props' => [],
-        'required' => [],
-        'slots' => [],
-        'sourceCodeJs' => '',
-        'sourceCodeCss' => '',
-        'compiledJs' => '',
-        'compiledCss' => '',
-        'dataDependencies' => [],
-        'default_markup' => '@todo Make something 🆒 in https://www.drupal.org/project/canvas/issues/3498889',
-        'css' => '',
-        'js_header' => '',
-        'js_footer' => '',
-      ],
-    ], $body);
-    $canonical_url = Url::fromUri('base:/canvas/api/v0/config/js_component/disabled_js_component');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:canvas.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([
+    $expected_disabled_js_component_normalization = [
       'machineName' => 'disabled_js_component',
       'name' => 'Disabled JavaScript Component',
       'status' => FALSE,
@@ -716,7 +697,16 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'css' => '',
       'js_header' => '',
       'js_footer' => '',
+    ];
+
+    // The list response MUST contain unpublished Code Components.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([
+      'disabled_js_component' => $expected_disabled_js_component_normalization,
     ], $body);
+    $canonical_url = Url::fromUri('base:/canvas/api/v0/config/js_component/disabled_js_component');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:canvas.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_disabled_js_component_normalization, $body);
     $jsComponent->delete();
 
     // Create a Code Component via the Canvas HTTP API, but forget crucial data: 500, courtesy of OpenAPI.
@@ -1927,15 +1917,24 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // This was now tested full circle! ✅
   }
 
+  /**
+   * @see \Drupal\canvas\Entity\ContentTemplate
+   */
   public function testContentTemplate(): void {
-    $this->drupalCreateContentType([
-      'type' => 'article',
-      'name' => 'Full content',
-    ]);
+    // @todo Expand this test coverage in https://www.drupal.org/i/3498525, once more content entity types can have ContentTemplates, for now restricted to only `node`
+
+    // Test with multiple bundles of each content entity type.
+    NodeType::create(['type' => 'bunny', 'name' => 'Bunnies'])->save();
+    NodeType::create(['type' => 'llama', 'name' => 'Llamas'])->save();
+    // TRICKY: the "article" bundle must also exist because it is in the OpenAPI
+    // examples.
+    // @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::getConfigRequestPostExample()
+    NodeType::create(['type' => 'article', 'name' => 'Articles'])->save();
 
     $this->drupalLogin($this->limitedPermissionsUser);
     $this->assertAuthenticationAndAuthorization(ContentTemplate::ENTITY_TYPE_ID);
 
+    $base = rtrim(base_path(), '/');
     $list_url = Url::fromUri('base:/canvas/api/v0/config/content_template');
 
     $request_options = [
@@ -1944,23 +1943,63 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
 
-    $entity_type_id = 'node';
-    $bundle = 'article';
-    $view_mode = 'full';
-    $content_template_to_send = [
-      'bundle' => $bundle,
-      'viewMode' => $view_mode,
+    // Create a disabled ContentTemplate.
+    $bunny_template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'bunny',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+    ]);
+    self::assertFalse($bunny_template->status());
+    $bunny_template->save();
+    $expected_full_bunny_normalization = [
+      'entityType' => 'node',
+      'bundle' => 'bunny',
+      'viewMode' => 'full',
+      'viewModeLabel' => 'Full content',
+      'label' => 'Bunnies content items — Full content view',
+      'status' => FALSE,
+      'id' => 'node.bunny.full',
+      'suggestedPreviewEntityId' => NULL,
     ];
 
+    // The list response MUST contain unpublished ContentTemplates.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:content_template_list', 'http_response', 'config:node_type_list', 'node_list:bunny', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $expected_list_normalization = [
+      'node' => [
+        'label' => 'Content types',
+        'bundles' => [
+          'bunny' => [
+            'label' => 'Bunnies',
+            'viewModes' => [
+              'full' => $expected_full_bunny_normalization,
+            ],
+          ],
+        ],
+      ],
+    ];
+    $this->assertSame($expected_list_normalization, $body);
+    $canonical_url = Url::fromUri('base:/canvas/api/v0/config/content_template/node.bunny.full');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:canvas.content_template.node.bunny.full', 'http_response', 'node_list:bunny', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_full_bunny_normalization, $body);
+
+    // Create a ContentTemplate via the Canvas HTTP API, but forget crucial data
+    // that causes the required shape to be violated: 500, courtesy of OpenAPI.
+    // ⚠️ Unlike all other Canvas config entity types, this does NOT support:
+    // - POSTing the full representation of the config entity: only the initial
+    //   creation of an empty ContentTemplate is supported, all modifications
+    //   happen via the Canvas UI' editor frame, which talks to the "layout" API
+    // - PATCHing: similar
+    // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
+    $content_template_to_send = [
+      'bundle' => 'llama',
+      'viewMode' => 'full',
+    ];
     $request_options[RequestOptions::JSON] = $content_template_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/content_template]. [Keyword validation failed: Required property \'entityType\' must be present in the object in entityType]',
     ], $body, 'Fails with missing data.');
-
-    // The list response MUST contain unpublished ContentTemplates.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
 
     // Add missing crucial data, but leave a required shape violation: 500,
     // courtesy of OpenAPI.
@@ -1971,7 +2010,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/content_template]. [Value expected to be \'string\', but \'integer\' given in entityType]',
     ], $body, 'Fails with invalid shape.');
 
-    // Meet data shape requirements, but violate constraint in `entityType`
+    // Meet data shape requirements, but violate constraint for `entityType`.
     $content_template_to_send['entityType'] = 'fake_entity_type';
     $request_options[RequestOptions::JSON] = $content_template_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
@@ -1986,7 +2025,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'source' => ['pointer' => 'content_entity_type_id'],
         ],
         [
-          'detail' => 'The \'article\' bundle does not exist on the \'fake_entity_type\' entity type.',
+          'detail' => 'The \'llama\' bundle does not exist on the \'fake_entity_type\' entity type.',
           'source' => ['pointer' => 'content_entity_type_bundle'],
         ],
         [
@@ -1997,104 +2036,83 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
-    $this->assertSame([], $body);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:content_template_list', 'http_response', 'config:node_type_list', 'node_list:bunny', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertSame($expected_list_normalization, $body);
 
     // Create a ContentTemplate via the Canvas HTTP API, correctly: 201.
-    $content_template_to_send['entityType'] = $entity_type_id;
+    $content_template_to_send['entityType'] = 'node';
     $request_options[RequestOptions::JSON] = $content_template_to_send;
-    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    assert(is_array($body));
-    ksort($content_template_to_send);
-    $new_content_template = ContentTemplate::load($body['id']);
-    assert($new_content_template instanceof ContentTemplate);
-    $this->assertEquals($new_content_template->normalizeForClientSide()->values, $body);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
+      'Location' => [
+        "$base/canvas/api/v0/config/content_template/node.llama.full",
+      ],
+    ]);
+    $expected_full_llama_normalization = [
+      'entityType' => 'node',
+      'bundle' => 'llama',
+      'viewMode' => 'full',
+      'viewModeLabel' => 'Full content',
+      'label' => 'Llamas content items — Full content view',
+      'status' => FALSE,
+      'id' => 'node.llama.full',
+      'suggestedPreviewEntityId' => NULL,
+    ];
+    $this->assertSame($expected_full_llama_normalization, $body);
+    // The same normalization should be present when GETting the `Location`.
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/config/content_template/node.llama.full"), [], 200, ['user.permissions', 'user.node_grants:view'], ['config:canvas.content_template.node.llama.full', 'http_response', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_full_llama_normalization, $body);
 
     // Re-retrieve list: 200, changed, Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
-
-    $template_values = $new_content_template->normalizeForClientSide()->values;
-    $template_values['label'] = (string) $template_values['label'];
-    self::assertNull($template_values['suggestedPreviewEntityId']);
-    $this->assertSame([
-      $entity_type_id => [
-        'label' => 'Content types',
-        'bundles' => [
-          $bundle => [
-            'label' => 'Full content',
-            'viewModes' => [
-              $view_mode => $template_values,
-            ],
-          ],
-        ],
+    $expected_list_normalization['node']['bundles']['llama'] = [
+      'label' => 'Llamas',
+      'viewModes' => [
+        'full' => $expected_full_llama_normalization,
       ],
-    ], $body);
+    ];
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($expected_list_normalization, $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'HIT');
-    $this->assertSame([
-      $entity_type_id => [
-        'label' => 'Content types',
-        'bundles' => [
-          $bundle => [
-            'label' => 'Full content',
-            'viewModes' => [
-              $view_mode => $template_values,
-            ],
-          ],
-        ],
-      ],
-    ], $body);
+    $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'HIT');
+    // @phpstan-ignore-next-line method.alreadyNarrowedType
+    $this->assertSame($expected_list_normalization, $body);
 
     // Create a node of the bundle that now will be used as the suggested
     // preview entity.
     $node = Node::create([
-      'type' => $bundle,
-      'title' => "Test $bundle for Content Template",
+      'type' => 'llama',
+      'title' => "Sample llama",
     ]);
     self::assertCount(0, $node->validate());
     $node->save();
 
-    // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page Cache miss.
-    $node_tag = $node->getCacheTags()[0];
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', $node_tag, 'node_list:article', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([
-      $entity_type_id => [
-        'label' => 'Content types',
-        'bundles' => [
-          $bundle => [
-            'label' => 'Full content',
-            'viewModes' => [
-              'full' => [
-                'entityType' => 'node',
-                'bundle' => 'article',
-                'viewMode' => 'full',
-                'viewModeLabel' => 'Full content',
-                'label' => 'Full content content items — Full content view',
-                'status' => FALSE,
-                'id' => 'node.article.full',
-                'suggestedPreviewEntityId' => (int) $node->id(),
-              ],
-            ],
-          ],
-        ],
-      ],
-    ], $body);
+    // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page
+    // Cache miss. Note the presence of the suggested preview entity's
+    // individual cache tag: this is because it had its "view" access checked.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    // Change the expectation from `NULL` to the entity ID.
+    $expected_list_normalization['node']['bundles']['llama']['viewModes']['full']['suggestedPreviewEntityId'] = (int) $node->id();
+    $this->assertSame($expected_list_normalization, $body);
 
-    // Creating a Content Template with an already-in-use entity type, bundle, view mode and id: 409.
+    // Creating a Content Template with an already-in-use ID: 409.
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'errors' => ['\'content_template\' entity with ID \'node.article.full\' already exists.'],
+      'errors' => ['\'content_template\' entity with ID \'node.llama.full\' already exists.'],
     ], $body);
 
-    // @todo A Content Templates creation via API with non-empty component_tree would be nice here.
-
     // Delete the Content Template via the Canvas HTTP API: 204.
-    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/' . $new_content_template->id()), [], 204, NULL, NULL, NULL, NULL);
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/node.bunny.full'), [], 204, NULL, NULL, NULL, NULL);
 
-    // Re-retrieve empty list: 200. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:content_template_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([], $body);
+    // Re-retrieve empty list: 200. Dynamic Page Cache miss. Note that the cache
+    // tag related to the `bunny` NodeType has disappeared.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:content_template_list', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    unset($expected_list_normalization['node']['bundles']['bunny']);
+    $this->assertSame($expected_list_normalization, $body);
+
+    // This was now tested as full circle as possible! ✅
+    // (POST with component tree and PATCH cannot be tested here, see comment
+    // at the top.)
+    // @see \Drupal\canvas\Controller\ApiLayoutController::patch()
   }
 
 }
