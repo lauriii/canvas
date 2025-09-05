@@ -27,7 +27,9 @@
   border-radius: var(--radius-4);
   &:hover {
     cursor: pointer;
-    background-color: #dbe6ff;
+    .chevron {
+      color: var(--blue-9);
+    }
   }
   .folderCount {
     background-color: var(--gray-3);

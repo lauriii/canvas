@@ -10,6 +10,7 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ExtensionsList from '@/components/extensions/ExtensionsList';
 import Library from '@/components/sidePanel/Library';
 import ManageLibrary from '@/components/sidePanel/ManageLibrary';
+import Templates from '@/components/sidePanel/Templates';
 import Layers from '@/features/layout/layers/Layers';
 import {
   selectActivePanel,
@@ -32,6 +33,7 @@ export const PrimaryPanel = () => {
     manageLibrary: 'Manage library',
     extensions: 'Extensions',
     aiWizard: 'AI',
+    templates: 'Templates',
   };
 
   return (
@@ -83,6 +85,11 @@ export const PrimaryPanel = () => {
             {activePanel === 'aiWizard' && (
               <ErrorBoundary>
                 <AiWizard />
+              </ErrorBoundary>
+            )}
+            {activePanel === 'templates' && (
+              <ErrorBoundary>
+                <Templates />
               </ErrorBoundary>
             )}
           </Box>

@@ -9,6 +9,7 @@ import {
   CubeIcon,
   DotsHorizontalIcon,
   FileIcon,
+  FileTextIcon,
   SectionIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -24,6 +25,7 @@ const VARIANTS = {
   region: { icon: <CubeIcon /> },
   pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
+  template: { icon: <FileTextIcon /> },
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;

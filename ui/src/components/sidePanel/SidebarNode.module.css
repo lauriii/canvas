@@ -132,7 +132,7 @@
   composes: default;
 }
 
-.pageVariant {
+.pageVariant, .templateVariant {
   --bg-hover: var(--blue-3);
   --bg-selected: var(--blue-9);
   --bg-hover-dots: var(--blue-5);
@@ -140,3 +140,4 @@
 
   composes: default;
 }
+

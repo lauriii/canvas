@@ -26,6 +26,42 @@ type LayoutApiResponse = RootLayoutModel & {
   autoSaves: AutoSavesHash;
 };
 
+export type TemplateViewMode = {
+  entityType: string;
+  bundle: string;
+  viewMode: string;
+  viewModeLabel: string;
+  label: string;
+  status: boolean;
+  id: string;
+  suggestedPreviewEntityId?: number;
+};
+
+export type TemplateInBundle = {
+  label: string;
+  viewModes: {
+    [key: string]: TemplateViewMode;
+  };
+};
+
+export type TemplatesInBundle = {
+  [key: string]: TemplateInBundle;
+};
+
+type TemplateList = {
+  [key: string]: {
+    label: string;
+    bundles: TemplatesInBundle;
+  };
+};
+
+type ViewModesList = {
+  [key: string]: {
+    label: string;
+    hasTemplate: boolean;
+  };
+};
+
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -35,6 +71,8 @@ export const componentAndLayoutApi = createApi({
     'CodeComponentAutoSave',
     'Layout',
     'Folders',
+    'ContentTemplates',
+    'ViewModes',
   ],
   endpoints: (builder) => ({
     getComponents: builder.query<
@@ -242,6 +280,14 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' }, // The component list contains markup for the preview thumbnails.
       ],
     }),
+    getContentTemplates: builder.query<TemplateList, void>({
+      query: () => `canvas/api/v0/config/content_template`,
+      providesTags: () => [{ type: 'ContentTemplates', id: 'LIST' }],
+    }),
+    getViewModes: builder.query<ViewModesList, void>({
+      query: () => `canvas/api/v0/ui/content_template/view_modes/node`,
+      providesTags: () => [{ type: 'ViewModes', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -257,4 +303,6 @@ export const {
   useGetFoldersQuery,
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
+  useGetContentTemplatesQuery,
+  useGetViewModesQuery,
 } = componentAndLayoutApi;

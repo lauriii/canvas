@@ -55,14 +55,17 @@ test.describe('Perform CRUD operations on components', () => {
     await canvasEditor.goToEditor();
     await expect(page.locator('[data-testid="canvas-side-menu"]'))
       .toMatchAriaSnapshot(`
-         - button "Add":
-           - img
-         - button "Layers":
-           - img
-         - separator
-         - button "Templates are coming soon" [disabled]:
-           - img
-       `);
+        - button "Add":
+          - img
+        - button "Layers":
+          - img
+        - separator
+        - button "Manage library":
+          - img
+        - separator
+        - button "Templates":
+          - img
+      `);
     await page
       .locator('[data-testid="canvas-side-menu"]')
       .locator('[aria-label="Add"]')
