@@ -30,7 +30,7 @@ describe(
 
     it('Can interact with entity path field', () => {
       cy.drupalLogin('canvasUser', 'canvasUser');
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
       cy.findByTestId('canvas-contextual-panel--page-data').should(
         'have.attr',
@@ -87,7 +87,7 @@ describe(
       cy.setKeyValue('canvas_state', {
         canvas_test_article_fields_gravy_state: true,
       });
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
       cy.findByTestId('canvas-contextual-panel--page-data').should(
         'have.attr',
@@ -123,7 +123,7 @@ describe(
         times: 1,
         method: 'POST',
       }).as('updatePreview');
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
       cy.findByLabelText('No more gravy please').as('checkbox');
       cy.get('@checkbox').should('not.be.checked');
       cy.get('@checkbox').click();
@@ -134,7 +134,7 @@ describe(
       cy.publishAllPendingChanges('No more gravy');
 
       // Default value now should be checked again.
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
       cy.findByLabelText('No more gravy please').as('checkbox');
       cy.get('@checkbox').should('be.checked');
     });
@@ -144,7 +144,7 @@ describe(
       { retries: { openMode: 0, runMode: 3 } },
       () => {
         cy.drupalLogin('canvasUser', 'canvasUser');
-        cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+        cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
         cy.findByTestId('canvas-contextual-panel--page-data').should(
           'have.attr',

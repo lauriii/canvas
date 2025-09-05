@@ -54,7 +54,7 @@ const PagePreview = () => {
   ]);
 
   useEffect(() => {
-    if (width === 'full') {
+    if (!width || width === 'full') {
       setWidthVal('100%');
     } else {
       viewportSizes.find((vs) => {

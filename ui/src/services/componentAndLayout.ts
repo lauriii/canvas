@@ -51,10 +51,12 @@ export const componentAndLayoutApi = createApi({
         );
       },
     }),
-    getLayoutById: builder.query<LayoutApiResponse, string>({
-      query: (nodeId) => `canvas/api/v0/layout/{entity_type}/${nodeId}`,
+    getLayoutById: builder.query<LayoutApiResponse, void>({
+      query: () => {
+        return `canvas/api/v0/layout/{entity_type}/{entity_id}`;
+      },
       providesTags: () => [{ type: 'Layout' }],
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const {
             data: { entity_form_fields, html, autoSaves },

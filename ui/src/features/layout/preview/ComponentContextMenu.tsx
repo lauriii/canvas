@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu } from '@radix-ui/themes';
 
@@ -49,6 +50,7 @@ export const ComponentContextMenuContent: React.FC<
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
+  const { entityId, entityType } = useParams();
 
   // Check if this is a code component
   const [componentType] = (component.type || '').split('@');
@@ -142,10 +144,12 @@ export const ComponentContextMenuContent: React.FC<
       if (component.type && component.type.startsWith('js.')) {
         const machineNameAndVersion = component.type.substring(3);
         const [machineName] = machineNameAndVersion.split('@');
-        navigate(`/code-editor/component/${machineName}`);
+        navigate(
+          `/editor/${entityType}/${entityId}/code-editor/component/${machineName}`,
+        );
       }
     },
-    [navigate, component.type],
+    [component.type, navigate, entityType, entityId],
   );
 
   const closeContextMenu = () => {

@@ -72,7 +72,7 @@ test.describe('AI Features', () => {
     await ai.openPanel();
     await ai.submitQuery('Create component');
     await expect(page).toHaveURL(
-      /\/canvas\/canvas_page\/\d+\/code-editor\/component\/herobanner/,
+      /\/canvas\/editor\/canvas_page\/\d+\/code-editor\/component\/herobanner/,
     );
     await page.getByTestId('canvas-publish-review').click();
     await page
@@ -84,8 +84,8 @@ test.describe('AI Features', () => {
     await page.getByRole('button', { name: 'Publish 2 selected' }).click();
     await page.getByRole('button', { name: 'Add to components' }).click();
     await page.getByRole('button', { name: 'Add' }).click();
-    await expect(page).toHaveURL(/\/canvas\/canvas_page\/\d+\/editor/);
-    await page.getByRole('button', { name: 'Add' }).click();
+    await expect(page).toHaveURL(/\/canvas\/editor\/canvas_page\/\d+$/);
+    await canvasEditor.openLibraryPanel();
     await page
       .locator('div')
       .filter({ hasText: /^HeroBanner$/ })
@@ -96,7 +96,7 @@ test.describe('AI Features', () => {
     // Create a second component.
     await ai.submitQuery('Create second component');
     await expect(page).toHaveURL(
-      /\/canvas\/canvas_page\/\d+\/code-editor\/component\/herobannersecond/,
+      /\/canvas\/editor\/canvas_page\/\d+\/code-editor\/component\/herobannersecond/,
     );
     const preview = canvasEditor.getCodePreviewFrame();
     const redElements = preview.locator('.bg-red-600');

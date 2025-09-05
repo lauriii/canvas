@@ -620,7 +620,7 @@ describe('Prop types editing', () => {
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.loadURLandWaitForCanvasLoaded();
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('All props').click();

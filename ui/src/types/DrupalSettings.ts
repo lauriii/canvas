@@ -7,8 +7,11 @@ export interface DrupalSettings {
     entityType: string;
     entity: string;
     entityTypeKeys: {
-      id: string;
-      label: string;
+      [entityType: string]: {
+        id: string;
+        label: string;
+        [key: string]: string;
+      };
     };
     globalAssets: {
       css: string;

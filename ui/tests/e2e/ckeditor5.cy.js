@@ -96,7 +96,7 @@ describe('ckeditor 5', () => {
   });
 
   it('works with page data form', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.findByTestId('canvas-contextual-panel--page-data').click({
       force: true,
     });

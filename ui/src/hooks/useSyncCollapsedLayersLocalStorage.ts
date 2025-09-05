@@ -1,10 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  selectEntityId,
-  selectEntityType,
-} from '@/features/configuration/configurationSlice';
 import { selectModel } from '@/features/layout/layoutModelSlice';
 import {
   removeCollapsedLayers,
@@ -18,8 +15,7 @@ import {
  */
 const useSyncCollapsedLayersLocalStorage = () => {
   const dispatch = useAppDispatch();
-  const entityId = useAppSelector(selectEntityId);
-  const entityType = useAppSelector(selectEntityType);
+  const { entityType, entityId } = useParams();
   const model = useAppSelector(selectModel);
   const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const isInitialized = useRef(false);

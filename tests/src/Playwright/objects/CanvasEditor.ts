@@ -22,9 +22,9 @@ export class CanvasEditor {
     const hasCanvasPageClass = bodyClass?.includes('canvas-page');
     const drupalSettings = await this.getSettings();
     if (hasCanvasPageClass) {
-      return `${drupalSettings.path.baseUrl}canvas/canvas_${drupalSettings.path.currentPath}`;
+      return `${drupalSettings.path.baseUrl}canvas/editor/canvas_${drupalSettings.path.currentPath}`;
     } else {
-      return `${drupalSettings.path.baseUrl}canvas/${drupalSettings.path.currentPath}/editor`;
+      return `${drupalSettings.path.baseUrl}canvas/editor/${drupalSettings.path.currentPath}`;
     }
   }
 

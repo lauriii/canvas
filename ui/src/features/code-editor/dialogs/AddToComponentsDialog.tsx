@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -19,6 +20,7 @@ const AddToComponentsDialog = () => {
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
   const { isAddToComponentsDialogOpen } = useAppSelector(selectDialogStates);
+  const { entityId, entityType } = useParams();
 
   const handleSave = async () => {
     if (!selectedComponent) return;
@@ -47,9 +49,13 @@ const AddToComponentsDialog = () => {
   useEffect(() => {
     if (isSuccess) {
       dispatch(closeAllDialogs());
-      navigate('/editor');
+      if (!entityId || !entityType) {
+        navigate('/editor');
+      } else {
+        navigate(`/editor/${entityType}/${entityId}`);
+      }
     }
-  }, [isSuccess, dispatch, navigate]);
+  }, [isSuccess, dispatch, navigate, entityId, entityType]);
 
   useEffect(() => {
     if (isError) {

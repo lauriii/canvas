@@ -22,12 +22,12 @@ describe('Navigation functionality', () => {
   });
 
   it('Has page title in the top bar', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
     cy.findByTestId(navigationButtonTestId)
       .should('exist')
       .and('have.text', 'Homepage')
       .and('be.enabled');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.findByTestId(navigationButtonTestId)
       .should('exist')
       .and('have.text', 'Empty Page')
@@ -35,7 +35,7 @@ describe('Navigation functionality', () => {
   });
 
   it('Clicking the page title in the top bar opens the navigation', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
     cy.findByTestId(navigationButtonTestId)
       .should('exist')
       .and('have.text', 'Homepage')
@@ -48,7 +48,7 @@ describe('Navigation functionality', () => {
   });
 
   it('Verify that search works', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
     cy.findByTestId(navigationButtonTestId).click();
     cy.findByLabelText('Search content').clear();
     cy.findByLabelText('Search content').type('ome');
@@ -83,18 +83,18 @@ describe('Navigation functionality', () => {
   });
 
   it('Clicking "New page" creates a new page and navigates to it', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
 
     cy.findByTestId(navigationButtonTestId).click();
     cy.findByTestId(navigationNewButtonTestId).click();
     cy.findByTestId(navigationNewPageButtonTestId).click();
-    cy.url().should('not.contain', '/canvas/canvas_page/1');
-    cy.url().should('contain', '/canvas/canvas_page/4');
+    cy.url().should('not.contain', '/canvas/editor/canvas_page/1');
+    cy.url().should('contain', '/canvas/editor/canvas_page/4');
     cy.findByTestId('canvas-topbar').findByText('Draft');
   });
 
   it('Updating the page title in the page data form updates title in the navigation list.', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
 
     cy.findByTestId(navigationButtonTestId).click();
     cy.findByTestId(navigationContentTestId)
@@ -131,21 +131,21 @@ describe('Navigation functionality', () => {
   });
 
   it('Clicking page title navigates to edit page', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
 
     cy.findByTestId(navigationButtonTestId).click();
     cy.contains('div', '/test-page').click();
-    cy.url().should('contain', '/canvas/canvas_page/2');
+    cy.url().should('contain', '/canvas/editor/canvas_page/2');
     cy.findByTestId(navigationButtonTestId).click();
     cy.contains('div', '/homepage').click();
-    cy.url().should('contain', '/canvas/canvas_page/1');
+    cy.url().should('contain', '/canvas/editor/canvas_page/1');
   });
 
   it(
     'Duplicate pages through navigation',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
 
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByText('Empty Page').realHover();
@@ -155,7 +155,7 @@ describe('Navigation functionality', () => {
         exact: false,
       }).click();
 
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByTestId(navigationContentTestId)
         .should('exist')
@@ -175,7 +175,7 @@ describe('Navigation functionality', () => {
       // Intercept the GET request to the list endpoint
       cy.intercept('GET', '**/canvas/api/v0/content/canvas_page').as('getList');
 
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
 
       cy.findByTestId(navigationButtonTestId).click();
       cy.wait('@getList').its('response.statusCode').should('eq', 200);
@@ -190,7 +190,7 @@ describe('Navigation functionality', () => {
       // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
       cy.wait('@getList').its('response.statusCode').should('eq', 200);
 
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByTestId(navigationContentTestId)
         .should('exist')
@@ -203,7 +203,7 @@ describe('Navigation functionality', () => {
     'Set the homepage within Canvas and check deleting the current page will navigate to the homepage',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/4' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/4' });
       cy.intercept('DELETE', '**/canvas/api/v0/content/canvas_page/*').as(
         'deletePage',
       );
@@ -211,13 +211,13 @@ describe('Navigation functionality', () => {
       cy.intercept('POST', '**/canvas/api/v0/staged-update/auto-save').as(
         'setHomepage',
       );
-      cy.log('loaded canvas/canvas_page/4');
+      cy.log('loaded canvas/editor/canvas_page/4');
       cy.findByTestId(navigationButtonTestId).click();
       cy.findByTestId(navigationContentTestId)
         .should('exist')
         .and('contain.text', 'Homepage')
         .and('contain.text', 'Untitled page');
-      cy.url().should('contain', '/canvas/canvas_page/4');
+      cy.url().should('contain', '/canvas/editor/canvas_page/4');
       cy.get('[data-canvas-page-id="1"]').realHover();
       cy.findByLabelText('Page options for Homepage').click();
       // Confirm the delete option is available since this isn't the homepage yet.
@@ -244,11 +244,11 @@ describe('Navigation functionality', () => {
       cy.log('Deleted Untitled page');
       // Wait for the GET request to the list endpoint which should be triggered by the deletion of a page.
       cy.wait('@getList').its('response.statusCode').should('eq', 200);
-      cy.url().should('not.contain', '/canvas/canvas_page/4');
+      cy.url().should('not.contain', '/canvas/editor/canvas_page/4');
 
       // Confirm we are now on the homepage.
-      cy.url().should('contain', '/canvas/canvas_page/1');
-      cy.log('loaded canvas/canvas_page/1');
+      cy.url().should('contain', '/canvas/editor/canvas_page/1');
+      cy.log('loaded canvas/editor/canvas_page/1');
       cy.findByTestId(navigationButtonTestId)
         .should('exist')
         .and('have.text', 'Homepage')
@@ -300,7 +300,7 @@ describe('Navigation functionality', () => {
     'Publish the homepage staged update and confirm the homepage icon is present even after page refresh',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
       cy.intercept('POST', '**/canvas/api/v0/auto-saves/publish').as(
         'publishChanges',
       );

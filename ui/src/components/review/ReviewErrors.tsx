@@ -79,7 +79,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
           let errorPath =
             error?.meta?.entity_type &&
             error?.meta?.entity_id &&
-            `${baseUrl}canvas/${error.meta.entity_type}/${error.meta.entity_id}/editor`;
+            `${baseUrl}canvas/editor/${error.meta.entity_type}/${error.meta.entity_id}`;
 
           if (typeof error?.source?.pointer === 'string') {
             const sourcePointerParts = error.source.pointer.split('.');

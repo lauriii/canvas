@@ -15,7 +15,7 @@ describe('Media Library', () => {
 
   it('Can use a video component that uses the media library widget', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.get('.primaryPanelContent').findByText('Video').click();
@@ -89,7 +89,7 @@ describe('Media Library', () => {
 
   it('Can handle not immediately having a value', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Video').click();
     cy.waitForElementInIframe('video > source');

@@ -16,7 +16,7 @@ describe('Image code component', () => {
     'Can add an optional image component with a preview but empty input',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('Vanilla Image').click();
       // Check the default image src is set.

@@ -55,7 +55,7 @@ final class CanvasHtmlRouteProviderTest extends KernelTestBase {
     $page->save();
     $url = $page->toUrl('edit-form')->toString();
     $this->request(Request::create($url));
-    $this->assertCanvasMount(Page::ENTITY_TYPE_ID, $page);
+    $this->assertCanvasMount();
   }
 
 }

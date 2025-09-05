@@ -26,17 +26,15 @@ import Panel from '@/components/Panel';
 import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import {
   extractHomepagePathFromStagedConfig,
-  selectEntityId,
-  selectEntityType,
   selectHomepagePath,
   selectHomepageStagedConfigExists,
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useEntityTitle } from '@/hooks/useEntityTitle';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -78,9 +76,8 @@ const PageInfo = () => {
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
   )?.name;
-  const entity_form_fields = useAppSelector(selectPageData);
-  const title =
-    entity_form_fields[`${canvasSettings.entityTypeKeys.label}[0][value]`];
+  const { entityType, entityId } = useParams();
+  const title = useEntityTitle();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
@@ -96,8 +93,7 @@ const PageInfo = () => {
     entityType: 'canvas_page',
     search: debouncedSearchTerm,
   });
-  const entityId = useAppSelector(selectEntityId);
-  const entityType = useAppSelector(selectEntityType);
+
   const baseUrl = getBaseUrl();
   const [
     createContent,
@@ -247,7 +243,30 @@ const PageInfo = () => {
 
   return (
     <Flex gap="2" align="center">
-      {focusedRegion === DEFAULT_REGION && !isCodeEditor ? (
+      {isCodeEditor && entityType && entityId ? (
+        <NavLink
+          to={{
+            pathname: `/editor/${entityType}/${entityId}`,
+          }}
+          aria-label="Back to page editor"
+          onClick={() => {
+            // Fetch a new version of the page data form as it has been
+            // unmounted and the cached versions won't reflect any AJAX updates
+            // to the form.
+            dispatch(
+              pageDataFormApi.util.invalidateTags([
+                { type: 'PageDataForm', id: 'FORM' },
+              ]),
+            );
+          }}
+        >
+          <Button color="sky" variant="soft" size="1">
+            <ChevronLeftIcon />
+            Back
+          </Button>
+        </NavLink>
+      ) : null}
+      {focusedRegion === DEFAULT_REGION ? (
         <Popover.Root>
           <Popover.Trigger>
             <Button
@@ -257,8 +276,23 @@ const PageInfo = () => {
               data-testid="canvas-navigation-button"
             >
               <Flex gap="2" align="center">
-                {isCurrentPageHomepage ? iconMap['Homepage'] : iconMap['Page']}
-                {title}
+                {isCodeEditor ? (
+                  <>
+                    <CodeIcon />
+                    {codeComponentName}
+                  </>
+                ) : (
+                  <>
+                    {isCurrentPageHomepage
+                      ? iconMap['Homepage']
+                      : iconMap['Page']}
+                    {title !== undefined
+                      ? title
+                        ? title
+                        : 'Untitled page'
+                      : 'No page selected'}
+                  </>
+                )}
                 <ChevronDownIcon />
               </Flex>
             </Button>
@@ -296,7 +330,7 @@ const PageInfo = () => {
       ) : (
         <NavLink
           to={{
-            pathname: '/editor',
+            pathname: `/editor/${entityType}/${entityId}`,
           }}
           aria-label="Back to Content region"
           onClick={() => {
@@ -310,15 +344,15 @@ const PageInfo = () => {
             );
           }}
         >
-          <Badge color={isCodeEditor ? 'sky' : 'grass'} size="2">
+          <Badge color="grass" size="2">
             <ChevronLeftIcon />
-            {isCodeEditor ? <CodeIcon /> : <CubeIcon />}
-            {isCodeEditor ? codeComponentName : focusedRegionName}
+            <CubeIcon />
+            {focusedRegionName}
           </Badge>
         </NavLink>
       )}
 
-      <PageStatus />
+      {entityId && <PageStatus />}
     </Flex>
   );
 };

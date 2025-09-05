@@ -179,7 +179,7 @@ test.describe('Canvas UI Permissions', () => {
     await expect(page.getByText('Publish 1 selected')).not.toBeAttached();
 
     // User without "administer components" should not be able to access the code editor.
-    await page.goto('/canvas/node/1/code-editor/code/foobar');
+    await page.goto('/canvas/code-editor/code/foobar');
     await expect(
       page.getByText('You do not have permission to access the code editor.'),
     ).toBeVisible();

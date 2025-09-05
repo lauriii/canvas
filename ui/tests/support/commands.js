@@ -360,6 +360,7 @@ Cypress.Commands.add('drupalUserIsLoggedIn', (callback) => {
 });
 
 Cypress.Commands.add('clearAutoSave', (type = 'node', id = '1') => {
+  cy.log('type', type);
   cy.request({
     method: 'GET',
     url: `/canvas-test/clear-auto-save/${type}/${id}`,
@@ -698,15 +699,15 @@ Cypress.Commands.add(
  * * @param {Object} options
  *  *   An options object to configure the command.
  *  * @param {string} options.url
- *  *   The URL you want to visit - defaults to '/canvas/node/1'.
+ *  *   The URL you want to visit - defaults to '/canvas/editor/node/1'.
  *  * @param {boolean} options.clearAutoSave
  *  *   Can be set to false if you want the auto-save data to persist on loading a new page - defaults to true.
  *  */
 Cypress.Commands.add('loadURLandWaitForCanvasLoaded', (options = {}) => {
-  const { url = 'canvas/node/1', clearAutoSave = true } = options;
+  const { url = 'canvas/editor/node/1', clearAutoSave = true } = options;
 
   if (clearAutoSave) {
-    const [, entityType, entityId] = url.split('/');
+    const [, , entityType, entityId] = url.split('/');
     cy.clearAutoSave(entityType, entityId);
   }
   cy.drupalRelativeURL(url);

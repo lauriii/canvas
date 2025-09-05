@@ -154,7 +154,7 @@ describe('Media Library In Entity (page data) Form', () => {
     () => {
       testMediaLibraryInEntityForm(
         cy,
-        { url: 'canvas/canvas_page/2' },
+        { url: 'canvas/editor/canvas_page/2' },
         'Empty Page',
       );
     },
@@ -166,7 +166,7 @@ describe('Media Library In Entity (page data) Form', () => {
     () => {
       testMediaLibraryInEntityForm(
         cy,
-        { url: 'canvas/node/2' },
+        { url: 'canvas/editor/node/2' },
         'I am an empty node',
       );
     },

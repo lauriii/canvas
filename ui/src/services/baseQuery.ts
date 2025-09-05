@@ -17,6 +17,50 @@ export const baseQuery: BaseQueryFn<
   const state = api.getState() as RootState;
   return rawBaseQuery(state.configuration)(args, api, extraOptions);
 };
+/**
+ * Extracts entityType and entityId from a URL
+ * @param url - The URL string to parse.
+ * @returns An object with entityType and entityId, or undefined values if not found.
+ */
+const extractEntityParams = (url: string) => {
+  // Match /canvas/(editor||preview)/:entityType/:entityId/
+  const match = url.match(/\/canvas\/(editor|preview)\/([^/]+)\/([^/]+)\/?/);
+  if (match) {
+    return { entityType: match[2], entityId: match[3] };
+  }
+  return { entityType: undefined, entityId: undefined };
+};
+
+/**
+ * Replaces {entity_type} and {entity_id} in a URL string with extracted values.
+ * Throws an error if a required value is missing.
+ */
+const replaceEntityParamsInUrl = (
+  url: string,
+  entityType?: string,
+  entityId?: string,
+): string => {
+  let newUrl = url;
+  if (url.includes('{entity_type}')) {
+    if (entityType !== undefined) {
+      newUrl = newUrl.replace('{entity_type}', entityType);
+    } else {
+      throw new Error(
+        `The URL "${url}" requires an entity type, but it could not be extracted from the current location.`,
+      );
+    }
+  }
+  if (url.includes('{entity_id}')) {
+    if (entityId !== undefined) {
+      newUrl = newUrl.replace('{entity_id}', entityId);
+    } else {
+      throw new Error(
+        `The URL "${url}" requires an entity id, but it could not be extracted from the current location.`,
+      );
+    }
+  }
+  return newUrl;
+};
 
 const rawBaseQuery = (appConfiguration: AppConfiguration) => {
   const { baseUrl } = appConfiguration;
@@ -40,10 +84,8 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     extraOptions: object = {},
   ) => {
     const url = typeof arg == 'string' ? arg : arg.url;
-    const { entityType, entity } = appConfiguration;
-    const newUrl = url
-      .replace('{entity_type}', entityType)
-      .replace('{entity_id}', entity);
+    const { entityType, entityId } = extractEntityParams(window.location.href);
+    const newUrl = replaceEntityParamsInUrl(url, entityType, entityId);
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);
   };
@@ -67,12 +109,11 @@ export const withAutoSavesInjection: (
         !['createFolder'].includes(api.endpoint)
       ) {
         const state = api.getState() as RootState;
-        const { publishReview, configuration } = state;
-        const { entityType, entity } = configuration;
-        const autoSaveKey = url
-          .replace('{entity_type}', entityType)
-          .replace('{entity_id}', entity);
-
+        const { publishReview } = state;
+        const { entityType, entityId } = extractEntityParams(
+          window.location.href,
+        );
+        const autoSaveKey = replaceEntityParamsInUrl(url, entityType, entityId);
         // We want to send back the specific autoSave hash for the particular URL being updated
         const autoSaves =
           autoSaveKey && publishReview.autoSavesHash[autoSaveKey]

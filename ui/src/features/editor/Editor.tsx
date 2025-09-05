@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -10,6 +11,7 @@ import ConflictWarning from '@/features/editor/ConflictWarning';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import Layout from '@/features/layout/Layout';
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
@@ -24,12 +26,19 @@ const Editor = () => {
   useSyncParamsToState();
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
+  const params = useParams();
 
   useEffect(() => {
     return () => {
       dispatch(setFirstLoadComplete(false));
     };
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(setUpdatePreview(false));
+    // When the entityId or entityType changes, we want to reset the first load complete state
+    dispatch(setFirstLoadComplete(false));
+  }, [dispatch, params.entityId, params.entityType]);
 
   if (latestError) {
     if (latestError.status === '409') {

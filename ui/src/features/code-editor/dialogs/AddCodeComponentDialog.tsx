@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import parse from 'html-react-parser';
+import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { Flex, Text, TextField } from '@radix-ui/themes';
 
@@ -25,6 +26,7 @@ const AddCodeComponentDialog = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAddDialogOpen } = useAppSelector(selectDialogStates);
+  const { entityId, entityType } = useParams();
 
   const handleSave = async () => {
     if (validationError) {
@@ -61,10 +63,21 @@ const AddCodeComponentDialog = () => {
       setComponentName('');
       setValidationError('');
       dispatch(closeAllDialogs());
-      navigate(`/code-editor/code/${data.machineName}`);
+      navigate(
+        `/editor/${entityType}/${entityId}/code-editor/code/${data.machineName}`,
+      );
       reset();
     }
-  }, [isSuccess, data?.machineName, dispatch, navigate, componentName, reset]);
+  }, [
+    isSuccess,
+    data?.machineName,
+    dispatch,
+    navigate,
+    componentName,
+    reset,
+    entityType,
+    entityId,
+  ]);
 
   useEffect(() => {
     if (isError) {

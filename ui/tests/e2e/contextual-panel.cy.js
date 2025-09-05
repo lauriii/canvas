@@ -110,8 +110,8 @@ describe('Contextual panel', () => {
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid1}, path should include '/canvas/node/1/editor/component/${cid1}'`,
-        ).to.contain(`/canvas/node/1/editor/component/${cid1}`);
+          `After clicking on ${cid1}, path should include '/canvas/editor/node/1/component/${cid1}'`,
+        ).to.contain(`/canvas/editor/node/1/component/${cid1}`);
       });
     });
 
@@ -127,8 +127,8 @@ describe('Contextual panel', () => {
       cy.url().should((url) => {
         expect(
           url,
-          `After clicking on ${cid2}, path should include '/canvas/node/1/editor/component/${cid2}'`,
-        ).to.contain(`/canvas/node/1/editor/component/${cid2}`);
+          `After clicking on ${cid2}, path should include '/canvas/editor/node/1/component/${cid2}'`,
+        ).to.contain(`/canvas/editor/node/1/component/${cid2}`);
       });
     });
 
@@ -139,8 +139,8 @@ describe('Contextual panel', () => {
       cy.url().should((url) => {
         expect(
           url,
-          `Hit back once and path should again include '/canvas/node/1/editor/component/${cid1}'`,
-        ).to.contain(`/canvas/node/1/editor/component/${cid1}`);
+          `Hit back once and path should again include '/canvas/editor/node/1/component/${cid1}'`,
+        ).to.contain(`/canvas/editor/node/1/component/${cid1}`);
       });
       // Returns to the contextual form for the prior component.
       cy.findByTestId(`canvas-contextual-panel-${cid1}`).should('exist');
@@ -152,11 +152,11 @@ describe('Contextual panel', () => {
       expect(
         url,
         `Hit back twice and the and path should not have 'component' in it`,
-      ).to.not.contain('/canvas/node/1/component');
+      ).to.not.contain('/canvas/editor/node/1/component');
       expect(
         url,
         `Hit back twice and the path should still have /canvas`,
-      ).to.contain('/canvas/node/1');
+      ).to.contain('/canvas/editor/node/1');
     });
   });
 

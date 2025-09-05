@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
@@ -110,6 +111,12 @@ HTML;
     // ⚠️ This is highly experimental and *will* be refactored.
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
     $system_site_config = $this->configFactory->get('system.site');
+    $entity_types_with_keys = [];
+    foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type_definition) {
+      if ($entity_type_id === 'node' || $entity_type_definition->entityClassImplements(ComponentTreeEntityInterface::class)) {
+        $entity_types_with_keys[$entity_type_id] = $entity_type_definition->getKeys();
+      }
+    }
 
     return (new HtmlResponse($this->buildHtml()))->addCacheableDependency($system_site_config)->setAttachments([
       'library' => [
@@ -125,15 +132,13 @@ HTML;
       ],
       'drupalSettings' => [
         'canvas' => [
-          'base' => $entity_type !== NULL
+          'base' => $entity_type !== NULL && $entity !== NULL
             ? Url::fromRoute('canvas.boot.entity', [
               'entity_type' => $entity_type,
-              'entity' => $entity?->id(),
+              'entity' => $entity->id(),
             ])->getInternalPath()
             : Url::fromRoute('canvas.boot.empty')->getInternalPath(),
-          'entityType' => $entity_type,
-          'entity' => $entity?->id(),
-          'entityTypeKeys' => $entity?->getEntityType()->getKeys(),
+          'entityTypeKeys' => $entity_types_with_keys,
           'devMode' => $dev_mode,
           'aiExtensionAvailable' => $ai_extension_available,
           'personalizationExtensionAvailable' => $personalization_extension_available,

@@ -6,7 +6,7 @@ describe('states', () => {
   beforeEach(() => {
     cy.drupalSession();
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').should('contain.text', 'Components');
     cy.get('.primaryPanelContent').findByText('Heading').click();

@@ -41,7 +41,11 @@ const ExposedJsComponent: React.FC<{
   const isComponentInLayout = componentExistsInLayout(layout, component.id);
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
-  const { codeComponentId: selectedComponent } = useParams();
+  const {
+    codeComponentId: selectedComponent,
+    entityId,
+    entityType,
+  } = useParams();
 
   useEffect(() => {
     if (error) {
@@ -78,7 +82,9 @@ const ExposedJsComponent: React.FC<{
 
   const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    navigate(`/code-editor/component/${machineName}`);
+    navigate(
+      `/editor/${entityType}/${entityId}/code-editor/component/${machineName}`,
+    );
   };
 
   const menuItems = (

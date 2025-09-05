@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { selectEntityId } from '@/features/configuration/configurationSlice';
 import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
 
 import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
@@ -10,17 +9,18 @@ import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 const Layout = () => {
   const dispatch = useAppDispatch();
   const isInitialized = useAppSelector(selectIsInitialized);
-  const entityId = useAppSelector(selectEntityId);
   const {
     data: fetchedLayout,
     error,
     isError,
     isFetching,
-  } = useGetLayoutByIdQuery(entityId, {
+  } = useGetLayoutByIdQuery(
+    undefined,
     // Setting `refetchOnMountOrArgChange` instead of a cache invalidation
     // prevents re-fetching due to the same query being used elsewhere in the app.
-    refetchOnMountOrArgChange: true,
-  });
+    { refetchOnMountOrArgChange: true },
+  );
+
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
   const { layout, model } = fetchedLayout || {};

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectDevMode } from '@/features/configuration/configurationSlice';
@@ -81,6 +81,7 @@ export function useComponentSelection() {
   const layout = useAppSelector(selectLayout);
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
   const dispatch = useAppDispatch();
   const selection = useAppSelector(selectSelection);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
@@ -150,7 +151,7 @@ export function useComponentSelection() {
       if (selectionArray.length === 1) {
         // Single selection - update URL to include the component ID
         const componentUuid = selectionArray[0];
-        const baseUrl = '/editor';
+        const baseUrl = `/editor/${params.entityType}/${params.entityId}`;
         let destinationUrl: string;
         const parentRegion = findParentRegion(layoutToSearch, componentUuid);
 
@@ -168,7 +169,7 @@ export function useComponentSelection() {
         updateUrlToNoSelection();
       }
     },
-    [dispatch, layout, navigate, updateUrlToNoSelection],
+    [dispatch, layout, navigate, updateUrlToNoSelection, params],
   );
 
   const setSelectedComponent = useCallback(

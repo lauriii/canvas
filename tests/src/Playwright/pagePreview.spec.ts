@@ -51,7 +51,7 @@ test.describe('Preview Link Behavior', () => {
     );
 
     // /canvas/{node|canvas_page}/{whateverID}/preview/tablet
-    await expect(page).toHaveURL(/\/canvas\/[^/]+\/[^/]+\/preview\/tablet/);
+    await expect(page).toHaveURL(/\/canvas\/preview\/[^/]+\/[^/]+\/tablet/);
 
     // Exit preview and wait for editor UI
     await page.getByText('Exit Preview').click();

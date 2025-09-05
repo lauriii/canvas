@@ -20,7 +20,7 @@ describe('Error handling', () => {
       { url: '**/canvas/api/v0/layout/node/1', times: 1, method: 'GET' },
       { statusCode: 418 },
     );
-    cy.drupalRelativeURL('canvas/node/1');
+    cy.drupalRelativeURL('canvas/editor/node/1');
 
     cy.findByTestId('canvas-error-alert')
       .should('exist')

@@ -185,7 +185,7 @@ describe('Media Library component instance', () => {
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.drupalLogin('canvasUser', 'canvasUser');
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').findByText('Test SDC Image').click();
 

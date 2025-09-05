@@ -12,7 +12,7 @@ describe('Vh units should not cause issues', () => {
   });
 
   it('does not continually increase the height of the iframe when there are elements that have height defined in vh units', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Hero').click();
     cy.get('.primaryPanelContent').findByText('VH Half').click();

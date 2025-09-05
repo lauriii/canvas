@@ -468,7 +468,7 @@ canvas.boot.empty:
     _format: 'json'
 
 canvas.boot.entity:
-  path: '/canvas/{entity_type}/{entity}'
+  path: '/canvas/editor/{entity_type}/{entity}'
   defaults:
     _controller: 'Drupal\canvas\Controller\CanvasController'
     _title: 'Drupal Canvas'

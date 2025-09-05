@@ -1,21 +1,14 @@
 import clsx from 'clsx';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DropIcon from '@assets/icons/drop.svg?react';
-import {
-  CardStackPlusIcon,
-  EyeNoneIcon,
-  EyeOpenIcon,
-  PersonIcon,
-} from '@radix-ui/react-icons';
+import { CardStackPlusIcon, PersonIcon } from '@radix-ui/react-icons';
 import * as Menubar from '@radix-ui/react-menubar';
 import { Box, Button, Flex, Grid, Tooltip } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
 import AIToggleButton from '@/components/aiExtension/AiToggleButton';
+import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import UndoRedo from '@/components/UndoRedo';
-import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
-import { pageDataFormApi } from '@/services/pageDataForm';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
@@ -30,7 +23,6 @@ const Topbar = () => {
   const isPreview = location.pathname.includes('/preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
-  const dispatch = useAppDispatch();
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;
@@ -44,22 +36,6 @@ const Topbar = () => {
     drupalSettings.canvas.personalizationExtensionAvailable
   ) {
     hasPersonalizeExtensionAvailable = true;
-  }
-
-  function handleChangeModeClick() {
-    if (isPreview) {
-      // Fetch a new version of the page data form as it has been
-      // unmounted and the cached versions won't reflect any AJAX updates
-      // to the form.
-      dispatch(
-        pageDataFormApi.util.invalidateTags([
-          { type: 'PageDataForm', id: 'FORM' },
-        ]),
-      );
-      navigate(`/editor`);
-    } else {
-      navigate(`/preview/full`);
-    }
   }
 
   const backHref =
@@ -132,27 +108,7 @@ const Topbar = () => {
             <PageInfo />
           </Flex>
           <Flex align="center" justify="end" gap="2">
-            {isPreview && (
-              <>
-                <PreviewWidthSelector />
-                <Button
-                  variant="outline"
-                  color="blue"
-                  onClick={handleChangeModeClick}
-                >
-                  <EyeNoneIcon /> Exit Preview
-                </Button>
-              </>
-            )}
-            {!isPreview && (
-              <Button
-                variant="outline"
-                color="blue"
-                onClick={handleChangeModeClick}
-              >
-                <EyeOpenIcon /> Preview
-              </Button>
-            )}
+            <PreviewControls isPreview={isPreview} />
             <UnpublishedChanges />
           </Flex>
         </Grid>

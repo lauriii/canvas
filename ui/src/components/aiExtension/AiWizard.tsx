@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { DeepChat } from 'deep-chat-react';
+import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
 import { Box, Flex, Text } from '@radix-ui/themes';
@@ -134,14 +135,23 @@ const componentStructureHandler = {
     message,
     createCodeComponent,
     navigate,
+    params,
   }: {
     message: any;
     createCodeComponent: any;
     navigate: any;
+    params: any;
   }) => {
     const component = message.component_structure;
     await createCodeComponent(component).unwrap();
-    navigate(`/code-editor/component/${component.machineName}`);
+    const { entityId, entityType } = params;
+    if (!entityId || !entityType) {
+      navigate(`/code-editor/component/${component.machineName}`);
+    } else {
+      navigate(
+        `/editor/${entityType}/${entityId}/code-editor/component/${component.machineName}`,
+      );
+    }
   },
 };
 
@@ -260,6 +270,7 @@ const AiWizard = () => {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [createCodeComponent] = useCreateCodeComponentMutation();
   const navigate = useNavigate();
+  const params = useParams();
   const codeComponentName = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
@@ -428,6 +439,7 @@ const AiWizard = () => {
               availableComponents: componentsRef.current,
               layoutUtils,
               componentSelectionUtils,
+              params,
             });
           }
         }
@@ -442,10 +454,11 @@ const AiWizard = () => {
     },
     [
       dispatch,
-      createCodeComponent,
-      navigate,
       layoutUtils,
       componentSelectionUtils,
+      navigate,
+      createCodeComponent,
+      params,
     ],
   );
 

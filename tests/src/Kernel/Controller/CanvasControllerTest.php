@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -89,12 +90,12 @@ final class CanvasControllerTest extends KernelTestBase {
    *   The permissions.
    * @param array $values
    *   The values.
-   * @param null|string $expected_logic_exception_message
+   * @param null|string $expected_exception_message
    *   Consider removing in https://www.drupal.org/i/3498525.
    *
    * @dataProvider entityData
    */
-  public function testController(string $entity_type, array $permissions, array $values, ?string $expected_logic_exception_message = NULL): void {
+  public function testController(string $entity_type, array $permissions, array $values, ?string $expected_exception_message = NULL): void {
     $this->installEntitySchema($entity_type);
 
     $this->setUpCurrentUser([], $permissions);
@@ -107,11 +108,11 @@ final class CanvasControllerTest extends KernelTestBase {
       'entity_type' => $entity_type,
       'entity' => $sut->id(),
     ])->toString();
-    self::assertEquals("/canvas/$entity_type/{$sut->id()}", $edit_url);
+    self::assertEquals("/canvas/editor/$entity_type/{$sut->id()}", $edit_url);
 
-    if ($expected_logic_exception_message) {
-      $this->expectException(\LogicException::class);
-      $this->expectExceptionMessage($expected_logic_exception_message);
+    if ($expected_exception_message) {
+      $this->expectException(CacheableAccessDeniedHttpException::class);
+      $this->expectExceptionMessage($expected_exception_message);
     }
 
     /** @var \Drupal\Core\Render\HtmlResponse $response */
@@ -127,7 +128,7 @@ final class CanvasControllerTest extends KernelTestBase {
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
-    $this->assertCanvasMount($entity_type, $sut);
+    $this->assertCanvasMount();
   }
 
   public static function entityData(): array {
@@ -143,11 +144,11 @@ final class CanvasControllerTest extends KernelTestBase {
       ],
       'entity_test' => [
         'entity_test',
-        ['administer entity_test content'],
+        ['administer entity_test content', 'access content'],
         [
           'name' => 'Test entity',
         ],
-        'This entity does not have an Canvas field!',
+        'Requires >=1 content entity type with an Canvas field that can be created or edited.',
       ],
     ];
   }

@@ -45,8 +45,10 @@ describe('Multi-select components', () => {
     cy.get('[data-testid="canvas-contextual-panel--settings"]').should('exist');
     cy.findByLabelText('Heading').should('have.value', 'hello, world!');
 
-    // Verify URL contains the component ID
-    cy.location('pathname').should('include', '/editor/component/');
+    cy.location('pathname').should(
+      'match',
+      /\/editor\/[^/]+\/[^/]+\/component/,
+    );
   });
 
   it('should select multiple components with cmd/meta + click', () => {

@@ -19,6 +19,7 @@ import Editor from '@/features/editor/Editor';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
+import Welcome from '@/features/welcome/Welcome';
 
 import type React from 'react';
 
@@ -54,11 +55,20 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
         errorElement: <RouteErrorBoundary />,
         children: [
           {
-            path: '', // Base path
-            element: <Navigate to="/editor" replace />, // Redirect to /editor
+            index: true, // base path
+            element:
+              basePath === '/canvas' ? (
+                <Welcome />
+              ) : (
+                <Navigate to="/editor" replace />
+              ),
           },
           {
             path: '/editor/',
+            element: <Welcome />,
+          },
+          {
+            path: '/editor/:entityType/:entityId',
             element: (
               <>
                 <SideMenu />
@@ -67,26 +77,26 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ),
             children: [
               {
-                path: '/editor/region/:regionId/component/:componentId',
+                path: '/editor/:entityType/:entityId/region/:regionId/component/:componentId',
                 element: <DummyPropsEditForm />,
               },
               {
-                path: '/editor/region/:regionId',
+                path: '/editor/:entityType/:entityId/region/:regionId',
                 element: <DummyPropsEditForm />,
               },
               {
-                path: '/editor/component/:componentId',
+                path: '/editor/:entityType/:entityId/component/:componentId',
                 element: <DummyPropsEditForm />,
               },
             ],
           },
           {
-            path: '/preview/:width',
+            path: '/preview/:entityType/:entityId/',
             element: <PagePreview />,
           },
           {
-            path: '/preview/',
-            element: <Navigate to="/preview/full" replace />,
+            path: 'preview/:entityType/:entityId/:width',
+            element: <PagePreview />,
           },
           {
             // Opens the code editor for an item under 'Code'.
@@ -96,6 +106,16 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
+            element: CodeEditorUi,
+          },
+          {
+            // Opens the code editor for an item under 'Code'.
+            path: '/editor/:entityType/:entityId/code-editor/code/:codeComponentId',
+            element: CodeEditorUi,
+          },
+          {
+            // Opens the code editor for an item under 'Components'.
+            path: '/editor/:entityType/:entityId/code-editor/component/:codeComponentId',
             element: CodeEditorUi,
           },
           {

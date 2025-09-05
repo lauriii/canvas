@@ -18,7 +18,7 @@ describe('Media Library', () => {
 
   it('Can remove an optional image no example and there is no image in the preview', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get(
       '[data-canvas-component-id="sdc.canvas_test_sdc.image-optional-without-example"]',
@@ -45,7 +45,7 @@ describe('Media Library', () => {
 
   it('Can remove an optional image with example and there is no image in the preview', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get(
       '[data-canvas-component-id="sdc.canvas_test_sdc.image-optional-with-example"]',
@@ -72,7 +72,7 @@ describe('Media Library', () => {
 
   it('Can remove an optional code component image with example and there is no image in the preview', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get(
       '[data-canvas-component-id="js.canvas_test_e2e_code_components_optional_image"]',
@@ -119,7 +119,7 @@ describe('Media Library', () => {
 
   it('Can remove a required code component image with example and there is no image in the preview', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get(
       '[data-canvas-component-id="js.canvas_test_e2e_code_components_req_image"]',

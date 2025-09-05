@@ -16,7 +16,7 @@ describe('⚡️ Real time code component previews', () => {
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.drupalLogin('canvasUser', 'canvasUser');
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
       cy.openLibraryPanel();
       // Wait for the component list to load.
       cy.get('.primaryPanelContent').should('contain.text', 'Components');

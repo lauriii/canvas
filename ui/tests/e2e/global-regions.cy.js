@@ -16,10 +16,10 @@ describe('Operate on components in global regions', () => {
   });
 
   it('Visits a global region URL directly', () => {
-    cy.drupalRelativeURL(`canvas/node/1/editor/region/breadcrumb`);
+    cy.drupalRelativeURL(`canvas/editor/node/1/region/breadcrumb`);
     cy.previewReady();
 
-    cy.url().should('contain', `/canvas/node/1/editor/region/breadcrumb`);
+    cy.url().should('contain', `/canvas/editor/node/1/region/breadcrumb`);
     // We should be in a region and so there should be an option to go back to the content region.
     cy.findByTestId('canvas-topbar').findByLabelText('Back to Content region');
   });

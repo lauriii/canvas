@@ -71,7 +71,7 @@ describe('Can save and load patterns', () => {
         .as('panel')
         .should('contain.text', patternName);
 
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
       cy.get('#edit-title-0-value').should('exist');
       cy.waitForElementContentNotInIframe('div', 'There goes my hero');
       cy.openLibraryPanel();

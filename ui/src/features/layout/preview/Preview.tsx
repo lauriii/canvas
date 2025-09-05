@@ -15,19 +15,16 @@ import {
   selectPreviewHtml,
 } from '@/features/pagePreview/previewSlice';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { contentApi } from '@/services/content';
 import {
   selectUpdateComponentLoadingState,
   usePostPreviewMutation,
 } from '@/services/preview';
-import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
 interface PreviewProps {}
-
-const canvasSettings = getCanvasSettings();
-const labelFormKey = `${canvasSettings.entityTypeKeys.label}[0][value]`;
 
 const Preview: React.FC<PreviewProps> = () => {
   const layout = useAppSelector(selectLayout);
@@ -37,6 +34,11 @@ const Preview: React.FC<PreviewProps> = () => {
   const backgroundUpdate = useAppSelector(selectPreviewBackgroundUpdate);
   const selectedComponentId = selectedComponent || 'noop';
   const entity_form_fields = useAppSelector(selectPageData);
+  const title = useEntityTitle();
+  const previousEntityFormTitle = useRef(title);
+  // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
+  const previousEntityFormAlias = useRef(entity_form_fields['path[0][alias]']);
+
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation({
     fixedCacheKey: 'editorFramePreview',
   });
@@ -46,9 +48,6 @@ const Preview: React.FC<PreviewProps> = () => {
   const dispatch = useAppDispatch();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
-  const previousEntityFormTitle = useRef(entity_form_fields[labelFormKey]);
-  // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
-  const previousEntityFormAlias = useRef(entity_form_fields['path[0][alias]']);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -64,12 +63,12 @@ const Preview: React.FC<PreviewProps> = () => {
       // it can display those updated values.
       let invalidatePageList = false;
       if (
-        entity_form_fields[labelFormKey] !== previousEntityFormTitle.current ||
+        title !== previousEntityFormTitle.current ||
         // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
         entity_form_fields['path[0][alias]'] !== previousEntityFormAlias.current
       ) {
         invalidatePageList = true;
-        previousEntityFormTitle.current = entity_form_fields[labelFormKey];
+        previousEntityFormTitle.current = title;
         // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
         previousEntityFormAlias.current = entity_form_fields['path[0][alias]'];
       }
@@ -90,6 +89,7 @@ const Preview: React.FC<PreviewProps> = () => {
     updatePreview,
     showBoundary,
     dispatch,
+    title,
   ]);
 
   return (

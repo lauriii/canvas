@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PublishReview from '@/components/review/PublishReview';
@@ -10,10 +11,6 @@ import {
   setConflicts,
   setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
-import {
-  selectEntityId,
-  selectEntityType,
-} from '@/features/configuration/configurationSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import {
   selectPageData,
@@ -66,8 +63,7 @@ const UnpublishedChanges = () => {
     pollingInterval: pollingInterval,
     skipPollingIfUnfocused: true,
   });
-  const entityId = useAppSelector(selectEntityId);
-  const entityType = useAppSelector(selectEntityType);
+  const { entityType, entityId } = useParams();
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
@@ -136,7 +132,7 @@ const UnpublishedChanges = () => {
         dispatch(
           componentAndLayoutApi.util.updateQueryData(
             'getLayoutById',
-            entityId,
+            undefined,
             (draft) => {
               draft.isPublished = true;
               draft.isNew = false;

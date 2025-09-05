@@ -15,8 +15,8 @@ describe('Empty preview', () => {
   //   matching the /canvas/{entity_type}/{entity_id} pattern and relies only on
   //   what exists in `drupalSettings.canvas` instead.
   //   Fix after https://www.drupal.org/project/canvas/issues/3489775
-  it(`canvas/node/2 can add a component to an empty preview`, () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+  it(`canvas/editor/node/2 can add a component to an empty preview`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');
@@ -61,8 +61,8 @@ describe('Empty preview', () => {
     });
   });
 
-  it(`canvas/canvas_page/2 can add a component to an empty preview`, () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+  it(`canvas/editor/canvas_page/2 can add a component to an empty preview`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
 
     // Wait for an element in the page data panel to be present.
     cy.get('#edit-title-0-value').should('exist');

@@ -1,3 +1,4 @@
+import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { SegmentedControl } from '@radix-ui/themes';
 
@@ -9,8 +10,9 @@ interface PreviewWidthSelectorProps {}
 
 const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
   const navigate = useNavigate();
+  const params = useParams();
   function handlePreviewWidthChange(val: 'full' | 'desktop' | 'mobile') {
-    navigate(`/preview/${val}`);
+    navigate(`/preview/${params.entityType}/${params.entityId}/${val}`);
   }
   const viewPorts = viewportSizes.filter((vs) => {
     return vs.width < window.innerWidth;

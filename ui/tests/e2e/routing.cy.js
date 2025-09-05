@@ -21,16 +21,16 @@ describe('Routing', () => {
     cy.intercept('PATCH', '**/canvas/api/v0/form/component-instance/node/1').as(
       'getPropsForm',
     );
-    cy.drupalRelativeURL(`canvas/node/1/editor/component/${uuid}`);
+    cy.drupalRelativeURL(`canvas/editor/node/1/component/${uuid}`);
 
     cy.wait('@getLayout');
     cy.wait('@getPropsForm');
     cy.findByTestId(`canvas-contextual-panel-${uuid}`).should('exist');
-    cy.url().should('contain', `/canvas/node/1/editor/component/${uuid}`);
+    cy.url().should('contain', `/canvas/editor/node/1/component/${uuid}`);
   });
 
   it('Visits a preview router URL directly', () => {
-    cy.drupalRelativeURL(`canvas/node/1/preview/full`);
+    cy.drupalRelativeURL(`canvas/preview/node/1/full`);
 
     cy.findByText('Exit Preview');
 
@@ -42,14 +42,14 @@ describe('Routing', () => {
         cy.get('.my-hero__heading').should('exist');
       });
 
-    cy.url().should('contain', `/canvas/node/1/preview/full`);
+    cy.url().should('contain', `/canvas/preview/node/1/full`);
   });
 
   it('has the expected performance', () => {
     cy.intercept('GET', '**/canvas/api/v0/layout/node/1').as('getLayout');
     cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
 
-    cy.visit('/canvas/node/1');
+    cy.visit('/canvas/editor/node/1');
     cy.wait('@getLayout').its('response.statusCode').should('eq', 200);
 
     // Assert that only the get layout request was sent

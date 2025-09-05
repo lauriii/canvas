@@ -16,7 +16,7 @@ describe('Publish review functionality', () => {
   });
 
   it('Handles non-validation publish errors', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.findByLabelText('Title').type('{selectall}{del}');
     cy.findByLabelText('Title').type('cause exception');
     cy.get('[data-testid="canvas-publish-review"]:not([disabled])', {
@@ -39,7 +39,10 @@ describe('Publish review functionality', () => {
 
   it('Has links to the corresponding entity in errors', () => {
     const entityData = [];
-    const paths = [{ path: 'canvas/canvas_page/2' }, { path: 'canvas/node/2' }];
+    const paths = [
+      { path: 'canvas/editor/canvas_page/2' },
+      { path: 'canvas/editor/node/2' },
+    ];
     paths.forEach(({ path }) => {
       cy.loadURLandWaitForCanvasLoaded({ url: path });
       cy.openLibraryPanel();
@@ -71,10 +74,10 @@ describe('Publish review functionality', () => {
                     pointer: `model.${entityData[0].componentId}.heading`,
                   },
                   meta: {
-                    entity_type: entityData[0].path.split('/')[1],
+                    entity_type: entityData[0].path.split('/')[2],
                     entity_id: '2',
                     label: entityData[0].title,
-                    api_auto_save_key: `${entityData[0].path.split('/')[1]}:2:en`,
+                    api_auto_save_key: `${entityData[0].path.split('/')[2]}:2:en`,
                   },
                   entityLabel: entityData[0].title,
                 },
@@ -85,10 +88,10 @@ describe('Publish review functionality', () => {
                     pointer: `model.${entityData[1].componentId}.heading`,
                   },
                   meta: {
-                    entity_type: entityData[1].path.split('/')[1],
+                    entity_type: entityData[1].path.split('/')[2],
                     entity_id: '2',
                     label: entityData[1].title,
-                    api_auto_save_key: `${entityData[1].path.split('/')[1]}:2:en`,
+                    api_auto_save_key: `${entityData[1].path.split('/')[2]}:2:en`,
                   },
                   entityLabel: entityData[1].title,
                 },
@@ -100,7 +103,7 @@ describe('Publish review functionality', () => {
     });
 
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/canvas_page/1',
+      url: 'canvas/editor/canvas_page/1',
       clearAutoSave: false,
     });
     cy.findByText('Review 2 changes').should('exist');
@@ -113,10 +116,9 @@ describe('Publish review functionality', () => {
           .getAttribute('href');
         const data = entityData.filter((item) => item.title === title);
         expect(data).to.have.length(1);
+        // /canvas/editor/2/editor/component/3f953e21-f040-4577-9acb-3a428b92b20e
         expect(
-          href.endsWith(
-            `/${data[0].path}/editor/component/${data[0].componentId}`,
-          ),
+          href.endsWith(`/${data[0].path}/component/${data[0].componentId}`),
         ).to.be.true;
       });
     });
@@ -141,8 +143,8 @@ describe('Publish review functionality', () => {
       cy.clearAutoSave('node', 2);
 
       const iterations = [
-        { path: 'canvas/node/1', waitFor: 'Review 1 change' },
-        { path: 'canvas/node/2', waitFor: 'Review 2 changes' },
+        { path: 'canvas/editor/node/1', waitFor: 'Review 1 change' },
+        { path: 'canvas/editor/node/2', waitFor: 'Review 2 changes' },
       ];
 
       iterations.forEach(({ path, waitFor }, index) => {
@@ -150,7 +152,7 @@ describe('Publish review functionality', () => {
         // First remove the two image components because they will otherwise crash
         // due to the test not creating them in a way that allows the media entity
         // to be found based on filename.
-        if (path === 'canvas/node/1') {
+        if (path === 'canvas/editor/node/1') {
           cy.get(
             '.canvas--viewport-overlay [data-canvas-component-id="sdc.canvas_test_sdc.image"]',
           )
@@ -225,7 +227,7 @@ describe('Form validation ✅', { retries: { openMode: 0, runMode: 3 } }, () => 
   });
 
   it('Form validation errors prevent publishing', () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.findByText('Authoring information').click({ force: true });
     cy.findByText('Authoring information')
       .parents('[data-state="open"][data-drupal-selector]')

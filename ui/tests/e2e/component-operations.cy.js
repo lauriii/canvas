@@ -50,7 +50,7 @@ describe.skip('Perform CRUD operations on components', () => {
 
   it('Can handle empty heading prop in hero component', () => {
     // Load the page and add hero component
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.openLibraryPanel();
     cy.get('.primaryPanelContent').findByText('Hero').click();
 
@@ -79,7 +79,7 @@ describe.skip('Perform CRUD operations on components', () => {
 
     // Refresh page
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/node/2',
+      url: 'canvas/editor/node/2',
       clearAutoSave: false,
     });
     cy.clickComponentInPreview('Hero');
@@ -105,7 +105,7 @@ describe.skip('Perform CRUD operations on components', () => {
 
   it('Should be able to blur autocomplete without problems. See #3519734', () => {
     cy.intercept('POST', '**/canvas/api/v0/layout/**').as('updatePreview');
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/node/2' });
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
     cy.get('#edit-title-0-value').should('exist');
     cy.waitForElementContentNotInIframe('div', 'There goes my hero');
     cy.openLibraryPanel();

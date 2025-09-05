@@ -427,6 +427,9 @@ export const layoutModelSlice = createSlice({
         }
       },
     ),
+    setInitialized: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.isInitialized = action.payload;
+    }),
     setLayoutModel: create.reducer(
       (state, action: PayloadAction<LayoutModelSliceState>) => {
         const { layout, model, updatePreview } = action.payload;
@@ -730,6 +733,7 @@ export const addNewPatternToLayout =
 export const {
   deleteNode,
   setLayoutModel,
+  setInitialized,
   setInitialLayoutModel,
   duplicateNode,
   moveNode,

@@ -503,9 +503,12 @@ export function getSlotParentElementByIdInHTMLComment(
 
 export function findInChanges(
   changeList: PendingChanges,
-  entityId: string,
-  entityType: string,
+  entityId: string | undefined,
+  entityType: string | undefined,
 ) {
+  if (!entityId || !entityType || !changeList) {
+    return false;
+  }
   for (const key in changeList) {
     if (Object.prototype.hasOwnProperty.call(changeList, key)) {
       const obj = changeList[key];

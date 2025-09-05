@@ -52,8 +52,6 @@ const container = document.getElementById('canvas');
 const appConfiguration: AppConfiguration = {
   ...initialState,
   baseUrl: baseUrl || import.meta.env.BASE_URL,
-  entityType: canvasSettings.entityType || 'node',
-  entity: canvasSettings.entity || '1',
   devMode: canvasSettings.devMode || false,
   homepagePath: canvasSettings.homepagePath,
 };

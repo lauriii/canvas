@@ -13,8 +13,8 @@ describe('Auto path alias generation', () => {
     cy.drupalUninstall();
   });
 
-  it(`canvas/canvas_page/2 doesn't auto update path alias based on title if path is already set`, () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/2' });
+  it(`canvas/editor/canvas_page/2 doesn't auto update path alias based on title if path is already set`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.get('iframe[data-canvas-preview]').should('exist');
 
     cy.get('#edit-title-0-value').should('exist');
@@ -29,7 +29,7 @@ describe('Auto path alias generation', () => {
 
   it('on a new page path is generated automatically until manually overridden', () => {
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/canvas_page/1',
+      url: 'canvas/editor/canvas_page/1',
       clearAutoSave: true,
     });
     cy.get('iframe[data-canvas-preview]').should('exist');
@@ -37,8 +37,8 @@ describe('Auto path alias generation', () => {
     cy.findByTestId('canvas-navigation-button').click();
     cy.findByTestId('canvas-navigation-new-button').click();
     cy.findByTestId('canvas-navigation-new-page-button').click();
-    cy.url().should('not.contain', '/canvas/canvas_page/1');
-    cy.url().should('contain', '/canvas/canvas_page/4');
+    cy.url().should('not.contain', '/canvas/editor/canvas_page/1');
+    cy.url().should('contain', '/canvas/editor/canvas_page/4');
     cy.findByTestId('canvas-topbar').findByText('Draft');
 
     // Make sure that the path alias is empty to begin with.
@@ -47,7 +47,7 @@ describe('Auto path alias generation', () => {
 
     // Make sure that alias is empty even after the page is reloaded.
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/canvas_page/4',
+      url: 'canvas/editor/canvas_page/4',
       clearAutoSave: false,
     });
     cy.get('iframe[data-canvas-preview]').should('exist');
@@ -66,7 +66,7 @@ describe('Auto path alias generation', () => {
 
     // Refresh the page and make sure that the path alias is still set.
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/canvas_page/4',
+      url: 'canvas/editor/canvas_page/4',
       clearAutoSave: false,
     });
     cy.get('iframe[data-canvas-preview]').should('exist');
@@ -93,7 +93,7 @@ describe('Auto path alias generation', () => {
     // Refresh the page and make sure that the path alias is still set to the
     // custom value and doesn't get updated.
     cy.loadURLandWaitForCanvasLoaded({
-      url: 'canvas/canvas_page/4',
+      url: 'canvas/editor/canvas_page/4',
       clearAutoSave: false,
     });
     cy.get('iframe[data-canvas-preview]').should('exist');
@@ -107,14 +107,14 @@ describe('Auto path alias generation', () => {
     'after changes are published, new path is no longer generated automatically',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
       cy.get('iframe[data-canvas-preview]').should('exist');
 
       cy.findByTestId('canvas-navigation-button').click();
       cy.findByTestId('canvas-navigation-new-button').click();
       cy.findByTestId('canvas-navigation-new-page-button').click();
-      cy.url().should('not.contain', '/canvas/canvas_page/1');
-      cy.url().should('contain', '/canvas/canvas_page/5');
+      cy.url().should('not.contain', '/canvas/editor/canvas_page/1');
+      cy.url().should('contain', '/canvas/editor/canvas_page/5');
       cy.findByTestId('canvas-topbar').findByText('Draft');
 
       // Set the title and make sure that the path alias is generated automatically.
@@ -145,8 +145,8 @@ describe('Auto path alias generation', () => {
     },
   );
 
-  it(`canvas/canvas_page/3 will generate path alias based on title for published content if path is empty`, () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/canvas_page/3' });
+  it(`canvas/editor/canvas_page/3 will generate path alias based on title for published content if path is empty`, () => {
+    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/3' });
     cy.get('iframe[data-canvas-preview]').should('exist');
 
     cy.get('#edit-title-0-value').should('exist');
