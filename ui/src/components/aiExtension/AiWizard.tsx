@@ -205,6 +205,7 @@ const operationsHandler = {
     layoutUtils,
     componentSelectionUtils,
     navigate,
+    params,
   }: {
     message: any;
     dispatch: any;
@@ -212,6 +213,7 @@ const operationsHandler = {
     layoutUtils: any;
     componentSelectionUtils: any;
     navigate: any;
+    params: any;
   }) => {
     // Logic for placing components (SDCs/Blocks/Code components) to the editor frame.
     for (const op of message.operations) {
@@ -242,8 +244,9 @@ const operationsHandler = {
         }
       }
     }
+    const { entityId, entityType } = params;
     // Redirect to /editor.
-    navigate('/editor');
+    navigate(`/editor/${entityType}/${entityId}`);
   },
 };
 
@@ -293,6 +296,7 @@ const AiWizard = () => {
     codeComponentName,
     textPropsMapString,
     pageData,
+    params,
   });
 
   // Update the ref whenever tracked values change.
@@ -301,8 +305,9 @@ const AiWizard = () => {
       codeComponentName,
       textPropsMapString,
       pageData,
+      params,
     };
-  }, [codeComponentName, textPropsMapString, pageData]);
+  }, [codeComponentName, textPropsMapString, pageData, params]);
   // Access layoutUtils and componentSelectionUtils from drupalSettings.canvas
   const layoutUtils = drupalSettings.canvas?.layoutUtils as any;
   const componentSelectionUtils = drupalSettings.canvas
@@ -428,6 +433,7 @@ const AiWizard = () => {
                 layoutUtils,
                 componentSelectionUtils,
                 navigate,
+                params,
               });
             }, 0);
           } else {
@@ -574,9 +580,12 @@ const AiWizard = () => {
                   requestBody = body as FormData;
                   requestBody.append(
                     'entity_type',
-                    drupalSettings.canvas.entityType,
+                    currentValuesRef.current.params.entityType || '',
                   );
-                  requestBody.append('entity_id', drupalSettings.canvas.entity);
+                  requestBody.append(
+                    'entity_id',
+                    currentValuesRef.current.params.entityId || '',
+                  );
                   requestBody.append(
                     'selected_component',
                     currentValuesRef.current.codeComponentName,
@@ -588,8 +597,8 @@ const AiWizard = () => {
                 } else {
                   requestBody = JSON.stringify({
                     ...body,
-                    entity_type: drupalSettings.canvas.entityType,
-                    entity_id: drupalSettings.canvas.entity,
+                    entity_type: currentValuesRef.current.params.entityType,
+                    entity_id: currentValuesRef.current.params.entityId,
                     selected_component:
                       currentValuesRef.current.codeComponentName,
                     layout: currentValuesRef.current.textPropsMapString,
