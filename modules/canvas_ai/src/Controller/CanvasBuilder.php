@@ -238,11 +238,16 @@ final class CanvasBuilder extends ControllerBase {
             if ($tool instanceof $class) {
               // @todo Refactor this after https://www.drupal.org/i/3529313 is fixed.
               $output = $tool->getReadableOutput();
-              $data = Yaml::parse($output);
-              foreach ($keys as $key) {
-                if (!empty($data[$key])) {
-                  $response[$key] = $data[$key];
+              try {
+                $data = Yaml::parse($output);
+                foreach ($keys as $key) {
+                  if (!empty($data[$key])) {
+                    $response[$key] = $data[$key];
+                  }
                 }
+              }
+              catch (\Throwable) {
+                // Do nothing, the output is not YAML parsable.
               }
             }
           }
