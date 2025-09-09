@@ -20,3 +20,11 @@ canvas_ai.component_description_settings:
     _form: 'Drupal\canvas_ai\Form\CanvasAiComponentDescriptionSettingsForm'
   requirements:
     _permission: 'administer components'
+
+canvas_ai.setting:
+  path: '/admin/config/system/canvas-ai-settings'
+  defaults:
+    _title: 'Canvas AI Settings Form'
+    _form: 'Drupal\canvas_ai\Form\CanvasAiSettingsForm'
+  requirements:
+    _permission: 'use Drupal Canvas ai'

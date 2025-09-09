@@ -577,6 +577,19 @@ const AiWizard = () => {
                 };
 
                 if (hasFiles) {
+                  const files = body.getAll('files');
+                  const MAX_FILE_SIZE =
+                    drupalSettings?.canvas?.canvasAiMaxFileSize;
+
+                  for (const file of files) {
+                    if (file instanceof File && file.size > MAX_FILE_SIZE) {
+                      signals.onResponse({
+                        text: `File is too large. Maximum allowed size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`,
+                        role: 'error',
+                      });
+                      return;
+                    }
+                  }
                   requestBody = body as FormData;
                   requestBody.append(
                     'entity_type',

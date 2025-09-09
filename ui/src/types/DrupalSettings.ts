@@ -30,6 +30,8 @@ export interface DrupalSettings {
     loginUrl: string;
     // ⚠️ This is highly experimental and *will* be refactored.
     personalizationExtensionAvailable: boolean;
+    // ⚠️ This is highly experimental and *will* be refactored.
+    canvasAiMaxFileSize: number;
   };
   canvasData: {
     v0: {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas_ai\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
@@ -12,6 +13,12 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
  */
 class CanvasAiHooks {
   use StringTranslationTrait;
+
+  protected ConfigFactoryInterface $configFactory;
+
+  public function __construct(ConfigFactoryInterface $configFactory) {
+    $this->configFactory = $configFactory;
+  }
 
   /**
    * Implements hook_token_info().
@@ -110,6 +117,18 @@ class CanvasAiHooks {
     }
 
     return $replacements;
+  }
+
+  /**
+   * Implements hook_js_settings_alter().
+   */
+  #[Hook('js_settings_alter')]
+  public function jsSettingsAlter(array &$settings): void {
+    $config = $this->configFactory->get('canvas_ai.settings');
+    $file_upload_size_mb = $config->get('file_upload_size') ?? 2;
+    $file_upload_size_bytes = $file_upload_size_mb * 1024 * 1024;
+
+    $settings['canvas']['canvasAiMaxFileSize'] = $file_upload_size_bytes;
   }
 
 }
