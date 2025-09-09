@@ -16,6 +16,7 @@ import {
   setActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import styles from './SideMenu.module.css';
 
@@ -37,6 +38,7 @@ const { drupalSettings } = window;
 interface SideMenuProps {}
 
 export const SideMenu: React.FC<SideMenuProps> = () => {
+  const canvasSettings = getCanvasSettings();
   const activePanel = useAppSelector(selectActivePanel);
   const activePanelRef = useRef(activePanel);
   let hasExtensions = false;
@@ -107,7 +109,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       enabled: true,
       hidden: false,
     },
-    { type: 'separator' },
+    { type: 'separator', hidden: !canvasSettings.devMode },
     {
       type: 'button',
       id: 'pages',
@@ -122,7 +124,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <FileTextIcon />,
       label: 'Templates',
       enabled: true,
-      hidden: false,
+      hidden: !canvasSettings.devMode,
     },
     { type: 'separator', hidden: !hasExtensions },
     {

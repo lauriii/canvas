@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -15,6 +17,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
@@ -50,6 +53,8 @@ final class ApiConfigControllers extends ApiControllerBase {
     #[Autowire(param: 'renderer.config')]
     private readonly array $rendererConfig,
     private readonly AccountSwitcherInterface $accountSwitcher,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -170,17 +175,37 @@ final class ApiConfigControllers extends ApiControllerBase {
         assert($bundle_entity_type instanceof EntityTypeInterface);
         $label = $bundle_entity_type->getCollectionLabel();
       }
+      $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
+      $bundles = [];
+      foreach ($bundle_info as $bundle_key => $info) {
+
+        /** @var \Drupal\Core\Access\AccessResultInterface $edit_fields_access_check */
+        $edit_fields_access_check = $this->accessManager->checkNamedRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
+        assert($edit_fields_access_check instanceof AccessResultInterface);
+        $edit_fields_access = $edit_fields_access_check->isAllowed();
+        /** @var \Drupal\Core\Access\AccessResultInterface $delete_access_check */
+        $delete_access_check = $this->accessManager->checkNamedRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
+        assert($delete_access_check instanceof AccessResultInterface);
+        $delete_access = $delete_access_check->isAllowed();
+
+        $bundles[$bundle_key] = [
+          'label' => $info['label'],
+          'viewModes' => [],
+        ];
+        if ($delete_access) {
+          $delete_url = Url::fromRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key])
+            ->toString();
+          $bundles[$bundle_key]['deleteUrl'] = $delete_url;
+        }
+        if ($edit_fields_access) {
+          $edit_fields_url = Url::fromRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key])
+            ->toString();
+          $bundles[$bundle_key]['editFieldsUrl'] = $edit_fields_url;
+        }
+      }
       $hierarchical_json[$entity_type_id] = [
         'label' => $label,
-        // Ensure all bundles' labels are present, even for those without a
-        // ContentTemplate.
-        'bundles' => array_map(
-          fn (array $bundle_info) => [
-            'label' => $bundle_info['label'],
-            'viewModes' => [],
-          ],
-          $this->bundleInfo->getBundleInfo($entity_type_id),
-        ),
+        'bundles' => $bundles,
       ];
       // For bundleless content entity types, omit the label.
       // For example: the `User` content entity type does not have any bundles,

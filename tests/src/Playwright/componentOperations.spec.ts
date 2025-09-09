@@ -62,9 +62,6 @@ test.describe('Perform CRUD operations on components', () => {
         - separator
         - button "Manage library":
           - img
-        - separator
-        - button "Templates":
-          - img
       `);
     await page
       .locator('[data-testid="canvas-side-menu"]')

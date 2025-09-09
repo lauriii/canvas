@@ -42,6 +42,8 @@ export type TemplateInBundle = {
   viewModes: {
     [key: string]: TemplateViewMode;
   };
+  deleteUrl?: string;
+  editFieldsUrl?: string;
 };
 
 export type TemplatesInBundle = {
@@ -55,11 +57,17 @@ type TemplateList = {
   };
 };
 
-type ViewModesList = {
-  [key: string]: {
-    label: string;
-    hasTemplate: boolean;
-  };
+export type ModeData = {
+  label: string;
+  hasTemplate: boolean;
+};
+
+export type ViewModesListItem = {
+  [key: string]: ModeData;
+};
+
+export type ViewModesList = {
+  [key: string]: ViewModesListItem;
 };
 
 export const componentAndLayoutApi = createApi({
@@ -280,6 +288,21 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' }, // The component list contains markup for the preview thumbnails.
       ],
     }),
+    createContentTemplate: builder.mutation<any, any>({
+      query: (body) => ({
+        url: 'canvas/api/v0/config/content_template',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+    }),
+    deleteContentTemplate: builder.mutation<void, string>({
+      query: (id: string) => ({
+        url: `canvas/api/v0/config/content_template/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+    }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,
       providesTags: () => [{ type: 'ContentTemplates', id: 'LIST' }],
@@ -303,6 +326,8 @@ export const {
   useGetFoldersQuery,
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
+  useCreateContentTemplateMutation,
+  useDeleteContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
 } = componentAndLayoutApi;

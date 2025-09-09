@@ -37,6 +37,7 @@ export interface DialogProps {
     hidden?: boolean;
     isConfirmLoading?: boolean;
     isDanger?: boolean;
+    onCancel?: () => void;
   };
 }
 
@@ -132,7 +133,17 @@ const Dialog = ({
           {footer.hidden ? null : (
             <Flex gap="2" justify="end">
               <ThemedDialog.Close>
-                <Button variant="outline" size="1">
+                <Button
+                  variant="outline"
+                  size="1"
+                  onClick={() => {
+                    if (footer?.onCancel) {
+                      footer.onCancel();
+                    } else {
+                      handleOpenChange(false);
+                    }
+                  }}
+                >
                   {footer.cancelText}
                 </Button>
               </ThemedDialog.Close>

@@ -112,9 +112,17 @@ HTML;
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
     $system_site_config = $this->configFactory->get('system.site');
     $entity_types_with_keys = [];
+    $entity_type_labels = [];
     foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type_definition) {
       if ($entity_type_id === 'node' || $entity_type_definition->entityClassImplements(ComponentTreeEntityInterface::class)) {
         $entity_types_with_keys[$entity_type_id] = $entity_type_definition->getKeys();
+        if ($entity_type_definition->getBundleEntityType()) {
+          $bundles = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
+          $entity_type_labels[$entity_type_id] = array_map(fn($bundle) => $bundle['label'], $bundles);
+        }
+        else {
+          $entity_type_labels[$entity_type_id] = $entity_type_definition->getLabel();
+        }
       }
     }
 
@@ -139,6 +147,7 @@ HTML;
             ])->getInternalPath()
             : Url::fromRoute('canvas.boot.empty')->getInternalPath(),
           'entityTypeKeys' => $entity_types_with_keys,
+          'entityTypeLabels' => $entity_type_labels,
           'devMode' => $dev_mode,
           'aiExtensionAvailable' => $ai_extension_available,
           'personalizationExtensionAvailable' => $personalization_extension_available,

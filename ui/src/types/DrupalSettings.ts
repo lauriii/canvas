@@ -13,6 +13,9 @@ export interface DrupalSettings {
         [key: string]: string;
       };
     };
+    entityTypeLabels: {
+      [entityType: string]: string | { [key: string]: string };
+    };
     globalAssets: {
       css: string;
       jsHeader: string;

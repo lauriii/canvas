@@ -47,3 +47,11 @@
     transform: rotate(90deg);
   }
 }
+
+.hoverInert {
+  &:hover {
+    background-color: transparent;
+    cursor: default;
+    color: inherit;
+  }
+}

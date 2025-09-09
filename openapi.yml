@@ -2790,6 +2790,14 @@ components:
                 - viewModes
               additionalProperties: false
               properties:
+                editFieldsUrl:
+                  type: string
+                  description: URL to edit the fields of this bundle.
+                  nullable: true
+                deleteUrl:
+                  type: string
+                  description: URL to delete this bundle. Can be null if user lacks permissions.
+                  nullable: true
                 label:
                   type: string
                   description: Label of the bundle. Can be null if the content entity type does not have any bundles.
