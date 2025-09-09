@@ -2,6 +2,7 @@
 
 namespace Drupal\canvas\Access;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -32,6 +33,21 @@ class CanvasUiAccessCheck implements AccessInterface {
   public function access(AccountInterface $account): AccessResult {
     $access = AccessResult::neutral('Requires >=1 content entity type with an Canvas field that can be created or edited.');
 
+    // Early access return if the account has permissions for content templates
+    // or code components.
+    // The permission flags on Canvas controller will show the proper
+    // functionalities client-side, and there are proper access checks for each
+    // operation the user attempts.
+    // @see \Drupal\canvas\Controller\CanvasController
+    $content_templates_access = AccessResult::allowedIfHasPermission($account, ContentTemplate::ADMIN_PERMISSION);
+    if ($content_templates_access->isAllowed()) {
+      return $content_templates_access;
+    }
+    $code_components_access = AccessResult::allowedIfHasPermission($account, JavaScriptComponent::ADMIN_PERMISSION);
+    if ($code_components_access->isAllowed()) {
+      return $code_components_access;
+    }
+
     $field_map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
     foreach ($field_map as $entity_type_id => $detail) {
       $access_control_handler = $this->entityTypeManager->getAccessControlHandler($entity_type_id);
@@ -61,8 +77,6 @@ class CanvasUiAccessCheck implements AccessInterface {
           $access = $access->orIf($entity_create_access->andIf($canvas_field_edit_access));
           // 2. edit such a content entity (and update the Canvas field)
           $access = $access->orIf($entity_update_access->andIf($canvas_field_edit_access));
-          // 3. edit code components, as there might a "component developer role"
-          $access = $access->orIf(AccessResult::allowedIfHasPermission($account, JavaScriptComponent::ADMIN_PERMISSION));
           // If we have access to edit a single Canvas-field in a single bundle,
           // or code components, we must grant access to Canvas and can avoid extra
           // checks.
