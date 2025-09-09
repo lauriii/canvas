@@ -10,16 +10,11 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
 use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
-use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
-use Drupal\Component\Uuid\UuidInterface;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -29,7 +24,7 @@ use Symfony\Component\Yaml\Yaml;
   id: 'canvas_ai:set_component_structure',
   function_name: 'set_component_structure',
   name: 'Set Component Structure',
-  description: 'Validates and stores the component structure in the tempstore.',
+  description: 'This tool should be used to add new components to the current page based on the user’s request. Pass the component structure in YAML format.',
   group: 'modification_tools',
   context_definitions: [
     'component_structure' => new ContextDefinition(
@@ -41,9 +36,6 @@ use Symfony\Component\Yaml\Yaml;
   ],
 )]
 final class SetAIGeneratedComponentStructure extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
-
-  use ComponentTreeItemListInstantiatorTrait;
-  use ConstraintPropertyPathTranslatorTrait;
 
   /**
    * The Canvas page builder helper service.
@@ -67,18 +59,11 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
   protected AccountProxyInterface $currentUser;
 
   /**
-   * The validator factory.
+   * The response validator service.
    *
-   * @var \Drupal\Core\Validation\BasicRecursiveValidatorFactory
+   * @var \Drupal\canvas_ai\AiResponseValidator
    */
-  protected BasicRecursiveValidatorFactory $validatorFactory;
-
-  /**
-   * The UUID service.
-   *
-   * @var \Drupal\Component\Uuid\UuidInterface
-   */
-  protected UuidInterface $uuidService;
+  protected AiResponseValidator $responseValidator;
 
   /**
    * Load from dependency injection container.
@@ -93,8 +78,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
     $instance->loggerFactory = $container->get('logger.factory');
     $instance->currentUser = $container->get('current_user');
-    $instance->validatorFactory = $container->get(BasicRecursiveValidatorFactory::class);
-    $instance->uuidService = $container->get('uuid');
+    $instance->responseValidator = $container->get('canvas_ai.response_validator');
     return $instance;
   }
 
@@ -115,7 +99,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
         throw new \Exception(sprintf('The reference_nodepath %s is incomplete and missing elements. Provide the complete nodepath from current layout.', implode(', ', $component_structure_array['reference_nodepath'])));
       }
       \assert($component_structure_array['components'], 'The components key is missing in the component structure.');
-      $this->validateComponentStructure($component_structure_array['components']);
+      $this->responseValidator->validateComponentStructure($component_structure_array['components']);
 
       // Once validated, convert this yml to JSON that will be processed by
       // the Canvas UI.
@@ -126,97 +110,6 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());
       $this->setOutput(sprintf('Failed to process layout data: %s', $e->getMessage()));
     }
-  }
-
-  private function convertToComponentTreeData(array $componentGroups, ?string $parentUuid = NULL, ?string $slotName = NULL, string $pathPrefix = 'components', array &$pathMapping = []): array {
-    $componentTreeData = [];
-    foreach ($componentGroups as $groupIndex => $componentGroup) {
-      foreach ($componentGroup as $componentId => $componentData) {
-        $componentUuid = $this->uuidService->generate();
-
-        $componentPath = sprintf('%s.%d.[%s]', $pathPrefix, $groupIndex, $componentId);
-        $pathMapping[$componentUuid] = $componentPath;
-
-        // Create a temp version if the component does not exist to allow
-        // validation to proceed. The constraints will flag invalid components
-        // later.
-        $componentVersion = Component::load($componentId)?->getActiveVersion() ?? "temp-version-$componentUuid";
-
-        $componentTreeItem = [
-          'uuid' => $componentUuid,
-          'component_id' => $componentId,
-          'component_version' => $componentVersion,
-          'inputs' => $componentData['props'] ?? [],
-        ];
-        if ($parentUuid !== NULL) {
-          $componentTreeItem['parent_uuid'] = $parentUuid;
-          $componentTreeItem['slot'] = $slotName;
-        }
-
-        $componentTreeData[] = $componentTreeItem;
-
-        // Process slots recursively
-        if (isset($componentData['slots']) && is_array($componentData['slots'])) {
-          foreach ($componentData['slots'] as $slot => $slotComponentGroups) {
-            $slotPath = sprintf('%s.slots.%s', $componentPath, $slot);
-            $componentTreeData = array_merge($componentTreeData, $this->convertToComponentTreeData($slotComponentGroups, $componentUuid, $slot, $slotPath, $pathMapping));
-          }
-        }
-      }
-    }
-    return $componentTreeData;
-  }
-
-  private function validateComponentStructure(array $componentGroups): void {
-    // Create a mapping of components to their original paths
-    $pathMapping = [];
-
-    // Convert YAML structure to Canvas ComponentTreeItem format
-    $componentTreeData = $this->convertToComponentTreeData($componentGroups, NULL, NULL, 'components', $pathMapping);
-
-    $componentTreeItemList = $this->createDanglingComponentTreeItemList();
-    $componentTreeItemList->setValue($componentTreeData);
-    $violations = $componentTreeItemList->validate();
-
-    if ($violations->count() > 0) {
-      throw new ConstraintViolationException(
-        $this->translateConstraintPropertyPathsAndRoot(
-          $this->buildPathTranslationMap($componentTreeData, $pathMapping),
-          $violations,
-          ''
-        ),
-        'Component validation errors'
-      );
-    }
-  }
-
-  private function buildPathTranslationMap(array $componentTreeData, array $pathMapping): array {
-    $pathMap = [];
-
-    // Map field-level validation paths from ComponentTreeItemList->validate()
-    foreach ($componentTreeData as $index => $component) {
-      $uuid = $component['uuid'];
-      if (isset($pathMapping[$uuid])) {
-        $originalPath = $pathMapping[$uuid];
-
-        // Map component field paths from field-level validation.
-        // The actual violation paths are just numeric indices, not the full object path.
-        $pathMap["{$index}.component_id"] = $originalPath;
-        $pathMap["{$index}.uuid"] = $originalPath;
-        $pathMap["{$index}.component_version"] = $originalPath;
-        $pathMap["{$index}.parent_uuid"] = $originalPath;
-
-        // For slot validation errors, point to the parent component
-        $pathMap["{$index}.slot"] = isset($component['parent_uuid']) ?
-          $pathMapping[$component['parent_uuid']] ?? '' :
-          $originalPath;
-
-        // Map input validation paths from field-level validation
-        $pathMap["{$index}.inputs.{$uuid}."] = $originalPath . '.props.';
-      }
-    }
-
-    return $pathMap;
   }
 
 }
