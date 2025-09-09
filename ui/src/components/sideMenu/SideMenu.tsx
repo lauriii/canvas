@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
 import {
   Component1Icon,
+  FileIcon,
   FileTextIcon,
   LayersIcon,
   PlusIcon,
@@ -107,6 +108,14 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       hidden: false,
     },
     { type: 'separator' },
+    {
+      type: 'button',
+      id: 'pages',
+      icon: <FileIcon />,
+      label: 'Pages',
+      enabled: true,
+      hidden: false,
+    },
     {
       type: 'button',
       id: 'templates',

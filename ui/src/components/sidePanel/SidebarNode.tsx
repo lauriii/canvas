@@ -10,6 +10,7 @@ import {
   DotsHorizontalIcon,
   FileIcon,
   FileTextIcon,
+  HomeIcon,
   SectionIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -21,6 +22,7 @@ const VARIANTS = {
   code: { icon: <CodeIcon /> },
   codeComponent: { icon: <Component2Icon /> },
   dynamicComponent: { icon: <ComponentBooleanIcon /> },
+  homepage: { icon: <HomeIcon /> },
   page: { icon: <FileIcon /> },
   region: { icon: <CubeIcon /> },
   pattern: { icon: <SectionIcon /> },

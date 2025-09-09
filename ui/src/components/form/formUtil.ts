@@ -479,18 +479,18 @@ export class ComponentPreviewUpdateEvent extends Event {
   componentUuid: string;
   propName: string;
   propValue: any;
-  #previewBackgroundUpdate: boolean;
+  private previewBackgroundUpdate: boolean;
   constructor(componentUuid: string, propName: string, propValue: any) {
     super(COMPONENT_PREVIEW_UPDATE_EVENT);
     this.componentUuid = componentUuid;
     this.propName = propName;
     this.propValue = propValue;
-    this.#previewBackgroundUpdate = false;
+    this.previewBackgroundUpdate = false;
   }
   setPreviewBackgroundUpdate(update: boolean) {
-    this.#previewBackgroundUpdate = update;
+    this.previewBackgroundUpdate = update;
   }
   getPreviewBackgroundUpdate(): boolean {
-    return this.#previewBackgroundUpdate;
+    return this.previewBackgroundUpdate;
   }
 }
