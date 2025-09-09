@@ -231,7 +231,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
    * @dataProvider providerInvalidComponentTree
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    $this->entity->set('component_tree', $component_tree);
+    \assert($this->entity instanceof ContentTemplate);
+    $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 
@@ -583,7 +584,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         ],
       ],
     ]);
-    $this->entity->set('component_tree', $items->getValue());
+    $this->entity->setComponentTree($items->getValue());
 
     $this->entity->set('exposed_slots', [
       'filled_footer' => [
@@ -678,7 +679,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'component_version' => 'ccab0b28617f1f56',
       'inputs' => [],
     ];
-    $this->entity->set('component_tree', $tree)
+    \assert($this->entity instanceof ContentTemplate);
+    $this->entity->setComponentTree($tree)
       ->set('exposed_slots', [
         'valid_alias' => [
           'component_uuid' => '1870f74a-2611-4864-8fc0-639f0d125d7f',

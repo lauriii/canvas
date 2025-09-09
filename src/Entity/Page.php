@@ -101,6 +101,11 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
     return $item;
   }
 
+  public function setComponentTree(array $values): self {
+    $this->getComponentTree()->setValue($values);
+    return $this;
+  }
+
   /**
    * {@inheritdoc}
    */

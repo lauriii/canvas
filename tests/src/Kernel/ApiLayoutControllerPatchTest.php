@@ -208,7 +208,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $tree->setValue($values);
     }
     else {
-      $entity->set('component_tree', $values);
+      $entity->setComponentTree($values);
     }
 
     $entity->save();

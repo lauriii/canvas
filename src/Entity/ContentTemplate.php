@@ -8,7 +8,6 @@ use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -23,7 +22,6 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Storage\ComponentTreeLoader;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
@@ -35,7 +33,6 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
  * `\Drupal\layout_builder\Hook\LayoutBuilderHooks::entityTypeAlter()` -- only
  * one module can do that!
  *
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  * @phpstan-import-type ExposedSlotDefinitions from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  */
 #[ConfigEntityType(
@@ -68,9 +65,8 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
     'exposed_slots',
   ],
 )]
-final class ContentTemplate extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
+final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
-  use ComponentTreeItemListInstantiatorTrait;
   use ConfigUpdaterAwareEntityTrait;
 
   public const string ENTITY_TYPE_ID = 'content_template';
@@ -104,13 +100,6 @@ final class ContentTemplate extends ConfigEntityBase implements CanvasHttpApiEli
    * @var string|null
    */
   protected ?string $content_entity_type_view_mode;
-
-  /**
-   * The component tree.
-   *
-   * @var ?array<string, ComponentTreeItemArray>
-   */
-  protected ?array $component_tree;
 
   /**
    * The exposed slots.
@@ -382,7 +371,7 @@ final class ContentTemplate extends ConfigEntityBase implements CanvasHttpApiEli
       }
     }
     if ($changed) {
-      $this->set('component_tree', $tree->getValue());
+      $this->setComponentTree($tree->getValue());
     }
 
     $changed |= parent::onDependencyRemoval($dependencies);

@@ -201,7 +201,8 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    * @dataProvider providerInvalidComponentTree
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    $this->entity->set('component_tree', $component_tree);
+    \assert($this->entity instanceof PageRegion);
+    $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 

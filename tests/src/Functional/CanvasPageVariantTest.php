@@ -275,7 +275,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         'heading' => $slogan,
       ],
     ]);
-    $pageRegion->set('component_tree', $tree->getValue());
+    $pageRegion->setComponentTree($tree->getValue());
     $pageRegion->save();
     $role = Role::load('anonymous');
     $this->assertInstanceOf(Role::class, $role);

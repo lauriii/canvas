@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityInterface;
@@ -70,7 +71,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     foreach ($regions as $region) {
       // But let's make sure none of them have a component tree so we have an
       // empty model.
-      $region->set('component_tree', [])->save();
+      $region->setComponentTree([])->save();
     }
     $url = $this->getLayoutUrl($entity);
     $response = $this->request(Request::create($url->toString()));
@@ -176,7 +177,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       $original_entity->set('status', '1');
     }
     else {
-      $original_entity->set('component_tree', $tree->getValue());
+      \assert($original_entity instanceof ComponentTreeEntityInterface);
+      $original_entity->setComponentTree($tree->getValue());
     }
 
     $autoSave->saveEntity($original_entity);

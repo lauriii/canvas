@@ -478,7 +478,7 @@ class ConfigWithComponentTreeTestBase extends KernelTestBase {
     ],
   ], 'Complex nesting')]
   public function testComponentTreeKeyOrder(array $tree_input, array $expected_sorted_output): void {
-    $this->entity->set('component_tree', $tree_input);
+    $this->entity->setComponentTree($tree_input);
     $tree_output = $this->entity->get('component_tree');
     self::assertEquals(\count($tree_input), \count($tree_output));
     self::assertSame($expected_sorted_output, $tree_output);

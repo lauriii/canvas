@@ -385,7 +385,7 @@ final class ApiLayoutController {
       else {
         // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
         //   as well in https://drupal.org/i/3543197.
-        $entity->set('component_tree', self::convertClientToServer($content['components'], (array) $model, NULL, FALSE));
+        $entity->setComponentTree(self::convertClientToServer($content['components'], (array) $model, NULL, FALSE));
       }
       $this->autoSaveManager->saveEntity($entity, $body['clientInstanceId']);
     }

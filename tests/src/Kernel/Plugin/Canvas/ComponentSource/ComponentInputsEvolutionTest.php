@@ -445,7 +445,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $pattern = Pattern::create([
       'id' => 'update_path_test_block',
       'label' => $this->randomString(),
-    ])->set('component_tree', $component_tree);
+    ])->setComponentTree($component_tree);
     $pattern->save();
 
     // Component instances work well BEFORE the module update.
@@ -564,7 +564,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
         $raw_component_tree[$key]['component_version'] = '88c370526c14d185';
       }
     }
-    $pattern->set('component_tree', $raw_component_tree);
+    $pattern->setComponentTree($raw_component_tree);
 
     // AFTER the update, the config-defined component tree:
     // 1. is valid

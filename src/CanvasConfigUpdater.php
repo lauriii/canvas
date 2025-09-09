@@ -104,8 +104,7 @@ class CanvasConfigUpdater {
     $tree = self::getComponentTreeForEntity($entity);
     self::optimizeTreeInputs($tree);
     if ($entity instanceof ComponentTreeEntityInterface) {
-      // All of these have a 'component_tree' property.
-      $entity->set('component_tree', $tree->getValue());
+      $entity->setComponentTree($tree->getValue());
       return TRUE;
     }
     $entity->set('default_value', $tree->getValue());

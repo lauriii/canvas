@@ -536,7 +536,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     // Make an update so the auto-save manager will save the entity.
     $template_tree['0']['inputs']['heading'] = 'This is an updated text value';
-    $template->set('component_tree', $template_tree);
+    $template->setComponentTree($template_tree);
     self::assertCount(0, $template->getTypedData()->validate());
     $autoSave->saveEntity($template);
     self:self::assertInstanceOf(ContentTemplate::class, $autoSave->getAutoSaveEntity($template)->entity);

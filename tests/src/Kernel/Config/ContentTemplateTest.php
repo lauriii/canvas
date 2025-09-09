@@ -111,7 +111,7 @@ final class ContentTemplateTest extends KernelTestBase {
       'content_entity_type_bundle' => 'alpha',
       'content_entity_type_view_mode' => 'full',
     ]);
-    $template->set('component_tree', [
+    $template->setComponentTree([
       [
         'uuid' => 'b7e2cf39-d62f-4ee8-99b2-27a89f1ac196',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',

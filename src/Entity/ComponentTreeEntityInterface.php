@@ -20,4 +20,10 @@ interface ComponentTreeEntityInterface extends EntityInterface {
    */
   public function getComponentTree(): ComponentTreeItemList;
 
+  /**
+   * @see \Drupal\Core\Field\FieldItemList::setValue()
+   * @see docs/data-model.md#3.1.2
+   */
+  public function setComponentTree(array $values): self;
+
 }

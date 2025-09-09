@@ -200,7 +200,7 @@ final class ContentTemplateDependencyTest extends FunctionalTestBase {
       'value' => 'Trapezoid',
       'expression' => 'ℹ︎shape␟shape',
     ];
-    $template->set('component_tree', $tree)->save();
+    $template->setComponentTree($tree)->save();
     // The template should now depend on entity_test, since it's using a field
     // type that it provides.
     $dependencies = $template->getDependencies();

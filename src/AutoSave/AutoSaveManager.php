@@ -181,10 +181,7 @@ class AutoSaveManager implements EventSubscriberInterface {
           assert($component instanceof ComponentTreeItem);
           $component->optimizeInputs();
         }
-        // @todo This only works because we assume 'component_tree'. Use new
-        //   method on `ComponentTreeEntityInterface` in
-        //   https://drupal.org/i/3543834.
-        $entity->set('component_tree', $tree->getValue());
+        $entity->setComponentTree($tree->getValue());
       }
       return $entity->toArray();
     }

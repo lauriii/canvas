@@ -4,21 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
-use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
-/**
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
- */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup("Page region"),
@@ -50,11 +45,10 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
     ],
   ],
 )]
-final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityInterface {
+final class PageRegion extends ComponentTreeConfigEntityBase {
 
   public const string ENTITY_TYPE_ID = 'page_region';
   public const string ADMIN_PERMISSION = 'administer page template';
-  use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
   use ConfigUpdaterAwareEntityTrait;
 
@@ -74,13 +68,6 @@ final class PageRegion extends ConfigEntityBase implements ComponentTreeEntityIn
    * The theme that this defines a Canvas Page Region for.
    */
   protected ?string $theme;
-
-  /**
-   * Component tree for this theme region.
-   *
-   * @var ?array<string, ComponentTreeItemArray>
-   */
-  protected ?array $component_tree;
 
   /**
    * {@inheritdoc}

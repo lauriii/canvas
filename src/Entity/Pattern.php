@@ -6,20 +6,15 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
-/**
- * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
- */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup('Pattern'),
@@ -42,12 +37,11 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
   ],
 )]
 
-final class Pattern extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, ComponentTreeEntityInterface, FolderItemInterface {
+final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, FolderItemInterface {
 
   public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';
 
-  use ComponentTreeItemListInstantiatorTrait;
   use ClientServerConversionTrait;
   use ConfigUpdaterAwareEntityTrait;
 
@@ -60,13 +54,6 @@ final class Pattern extends ConfigEntityBase implements CanvasHttpApiEligibleCon
    * The human-readable label of the Drupal Canvas Pattern.
    */
   protected ?string $label;
-
-  /**
-   * Component tree.
-   *
-   * @var ?array<string, ComponentTreeItemArray>
-   */
-  protected ?array $component_tree;
 
   /**
    * {@inheritdoc}
@@ -167,7 +154,7 @@ final class Pattern extends ConfigEntityBase implements CanvasHttpApiEligibleCon
    */
   public function updateFromClientSide(array $data): void {
     if (isset($data['layout']) && isset($data['model'])) {
-      $this->set('component_tree', self::convertClientToServer($data['layout'], $data['model']));
+      $this->setComponentTree(self::convertClientToServer($data['layout'], $data['model']));
     }
 
     foreach (array_diff_key($data, array_flip(['layout', 'model'])) as $key => $value) {

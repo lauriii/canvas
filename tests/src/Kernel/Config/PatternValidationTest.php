@@ -177,7 +177,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
    * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    $this->entity->set('component_tree', $component_tree);
+    \assert($this->entity instanceof Pattern);
+    $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
   }
 
