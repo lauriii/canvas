@@ -464,9 +464,6 @@ class PropSourceTest extends KernelTestBase {
         ],
         [
           'src' => 'Jack is awesome!',
-          'alt' => NULL,
-          'width' => NULL,
-          'height' => NULL,
         ],
       ],
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,

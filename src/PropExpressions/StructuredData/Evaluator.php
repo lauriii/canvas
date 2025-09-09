@@ -77,12 +77,16 @@ final class Evaluator {
             ? $prop->getCastedValue()
             : $prop->getValue();
         })(),
-        FieldTypeObjectPropsExpression::class => array_combine(
-          array_keys($expr->objectPropsToFieldTypeProps),
-          array_map(
-            fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
-            $expr->objectPropsToFieldTypeProps
-          )
+        FieldTypeObjectPropsExpression::class => array_filter(
+          array_combine(
+            array_keys($expr->objectPropsToFieldTypeProps),
+            array_map(
+              fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
+              $expr->objectPropsToFieldTypeProps
+            )
+          ),
+          // Omit optional props.
+          fn (mixed $v) => $v !== StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP,
         ),
         ReferenceFieldTypePropExpression::class => self::evaluate(
           $field->get($expr->referencer->propName)->getValue(),
@@ -133,7 +137,7 @@ final class Evaluator {
               // using `␀`.
               // @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
               if ($prop_name === StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {
-                return NULL;
+                return StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP;
               }
               $prop = $field_item->get($prop_name);
               $result[$delta] = $prop instanceof PrimitiveInterface
