@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
@@ -29,6 +34,18 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
   use UserCreationTrait;
   use VfsPublicStreamUrlTrait;
 
+  protected ?ContentEntityInterface $previewEntity;
+
+  protected static function getAdminPermission(EntityInterface $entity): string {
+    if ($entity instanceof Node) {
+      return 'edit any ' . $entity->bundle() . ' content';
+    }
+    if ($entity instanceof ContentTemplate) {
+      return ContentTemplate::ADMIN_PERMISSION;
+    }
+    throw new \LogicException('Unsupported entity type: ' . $entity->getEntityTypeId());
+  }
+
   /**
    * Unwrap the JSON response so we can perform assertions on it.
    */
@@ -50,6 +67,25 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
     unset($json['isNew'], $json['isPublished'], $json['html']);
     $json += ['clientInstanceId' => $this->randomString(100)];
     return \json_encode($json, JSON_THROW_ON_ERROR);
+  }
+
+  protected function getLayoutUrl(EntityInterface $entity): Url {
+    if ($entity instanceof ContentTemplate) {
+      $route_name = 'canvas.api.layout.get.content_template';
+      self::assertInstanceOf(ContentEntityInterface::class, $this->previewEntity);
+      $url_args = [
+        'entity' => $entity->id(),
+        'preview_entity' => $this->previewEntity->id(),
+      ];
+    }
+    else {
+      $url_args = [
+        'entity' => $entity->id(),
+        'entity_type' => $entity->getEntityTypeId(),
+      ];
+      $route_name = 'canvas.api.layout.get';
+    }
+    return Url::fromRoute($route_name, $url_args);
   }
 
   /**
@@ -106,9 +142,43 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
       self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($entity), $data['autoSaves']);
       self::assertSame(
         $data['autoSaves'][AutoSaveManager::getAutoSaveKey($entity)],
-        $this->getClientAutoSaveData($entity),
+        $this->container->get(AutoSaveManager::class)->getClientAutoSaveData($entity),
       );
     }
+  }
+
+  /**
+   * Gets a test entity of the given type.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID.
+   *
+   * @return \Drupal\Core\Entity\ContentEntityInterface|\Drupal\canvas\Entity\ContentTemplate
+   *   The test entity.
+   *
+   * @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
+   */
+  protected function getTestEntity(string $entity_type_id): ContentEntityInterface|ContentTemplate {
+    if ($entity_type_id === 'node') {
+      $entity = Node::load(1);
+      $this->previewEntity = NULL;
+    }
+    elseif ($entity_type_id === ContentTemplate::ENTITY_TYPE_ID) {
+      $entity = ContentTemplate::load('node.article.full');
+      $this->previewEntity = Node::load(1);
+    }
+    else {
+      throw new \InvalidArgumentException('Unsupported entity type: ' . $entity_type_id);
+    }
+    self::assertNotNull($entity);
+    return $entity;
+  }
+
+  public static function providerEntityTypes(): array {
+    return [
+      'Content entity type with component tree: Node' => ['node'],
+      'Config entity type with component tree: ContentTemplate' => [ContentTemplate::ENTITY_TYPE_ID],
+    ];
   }
 
 }

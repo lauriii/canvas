@@ -2,9 +2,7 @@
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -54,7 +52,7 @@ trait AutoSaveValidateTrait {
     foreach ($entitiesToValidate as $entityToValidate) {
       assert($entityToValidate instanceof EntityInterface);
       $autoSaveEntity = $this->autoSaveManager->getAutoSaveEntity($entityToValidate);
-      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entityToValidate)] = $this->getClientAutoSaveData($entityToValidate);
+      $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entityToValidate)] = $this->autoSaveManager->getClientAutoSaveData($entityToValidate);
       $foundClientIdMismatch = $foundClientIdMismatch || (!$autoSaveEntity->isEmpty() && $autoSaveEntity->clientId !== $clientId);
     }
     $expected_auto_saves = array_filter($expected_auto_saves);
@@ -79,36 +77,13 @@ trait AutoSaveValidateTrait {
   }
 
   /**
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   * @return array{autoSaveStartingPoint: int|string|null, hash: string|null}
+   * @todo Move this logic elsewhere in https://www.drupal.org/project/canvas/issues/3535458
    */
-  protected function getClientAutoSaveData(EntityInterface $entity): array {
-    $autoSaveEntity = $this->autoSaveManager->getAutoSaveEntity($entity);
-    // We must use the saved entity to get the revision ID and changed time
-    // because these values might have changed in the auto-save version.
-    \assert($entity->id() !== NULL);
-    $savedEntity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
-    assert($savedEntity instanceof EntityInterface);
-    // If available we must use the revision ID and the changed time because
-    // not all entity types will increment the revision ID on every change.
-    // @todo Move this logic elsewhere in https://www.drupal.org/project/canvas/issues/3535458
-    $autoSaveStartRevision = $savedEntity instanceof RevisionableInterface ?
-      $savedEntity->getRevisionId() :
-      \hash('xxh64', \json_encode($entity->toArray(), JSON_THROW_ON_ERROR));
-    if ($savedEntity instanceof EntityChangedInterface) {
-      $autoSaveStartRevision .= '-' . $savedEntity->getChangedTime();
-    }
-    return [
-      'autoSaveStartingPoint' => $autoSaveStartRevision,
-      'hash' => $autoSaveEntity->hash,
-    ];
-  }
-
   protected function getAutoSaveHashes(array $entities): array {
     $autoSaveHashes = [];
     foreach ($entities as $entity) {
       \assert($entity instanceof EntityInterface);
-      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->getClientAutoSaveData($entity);
+      $autoSaveHashes[AutoSaveManager::getAutoSaveKey($entity)] = $this->autoSaveManager->getClientAutoSaveData($entity);
     }
     return array_filter($autoSaveHashes);
   }

@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Tests auto-save conflict handling for page regions.
  *
  * @see \Drupal\canvas\Entity\PageRegion
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::get()
+ * @group canvas
  */
 final class AutoSaveConflictPageRegionLayoutTest extends ApiLayoutControllerTestBase {
 
@@ -74,7 +76,10 @@ final class AutoSaveConflictPageRegionLayoutTest extends ApiLayoutControllerTest
     // component whose label we updated.
     // @see ::updateJson()
     self::assertSame('block.system_messages_block', $regionTree[0]['component_id']);
-    self::assertSame($text, $regionTree[0]['inputs']['label']);
+    $decoded_inputs = json_decode($regionTree[0]['inputs'], TRUE, 512, JSON_THROW_ON_ERROR);
+    self::assertIsArray($decoded_inputs);
+    self::assertArrayHasKey('label', $decoded_inputs);
+    self::assertSame($text, $decoded_inputs['label']);
   }
 
   public function testRegionPermissionsNeeded(): void {

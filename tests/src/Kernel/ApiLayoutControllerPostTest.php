@@ -45,7 +45,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
-    (new CanvasTestSetup())->setup();
+    (new CanvasTestSetup())->setup(TRUE);
     $this->setUpCurrentUser([], [
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
@@ -53,16 +53,19 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ]);
   }
 
-  public function testEntityAccessRequired(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testEntityAccessRequired(string $entity_type): void {
     $this->setUpCurrentUser([], [
       'administer url aliases',
     ]);
 
+    $entity = $this->getTestEntity($entity_type);
+    $admin_permission = self::getAdminPermission($entity);
     $this->expectException(AccessDeniedHttpException::class);
-    $this->expectExceptionMessage("The 'edit any article content' permission is required.");
-    $node = Node::load(1);
-    assert($node instanceof NodeInterface);
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: json_encode([
+    $this->expectExceptionMessage("The '$admin_permission' permission is required.");
+    $this->request(Request::create($this->getLayoutUrl($entity)->toString(), method: 'POST', content: json_encode([
       'layout' => [
           [
             'nodeType' => 'region',
@@ -71,7 +74,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
             'id' => 'content',
           ],
       ],
-    ] + $this->getPostContentsDefaults($node), JSON_THROW_ON_ERROR)));
+    ] + $this->getPostContentsDefaults($entity), JSON_THROW_ON_ERROR)));
   }
 
   public function testNonEditAccessFieldsFiltered(): void {
@@ -125,10 +128,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame('Updated title', $entityFromAutoSave->label());
   }
 
-  public function testEmpty(): void {
-    $node = Node::load(1);
-    assert($node instanceof NodeInterface);
-    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: json_encode([
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testEmpty(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $response = $this->request(Request::create($this->getLayoutUrl($entity)->toString(), method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -137,8 +143,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
           'id' => 'content',
         ],
       ],
-    ] + $this->getPostContentsDefaults($node), JSON_THROW_ON_ERROR)));
-    $this->assertResponseAutoSaves($response, [$node]);
+    ] + $this->getPostContentsDefaults($entity), JSON_THROW_ON_ERROR)));
+    $this->assertResponseAutoSaves($response, [$entity]);
 
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
@@ -146,10 +152,13 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertEquals('<div class="canvas--region-empty-placeholder"></div>', $root);
   }
 
-  public function testMissingSlot(): void {
-    $node = Node::load(1);
-    assert($node instanceof NodeInterface);
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: json_encode([
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testMissingSlot(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $this->request(Request::create($this->getLayoutUrl($entity)->toString(), method: 'POST', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -190,7 +199,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
           ],
         ],
       ],
-    ] + $this->getPostContentsDefaults($node), JSON_THROW_ON_ERROR)));
+    ] + $this->getPostContentsDefaults($entity), JSON_THROW_ON_ERROR)));
 
     // Check that the root level is structured correctly.
     $root = $this->getRegion('content');
@@ -199,11 +208,16 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments);
   }
 
-  public function test(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function test(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $url = $this->getLayoutUrl($entity)->toString();
     // Load the test data from the layout controller.
-    $response = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'));
-    $node = Node::load(1);
-    $this->assertResponseAutoSaves($response, [$node], TRUE);
+    $response = $this->parentRequest(Request::create($url));
+    $this->assertResponseAutoSaves($response, [$entity], TRUE);
     $json = self::decodeResponse($response);
     $model = $json['model'];
     $crawler = new Crawler($json['html']);
@@ -214,24 +228,25 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertIsString($original_content);
 
     // Generate preview; must not generate an auto-save entry.
-    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($original_content)));
-    $this->assertResponseAutoSaves($response, [$node]);
+    $response = $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($original_content)));
+    $this->assertResponseAutoSaves($response, [$entity]);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
 
-    // Modify the data type of an entity field in the JSON that should not
-    // represent a change in the values.
-    \assert(\is_string($json['entity_form_fields']['changed']));
-    $json['entity_form_fields']['changed'] = (int) $json['entity_form_fields']['changed'];
-    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost(\json_encode($json, \JSON_THROW_ON_ERROR))));
-    $this->assertResponseAutoSaves($response, [$node]);
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    $node = Node::load(1);
-    \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+    if ($entity instanceof Node) {
+      // Modify the data type of an entity field in the JSON that should not
+      // represent a change in the values.
+      \assert(\is_string($json['entity_form_fields']['changed']));
+      $json['entity_form_fields']['changed'] = (int) $json['entity_form_fields']['changed'];
+      $response = $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost(\json_encode($json, \JSON_THROW_ON_ERROR))));
+      $this->assertResponseAutoSaves($response, [$entity]);
+      $autoSave = $this->container->get(AutoSaveManager::class);
+      \assert($autoSave instanceof AutoSaveManager);
+      $entity = Node::load(1);
+      \assert($entity instanceof NodeInterface);
+      self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
+    }
 
     // Check that each level is structured correctly.
     $contentRegion = $this->getRegion('content');
@@ -254,48 +269,60 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $json['model'][CanvasTestSetup::UUID_STATIC_CARD1]['resolved']['cta1href'] = 'entity:node/1';
     $json['model'][CanvasTestSetup::UUID_STATIC_CARD1]['source']['cta1href']['value']['uri'] = 'entity:node/1';
 
-    $json += $this->getPostContentsDefaults($node);
+    $json += $this->getPostContentsDefaults($entity);
     // The first card model has been updated, the second is unchanged.
     self::assertSame('entity:node/1', $json['model'][CanvasTestSetup::UUID_STATIC_CARD1]['source']['cta1href']['value']['uri']);
     self::assertSame('https://drupal.org', $json['model'][CanvasTestSetup::UUID_STATIC_CARD2]['source']['cta1href']['value']['uri']);
-    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     $crawler = new Crawler($this->getRawContent());
+    $node1 = Node::load(1);
+    \assert($node1 instanceof NodeInterface);
     self::assertCount(1, $crawler->filter(\sprintf('a[href="%s"].my-hero__cta--primary', 'https://drupal.org')));
-    self::assertCount(1, $crawler->filter(\sprintf('a[href="%s"].my-hero__cta--primary', $node->toUrl()->toString())));
-    $this->assertResponseAutoSaves($response, [$node]);
-    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertCount(1, $crawler->filter(\sprintf('a[href="%s"].my-hero__cta--primary', $node1->toUrl()->toString())));
+    $this->assertResponseAutoSaves($response, [$entity]);
+    self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
 
-    $this->assertRequestAutoSaveConflict(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($original_content)));
+    $this->assertRequestAutoSaveConflict(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($original_content)));
 
     // Now re-fetch the layout to confirm we don't update the hash if an auto-save
     // entry already exists.
-    $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
+    $content = $this->parentRequest(Request::create($url))->getContent();
     self::assertIsString($content);
     $json = json_decode($content, TRUE);
-    $this->assertResponseAutoSaves($response, [$node]);
-    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
+    $this->assertResponseAutoSaves($response, [$entity]);
+    self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
     self::assertArrayHasKey($uuid, $json['model']);
   }
 
-  public function testWithGlobal(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testWithGlobal(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser(
+      [],
+      [
+        PageRegion::ADMIN_PERMISSION,
+        self::getAdminPermission($entity),
+      ]
+    );
     $regions = PageRegion::createFromBlockLayout('stark');
     foreach ($regions as $region) {
       $region->save();
     }
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
+    $url = $this->getLayoutUrl($entity)->toString();
+    $content = $this->parentRequest(Request::create($url))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
     self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    $node = Node::load(1);
-    \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
     foreach ($regions as $region) {
       self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
@@ -316,21 +343,25 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.canvas_test_sdc.heading@8dd7b865998f53b0',
       'slots' => [],
     ];
-    $json += $this->getPostContentsDefaults($node);
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $json += $this->getPostContentsDefaults($entity);
+    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
     foreach ($regions as $region) {
       \assert($region instanceof PageRegion);
       self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveEntity($region)->isEmpty());
     }
   }
 
-  public function testWithoutPageRegionPermission(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testWithoutPageRegionPermission(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [
       'administer url aliases',
-      'edit any article content',
+      self::getAdminPermission($entity),
     ]);
 
     $regions = PageRegion::createFromBlockLayout('stark');
@@ -339,17 +370,16 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
+    $url = $this->getLayoutUrl($entity)->toString();
+    $content = $this->parentRequest(Request::create($url))->getContent();
     $this->assertIsString($content);
     $json = json_decode($content, TRUE);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertEmpty($highlightedRegion);
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
+    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    $node = Node::load(1);
-    \assert($node instanceof NodeInterface);
-    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
     foreach ($regions as $region) {
       self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
@@ -376,19 +406,20 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'type' => 'sdc.canvas_test_sdc.heading',
       'slots' => [],
     ];
-    $json += $this->getPostContentsDefaults($node);
+    $json += $this->getPostContentsDefaults($entity);
 
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage('Access denied for region highlighted');
 
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
   }
 
-  public function testWithDraftCodeComponent(): void {
-    $this->setUpCurrentUser([], [
-      'administer url aliases',
-      'edit any article content',
-    ]);
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testWithDraftCodeComponent(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
 
     // Create the saved (published) javascript component.
     $saved_component_values = [
@@ -434,7 +465,8 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $autoSave->saveEntity($code_component);
 
     // Load the test data from the layout controller.
-    $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'))->getContent() ?: '';
+    $url = $this->getLayoutUrl($entity)->toString();
+    $content = $this->parentRequest(Request::create($url))->getContent() ?: '';
     $this->assertJson($content);
     $json = json_decode($content, TRUE, JSON_THROW_ON_ERROR);
 
@@ -481,7 +513,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $node = Node::load(1);
     assert($node instanceof NodeInterface);
     $json += $this->getPostContentsDefaults($node);
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
     $content_region = $this->getRegion('content');
     self::assertNotNull($content_region);

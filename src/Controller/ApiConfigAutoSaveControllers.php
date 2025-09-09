@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Cache\CacheableJsonResponse;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
@@ -20,7 +19,6 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   public function get(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): CacheableJsonResponse {

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
@@ -32,6 +30,9 @@ trait AutoSaveManagerTestTrait {
     return $hash;
   }
 
+  /**
+   * @todo Move this logic elsewhere in https://www.drupal.org/project/canvas/issues/3535458
+   */
   protected function getClientAutoSaves(array $entities, bool $addRegions = TRUE): array {
     $autoSaves = [];
     $autoSaveManager = \Drupal::service(AutoSaveManager::class);
@@ -41,28 +42,9 @@ trait AutoSaveManagerTestTrait {
     }
     foreach ($entities as $entity) {
       assert($entity instanceof EntityInterface);
-      $autoSaves[AutoSaveManager::getAutoSaveKey($entity)] = $this->getClientAutoSaveData($entity);
+      $autoSaves[AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveManager->getClientAutoSaveData($entity);
     }
     return ['autoSaves' => $autoSaves];
-  }
-
-  /**
-   * @see \Drupal\canvas\Controller\ApiLayoutController::getClientAutoSaveData()
-   * @todo Remove this method in in https://www.drupal.org/project/canvas/issues/3535458
-   */
-  protected function getClientAutoSaveData(EntityInterface $entity): array {
-    $autoSaveManager = \Drupal::service(AutoSaveManager::class);
-    assert($autoSaveManager instanceof AutoSaveManager);
-    $autoSaveStartRevision = $entity instanceof RevisionableInterface ?
-      $entity->getRevisionId() :
-      \hash('xxh64', \json_encode($entity->toArray(), JSON_THROW_ON_ERROR));
-    if ($entity instanceof EntityChangedInterface) {
-      $autoSaveStartRevision .= '-' . $entity->getChangedTime();
-    }
-    return [
-      'autoSaveStartingPoint' => $autoSaveStartRevision,
-      'hash' => $autoSaveManager->getAutoSaveEntity($entity)->hash,
-    ];
   }
 
   /**

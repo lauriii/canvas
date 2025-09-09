@@ -75,6 +75,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     // Add some entity-types required by the page entity.
+    $this->installConfig(['canvas']);
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('path_alias');

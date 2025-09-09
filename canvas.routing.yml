@@ -372,6 +372,7 @@ canvas.api.layout.patch.content_template:
     <<: *layout_get_route_requirements
     _canvas_preview_entity_view_access: TRUE
   options:
+    _canvas_use_template_draft: TRUE
     parameters:
       <<: *layout_get_route_content_template_parameters
 

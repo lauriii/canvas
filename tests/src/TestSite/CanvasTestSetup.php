@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\StaticPropSource;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -70,7 +71,7 @@ class CanvasTestSetup implements TestSetupInterface {
 
   protected string $root;
 
-  public function setup(): void {
+  public function setup(bool $createContentTemplate = FALSE): void {
     // CreateTestJsComponentTrait requires having the $root set.
     $container = \Drupal::getContainer();
     $root = $container && $container->hasParameter('app.root') ? $container->getParameter('app.root') : DRUPAL_ROOT;
@@ -409,6 +410,17 @@ class CanvasTestSetup implements TestSetupInterface {
     ]);
 
     $node->save();
+
+    if ($createContentTemplate) {
+      $contentTemplate = ContentTemplate::create([
+        'content_entity_type_id' => 'node',
+        'content_entity_type_bundle' => 'article',
+        'content_entity_type_view_mode' => 'full',
+        'component_tree' => $items,
+      ]);
+      $contentTemplate->save();
+    }
+
     $empty_node = Node::create([
       'type' => 'article',
       'title' => 'I am an empty node',

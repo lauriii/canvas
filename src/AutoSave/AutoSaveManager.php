@@ -2,17 +2,20 @@
 
 namespace Drupal\canvas\AutoSave;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -172,6 +175,17 @@ class AutoSaveManager implements EventSubscriberInterface {
 
   private static function normalizeEntity(EntityInterface $entity): array {
     if (!$entity instanceof FieldableEntityInterface) {
+      if ($entity instanceof ComponentTreeEntityInterface && $entity instanceof ConfigEntityInterface) {
+        $tree = $entity->getComponentTree();
+        foreach ($tree as $component) {
+          assert($component instanceof ComponentTreeItem);
+          $component->optimizeInputs();
+        }
+        // @todo This only works because we assume 'component_tree'. Use new
+        //   method on `ComponentTreeEntityInterface` in
+        //   https://drupal.org/i/3543834.
+        $entity->set('component_tree', $tree->getValue());
+      }
       return $entity->toArray();
     }
     $normalized = [];
@@ -226,6 +240,34 @@ class AutoSaveManager implements EventSubscriberInterface {
       return $entity->getEntityTypeId() . ':' . $entity->id() . ':' . $entity->language()->getId();
     }
     return $entity->getEntityTypeId() . ':' . $entity->id();
+  }
+
+  /**
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @return array{autoSaveStartingPoint: int|string|null, hash: string|null}
+   */
+  public function getClientAutoSaveData(EntityInterface $entity): array {
+    $autoSaveEntity = $this->getAutoSaveEntity($entity);
+
+    // We need to load the stored entity to be able to construct the auto-save
+    // starting point.
+    \assert($entity->id() !== NULL);
+    $savedEntity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())
+      ->loadUnchanged($entity->id());
+    assert($savedEntity instanceof EntityInterface);
+
+    // If available we must use the revision ID and the changed time because
+    // not all entity types will increment the revision ID on every change.
+    $autoSaveStartRevision = $savedEntity instanceof RevisionableInterface
+      ? $savedEntity->getRevisionId()
+      : \hash('xxh64', \json_encode($savedEntity->toArray(), JSON_THROW_ON_ERROR));
+    if ($savedEntity instanceof EntityChangedInterface) {
+      $autoSaveStartRevision .= '-' . $savedEntity->getChangedTime();
+    }
+    return [
+      'autoSaveStartingPoint' => $autoSaveStartRevision,
+      'hash' => $autoSaveEntity->hash,
+    ];
   }
 
   private function getUnchangedHash(EntityInterface $entity): ?string {

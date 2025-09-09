@@ -36,6 +36,7 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
    */
   protected static $modules = [
     'dynamic_page_cache',
+    'node',
   ];
 
   /**

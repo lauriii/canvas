@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
-use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
@@ -44,7 +45,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
-    (new CanvasTestSetup())->setup();
+    (new CanvasTestSetup())->setup(TRUE);
     $this->setUpCurrentUser([], [
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
@@ -52,15 +53,20 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     ]);
   }
 
-  public function testEntityAccessRequired(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testEntityAccessRequired(string $entity_type): void {
     $this->setUpCurrentUser([], [
       'administer url aliases',
     ]);
 
+    $entity = $this->getTestEntity($entity_type);
+    $admin_permission = self::getAdminPermission($entity);
     $this->expectException(AccessDeniedHttpException::class);
-    $this->expectExceptionMessage("The 'edit any article content' permission is required.");
+    $this->expectExceptionMessage("The '$admin_permission' permission is required.");
 
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: json_encode([
+    $this->request(Request::create($this->getLayoutUrl($entity)->toString(), method: 'PATCH', content: json_encode([
       'layout' => [
         [
           'nodeType' => 'region',
@@ -69,7 +75,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
           'id' => 'content',
         ],
       ],
-    ] + $this->getPatchContentsDefaults([Node::load(1)]), JSON_THROW_ON_ERROR)));
+    ] + $this->getPatchContentsDefaults([$entity]), JSON_THROW_ON_ERROR)));
   }
 
   /**
@@ -159,11 +165,13 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   /**
    * @dataProvider providerValid
    */
-  public function test(bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
+  public function test(string $entity_type, bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
+    $entity = $this->getTestEntity($entity_type);
+    $url = $this->getLayoutUrl($entity)->toString();
     $this->setUpCurrentUser([], [
       'administer url aliases',
       PageRegion::ADMIN_PERMISSION,
-      'edit any article content',
+      self::getAdminPermission($entity),
     ]);
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
@@ -176,10 +184,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     }
 
     // Setup additional nesting of components.
-    $node = Node::load(1);
-    \assert($node instanceof NodeInterface);
-    $tree = $node->get('field_canvas_demo');
-    \assert($tree instanceof ComponentTreeItemList);
+    $tree_loader = $this->container->get(ComponentTreeLoader::class);
+    \assert($tree_loader instanceof ComponentTreeLoader);
+    $tree = $tree_loader->load($entity);
     $static_image = $tree->getComponentTreeItemByUuid(CanvasTestSetup::UUID_STATIC_IMAGE);
     \assert($static_image instanceof ComponentTreeItem);
     $static_image->set('parent_uuid', CanvasTestSetup::UUID_ALL_SLOTS_EMPTY);
@@ -197,49 +204,54 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       ...\array_slice($values, $image_delta, 1),
       ...\array_slice($values, $parent_delta + 1),
     ];
-    $node->set('field_canvas_demo', $values);
+    if ($entity instanceof FieldableEntityInterface) {
+      $tree->setValue($values);
+    }
+    else {
+      $entity->set('component_tree', $values);
+    }
 
-    $node->save();
+    $entity->save();
 
     // Load the test data from the layout controller.
-    $response = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'));
-    $this->assertResponseAutoSaves($response, [Node::load(1)], $withGlobal);
+    $response = $this->parentRequest(Request::create($url));
+    $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
     $content = $response->getContent();
     self::assertIsString($content);
     $data = $this->decodeResponse($response);
-    // Check that the client only receives field data they have access to.
-    // @see ApiLayoutController::filterFormValues()
-    $this->assertSame([
-      'changed',
-      'field_hero[0][target_id]',
-      'field_hero[0][alt]',
-      'field_hero[0][width]',
-      'field_hero[0][height]',
-      'field_hero[0][fids][0]',
-      'field_hero[0][display]',
-      'field_hero[0][description]',
-      'field_hero[0][upload]',
-      'media_image_field[media_library_selection]',
-      'path[0][alias]',
-      'path[0][source]',
-      'path[0][langcode]',
-      'title[0][value]',
-      'langcode[0][value]',
-      'revision',
-    ], array_keys($data['entity_form_fields']));
+    if ($entity instanceof Node) {
+      // Check that the client only receives field data they have access to.
+      // @see ApiLayoutController::filterFormValues()
+      $this->assertSame([
+        'changed',
+        'field_hero[0][target_id]',
+        'field_hero[0][alt]',
+        'field_hero[0][width]',
+        'field_hero[0][height]',
+        'field_hero[0][fids][0]',
+        'field_hero[0][display]',
+        'field_hero[0][description]',
+        'field_hero[0][upload]',
+        'media_image_field[media_library_selection]',
+        'path[0][alias]',
+        'path[0][source]',
+        'path[0][langcode]',
+        'title[0][value]',
+        'langcode[0][value]',
+        'revision',
+      ], array_keys($data['entity_form_fields']));
+    }
 
     $model = $data['model'];
 
-    $node = Node::load(1);
-    \assert($node instanceof NodeInterface);
     if ($withAutoSave) {
       // Perform a POST first to trigger the auto-save manager being called.
       // This will not result in an auto-save entry because the content is the
       // same as the saved version.
-      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'POST', content: $this->filterLayoutForPost($content)));
-      $this->assertResponseAutoSaves($response, [Node::load(1)], $withGlobal);
+      $response = $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
+      $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
       self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-      self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+      self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
       foreach ($regions as $region) {
         self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
       }
@@ -263,12 +275,12 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'model' => $new_model,
       'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
       'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
-    ] + $this->getPatchContentsDefaults([$node]);
-    $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
+    ] + $this->getPatchContentsDefaults([$entity]);
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
 
     // The new model should contain the updated value.
     $data = self::decodeResponse($response);
-    $this->assertResponseAutoSaves($response, [$node], $withGlobal);
+    $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
     // The updated preview should reference the new image.
     $file = $media->get('field_media_image')->entity;
     \assert($file instanceof FileInterface);
@@ -279,7 +291,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $image_url = $image->get('src_with_alternate_widths')->getValue();
     self::assertEquals($image_url, $data['model'][CanvasTestSetup::UUID_STATIC_IMAGE]['resolved']['image']['src']);
 
-    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
+    self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
     foreach ($regions as $region) {
       self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
     }
@@ -318,8 +330,8 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     ], $images);
 
     unset($updateImageClientData['clientInstanceId']);
-    $updateImageClientData += $this->getPatchContentsDefaults([$node]);
-    $this->assertRequestAutoSaveConflict(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
+    $updateImageClientData += $this->getPatchContentsDefaults([$entity]);
+    $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
 
     if ($withGlobal) {
       $new_label = $this->randomMachineName();
@@ -334,14 +346,14 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         ],
         'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
         'componentInstanceUuid' => $globalComponentUuid,
-      ] + $this->getPatchContentsDefaults([$node]);
-      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      ] + $this->getPatchContentsDefaults([$entity]);
+      $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
 
       // The new model should contain the updated value.
       $data = self::decodeResponse($response);
       self::assertEquals($new_label, $data['model'][$globalComponentUuid]['resolved']['label']);
 
-      self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
+      self::assertFalse($autoSave->getAutoSaveEntity($entity)->isEmpty());
       $sidebarFirstRegion = NULL;
       foreach ($regions as $region) {
         // The updated component is in sidebar_first and so auto-save should not
@@ -349,7 +361,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         self::assertEquals($region->get('region') !== 'sidebar_first', $autoSave->getAutoSaveEntity($region)->isEmpty());
         if ($region->get('region') === 'sidebar_first') {
           $sidebarFirstRegion = $region;
-          $this->assertResponseAutoSaves($response, [$node], $withGlobal);
+          $this->assertResponseAutoSaves($response, [$entity], $withGlobal);
         }
       }
       $this->assertNotNull($sidebarFirstRegion);
@@ -357,27 +369,33 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       // Trying to post the same data again should throw a conflict exception
       // because it does not contain the auto-save hash of the region.
       $updateRegionClientData['clientInstanceId'] .= '-new-client';
-      $this->assertRequestAutoSaveConflict(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
 
       unset($updateRegionClientData['autoSaves']);
       $updateRegionClientData['clientInstanceId'] .= '-new-client2';
-      $updateRegionClientData += $this->getClientAutoSaves([$node], $withGlobal);
-      $response = $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
+      $updateRegionClientData += $this->getClientAutoSaves([$entity], $withGlobal);
+      $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
       $this->assertSame(200, $response->getStatusCode());
     }
   }
 
   public static function providerValid(): iterable {
-    yield 'fresh state, no global' => [];
-    yield 'fresh state, global' => [FALSE, TRUE];
-    yield 'existing auto-save, no global' => [TRUE, FALSE];
-    yield 'existing auto-save, global' => [TRUE, TRUE];
+    foreach (['node', ContentTemplate::ENTITY_TYPE_ID] as $entity_type) {
+      yield "$entity_type: fresh state, no global" => [$entity_type];
+      yield "$entity_type: fresh state, global" => [$entity_type, FALSE, TRUE];
+      yield "$entity_type: existing auto-save, no global" => [$entity_type, TRUE, FALSE];
+      yield "$entity_type: existing auto-save, global" => [$entity_type, TRUE, TRUE];
+    }
   }
 
-  public function testWithoutPageRegionPermission(): void {
+  /**
+   * @dataProvider providerEntityTypes
+   */
+  public function testWithoutPageRegionPermission(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [
       'administer url aliases',
-      'edit any article content',
+      self::getAdminPermission($entity),
     ]);
 
     $autoSave = $this->container->get(AutoSaveManager::class);
@@ -387,7 +405,8 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       $region->save();
     }
     // Load the test data from the layout controller.
-    $this->request(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
+    $url = $this->getLayoutUrl($entity)->toString();
+    $this->request(Request::create($url))->getContent();
 
     // Check that content region exist and is wrapped.
     $contentRegion = $this->getRegion('content');
@@ -408,7 +427,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $this->expectException(AccessDeniedHttpException::class);
     $this->expectExceptionMessage('Access denied for region highlighted');
 
-    $this->request(Request::create('/canvas/api/v0/layout/node/1', method: 'PATCH', content: \json_encode([
+    $this->request(Request::create($url, method: 'PATCH', content: \json_encode([
       'model' => [
         'resolved' => [
           'label' => $new_label,
@@ -417,7 +436,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       ],
       'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
       'componentInstanceUuid' => $globalComponentUuid,
-    ] + $this->getPatchContentsDefaults([Node::load(1)], FALSE), JSON_THROW_ON_ERROR)));
+    ] + $this->getPatchContentsDefaults([$entity], FALSE), JSON_THROW_ON_ERROR)));
   }
 
 }
