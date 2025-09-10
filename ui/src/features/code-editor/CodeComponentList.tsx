@@ -45,7 +45,7 @@ const CodeComponentList = () => {
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
-  const { codeComponentId: componentId, entityId, entityType } = useParams();
+  const { codeComponentId: componentId } = useParams();
   useEffect(() => {
     if (error || foldersError) {
       showBoundary(error || foldersError);
@@ -53,13 +53,7 @@ const CodeComponentList = () => {
   }, [error, showBoundary, foldersError]);
 
   const handleComponentClick = (machineName: string) => {
-    if (!entityId || !entityType) {
-      navigate(`/code-editor/code/${machineName}`);
-    } else {
-      navigate(
-        `/editor/${entityType}/${entityId}/code-editor/code/${machineName}`,
-      );
-    }
+    navigate(`/code-editor/code/${machineName}`);
   };
 
   const handleRenameClick = (component: CodeComponentSerialized) => {

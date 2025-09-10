@@ -31,7 +31,7 @@ import {
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { DEFAULT_REGION, selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
@@ -72,6 +72,7 @@ const PageInfo = () => {
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
   const isCodeEditor = codeComponentName !== '';
   const layout = useAppSelector(selectLayout);
+  const previouslyEdited = useAppSelector(selectPreviouslyEdited);
   const dispatch = useAppDispatch();
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
@@ -243,12 +244,13 @@ const PageInfo = () => {
 
   return (
     <Flex gap="2" align="center">
-      {isCodeEditor && entityType && entityId ? (
+      {isCodeEditor && previouslyEdited.path ? (
         <NavLink
           to={{
-            pathname: `/editor/${entityType}/${entityId}`,
+            pathname: previouslyEdited.path,
           }}
-          aria-label="Back to page editor"
+          aria-label={`Back to page editor (${previouslyEdited.name})`}
+          title={`Back to page editor (${previouslyEdited.name})`}
           onClick={() => {
             // Fetch a new version of the page data form as it has been
             // unmounted and the cached versions won't reflect any AJAX updates

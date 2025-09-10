@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -9,6 +8,7 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
+import { selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for adding a JS component to components. This changes
@@ -20,7 +20,7 @@ const AddToComponentsDialog = () => {
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
   const { isAddToComponentsDialogOpen } = useAppSelector(selectDialogStates);
-  const { entityId, entityType } = useParams();
+  const previouslyEdited = useAppSelector(selectPreviouslyEdited);
 
   const handleSave = async () => {
     if (!selectedComponent) return;
@@ -49,13 +49,13 @@ const AddToComponentsDialog = () => {
   useEffect(() => {
     if (isSuccess) {
       dispatch(closeAllDialogs());
-      if (!entityId || !entityType) {
+      if (!previouslyEdited.path) {
         navigate('/editor');
       } else {
-        navigate(`/editor/${entityType}/${entityId}`);
+        navigate(previouslyEdited.path);
       }
     }
-  }, [isSuccess, dispatch, navigate, entityId, entityType]);
+  }, [isSuccess, dispatch, navigate, previouslyEdited.path]);
 
   useEffect(() => {
     if (isError) {

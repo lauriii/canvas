@@ -72,7 +72,7 @@ test.describe('AI Features', () => {
     await ai.openPanel();
     await ai.submitQuery('Create component');
     await expect(page).toHaveURL(
-      /\/canvas\/editor\/canvas_page\/\d+\/code-editor\/component\/herobanner/,
+      /\/canvas\/code-editor\/component\/herobanner/,
     );
     await page.getByTestId('canvas-publish-review').click();
     await page
@@ -96,7 +96,7 @@ test.describe('AI Features', () => {
     // Create a second component.
     await ai.submitQuery('Create second component');
     await expect(page).toHaveURL(
-      /\/canvas\/editor\/canvas_page\/\d+\/code-editor\/component\/herobannersecond/,
+      /\/canvas\/code-editor\/component\/herobannersecond/,
     );
     const preview = canvasEditor.getCodePreviewFrame();
     const redElements = preview.locator('.bg-red-600');

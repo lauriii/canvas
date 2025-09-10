@@ -15,6 +15,7 @@ import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
+import useReturnableLocation from '@/hooks/useReturnableLocation';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 
@@ -27,6 +28,7 @@ const Editor = () => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const params = useParams();
+  useReturnableLocation();
 
   useEffect(() => {
     return () => {

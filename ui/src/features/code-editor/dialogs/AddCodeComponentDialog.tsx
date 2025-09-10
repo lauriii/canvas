@@ -63,9 +63,7 @@ const AddCodeComponentDialog = () => {
       setComponentName('');
       setValidationError('');
       dispatch(closeAllDialogs());
-      navigate(
-        `/editor/${entityType}/${entityId}/code-editor/code/${data.machineName}`,
-      );
+      navigate(`/code-editor/code/${data.machineName}`);
       reset();
     }
   }, [

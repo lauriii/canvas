@@ -17,6 +17,11 @@ export interface EditorViewPort {
   scale: number;
 }
 
+export interface PreviouslyEdited {
+  name: string;
+  path: string;
+}
+
 export interface Selection {
   consecutive: boolean;
   items: string[];
@@ -49,6 +54,7 @@ export interface uiSliceState {
   editorFrameMode: EditorFrameMode;
   undoStack: Array<UndoRedoType>;
   redoStack: Array<UndoRedoType>;
+  PreviouslyEdited: PreviouslyEdited;
 }
 
 type UpdateViewportPayload = {
@@ -87,6 +93,7 @@ export const initialState: uiSliceState = {
     items: [],
   },
   collapsedLayers: [],
+  PreviouslyEdited: { name: '', path: '' },
 };
 
 export interface ScaleValue {
@@ -278,6 +285,14 @@ export const uiSlice = createAppSlice({
         }
       },
     ),
+    setPreviouslyEdited: create.reducer(
+      (state, action: PayloadAction<PreviouslyEdited>) => {
+        state.PreviouslyEdited = action.payload;
+      },
+    ),
+    unsetPreviouslyEdited: create.reducer((state) => {
+      state.PreviouslyEdited = { name: '', path: '' };
+    }),
     setCollapsedLayers: (state, action: PayloadAction<string[]>) => {
       state.collapsedLayers = action.payload;
     },
@@ -366,6 +381,9 @@ export const uiSlice = createAppSlice({
     selectCollapsedLayers: (ui): string[] => {
       return ui.collapsedLayers;
     },
+    selectPreviouslyEdited: (ui): PreviouslyEdited => {
+      return ui.PreviouslyEdited;
+    },
   },
 });
 
@@ -396,6 +414,8 @@ export const {
   performUndoOrRedo,
   clearSelection,
   setSelection,
+  setPreviouslyEdited,
+  unsetPreviouslyEdited,
   setCollapsedLayers,
   toggleCollapsedLayer,
   removeCollapsedLayers,
@@ -420,6 +440,7 @@ export const {
   selectSelection,
   selectIsMultiSelect,
   selectCollapsedLayers,
+  selectPreviouslyEdited,
 } = uiSlice.selectors;
 
 // Memoized selectors using createSelector for better performance

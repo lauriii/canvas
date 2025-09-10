@@ -135,23 +135,14 @@ const componentStructureHandler = {
     message,
     createCodeComponent,
     navigate,
-    params,
   }: {
     message: any;
     createCodeComponent: any;
     navigate: any;
-    params: any;
   }) => {
     const component = message.component_structure;
     await createCodeComponent(component).unwrap();
-    const { entityId, entityType } = params;
-    if (!entityId || !entityType) {
-      navigate(`/code-editor/component/${component.machineName}`);
-    } else {
-      navigate(
-        `/editor/${entityType}/${entityId}/code-editor/component/${component.machineName}`,
-      );
-    }
+    navigate(`/code-editor/component/${component.machineName}`);
   },
 };
 

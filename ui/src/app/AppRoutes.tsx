@@ -109,16 +109,6 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: CodeEditorUi,
           },
           {
-            // Opens the code editor for an item under 'Code'.
-            path: '/editor/:entityType/:entityId/code-editor/code/:codeComponentId',
-            element: CodeEditorUi,
-          },
-          {
-            // Opens the code editor for an item under 'Components'.
-            path: '/editor/:entityType/:entityId/code-editor/component/:codeComponentId',
-            element: CodeEditorUi,
-          },
-          {
             // Personalization
             path: '/segments/',
             element: (
