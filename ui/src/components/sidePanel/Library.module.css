@@ -1,24 +1,6 @@
-.accordionDetails {
-  margin-bottom: var(--space-2);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--slate-4);
-
-  &.subCategory {
-    margin-bottom: 0;
-    margin-left: var(--space-2);
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  &.subCategory .accordionDetailsTrigger {
-    font-size: var(--font-size-1);
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
+.tabContent {
+  width: 100%;
 }
-
-.accordionDetailsTrigger {
-  height: var(--space-6);
+.tabWrapper {
+  width: 100%;
 }

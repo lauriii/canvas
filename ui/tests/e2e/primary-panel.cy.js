@@ -51,7 +51,6 @@ describe('Primary panel', () => {
     cy.loadURLandWaitForCanvasLoaded();
 
     cy.openLibraryPanel();
-    cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
 
     const imageSelect =
       '.primaryPanelContent [data-canvas-component-id="sdc.canvas_test_sdc.image"]';

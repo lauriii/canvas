@@ -5,8 +5,6 @@ import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 import { Flex, Text } from '@radix-ui/themes';
 
-import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
-
 import type { ReactNode } from 'react';
 import type { FolderCodeComponent } from '@/features/code-editor/CodeComponentList';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
@@ -35,7 +33,6 @@ const FolderList = ({
   folder: FolderInList | FolderCodeComponent;
   children: ReactNode;
 }) => {
-  const displayContext = useDisplayContext();
   const [isOpen, setIsOpen] = useState(true);
 
   // Determine the length of items in the folder, be it object or array.
@@ -61,20 +58,17 @@ const FolderList = ({
               {folder.name}
             </Text>
           </Flex>
-          {/* Display item count only in manage-library context. */}
-          {displayContext === 'manage-library' && (
-            <Flex
-              align="end"
-              flexShrink="0"
-              px="1"
-              justify="center"
-              className={listStyles.folderCount}
-            >
-              <Text size="1" weight="medium">
-                {String(getItemsLength())}
-              </Text>
-            </Flex>
-          )}
+          <Flex
+            align="end"
+            flexShrink="0"
+            px="1"
+            justify="center"
+            className={listStyles.folderCount}
+          >
+            <Text size="1" weight="medium">
+              {String(getItemsLength())}
+            </Text>
+          </Flex>
           <Flex pl="2" align="end" flexShrink="0">
             <ChevronRightIcon
               className={clsx(listStyles.chevron, {

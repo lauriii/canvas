@@ -7,7 +7,7 @@
   height: var(--space-6);
   cursor: default;
   color: var(--slate-12);
-  border-radius: var(--radius-4);
+  border-radius: var(--radius-2);
 
   .icon {
     color: var(--bg-selected);
@@ -29,7 +29,7 @@
     justify-content: center;
     padding: 2px;
     color: var(--slate-12);
-    border-radius: var(--radius-2);
+    border-radius: var(--radius-1);
 
     &:hover {
       cursor: pointer;
@@ -47,7 +47,7 @@
   &:hover {
     background-color: var(--bg-hover);
     &.open {
-      border-radius: var(--radius-4);
+      border-radius: var(--radius-2);
     }
     .dots {
       display: flex;
@@ -58,7 +58,7 @@
     color: white;
     background-color: var(--bg-selected);
     &.open {
-      border-radius: var(--radius-4) var(--radius-4) 0 0;
+      border-radius: var(--radius-2) var(--radius-2) 0 0;
     }
 
     .icon {
@@ -87,7 +87,7 @@
 }
 
 .open {
-  border-radius: var(--radius-4) var(--radius-4) 0 0;
+  border-radius: var(--radius-2) var(--radius-2) 0 0;
 }
 
 .componentVariant {

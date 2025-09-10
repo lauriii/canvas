@@ -69,7 +69,7 @@ test.describe('Canvas UI Permissions', () => {
     // Check that a button with the text "Add new" exists inside canvas-primary-panel
     const primaryPanel = page.getByTestId('canvas-primary-panel');
     await expect(
-      primaryPanel.getByRole('button', { name: 'Add new' }),
+      primaryPanel.getByRole('button', { name: 'Create code component' }),
     ).toBeVisible();
 
     // Make a change to the page
@@ -161,7 +161,7 @@ test.describe('Canvas UI Permissions', () => {
     // Check that a button with the text "Add new" does not exist inside canvas-primary-panel
     const primaryPanel = page.getByTestId('canvas-primary-panel');
     await expect(
-      primaryPanel.getByRole('button', { name: 'Add new' }),
+      primaryPanel.getByRole('button', { name: 'Create code component' }),
     ).not.toBeAttached();
     await expect(
       primaryPanel.getByRole('button', { name: 'Code' }),
@@ -169,7 +169,7 @@ test.describe('Canvas UI Permissions', () => {
 
     // Ensure the "Patterns" button is visible - users with no permissions should still be able to use patterns.
     await expect(
-      primaryPanel.getByRole('button', { name: 'Patterns' }),
+      primaryPanel.getByTestId('canvas-manage-library-patterns-tab-select'),
     ).toBeAttached();
 
     // A change to the page was made in the previous test, so it should be visible.

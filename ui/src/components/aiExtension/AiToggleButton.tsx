@@ -2,22 +2,20 @@ import { IconButton, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  LayoutItemType,
-  selectOpenLayoutItems,
-  setCloseLayoutItem,
-  setOpenLayoutItem,
+  selectAiPanelOpen,
+  setAiPanelClosed,
+  setAiPanelOpen,
 } from '@/features/ui/primaryPanelSlice';
 
 const AiToggleButton = () => {
-  const openItems = useAppSelector(selectOpenLayoutItems);
+  const isAiPanelOpen = useAppSelector(selectAiPanelOpen);
   const dispatch = useAppDispatch();
-  const isAiPanelOpen = openItems.includes(LayoutItemType.AIWIZARD);
 
   function handleToggle() {
     if (isAiPanelOpen) {
-      dispatch(setCloseLayoutItem(LayoutItemType.AIWIZARD));
+      dispatch(setAiPanelClosed());
     } else {
-      dispatch(setOpenLayoutItem(LayoutItemType.AIWIZARD));
+      dispatch(setAiPanelOpen());
     }
   }
 

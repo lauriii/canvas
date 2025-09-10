@@ -1,5 +1,5 @@
 .componentChildrenSelected {
-  border-radius: 0 0 var(--radius-4) var(--radius-4);
+  border-radius: 0 0 var(--radius-2) var(--radius-2);
   background-color: var(--purple-3);
 }
 

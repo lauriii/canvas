@@ -36,8 +36,7 @@ const createMockStore = (
       primaryPanel: {
         activePanel,
         isHidden: false,
-        openLayoutItems: ['component'],
-        uniqueListId: '',
+        aiPanelOpen: false,
       },
     },
   });

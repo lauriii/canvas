@@ -64,7 +64,7 @@ describe('Can save and load patterns', () => {
 
       cy.openLibraryPanel();
       cy.get('.primaryPanelContent').within(() => {
-        cy.findByText('Patterns').click();
+        cy.findAllByText('Patterns').first().click();
         cy.findByText(patternName).should('exist');
       });
       cy.get('.primaryPanelContent')
@@ -91,7 +91,7 @@ describe('Can save and load patterns', () => {
       ).should('have.length', 1);
 
       // Add the pattern that was created earlier in this test.
-      cy.findByText('Patterns').click();
+      cy.findAllByText('Patterns').first().click();
 
       cy.get('.primaryPanelContent').within(() => {
         cy.findByText(patternName).should('exist');

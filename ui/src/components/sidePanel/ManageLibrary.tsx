@@ -25,7 +25,7 @@ const ManageLibrary = () => {
     <DisplayContext.Provider value="manage-library">
       <div className="flex flex-col h-full">
         <Tabs.Root defaultValue="components">
-          <Tabs.List justify="start" mx="4" size="1">
+          <Tabs.List justify="start" mt="-2" size="1">
             <Tabs.Trigger
               value="components"
               data-testid="canvas-manage-library-components-tab-select"

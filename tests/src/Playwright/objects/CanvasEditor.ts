@@ -171,14 +171,10 @@ export class CanvasEditor {
     for (let i = 0; i < count; i++) {
       await components.nth(i).waitFor({ state: 'visible' });
     }
-    const button = this.page
-      .locator('button')
-      .filter({ hasText: /^Components$/ });
-    const buttonExpanded =
-      (await button.getAttribute('aria-expanded')) === 'true';
-    if (!buttonExpanded) {
-      await button.click();
-    }
+
+    await this.page
+      .getByTestId('canvas-manage-library-components-tab-select')
+      .click();
   }
 
   async openLayersPanel() {
@@ -458,7 +454,7 @@ export class CanvasEditor {
     await this.openLibraryPanel();
     await this.page
       .locator('[data-testid="canvas-primary-panel"]')
-      .getByText('Add new')
+      .getByText('Create code component')
       .click();
     await this.page.fill('#componentName', componentName);
     await this.page

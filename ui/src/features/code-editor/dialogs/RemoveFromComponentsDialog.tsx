@@ -12,10 +12,6 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import {
-  LayoutItemType,
-  setOpenLayoutItem,
-} from '@/features/ui/primaryPanelSlice';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for removing a JS component from components. This changes
@@ -50,8 +46,6 @@ const RemoveFromComponentsDialog = () => {
       dispatch(setCodeComponentProperty(['status', false]));
       // Navigate to the code editor route that handles internal code components.
       navigate(`/code-editor/code/${selectedComponent.machineName}`);
-      // Open the "Code" accordion in the primary panel.
-      dispatch(setOpenLayoutItem(LayoutItemType.CODE));
     }
   };
 

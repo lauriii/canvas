@@ -1,16 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
-import { useAppSelector } from '@/app/hooks';
 import FolderList, {
   folderfyComponents,
   sortFolderList,
 } from '@/components/list/FolderList';
 import List from '@/components/list/List';
-import {
-  LayoutItemType,
-  selectUniqueListId,
-} from '@/features/ui/primaryPanelSlice';
+import { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import {
   useGetComponentsQuery,
   useGetFoldersQuery,
@@ -26,7 +22,6 @@ const ComponentList = () => {
     isLoading: foldersLoading,
   } = useGetFoldersQuery({ status: false });
   const { showBoundary } = useErrorBoundary();
-  const id = useAppSelector(selectUniqueListId);
 
   useEffect(() => {
     if (error || foldersError) {
@@ -51,9 +46,9 @@ const ComponentList = () => {
     <>
       {/* First, render any folders and the items they contain. */}
       {folderEntries.length > 0 &&
-        folderEntries.map((folder, index) => {
+        folderEntries.map((folder) => {
           return (
-            <FolderList key={index} folder={folder}>
+            <FolderList key={folder.id} folder={folder}>
               <List
                 items={folder.items as ComponentsList}
                 isLoading={foldersLoading}
@@ -75,7 +70,6 @@ const ComponentList = () => {
           isLoading={isLoading || foldersLoading}
           type={LayoutItemType.COMPONENT}
           label="Components"
-          key={id}
         />
       )}
     </>

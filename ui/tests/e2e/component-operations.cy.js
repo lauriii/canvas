@@ -196,7 +196,6 @@ describe.skip('Perform CRUD operations on components', () => {
 
     cy.openLibraryPanel();
     // Confirm the Library panel is open by checking if a component is visible.
-    cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
     cy.get('.primaryPanelContent').should('contain.text', 'Deprecated SDC');
 
     cy.get('.listContainer > div')

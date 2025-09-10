@@ -89,24 +89,24 @@ test.describe('Perform CRUD operations on components', () => {
         - heading "Library" [level=4]
         - button:
           - img
-        - button "Add new":
-          - img
-          - text: Add new
-        - button "Patterns" [expanded]
-        - region "Patterns"
-        - button "Components" [expanded]
-        - region "Components":
-          - button "Atom/Media" [expanded]:
+        - tablist:
+          - tab "Components" [selected]
+          - tab "Patterns"
+        - tabpanel "Components":
+          - button "Create code component":
             - img
-            - text: Atom/Media
+            - text: Create code component
+          - button "Atom/Media 1" [expanded]:
+            - img
+            - text: Atom/Media 1
             - img
           - list:
             - button "Video":
               - img
               - text: Video
-          - button "Atom/Tabs" [expanded]:
+          - button "Atom/Tabs 2" [expanded]:
             - img
-            - text: Atom/Tabs
+            - text: Atom/Tabs 2
             - img
           - list:
             - button "Shoe Tab":
@@ -115,9 +115,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Shoe Tab Panel":
               - img
               - text: Shoe Tab Panel
-          - button "Atom/Text" [expanded]:
+          - button "Atom/Text 2" [expanded]:
             - img
-            - text: Atom/Text
+            - text: Atom/Text 2
             - img
           - list:
             - button "Heading":
@@ -126,9 +126,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Shoe Badge":
               - img
               - text: Shoe Badge
-          - button "Container" [expanded]:
+          - button "Container 3" [expanded]:
             - img
-            - text: Container
+            - text: Container 3
             - img
           - list:
             - button "Grid Container":
@@ -140,17 +140,17 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Two Column":
               - img
               - text: Two Column
-          - button "Container/Special" [expanded]:
+          - button "Container/Special 1" [expanded]:
             - img
-            - text: Container/Special
+            - text: Container/Special 1
             - img
           - list:
             - button "Shoe Tab Group":
               - img
               - text: Shoe Tab Group
-          - button "core" [expanded]:
+          - button "core 3" [expanded]:
             - img
-            - text: core
+            - text: core 3
             - img
           - list:
             - button "Page title":
@@ -162,17 +162,17 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Tabs":
               - img
               - text: Tabs
-          - button "Forms" [expanded]:
+          - button "Forms 1" [expanded]:
             - img
-            - text: Forms
+            - text: Forms 1
             - img
           - list:
             - button "User login":
               - img
               - text: User login
-          - button "Lists (Views)" [expanded]:
+          - button "Lists (Views) 2" [expanded]:
             - img
-            - text: Lists (Views)
+            - text: Lists (Views) 2
             - img
           - list:
             - button "Recent content":
@@ -181,9 +181,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Who's online":
               - img
               - text: Who's online
-          - button "Menus" [expanded]:
+          - button "Menus 5" [expanded]:
             - img
-            - text: Menus
+            - text: Menus 5
             - img
           - list:
             - button "Administration":
@@ -201,9 +201,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "User account menu":
               - img
               - text: User account menu
-          - button "Other" [expanded]:
+          - button "Other 20" [expanded]:
             - img
-            - text: Other
+            - text: Other 20
             - img
           - list:
             - button "Call to Absolute Action":
@@ -212,7 +212,7 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Canvas test SDC for image gallery (>1 image)":
               - img
               - text: Canvas test SDC for image gallery (>1 image)
-            - button /Canvas test SDC for sparkline \\(>1 integers between -\\d+ and \\d+\\)/:
+            - button "Canvas test SDC for sparkline (>1 integers between -100 and 100)":
               - img
               - text: Canvas test SDC for sparkline (>1 integers between -100 and 100)
             - 'button "Canvas test SDC for testing type: \`Drupal\\\\Core\\\\Template\\\\Attribute\` special casing"':
@@ -266,9 +266,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Test SDC Image":
               - img
               - text: Test SDC Image
-          - button "Status" [expanded]:
+          - button "Status 2" [expanded]:
             - img
-            - text: Status
+            - text: Status 2
             - img
           - list:
             - button "Deprecated SDC":
@@ -277,9 +277,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Experimental SDC":
               - img
               - text: Experimental SDC
-          - button "System" [expanded]:
+          - button "System 5" [expanded]:
             - img
-            - text: System
+            - text: System 5
             - img
           - list:
             - button "Breadcrumbs":
@@ -297,9 +297,9 @@ test.describe('Perform CRUD operations on components', () => {
             - button "Site branding":
               - img
               - text: Site branding
-          - button "User" [expanded]:
+          - button "User 1" [expanded]:
             - img
-            - text: User
+            - text: User 1
             - img
           - list:
             - button "Who's new":

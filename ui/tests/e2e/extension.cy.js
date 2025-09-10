@@ -15,42 +15,38 @@ describe('extending Drupal Canvas', () => {
     cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
 
-    cy.get('.primaryPanelContent [data-state="open"]').contains('Components');
-
     // Get the components list from the sidebar so it can be compared to the
     // component select dropdown provided by the extension.
-    cy.get('.primaryPanelContent [data-state="open"] [data-canvas-name]').then(
-      ($components) => {
-        const availableComponents = [];
+    cy.get('.primaryPanelContent [data-canvas-name]').then(($components) => {
+      const availableComponents = [];
 
-        $components.each((index, item) => {
-          availableComponents.push(item.textContent.trim());
+      $components.each((index, item) => {
+        availableComponents.push(item.textContent.trim());
+      });
+
+      cy.findByLabelText('Extensions').click();
+      cy.findByText('Canvas Test Extension').click();
+
+      cy.findByTestId('ex-select-component').then(($select) => {
+        const extensionComponents = [];
+        // Get all the items with values in the extension component list, which
+        // will be compared to the component list from the Canvas UI.
+        $select.find('option').each((index, item) => {
+          if (item.value) {
+            extensionComponents.push(item.textContent.trim());
+          }
         });
 
-        cy.findByLabelText('Extensions').click();
-        cy.findByText('Canvas Test Extension').click();
-
-        cy.findByTestId('ex-select-component').then(($select) => {
-          const extensionComponents = [];
-          // Get all the items with values in the extension component list, which
-          // will be compared to the component list from the Canvas UI.
-          $select.find('option').each((index, item) => {
-            if (item.value) {
-              extensionComponents.push(item.textContent.trim());
-            }
-          });
-
-          // Check if every available component is included in the extension components
-          const allAvailableComponentsExist = availableComponents.every(
-            (component) => extensionComponents.includes(component),
-          );
-          expect(
-            allAvailableComponentsExist,
-            'All library components exist in the extension component dropdown',
-          ).to.be.true;
-        });
-      },
-    );
+        // Check if every available component is included in the extension components
+        const allAvailableComponentsExist = availableComponents.every(
+          (component) => extensionComponents.includes(component),
+        );
+        expect(
+          allAvailableComponentsExist,
+          'All library components exist in the extension component dropdown',
+        ).to.be.true;
+      });
+    });
 
     cy.log(
       'Confirm that an extension can select an item in the layout, focus it, update it, then delete it',

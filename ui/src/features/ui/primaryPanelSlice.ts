@@ -20,8 +20,7 @@ const loadSavedState = (): Partial<PrimaryPanelState> => {
 export interface PrimaryPanelState {
   activePanel: string;
   isHidden: boolean;
-  openLayoutItems: string[];
-  uniqueListId: string;
+  aiPanelOpen: boolean;
 }
 
 export enum LayoutItemType {
@@ -29,7 +28,6 @@ export enum LayoutItemType {
   COMPONENT = 'component',
   DYNAMIC = 'dynamicComponent',
   CODE = 'code',
-  AIWIZARD = 'aiWizard',
   UNDEFINED = 'undefined',
 }
 
@@ -38,9 +36,7 @@ const savedState = loadSavedState();
 const initialState: PrimaryPanelState = {
   activePanel: savedState.activePanel || 'layers',
   isHidden: false,
-  // Open the component dropdown by default.
-  openLayoutItems: [LayoutItemType.COMPONENT],
-  uniqueListId: '',
+  aiPanelOpen: false,
 };
 
 // Temporary workaround to persist primary panel state when switching between entities until
@@ -70,31 +66,19 @@ export const primaryPanelSlice = createAppSlice({
       state.activePanel = '';
       saveToLocalStorage(state);
     }),
-    setOpenLayoutItem: create.reducer(
-      (state, action: PayloadAction<string>) => {
-        state.openLayoutItems = [...state.openLayoutItems, action.payload];
-      },
-    ),
-    setCloseLayoutItem: create.reducer(
-      (state, action: PayloadAction<string>) => {
-        state.openLayoutItems = state.openLayoutItems.filter(
-          (item) => item !== action.payload,
-        );
-      },
-    ),
-    setUniqueListId: create.reducer((state, action: PayloadAction<string>) => {
-      state.uniqueListId = action.payload;
+    setAiPanelOpen: create.reducer((state) => {
+      state.aiPanelOpen = true;
+    }),
+    setAiPanelClosed: create.reducer((state) => {
+      state.aiPanelOpen = false;
     }),
   }),
   selectors: {
     selectActivePanel: (primaryPanel): string => {
       return primaryPanel.activePanel;
     },
-    selectOpenLayoutItems: (primaryPanel): string[] => {
-      return primaryPanel.openLayoutItems;
-    },
-    selectUniqueListId: (primaryPanel): string => {
-      return primaryPanel.uniqueListId;
+    selectAiPanelOpen: (primaryPanel): boolean => {
+      return primaryPanel.aiPanelOpen;
     },
   },
 });
@@ -103,11 +87,10 @@ export const primaryPanelSlice = createAppSlice({
 export const {
   setActivePanel,
   unsetActivePanel,
-  setOpenLayoutItem,
-  setCloseLayoutItem,
-  setUniqueListId,
+  setAiPanelOpen,
+  setAiPanelClosed,
 } = primaryPanelSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectActivePanel, selectOpenLayoutItems, selectUniqueListId } =
+export const { selectActivePanel, selectAiPanelOpen } =
   primaryPanelSlice.selectors;
