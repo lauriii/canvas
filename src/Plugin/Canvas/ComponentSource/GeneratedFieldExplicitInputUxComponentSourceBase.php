@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -511,11 +512,15 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $sdc_prop_name = $component_prop->propName;
       $source = $this->uncollapse($client_model[$sdc_prop_name] ?? $default_prop_sources[$sdc_prop_name], $sdc_prop_name);
       $disabled = FALSE;
+      $label_suffix = '';
       if (!$source instanceof StaticPropSource) {
-        // @todo Design is undefined for the DynamicPropSource UX. Related: https://www.drupal.org/project/canvas/issues/3459234
+        // @todo Build DynamicPropSource UX in https://www.drupal.org/i/3541037. Related: https://www.drupal.org/project/canvas/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.
         // Fall back to the static version, disabled for now where the design is undefined.
         $disabled = !$source instanceof DefaultRelativeUrlPropSource;
+        if ($source instanceof DynamicPropSource) {
+          $label_suffix = sprintf(" — ⚠️ DISABLED because this prop is actually populated by a DynamicPropSource (%s)", $source->toArray()['expression']);
+        }
         $source = $this->getDefaultStaticPropSource($sdc_prop_name);
       }
 
@@ -530,7 +535,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       assert($component instanceof Component);
-      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id);
+      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label . $label_suffix, $field_widget_plugin_id);
       $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
@@ -867,7 +872,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
     $props = [];
 
     $required_props = $this->getExplicitInputDefinitions()['required'];
@@ -935,8 +940,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         }
         $source = PropSource::parse($prop_source);
         // Make sure we can evaluate this prop source with the passed values.
-        // @todo Pass the host entity in https://drupal.org/i/3513590
-        $evaluated = $source->evaluate(NULL, $is_required_prop);
+        $evaluated = $source->evaluate($host_entity, $is_required_prop);
 
         // Optional component props that evaluate to NULL can be omitted:
         // storing these would be a waste of storage space.

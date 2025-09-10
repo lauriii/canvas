@@ -482,7 +482,7 @@ HTML,
       // Behavior when component is first added to the layout.
       // @see addNewComponentToLayout AppThunk in layoutModelSlice.ts
       'resolved' => [],
-    ]);
+    ], NULL);
     self::assertSame([
       'label' => 'Test block form',
       // This confusingly isn't a boolean, because that what its config schema dictates.
@@ -499,7 +499,7 @@ HTML,
       'resolved' => [
         'canvas_page' => \sprintf('%s (%d)', $page1->label(), $page1->id()),
       ],
-    ]);
+    ], NULL);
     // Confirm that block validation and submit methods are called.
     self::assertEquals([
       'canvas_page' => $page1->id(),
@@ -521,7 +521,7 @@ HTML,
       'resolved' => [
         'canvas_page' => \sprintf('%s (%d)', $page2->label(), $page2->id()),
       ],
-    ]);
+    ], NULL);
     $violations = $source->validateComponentInput($input, $uuid, NULL);
     self::assertCount(1, $violations);
     $first = $violations[0];

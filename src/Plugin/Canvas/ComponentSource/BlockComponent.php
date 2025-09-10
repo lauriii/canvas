@@ -400,7 +400,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
     // @todo Remove this in https://www.drupal.org/project/canvas/issues/3500994#comment-15951774 — the client should send the right data.
     $defaults = $component->get('settings')['default_settings'];
     // 💡 The client side's simplest model (`ComponentModel`) is used for

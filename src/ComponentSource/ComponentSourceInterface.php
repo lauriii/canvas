@@ -207,6 +207,9 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   Component for this instance.
    * @param array{source: SingleComponentInputArray, resolved: array<string, mixed>} $client_model
    *   Client model for this component.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   Host entity. Required when a component instance has inputs populated by
+   *   DynamicPropSources.
    * @param \Symfony\Component\Validator\ConstraintViolationListInterface|null $violations
    *   If validation should be performed, a violation constraint list, or NULL
    *   otherwise. Use ::addViolation to add violations detected during conversion.
@@ -216,9 +219,10 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @see ::inputToClientModel()
    * @see \Drupal\canvas\AutoSave\AutoSaveManager::saveComponentInstanceFormViolations
+   * @see \Drupal\canvas\PropSource\DynamicPropSource
    * @todo Refactor to use the Symfony denormalizer infrastructure?
    */
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array;
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array;
 
   /**
    * Validates component input.

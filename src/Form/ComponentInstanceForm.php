@@ -102,7 +102,7 @@ final class ComponentInstanceForm extends FormBase {
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 
-    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model);
+    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $entity);
 
     $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = self::FORM_ID;

@@ -115,7 +115,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     return $form;
   }
 
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
     // Just keep things as is.
     // @phpstan-ignore-next-line Array shape here is unknown.
     return $client_model;

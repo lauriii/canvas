@@ -207,7 +207,7 @@ final class Personalization extends ComponentSourceBase implements
     return $client_side_info;
   }
 
-  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
     return $client_model['resolved'] ?? [];
   }
 

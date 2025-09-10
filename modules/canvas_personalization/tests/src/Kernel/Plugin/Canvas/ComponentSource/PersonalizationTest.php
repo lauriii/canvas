@@ -458,7 +458,7 @@ HTML,
     // in this ComponentSource plugin!
     self::assertSame(['resolved' => $explicit_input], $actual_model_client);
     // @phpstan-ignore-next-line argument.type
-    self::assertSame($explicit_input, $component_source->clientModelToInput('20a189a3-8bf2-4384-b2f4-495a6812f372', $component, $actual_model_client));
+    self::assertSame($explicit_input, $component_source->clientModelToInput('20a189a3-8bf2-4384-b2f4-495a6812f372', $component, $actual_model_client, NULL));
   }
 
   public static function explicitsInputsProvider(): \Generator {

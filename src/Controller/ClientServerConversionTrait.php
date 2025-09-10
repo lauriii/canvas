@@ -30,7 +30,7 @@ trait ClientServerConversionTrait {
   use ComponentTreeItemListInstantiatorTrait;
 
   /**
-   * @todo Refactor/remove in https://www.drupal.org/project/canvas/issues/3467954.
+   * @todo Refactor/remove in https://www.drupal.org/i/3521002
    * @param LayoutClientStructureArray $layout
    * @phpstan-return ComponentTreeItemListArray
    * @throws \Drupal\canvas\Exception\ConstraintViolationException
@@ -126,7 +126,7 @@ trait ClientServerConversionTrait {
    * @return ComponentTreeItemListArray
    * @throws \Drupal\canvas\Exception\ConstraintViolationException
    */
-  private static function clientModelToInput(array $items, ?FieldableEntityInterface $entity = NULL, bool $validate = TRUE): array {
+  private static function clientModelToInput(array $items, ?FieldableEntityInterface $entity, bool $validate = TRUE): array {
     $component_ids = \array_column($items, 'component_id');
     $components = Component::loadMultiple($component_ids);
 
@@ -147,7 +147,7 @@ trait ClientServerConversionTrait {
       $source = $component->getComponentSource();
       // First we transform the incoming client model into input values using
       // the source plugin.
-      $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $violation_list);
+      $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $entity, $violation_list);
       if ($violation_list !== NULL) {
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(
