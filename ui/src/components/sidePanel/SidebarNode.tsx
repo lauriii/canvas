@@ -33,7 +33,7 @@ const VARIANTS = {
 export type SideBarNodeVariant = keyof typeof VARIANTS;
 
 const SidebarNode = React.forwardRef<
-  HTMLDivElement,
+  HTMLDivElement | HTMLAnchorElement,
   {
     title: string;
     variant: SideBarNodeVariant;
@@ -47,6 +47,7 @@ const SidebarNode = React.forwardRef<
     className?: string;
     onMenuOpenChange?: (open: boolean) => void;
     includeDropdown?: boolean;
+    href?: string;
   } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
@@ -63,13 +64,13 @@ const SidebarNode = React.forwardRef<
       className,
       onMenuOpenChange,
       includeDropdown = true,
+      href,
       ...props
     },
     ref,
   ) => {
-    return (
+    const content = (
       <Flex
-        ref={ref}
         align="center"
         pr="2"
         maxWidth="100%"
@@ -102,7 +103,7 @@ const SidebarNode = React.forwardRef<
             {VARIANTS[variant].icon}
           </Flex>
           <Flex px="2" align="center" flexGrow="1" overflow="hidden">
-            <Text size="1" className={styles.title}>
+            <Text size="1" truncate className={styles.title}>
               {title}
             </Text>
           </Flex>
@@ -124,6 +125,19 @@ const SidebarNode = React.forwardRef<
         )}
       </Flex>
     );
+
+    if (href) {
+      return (
+        <a
+          href={href}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+          {content}
+        </a>
+      );
+    }
+
+    return <>{content}</>;
   },
 );
 

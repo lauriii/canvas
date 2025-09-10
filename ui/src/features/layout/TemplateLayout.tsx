@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import { useGetTemplateLayoutQuery } from '@/services/componentAndLayout';
 
 import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 
-const Layout = () => {
+const TemplateLayout = () => {
   const dispatch = useAppDispatch();
   const isInitialized = useAppSelector(selectIsInitialized);
   const {
@@ -14,7 +14,7 @@ const Layout = () => {
     error,
     isError,
     isFetching,
-  } = useGetPageLayoutQuery(
+  } = useGetTemplateLayoutQuery(
     undefined,
     // Setting `refetchOnMountOrArgChange` instead of a cache invalidation
     // prevents re-fetching due to the same query being used elsewhere in the app.
@@ -62,4 +62,4 @@ const Layout = () => {
   return null;
 };
 
-export default Layout;
+export default TemplateLayout;

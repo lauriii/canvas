@@ -13,8 +13,14 @@ const useReturnableLocation = () => {
   useEffect(() => {
     const segments = pathname.split('/').filter(Boolean);
     const isEditor = segments.includes('editor');
+    const isTemplateEditor = segments.includes('template');
     if (isEditor && entityTitle) {
       dispatch(setPreviouslyEdited({ path: pathname, name: entityTitle }));
+    }
+    if (isTemplateEditor) {
+      dispatch(
+        setPreviouslyEdited({ path: pathname, name: 'Template Editor' }),
+      );
     }
   }, [dispatch, pathname, entityTitle]);
 };

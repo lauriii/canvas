@@ -91,6 +91,29 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ],
           },
           {
+            path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',
+            element: (
+              <>
+                <SideMenu />
+                <Editor />
+              </>
+            ),
+            children: [
+              {
+                path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId/component/:componentId',
+                element: <DummyPropsEditForm />,
+              },
+              {
+                path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId',
+                element: <DummyPropsEditForm />,
+              },
+              {
+                path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',
+                element: <DummyPropsEditForm />,
+              },
+            ],
+          },
+          {
             path: '/preview/:entityType/:entityId/',
             element: <PagePreview />,
           },

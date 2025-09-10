@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
+import { useLocation } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -12,6 +13,7 @@ import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import Layout from '@/features/layout/Layout';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
+import TemplateLayout from '@/features/layout/TemplateLayout';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import { setFirstLoadComplete } from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
@@ -25,10 +27,16 @@ const Editor = () => {
   const dispatch = useAppDispatch();
   useLayoutWatcher();
   useSyncParamsToState();
+  useReturnableLocation();
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const params = useParams();
-  useReturnableLocation();
+  const { pathname } = useLocation();
+
+  let editing = 'page';
+  if (pathname.includes('/template/')) {
+    editing = 'template';
+  }
 
   useEffect(() => {
     return () => {
@@ -58,7 +66,8 @@ const Editor = () => {
         onReset={isUndoable ? dispatchUndo : undefined}
         resetButtonText={isUndoable ? 'Undo last action' : undefined}
       >
-        <Layout />
+        {editing === 'page' && <Layout />}
+        {editing === 'template' && <TemplateLayout />}
       </ErrorBoundary>
       <EditorFrame />
       <ContextualPanel />

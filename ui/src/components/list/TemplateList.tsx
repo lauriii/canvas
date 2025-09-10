@@ -16,6 +16,7 @@ import {
 import Dialog from '@/components/Dialog';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
+import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
 import {
   useDeleteContentTemplateMutation,
   useGetContentTemplatesQuery,
@@ -174,6 +175,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     deleteContentTemplate,
     { isLoading, error, isError, isSuccess, reset },
   ] = useDeleteContentTemplateMutation();
+  const selectedTemplateId = useGetEditedTemplateId();
 
   const handleDelete = async () => {
     await deleteContentTemplate(viewMode.id);
@@ -227,6 +229,8 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
       <ContextMenu.Root key={viewMode.id}>
         <ContextMenu.Trigger>
           <SidebarNode
+            key={viewMode.id}
+            href={`/canvas/template/${viewMode.entityType}/${viewMode.bundle}/${viewMode.viewMode}/${viewMode.suggestedPreviewEntityId || 0}`}
             title={`${viewMode.viewModeLabel} template`}
             variant="template"
             dropdownMenuContent={
@@ -241,6 +245,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
                 </UnifiedMenu.Item>
               </UnifiedMenu.Content>
             }
+            selected={selectedTemplateId === viewMode.id}
           />
         </ContextMenu.Trigger>
       </ContextMenu.Root>

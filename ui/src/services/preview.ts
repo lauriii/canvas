@@ -16,7 +16,7 @@ import type {
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
 
-type UpdateComponentResultType = {
+export type UpdateComponentResultType = {
   html: string;
   layout: any;
   model: any;
@@ -24,7 +24,7 @@ type UpdateComponentResultType = {
   errors?: Array<ConflictError>;
 };
 
-type UpdateComponentQueryArg = {
+export type UpdateComponentQueryArg = {
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;

@@ -1,14 +1,21 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
+import { setLayoutModel } from '@/features/layout/layoutModelSlice';
 import {
   setInitialPageData,
   setPageData,
 } from '@/features/pageData/pageDataSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type {
+  UpdateComponentQueryArg,
+  UpdateComponentResultType,
+} from '@/services/preview';
 import type { AutoSavesHash } from '@/types/AutoSaves';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { ComponentsList, libraryTypes } from '@/types/Component';
@@ -97,7 +104,7 @@ export const componentAndLayoutApi = createApi({
         );
       },
     }),
-    getLayoutById: builder.query<LayoutApiResponse, void>({
+    getPageLayout: builder.query<LayoutApiResponse, void>({
       query: () => {
         return `canvas/api/v0/layout/{entity_type}/{entity_id}`;
       },
@@ -116,6 +123,73 @@ export const componentAndLayoutApi = createApi({
         }
       },
     }),
+    getTemplateLayout: builder.query<LayoutApiResponse, void>({
+      query: () => {
+        return `canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}`;
+      },
+      providesTags: () => [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const {
+            data: { entity_form_fields, html, autoSaves },
+            meta,
+          } = await queryFulfilled;
+          dispatch(setInitialPageData(entity_form_fields));
+          dispatch(setHtml(html));
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        } catch (err) {
+          dispatch(setPageData({}));
+        }
+      },
+    }),
+    postTemplateLayout: builder.mutation<
+      { html: string; autoSaves: AutoSavesHash },
+      { layout: any; model: any; entity_form_fields: any }
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
+        method: 'POST',
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        // Update our template preview slice.
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        dispatch(setPostPreviewCompleted(true));
+      },
+    }),
+    updateComponentInTemplate: builder.mutation<
+      UpdateComponentResultType,
+      UpdateComponentQueryArg
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
+        method: 'PATCH',
+        body,
+      }),
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, layout, model, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        // Pass update preview false to prevent a subsequent preview update,
+        // we have the data here.
+        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+      },
+    }),
+
     getCodeComponents: builder.query<
       Record<string, CodeComponentSerialized>,
       { status?: boolean } | void
@@ -316,7 +390,10 @@ export const componentAndLayoutApi = createApi({
 
 export const {
   useGetComponentsQuery,
-  useGetLayoutByIdQuery,
+  useGetPageLayoutQuery,
+  useGetTemplateLayoutQuery,
+  usePostTemplateLayoutMutation,
+  useUpdateComponentInTemplateMutation,
   useGetCodeComponentsQuery,
   useGetCodeComponentQuery,
   useCreateCodeComponentMutation,

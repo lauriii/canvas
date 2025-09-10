@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useLocation } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
+import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
 import {
   selectUpdateComponentLoadingState,
@@ -42,18 +44,40 @@ const Preview: React.FC<PreviewProps> = () => {
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation({
     fixedCacheKey: 'editorFramePreview',
   });
+  const [postTemplatePreview, { isLoading: isTemplateFetching }] =
+    usePostTemplateLayoutMutation({
+      fixedCacheKey: 'editorFrameTemplatePreview',
+    });
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponentId),
   );
   const dispatch = useAppDispatch();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
+  const { pathname } = useLocation();
+  let editing = 'page';
+  // @todo: May want to find a more robust way of determining if we are editing a template.
+  if (pathname.includes('/template/')) {
+    editing = 'template';
+  }
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
       try {
         // Trigger the mutation
         await postPreview({ layout, model, entity_form_fields }).unwrap();
+      } catch (err) {
+        showBoundary(err);
+      }
+    };
+    const sendTemplatePreviewRequest = async () => {
+      try {
+        // Trigger the mutation
+        await postTemplatePreview({
+          layout,
+          model,
+          entity_form_fields,
+        }).unwrap();
       } catch (err) {
         showBoundary(err);
       }
@@ -73,13 +97,17 @@ const Preview: React.FC<PreviewProps> = () => {
         previousEntityFormAlias.current = entity_form_fields['path[0][alias]'];
       }
 
-      sendPreviewRequest().then(() => {
-        if (invalidatePageList) {
-          dispatch(
-            contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
-          );
-        }
-      });
+      if (editing === 'template') {
+        sendTemplatePreviewRequest().then(() => {});
+      } else {
+        sendPreviewRequest().then(() => {
+          if (invalidatePageList) {
+            dispatch(
+              contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+            );
+          }
+        });
+      }
     }
   }, [
     layout,
@@ -90,13 +118,17 @@ const Preview: React.FC<PreviewProps> = () => {
     showBoundary,
     dispatch,
     title,
+    postTemplatePreview,
+    editing,
   ]);
 
   return (
     <ComponentHtmlMapProvider>
       <Viewport
         frameSrcDoc={frameSrcDoc}
-        isFetching={(isFetching || isPatching) && !backgroundUpdate}
+        isFetching={
+          (isFetching || isPatching || isTemplateFetching) && !backgroundUpdate
+        }
       />
     </ComponentHtmlMapProvider>
   );

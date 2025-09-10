@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
 import {
   ChevronLeftIcon,
   CodeIcon,
@@ -45,6 +45,10 @@ import {
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
+import {
+  removeComponentFromPathname,
+  removeRegionFromPathname,
+} from '@/utils/route-utils';
 
 import type { ReactElement } from 'react';
 import type { ContentStub } from '@/types/Content';
@@ -78,6 +82,7 @@ const PageInfo = () => {
     (region) => region.id === focusedRegion,
   )?.name;
   const { entityType, entityId } = useParams();
+  const location = useLocation();
   const title = useEntityTitle();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -249,8 +254,8 @@ const PageInfo = () => {
           to={{
             pathname: previouslyEdited.path,
           }}
-          aria-label={`Back to page editor (${previouslyEdited.name})`}
-          title={`Back to page editor (${previouslyEdited.name})`}
+          aria-label={`Back`}
+          title={`${previouslyEdited.name}`}
           onClick={() => {
             // Fetch a new version of the page data form as it has been
             // unmounted and the cached versions won't reflect any AJAX updates
@@ -332,7 +337,9 @@ const PageInfo = () => {
       ) : (
         <NavLink
           to={{
-            pathname: `/editor/${entityType}/${entityId}`,
+            pathname: removeComponentFromPathname(
+              removeRegionFromPathname(location.pathname),
+            ),
           }}
           aria-label="Back to Content region"
           onClick={() => {

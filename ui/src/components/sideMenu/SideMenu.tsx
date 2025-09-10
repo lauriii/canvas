@@ -78,8 +78,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     } else if (isEditor && activePanelRef.current === 'manageLibrary') {
       // we came from the library to the editor, so switch to "library"
       dispatch(setActivePanel('library'));
-    } else if (isEditor) {
-      dispatch(setActivePanel('layers'));
     }
   }, [dispatch, isCodeEditor, isEditor]);
 

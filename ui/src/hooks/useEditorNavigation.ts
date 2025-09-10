@@ -1,9 +1,12 @@
 import { useCallback } from 'react';
-import { useParams } from 'react-router';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+import {
+  removeComponentFromPathname,
+  setRegionInPathname,
+} from '@/utils/route-utils';
 
 const canvasSettings = getCanvasSettings();
 
@@ -13,19 +16,18 @@ const canvasSettings = getCanvasSettings();
  */
 export function useEditorNavigation() {
   const navigate = useNavigate();
-  const params = useParams();
+  const location = useLocation();
   const drupalBaseUrl = getBaseUrl();
 
   const setSelectedRegion = useCallback(
     (regionId?: string) => {
-      const baseUrl = `/editor/${params.entityType}/${params.entityId}`;
-      if (regionId === DEFAULT_REGION || !regionId) {
-        navigate(`${baseUrl}`);
-      } else {
-        navigate(`${baseUrl}/region/${regionId}`);
-      }
+      // Remove any /component/:componentId from the path first
+      const basePath = removeComponentFromPathname(location.pathname);
+      // Use the utility to robustly set /region/:regionId
+      const newPath = setRegionInPathname(basePath, regionId, DEFAULT_REGION);
+      navigate(newPath);
     },
-    [navigate, params],
+    [navigate, location.pathname],
   );
 
   const setEditorEntity = useCallback(

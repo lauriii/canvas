@@ -4,7 +4,7 @@ import TextField from '@/components/form/components/TextField';
 import InputBehaviors from '@/components/form/inputBehaviors';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { a2p } from '@/local_packages/utils.js';
-import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -61,7 +61,7 @@ const DrupalPathWidget = ({
   const autoGenerateOn = useRef<boolean>(false);
 
   const titleInput = useEntityTitle();
-  const { data: fetchedLayout } = useGetLayoutByIdQuery();
+  const { data: fetchedLayout } = useGetPageLayoutQuery();
   const isPublished = fetchedLayout?.isPublished;
 
   const handleChange = useCallback(

@@ -5,7 +5,7 @@ import { Badge } from '@radix-ui/themes';
 import { useAppDispatch } from '@/app/hooks';
 import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 import { setHomepageStagedConfigExists } from '@/features/configuration/configurationSlice';
-import { useGetLayoutByIdQuery } from '@/services/componentAndLayout';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 import { findInChanges } from '@/utils/function-utils';
 
@@ -56,7 +56,7 @@ const PageStatus = () => {
     useGetAllPendingChangesQuery();
   const { entityType, entityId } = useParams();
   const [hasAutoSave, setHasAutoSave] = useState(false);
-  const { data: fetchedLayout, isError } = useGetLayoutByIdQuery();
+  const { data: fetchedLayout, isError } = useGetPageLayoutQuery();
   const dispatch = useAppDispatch();
 
   useEffect(() => {

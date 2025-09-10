@@ -24,9 +24,23 @@ export const baseQuery: BaseQueryFn<
  */
 const extractEntityParams = (url: string) => {
   // Match /canvas/(editor||preview)/:entityType/:entityId/
-  const match = url.match(/\/canvas\/(editor|preview)\/([^/]+)\/([^/]+)\/?/);
-  if (match) {
-    return { entityType: match[2], entityId: match[3] };
+  const matchPageEditor = url.match(
+    /\/canvas\/(editor|preview)\/([^/]+)\/([^/]+)\/?/,
+  );
+  // /template/:entityType/:bundle/:viewMode/:previewEntityId/
+  // /canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}
+  const matchTemplateEditor = url.match(
+    /\/canvas\/template\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/?/,
+  );
+  if (matchPageEditor) {
+    return { entityType: matchPageEditor[2], entityId: matchPageEditor[3] };
+  } else if (matchTemplateEditor) {
+    return {
+      entityType: matchTemplateEditor[1],
+      templateBundle: matchTemplateEditor[2],
+      templateViewMode: matchTemplateEditor[3],
+      entityId: matchTemplateEditor[4],
+    };
   }
   return { entityType: undefined, entityId: undefined };
 };
@@ -39,6 +53,8 @@ const replaceEntityParamsInUrl = (
   url: string,
   entityType?: string,
   entityId?: string,
+  templateBundle?: string,
+  templateViewMode?: string,
 ): string => {
   let newUrl = url;
   if (url.includes('{entity_type}')) {
@@ -46,7 +62,7 @@ const replaceEntityParamsInUrl = (
       newUrl = newUrl.replace('{entity_type}', entityType);
     } else {
       throw new Error(
-        `The URL "${url}" requires an entity type, but it could not be extracted from the current location.`,
+        `The URL "${url}" requires an Entity type, but it could not be extracted from the current location.`,
       );
     }
   }
@@ -55,7 +71,25 @@ const replaceEntityParamsInUrl = (
       newUrl = newUrl.replace('{entity_id}', entityId);
     } else {
       throw new Error(
-        `The URL "${url}" requires an entity id, but it could not be extracted from the current location.`,
+        `The URL "${url}" requires an Entity ID, but it could not be extracted from the current location.`,
+      );
+    }
+  }
+  if (url.includes('{template_bundle}')) {
+    if (templateBundle !== undefined) {
+      newUrl = newUrl.replace('{template_bundle}', templateBundle);
+    } else {
+      throw new Error(
+        `The URL "${url}" requires a Template Bundle, but it could not be extracted from the current location.`,
+      );
+    }
+  }
+  if (url.includes('{template_view_mode}')) {
+    if (templateViewMode !== undefined) {
+      newUrl = newUrl.replace('{template_view_mode}', templateViewMode);
+    } else {
+      throw new Error(
+        `The URL "${url}" requires a Template View Mode, but it could not be extracted from the current location.`,
       );
     }
   }
@@ -84,8 +118,15 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     extraOptions: object = {},
   ) => {
     const url = typeof arg == 'string' ? arg : arg.url;
-    const { entityType, entityId } = extractEntityParams(window.location.href);
-    const newUrl = replaceEntityParamsInUrl(url, entityType, entityId);
+    const { entityType, entityId, templateBundle, templateViewMode } =
+      extractEntityParams(window.location.href);
+    const newUrl = replaceEntityParamsInUrl(
+      url,
+      entityType,
+      entityId,
+      templateBundle,
+      templateViewMode,
+    );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);
   };
@@ -110,10 +151,15 @@ export const withAutoSavesInjection: (
       ) {
         const state = api.getState() as RootState;
         const { publishReview } = state;
-        const { entityType, entityId } = extractEntityParams(
-          window.location.href,
+        const { entityType, entityId, templateBundle, templateViewMode } =
+          extractEntityParams(window.location.href);
+        const autoSaveKey = replaceEntityParamsInUrl(
+          url,
+          entityType,
+          entityId,
+          templateBundle,
+          templateViewMode,
         );
-        const autoSaveKey = replaceEntityParamsInUrl(url, entityType, entityId);
         // We want to send back the specific autoSave hash for the particular URL being updated
         const autoSaves =
           autoSaveKey && publishReview.autoSavesHash[autoSaveKey]

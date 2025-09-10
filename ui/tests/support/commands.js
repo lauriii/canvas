@@ -643,11 +643,15 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('openLibraryPanel', () => {
+  // Going to Layers and then Library ensures that if the Library is already open the panel won't get closed when clicking the Add button.
+  cy.findByTestId('canvas-side-menu').findByLabelText('Layers').click();
   cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
   cy.findByTestId('canvas-components-library-loading').should('not.exist');
 });
 
 Cypress.Commands.add('openLayersPanel', () => {
+  // Going to Library and then Layers ensures that if Layers is already open the panel won't get closed when clicking the Layers button.
+  cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
   cy.findByTestId('canvas-side-menu').findByLabelText('Layers').click();
 });
 

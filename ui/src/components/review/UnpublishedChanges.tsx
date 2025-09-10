@@ -131,7 +131,7 @@ const UnpublishedChanges = () => {
         // Update the isPublished and isNew status.
         dispatch(
           componentAndLayoutApi.util.updateQueryData(
-            'getLayoutById',
+            'getPageLayout',
             undefined,
             (draft) => {
               draft.isPublished = true;
