@@ -150,6 +150,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // @todo Generalize beyond nodes in https://www.drupal.org/i/3498525
     $supported_entity_type_ids = ['node'];
+    $individual_bundle_entity_cache_tag_prefixes_to_ignore = [];
 
     // 1. Create the hierarchy:
     // - all supported content entity types with their bundle collection label
@@ -178,7 +179,6 @@ final class ApiConfigControllers extends ApiControllerBase {
       $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
       $bundles = [];
       foreach ($bundle_info as $bundle_key => $info) {
-
         /** @var \Drupal\Core\Access\AccessResultInterface $edit_fields_access_check */
         $edit_fields_access_check = $this->accessManager->checkNamedRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
         assert($edit_fields_access_check instanceof AccessResultInterface);
@@ -197,12 +197,23 @@ final class ApiConfigControllers extends ApiControllerBase {
             ->toString();
           $bundles[$bundle_key]['deleteUrl'] = $delete_url;
         }
+        else {
+          $bundles[$bundle_key]['deleteUrl'] = NULL;
+        }
         if ($edit_fields_access) {
           $edit_fields_url = Url::fromRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key])
             ->toString();
           $bundles[$bundle_key]['editFieldsUrl'] = $edit_fields_url;
         }
+        else {
+          $bundles[$bundle_key]['editFieldsUrl'] = NULL;
+        }
+
+        $additional_cacheability
+          ->addCacheableDependency($delete_access_check)
+          ->addCacheableDependency($edit_fields_access_check);
       }
+
       $hierarchical_json[$entity_type_id] = [
         'label' => $label,
         'bundles' => $bundles,
@@ -215,7 +226,9 @@ final class ApiConfigControllers extends ApiControllerBase {
       }
       if ($bundle_entity_type_id) {
         // @phpstan-ignore-next-line variable.undefined
+        assert($bundle_entity_type instanceof ConfigEntityTypeInterface);
         $additional_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
+        $individual_bundle_entity_cache_tag_prefixes_to_ignore[] = sprintf("config:%s.", $bundle_entity_type->getConfigPrefix());
       }
     }
 
@@ -228,6 +241,21 @@ final class ApiConfigControllers extends ApiControllerBase {
       [$entity_type_id, $bundle, $view_mode] = explode('.', $template_id);
       $hierarchical_json[$entity_type_id]['bundles'][$bundle]['viewModes'][$view_mode] = $normalization;
     }
+
+    // Ignore the cache tags for individual bundle config entities (surfaced by
+    // access checks on their "edit fields" and "delete" URLs), because this
+    // response lists them, so the list cache tag is sufficient and the rest is
+    // pointless noise.
+    // @see \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags()
+    $additional_cacheability->setCacheTags(array_filter(
+      $additional_cacheability->getCacheTags(),
+      function (string $tag) use ($individual_bundle_entity_cache_tag_prefixes_to_ignore) {
+        foreach ($individual_bundle_entity_cache_tag_prefixes_to_ignore as $prefix) {
+          return !str_starts_with($tag, $prefix);
+        }
+        return FALSE;
+      }
+    ));
 
     // Overwrite data, and add to the already existing cacheability.
     return $response->setData($hierarchical_json)
