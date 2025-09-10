@@ -17,6 +17,8 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Entity\Page;
+use Drupal\pathauto\PathautoItem;
+use Drupal\pathauto\PathautoState;
 
 /**
  * @file
@@ -106,6 +108,24 @@ final class PageHooks {
       return AccessResult::neutral()->addCacheableDependency($system_config);
     }
     return AccessResult::neutral();
+  }
+
+  /**
+   * Implements hook_canvas_page_presave().
+   *
+   * Programmatically uncheck the "Generate automatic URL alias" checkbox.
+   *
+   * @see \pathauto_field_info_alter()
+   * @see \Drupal\pathauto\PathautoItem::propertyDefinitions()
+   * @see \Drupal\pathauto\PathautoWidget::formElement()
+   */
+  #[Hook('canvas_page_presave')]
+  public function ensurePathautoSkipped(Page $page): void {
+    if ($this->moduleHandler->moduleExists('pathauto')) {
+      $pathauto_item = $page->get('path')->first();
+      assert($pathauto_item instanceof PathautoItem);
+      $pathauto_item->set('pathauto', PathautoState::SKIP);
+    }
   }
 
 }
