@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DropIcon from '@assets/icons/drop.svg?react';
 import { CardStackPlusIcon, PersonIcon } from '@radix-ui/react-icons';
 import * as Menubar from '@radix-ui/react-menubar';
@@ -8,7 +8,9 @@ import { Box, Button, Flex, Grid, Tooltip } from '@radix-ui/themes';
 import AIToggleButton from '@/components/aiExtension/AiToggleButton';
 import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
+import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
+import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
@@ -20,9 +22,11 @@ const PREVIOUS_URL_STORAGE_KEY = 'CanvasPreviousURL';
 const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { entityType, bundle, viewMode, previewEntityId } = useParams();
   const isPreview = location.pathname.includes('/preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
+  const isTemplateRoute = location.pathname.startsWith('/template/');
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;
@@ -37,6 +41,26 @@ const Topbar = () => {
   ) {
     hasPersonalizeExtensionAvailable = true;
   }
+
+  // Fetch preview content entities for template routes
+  const { data: previewEntities = {} } = useGetPreviewContentEntitiesQuery(
+    {
+      entityTypeId: entityType || '',
+      bundle: bundle || '',
+    },
+    {
+      skip: !isTemplateRoute || !entityType || !bundle,
+    },
+  );
+
+  // Handle preview entity selection change
+  const handlePreviewEntityChange = (selectedEntityId: string) => {
+    if (entityType && bundle && viewMode) {
+      navigate(
+        `/template/${entityType}/${bundle}/${viewMode}/${selectedEntityId}`,
+      );
+    }
+  };
 
   const backHref =
     window.sessionStorage.getItem(PREVIOUS_URL_STORAGE_KEY) ?? '/';
@@ -106,6 +130,13 @@ const Topbar = () => {
           </Flex>
           <Flex align="center" justify="center" gap="2">
             <PageInfo />
+            {isTemplateRoute && (
+              <ContentPreviewSelector
+                items={previewEntities}
+                selectedItemId={previewEntityId}
+                onSelectionChange={handlePreviewEntityChange}
+              />
+            )}
           </Flex>
           <Flex align="center" justify="end" gap="2">
             <PreviewControls isPreview={isPreview} />

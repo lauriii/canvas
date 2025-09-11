@@ -35,6 +35,7 @@ import { DEFAULT_REGION, selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
+import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -63,6 +64,7 @@ const iconMap: PageType = {
   ComponentName: <CodeIcon />,
   GlobalPatternName: <SectionIcon />,
   Homepage: <HomeIcon />,
+  Template: <FileIcon />,
 };
 
 const canvasSettings = getCanvasSettings();
@@ -81,9 +83,56 @@ const PageInfo = () => {
   const focusedRegionName = layout.find(
     (region) => region.id === focusedRegion,
   )?.name;
-  const { entityType, entityId } = useParams();
+  const { entityType, entityId, bundle, viewMode } = useParams();
   const location = useLocation();
   const title = useEntityTitle();
+
+  // Check if we're on a template route
+  const isTemplateRoute = location.pathname.startsWith('/template/');
+
+  // Fetch template data from API
+  const { data: templatesData } = useGetContentTemplatesQuery(undefined, {
+    skip: !isTemplateRoute,
+  });
+
+  // Helper function to get bundle name from templates API
+  const getBundleName = (entityType: string, bundle: string): string => {
+    if (!templatesData || !entityType || !bundle) {
+      return bundle?.charAt(0).toUpperCase() + bundle?.slice(1) || '';
+    }
+
+    const entityTemplates = templatesData[entityType];
+    const bundleData = entityTemplates?.bundles?.[bundle];
+    return (
+      bundleData?.label || bundle.charAt(0).toUpperCase() + bundle.slice(1)
+    );
+  };
+
+  // Helper function to get view mode name from templates API (matching TemplateList format)
+  const getViewModeName = (
+    entityType: string,
+    bundle: string,
+    viewMode: string,
+  ): string => {
+    if (!templatesData || !entityType || !bundle || !viewMode) {
+      return `${viewMode} template`;
+    }
+
+    const entityTemplates = templatesData[entityType];
+    const bundleData = entityTemplates?.bundles?.[bundle];
+    const viewModeData = bundleData?.viewModes?.[viewMode];
+
+    // Use viewModeLabel to match TemplateList format: "${viewMode.viewModeLabel} template"
+    return viewModeData?.viewModeLabel
+      ? `${viewModeData.viewModeLabel} template`
+      : `${viewMode} template`;
+  };
+
+  // Generate template caption
+  const templateCaption =
+    isTemplateRoute && entityType && bundle && viewMode
+      ? `${getBundleName(entityType, bundle)} - ${getViewModeName(entityType, bundle, viewMode)}`
+      : undefined;
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
@@ -287,6 +336,11 @@ const PageInfo = () => {
                   <>
                     <CodeIcon />
                     {codeComponentName}
+                  </>
+                ) : isTemplateRoute ? (
+                  <>
+                    {iconMap['Template']}
+                    {templateCaption || 'Template'}
                   </>
                 ) : (
                   <>

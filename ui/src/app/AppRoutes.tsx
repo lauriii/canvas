@@ -16,6 +16,7 @@ import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import MosaicContainer from '@/features/code-editor/MosaicContainer';
 import Editor from '@/features/editor/Editor';
+import TemplateRoot from '@/features/editor/TemplateRoot';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
@@ -89,6 +90,15 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
                 element: <DummyPropsEditForm />,
               },
             ],
+          },
+          {
+            path: '/template/:entityType/:bundle/:viewMode',
+            element: (
+              <>
+                <SideMenu />
+                <TemplateRoot />
+              </>
+            ),
           },
           {
             path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',

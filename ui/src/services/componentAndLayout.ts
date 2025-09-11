@@ -77,6 +77,15 @@ export type ViewModesList = {
   [key: string]: ViewModesListItem;
 };
 
+export type PreviewContentEntity = {
+  id: string;
+  label: string;
+};
+
+export type PreviewContentEntitiesResponse = {
+  [key: string]: PreviewContentEntity;
+};
+
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -88,6 +97,7 @@ export const componentAndLayoutApi = createApi({
     'Folders',
     'ContentTemplates',
     'ViewModes',
+    'PreviewContentEntities',
   ],
   endpoints: (builder) => ({
     getComponents: builder.query<
@@ -385,6 +395,16 @@ export const componentAndLayoutApi = createApi({
       query: () => `canvas/api/v0/ui/content_template/view_modes/node`,
       providesTags: () => [{ type: 'ViewModes', id: 'LIST' }],
     }),
+    getPreviewContentEntities: builder.query<
+      PreviewContentEntitiesResponse,
+      { entityTypeId: string; bundle: string }
+    >({
+      query: ({ entityTypeId, bundle }) =>
+        `canvas/api/v0/ui/content_template/suggestions/preview/${entityTypeId}/${bundle}`,
+      providesTags: (result, error, { entityTypeId, bundle }) => [
+        { type: 'PreviewContentEntities', id: `${entityTypeId}-${bundle}` },
+      ],
+    }),
   }),
 });
 
@@ -407,4 +427,5 @@ export const {
   useDeleteContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
+  useGetPreviewContentEntitiesQuery,
 } = componentAndLayoutApi;

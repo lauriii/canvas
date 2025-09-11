@@ -230,7 +230,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
         <ContextMenu.Trigger>
           <SidebarNode
             key={viewMode.id}
-            href={`/canvas/template/${viewMode.entityType}/${viewMode.bundle}/${viewMode.viewMode}/${viewMode.suggestedPreviewEntityId || 0}`}
+            href={`/canvas/template/${viewMode.entityType}/${viewMode.bundle}/${viewMode.viewMode}/${viewMode.suggestedPreviewEntityId || ''}`}
             title={`${viewMode.viewModeLabel} template`}
             variant="template"
             dropdownMenuContent={
