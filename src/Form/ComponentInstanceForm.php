@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Form;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -26,6 +27,7 @@ final class ComponentInstanceForm extends FormBase {
     // This must be protected so that DependencySerializationTrait, which is
     // used by the parent class, can access it.
     protected ComponentTreeLoader $componentTreeLoader,
+    protected ThemeHandlerInterface $themeHandler,
   ) {}
 
   /**
@@ -37,6 +39,7 @@ final class ComponentInstanceForm extends FormBase {
 
     return new static(
       $component_tree_loader,
+      $container->get('theme_handler'),
     );
   }
 
@@ -58,6 +61,13 @@ final class ComponentInstanceForm extends FormBase {
     // @see \Drupal\canvas\Controller\ApiLayoutController
     if (is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
+    }
+    // @phpstan-ignore-next-line property.notFound
+    if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
+      return [
+        '#type' => 'markup',
+        '#markup' => $this->t('The canvas_stark theme must be enabled for this form to work.'),
+      ];
     }
     $this->componentTreeLoader->load($entity);
 

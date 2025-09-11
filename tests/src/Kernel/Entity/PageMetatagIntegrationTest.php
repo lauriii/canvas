@@ -7,6 +7,8 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\EntityFormController;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
@@ -145,6 +147,7 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
   }
 
   public function testSeoSettingsForm(): void {
+    \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);
     $this->container->get('module_installer')->install(['metatag']);
     $page = Page::create([
       'title' => 'Test page',
@@ -153,7 +156,9 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
       'components' => [],
     ]);
     self::assertSaveWithoutViolations($page);
-    $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class));
+    $themeHandler = $this->container->get('theme_handler');
+    assert($themeHandler instanceof ThemeHandlerInterface);
+    $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class), $themeHandler);
     $form = $sut->form(Page::ENTITY_TYPE_ID, $page, 'default');
     self::assertArrayHasKey('image', $form['seo_settings']);
     self::assertArrayHasKey('description', $form['seo_settings']);
