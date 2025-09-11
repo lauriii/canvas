@@ -20,11 +20,8 @@ use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
-use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -35,11 +32,6 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @group #slow
  */
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
-
-  use UserCreationTrait;
-  use RequestTrait {
-    request as parentRequest;
-  }
 
   /**
    * {@inheritdoc}
@@ -137,13 +129,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
-    self::assertInstanceOf(JsonResponse::class, $response);
-    $json = \json_decode($response->getContent() ?: '', TRUE);
-    self::assertIsArray($json);
-    self::assertArrayHasKey('html', $json);
-    $this->setRawContent($json['html']);
     $this->assertTitle($entity->label() . ' | Drupal');
     $this->assertResponseAutoSaves($response, [$entity], TRUE);
+    $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -186,13 +174,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
 
     // Extract HTML from JSON response for title assertion
-    self::assertInstanceOf(JsonResponse::class, $response);
-    $json = \json_decode($response->getContent() ?: '', TRUE);
-    self::assertArrayHasKey('html', $json);
-    $this->setRawContent($json['html']);
     $this->assertTitle($original_entity->label() . " | Drupal");
 
-    self::assertIsArray($json);
+    $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -222,8 +206,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // We should still see the global regions.
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
-    self::assertInstanceOf(JsonResponse::class, $response);
-    $json = \json_decode($response->getContent() ?: '', TRUE);
+    $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
     $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
     self::assertCount(1, $highlightedRegion);
@@ -256,10 +239,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
-
-    $this->assertInstanceOf(JsonResponse::class, $response);
-    $json = json_decode($response->getContent() ?: '', TRUE);
-    self::assertIsArray($json);
+    $json = static::decodeResponse($response);
     $this->assertArrayHasKey('layout', $json);
     $this->assertCount($count, $json['layout']);
     self::assertArrayHasKey('html', $json);
@@ -492,8 +472,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Check that the response contains the correct title.
-    self::assertInstanceOf(JsonResponse::class, $response);
-    $json = json_decode($response->getContent() ?: '', TRUE);
+    $json = static::decodeResponse($response);
     self::assertArrayHasKey('entity_form_fields', $json);
     self::assertEquals('Test Node', $json['entity_form_fields']['title[0][value]']);
     $entity_form_fields = $json['entity_form_fields'];
