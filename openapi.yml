@@ -1171,7 +1171,7 @@ paths:
                       additionalProperties:
                         type: string
                       examples:
-                        edit-form: /canvas/canvas_page/3
+                        edit-form: /canvas/editor/canvas_page/3
               examples:
                 pageList:
                   value:
@@ -1183,7 +1183,7 @@ paths:
                       autoSaveLabel: Homer
                       autoSavePath: /updated-path
                       links:
-                        edit-form: /canvas/canvas_page/1
+                        edit-form: /canvas/editor/canvas_page/1
                     '2':
                       id: 2
                       title: About
@@ -1192,7 +1192,7 @@ paths:
                       autoSaveLabel: About who?
                       autoSavePath: /page/1
                       links:
-                        edit-form: /canvas/canvas_page/2
+                        edit-form: /canvas/editor/canvas_page/2
     post:
       description: Create content for a specific entity type
       parameters:

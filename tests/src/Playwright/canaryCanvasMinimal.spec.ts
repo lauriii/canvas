@@ -31,7 +31,10 @@ test.describe('Canary Canvas Minimal', () => {
             - /url: /homepage
         - listitem:
           - link "Edit":
-            - /url: /\/canvas\/canvas_page\/\\d+/
+            - /url: /\/canvas\/editor\/canvas_page\/\\d+/
+        - listitem:
+          - link "Revisions":
+            - /url: /\/page\/\\d+\/revisions/
     `);
     /* eslint-enable no-useless-escape */
   });
