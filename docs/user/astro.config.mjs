@@ -44,6 +44,33 @@ export default defineConfig({
             },
           ],
         },
+        {
+          label: 'SDC components',
+          items: [
+            { label: 'Introduction', slug: 'sdc-components' },
+            { label: 'Props', slug: 'sdc-components/props' },
+            { label: 'Slots', slug: 'sdc-components/slots' },
+            { label: 'Image', slug: 'sdc-components/image' },
+            {
+              label: 'Validations',
+              slug: 'sdc-components/validations',
+            },
+            { label: 'Troubleshooting', slug: 'sdc-components/troubleshooting' },
+          ],
+        },
+        {
+          label: 'AI assistant',
+          items: [
+            { label: 'Introduction', slug: 'ai-assistant' }
+          ],
+        },
+        {
+          label: 'APIs',
+          items: [
+            { label: 'Introduction', slug: 'apis' },
+            { label: 'Customizing forms', slug: 'apis/customizing-forms' },
+          ],
+        }
       ],
     }),
   ],
