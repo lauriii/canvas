@@ -100,9 +100,15 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   /**
    * Retrieves the component instance's explicit (possibly empty) input.
    *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   Host entity. Required when a component instance has inputs populated by
+   *   DynamicPropSources AND the parent entity of $item is not the host entity
+   *   to use during evaluation of the DynamicPropSources. (Typically: when
+   *   this is a component instance in a ContentTemplate.)
+   *
    * @todo Add ::getImplicitInput() in https://www.drupal.org/project/canvas/issues/3485502 — SDCs don't have implicit inputs, but Block plugins do: contexts
    */
-  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array;
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array;
 
   /**
    * Hydrates a component with its explicit input plus slots (if any).

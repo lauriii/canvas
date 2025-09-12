@@ -78,6 +78,100 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     ] + $this->getPatchContentsDefaults([$entity]), JSON_THROW_ON_ERROR)));
   }
 
+  public function testDynamicSourceUpdate(): void {
+    $contentTemplate = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
+    \assert($contentTemplate instanceof ContentTemplate);
+    \assert($this->previewEntity instanceof Node);
+    $revision_log_message = 'I always add a log message.';
+    $this->previewEntity->setRevisionLogMessage($revision_log_message);
+    $updated_title = 'My dynamic title';
+    $this->previewEntity->set('title', $updated_title);
+    $this->previewEntity->save();
+    $this->setUpCurrentUser([], [self::getAdminPermission($contentTemplate)]);
+
+    $uuid = '5f71027b-d9d3-4f3d-8990-a6502c0ba676';
+    // Add a component with only static property sources.
+    $components = [
+      [
+        'uuid' => $uuid,
+        'component_id' => 'sdc.canvas_test_sdc.my-hero',
+        'component_version' => '888412021fbcc837',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'hello, world!',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'subheading' => [
+            'sourceType' => 'static:field_item:string',
+            'value' => 'this is a subheading',
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'cta1href' => [
+            'sourceType' => 'static:field_item:uri',
+            'value' => 'https://drupal.org',
+            'expression' => 'ℹ︎uri␟value',
+          ],
+        ],
+      ],
+    ];
+    $contentTemplate->setComponentTree($components)->save();
+    // @todo Remove this in favor of using ContribStrictConfigSchemaTestTrait in https://www.drupal.org/project/canvas/issues/3531679
+    self::assertCount(0, $contentTemplate->getTypedData()->validate());
+    $url = $this->getLayoutUrl($contentTemplate)->toString();
+    $response = $this->request(Request::create($url));
+    $data = $this->decodeResponse($response);
+    self::assertEquals('hello, world!', $data['model'][$uuid]['resolved']['heading']);
+    self::assertEquals('this is a subheading', $data['model'][$uuid]['resolved']['subheading']);
+    self::assertEquals('https://drupal.org', $data['model'][$uuid]['resolved']['cta1href']);
+    self::assertSame('hello, world!', (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] h1')[0]);
+    self::assertSame('this is a subheading', (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] p')[0]);
+
+    // PATCH the layout updating 2 of the 3 properties to dynamic sources.
+    self::assertArrayHasKey('model', $data);
+    self::assertIsArray($data['model']);
+    $new_model = $data['model'][$uuid];
+    $new_model['source']['heading'] = [
+      'sourceType' => 'dynamic',
+      'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+    ];
+    $new_model['source']['subheading'] = [
+      'sourceType' => 'dynamic',
+      'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+    ];
+    // The client should set the `resolved` value of a dynamic prop sources to
+    // NULL because it cannot resolve it.
+    $new_model['resolved']['subheading'] = NULL;
+    $new_model['resolved']['heading'] = NULL;
+    $updatedHeroClientData = [
+      'model' => $new_model,
+      'componentType' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
+      'componentInstanceUuid' => $uuid,
+    ] + $this->getPatchContentsDefaults([$contentTemplate]);
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updatedHeroClientData, JSON_THROW_ON_ERROR)));
+    $data = $this->decodeResponse($response);
+    // @todo The server should return back actual 'resolved' value of the
+    //   dynamic prop source in https://www.drupal.org/i/3541057/
+    self::assertNull($data['model'][$uuid]['resolved']['heading']);
+    self::assertNull($data['model'][$uuid]['resolved']['subheading']);
+    self::assertEquals('https://drupal.org', $data['model'][$uuid]['resolved']['cta1href']);
+    self::assertCount(1, $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"]'));
+    self::assertSame((string) $this->previewEntity?->label(), (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] h1')[0]);
+    self::assertSame($revision_log_message, (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] p')[0]);
+
+    // Ensure the correct values are returned from a GET request after the PATCH
+    // request.
+    $url = $this->getLayoutUrl($contentTemplate)->toString();
+    $response = $this->request(Request::create($url));
+    $data = $this->decodeResponse($response);
+    self::assertSame($updated_title, $data['model'][$uuid]['resolved']['heading']);
+    self::assertSame($revision_log_message, $data['model'][$uuid]['resolved']['subheading']);
+    self::assertEquals('https://drupal.org', $data['model'][$uuid]['resolved']['cta1href']);
+    self::assertCount(1, $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"]'));
+    self::assertSame($updated_title, (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] h1')[0]);
+    self::assertSame($revision_log_message, (string) $this->cssSelect('[data-component-id="canvas_test_sdc:my-hero"] p')[0]);
+  }
+
   /**
    * @param class-string<\Throwable> $exception
    * @dataProvider providerInvalid

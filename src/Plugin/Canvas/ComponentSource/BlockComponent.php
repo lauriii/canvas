@@ -287,7 +287,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
 
     try {
       return $item->getInputs() ?? [];

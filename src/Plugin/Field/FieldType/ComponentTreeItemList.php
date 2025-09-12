@@ -69,14 +69,14 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  public function getClientSideRepresentation(): array {
-    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()));
+  public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
+    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity);
   }
 
   /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(iterable $tree_tier): array {
+  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL): array {
     $built = ['layout' => [], 'model' => []];
     /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($tree_tier as $item) {
@@ -94,7 +94,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source = $item->getComponent()?->getComponentSource();
       \assert($source instanceof ComponentSourceInterface);
       if ($source->requiresExplicitInput()) {
-        $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item));
+        $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
       }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids

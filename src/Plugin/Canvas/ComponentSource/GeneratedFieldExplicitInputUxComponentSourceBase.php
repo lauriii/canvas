@@ -250,14 +250,22 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array {
+  public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
     if (!$this->requiresExplicitInput()) {
       return [
         'resolved' => [],
         'source' => [],
       ];
     }
-    $entity = $item->getRoot() === $item->getParent() ? NULL : $item->getEntity();
+
+    // A component instance can be part of a dangling component tree if it is
+    // contained by a config entity. If that config entity's component tree
+    // uses DynamicPropSources, it needs a (fieldable) host entity to evaluate
+    // DynamicPropSources.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::createDanglingComponentTreeItemList()
+    // @see \Drupal\canvas\Entity\ContentTemplate
+    $is_dangling = $item->getRoot() === $item->getParent();
+    $entity = $is_dangling ? $host_entity : $item->getEntity();
     $values = $item->getInputs() ?? [];
     foreach ($values as $prop => $input) {
       $values[$prop] = $this->uncollapse($input, $prop)->toArray();

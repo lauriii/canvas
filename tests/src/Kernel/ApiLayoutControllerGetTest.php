@@ -22,6 +22,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\user\Entity\User;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -69,6 +70,61 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $this->assertResponseAutoSaves($response, [$entity]);
+  }
+
+  /**
+   * @covers ::get
+   * @see \Drupal\canvas\Entity\ContentTemplate
+   */
+  public function testRenderDynamic(): void {
+    $contentTemplate = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
+    \assert($contentTemplate instanceof ContentTemplate);
+
+    // Add a heading populated by a dynamic prop source using the `title` field.
+    $components = [
+      [
+        'uuid' => '5f71027b-d9d3-4f3d-8990-a6502c0ba676',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => [
+            'sourceType' => 'dynamic',
+            'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+          ],
+        ],
+      ],
+    ];
+    $contentTemplate->setComponentTree($components)->save();
+    // @todo Remove this in favor of using ContribStrictConfigSchemaTestTrait in https://www.drupal.org/project/canvas/issues/3531679
+    self::assertCount(0, $contentTemplate->getTypedData()->validate());
+    $get_layout_api_request = Request::create($this->getLayoutUrl($contentTemplate)->toString());
+    $this->setUpCurrentUser([], [self::getAdminPermission($contentTemplate)]);
+
+    // Local helper to check these are in sync/contain the expected title:
+    // - entity label
+    // - `model` in API response
+    // - `html` in API
+    $title_matches_resolved_and_html = function (string $expected_title, JsonResponse $response) {
+      // Current preview entity label MUST match the expected title.
+      self::assertSame($expected_title, $this->previewEntity?->label());
+      // The `model` of the layout API response MUST contain the expected title.
+      self::assertSame($expected_title, static::decodeResponse($response)['model']['5f71027b-d9d3-4f3d-8990-a6502c0ba676']['resolved']['heading']);
+      // The `html` of the layout API response MUST render the expected title.
+      self::assertCount(1, $this->cssSelect('[data-component-id="canvas_test_sdc:props-no-slots"]'));
+      self::assertSame($expected_title, (string) $this->cssSelect('[data-component-id="canvas_test_sdc:props-no-slots"] h1')[0]);
+    };
+
+    // Assert the original resolved dynamic prop source + resulting HTML.
+    $response = $this->request($get_layout_api_request);
+    self::assertInstanceOf(JsonResponse::class, $response);
+    $title_matches_resolved_and_html('Canvas Needs This For The Time Being', $response);
+
+    // Updating the title of the preview entity must propagate throughout.
+    assert($this->previewEntity instanceof Node);
+    $this->previewEntity->set('title', 'New title for preview')->save();
+    $response = $this->request($get_layout_api_request);
+    self::assertInstanceOf(JsonResponse::class, $response);
+    $title_matches_resolved_and_html('New title for preview', $response);
   }
 
   /**

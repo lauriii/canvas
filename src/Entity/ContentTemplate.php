@@ -316,7 +316,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   /**
    * {@inheritdoc}
    */
-  public function build(FieldableEntityInterface $entity): array {
+  public function build(FieldableEntityInterface $entity, bool $isPreview = FALSE): array {
     // The entity should not be able to expose its own full, independently
     // renderable component tree -- if it can, why is it even using a template?
     if ($entity instanceof ComponentTreeEntityInterface) {
@@ -333,7 +333,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     \assert($sub_tree_item_list instanceof ComponentTreeItemList);
     return $this->getComponentTree($entity)
       ->injectSubTreeItemList($this->getExposedSlots(), $sub_tree_item_list)
-      ->toRenderable($this);
+      ->toRenderable($this, $isPreview);
   }
 
   /**

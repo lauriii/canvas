@@ -90,7 +90,7 @@ final class ApiLayoutController {
     $model = [];
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
-    $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model);
+    $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model, $preview_entity);
     $layout = [$content_layout];
     $is_new = AutoSaveManager::entityIsConsideredNew($entity);
 
@@ -123,12 +123,12 @@ final class ApiLayoutController {
       $data['isPublished'] = $entity->isPublished();
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
     }
-    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE), $data);
+    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, FALSE, $preview_entity), $data);
   }
 
-  private function buildRegion(string $id, ?ComponentTreeItemList $items = NULL, ?array &$model = NULL): array {
+  private function buildRegion(string $id, ?ComponentTreeItemList $items = NULL, ?array &$model = NULL, ?FieldableEntityInterface $preview_entity = NULL): array {
     if ($items) {
-      $built = $items->getClientSideRepresentation();
+      $built = $items->getClientSideRepresentation($preview_entity);
       $model += $built['model'];
       $components = $built['layout'];
     }
@@ -210,7 +210,6 @@ final class ApiLayoutController {
    * PATCH request updates the auto-saved model and returns a preview.
    */
   public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
     assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
@@ -277,7 +276,7 @@ final class ApiLayoutController {
     }
     $data['model'][$componentInstanceUuid] = $model;
     $data['clientInstanceId'] = $clientInstanceId;
-    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE), $data + [
+    return new PreviewEnvelope($this->buildPreviewRenderable($data, $entity, TRUE, $preview_entity), $data + [
       // Add the auto-save hashes. We do this after building the preview
       // render array, because the auto-save entry is written during building
       // the preview.
@@ -291,7 +290,6 @@ final class ApiLayoutController {
    * @todo Remove this in https://drupal.org/i/3492065
    */
   public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
     assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $body = json_decode($request->getContent(), TRUE);
     \assert(\array_key_exists('model', $body));
@@ -334,12 +332,12 @@ final class ApiLayoutController {
         $entity->updateLoadedRevisionId();
       }
     }
-    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE), [
+    return new PreviewEnvelope($this->buildPreviewRenderable($body, $entity, TRUE, $preview_entity), [
       'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions())),
     ]);
   }
 
-  private function buildPreviewRenderable(array $body, EntityInterface $entity, bool $updateAutoSave): array {
+  private function buildPreviewRenderable(array $body, EntityInterface $entity, bool $updateAutoSave, ?FieldableEntityInterface $preview_entity = NULL): array {
     ['layout' => $layout, 'model' => $model] = $body;
 
     $page_regions = PageRegion::loadForActiveThemeByClientSideId();
@@ -359,7 +357,7 @@ final class ApiLayoutController {
     }
 
     assert(isset($content));
-    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
+    \assert($entity instanceof FieldableEntityInterface || ($entity instanceof ContentTemplate && !is_null($preview_entity)));
 
     $data = [
       'layout' => $content,
@@ -385,11 +383,14 @@ final class ApiLayoutController {
       else {
         // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
         //   as well in https://drupal.org/i/3543197.
-        $entity->setComponentTree(self::convertClientToServer($content['components'], (array) $model, NULL, FALSE));
+        $entity->setComponentTree(self::convertClientToServer($content['components'], (array) $model, $preview_entity, FALSE));
       }
       $this->autoSaveManager->saveEntity($entity, $body['clientInstanceId']);
     }
-    $renderable = $this->componentTreeLoader->load($entity)->toRenderable($entity, TRUE);
+    $renderable = $entity instanceof ContentTemplate
+      // @phpstan-ignore-next-line
+      ? $entity->build($preview_entity, isPreview: TRUE)
+      : $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE);
 
     $build = [];
     if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
