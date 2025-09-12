@@ -63,6 +63,11 @@ Manually, from the Drupal project root (i.e. where `index.php` lives):
 ```shell
 php vendor/bin/phpstan analyze modules/contrib/canvas --memory-limit=256M --configuration=modules/contrib/canvas/phpstan.neon
 ```
+#### OpenAPI spec
+From the Canvas project root:
+```shell
+npx @redocly/cli@latest lint openapi.yml
+```
 
 # Architectural Decision Records
 When architectural decisions are made, they should be recorded in _ADRs_. To create an ADR:

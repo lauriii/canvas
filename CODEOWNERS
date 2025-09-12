@@ -21,7 +21,11 @@
 #
 
 # Issues: https://www.drupal.org/project/issues/search/canvas?issue_tags=openapi
-[OpenAPI] @traviscarden @larowlan
+[OpenAPI] @traviscarden @larowlan @wimleers
+/openapi.yml
+# For whatever reason, it MUST be `.yaml`, not `.yml`.
+/redocly.yaml
+/.redocly.lint-ignore.yaml
 /src/EventSubscriber/ApiMessageValidatorBase.php
 /src/EventSubscriber/ApiRequestValidator.php
 /src/EventSubscriber/ApiResponseValidator.php

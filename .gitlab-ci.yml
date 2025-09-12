@@ -512,6 +512,15 @@ lint (node):
     - npm ci
     - npm run lint
 
+lint (OpenAPI):
+  stage: validate
+  needs: []
+  image: node:24-alpine
+  script:
+    - npx @redocly/cli@latest lint openapi.yml
+  variables:
+    FORCE_COLOR: "1"
+
 playwright:
   stage: test
   needs: []
