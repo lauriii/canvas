@@ -6,10 +6,13 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Yaml\Yaml;
 use Drupal\Component\Utility\DiffArray;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
@@ -30,14 +33,17 @@ class CanvasAiPageBuilderHelper {
    *   The entity type manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
-   * @param \Drupal\canvas\Controller\ApiConfigControllers $apiConfigControllers
-   *   The API config controllers service.
+   * @param \Symfony\Component\HttpKernel\HttpKernelInterface $httpKernel
+   *   The HTTP kernel.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The stack of requests.
    */
   public function __construct(
     private readonly ComponentPluginManager $componentPluginManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
-    private readonly ApiConfigControllers $apiConfigControllers,
+    private readonly HttpKernelInterface $httpKernel,
+    private readonly RequestStack $requestStack,
   ) {
   }
 
@@ -218,10 +224,24 @@ class CanvasAiPageBuilderHelper {
    */
   public function getAllComponentsKeyedBySource(): array {
     $output = [];
-
-    $available_components_response = $this->apiConfigControllers->list(Component::ENTITY_TYPE_ID);
-    $available_components = (string) $available_components_response->getContent();
-    $available_components = Json::decode($available_components);
+    $current_request = $this->requestStack->getCurrentRequest();
+    $sub_request = Request::create(
+      Url::fromRoute('canvas.api.config.list', ['canvas_config_entity_type_id' => Component::ENTITY_TYPE_ID])->toString(),
+      'GET',
+      [],
+      $current_request?->cookies->all() ?? [],
+      [],
+      $current_request?->server->all() ?? []
+    );
+    $sub_request->attributes->set('_format', 'json');
+    try {
+      $available_components_response = $this->httpKernel->handle($sub_request, HttpKernelInterface::SUB_REQUEST);
+      $available_components = (string) $available_components_response->getContent();
+      $available_components = Json::decode($available_components);
+    }
+    catch (\Exception) {
+      return [];
+    }
     if (empty($available_components)) {
       return [];
     }
