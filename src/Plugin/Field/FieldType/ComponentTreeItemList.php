@@ -28,9 +28,9 @@ use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 /**
  * A component tree: a list item class for ComponentTreeItem.
  *
- * @phpstan-type ComponentTreeItemArray array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: SingleComponentInputArray}
+ * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-type ComponentTreeItemArray array{'uuid': string, 'component_id': string, 'parent_uuid'?: string, 'slot'?: string, inputs: OptimizedSingleComponentInputArray}
  * @phpstan-type ComponentTreeItemListArray array<int, ComponentTreeItemArray>
- * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  * @phpstan-type ExposedSlotDefinitions array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
  */
 final class ComponentTreeItemList extends FieldItemList implements RenderableInterface, CacheableDependencyInterface, DependentPluginInterface {

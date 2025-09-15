@@ -22,6 +22,12 @@ use Drupal\canvas\PropSource\StaticPropSource;
  * @phpstan-import-type AdaptedPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-type SingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray>
+ * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::optimizeExplicitInput()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::optimizeExplicitInput()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
+ * @phpstan-type OptimizedExplicitInput bool|int|float|string|bool[]|int[]|float[]|string[]
+ * @phpstan-type OptimizedSingleComponentInputArray array<string, PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|OptimizedExplicitInput>
  */
 #[DataType(
   id: "component_inputs",
@@ -42,7 +48,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   /**
    * The parsed data value.
    *
-   * @var SingleComponentInputArray
+   * @var OptimizedSingleComponentInputArray
    */
   protected array $inputs = [];
 
@@ -153,6 +159,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     foreach ($this->inputs as $name => $raw_prop_source) {
       if (!\is_array($raw_prop_source) || !\array_key_exists('sourceType', $raw_prop_source)) {
         // This is likely a *collapsed* StaticPropSource.
+        /** @var OptimizedExplicitInput $raw_prop_source */
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
         try {
@@ -176,6 +183,9 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
         // @see https://www.drupal.org/project/canvas/issues/3467954
         continue;
       }
+
+      // phpcs:ignore
+      /** @var PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray $raw_prop_source */
       try {
         yield "$name" => PropSource::parse($raw_prop_source);
       }
@@ -189,7 +199,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   /**
    * Gets the values for a given component instance.
    *
-   * @return array<string, array<string, array|string>>
+   * @return OptimizedSingleComponentInputArray
    *
    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
    * @throws \Drupal\canvas\MissingComponentInputsException

@@ -35,6 +35,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type OptimizedExplicitInput from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  *
  * @see \Drupal\canvas\Attribute\ComponentSource
  * @see \Drupal\canvas\ComponentSource\ComponentSourceBase
@@ -221,7 +223,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   otherwise. Use ::addViolation to add violations detected during conversion.
    *
    * @phpcs:ignore
-   * @return SingleComponentInputArray
+   * @return OptimizedSingleComponentInputArray
    *
    * @see ::inputToClientModel()
    * @see \Drupal\canvas\AutoSave\AutoSaveManager::saveComponentInstanceFormViolations
@@ -259,10 +261,10 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * For example a component source plugin may with to store a normalized
    * representation of its data.
    *
-   * @param array $values
+   * @param SingleComponentInputArray|OptimizedSingleComponentInputArray $values
    *   Input values to optimize.
    *
-   * @return array
+   * @return OptimizedSingleComponentInputArray
    *   Optimized values.
    */
   public function optimizeExplicitInput(array $values): array;

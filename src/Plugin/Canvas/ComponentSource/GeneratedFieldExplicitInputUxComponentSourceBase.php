@@ -61,6 +61,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
  *
  * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
+ * @phpstan-import-type OptimizedExplicitInput from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  *
  * @internal
  */
@@ -1034,7 +1036,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *
    * @param \Drupal\canvas\PropSource\PropSourceBase $source
    *
-   * @return mixed|PropSourceArray
+   * @return OptimizedExplicitInput|PropSourceArray
    *   Either:
    *   - the collapsed prop source storage representation, which means either a
    *     scalar or an array without a `sourceType` key
@@ -1068,7 +1070,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * Uncollapses a (collapsed or not) prop source.
    *
-   * @param mixed|PropSourceArray $value
+   * @param OptimizedExplicitInput|PropSourceArray $value
    * @param string $prop_name
    *
    * @return \Drupal\canvas\PropSource\PropSourceBase
