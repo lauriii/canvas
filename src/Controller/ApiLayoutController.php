@@ -405,12 +405,11 @@ final class ApiLayoutController {
     return $build;
   }
 
-  /**
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *
-   * @return string
-   */
-  public function getLabel(EntityInterface $entity): string {
+  public function getLabel((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): string {
+    if ($entity instanceof ContentTemplate) {
+      assert($preview_entity !== NULL);
+      return (string) $preview_entity->label();
+    }
     // Get title from auto saved data if available.
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {

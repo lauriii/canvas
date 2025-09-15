@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -185,7 +186,11 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Draft of highlighted region in global template should be returned even if
     // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
-    $this->assertTitle($entity->label() . ' | Drupal');
+    $expected_title = match(TRUE) {
+      ContentTemplate::ENTITY_TYPE_ID === $entity_type && $this->previewEntity instanceof ContentEntityInterface => $this->previewEntity->label(),
+      default => $entity->label(),
+    };
+    $this->assertTitle($expected_title . ' | Drupal');
     $this->assertResponseAutoSaves($response, [$entity], TRUE);
     $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
@@ -230,7 +235,11 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
 
     // Extract HTML from JSON response for title assertion
-    $this->assertTitle($original_entity->label() . " | Drupal");
+    $expected_title = match(TRUE) {
+      ContentTemplate::ENTITY_TYPE_ID === $entity_type && $this->previewEntity instanceof ContentEntityInterface => $this->previewEntity->label(),
+      default => $original_entity->label(),
+    };
+    $this->assertTitle($expected_title . " | Drupal");
 
     $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
