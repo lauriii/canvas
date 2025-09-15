@@ -22,6 +22,8 @@ class CanvasPathProcessor implements InboundPathProcessorInterface {
   public function processInbound($path, Request $request) {
     // Only rewrite if not /canvas/api and starts with /canvas/
     if (str_starts_with($path, '/canvas/') && !str_starts_with($path, '/canvas/api')) {
+      // This ensures our routing works with redirect module enabled.
+      $request->attributes->set('_disable_route_normalizer', TRUE);
       return '/canvas';
     }
     return $path;
