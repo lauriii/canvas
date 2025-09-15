@@ -9,6 +9,7 @@ import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 const Layout = () => {
   const dispatch = useAppDispatch();
   const isInitialized = useAppSelector(selectIsInitialized);
+
   const {
     data: fetchedLayout,
     error,

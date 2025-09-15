@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
 import { componentHasFieldData } from '@/types/Component';
 import {
@@ -666,8 +667,12 @@ export const updateExistingComponentValues =
       ...model.resolved,
       ...values,
     };
+    // Help, how do I get the editor frame context here
+
+    const type = selectEditorFrameContext(state);
     if (isEvaluatedComponentModel(model) && componentMetadata) {
       const valuePayload = {
+        type,
         componentInstanceUuid: componentToUpdateId,
         componentType: `${selectedComponentType}@${version}`,
         model: {
@@ -686,6 +691,7 @@ export const updateExistingComponentValues =
       );
     } else {
       const valuePayload = {
+        type,
         componentInstanceUuid: componentToUpdateId,
         componentType: `${selectedComponentType}@${version}`,
         model: {

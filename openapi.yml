@@ -1236,6 +1236,25 @@ paths:
                   error:
                     type: string
                     example: Cannot find entity to duplicate.
+  '/canvas/api/v0/form/component-instance/content_template/{configEntityId}/{entityId}':
+    description: TODO
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+      # The preview entity to use. (Used for verifying all DynamicPropSources can be evaluated.)
+      - $ref: '#/components/parameters/entityId'
+    patch:
+      summary: Generates a component instance form for a content template.
+      responses:
+        '200':
+          $ref: '#/components/responses/ComponentInstanceFormResponse'
+    post:
+      summary: AJAX updates for this form.
+      parameters:
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
+      responses:
+        '200':
+          $ref: '#/components/responses/DrupalAjaxResponse'
   '/canvas/api/v0/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
@@ -1245,87 +1264,15 @@ paths:
       summary: Generates a component instance form.
       responses:
         '200':
-          description: Component instance form
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - html
-                  - css
-                  - js
-                  - settings
-                  - transforms
-                properties:
-                  html:
-                    type: string
-                    description: HTML originating from a Drupal render array.
-                  css:
-                    type: array
-                    description: >-
-                      Stringified CSS info structured for use by `add_css` AJAX
-                      command
-                    items:
-                      type: object
-                      additionalProperties: true
-                      properties:
-                        href:
-                          type: string
-                          format: uri-reference
-                        media:
-                          type: string
-                  js:
-                    type: object
-                    description: >-
-                      Stringified JS info structured for use by `add_js` AJAX
-                      command
-                    additionalProperties:
-                      type: object
-                      required:
-                        - src
-                      properties:
-                        src:
-                          type: string
-                          format: uri-reference
-                  settings:
-                    type: object
-                    description: >-
-                      Stringified settings info structured for use by `settings`
-                      AJAX command
-                    additionalProperties: true
-                  transforms:
-                    $ref: '#/components/schemas/ClientSideTransforms'
+          $ref: '#/components/responses/ComponentInstanceFormResponse'
     post:
       summary: AJAX updates for this form.
       parameters:
-        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
-        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
-        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
-        - in: query
-          name: ajax_form
-          required: true
-          schema:
-            type: integer
-            enum:
-              - 1
-        # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
-        - in: query
-          name: _wrapper_format
-          required: true
-          schema:
-            type: string
-            enum:
-              - canvas_template
-              - drupal_ajax
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
       responses:
         '200':
-          description: AJAX updates
-          content:
-            application/json:
-              schema:
-                type: object
-                description: A Drupal AJAX response.
-                additionalProperties: true
+          $ref: '#/components/responses/DrupalAjaxResponse'
   '/canvas/api/v0/form/content-entity/{entityTypeId}/{entityId}':
     description: TODO
     get:
@@ -1339,25 +1286,8 @@ paths:
     post:
       summary: AJAX updates for this form.
       parameters:
-        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
-        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
-        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
-        - in: query
-          name: ajax_form
-          required: true
-          schema:
-            type: integer
-            enum:
-              - 1
-        # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
-        - in: query
-          name: _wrapper_format
-          required: true
-          schema:
-            type: string
-            enum:
-              - canvas_template
-              - drupal_ajax
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
       responses:
         '200':
           description: AJAX updates
@@ -1386,25 +1316,8 @@ paths:
     post:
       summary: AJAX updates for this form.
       parameters:
-        # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
-        # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
-        # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
-        - in: query
-          name: ajax_form
-          required: true
-          schema:
-            type: integer
-            enum:
-              - 1
-        # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
-        - in: query
-          name: _wrapper_format
-          required: true
-          schema:
-            type: string
-            enum:
-              - canvas_template
-              - drupal_ajax
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
       responses:
         '200':
           description: AJAX updates
@@ -2923,6 +2836,14 @@ components:
           description: Entity View Mode label.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
+    DrupalAjaxResponse:
+      description: AJAX updates
+      content:
+        application/json:
+          schema:
+            type: object
+            description: A Drupal AJAX response.
+            additionalProperties: true
     FormResponse:
       description: The form
       content:
@@ -2938,6 +2859,57 @@ components:
             properties:
               html:
                 type: string
+    ComponentInstanceFormResponse:
+      description: Component instance form
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - html
+              - css
+              - js
+              - settings
+              - transforms
+            properties:
+              html:
+                type: string
+                description: HTML originating from a Drupal render array.
+              css:
+                type: array
+                description: >-
+                  Stringified CSS info structured for use by `add_css` AJAX
+                  command
+                items:
+                  type: object
+                  additionalProperties: true
+                  properties:
+                    href:
+                      type: string
+                      format: uri-reference
+                    media:
+                      type: string
+              js:
+                type: object
+                description: >-
+                  Stringified JS info structured for use by `add_js` AJAX
+                  command
+                additionalProperties:
+                  type: object
+                  required:
+                    - src
+                  properties:
+                    src:
+                      type: string
+                      format: uri-reference
+              settings:
+                type: object
+                description: >-
+                  Stringified settings info structured for use by `settings`
+                  AJAX command
+                additionalProperties: true
+              transforms:
+                $ref: '#/components/schemas/ClientSideTransforms'
     ClientErrorResponse:
       description: Errors in response to the client's request.
       content:
@@ -3021,6 +2993,27 @@ components:
           value:
             - hopefully_meaningful_name
             - sdc.canvas_test_sdc.my-cta
+    queryAjaxForm:
+      # @see \Drupal\Core\Form\FormBuilderInterface::AJAX_FORM_REQUEST
+      # @see \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
+      # @see \Drupal\Core\EventSubscriber\AjaxResponseSubscriber
+      in: query
+      name: ajax_form
+      required: true
+      schema:
+        type: integer
+        enum:
+          - 1
+    # @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
+    queryWrapperFormat:
+      in: query
+      name: _wrapper_format
+      required: true
+      schema:
+        type: string
+        enum:
+          - canvas_template
+          - drupal_ajax
   # @see https://spec.openapis.org/oas/v3.1.0.html#header-object
   requestBodies:
     Layout:

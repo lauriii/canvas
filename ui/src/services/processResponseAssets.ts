@@ -9,7 +9,7 @@ const Drupal = getDrupal();
  * assets, then uses Drupal's AJAX API to add them to the page.
  *
  * This is designed to be used in `transformResponse` setting in endpoints
- * services by createApi such as the one in dummyPropsForm.ts.
+ * services by createApi such as the one in componentInstanceForm.ts.
  *
  * This is a factory and needs to be called in order to return the response
  * processor. The factory accepts an array of keys to be returned from the
@@ -23,7 +23,7 @@ const Drupal = getDrupal();
  *
  * @see core/misc/ajax.js
  * @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
- * @see ui/src/services/dummyPropsForm.ts
+ * @see ui/src/services/componentInstanceForm.ts
  */
 // @see core/misc/ajax.js
 const processResponseAssets = (keys: Array<string> = ['html']) => {

@@ -86,10 +86,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       // the admin theme.
       $request_stack = $this->requestStack;
       $current_route = new CurrentRouteMatch($request_stack);
-      $parameters = $current_route->getParameters();
-      if ($entity = $parameters->get('entity')) {
-        $parameters->set('entity', $entity->id());
-      }
+      $parameters = $current_route->getRawParameters();
       /** @var string $route_name */
       $route_name = $current_route->getRouteName();
       $query = $request_stack->getCurrentRequest()?->query->all() ?? [];

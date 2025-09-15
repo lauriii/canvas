@@ -31,8 +31,8 @@ import {
 } from '@/features/ui/uiSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
-import { dummyPropsFormApi } from '@/services/dummyPropsForm';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -134,7 +134,7 @@ const rootReducer = combineSlices(
   personalizationApi,
   componentAndLayoutApi,
   previewApi,
-  dummyPropsFormApi,
+  componentInstanceFormApi,
   pageDataFormApi,
   configurationSlice,
   primaryPanelSlice,
@@ -204,7 +204,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         personalizationApi.middleware,
         componentAndLayoutApi.middleware,
         previewApi.middleware,
-        dummyPropsFormApi.middleware,
+        componentInstanceFormApi.middleware,
         pageDataFormApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,

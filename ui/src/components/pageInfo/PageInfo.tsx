@@ -31,7 +31,11 @@ import {
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { DEFAULT_REGION, selectPreviouslyEdited } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  selectEditorFrameContext,
+  selectPreviouslyEdited,
+} from '@/features/ui/uiSlice';
 import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
@@ -88,7 +92,8 @@ const PageInfo = () => {
   const title = useEntityTitle();
 
   // Check if we're on a template route
-  const isTemplateRoute = location.pathname.startsWith('/template/');
+  const isTemplateRoute =
+    useAppSelector(selectEditorFrameContext) === 'template';
 
   // Fetch template data from API
   const { data: templatesData } = useGetContentTemplatesQuery(undefined, {

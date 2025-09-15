@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useComponentTransforms } from '@/components/DummyPropsEditForm';
+import { useComponentTransforms } from '@/components/ComponentInstanceForm';
 import {
   ComponentPreviewUpdateEvent,
   getPropSchemas,
@@ -27,6 +27,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useUpdateComponentMutation } from '@/services/preview';
 import { componentHasFieldData } from '@/types/Component';
@@ -51,6 +52,7 @@ export const InputBehaviorsComponentPropsForm = (
    * We already have a workaround for this for the Redux provider, could we do the same for the React Router context?
    */
   const currentComponent = useAppSelector(selectCurrentComponent);
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const dispatch = useAppDispatch();
   const selectedComponent = currentComponent || 'noop';
   const polledBackgroundUpdate = useRef<number | null>(null);
@@ -149,6 +151,7 @@ export const InputBehaviorsComponentPropsForm = (
     if (isEvaluatedComponentModel(selectedModel) && component) {
       const updateBackend = () => {
         patchComponent({
+          type: editorFrameContext,
           componentInstanceUuid: selectedComponent,
           componentType: `${selectedComponentType}@${version}`,
           model: {
@@ -180,6 +183,7 @@ export const InputBehaviorsComponentPropsForm = (
       return;
     }
     patchComponent({
+      type: editorFrameContext,
       componentInstanceUuid: selectedComponent,
       componentType: `${selectedComponentType}@${version}`,
       model: {

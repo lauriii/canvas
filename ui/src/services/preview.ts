@@ -13,6 +13,7 @@ import type {
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
+import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
 
@@ -25,6 +26,7 @@ export type UpdateComponentResultType = {
 };
 
 export type UpdateComponentQueryArg = {
+  type: EditorFrameContext;
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
@@ -61,11 +63,20 @@ export const previewApi = createApi({
       UpdateComponentResultType,
       UpdateComponentQueryArg
     >({
-      query: (body) => ({
-        url: 'canvas/api/v0/layout/{entity_type}/{entity_id}',
-        method: 'PATCH',
-        body,
-      }),
+      query: ({ type, ...body }) => {
+        let url = '';
+        if (type === 'entity') {
+          url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
+        } else if (type === 'template') {
+          url =
+            'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}';
+        }
+        return {
+          url,
+          method: 'PATCH',
+          body,
+        };
+      },
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
         const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;

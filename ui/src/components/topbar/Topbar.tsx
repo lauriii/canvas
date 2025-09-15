@@ -5,11 +5,13 @@ import { CardStackPlusIcon, PersonIcon } from '@radix-ui/react-icons';
 import * as Menubar from '@radix-ui/react-menubar';
 import { Box, Button, Flex, Grid, Tooltip } from '@radix-ui/themes';
 
+import { useAppSelector } from '@/app/hooks';
 import AIToggleButton from '@/components/aiExtension/AiToggleButton';
 import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
@@ -26,7 +28,8 @@ const Topbar = () => {
   const isPreview = location.pathname.includes('/preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
-  const isTemplateRoute = location.pathname.startsWith('/template/');
+  const isTemplateRoute =
+    useAppSelector(selectEditorFrameContext) === 'template';
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;

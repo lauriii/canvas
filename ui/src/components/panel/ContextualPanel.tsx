@@ -17,6 +17,7 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
+  EditorFrameContext,
   selectIsMultiSelect,
   selectSelectedComponentUuid,
   selectSelection,
@@ -27,13 +28,16 @@ import type React from 'react';
 
 import styles from './ContextualPanel.module.css';
 
-interface ContextualPanelProps {}
+interface ContextualPanelProps {
+  context: EditorFrameContext;
+}
 
-const ContextualPanel: React.FC<ContextualPanelProps> = () => {
+const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
   const selection = useAppSelector(selectSelection);
   const dispatch = useAppDispatch();
+  const isTemplateContext = context === EditorFrameContext.TEMPLATE;
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -53,6 +57,8 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
       setActivePanel('pageData');
     }
   }, [dispatch, selectedComponent, isMultiSelect]);
+
+  const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
   return (
     <Box
@@ -78,7 +84,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                 value="pageData"
                 data-testid="canvas-contextual-panel--page-data"
               >
-                Page data
+                {mainTabText}
               </Tabs.Trigger>
               {(selectedComponent || isMultiSelect) && (
                 <Tabs.Trigger
@@ -156,7 +162,8 @@ const ContextualPanel: React.FC<ContextualPanelProps> = () => {
                   forceMount={true}
                   hidden={activePanel !== 'pageData'}
                 >
-                  <PageDataForm />
+                  {/* @todo: Refactor this so we hide the page data form in [#3546319] */}
+                  {context === 'entity' && <PageDataForm />}
                 </Tabs.Content>
               </Box>
             </ScrollArea>

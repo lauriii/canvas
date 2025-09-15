@@ -34,6 +34,11 @@ export enum EditorFrameMode {
   EDIT = 'edit',
 }
 
+export enum EditorFrameContext {
+  ENTITY = 'entity',
+  TEMPLATE = 'template',
+}
+
 export type UndoRedoType = 'layoutModel' | 'pageData';
 
 export interface uiSliceState {
@@ -52,6 +57,7 @@ export interface uiSliceState {
   latestUndoRedoActionId: string;
   firstLoadComplete: boolean;
   editorFrameMode: EditorFrameMode;
+  editorFrameContext: EditorFrameContext;
   undoStack: Array<UndoRedoType>;
   redoStack: Array<UndoRedoType>;
   PreviouslyEdited: PreviouslyEdited;
@@ -88,6 +94,7 @@ export const initialState: uiSliceState = {
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
   editorFrameMode: EditorFrameMode.EDIT,
+  editorFrameContext: EditorFrameContext.ENTITY,
   selection: {
     consecutive: false,
     items: [],
@@ -268,6 +275,11 @@ export const uiSlice = createAppSlice({
     setEditorFrameModeInteractive: create.reducer((state) => {
       state.editorFrameMode = EditorFrameMode.INTERACTIVE;
     }),
+    setEditorFrameContext: create.reducer(
+      (state, action: PayloadAction<EditorFrameContext>) => {
+        state.editorFrameContext = action.payload;
+      },
+    ),
     clearSelection: create.reducer((state) => {
       state.selection.items.length = 0;
     }),
@@ -360,6 +372,9 @@ export const uiSlice = createAppSlice({
     selectEditorFrameMode: (ui): EditorFrameMode => {
       return ui.editorFrameMode;
     },
+    selectEditorFrameContext: (ui): EditorFrameContext => {
+      return ui.editorFrameContext;
+    },
     selectSelection: (ui): Selection => {
       return ui.selection;
     },
@@ -410,6 +425,7 @@ export const {
   setFirstLoadComplete,
   setEditorFrameModeEditing,
   setEditorFrameModeInteractive,
+  setEditorFrameContext,
   pushUndo,
   performUndoOrRedo,
   clearSelection,
@@ -435,6 +451,7 @@ export const {
   selectLatestUndoRedoActionId,
   selectFirstLoadComplete,
   selectEditorFrameMode,
+  selectEditorFrameContext,
   selectUndoType,
   selectRedoType,
   selectSelection,

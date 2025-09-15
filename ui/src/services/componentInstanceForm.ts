@@ -9,18 +9,24 @@ import type { TransformConfig } from '@/utils/transforms';
 
 let lastArgInUseByAnyComponent: string | undefined = '';
 
-export const dummyPropsFormApi = createApi({
-  reducerPath: 'dummyPropsFormApi',
+export const componentInstanceFormApi = createApi({
+  reducerPath: 'componentInstanceFormApi',
   baseQuery,
   endpoints: (builder) => ({
-    getDummyPropsForm: builder.query<
+    getComponentInstanceForm: builder.query<
       { html: string; transforms: TransformConfig },
-      string
+      { queryString: string; type: 'entity' | 'template' }
     >({
-      query: (queryString) => {
+      query: ({ queryString, type }) => {
         const fullQueryString = addAjaxPageState(queryString);
+        let url = '';
+        if (type === 'entity') {
+          url = `canvas/api/v0/form/component-instance/{entity_type}/{entity_id}`;
+        } else {
+          url = `canvas/api/v0/form/component-instance/content_template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}`;
+        }
         return {
-          url: `canvas/api/v0/form/component-instance/{entity_type}/{entity_id}`,
+          url,
           // We use PATCH to keep this distinct from AJAX form submissions which
           // use POST.
           method: 'PATCH',
@@ -34,9 +40,10 @@ export const dummyPropsFormApi = createApi({
         // When true, this will fetch new data on the request, but will use
         // cached data until the new data is available.
         const noChangesFound =
-          currentArg === previousArg &&
-          lastArgInUseByAnyComponent === currentArg;
-        lastArgInUseByAnyComponent = currentArg;
+          currentArg?.queryString === previousArg?.queryString &&
+          lastArgInUseByAnyComponent === currentArg?.queryString;
+
+        lastArgInUseByAnyComponent = currentArg?.queryString;
         return !noChangesFound;
       },
       transformResponse: processResponseAssets(['html', 'transforms']),
@@ -46,4 +53,4 @@ export const dummyPropsFormApi = createApi({
 
 // Export hooks for usage in functional layout, which are
 // auto-generated based on the defined endpoints
-export const { useGetDummyPropsFormQuery } = dummyPropsFormApi;
+export const { useGetComponentInstanceFormQuery } = componentInstanceFormApi;

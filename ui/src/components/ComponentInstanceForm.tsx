@@ -20,6 +20,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {
+  selectEditorFrameContext,
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
@@ -27,7 +28,7 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { useGetDummyPropsFormQuery } from '@/services/dummyPropsForm';
+import { useGetComponentInstanceFormQuery } from '@/services/componentInstanceForm';
 import {
   selectUpdateComponentLoadingState,
   useUpdateComponentMutation,
@@ -41,6 +42,7 @@ import type {
   EvaluatedComponentModel,
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
+import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 import type { CanvasComponent, FieldData } from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
@@ -52,15 +54,16 @@ export const useComponentTransforms = () => {
   return useContext(TransformsContext);
 };
 
-interface DummyPropsEditFormRendererProps {
+interface ComponentInstanceFormRendererProps {
   dynamicStaticCardQueryString: string;
+  context: EditorFrameContext;
 }
-interface DummyPropsEditFormProps {}
+interface ComponentInstanceFormProps {}
 
-const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
-  props,
-) => {
-  const { dynamicStaticCardQueryString } = props;
+const ComponentInstanceFormRenderer: React.FC<
+  ComponentInstanceFormRendererProps
+> = (props) => {
+  const { dynamicStaticCardQueryString, context } = props;
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
 
@@ -75,7 +78,12 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     selectUpdateComponentLoadingState(state, selectedComponentId),
   );
   const { currentData, error, originalArgs, isFetching } =
-    useGetDummyPropsFormQuery(dynamicStaticCardQueryString, { skip });
+    useGetComponentInstanceFormQuery(
+      { queryString: dynamicStaticCardQueryString, type: context },
+      {
+        skip,
+      },
+    );
   const model = useAppSelector(selectModel);
   const { data: components } = useGetComponentsQuery();
   const layout = useAppSelector(selectLayout);
@@ -127,7 +135,9 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
     // Instead we rely on fresh data from RTK Query to re-render, and we grab
     // the values from the arg that was passed to the API call which produced
     // the current data.
-    const originalUrlSearchParams = new URLSearchParams(originalArgs);
+    const originalUrlSearchParams = new URLSearchParams(
+      originalArgs?.queryString,
+    );
     const componentId = originalUrlSearchParams.get('form_canvas_selected');
     const latestUndoRedoActionId = originalUrlSearchParams.get(
       'latestUndoRedoActionId',
@@ -184,6 +194,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
         const component = components?.[selectedComponentType];
         if (isEvaluatedComponentModel(selectedModel) && component) {
           patchComponent({
+            type: context,
             componentInstanceUuid: selectedComponentId,
             componentType: `${selectedComponentType}@${version}`,
             model: {
@@ -198,6 +209,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
           return;
         }
         patchComponent({
+          type: context,
           componentInstanceUuid: selectedComponentId,
           componentType: `${selectedComponentType}@${version}`,
           model: {
@@ -248,7 +260,7 @@ const DummyPropsEditFormRenderer: React.FC<DummyPropsEditFormRendererProps> = (
   );
 };
 
-const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
+const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const dispatch = useAppDispatch();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
@@ -256,6 +268,7 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
+  const context = useAppSelector(selectEditorFrameContext);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
@@ -353,7 +366,8 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   return (
     dynamicStaticCardQueryString && (
       <>
-        <DummyPropsEditFormRenderer
+        <ComponentInstanceFormRenderer
+          context={context}
           dynamicStaticCardQueryString={dynamicStaticCardQueryString}
         />
         {componentSource === 'Module component' && emptyProp ? (
@@ -366,4 +380,4 @@ const DummyPropsEditForm: React.FC<DummyPropsEditFormProps> = () => {
   );
 };
 
-export default DummyPropsEditForm;
+export default ComponentInstanceForm;

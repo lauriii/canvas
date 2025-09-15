@@ -8,6 +8,7 @@ import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 
 const TemplateLayout = () => {
   const dispatch = useAppDispatch();
+
   const isInitialized = useAppSelector(selectIsInitialized);
   const {
     data: fetchedLayout,

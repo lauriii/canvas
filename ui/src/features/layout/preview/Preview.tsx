@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useLocation } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -15,7 +14,10 @@ import {
   selectPreviewBackgroundUpdate,
   selectPreviewHtml,
 } from '@/features/pagePreview/previewSlice';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import {
+  selectEditorFrameContext,
+  selectSelectedComponentUuid,
+} from '@/features/ui/uiSlice';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
@@ -54,12 +56,7 @@ const Preview: React.FC<PreviewProps> = () => {
   const dispatch = useAppDispatch();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const { showBoundary } = useErrorBoundary();
-  const { pathname } = useLocation();
-  let editing = 'page';
-  // @todo: May want to find a more robust way of determining if we are editing a template.
-  if (pathname.includes('/template/')) {
-    editing = 'template';
-  }
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -97,7 +94,7 @@ const Preview: React.FC<PreviewProps> = () => {
         previousEntityFormAlias.current = entity_form_fields['path[0][alias]'];
       }
 
-      if (editing === 'template') {
+      if (editorFrameContext === 'template') {
         sendTemplatePreviewRequest().then(() => {});
       } else {
         sendPreviewRequest().then(() => {
@@ -119,7 +116,7 @@ const Preview: React.FC<PreviewProps> = () => {
     dispatch,
     title,
     postTemplatePreview,
-    editing,
+    editorFrameContext,
   ]);
 
   return (

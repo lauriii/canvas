@@ -259,16 +259,16 @@ canvas.api.content.list:
 
 # Forms: component instance and content entity.
 # @see \Drupal\canvas\Theme\CanvasThemeNegotiator::applies()
-canvas.api.form.component_instance:
+canvas.api.form.component_instance: &component_instance_form_route
   path: '/canvas/api/v0/form/component-instance/{entity_type}/{entity}'
   defaults:
     _form: 'Drupal\canvas\Form\ComponentInstanceForm'
     _title: 'Component Instance Form'
-  requirements:
+  requirements: &component_instance_form_route_requirements
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
-  options:
+  options: &component_instance_form_route_options
     # The Canvas equivalent of requesting an AJAX response using `?_wrapper_format`.
     # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
     # @see \Drupal\Core\Ajax\AjaxResponse
@@ -283,6 +283,23 @@ canvas.api.form.component_instance:
     - PATCH
     # Used by Drupal's AJAX system.
     - POST
+
+# Specialized version of the `canvas.api.form.component_instance` route, with one additional route parameter.
+canvas.api.form.component_instance.content_template:
+  <<: *component_instance_form_route
+  path: '/canvas/api/v0/form/component-instance/content_template/{entity}/{preview_entity}'
+  requirements:
+    <<: *component_instance_form_route_requirements
+    _canvas_preview_entity_view_access: TRUE
+  options:
+    <<: *component_instance_form_route_options
+    parameters:
+      entity:
+        type: entity:content_template
+      preview_entity:
+        # @see \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
+        type: canvas_content_template_preview_entity
+
 canvas.api.form.content_entity:
   path: '/canvas/api/v0/form/content-entity/{entity_type}/{entity}/{entity_form_mode}'
   defaults:

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
-import { useLocation } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -15,15 +14,24 @@ import Layout from '@/features/layout/Layout';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import TemplateLayout from '@/features/layout/TemplateLayout';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
-import { setFirstLoadComplete } from '@/features/ui/uiSlice';
+import {
+  setEditorFrameContext,
+  setFirstLoadComplete,
+} from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useReturnableLocation from '@/hooks/useReturnableLocation';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 
+import type { EditorFrameContext } from '@/features/ui/uiSlice';
+
 import styles from './Editor.module.css';
 
-const Editor = () => {
+interface EditorProps {
+  context: EditorFrameContext;
+}
+
+const Editor: React.FC<EditorProps> = ({ context }) => {
   const dispatch = useAppDispatch();
   useLayoutWatcher();
   useSyncParamsToState();
@@ -31,18 +39,13 @@ const Editor = () => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const params = useParams();
-  const { pathname } = useLocation();
-
-  let editing = 'page';
-  if (pathname.includes('/template/')) {
-    editing = 'template';
-  }
 
   useEffect(() => {
+    dispatch(setEditorFrameContext(context));
     return () => {
       dispatch(setFirstLoadComplete(false));
     };
-  }, [dispatch]);
+  }, [context, dispatch]);
 
   useEffect(() => {
     dispatch(setUpdatePreview(false));
@@ -66,11 +69,11 @@ const Editor = () => {
         onReset={isUndoable ? dispatchUndo : undefined}
         resetButtonText={isUndoable ? 'Undo last action' : undefined}
       >
-        {editing === 'page' && <Layout />}
-        {editing === 'template' && <TemplateLayout />}
+        {context === 'entity' && <Layout />}
+        {context === 'template' && <TemplateLayout />}
       </ErrorBoundary>
       <EditorFrame />
-      <ContextualPanel />
+      <ContextualPanel context={context} />
       <div className={styles.absoluteContainer}>
         <PatternDialogs />
         <CodeComponentDialogs />

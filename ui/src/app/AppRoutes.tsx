@@ -7,7 +7,7 @@ import {
 import { Flex } from '@radix-ui/themes';
 
 import App from '@/app/App';
-import DummyPropsEditForm from '@/components/DummyPropsEditForm';
+import ComponentInstanceForm from '@/components/ComponentInstanceForm';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import PermissionCheck from '@/components/PermissionCheck';
@@ -20,6 +20,7 @@ import TemplateRoot from '@/features/editor/TemplateRoot';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
+import { EditorFrameContext } from '@/features/ui/uiSlice';
 import Welcome from '@/features/welcome/Welcome';
 
 import type React from 'react';
@@ -73,21 +74,21 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: (
               <>
                 <SideMenu />
-                <Editor />
+                <Editor context={EditorFrameContext.ENTITY} />
               </>
             ),
             children: [
               {
                 path: '/editor/:entityType/:entityId/region/:regionId/component/:componentId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
               {
                 path: '/editor/:entityType/:entityId/region/:regionId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
               {
                 path: '/editor/:entityType/:entityId/component/:componentId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
             ],
           },
@@ -105,21 +106,21 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: (
               <>
                 <SideMenu />
-                <Editor />
+                <Editor context={EditorFrameContext.TEMPLATE} />
               </>
             ),
             children: [
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId/component/:componentId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/region/:regionId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',
-                element: <DummyPropsEditForm />,
+                element: <ComponentInstanceForm />,
               },
             ],
           },

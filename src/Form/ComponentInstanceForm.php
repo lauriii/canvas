@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Form;
 
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
@@ -56,12 +58,13 @@ final class ComponentInstanceForm extends FormBase {
    * @see \Drupal\Core\Entity\Entity\EntityFormDisplay::buildForm()
    * @see \Drupal\Core\Field\WidgetBase::form()
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ?FieldableEntityInterface $entity = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?EntityInterface $entity = NULL, ?FieldableEntityInterface $preview_entity = NULL): array {
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
     // @see \Drupal\canvas\Controller\ApiLayoutController
     if (is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
+    \assert($entity instanceof FieldableEntityInterface || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
     // @phpstan-ignore-next-line property.notFound
     if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
       return [
@@ -69,6 +72,7 @@ final class ComponentInstanceForm extends FormBase {
         '#markup' => $this->t('The canvas_stark theme must be enabled for this form to work.'),
       ];
     }
+    $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
     $this->componentTreeLoader->load($entity);
 
     $request = $this->getRequest();
@@ -112,14 +116,14 @@ final class ComponentInstanceForm extends FormBase {
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 
-    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $entity);
+    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
 
     $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = self::FORM_ID;
 
     $parents = ['canvas_component_props', $component_instance_uuid];
     $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
-    $form['canvas_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+    $form['canvas_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $host_entity, $component->get('settings'));
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
