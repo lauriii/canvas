@@ -17,6 +17,8 @@ use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -34,6 +36,7 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
     private LibraryDependencyResolverInterface $libraryDependencyResolver,
     private ThemeManagerInterface $themeManager,
     private ConfigFactoryInterface $configFactory,
+    private RequestStack $requestStack,
   ) {}
 
   public static function create(ContainerInterface $container): self {
@@ -43,8 +46,17 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
       $container->get(LibraryDependencyResolverInterface::class),
       $container->get(ThemeManagerInterface::class),
       $container->get(ConfigFactoryInterface::class),
+      $container->get(RequestStack::class),
     );
   }
+
+  const ASSET_LIBRARY_METHOD_MAPPING = [
+    'canvas/canvasData.v0.baseUrl' => 'getCanvasDataBaseUrlV0',
+    'canvas/canvasData.v0.branding' => 'getCanvasDataBrandingV0',
+    'canvas/canvasData.v0.breadcrumbs' => 'getCanvasDataBreadcrumbsV0',
+    'canvas/canvasData.v0.pageTitle' => 'getCanvasDataPageTitleV0',
+    'canvas/canvasData.v0.jsonapiSettings' => 'getCanvasDataJsonApiSettingsV0',
+  ];
 
   /**
    * Implements hook_rebuild().
@@ -125,41 +137,68 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
     // This is an oversight in core infra; this should not be necessary.
     $all_attached_asset_libraries = $this->libraryDependencyResolver->getLibrariesWithDependencies($assets->getLibraries());
 
+    $request = $this->requestStack->getCurrentRequest();
+    \assert($request instanceof Request);
+
     $all = in_array('canvas/canvasData.v0', $all_attached_asset_libraries, TRUE);
     if ($all || in_array('canvas/canvasData.v0.baseUrl', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'baseUrl']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->codeComponentDataProvider->getCanvasDataBaseUrlV0());
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.baseUrl'));
       }
     }
     if ($all || in_array('canvas/canvasData.v0.branding', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'branding', 'homeUrl']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->codeComponentDataProvider->getCanvasDataBrandingV0());
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.branding'));
       }
     }
     if ($all || in_array('canvas/canvasData.v0.breadcrumbs', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'breadcrumbs']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->codeComponentDataProvider->getCanvasDataBreadcrumbsV0());
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.breadcrumbs'));
       }
     }
     if ($all || in_array('canvas/canvasData.v0.pageTitle', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'pageTitle']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->codeComponentDataProvider->getCanvasDataPageTitleV0());
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.pageTitle'));
       }
     }
     if ($all || in_array('canvas/canvasData.v0.jsonapiSettings', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'jsonapiSettings']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->codeComponentDataProvider->getCanvasDataJsonApiSettingsV0());
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.jsonapiSettings'));
       }
     }
     if (!empty($canvasData)) {
       ksort($canvasData[CodeComponentDataProvider::V0]);
       $settings[CodeComponentDataProvider::CANVAS_DATA_KEY] = $canvasData;
     }
+  }
+
+  /**
+   * Avoids repeated calls to CodeComponentDataProvider for the same request.
+   *
+   * @see \Drupal\canvas\CodeComponentDataProvider
+   */
+  private function memoize(Request $request, string $asset_library): array {
+    assert(str_starts_with($asset_library, 'canvas/canvasData.v0.'));
+
+    static $cached;
+    if (!isset($cached)) {
+      $cached = [];
+    }
+    if (!isset($cached[$asset_library])) {
+      $cached[$asset_library] = new \SplObjectStorage();
+    }
+    if (!isset($cached[$asset_library][$request])) {
+      $method = self::ASSET_LIBRARY_METHOD_MAPPING[$asset_library];
+      assert(method_exists($this->codeComponentDataProvider, $method));
+      $cached[$asset_library][$request] = $this->codeComponentDataProvider->$method();
+    }
+
+    return $cached[$asset_library][$request];
   }
 
 }
