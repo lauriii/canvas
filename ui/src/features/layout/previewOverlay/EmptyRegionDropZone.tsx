@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import TemplateIcon from '@assets/icons/template.svg?react';
 import { useDroppable } from '@dnd-kit/core';
 import { FileTextIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 
 import type React from 'react';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
@@ -19,6 +22,8 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   const { region } = props;
   const layout = useAppSelector(selectLayout);
   const [activeName, setActiveName] = useState('');
+  const isTemplateRoute =
+    useAppSelector(selectEditorFrameContext) === 'template';
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex, 0];
@@ -35,6 +40,8 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
       path: regionPath,
     },
   });
+
+  const templateCaption = useTemplateCaption();
 
   useEffect(() => {
     if (isOver && active) {
@@ -56,9 +63,9 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           activeName
         ) : (
           <>
-            <FileTextIcon />
+            {isTemplateRoute ? <TemplateIcon /> : <FileTextIcon />}
             <Text weight={'medium'} mt="2" trim="start">
-              Page content
+              {isTemplateRoute ? templateCaption || 'Template' : 'Page content'}
             </Text>
             <div className={styles.regionMessage}>Place items here</div>
           </>
