@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
-import { FileIcon } from '@radix-ui/react-icons';
+import { FileTextIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
@@ -56,7 +56,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           activeName
         ) : (
           <>
-            <FileIcon />
+            <FileTextIcon />
             <Text weight={'medium'} mt="2" trim="start">
               Page content
             </Text>

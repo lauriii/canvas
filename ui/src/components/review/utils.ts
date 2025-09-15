@@ -55,6 +55,8 @@ export function getGroupLabel(entityType: string): string {
       return 'Regions';
     case 'staged_config_update':
       return 'Configuration updates';
+    case 'content_template':
+      return 'Content templates';
     default:
       return kebabCase(entityType);
   }

@@ -68,7 +68,7 @@ const ChangeGroup = ({
   return (
     <Box data-testid="pending-change-group">
       <Text as="label" size="1">
-        <Flex as="div" direction="row" align="center" gap="2">
+        <Flex as="div" direction="row" align="center" gap="2" mb="2">
           <Checkbox
             size="1"
             disabled={isBusy}

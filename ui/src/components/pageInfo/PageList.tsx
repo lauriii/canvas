@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import {
   ChevronDownIcon,
-  FileIcon,
+  FileTextIcon,
   InfoCircledIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -276,7 +276,7 @@ const PageList = ({
                 onClick={onNewPage}
                 data-testid="canvas-page-list-new-page-button"
               >
-                <FileIcon />
+                <FileTextIcon />
                 New page
               </DropdownMenu.Item>
             </DropdownMenu.Content>

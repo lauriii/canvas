@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { NavLink, useLocation, useParams } from 'react-router-dom';
+import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   ChevronLeftIcon,
   CodeIcon,
   CubeIcon,
-  FileIcon,
+  FileTextIcon,
   HomeIcon,
   SectionIcon,
   StackIcon,
@@ -63,12 +64,12 @@ interface PageType {
 }
 
 const iconMap: PageType = {
-  Page: <FileIcon />,
+  Page: <FileTextIcon />,
   ContentType: <StackIcon />,
   ComponentName: <CodeIcon />,
   GlobalPatternName: <SectionIcon />,
   Homepage: <HomeIcon />,
-  Template: <FileIcon />,
+  Template: <TemplateIcon />,
 };
 
 const canvasSettings = getCanvasSettings();

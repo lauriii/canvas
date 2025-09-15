@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
+import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   Component1Icon,
-  FileIcon,
   FileTextIcon,
   LayersIcon,
   PlusIcon,
@@ -111,7 +111,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     {
       type: 'button',
       id: 'pages',
-      icon: <FileIcon />,
+      icon: <FileTextIcon />,
       label: 'Pages',
       enabled: true,
       hidden: false,
@@ -119,7 +119,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     {
       type: 'button',
       id: 'templates',
-      icon: <FileTextIcon />,
+      icon: <TemplateIcon />,
       label: 'Templates',
       enabled: true,
       hidden: !canvasSettings.devMode,

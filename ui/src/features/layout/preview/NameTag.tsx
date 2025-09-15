@@ -4,7 +4,7 @@ import {
   BoxModelIcon,
   Component1Icon,
   CubeIcon,
-  FileIcon,
+  FileTextIcon,
 } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
@@ -23,7 +23,7 @@ const VARIANTS = {
   component: <Component1Icon width={10} height={10} />,
   region: <CubeIcon width={10} height={10} />,
   slot: <BoxModelIcon width={10} height={10} />,
-  page: <FileIcon width={10} height={10} />,
+  page: <FileTextIcon width={10} height={10} />,
 };
 
 interface NameTagProps {

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { clsx } from 'clsx';
+import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   BoxModelIcon,
   CodeIcon,
@@ -8,7 +9,6 @@ import {
   ComponentBooleanIcon,
   CubeIcon,
   DotsHorizontalIcon,
-  FileIcon,
   FileTextIcon,
   HomeIcon,
   SectionIcon,
@@ -23,11 +23,11 @@ const VARIANTS = {
   codeComponent: { icon: <Component2Icon /> },
   dynamicComponent: { icon: <ComponentBooleanIcon /> },
   homepage: { icon: <HomeIcon /> },
-  page: { icon: <FileIcon /> },
+  page: { icon: <FileTextIcon /> },
   region: { icon: <CubeIcon /> },
   pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
-  template: { icon: <FileTextIcon /> },
+  template: { icon: <TemplateIcon /> },
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;

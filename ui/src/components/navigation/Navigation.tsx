@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import {
   ChevronDownIcon,
   DotsVerticalIcon,
-  FileIcon,
+  FileTextIcon,
   HomeIcon,
   InfoCircledIcon,
   MagnifyingGlassIcon,
@@ -197,7 +197,7 @@ const ContentGroup = ({
                   {item.internalPath === homepagePath ? (
                     <HomeIcon />
                   ) : (
-                    <FileIcon />
+                    <FileTextIcon />
                   )}
                 </Box>
                 <Flex flexGrow="1" align="center">
@@ -318,7 +318,7 @@ const Navigation = ({
                 onClick={onNewPage}
                 data-testid="canvas-navigation-new-page-button"
               >
-                <FileIcon />
+                <FileTextIcon />
                 New page
               </DropdownMenu.Item>
             </DropdownMenu.Content>
