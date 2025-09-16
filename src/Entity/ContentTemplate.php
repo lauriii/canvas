@@ -323,12 +323,17 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       throw new \LogicException('Content templates cannot be applied to entities that have their own component trees.');
     }
 
-    // The entity is *expected* to have an Canvas field, or it's not considered
-    // opted in to Canvas. An entity that isn't opted into Canvas should never be passed
-    // to this method, so we don't need to catch the possible exception here.
+    // When no exposed slots exist, no Canvas field is required.
+    // @todo Consider always requiring a Canvas field again after 1.0, once exposed slot support is added to the UI.
+    if (empty($this->getExposedSlots())) {
+      return $this->getComponentTree($entity)->toRenderable($this, $isPreview);
+    }
+
+    // @todo Prior to supporting multiple exposed slots, https://www.drupal.org/i/3526189
+    //   must be investigated and a decision needs to be made.
+    assert(count($this->getExposedSlots()) === 1);
     $canvas_field_name = \Drupal::service(ComponentTreeLoader::class)
       ->getCanvasFieldName($entity);
-
     $sub_tree_item_list = $entity->get($canvas_field_name);
     \assert($sub_tree_item_list instanceof ComponentTreeItemList);
     return $this->getComponentTree($entity)

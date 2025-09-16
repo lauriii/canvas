@@ -73,7 +73,14 @@ final class ContentTemplateHooks {
       if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
         continue;
       }
-      // Canvas can only render fieldable content entities.
+      // Canvas can only render fieldable content entities. Any content entity
+      // types with structured data (all of them except Canvas' own `Page`)
+      // must be assumed to use ContentTemplates, and hence should use that view
+      // builder.
+      // Note: as soon as a ContentTemplate exists for a certain content entity
+      // type + view mode, the original template will NOT be used anymore:
+      // - not the view mode-specific one, such as `node--teaser.html.twig`
+      // - not the generic one, such as `node.html.twig`
       if ($entity_type->entityClassImplements(FieldableEntityInterface::class)) {
         // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::createInstance()
         $entity_type->setHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY, $entity_type->getViewBuilderClass())

@@ -91,11 +91,7 @@ final class NodeTemplatesTest extends KernelTestBase {
           'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Canvas is large and in charge!',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'Canvas is large and in charge!',
           ],
         ],
         // The node body, which needs to be using a dynamic prop source
@@ -135,9 +131,6 @@ HTML;
     self::assertStringNotContainsString('Canvas is large and in charge!', $html);
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
-
-    // Opt the content type into Canvas by creating a component tree field.
-    $this->createComponentTreeField('node', 'article');
 
     // Confirm although we've opted in the status of the template is false so
     // will not be used.

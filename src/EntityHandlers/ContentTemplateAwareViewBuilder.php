@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -12,7 +13,6 @@ use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -36,12 +36,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
    */
   private EntityViewBuilderInterface $decorated;
 
-  /**
-   * The component tree loader service.
-   *
-   * @var \Drupal\canvas\Storage\ComponentTreeLoader
-   */
-  private ComponentTreeLoader $componentTreeLoader;
+  private EntityTypeManagerInterface $entityTypeManager;
 
   /**
    * {@inheritdoc}
@@ -49,12 +44,12 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): self {
     $instance = parent::createInstance($container, $entity_type);
 
-    $original_view_builder = $container->get(EntityTypeManagerInterface::class)
+    $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
+    $original_view_builder = $instance->entityTypeManager
       ->getHandler($entity_type->id(), self::DECORATED_HANDLER_KEY);
     assert($original_view_builder instanceof EntityViewBuilderInterface);
     $instance->decorated = $original_view_builder;
 
-    $instance->componentTreeLoader = $container->get(ComponentTreeLoader::class);
     return $instance;
   }
 
@@ -63,26 +58,36 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
    */
   protected function getBuildDefaults(EntityInterface $entity, $view_mode) {
     $defaults = parent::getBuildDefaults($entity, $view_mode);
+    \assert($entity instanceof FieldableEntityInterface);
+    $template = ContentTemplate::loadForEntity($entity, $view_mode);
+
+    // If a template exists, no matter if disabled, this render array depends
+    // on it changing.
+    if ($template) {
+      CacheableMetadata::createFromObject($template)->applyTo($defaults);
+    }
+    // We need to ensure as soon as a content template is added, we are using it.
+    else {
+      (new CacheableMetadata())->addCacheTags(
+        $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getEntityType()->getListCacheTags()
+      )->applyTo($defaults);
+    }
+
     $keys = NestedArray::getValue($defaults, ['#cache', 'keys']);
     if ($keys !== NULL) {
-      // This entity has render caching, so add a cache key indicating whether
-      // or not it's opted into Canvas.
-      \assert($entity instanceof FieldableEntityInterface);
-      try {
-        $this->componentTreeLoader->getCanvasFieldName($entity);
+      if ($template && $template->status()) {
+        // This entity has render caching, so add a cache key indicating whether
+        // or not it's opted into Canvas.
         $keys[] = 'with-canvas';
-        // We don't want to use the default theme template as preprocess functions
-        // etc might make assumptions about various fields being present.
-        // @see template_preprocess_node.
-        // @todo Remove in https://www.drupal.org/i/3534128 when https://drupal.org/i/3524738 is fixed
+        // We don't want to use the default theme template (such as
+        // `node.html.twig`) because any content entity type that uses Canvas'
+        // ContentTemplates is opting in to full control via Canvas.
         unset($defaults['#theme']);
       }
-      catch (\LogicException) {
+      else {
         $keys[] = 'without-canvas';
       }
-      finally {
-        NestedArray::setValue($defaults, ['#cache', 'keys'], $keys);
-      }
+      NestedArray::setValue($defaults, ['#cache', 'keys'], $keys);
     }
     return $defaults;
   }
@@ -99,18 +104,10 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
         continue;
       }
 
-      \assert($entity instanceof FieldableEntityInterface);
-      try {
-        $this->componentTreeLoader->getCanvasFieldName($entity);
-      }
-      catch (\LogicException) {
-        // This entity isn't opted into Canvas, so there's nothing else to do.
-        continue;
-      }
-
       // See if we can find a template for this entity, in the requested view
       // mode. If we do, use that template to render the entity only if the
       // status is set to true.
+      assert($entity instanceof FieldableEntityInterface);
       $template = ContentTemplate::loadForEntity($entity, $view_mode);
       if ($template && $template->status()) {
         $displays[$bundle] = $template;
