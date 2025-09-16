@@ -66,6 +66,15 @@ canvas.component.*:
         NotEqualTo:
           value: 'fallback'
           message: 'The "fallback" plugin does not provide any components; it only serves as a fallback.'
+        # @todo Remove this constraint after https://www.drupal.org/i/3520484#stable is done.
+        # 💡When developing or testing ComponentSource plugins ahead of this being a public API, install the `canvas_dev_mode` module. Thanks for helping make Drupal Canvas awesome! 😊
+        Choice:
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
+          - sdc
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
+          - js
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
+          - block
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     category:

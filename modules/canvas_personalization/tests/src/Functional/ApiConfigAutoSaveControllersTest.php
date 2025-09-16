@@ -30,7 +30,12 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['canvas', 'canvas_personalization'];
+  protected static $modules = [
+    'canvas',
+    'canvas_personalization',
+    // @todo Remove once ComponentSourceInterface is a public API, i.e. after https://www.drupal.org/i/3520484#stable is done.
+    'canvas_dev_mode',
+  ];
 
   /**
    * {@inheritdoc}

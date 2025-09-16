@@ -51,6 +51,8 @@ final class PersonalizationTest extends ComponentSourceTestBase {
     'user',
     'field',
     'text',
+    // @todo Remove once ComponentSourceInterface is a public API, i.e. after https://www.drupal.org/i/3520484#stable is done.
+    'canvas_dev_mode',
   ];
 
   /**

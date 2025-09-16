@@ -33,7 +33,13 @@ final class SegmentFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['canvas', 'user', 'canvas_personalization'];
+  protected static $modules = [
+    'canvas',
+    'user',
+    'canvas_personalization',
+    // @todo Remove once ComponentSourceInterface is a public API, i.e. after https://www.drupal.org/i/3520484#stable is done.
+    'canvas_dev_mode',
+  ];
 
   /**
    * {@inheritdoc}

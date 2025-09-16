@@ -393,7 +393,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'source' => [
         'id' => "Expected 'test.canvas_test_sdc.my-cta', not 'sdc.canvas_test_sdc.my-cta'. Format: '&lt;%parent.source&gt;.&lt;%parent.source_local_id&gt;'.",
-        'source' => "The 'test' plugin does not exist.",
+        'source' => [
+          "The 'test' plugin does not exist.",
+          // @todo Remove after https://www.drupal.org/i/3520484#stable is done.
+          'The value you selected is not a valid choice.',
+        ],
         \sprintf('versioned_properties.%s.settings', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'prop_field_definitions' is an unknown key because source is test (see config schema type canvas.component_source_settings.*).",
       ],
       'source_local_id' => [

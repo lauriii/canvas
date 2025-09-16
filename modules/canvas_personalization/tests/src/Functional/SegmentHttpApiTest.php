@@ -32,6 +32,8 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     'canvas',
     'canvas_personalization',
     'node',
+    // @todo Remove once ComponentSourceInterface is a public API, i.e. after https://www.drupal.org/i/3520484#stable is done.
+    'canvas_dev_mode',
   ];
 
   /**
