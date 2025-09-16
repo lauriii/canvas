@@ -41,6 +41,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
+  const [hidePanel, setHidePanel] = useState(false);
 
   useEffect(() => {
     if (selectedComponent) {
@@ -58,13 +59,25 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
     }
   }, [dispatch, selectedComponent, isMultiSelect]);
 
+  useEffect(() => {
+    if (isTemplateContext && !isMultiSelect && !selectedComponent) {
+      setHidePanel(true);
+    } else {
+      setHidePanel(false);
+    }
+  }, [selectedComponent, isMultiSelect, isTemplateContext]);
+
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
   return (
     <Box
       data-testid="canvas-contextual-panel"
       pt="2"
-      className={clsx(styles.contextualPanel, ...offRightClasses)}
+      className={clsx(
+        styles.contextualPanel,
+        { [styles.hidePanel]: hidePanel },
+        ...offRightClasses,
+      )}
     >
       <Flex
         flexGrow="1"
@@ -80,12 +93,14 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
             className={clsx(styles.tabRoot)}
           >
             <Tabs.List justify="start" mx="4" size="1">
-              <Tabs.Trigger
-                value="pageData"
-                data-testid="canvas-contextual-panel--page-data"
-              >
-                {mainTabText}
-              </Tabs.Trigger>
+              {!isTemplateContext && (
+                <Tabs.Trigger
+                  value="pageData"
+                  data-testid="canvas-contextual-panel--page-data"
+                >
+                  {mainTabText}
+                </Tabs.Trigger>
+              )}
               {(selectedComponent || isMultiSelect) && (
                 <Tabs.Trigger
                   value="settings"
@@ -157,14 +172,15 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
                     <Outlet />
                   </ErrorBoundary>
                 </Tabs.Content>
-                <Tabs.Content
-                  value={'pageData'}
-                  forceMount={true}
-                  hidden={activePanel !== 'pageData'}
-                >
-                  {/* @todo: Refactor this so we hide the page data form in [#3546319] */}
-                  {context === 'entity' && <PageDataForm />}
-                </Tabs.Content>
+                {!isTemplateContext && (
+                  <Tabs.Content
+                    value={'pageData'}
+                    forceMount={true}
+                    hidden={activePanel !== 'pageData'}
+                  >
+                    {context === 'entity' && <PageDataForm />}
+                  </Tabs.Content>
+                )}
               </Box>
             </ScrollArea>
           </Tabs.Root>

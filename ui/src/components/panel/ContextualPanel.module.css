@@ -2,6 +2,9 @@
   flex-shrink: 0;
   width: var(--sidebar-right-width);
   background: #fff;
+  &.hidePanel {
+    display: none;
+  }
 }
 
 .segmentedControlRoot {
@@ -17,3 +20,4 @@
 .scrollArea [data-radix-scroll-area-viewport] > * {
   max-width: 100%;
 }
+
