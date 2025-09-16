@@ -133,7 +133,7 @@ class CanvasAiHooks {
    */
   #[Hook('js_settings_alter')]
   public function jsSettingsAlter(array &$settings): void {
-    if ($settings['canvas']['aiExtensionAvailable'] === TRUE) {
+    if (!empty($settings['canvas']['aiExtensionAvailable'])) {
       $config = $this->configFactory->get('canvas_ai.settings');
       $file_upload_size_mb = $config->get('file_upload_size') ?? 2;
       $file_upload_size_bytes = $file_upload_size_mb * 1024 * 1024;
