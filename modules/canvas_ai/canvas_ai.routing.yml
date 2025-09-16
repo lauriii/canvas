@@ -3,14 +3,14 @@ canvas_ai.canvas_builder:
   defaults:
     _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::render'
   requirements:
-    _permission: 'use Drupal Canvas ai'
+    _permission: 'use Drupal Canvas AI'
 
 canvas_ai.csrf_token:
   path: '/admin/api/canvas/token'
   defaults:
     _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::getCsrfToken'
   requirements:
-    _permission: 'use Drupal Canvas ai'
+    _permission: 'use Drupal Canvas AI'
     _method: 'POST'
 
 canvas_ai.component_description_settings:

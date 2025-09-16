@@ -6,7 +6,9 @@ namespace Drupal\canvas_ai\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\canvas_ai\CanvasAiPermissions;
 
 /**
  * Hook implementations for canvas_ai tokens.
@@ -14,11 +16,10 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 class CanvasAiHooks {
   use StringTranslationTrait;
 
-  protected ConfigFactoryInterface $configFactory;
-
-  public function __construct(ConfigFactoryInterface $configFactory) {
-    $this->configFactory = $configFactory;
-  }
+  public function __construct(
+    private readonly AccountInterface $currentUser,
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {}
 
   /**
    * Implements hook_token_info().
@@ -132,11 +133,13 @@ class CanvasAiHooks {
    */
   #[Hook('js_settings_alter')]
   public function jsSettingsAlter(array &$settings): void {
-    $config = $this->configFactory->get('canvas_ai.settings');
-    $file_upload_size_mb = $config->get('file_upload_size') ?? 2;
-    $file_upload_size_bytes = $file_upload_size_mb * 1024 * 1024;
-
-    $settings['canvas']['canvasAiMaxFileSize'] = $file_upload_size_bytes;
+    if ($settings['canvas']['aiExtensionAvailable'] === TRUE) {
+      $config = $this->configFactory->get('canvas_ai.settings');
+      $file_upload_size_mb = $config->get('file_upload_size') ?? 2;
+      $file_upload_size_bytes = $file_upload_size_mb * 1024 * 1024;
+      $settings['canvas']['canvasAiMaxFileSize'] = $file_upload_size_bytes;
+      $settings['canvas']['permissions']['useCanvasAi'] = $this->currentUser->hasPermission(CanvasAiPermissions::USE_CANVAS_AI);
+    }
   }
 
 }

@@ -9,6 +9,7 @@ use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
 use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 
@@ -65,7 +66,7 @@ final class GetComponentContext extends FunctionCallBase implements ExecutableFu
    */
   public function execute(): void {
     // Make sure that the user has the right permissions.
-    if (!$this->currentUser->hasPermission('use Drupal Canvas ai')) {
+    if (!$this->currentUser->hasPermission(CanvasAiPermissions::USE_CANVAS_AI)) {
       throw new \Exception('The current user does not have the right permissions to run this tool.');
     }
     $this->setOutput($this->pageBuilderHelper->getComponentContextForAi());

@@ -43,15 +43,13 @@ test.describe('AI Features', () => {
     await drupal.createCanvasPage('Canvas AI User', '/canvasai_user');
     await page.goto('/canvasai_user');
     await canvasEditor.goToEditor();
-
-    // @todo This test should fail once https://www.drupal.org/i/3533449 is implemented
     await expect(
       page.getByRole('button', { name: 'Open AI Panel' }),
-    ).toBeAttached();
+    ).not.toBeAttached();
 
     await drupal.addPermissions({
       role: 'canvas_ai',
-      permissions: ['use Drupal Canvas ai'],
+      permissions: ['use Drupal Canvas AI'],
     });
     await page.reload();
     await expect(

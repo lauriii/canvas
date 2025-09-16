@@ -35,7 +35,10 @@ const Topbar = () => {
   let hasPersonalizeExtensionAvailable = false;
 
   const drupalSettings = getDrupalSettings();
-  if (drupalSettings && drupalSettings.canvas.aiExtensionAvailable) {
+  if (
+    drupalSettings?.canvas?.aiExtensionAvailable &&
+    (drupalSettings.canvas as any).permissions?.useCanvasAi === true
+  ) {
     hasAiExtensionAvailable = true;
   }
   if (

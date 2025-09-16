@@ -10,6 +10,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -62,7 +63,7 @@ final class GetComponentContextTest extends KernelTestBase {
     $this->installEntitySchema('user');
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
-    $privileged_user = $this->createUser(['use Drupal Canvas ai']);
+    $privileged_user = $this->createUser([CanvasAiPermissions::USE_CANVAS_AI]);
     $unprivileged_user = $this->createUser();
     if (!$privileged_user instanceof User || !$unprivileged_user instanceof User) {
       throw new \Exception('Failed to create test users');
