@@ -66,6 +66,10 @@ class CanvasAiHooks {
             'name' => $this->t('Active Component UUID'),
             'description' => $this->t('Returns the UUID of the active component in the page.'),
           ],
+          'menu_fetch_source' => [
+            'name' => $this->t('Menu Fetch Source'),
+            'description' => $this->t('Returns the source for menu fetching.'),
+          ],
         ],
       ],
     ];
@@ -111,6 +115,10 @@ class CanvasAiHooks {
 
           case 'active_component_uuid':
             $replacements[$original] = !empty($data['active_component_uuid']) ? $data['active_component_uuid'] : 'None';
+            break;
+
+          case 'menu_fetch_source':
+            $replacements[$original] = !empty($data['menu_fetch_source']) ? $data['menu_fetch_source'] : NULL;
             break;
         }
       }
