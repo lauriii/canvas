@@ -74,7 +74,6 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
       </Collapsible.Trigger>
 
       <Collapsible.Content
-        forceMount
         className={clsx(detailsStyle.content, detailsStyle.detailsContent)}
       >
         {errorGroup.map((error: EntityError, ix: number) => {
@@ -176,7 +175,6 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
             </Collapsible.Trigger>
 
             <Collapsible.Content
-              forceMount
               className={clsx(
                 detailsStyle.content,
                 detailsStyle.detailsContent,

@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
-import clsx from 'clsx';
 import { useErrorBoundary } from 'react-error-boundary';
-import FolderIcon from '@assets/icons/folder.svg?react';
 import NewTabIcon from '@assets/icons/new-tab.svg?react';
-import * as Collapsible from '@radix-ui/react-collapsible';
-import { ChevronRightIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
-import {
-  ContextMenu,
-  DropdownMenu,
-  Flex,
-  Skeleton,
-  Text,
-} from '@radix-ui/themes';
+import { ContextMenu, Flex, Skeleton, Text } from '@radix-ui/themes';
 
 import Dialog from '@/components/Dialog';
+import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
@@ -27,7 +18,6 @@ import type {
   TemplateViewMode,
 } from '@/services/componentAndLayout';
 
-import styles from '@/components/list/List.module.css';
 import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
 
 type BundleListItemProps = {
@@ -95,77 +85,26 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
   }
 
   if (menuItems.length > 0) {
+    menuItems.unshift(<UnifiedMenu.Separator key="bundle-label-separator" />);
     menuItems.unshift(
-      <UnifiedMenu.Item
-        color="gray"
-        key="bundle-label"
-        className={styles.hoverInert}
-      >
-        {bundle.label}
-      </UnifiedMenu.Item>,
+      <UnifiedMenu.Label key="bundle-label">{bundle.label}</UnifiedMenu.Label>,
     );
   }
 
   return (
-    <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
-      <Collapsible.Trigger
-        className={clsx(styles.folderTrigger)}
-        data-canvas-folder-name={bundle.label}
-      >
-        <Flex
-          className={clsx(nodeStyles.contextualAccordionVariant)}
-          flexGrow="1"
-          align="center"
-          overflow="hidden"
-          pb="2"
-          pt="2"
-        >
-          <ContextMenu.Root key={bundle.label}>
-            <ContextMenu.Trigger>
-              <>
-                <Flex pl="2" align="center" flexShrink="0">
-                  <FolderIcon className={styles.folderIcon} />
-                </Flex>
-                <Flex px="2" align="center" flexGrow="1" overflow="hidden">
-                  <Text size="1" weight="medium">
-                    {bundle.label}
-                  </Text>
-                </Flex>
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <button
-                      aria-label="Open contextual menu"
-                      className={styles.contextualTrigger}
-                    >
-                      <span className={nodeStyles.dots}>
-                        <DotsHorizontalIcon />
-                      </span>
-                    </button>
-                  </DropdownMenu.Trigger>
-                  <UnifiedMenu.Content menuType="dropdown">
-                    {menuItems}
-                  </UnifiedMenu.Content>
-                </DropdownMenu.Root>
-                <Flex pl="2" align="end" flexShrink="0">
-                  <ChevronRightIcon
-                    className={clsx(styles.chevron, {
-                      [styles.isOpen]: isOpen,
-                    })}
-                  />
-                </Flex>
-              </>
-            </ContextMenu.Trigger>
-          </ContextMenu.Root>
-        </Flex>
-      </Collapsible.Trigger>
-      <Collapsible.Content>
-        <Flex pl="5" direction="column">
-          {Object.entries(bundle.viewModes).map(([key, viewMode]) => (
-            <TemplateListItem key={viewMode.id} viewMode={viewMode} />
-          ))}
-        </Flex>
-      </Collapsible.Content>
-    </Collapsible.Root>
+    <SidebarFolder
+      name={bundle.label}
+      menuItems={menuItems.length ? menuItems : undefined}
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      className={nodeStyles.contextualAccordionVariant}
+    >
+      <Flex pl="0" direction="column">
+        {Object.entries(bundle.viewModes).map(([key, viewMode]) => (
+          <TemplateListItem key={`${viewMode.id}-${key}`} viewMode={viewMode} />
+        ))}
+      </Flex>
+    </SidebarFolder>
   );
 };
 
@@ -224,6 +163,21 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     }
   }, [isError, error]);
 
+  const menuItems = (
+    <>
+      <UnifiedMenu.Label>{viewMode.viewModeLabel}</UnifiedMenu.Label>
+      <UnifiedMenu.Separator />
+      <UnifiedMenu.Item
+        color="red"
+        onClick={() => {
+          setDeleteDialogOpen(true);
+        }}
+      >
+        Delete template
+      </UnifiedMenu.Item>
+    </>
+  );
+
   return (
     <>
       <ContextMenu.Root key={viewMode.id}>
@@ -235,19 +189,20 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             variant="template"
             dropdownMenuContent={
               <UnifiedMenu.Content menuType="dropdown">
-                <UnifiedMenu.Item
-                  color="red"
-                  onClick={() => {
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  Delete template
-                </UnifiedMenu.Item>
+                {menuItems}
               </UnifiedMenu.Content>
             }
             selected={selectedTemplateId === viewMode.id}
           />
         </ContextMenu.Trigger>
+        <UnifiedMenu.Content
+          onClick={(e) => e.stopPropagation()}
+          menuType="context"
+          align="start"
+          side="right"
+        >
+          {menuItems}
+        </UnifiedMenu.Content>
       </ContextMenu.Root>
       {deleteDialogOpen && deleteDialog}
     </>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Form } from 'radix-ui';
+import { useEffect, useMemo, useState } from 'react';
+import parse from 'html-react-parser';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Select, Text } from '@radix-ui/themes';
 
@@ -11,6 +11,7 @@ import {
 } from '@/components/form/components/Accordion';
 import TemplateList from '@/components/list/TemplateList';
 import PermissionCheck from '@/components/PermissionCheck';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import {
   useCreateContentTemplateMutation,
   useGetViewModesQuery,
@@ -101,18 +102,9 @@ const AddTemplateDialog = ({
     useCreateContentTemplateMutation();
   const {
     data,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isLoading,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isFetching,
     error: getViewModeError,
+    isError: isGetViewModeError,
   } = useGetViewModesQuery();
-
-  useEffect(() => {
-    if (isError || getViewModeError) {
-      console.error('Failed to add template:', error || getViewModeError);
-    }
-  }, [isError, error, getViewModeError]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -124,6 +116,31 @@ const AddTemplateDialog = ({
     }
   }, [isSuccess, reset, setIsOpen]);
 
+  useEffect(() => {
+    setSelectedViewMode('');
+  }, [selectedContentType]);
+
+  const handleCreateTemplate = () => {
+    createTemplate({
+      entityType: selectedEntityType,
+      bundle: selectedContentType,
+      viewMode: selectedViewMode,
+    });
+  };
+
+  const availableTemplates = useMemo(
+    () =>
+      selectedEntityType && selectedContentType
+        ? Object.entries(
+            data?.[selectedEntityType]?.[selectedContentType] || {},
+          ).filter(([mode, modeData]) => {
+            const typedModeData = modeData as unknown as ModeData;
+            return mode === 'full' && !typedModeData.hasTemplate;
+          }).length
+        : null,
+    [data, selectedContentType, selectedEntityType],
+  );
+
   const entityBundleLabels =
     typeof entityType === 'string' &&
     canvasSettings?.entityTypeLabels?.[entityType];
@@ -132,145 +149,125 @@ const AddTemplateDialog = ({
     <Dialog
       open={isOpen}
       title="Add new template"
-      headerClose={true}
-      footer={{ hidden: true }}
+      headerClose={false}
+      error={
+        isError || isGetViewModeError
+          ? {
+              title: isError
+                ? 'Failed to add template'
+                : 'Failed to load view modes',
+              message: parse(
+                extractErrorMessageFromApiResponse(error || getViewModeError),
+              ),
+              resetButtonText: 'Try again',
+              onReset: isError ? handleCreateTemplate : undefined,
+            }
+          : undefined
+      }
+      footer={{
+        cancelText: 'Cancel',
+        confirmText: 'Add new template',
+        isConfirmDisabled: !(selectedContentType && selectedViewMode),
+        onConfirm: handleCreateTemplate,
+      }}
       onOpenChange={(open) => setIsOpen(open)}
     >
-      <Box
-        py="3"
-        px="2"
-        m="0"
+      <Flex
+        direction="column"
         data-testid="xb-manage-library-add-template-content"
+        p="0"
+        gap="2"
+        mb="2"
       >
-        {isOpen && (
-          <Form.Root
-            onSubmit={async (e) => {
-              e.preventDefault();
-              createTemplate({
-                entityType: selectedEntityType,
-                bundle: selectedContentType,
-                viewMode: selectedViewMode,
-              });
-            }}
-            id="add-new-template-form"
-          >
-            {!contentType && (
-              <Box>
-                <Box width="100%">
-                  <Text as="label" htmlFor="content-type">
-                    Content Type
-                  </Text>
-                </Box>
-                <Select.Root
-                  name="content-type"
-                  required
-                  value={selectedContentType || undefined}
-                  onValueChange={(value) =>
-                    setSelectedContentType(value as string)
-                  }
-                >
-                  <Select.Trigger
-                    id="content-type"
-                    placeholder="Select content type…"
-                    style={{ width: '100%' }}
-                  />
-                  <Select.Content>
-                    {bundleLabelType === 'object' &&
-                      Object.entries(entityBundleLabels).map(
-                        ([type, label]) => (
-                          <Select.Item key={type} value={type}>
-                            {String(label)}
-                          </Select.Item>
-                        ),
-                      )}
-                  </Select.Content>
-                </Select.Root>
-              </Box>
-            )}
-
+        <Box>
+          <Text as="p" size="1" color="gray">
+            Creates a new template for a content type using existing view modes
+            as the template name.
+          </Text>
+        </Box>
+        {!contentType && (
+          <Flex direction="column" gap="2">
             <Box>
-              <Box width="100%">
-                <Text as="label" htmlFor="template name">
-                  Template name
-                </Text>
-              </Box>
-              <Select.Root
-                name="template name"
-                required
-                disabled={!selectedContentType}
-                onValueChange={(value) => setSelectedViewMode(value)}
-              >
-                <Select.Trigger
-                  id="content-type"
-                  placeholder="Existing templates…"
-                  style={{ width: '100%' }}
-                  disabled={!selectedContentType}
-                />
-                <Select.Content>
-                  <Select.Group>
-                    {!!selectedEntityType &&
-                      selectedContentType &&
-                      Object.entries(
-                        data?.[selectedEntityType]?.[selectedContentType] || {},
-                      ).map(([mode, modeData]) => {
-                        const typedModeData = modeData as unknown as ModeData;
-                        if (mode === 'full') {
-                          return (
-                            <Select.Item
-                              key={mode}
-                              value={mode}
-                              disabled={
-                                mode !== 'full' || typedModeData.hasTemplate
-                              }
-                            >
-                              {typedModeData.label}{' '}
-                              {typedModeData.hasTemplate &&
-                                '(template already exists)'}{' '}
-                              {mode !== 'full' && '(support coming soon)'}
-                            </Select.Item>
-                          );
-                        }
-                        return null;
-                      })}
-                  </Select.Group>
-                </Select.Content>
-              </Select.Root>
-            </Box>
-
-            {error && 'data' in error ? (
-              <Text
-                size="1"
-                color="red"
-                weight="medium"
-                dangerouslySetInnerHTML={{
-                  __html:
-                    'errors' in (error.data as any)
-                      ? (error.data as any).errors
-                          .map((err: { detail: string }) => err.detail)
-                          .join(`\n`)
-                      : 'An error occurred',
-                }}
-              ></Text>
-            ) : error ? (
-              <Text size="1" color="red" weight="medium">
-                {'error' in error
-                  ? error.error
-                  : 'Failed to create template. Your JS console may have more information.'}
+              <Text as="label" htmlFor="content-type" size="1" weight="bold">
+                Content type
               </Text>
-            ) : null}
-            <Form.Submit asChild>
-              <Button
-                data-testid="canvas-create-template-submit"
-                variant="solid"
-                size="1"
-                mt="2"
-              >
-                Add new template
-              </Button>
-            </Form.Submit>
-          </Form.Root>
+            </Box>
+            <Select.Root
+              name="content-type"
+              required
+              value={selectedContentType || undefined}
+              onValueChange={(value) => setSelectedContentType(value as string)}
+            >
+              <Select.Trigger
+                id="content-type"
+                placeholder="Select content type…"
+                style={{ width: '100%' }}
+              />
+              <Select.Content>
+                {bundleLabelType === 'object' &&
+                  Object.entries(entityBundleLabels).map(([type, label]) => (
+                    <Select.Item key={type} value={type}>
+                      {String(label)}
+                    </Select.Item>
+                  ))}
+              </Select.Content>
+            </Select.Root>
+          </Flex>
         )}
-      </Box>
+        <Flex direction="column" gap="2">
+          <Box>
+            <Text as="label" htmlFor="template-name" size="1" weight="bold">
+              Template
+            </Text>
+          </Box>
+          <Select.Root
+            name="template name"
+            required
+            disabled={!selectedContentType}
+            value={selectedViewMode || ''}
+            onValueChange={(value) => setSelectedViewMode(value)}
+          >
+            <Select.Trigger
+              id="template-name"
+              placeholder={
+                availableTemplates === 0
+                  ? 'No more available templates'
+                  : 'Existing templates…'
+              }
+              style={{ width: '100%' }}
+              disabled={!selectedContentType}
+            />
+            <Select.Content>
+              <Select.Group>
+                {!!selectedEntityType &&
+                  selectedContentType &&
+                  Object.entries(
+                    data?.[selectedEntityType]?.[selectedContentType] || {},
+                  ).map(([mode, modeData]) => {
+                    const typedModeData = modeData as unknown as ModeData;
+                    if (mode === 'full') {
+                      return (
+                        <Select.Item
+                          key={mode}
+                          value={mode}
+                          disabled={
+                            mode !== 'full' || typedModeData.hasTemplate
+                          }
+                        >
+                          {typedModeData.label}{' '}
+                          {typedModeData.hasTemplate &&
+                            '(template already exists)'}{' '}
+                          {mode !== 'full' && '(support coming soon)'}
+                        </Select.Item>
+                      );
+                    }
+                    return null;
+                  })}
+              </Select.Group>
+            </Select.Content>
+          </Select.Root>
+        </Flex>
+      </Flex>
     </Dialog>
   );
 };

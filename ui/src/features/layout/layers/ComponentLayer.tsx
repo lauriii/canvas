@@ -145,6 +145,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             onMouseLeave={handleItemMouseLeave}
             className="canvas-drag-handle"
             title={nodeName}
+            draggable={true}
             variant="component"
             hovered={isHovered}
             selected={isSelected}

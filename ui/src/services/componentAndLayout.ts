@@ -378,14 +378,20 @@ export const componentAndLayoutApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'ContentTemplates', id: 'LIST' },
+        { type: 'ViewModes', id: 'LIST' },
+      ],
     }),
     deleteContentTemplate: builder.mutation<void, string>({
       query: (id: string) => ({
         url: `canvas/api/v0/config/content_template/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'ContentTemplates', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'ContentTemplates', id: 'LIST' },
+        { type: 'ViewModes', id: 'LIST' },
+      ],
     }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,

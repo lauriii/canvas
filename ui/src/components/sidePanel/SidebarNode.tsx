@@ -57,7 +57,7 @@ const SidebarNode = React.forwardRef<
       leadingContent,
       hovered = false,
       selected = false,
-      draggable = true,
+      draggable = false,
       disabled = false,
       dropdownMenuContent = null,
       open = false,

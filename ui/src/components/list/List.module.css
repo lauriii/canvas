@@ -25,10 +25,10 @@
 .folderTrigger {
   width: 100%;
   border-radius: var(--radius-2);
-  &:hover {
+  .chevron {
     cursor: pointer;
-    .chevron {
-      color: var(--blue-9);
+    &:hover {
+        color: var(--blue-9);
     }
   }
   .folderCount {
@@ -45,13 +45,5 @@
   color: var(--slate-12);
  &.isOpen {
     transform: rotate(90deg);
-  }
-}
-
-.hoverInert {
-  &:hover {
-    background-color: transparent;
-    cursor: default;
-    color: inherit;
   }
 }
