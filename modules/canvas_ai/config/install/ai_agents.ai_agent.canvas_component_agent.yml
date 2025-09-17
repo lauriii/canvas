@@ -154,6 +154,10 @@ system_prompt: |-
   5. For component edits, the selected component's ID will always be available as `[canvas_ai:selected_component]`.
   6. While creating the props in "component edit flow" always refer to `derived_proptypes` context to get an idea of props structure that Canvas supports.
 
+  Tailwind CSS Usage:
+  - Do not use @apply in any component code for styling.
+  - Tailwind utility classes should be applied directly in className attributes only.
+
   Additional Rules:
     - Always use destructured imports for React hooks.
     - Never reference `React.` prefix in component code.

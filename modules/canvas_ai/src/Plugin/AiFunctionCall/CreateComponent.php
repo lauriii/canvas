@@ -105,6 +105,10 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
         throw new \Exception("The component with same name already exists.");
       }
 
+      if (str_contains($css, '@apply')) {
+        $this->setOutput(Yaml::dump(['error' => '@apply directives are not supported.'], 10, 2));
+        return;
+      }
       $props_array = Json::decode($props);
       $transformed_props = [];
       if (is_array($props_array)) {
