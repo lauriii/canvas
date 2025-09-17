@@ -5,11 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\PropShape;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Plugin\Component;
-use Drupal\Core\Template\Attribute;
-use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 
 /**
  * A prop shape: a normalized component prop's JSON schema.
@@ -64,48 +60,6 @@ final class PropShape {
     }
 
     return $schema;
-  }
-
-  /**
-   * @param \Drupal\Core\Plugin\Component $component
-   *
-   * @return \Drupal\canvas\PropShape\PropShape[]
-   */
-  public static function getComponentProps(Component $component): array {
-    return self::getComponentPropsForMetadata($component->getPluginId(), $component->metadata);
-  }
-
-  /**
-   * @param string $plugin_id
-   * @param \Drupal\Core\Theme\Component\ComponentMetadata $metadata
-   *
-   * @return \Drupal\canvas\PropShape\PropShape[]
-   */
-  public static function getComponentPropsForMetadata(string $plugin_id, ComponentMetadata $metadata): array {
-    $prop_shapes = [];
-
-    // Retrieve the full JSON schema definition from the SDC's metadata.
-    // @see \Drupal\sdc\Component\ComponentValidator::validateProps()
-    // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-    /** @var array<string, mixed> $component_schema */
-    $component_schema = $metadata->schema;
-    foreach ($component_schema['properties'] ?? [] as $prop_name => $prop_schema) {
-      // TRICKY: `Attribute`-typed props are a special case that we need to ignore.
-      // Even more TRICKY, `attributes` named prop is even a more special case —
-      // as it's initialized by default.
-      // @see \Drupal\sdc\Twig\TwigExtension::mergeAdditionalRenderContext()
-      // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
-      // @see `canvas_test_sdc:attributes` component template as an example for
-      // how to initialize the `Attribute`-typed prop.
-      if (in_array(Attribute::class, $prop_schema['type'], TRUE)) {
-        continue;
-      }
-
-      $component_prop_expression = new ComponentPropExpression($plugin_id, $prop_name);
-      $prop_shapes[(string) $component_prop_expression] = static::normalize($prop_schema);
-    }
-
-    return $prop_shapes;
   }
 
   public function uniquePropSchemaKey(): string {

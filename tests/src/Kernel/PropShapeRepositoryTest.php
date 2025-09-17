@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
@@ -102,7 +103,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     );
     $unique_prop_shapes = [];
     foreach ($components as $component) {
-      foreach (PropShape::getComponentProps($component) as $prop_shape) {
+      foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->getPluginId(), $component->metadata) as $prop_shape) {
         // A `type: object` without `properties` and without `$ref` does not
         // make sense.
         if ($prop_shape->schema['type'] === 'object' && !array_key_exists('$ref', $prop_shape->schema) && empty($prop_shape->schema['properties'] ?? [])) {
@@ -752,11 +753,11 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $components = $sdc_manager->getAllComponents();
     $some_sdc_prop_for_unique_prop_shape = [];
     foreach ($components as $component) {
-      foreach (PropShape::getComponentProps($component) as $component_prop_expression => $prop_shape) {
+      foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->getPluginId(), $component->metadata) as $component_prop_expression => $prop_shape) {
         // First SDC prop with this unique shape wins — doesn't really matter.
         if (!array_key_exists($prop_shape->uniquePropSchemaKey(), $some_sdc_prop_for_unique_prop_shape)) {
           $sdc_prop = ComponentPropExpression::fromString($component_prop_expression);
-          $component_id = SingleDirectoryComponent::convertMachineNameToId($sdc_prop->componentName);
+          $component_id = SingleDirectoryComponent::convertMachineNameToId($sdc_prop->sourceSpecificComponentId);
           $some_sdc_prop_for_unique_prop_shape[$prop_shape->uniquePropSchemaKey()] = [
             $component_id,
             // Note: on the live site, an older version than the active version

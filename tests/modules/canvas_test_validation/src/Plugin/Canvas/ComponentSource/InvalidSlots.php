@@ -25,6 +25,10 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
 
   public const string PLUGIN_ID = 'invalid_slots';
 
+  public function getSourceSpecificComponentId(): string {
+    return '';
+  }
+
   /**
    * {@inheritdoc}
    */

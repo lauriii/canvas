@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\canvas\Entity\Page;
@@ -189,7 +190,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     foreach ($components as $component) {
       // Do not find a match for every unique SDC prop, but only for unique prop
       // shapes. This avoids a lot of meaningless test expectations.
-      foreach (PropShape::getComponentProps($component) as $cpe_string => $prop_shape) {
+      foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->getPluginId(), $component->metadata) as $cpe_string => $prop_shape) {
         $cpe = ComponentPropExpression::fromString($cpe_string);
         // @see https://json-schema.org/understanding-json-schema/reference/object#required
         // @see https://json-schema.org/learn/getting-started-step-by-step#required

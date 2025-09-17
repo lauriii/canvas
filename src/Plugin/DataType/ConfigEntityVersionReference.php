@@ -69,6 +69,7 @@ final class ConfigEntityVersionReference extends EntityReference {
    */
   public function isTargetNew() {
     // If only an ID is given, the reference cannot be a new entity.
+    // @phpstan-ignore-next-line isset.property
     return !isset($this->id) && isset($this->target) && $this->target->getValue()->isNew();
   }
 
@@ -76,6 +77,7 @@ final class ConfigEntityVersionReference extends EntityReference {
    * {@inheritdoc}
    */
   public function getTarget(): ?TypedDataInterface {
+    // @phpstan-ignore-next-line isset.property
     if (!isset($this->target) && isset($this->id)) {
       $entity_type_id = $this->getTargetDefinition()->getEntityTypeId();
       \assert(\is_string($entity_type_id));

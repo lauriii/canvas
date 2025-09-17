@@ -28,6 +28,15 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 final class Fallback extends ComponentSourceBase implements ComponentSourceWithSlotsInterface {
   public const string PLUGIN_ID = 'fallback';
 
+  /**
+   * The `fallback` plugin is not required to specify a source-local ID.
+   *
+   * @see config/schema/canvas.schema.yml:canvas.component_source_settings.fallback
+   */
+  public function getSourceSpecificComponentId(): string {
+    return '';
+  }
+
   public function defaultConfiguration(): array {
     return parent::defaultConfiguration() + ['slots' => []];
   }

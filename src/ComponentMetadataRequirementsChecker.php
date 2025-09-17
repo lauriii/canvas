@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
-use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use JsonSchema\Validator;
 
 /**
  * Defines a class for checking if component metadata meets requirements.
+ *
+ * @todo Move into a new \Drupal\Canvas\ComponentMetadataDerivers namespace, alongside ComponentPropExpression
  */
 final class ComponentMetadataRequirementsChecker {
 
@@ -49,7 +51,7 @@ final class ComponentMetadataRequirementsChecker {
       }
     }
 
-    $props_for_metadata = PropShape::getComponentPropsForMetadata($component_id, $metadata);
+    $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
     $validator = new Validator();
     foreach ($metadata->schema['properties'] as $prop_name => $prop) {
       if (in_array(Attribute::class, $prop['type'], TRUE)) {

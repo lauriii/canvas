@@ -8,8 +8,8 @@ use Drupal\Core\Config\Schema\TypeResolver;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
-use Drupal\canvas\PropShape\PropShape;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -66,7 +66,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
     }
 
     // Fetch the props defined in the SDC's metadata.
-    $prop_shapes = PropShape::getComponentProps($sdc);
+    $prop_shapes = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($sdc->getPluginId(), $sdc->metadata);
     $expected_keys = array_map(
       fn (string $component_prop_expression) => ComponentPropExpression::fromString($component_prop_expression)->propName,
       array_keys($prop_shapes)

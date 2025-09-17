@@ -245,6 +245,67 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         ],
       ],
     ];
+
+    yield 'a simple code component with link prop (js.canvas_test_code_components_with_link_prop, entity:node:article)' => [
+      'component_config_entity_id' => 'js.canvas_test_code_components_with_link_prop',
+      'content_entity_type_id' => 'node',
+      'bundle' => 'article',
+      'expected' => [
+        'text' => [
+          '82ec95693bc89080' => [
+            'label' => "Subset of this Article's field_silly_image: alt (1 of 7 props — absent: entity, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟alt',
+            ],
+          ],
+          '1409e675864fd2e6' => [
+            'label' => "Subset of this Article's field_silly_image: title (1 of 7 props — absent: entity, alt, width, height, srcset_candidate_uri_template, src_with_alternate_widths)",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
+            ],
+          ],
+          '7ca10058b43f4d0f' => [
+            'label' => "This Article's Revision log message",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
+            ],
+          ],
+          '256dc2b8dcec7355' => [
+            'label' => "This Article's Title",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+          ],
+        ],
+        'link' => [
+          '4a83ce0c963911b4' => [
+            'label' => "Subset of this Article's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+          ],
+          '4999dcb72722c69a' => [
+            'label' => "Subset of this Article's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)",
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟src_with_alternate_widths',
+            ],
+          ],
+        ],
+      ],
+    ];
+
+    yield 'a simple code component with no props (js.canvas_test_code_components_with_no_props, entity:node:article)' => [
+      'component_config_entity_id' => 'js.canvas_test_code_components_with_no_props',
+      'content_entity_type_id' => 'node',
+      'bundle' => 'article',
+      'expected' => [],
+    ];
   }
 
   /**
@@ -252,8 +313,6 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    *           ["a/b/sdc.canvas_test_sdc.image", 404, "The `a` content entity type does not exist."]
    *           ["node/b/sdc.canvas_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."]
    *           ["node/article/block.user_login_block", 400, "Only components that define their inputs using JSON Schema and use fields to populate their inputs are currently supported."]
-   *           ["node/article/js.canvas_test_code_components_with_link_prop", 400, "Code components are not supported yet."]
-   *           ["node/article/js.canvas_test_code_components_with_no_props", 400, "Code components are not supported yet."]
    */
   public function testSuggestStructuredDataForPropShapesClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
     $json = $this->assertExpectedResponse(

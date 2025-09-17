@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
-use Drupal\Core\Plugin\Component;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
@@ -20,7 +20,6 @@ use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\canvas\PropShape\PropShape;
 
 /**
  * @todo Rename things for clarity: this handles all props for an SDC simultaneously, JsonSchemaFieldInstanceMatcher handles a single prop at a time
@@ -31,20 +30,20 @@ final class FieldForComponentSuggester {
 
   public function __construct(
     private readonly JsonSchemaFieldInstanceMatcher $propMatcher,
-    private readonly ComponentPluginManager $componentPluginManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
   ) {}
 
   /**
    * @param string $component_plugin_id
+   * @param \Drupal\Core\Theme\Component\ComponentMetadata $component_metadata
    * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface|null $host_entity_type
    *   Host entity type, if the given component is being used in the context of
    *   an entity.
    *
    * @return array<string, array{required: bool, instances: array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<AdapterInterface>}>
    */
-  public function suggest(string $component_plugin_id, ?EntityDataDefinitionInterface $host_entity_type): array {
+  public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, ?EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_bundle = $host_entity_type_id = NULL;
     if ($host_entity_type) {
       $host_entity_type_id = $host_entity_type->getEntityTypeId();
@@ -56,8 +55,7 @@ final class FieldForComponentSuggester {
     }
 
     // 1. Get raw matches.
-    $component = $this->componentPluginManager->find($component_plugin_id);
-    $raw_matches = $this->getRawMatches($component, $host_entity_type_id, $host_entity_type_bundle);
+    $raw_matches = $this->getRawMatches($component_plugin_id, $component_metadata, $host_entity_type_id, $host_entity_type_bundle);
 
     // 2. Process (filter and order) matches based on context and what Drupal
     //    considers best practices.
@@ -85,7 +83,7 @@ final class FieldForComponentSuggester {
       // Required property or not?
       $prop_name = ComponentPropExpression::fromString($cpe)->propName;
       /** @var array<string, mixed> $schema */
-      $schema = $component->metadata->schema;
+      $schema = $component_metadata->schema;
       $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
 
       // Field instances.
@@ -175,14 +173,14 @@ final class FieldForComponentSuggester {
   /**
    * @return array<string, array{instances: array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>, adapters: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>}>
    */
-  private function getRawMatches(Component $component, ?string $host_entity_type, ?string $host_entity_bundle): array {
+  private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, ?string $host_entity_type, ?string $host_entity_bundle): array {
     $raw_matches = [];
 
-    foreach (PropShape::getComponentProps($component) as $cpe_string => $prop_shape) {
+    foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_plugin_id, $component_metadata) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
       // @see https://json-schema.org/understanding-json-schema/reference/object#required
       // @see https://json-schema.org/learn/getting-started-step-by-step#required
-      $is_required = in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
+      $is_required = in_array($cpe->propName, $component_metadata->schema['required'] ?? [], TRUE);
       $schema = $prop_shape->resolvedSchema;
 
       $primitive_type = JsonSchemaType::from($schema['type']);

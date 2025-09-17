@@ -9,7 +9,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
-use Drupal\Core\Plugin\Component as SdcPlugin;
+use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
@@ -64,7 +64,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   /**
    * {@inheritdoc}
    */
-  public function getSdcPlugin(): SdcPlugin {
+  protected function getComponentPlugin(): ComponentPlugin {
     if ($this->componentPlugin === NULL) {
       // Statically cache the loaded plugin.
       $this->componentPlugin = self::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
@@ -96,7 +96,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     if ($this->jsComponent === NULL) {
       $js_component_storage = $this->entityTypeManager->getStorage('js_component');
       assert($js_component_storage instanceof ConfigEntityStorageInterface);
-      $js_component = $js_component_storage->load($this->configuration['local_source_id']);
+      $js_component = $js_component_storage->load($this->getSourceSpecificComponentId());
       assert($js_component instanceof JavaScriptComponent);
       $this->jsComponent = $js_component;
     }
@@ -379,13 +379,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    *
    * Bypasses the statically cached componentPlugin property. Should be called
    * during config entity creation and updating to ensure a fresh version is
-   * generated. For run-time code, use ::getSdcPlugin instead.
+   * generated. For run-time code, use ::getComponentPlugin instead.
    *
    * @see \Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator::validate
    */
-  private static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component): SdcPlugin {
+  private static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component): ComponentPlugin {
     $definition = $component->toSdcDefinition();
-    return new SdcPlugin(
+    return new ComponentPlugin(
       [
         'app_root' => '',
         'enforce_schemas' => TRUE,

@@ -23,6 +23,10 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   use ContextAwarePluginAssignmentTrait;
   use ContextAwarePluginTrait;
 
+  public function getSourceSpecificComponentId(): string {
+    return $this->getConfiguration()['local_source_id'];
+  }
+
   public function generateVersionHash(): string {
     // @phpstan-ignore-next-line
     $typed_source_specific_settings = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData(

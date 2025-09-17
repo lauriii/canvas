@@ -7,6 +7,8 @@ namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
+use Drupal\Core\Plugin\Component;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -270,9 +272,12 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
     // Perform the actual shape matching: find suggestions for every prop in the
     // test-only `all-props` SDC, which contains EVERY possible SDC prop shape.
+    $component = \Drupal::service(ComponentPluginManager::class)->find('sdc_test_all_props:all-props');
+    assert($component instanceof Component);
     $suggestions = $this->container->get(FieldForComponentSuggester::class)
       ->suggest(
-        'sdc_test_all_props:all-props',
+        $component->getPluginId(),
+        $component->metadata,
         EntityDataDefinition::createFromDataType('entity:entity_test:entity_test'),
       );
 

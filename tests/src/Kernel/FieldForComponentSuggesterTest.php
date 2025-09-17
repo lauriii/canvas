@@ -9,6 +9,8 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\Core\Plugin\Component;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
@@ -143,9 +145,12 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
    * @dataProvider provider
    */
   public function test(string $component_plugin_id, ?string $data_type_context, array $expected): void {
+    $component = \Drupal::service(ComponentPluginManager::class)->find($component_plugin_id);
+    assert($component instanceof Component);
     $suggestions = $this->container->get(FieldForComponentSuggester::class)
       ->suggest(
         $component_plugin_id,
+        $component->metadata,
         $data_type_context ? EntityDataDefinition::createFromDataType($data_type_context) : NULL,
       );
 

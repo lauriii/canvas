@@ -48,6 +48,33 @@ This uses the terms defined above.
 
 All `Component Source Plugin` should have kernel test coverage. See `ComponentSourceTestBase`.
 
+Any `Component Source Plugin` without a native (explicit) input UX can reuse the infrastructure that Canvas originally
+built to provide an input UX for `SDC`-sourced `Component`s. To generate an input UX, the precise shape of each input
+(and it being required or optional) must be expressed in a standardized way. To avoid inventing new infrastructure,
+Canvas opted to rely on the SDC subsystem of Drupal core's abstraction for expressing this: the `ComponentMetadata`
+class.
+
+While imperfect (because it contains _all_ metadata rather than only that relating to its explicit input shapes), it is
+the pragmatic choice to get the job done. See [`XB Shape Matching
+into Field Types` doc](shape-matching-into-field-types.md) for details on how that works.
+
+In other words: _any_ `Component Source Plugin` can use the same Drupal Field-powered UX that XB provides for SDCs,
+all it requires is generating a `ComponentMetadata` object that expresses its input schema.
+Unfortunately generating a `ComponentMetadata` object is insufficient: SDC's inputs ("props") validation infrastructure
+requires an SDC plugin object (which in turn contains `ComponentMetadata`), and hence so does this infrastructure.
+Fortunately, it is possible to construct such an ephemeral object. See the `JS` `ComponentSource` for an example.
+
+Once that is built for a `ComponentSource`, any `component instance` using a `component` of this source can be populated
+using both:
+- `static prop source`s: content author-defined static values
+- `dynamic prop source`s: site builder-defined references to structured data, when used in `ContentTemplate`s
+
+See:
+- `\Drupal\Core\Theme\Component\ComponentMetadata`
+- `\Drupal\Core\Theme\Component\ComponentValidator::validateProps()`
+- `\Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getComponentPlugin()`
+- `\Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildEphemeralSdcPluginInstance()`
+
 
 ### 3.1 `SDC` `component`s
 
