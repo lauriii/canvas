@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ExclamationTriangleIcon, PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
@@ -14,6 +14,7 @@ const TemplateRoot = () => {
   const { entityType, bundle, viewMode } = useParams();
 
   const { data: templatesData, isSuccess } = useGetContentTemplatesQuery();
+  const location = useLocation();
 
   useEffect(() => {
     if (isSuccess && templatesData && entityType && bundle && viewMode) {
@@ -53,7 +54,8 @@ const TemplateRoot = () => {
 
   const handleCreateContent = () => {
     // Navigate to Drupal's content creation page
-    const createUrl = `${baseUrl}${entityType}/add/${bundle}`;
+    // Add Drupal destination to return to Canvas UI after creating content.
+    const createUrl = `${baseUrl}${entityType}/add/${bundle}?destination=/canvas${location.pathname}${location.search}`;
     window.location.href = createUrl;
   };
 
