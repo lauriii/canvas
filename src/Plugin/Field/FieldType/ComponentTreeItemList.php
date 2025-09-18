@@ -162,7 +162,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return NULL;
   }
 
-  private function getComponentIdList(): array {
+  public function getComponentIdList(): array {
     return \array_unique(\array_column($this->getValue(), 'component_id'));
   }
 
