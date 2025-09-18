@@ -21,6 +21,7 @@ use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
@@ -35,6 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  */
 class AutoSaveManagerTest extends KernelTestBase {
 
+  use CanvasFieldCreationTrait;
   use CanvasFieldTrait;
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
@@ -61,7 +63,6 @@ class AutoSaveManagerTest extends KernelTestBase {
     'field',
     'editor',
     'ckeditor5',
-    'canvas_dev_standard',
   ];
 
   private static function recursiveReverseSort(array $data): array {
@@ -292,8 +293,8 @@ class AutoSaveManagerTest extends KernelTestBase {
     $this->installConfig('node');
     $this->installConfig('system');
     $this->createContentType(['type' => 'article']);
-    $this->installConfig('canvas_dev_standard');
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
     $this->setUpImages();
     $node = Node::create([
       'type' => 'article',

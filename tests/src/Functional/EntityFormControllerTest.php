@@ -16,7 +16,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['canvas', 'canvas_dev_standard'];
+  protected static $modules = ['canvas'];
 
   /**
    * {@inheritdoc}
@@ -27,6 +27,11 @@ class EntityFormControllerTest extends FunctionalTestBase {
    * {@inheritdoc}
    */
   protected $profile = 'standard';
+
+  protected function setUp(): void {
+    parent::setUp();
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
+  }
 
   /**
    * @covers ::form

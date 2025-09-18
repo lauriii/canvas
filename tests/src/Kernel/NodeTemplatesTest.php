@@ -13,6 +13,7 @@ use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
@@ -28,6 +29,7 @@ final class NodeTemplatesTest extends KernelTestBase {
   use SingleDirectoryComponentTreeTestTrait;
   use GenerateComponentConfigTrait;
   use ContentTypeCreationTrait;
+  use CanvasFieldCreationTrait;
   use NodeCreationTrait;
   use CrawlerTrait;
 
@@ -183,7 +185,7 @@ HTML;
    * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
   public function testExposedSlotsAreFilledByEntity(): void {
-    $this->createComponentTreeField('node', 'article');
+    $this->createComponentTreeField('node', 'article', 'field_component_tree');
     $this->generateComponentConfig();
 
     ContentTemplate::create([

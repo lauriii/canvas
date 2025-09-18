@@ -20,7 +20,7 @@ ddev add-on get drupal-canvas/ddev-drupal-canvas-dev
 ddev canvas-setup
 ddev canvas-dev-extras
 ```
-Additionally, you should add  `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows the `canvas_dev_standard` hidden module to be installed).
+Additionally, you should add  `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows hidden modules to be installed).
 
 ### First experience
 After this process, you will get the `drush uli` to login into the admin area. You will see an article created. If you edit the article, you will see a new link "Drupal Canvas: Test" to edit this entity with the new Canvas UI.
@@ -35,19 +35,23 @@ The most common commands in the development process are:
 Tip: Use `ddev help <command>` for additional information about the command and arguments available.
 
 ## Setting up you local manually
-1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone https://git.drupalcode.org/project/drupal.git` — >= Drupal 11.2 is required).
+1. Clone Drupal 11 (preferably a clone for Git archeology: `git clone git@git.drupal.org:project/drupal.git` — Drupal >=11.2 is required, so also do: `git checkout 11.2.x`).
 2. `cd drupal && git clone git@git.drupal.org:project/canvas.git modules/contrib/canvas`
-4. `composer require drush/drush`
-5. `vendor/bin/drush si standard`
-4. Add `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows the `canvas_dev_standard` hidden module to be installed).
-6. `vendor/bin/drush pm:install canvas canvas_dev_standard`
-7.  Build the front end: `cd modules/contrib/canvas/ui` and then either
+3. `composer require drush/drush`
+4. Add `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows hidden modules to be installed).
+5.a Recommended: using Recipes to set up a standardized environment for development *and* testing:
+```
+php core/scripts/drupal install minimal
+php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/base
+php core/scripts/drupal recipe modules/contrib/canvas/tests/fixtures/recipes/test_site
+```
+5.b If you prefer Drush and "Standard", and then subsequently manually installing `canvas_test_*` modules:
+6. Build the front end: `cd modules/contrib/canvas/ui` and then either
     * With Node.js available: `npm install && npm run build`
     * With Docker available: `docker build --output dist .`
-8.  Browse to `/node/add/article` just enter a title for the article and hit save. This will create a node with an empty Editor Frame for the field `field_canvas_demo`.
-9.  In the toolbar, click "Drupal Canvas"! 🥳
-10. If you're curious: look at the code, step through it with a debugger, and join us!
-11. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`
+7. You can access Drupal Canvas at `/canvas` and start by creating your first Canvas Page!
+8. If you're curious: look at the code, step through it with a debugger, and join us!
+9. If you want to run *all* tests locally: `composer require drupal/simple_oauth:^6 jangregor/phpstan-prophecy league/openapi-psr7-validator devizzent/cebe-php-openapi --dev && composer update`
 
 ### During development
 The following commands assume the recommended development details outlined above, particularly the location of the `vendor` directory. If your `vendor` directory is not adjacent to your `index.php` — if you created your environment using [`drupal/recommended-project`](https://packagist.org/packages/drupal/recommended-project), for example — you will need to adjust the command path (i.e., `../vendor` instead of `vendor`).

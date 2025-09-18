@@ -7,12 +7,8 @@ install:
   - canvas
   - canvas_test_code_components
   - canvas_test_sdc
-  - canvas_dev_standard
 config:
-  # Loose config imports because the code components in `canvas_test_code_components` contain UUIDs, which are used to
-  # generate corresponding assets on disk with predictable names.
-  # @todo Change to `strict: true` after core bug https://www.drupal.org/project/drupal/issues/3532271 is fixed.
-  strict: false
+  strict: true
   import:
     canvas: '*'
     system:
@@ -28,19 +24,16 @@ config:
     # but even that shouldn't break the default content included in this Recipe, because it'll just be pointing
     # to "old" Component config entity versions.
     canvas_test_code_components: '*'
-    # For the `field_canvas_demo` field instance, populated by the default content in this recipe.
-    canvas_dev_standard:
-      - field.storage.node.field_canvas_demo
-      - field.field.node.article.field_canvas_demo
   actions:
     system.site:
       simpleConfigUpdate:
+        # @see content/canvas_page/bc9ab1d0-dd73-46e0-81b6-36b623ff98c4.yml
         page.front: /homepage
         name: 'Drupal'
-    # @see \canvas_dev_standard_install()
+    # @see config/field.field.node.article.field_canvas_demo.yml
     core.entity_view_display.node.article.default:
       setComponent:
-        name: field_tags
+        name: field_canvas_demo
         options:
           type: canvas_naive_render_sdc_tree
           label: hidden

@@ -116,7 +116,7 @@ $settings['extension_discovery_scan_tests'] = TRUE;
 
 Then install the test modules and test site content:
 ```
-drush pm:install canvas_dev_standard canvas_test_sdc canvas_test_code_components
+drush pm:install canvas_test_sdc canvas_test_code_components
 drush recipe modules/contrib/canvas/tests/fixtures/recipes/test_site
 ```
 

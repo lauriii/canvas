@@ -1,4 +1,3 @@
-# @todo This is the only config that depends on `canvas.component.*`. When this file is removed, simplify canvas_module_preinstall().
 langcode: en
 status: true
 dependencies:

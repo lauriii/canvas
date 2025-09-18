@@ -11,6 +11,8 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\canvas\Form\FormIdPreRender;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotEqualTo;
 use Symfony\Component\Validator\Constraints\Unique;
@@ -95,6 +97,28 @@ class ModuleHooks {
       unset($form['revision_log']);
       unset($form['revision']);
     }
+  }
+
+  /**
+   * Implements hook_toolbar_alter().
+   */
+  #[Hook('toolbar')]
+  public function toolbar(): array {
+    $items = [];
+    $items['canvas'] = [
+      '#type' => 'toolbar_item',
+      'tab' => [
+        '#type' => 'link',
+        '#title' => new TranslatableMarkup('Drupal Canvas'),
+        '#url' => Url::fromRoute('canvas.boot.empty'),
+        '#attributes' => [
+          'title' => new TranslatableMarkup('Drupal Canvas'),
+          'class' => ['toolbar-icon', 'toolbar-icon-edit'],
+        ],
+      ],
+      '#weight' => 5,
+    ];
+    return $items;
   }
 
 }

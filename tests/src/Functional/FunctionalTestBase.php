@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 
 /**
@@ -20,6 +21,7 @@ use Drupal\Tests\TestFileCreationTrait;
 abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;
+  use CanvasFieldCreationTrait;
 
   protected function setUp(): void {
     parent::setUp();

@@ -11,6 +11,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
@@ -24,12 +25,11 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
   private const NESTED_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7859';
 
-
   use CanvasFieldTrait {
     getValidClientJson as traitGetValidClientJson;
     getValidConvertedInputs as traitGetValidConvertedInputs;
   }
-
+  use CanvasFieldCreationTrait;
   use ClientServerConversionTrait;
   use ContribStrictConfigSchemaTestTrait;
   use ConstraintViolationsTestTrait;

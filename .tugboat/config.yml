@@ -40,7 +40,7 @@ services:
             site:install standard
 
           # Require settings.local.php increase CLI memory limit, add trusted
-          # host patterns, and allow for enabling hidden canvas_dev_standard module.
+          # host patterns, and allow for enabling hidden modules.
           echo "require_once '$TUGBOAT_ROOT/.tugboat/settings.local.php';" >> $DOCROOT/sites/default/settings.php
 
           # Set up the files directory permissions.
@@ -52,7 +52,6 @@ services:
           # Enable the module.
           vendor/bin/drush --yes pm:install \
             canvas \
-            canvas_dev_standard \
             media_library \
             components \
             default_content

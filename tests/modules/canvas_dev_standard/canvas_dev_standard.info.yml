@@ -1,6 +1,0 @@
-name: 'Develop Canvas on top of the Standard install profile'
-type: module
-dependencies:
-  - canvas:canvas
-  - drupal:node
-package: Testing

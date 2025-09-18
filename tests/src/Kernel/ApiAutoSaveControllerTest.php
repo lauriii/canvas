@@ -32,9 +32,10 @@ use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
-use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
@@ -56,6 +57,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   use OpenApiSpecTrait;
   use BlockCreationTrait;
   use RequestTrait;
+  use CanvasFieldCreationTrait;
   use CanvasFieldTrait;
   use VfsPublicStreamUrlTrait;
 

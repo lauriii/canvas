@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
-use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldStorageConfig;
-
 /**
  * Any test using these test cases must install the `canvas_test_sdc` module.
  */
@@ -15,20 +12,6 @@ trait SingleDirectoryComponentTreeTestTrait {
   public const string UUID_DYNAMIC_STATIC_CARD_2 = '9145b0da-85a1-4ee7-ad1d-b1b63614aed6';
   public const string UUID_DYNAMIC_STATIC_CARD_3 = 'dab1145b-c5d5-4779-9be8-0a41c2d8ed29';
   public const string UUID_DYNAMIC_STATIC_CARD_4 = '09de669f-b85b-40ef-9c01-b27f1b089020';
-
-  protected function createComponentTreeField(string $entity_type_id, string $bundle): void {
-    $field_storage = FieldStorageConfig::create([
-      'field_name' => 'field_component_tree',
-      'entity_type' => $entity_type_id,
-      'type' => 'component_tree',
-    ]);
-    $field_storage->save();
-
-    FieldConfig::create([
-      'field_storage' => $field_storage,
-      'bundle' => $bundle,
-    ])->save();
-  }
 
   protected static function getValidTreeTestCases(): array {
     return [

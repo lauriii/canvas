@@ -20,6 +20,7 @@ use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -68,6 +69,7 @@ class CanvasTestSetup implements TestSetupInterface {
   use ImageFieldCreationTrait;
   use BlockCreationTrait;
   use CreateTestJsComponentTrait;
+  use CanvasFieldCreationTrait;
 
   protected string $root;
 
@@ -165,7 +167,6 @@ class CanvasTestSetup implements TestSetupInterface {
     ])->save();
     $module_installer->install([
       'canvas',
-      'canvas_dev_standard',
       // Enabling Canvas OAuth to ensure that we don't break any routes for
       // non-OAuth2 requests.
       'canvas_oauth',
@@ -173,6 +174,16 @@ class CanvasTestSetup implements TestSetupInterface {
       'canvas_e2e_support',
       'system',
     ]);
+    $this->createComponentTreeField('node', 'article', 'field_canvas_demo');
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article')
+      ->setComponent('field_canvas_demo', [
+        'label' => 'hidden',
+        'type' => 'canvas_naive_render_sdc_tree',
+        // The image field has weight -1 by default.
+        'weight' => -2,
+      ])
+      ->save();
 
     $this->createMyCtaComponentFromSdc();
     $this->createTestCodeComponent();
