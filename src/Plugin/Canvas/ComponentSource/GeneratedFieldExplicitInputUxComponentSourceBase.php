@@ -997,9 +997,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
         // @see PropSourceComponent type-script definition.
         // @see EvaluatedComponentModel type-script definition.
-        // Undo what ::inputToClientModel() did: restore the omitted `'value'`
-        // in cases where it is the same as the source value.
-        if (!\array_key_exists('value', $prop_source)) {
+        // For static props undo what ::inputToClientModel() did: restore the
+        // omitted `'value'` in cases where it is the same as the source value.
+        if (str_starts_with($prop_source['sourceType'] ?? '', StaticPropSource::getSourceTypePrefix()) && !\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;
         }
         $source = PropSource::parse($prop_source);

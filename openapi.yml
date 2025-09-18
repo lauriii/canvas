@@ -1637,7 +1637,7 @@ paths:
           $ref: '#/components/responses/AuthenticationErrorResponse'
     patch:
       summary: >
-        Updates a single component and returns a preview as well
+        Updates a single component instance and returns a preview as well
         as the updated model, entity_fields and layout. The
         new layout is stored as an auto-save entry (until such
         time as it is published)
