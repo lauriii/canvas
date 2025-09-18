@@ -37,6 +37,7 @@ export enum EditorFrameMode {
 export enum EditorFrameContext {
   ENTITY = 'entity',
   TEMPLATE = 'template',
+  NONE = 'none',
 }
 
 export type UndoRedoType = 'layoutModel' | 'pageData';
@@ -94,7 +95,7 @@ export const initialState: uiSliceState = {
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
   editorFrameMode: EditorFrameMode.EDIT,
-  editorFrameContext: EditorFrameContext.ENTITY,
+  editorFrameContext: EditorFrameContext.NONE,
   selection: {
     consecutive: false,
     items: [],
@@ -280,6 +281,9 @@ export const uiSlice = createAppSlice({
         state.editorFrameContext = action.payload;
       },
     ),
+    unsetEditorFrameContext: create.reducer((state) => {
+      state.editorFrameContext = EditorFrameContext.NONE;
+    }),
     clearSelection: create.reducer((state) => {
       state.selection.items.length = 0;
     }),
@@ -426,6 +430,7 @@ export const {
   setEditorFrameModeEditing,
   setEditorFrameModeInteractive,
   setEditorFrameContext,
+  unsetEditorFrameContext,
   pushUndo,
   performUndoOrRedo,
   clearSelection,

@@ -13,7 +13,7 @@ import ContentPreviewSelector from '@/components/templates/ContentPreviewSelecto
 import UndoRedo from '@/components/UndoRedo';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
-import { getDrupalSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
 
@@ -28,8 +28,9 @@ const Topbar = () => {
   const isPreview = location.pathname.includes('/preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
-  const isTemplateRoute =
+  const isTemplateEditorContext =
     useAppSelector(selectEditorFrameContext) === 'template';
+  const drupalBaseUrl = getBaseUrl();
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;
@@ -55,16 +56,20 @@ const Topbar = () => {
       bundle: bundle || '',
     },
     {
-      skip: !isTemplateRoute || !entityType || !bundle,
+      skip: !isTemplateEditorContext || !entityType || !bundle,
     },
   );
 
   // Handle preview entity selection change
   const handlePreviewEntityChange = (selectedEntityId: string) => {
     if (entityType && bundle && viewMode) {
-      navigate(
-        `/template/${entityType}/${bundle}/${viewMode}/${selectedEntityId}`,
-      );
+      // @todo: Change to use navigate() when we can do full FE routing.
+      setTimeout(() => {
+        // Use a timeout to ensure that RTK query cleans up its subscriptions first before navigating away.
+        // Without this timeout, RTK throws an error because it tries to make a request following cache invalidation while
+        // the window.location.href is in progress.
+        window.location.href = `${drupalBaseUrl}canvas/template/${entityType}/${bundle}/${viewMode}/${selectedEntityId}`;
+      }, 100);
     }
   };
 
@@ -136,7 +141,7 @@ const Topbar = () => {
           </Flex>
           <Flex align="center" justify="center" gap="2">
             <PageInfo />
-            {isTemplateRoute && (
+            {isTemplateEditorContext && (
               <ContentPreviewSelector
                 items={previewEntities}
                 selectedItemId={previewEntityId}

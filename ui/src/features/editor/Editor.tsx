@@ -17,6 +17,7 @@ import PatternDialogs from '@/features/pattern/PatternDialogs';
 import {
   setEditorFrameContext,
   setFirstLoadComplete,
+  unsetEditorFrameContext,
 } from '@/features/ui/uiSlice';
 import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useReturnableLocation from '@/hooks/useReturnableLocation';
@@ -44,6 +45,7 @@ const Editor: React.FC<EditorProps> = ({ context }) => {
     dispatch(setEditorFrameContext(context));
     return () => {
       dispatch(setFirstLoadComplete(false));
+      dispatch(unsetEditorFrameContext());
     };
   }, [context, dispatch]);
 

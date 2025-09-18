@@ -5,6 +5,7 @@ import addAjaxPageState from '@/services/addAjaxPageState';
 import { baseQuery } from '@/services/baseQuery';
 import processResponseAssets from '@/services/processResponseAssets';
 
+import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { TransformConfig } from '@/utils/transforms';
 
 let lastArgInUseByAnyComponent: string | undefined = '';
@@ -15,15 +16,19 @@ export const componentInstanceFormApi = createApi({
   endpoints: (builder) => ({
     getComponentInstanceForm: builder.query<
       { html: string; transforms: TransformConfig },
-      { queryString: string; type: 'entity' | 'template' }
+      { queryString: string; type: EditorFrameContext }
     >({
       query: ({ queryString, type }) => {
         const fullQueryString = addAjaxPageState(queryString);
         let url = '';
         if (type === 'entity') {
           url = `canvas/api/v0/form/component-instance/{entity_type}/{entity_id}`;
-        } else {
+        } else if (type === 'template') {
           url = `canvas/api/v0/form/component-instance/content_template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}`;
+        } else {
+          throw new Error(
+            `Cannot render component instance form for unknown type: ${type}. Type must be one of 'entity' or 'template'.`,
+          );
         }
         return {
           url,

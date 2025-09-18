@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import parse from 'html-react-parser';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Select, Text } from '@radix-ui/themes';
@@ -16,7 +16,7 @@ import {
   useCreateContentTemplateMutation,
   useGetViewModesQuery,
 } from '@/services/componentAndLayout';
-import { getCanvasSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
 
 import type { ModeData } from '@/services/componentAndLayout';
 
@@ -105,16 +105,32 @@ const AddTemplateDialog = ({
     error: getViewModeError,
     isError: isGetViewModeError,
   } = useGetViewModesQuery();
+  const drupalBaseUrl = getBaseUrl();
+
+  const redirectToSelectedAfterCreation = useCallback(() => {
+    // For now, we are using window.location.href to force a full page reload
+    // to ensure all state is reset when switching entities. Later we can use navigate:
+    // navigate(`${baseUrl}canvas/${entityType}/${contentType}/${viewMode}`);
+    setTimeout(() => {
+      window.location.href = `${drupalBaseUrl}canvas/template/${selectedEntityType}/${selectedContentType}/${selectedViewMode}`;
+    }, 100);
+  }, [
+    drupalBaseUrl,
+    selectedContentType,
+    selectedEntityType,
+    selectedViewMode,
+  ]);
 
   useEffect(() => {
     if (isSuccess) {
       setIsOpen(false);
+      redirectToSelectedAfterCreation();
       setSelectedContentType('');
       setSelectedViewMode(null);
       setSelectedEntityType('null');
       reset();
     }
-  }, [isSuccess, reset, setIsOpen]);
+  }, [isSuccess, reset, setIsOpen, redirectToSelectedAfterCreation]);
 
   useEffect(() => {
     setSelectedViewMode('');
