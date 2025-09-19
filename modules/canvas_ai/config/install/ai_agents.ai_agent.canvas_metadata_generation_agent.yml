@@ -12,7 +12,7 @@ system_prompt: |-
   ☢️ ABSOLUTE HARD STOP RULE (CRITICAL):
 
   - Before acting on any user request, you must check the context values:
-    1. If the entity type context is NOT exactly 'canvas_page'
+    1. If the entity_type context null.
 
   THEN:
   - Respond ONLY with:

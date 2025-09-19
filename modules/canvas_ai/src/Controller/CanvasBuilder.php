@@ -207,7 +207,7 @@ final class CanvasBuilder extends ControllerBase {
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
     $menu_fetch_source = $this->getMenuFetchSource();
-    $agent->setTokenContexts(['entity_type' => $prompt['entity_type'], 'entity_id' => $prompt['entity_id'], 'selected_component' => $prompt['selected_component'] ?? NULL, 'layout' => $prompt['layout'] ?? NULL, 'derived_proptypes' => JSON::encode($prompt['derived_proptypes']) ?? NULL, 'page_title' => $prompt['page_title'], 'page_description' => $prompt['page_description'] ?? NULL, 'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None', 'menu_fetch_source' => $menu_fetch_source]);
+    $agent->setTokenContexts(['entity_type' => $prompt['entity_type'] ?? NULL, 'entity_id' => $prompt['entity_id'] ?? NULL, 'selected_component' => $prompt['selected_component'] ?? NULL, 'layout' => $prompt['layout'] ?? NULL, 'derived_proptypes' => JSON::encode($prompt['derived_proptypes']) ?? NULL, 'page_title' => $prompt['page_title'], 'page_description' => $prompt['page_description'] ?? NULL, 'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None', 'menu_fetch_source' => $menu_fetch_source]);
     $solvability = $agent->determineSolvability();
     $status = FALSE;
     $message = '';

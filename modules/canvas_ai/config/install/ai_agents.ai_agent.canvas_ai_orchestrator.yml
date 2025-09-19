@@ -128,15 +128,7 @@ tool_settings:
 orchestration_agent: true
 triage_agent: false
 max_loops: 10
-default_information_tools: |
-  get_entity_context:
-    label: 'Get entity context'
-    description: 'This context information is passed to all other sub-agents'
-    tool: 'ai_agent:get_entity_information'
-    parameters:
-      entity_type: '[canvas_ai:entity_type]'
-      entity_id: '[canvas_ai:entity_id]'
-      selected_component: '[canvas_ai:selected_component]'
+default_information_tools: ''
 tool_usage_limits:
   'ai_agent:get_entity_information':
     entity_type:
