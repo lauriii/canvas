@@ -3,7 +3,6 @@
 namespace Drupal\canvas_ai\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
-use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
@@ -71,7 +70,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
       $configuration,
       $plugin_id,
       $plugin_definition,
-      new ContextDefinitionNormalizer(),
+      $container->get('ai.context_definition_normalizer'),
     );
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
     $instance->logger = $container->get('logger.factory')->get('canvas_ai');

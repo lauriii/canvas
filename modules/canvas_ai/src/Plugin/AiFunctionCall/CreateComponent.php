@@ -10,7 +10,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
-use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
@@ -77,7 +76,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       $configuration,
       $plugin_id,
       $plugin_definition,
-      new ContextDefinitionNormalizer(),
+      $container->get('ai.context_definition_normalizer'),
     );
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
     $instance->logger = $container->get('logger.factory')->get('canvas_ai');

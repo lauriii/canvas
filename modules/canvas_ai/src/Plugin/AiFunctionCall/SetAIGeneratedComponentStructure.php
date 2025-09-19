@@ -8,7 +8,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
-use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
@@ -74,7 +73,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $configuration,
       $plugin_id,
       $plugin_definition,
-      new ContextDefinitionNormalizer(),
+      $container->get('ai.context_definition_normalizer'),
     );
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
     $instance->loggerFactory = $container->get('logger.factory');

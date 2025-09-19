@@ -6,7 +6,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai\Service\FunctionCalling\FunctionCallInterface;
-use Drupal\ai\Utility\ContextDefinitionNormalizer;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\canvas_ai\CanvasAiTempStore;
@@ -53,7 +52,7 @@ final class GetCurrentLayout extends FunctionCallBase implements ExecutableFunct
       $configuration,
       $plugin_id,
       $plugin_definition,
-      new ContextDefinitionNormalizer(),
+      $container->get('ai.context_definition_normalizer'),
     );
     $instance->canvasAiTempStore = $container->get('canvas_ai.tempstore');
     $instance->currentUser = $container->get('current_user');
