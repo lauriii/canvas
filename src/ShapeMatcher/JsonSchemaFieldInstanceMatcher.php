@@ -82,6 +82,8 @@ use Symfony\Component\Validator\Constraint;
  * @see \Drupal\canvas\PropSource\StaticPropSource
  *
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
+ *
+ * @internal
  */
 final class JsonSchemaFieldInstanceMatcher {
 
@@ -872,7 +874,7 @@ final class JsonSchemaFieldInstanceMatcher {
     return self::getReferenceDependency($data_definition) !== NULL;
   }
 
-  private static function getReferenceDependency(DataDefinitionInterface $data_definition): ?ReferenceFieldTypePropExpression {
+  public static function getReferenceDependency(DataDefinitionInterface $data_definition): ?ReferenceFieldTypePropExpression {
     assert(!str_starts_with($data_definition->getDataType(), 'field_item:'));
 
     if (!$data_definition->isReadOnly() && is_a($data_definition->getClass(), DependentPluginInterface::class, TRUE)) {

@@ -76,7 +76,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'name' => 'Foo',
       'type' => 'foo',
     ])->save();
-    // Create a "silly image" field on the "Foo" node type.
+    // Create a "Silly image 🤡" field on the "Foo" node type.
     FieldStorageConfig::create([
       'entity_type' => 'node',
       'field_name' => 'field_silly_image',
@@ -87,6 +87,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     FieldConfig::create([
       'entity_type' => 'node',
       'field_name' => 'field_silly_image',
+      'label' => 'Silly image 🤡',
       'bundle' => 'foo',
       'required' => TRUE,
     ])->save();
@@ -179,7 +180,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -215,7 +216,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -225,7 +226,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: srcset_candidate_uri_template (1 of 7 props — absent: entity, alt, title, width, height, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
+            "Silly image 🤡 (only srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
           ],
           'adapters' => [],
         ],
@@ -239,52 +240,56 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            "This Foo's Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
-            "This Foo's Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
-            "This Foo's Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "This Foo's Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            "Authored by → User → default_langcode" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            "Authored by → User → status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
+            "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
+            "Silly image 🤡 → File → status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
+            "Revision user → User → default_langcode" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            "Revision user → User → status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            "This Foo's Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
-            "This Foo's Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
-            "This Foo's Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "This Foo's Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            "Authored by → User → default_langcode" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            "Authored by → User → status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
+            "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
+            "Silly image 🤡 → File → status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
+            "Revision user → User → default_langcode" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
+            "Revision user → User → status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: alt (1 of 7 props — absent: entity, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
-            "Subset of this Foo's field_silly_image: title (1 of 7 props — absent: entity, alt, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
-            "This Foo's Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
-            "This Foo's Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            "Silly image 🤡 (only alt)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            "Silly image 🤡 (only title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
           'instances' => [
-            "This Foo's Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
           ],
           'adapters' => [],
         ],
@@ -301,16 +306,16 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_event_duration: end_value (1 of 2 props — absent: value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
-            "Subset of this Foo's field_event_duration: value (1 of 2 props — absent: end_value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            "field_event_duration (only end_value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_date' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_event_duration: end_value (1 of 2 props — absent: value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
-            "Subset of this Foo's field_event_duration: value (1 of 2 props — absent: end_value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            "field_event_duration (only end_value)" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
           ],
           'adapters' => [
             'UNIX timestamp to date' => 'unix_to_date',
@@ -329,16 +334,20 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_email' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Authored by → User → init" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            "Authored by → User → mail" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Revision user → User → init" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            "Revision user → User → mail" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_email' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Authored by → User → init" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            "Authored by → User → mail" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Revision user → User → init" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            "Revision user → User → mail" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
           ],
           'adapters' => [],
         ],
@@ -365,36 +374,37 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uuid' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
-            "Subset of this Foo's Revision user: target_uuid (1 of 2 props — absent: entity)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
-            "Subset of this Foo's Authored by: target_uuid (1 of 2 props — absent: entity)" => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
-            "This Foo's UUID" => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
+            "Authored by → User → uuid" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
+            "Authored by (only target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
+            "Silly image 🤡 → File → uid" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟target_uuid',
+            "Silly image 🤡 → File → uuid" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
+            "Revision user → User → uuid" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
+            "Revision user (only target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
+            "UUID" => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -403,8 +413,8 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image_using_ref' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -413,24 +423,24 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths (1 of 7 props — absent: entity, alt, title, width, height, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
@@ -457,14 +467,22 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
-            "This Foo's Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Subset of this Foo's field_silly_image: height (1 of 7 props — absent: entity, alt, title, width, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
-            "Subset of this Foo's field_silly_image: width (1 of 7 props — absent: entity, alt, title, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
-            "This Foo's Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored by → User → access" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Authored by → User → changed" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
+            "Authored by → User → created" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
+            "Authored by → User → login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
+            "Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
+            "Silly image 🤡 → File → changed" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
+            "Silly image 🤡 → File → created" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝created␞␟value',
+            "Silly image 🤡 → File → filesize" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
+            "Silly image 🤡 (only height)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
+            "Silly image 🤡 (only width)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            "Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
+            "Revision user → User → access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Revision user → User → changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
+            "Revision user → User → created" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
+            "Revision user → User → login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapters' => [
             'Count days' => 'day_count',
@@ -478,29 +496,39 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored by → User → access" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Authored by → User → login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Revision user → User → access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Revision user → User → login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_number' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
-            "This Foo's Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
-            "Subset of this Foo's field_silly_image: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Subset of this Foo's field_silly_image: height (1 of 7 props — absent: entity, alt, title, width, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
-            "Subset of this Foo's field_silly_image: width (1 of 7 props — absent: entity, alt, title, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
-            "This Foo's Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
-            "Subset of this Foo's Revision user: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
-            "Subset of this Foo's Authored by: entity (1 of 2 props — absent: target_uuid)" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored by → User → access" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Authored by → User → changed" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
+            "Authored by → User → created" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
+            "Authored by → User → login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
+            "Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
+            "Silly image 🤡 → File → changed" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
+            "Silly image 🤡 → File → created" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝created␞␟value',
+            "Silly image 🤡 → File → filesize" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
+            "Silly image 🤡 (only height)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
+            "Silly image 🤡 (only width)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            "Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
+            "Revision user → User → access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            "Revision user → User → changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
+            "Revision user → User → created" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
+            "Revision user → User → login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_silly_image: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -510,7 +538,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_before_and_after: src_with_alternate_widths, alt, width, height (4 of 7 props — absent: entity, title, srcset_candidate_uri_template)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "field_before_and_after" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [],
         ],
@@ -522,7 +550,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
           'instances' => [
-            "This Foo's field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
+            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
           ],
           'adapters' => [],
         ],
@@ -534,14 +562,14 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_html_block' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text (only processed)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_html' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text (only processed)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
           'adapters' => [],
         ],
@@ -553,23 +581,25 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text (only processed)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html' => [
           'required' => TRUE,
           'instances' => [
-            "Subset of this Foo's field_wall_of_text: processed (1 of 3 props — absent: value, format)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text (only processed)" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_array_integer' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_screenshots: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Subset of this Foo's field_screenshots: height (1 of 7 props — absent: entity, alt, title, width, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
-            "Subset of this Foo's field_screenshots: width (1 of 7 props — absent: entity, alt, title, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            "field_screenshots → File → changed" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝changed␞␟value',
+            "field_screenshots → File → created" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝created␞␟value',
+            "field_screenshots → File → filesize" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            "field_screenshots (only height)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            "field_screenshots (only width)" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
           ],
           'adapters' => [],
         ],
@@ -582,9 +612,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_integer_maxItems' => [
           'required' => FALSE,
           'instances' => [
-            "Subset of this Foo's field_before_and_after: entity (1 of 7 props — absent: alt, title, width, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Subset of this Foo's field_before_and_after: height (1 of 7 props — absent: entity, alt, title, width, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
-            "Subset of this Foo's field_before_and_after: width (1 of 7 props — absent: entity, alt, title, height, srcset_candidate_uri_template, src_with_alternate_widths)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            "field_before_and_after → File → changed" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝changed␞␟value',
+            "field_before_and_after → File → created" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝created␞␟value',
+            "field_before_and_after → File → filesize" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            "field_before_and_after (only height)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            "field_before_and_after (only width)" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
           ],
           'adapters' => [],
         ],
