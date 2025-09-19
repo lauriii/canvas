@@ -71,6 +71,10 @@ class CanvasAiHooks {
             'name' => $this->t('Menu Fetch Source'),
             'description' => $this->t('Returns the source for menu fetching.'),
           ],
+          'json_api_module_status' => [
+            'name' => $this->t('JSON API Module status'),
+            'description' => $this->t('Returns the status of JSON API module.'),
+          ],
         ],
       ],
     ];
@@ -120,6 +124,10 @@ class CanvasAiHooks {
 
           case 'menu_fetch_source':
             $replacements[$original] = !empty($data['menu_fetch_source']) ? $data['menu_fetch_source'] : NULL;
+            break;
+
+          case 'json_api_module_status':
+            $replacements[$original] = $data['json_api_module_status'];
             break;
         }
       }
