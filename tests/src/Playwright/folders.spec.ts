@@ -115,28 +115,19 @@ test.describe('Folder Management', () => {
           ),
         ).not.toBeAttached();
         await page.click('[data-testid="add-new-folder-button"]');
-        page
-          .locator('[data-testid="canvas-manage-library-add-folder-content"]')
-          .waitFor({ state: 'visible' });
         await expect(
           page.locator('#add-new-folder-in-tab-form'),
         ).toBeAttached();
         await expect(
-          page.locator(
-            '[data-testid="canvas-manage-library-new-folder-name-submit"]',
-          ),
+          page.getByRole('button', { name: 'Add' }),
         ).not.toBeEnabled();
         await page
           .locator('[data-testid="canvas-manage-library-new-folder-name"]')
           .fill(folderName);
-        await expect(
-          page.locator(
-            '[data-testid="canvas-manage-library-new-folder-name-submit"]',
-          ),
-        ).toBeEnabled({ timeout: 5000 });
-        await page.click(
-          '[data-testid="canvas-manage-library-new-folder-name-submit"]',
-        );
+        await expect(page.getByRole('button', { name: 'Add' })).toBeEnabled({
+          timeout: 5000,
+        });
+        await page.getByRole('button', { name: 'Add' }).click();
         await page
           .locator(`[data-canvas-folder-name="${folderName}"]`)
           .waitFor({ state: 'attached' });

@@ -459,7 +459,7 @@ export class CanvasEditor {
     await this.page.fill('#componentName', componentName);
     await this.page
       .locator('.rt-BaseDialogContent button')
-      .getByText('Add')
+      .getByText('Create')
       .click();
     await expect(
       this.page.locator('[data-testid="canvas-mosaic-container"]'),
