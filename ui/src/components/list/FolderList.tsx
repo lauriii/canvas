@@ -60,7 +60,7 @@ export const folderfyComponents = (
   foldersLoading: boolean,
   type: string,
 ): FolderComponentsResult => {
-  if (isLoading || foldersLoading || !folders || !components) {
+  if (isLoading || foldersLoading || (!folders && !components)) {
     return { folderComponents: {}, topLevelComponents: {} };
   }
 
@@ -68,7 +68,7 @@ export const folderfyComponents = (
   const topLevelComponents: Record<string, any> = {};
 
   Object.entries(components || {}).forEach(([id, component]) => {
-    if (folders.componentIndexedFolders[id]) {
+    if (folders && folders.componentIndexedFolders[id]) {
       const folderId = folders.componentIndexedFolders[id];
       if (!folderComponents[folderId]) {
         folderComponents[folderId] = {
@@ -83,7 +83,7 @@ export const folderfyComponents = (
       topLevelComponents[id] = component;
     }
   });
-  Object.entries(folders.folders).forEach(([id, folder]) => {
+  Object.entries(folders?.folders || []).forEach(([id, folder]) => {
     if (folder.items.length === 0 && folder.type === type) {
       folderComponents[id] = {
         id,

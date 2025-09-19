@@ -190,7 +190,7 @@ const AddTemplateDialog = ({
     >
       <Flex
         direction="column"
-        data-testid="xb-manage-library-add-template-content"
+        data-testid="canvas-manage-library-add-template-content"
         p="0"
         gap="2"
         mb="2"

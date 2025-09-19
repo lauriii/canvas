@@ -42,7 +42,7 @@ test.describe('Perform CRUD operations on components', () => {
       if (
         consoleMessage &&
         typeof consoleMessage === 'object' &&
-        Object.hasOwn(consoleMessage, 'status')
+        'status' in consoleMessage
       ) {
         expect(consoleMessage.status).not.toBe(500);
       }
@@ -249,47 +249,37 @@ test.describe('Perform CRUD operations on components', () => {
           - button "Collapse component tree" [expanded]:
             - img
           - img
-          - text: Canvas test SDC with props and slots
           - button "Open contextual menu"
           - img
-          - text: The Body
           - img
-          - text: The Footer
           - img
-          - text: The Colophon
         - treeitem "Card Open contextual menu":
           - img
-          - text: Card
-      `);
+          - button "Open contextual menu"
+    `);
     await canvasEditor.moveComponent('Card', 'the_footer');
     await expect(page.locator('[data-testid="canvas-primary-panel"]'))
       .toMatchAriaSnapshot(`
-      - heading "Layers" [level=4]
-      - button:
+        - heading "Layers" [level=4]
+        - button:
+          - img
         - img
-      - img
-      - text: Content
-      - tree:
-        - treeitem "Collapse component tree Canvas test SDC with props and slots Open contextual menu":
-          - button "Collapse component tree" [expanded]:
-            - img
-          - img
-          - text: Canvas test SDC with props and slots
-          - button "Open contextual menu"
-          - img
-          - text: The Body
-          - button "Collapse slot" [expanded]:
-            - img
-          - img
-          - text: The Footer
-          - tree:
-            - treeitem "Card Open contextual menu":
+        - text: Content
+        - tree:
+          - treeitem "Collapse component tree Canvas test SDC with props and slots Open contextual menu":
+            - button "Collapse component tree" [expanded]:
               - img
-              - text: Card
-              - button "Open contextual menu"
-          - img
-          - text: The Colophon
-
+            - img
+            - button "Open contextual menu"
+            - img
+            - button "Collapse slot" [expanded]:
+              - img
+            - img
+            - tree:
+              - treeitem "Card Open contextual menu":
+                - img
+                - button "Open contextual menu"
+            - img
       `);
   });
 

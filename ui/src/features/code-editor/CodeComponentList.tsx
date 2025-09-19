@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Callout, ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import FolderList, {
   folderfyComponents,
   sortFolderList,
@@ -15,6 +15,7 @@ import {
   openDeleteDialog,
   openRenameDialog,
 } from '@/features/ui/codeComponentDialogSlice';
+import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import {
   useGetCodeComponentsQuery,
   useGetFoldersQuery,
@@ -43,6 +44,7 @@ const CodeComponentList = () => {
     isLoading: foldersLoading,
   } = useGetFoldersQuery({ status: false });
   const dispatch = useAppDispatch();
+  const activePanel = useAppSelector(selectActivePanel);
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
   const { codeComponentId: componentId } = useParams();
@@ -77,7 +79,12 @@ const CodeComponentList = () => {
   );
   const folderEntries = sortFolderList(folderComponents);
 
-  if ((!codeComponents || !Object.keys(codeComponents).length) && !isLoading) {
+  if (
+    (!codeComponents || !Object.keys(codeComponents).length) &&
+    !folderEntries.length &&
+    !isLoading &&
+    !foldersLoading
+  ) {
     return (
       <Callout.Root size="1" variant="soft" color="gray" my="3">
         <Flex align="center" gapX="2">
@@ -101,8 +108,9 @@ const CodeComponentList = () => {
       <>
         <UnifiedMenu.Item
           onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-            e.stopPropagation();
-            handleComponentClick(component.machineName);
+            if (activePanel === 'library') {
+              handleComponentClick(component.machineName);
+            }
           }}
         >
           Edit
@@ -137,24 +145,26 @@ const CodeComponentList = () => {
       </>
     );
 
+    const sidebarNode = (
+      <SidebarNode
+        key={id}
+        title={component.name}
+        variant="code"
+        draggable={false}
+        onClick={() => handleComponentClick(component.machineName)}
+        className={styles.listItem}
+        selected={component.machineName === componentId}
+        dropdownMenuContent={
+          <UnifiedMenu.Content menuType="dropdown">
+            {menuItems}
+          </UnifiedMenu.Content>
+        }
+      />
+    );
+
     const item = (
       <ContextMenu.Root key={id}>
-        <ContextMenu.Trigger>
-          <SidebarNode
-            key={id}
-            title={component.name}
-            variant="code"
-            draggable={false}
-            onClick={() => handleComponentClick(component.machineName)}
-            className={styles.listItem}
-            selected={component.machineName === componentId}
-            dropdownMenuContent={
-              <UnifiedMenu.Content menuType="dropdown">
-                {menuItems}
-              </UnifiedMenu.Content>
-            }
-          />
-        </ContextMenu.Trigger>
+        <ContextMenu.Trigger>{sidebarNode}</ContextMenu.Trigger>
         <UnifiedMenu.Content
           onClick={(e) => e.stopPropagation()}
           menuType="context"
@@ -185,31 +195,32 @@ const CodeComponentList = () => {
       >
         <Flex direction="column">
           {/* First, render any folders and the items they contain. */}
-          {Object.entries(folderComponents).length &&
+          {Object.entries(folderEntries).length &&
             folderEntries.map((folder, index) => {
               return (
                 <FolderList key={index} folder={folder}>
-                  {Object.values(folder.items).map(
-                    (comp: CodeComponentSerialized, index) => {
-                      const codeComponent =
-                        comp as unknown as CodeComponentSerialized;
+                  {Object.values(folder.items).length > 0 &&
+                    Object.values(folder.items).map(
+                      (comp: CodeComponentSerialized, index) => {
+                        const codeComponent =
+                          comp as unknown as CodeComponentSerialized;
 
-                      return (
-                        <React.Fragment key={index}>
-                          {componentItem(
-                            codeComponent.machineName,
-                            codeComponent,
-                            2,
-                          )}
-                        </React.Fragment>
-                      );
-                    },
-                  )}
+                        return (
+                          <React.Fragment key={index}>
+                            {componentItem(
+                              codeComponent.machineName,
+                              codeComponent,
+                              2,
+                            )}
+                          </React.Fragment>
+                        );
+                      },
+                    )}
                 </FolderList>
               );
             })}
           {/* Then, render any items not in folders. */}
-          {Object.keys(topLevelComponents).length &&
+          {Object.keys(topLevelComponents).length > 0 &&
             Object.entries(topLevelComponents || {}).map(
               ([id, component]: [string, CodeComponentSerialized]) => {
                 return componentItem(id, component);

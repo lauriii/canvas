@@ -15,6 +15,7 @@ import {
   openRemoveFromComponentsDialog,
   openRenameDialog,
 } from '@/features/ui/codeComponentDialogSlice';
+import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import { useGetCodeComponentQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
@@ -42,6 +43,7 @@ const ExposedJsComponent: React.FC<{
   const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
   const { codeComponentId: selectedComponent } = useParams();
+  const activePanel = useAppSelector(selectActivePanel);
 
   useEffect(() => {
     if (error) {
@@ -113,6 +115,7 @@ const ExposedJsComponent: React.FC<{
           }
           selected={machineName === selectedComponent}
           onMenuOpenChange={onMenuOpenChange}
+          draggable={activePanel !== 'manageLibrary'}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content

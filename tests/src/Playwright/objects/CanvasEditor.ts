@@ -45,7 +45,7 @@ export class CanvasEditor {
     );
 
     await expect(this.page.getByTestId('canvas-primary-panel')).toContainText(
-      /Layers|Library/,
+      /Layers|Library|Patterns/,
       {
         timeout: 15000,
       },

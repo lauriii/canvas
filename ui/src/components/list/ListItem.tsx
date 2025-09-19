@@ -9,7 +9,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
 import ExposedJsComponent from '@/components/list/ExposedJsComponent';
 import PatternNode from '@/components/list/PatternNode';
-import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import {
   _addNewComponentToLayout,
@@ -17,6 +16,7 @@ import {
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
@@ -55,10 +55,9 @@ const ListItem: React.FC<{
       name: item.name,
     },
   });
-  const displayContext = useDisplayContext();
+  const activePanel = useAppSelector(selectActivePanel);
 
-  const makeDraggable = () => displayContext !== 'manage-library';
-  const includeDropdown = () => displayContext !== 'manage-library';
+  const makeDraggable = () => activePanel !== 'manageLibrary';
 
   const clickToInsertHandler = (newId: string) => {
     let path: number[] | null = [0];
@@ -132,7 +131,6 @@ const ListItem: React.FC<{
             ? 'dynamicComponent'
             : type
         }
-        includeDropdown={includeDropdown()}
         draggable={makeDraggable()}
       />
     );

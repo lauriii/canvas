@@ -4,76 +4,84 @@ import { Form } from 'radix-ui';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Tabs, Text, TextField } from '@radix-ui/themes';
 
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
 import ComponentList from '@/components/list/ComponentList';
 import PatternList from '@/components/list/PatternList';
 import PermissionCheck from '@/components/PermissionCheck';
-import { DisplayContext } from '@/components/sidePanel/DisplayContext';
 import CodeComponentList from '@/features/code-editor/CodeComponentList';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import {
+  selectManageLibraryTab,
+  setManageLibraryTab,
+} from '@/features/ui/primaryPanelSlice';
 import { validateFolderNameClientSide } from '@/features/validation/validation';
 import { useCreateFolderMutation } from '@/services/componentAndLayout';
 
 import styles from '@/components/sidePanel/ManageLibrary.module.css';
 
 const ManageLibrary = () => {
+  const dispatch = useAppDispatch();
+  const selectedTab = useAppSelector(selectManageLibraryTab);
+
   return (
-    <DisplayContext.Provider value="manage-library">
-      <div className="flex flex-col h-full">
-        <Tabs.Root defaultValue="components">
-          <Tabs.List justify="start" mt="-2" size="1">
+    <div className="flex flex-col h-full">
+      <Tabs.Root
+        defaultValue={selectedTab || 'components'}
+        onValueChange={(value) => dispatch(setManageLibraryTab(value))}
+      >
+        <Tabs.List justify="start" mt="-2" size="1">
+          <Tabs.Trigger
+            value="components"
+            data-testid="canvas-manage-library-components-tab-select"
+          >
+            Components
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="patterns"
+            data-testid="canvas-manage-library-patterns-tab-select"
+          >
+            Patterns
+          </Tabs.Trigger>
+          <PermissionCheck hasPermission="codeComponents">
             <Tabs.Trigger
-              value="components"
-              data-testid="canvas-manage-library-components-tab-select"
+              value="code"
+              data-testid="canvas-manage-library-code-tab-select"
             >
-              Components
+              Code
             </Tabs.Trigger>
-            <Tabs.Trigger
-              value="patterns"
-              data-testid="canvas-manage-library-patterns-tab-select"
-            >
-              Patterns
-            </Tabs.Trigger>
-            <PermissionCheck hasPermission="codeComponents">
-              <Tabs.Trigger
-                value="code"
-                data-testid="canvas-manage-library-code-tab-select"
-              >
-                Code
-              </Tabs.Trigger>
-            </PermissionCheck>
-          </Tabs.List>
-          <Flex py="2" className={styles.tabWrapper}>
+          </PermissionCheck>
+        </Tabs.List>
+        <Flex py="2" className={styles.tabWrapper}>
+          <Tabs.Content
+            value={'components'}
+            className={styles.tabContent}
+            data-testid="canvas-manage-library-components-tab-content"
+          >
+            <AddFolderButton type="component" />
+            <ComponentList />
+          </Tabs.Content>
+          <Tabs.Content
+            value={'patterns'}
+            className={styles.tabContent}
+            data-testid="canvas-manage-library-patterns-tab-content"
+          >
+            <AddFolderButton type="pattern" />
+            <PatternList />
+          </Tabs.Content>
+          <PermissionCheck hasPermission="codeComponents">
             <Tabs.Content
-              value={'components'}
+              value={'code'}
               className={styles.tabContent}
-              data-testid="canvas-manage-library-components-tab-content"
+              data-testid="canvas-manage-library-code-tab-content"
             >
-              <AddFolderButton type="component" />
-              <ComponentList />
+              <AddFolderButton type="js_component" />
+              <CodeComponentList />
             </Tabs.Content>
-            <Tabs.Content
-              value={'patterns'}
-              className={styles.tabContent}
-              data-testid="canvas-manage-library-patterns-tab-content"
-            >
-              <AddFolderButton type="pattern" />
-              <PatternList />
-            </Tabs.Content>
-            <PermissionCheck hasPermission="codeComponents">
-              <Tabs.Content
-                value={'code'}
-                className={styles.tabContent}
-                data-testid="canvas-manage-library-code-tab-content"
-              >
-                <AddFolderButton type="js_component" />
-                <CodeComponentList />
-              </Tabs.Content>
-            </PermissionCheck>
-          </Flex>
-        </Tabs.Root>
-      </div>
-    </DisplayContext.Provider>
+          </PermissionCheck>
+        </Flex>
+      </Tabs.Root>
+    </div>
   );
 };
 

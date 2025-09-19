@@ -187,7 +187,6 @@ const ContentGroup = ({
                     </UnifiedMenu.Content>
                   ) : null
                 }
-                includeDropdown={!!dropdownMenuContent}
                 onClick={onSelect ? () => onSelect(item) : undefined}
                 data-canvas-page-id={item.id}
               />

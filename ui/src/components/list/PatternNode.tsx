@@ -1,11 +1,11 @@
 import { ContextMenu } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
-import { useDisplayContext } from '@/components/sidePanel/DisplayContext';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
+import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 
 import type React from 'react';
 import type { Pattern } from '@/types/Pattern';
@@ -17,7 +17,7 @@ const PatternNode: React.FC<{
 }> = (props) => {
   const { pattern, onMenuOpenChange, disabled } = props;
   const dispatch = useAppDispatch();
-  const displayContext = useDisplayContext();
+  const activePanel = useAppSelector(selectActivePanel);
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -50,13 +50,14 @@ const PatternNode: React.FC<{
           variant="pattern"
           disabled={disabled}
           dropdownMenuContent={
-            <UnifiedMenu.Content menuType="dropdown">
-              {menuItems}
-            </UnifiedMenu.Content>
+            activePanel !== 'manageLibrary' ? (
+              <UnifiedMenu.Content menuType="dropdown">
+                {menuItems}
+              </UnifiedMenu.Content>
+            ) : null
           }
           onMenuOpenChange={onMenuOpenChange}
-          includeDropdown={displayContext !== 'manage-library'}
-          draggable={displayContext !== 'manage-library'}
+          draggable={activePanel !== 'manageLibrary'}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content
