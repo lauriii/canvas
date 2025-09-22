@@ -576,7 +576,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $sdc_prop_name = $component_prop->propName;
-      $source = $this->uncollapse($client_model[$sdc_prop_name] ?? $default_prop_sources[$sdc_prop_name], $sdc_prop_name);
+      $default_value = (\array_key_exists($sdc_prop_name, $client_model) === TRUE) ? $default_prop_sources[$sdc_prop_name] : NULL;
+      $source = $this->uncollapse($client_model[$sdc_prop_name] ?? $default_value, $sdc_prop_name);
       $disabled = FALSE;
       $label_suffix = '';
       if (!$source instanceof StaticPropSource) {

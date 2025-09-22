@@ -190,6 +190,9 @@ test.describe('Perform CRUD operations on components', () => {
     // Refresh the page.
     await page.reload();
     await expect(
+      await page.getByLabel('Heading', { exact: true }),
+    ).not.toHaveValue('There goes my hero');
+    await expect(
       (await canvasEditor.getActivePreviewFrame()).locator(
         '[data-component-id="canvas_test_sdc:my-hero"] h1',
       ),
