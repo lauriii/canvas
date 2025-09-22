@@ -115,7 +115,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, $slot_name)));
+        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, $slot_name)), $host_entity);
         $built['model'] += $child_build['model'];
         $component_instance_slot['components'] = $child_build['layout'];
         $item_layout_node['slots'][] = $component_instance_slot;
