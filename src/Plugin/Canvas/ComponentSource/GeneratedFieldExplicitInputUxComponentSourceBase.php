@@ -548,7 +548,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     FormStateInterface $form_state,
     ?Component $component = NULL,
     string $component_instance_uuid = '',
-    array $client_model = [],
+    array $inputValues = [],
     ?EntityInterface $entity = NULL,
     array $settings = [],
   ): array {
@@ -561,7 +561,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $form_state->set('is_canvas_static_prop_source', TRUE);
 
     $prop_field_definitions = $settings['prop_field_definitions'];
-    $default_prop_sources = $this->getDefaultExplicitInput();
 
     // To ensure the order of the fields always matches the order of the schema
     // we loop over the properties from the schema, but first we have to
@@ -576,8 +575,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $component_prop = ComponentPropExpression::fromString($component_prop_expression);
       $sdc_prop_name = $component_prop->propName;
-      $default_value = (\array_key_exists($sdc_prop_name, $client_model) === TRUE) ? $default_prop_sources[$sdc_prop_name] : NULL;
-      $source = $this->uncollapse($client_model[$sdc_prop_name] ?? $default_value, $sdc_prop_name);
+      // Uncollapse if set; otherwise fall back to the default static prop
+      // source, but *made empty* instead of the default value.
+      // Note that ::clientModelToInput() guarantees $inputValues contains a
+      // value for every required prop, even when a required property is allowed
+      // to be empty during editing for improved usability.
+      // @see ::getDefaultExplicitInput()
+      // @see ::clientModelToInput()
+      // @see https://www.drupal.org/i/3529788
+      assert(array_key_exists($sdc_prop_name, $inputValues) || !in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
+      $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
       $disabled = FALSE;
       $label_suffix = '';
       if (!$source instanceof StaticPropSource) {
