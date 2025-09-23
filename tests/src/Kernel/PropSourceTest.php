@@ -723,6 +723,7 @@ class PropSourceTest extends KernelTestBase {
       ],
     ]);
 
+    // @phpstan-ignore-next-line argument.type
     $dynamic_prop_source_delta_test = new DynamicPropSource(StructuredDataPropExpression::fromString($expression));
 
     if ($expected_message !== NULL) {

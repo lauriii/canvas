@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
+use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -165,8 +167,8 @@ final class FieldForComponentSuggester {
 
       // Adapters.
       $suggestions[$cpe]['adapters'] = array_combine(
-        // @todo Introduce a plugin definition class that provides a guaranteed label, which will allow removing the PHPStan ignore instruction.
-        // @phpstan-ignore-next-line
+      // @todo Introduce a plugin definition class that provides a guaranteed label, which will allow removing the PHPStan ignore instruction.
+      // @phpstan-ignore-next-line
         array_map(fn (AdapterInterface $a): string => (string) $a->getPluginDefinition()['label'], $m['adapters']),
         $m['adapters']
       );
@@ -272,6 +274,44 @@ final class FieldForComponentSuggester {
     }
 
     return FALSE;
+  }
+
+  public static function structureSuggestionsForResponse(array $suggestions): array {
+    return array_combine(
+    // Top-level keys: the prop names of the targeted component.
+      array_map(
+        fn (string $key): string => ComponentPropExpression::fromString($key)->propName,
+        array_keys($suggestions),
+      ),
+      array_map(
+        fn (array $instances): array => array_combine(
+        // Second level keys: opaque identifiers for the suggestions to
+        // populate the component prop.
+          array_map(
+            fn (StructuredDataPropExpressionInterface $expr): string => \hash('xxh64', (string) $expr),
+            array_values($instances),
+          ),
+          // Values: objects with "label" and "source" keys, with:
+          // - "label": the human-readable label that the Content Template UI
+          //   should present to the human
+          // - "source": the array representation of the DynamicPropSource that,
+          //   if selected by the human, the client should use verbatim as the
+          //   source to populate this component instance's prop.
+          array_map(
+            function (string $label, StructuredDataPropExpressionInterface $expr) {
+              return [
+                'label' => $label,
+                // @phpstan-ignore-next-line argument.type
+                'source' => (new DynamicPropSource($expr))->toArray(),
+              ];
+            },
+            array_keys($instances),
+            array_values($instances),
+          ),
+        ),
+        array_column($suggestions, 'instances'),
+      ),
+    );
   }
 
 }

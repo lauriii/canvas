@@ -15,6 +15,8 @@ import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
 import DrupalTextArea from '@/components/form/components/drupal/DrupalTextArea';
 import DrupalToggle from '@/components/form/components/drupal/DrupalToggle';
 import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVerticalTabs';
+import LinkedFieldBox from '@/components/form/components/drupal/LinkedFieldBox.js';
+import PropLinker from '@/components/form/components/drupal/PropLinker.js';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
 
 // This is where we map the Drupal Twig templates to the corresponding JSX component.
@@ -43,6 +45,8 @@ const twigToJSXComponentMap = {
   'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
   'canvas-text': CanvasText,
   'canvas-box': CanvasBox,
+  'drupal-linked-field-box': LinkedFieldBox,
+  'drupal-prop-linker': PropLinker,
 };
 
 export default twigToJSXComponentMap;

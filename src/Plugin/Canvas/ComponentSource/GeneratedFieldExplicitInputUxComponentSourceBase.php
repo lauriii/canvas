@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
@@ -95,6 +97,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     private readonly ComponentValidator $componentValidator,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
   ) {
     assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -112,6 +115,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $container->get(ComponentValidator::class),
       $container->get('plugin.manager.field.widget'),
       $container->get(EntityTypeManagerInterface::class),
+      $container->get(FieldForComponentSuggester::class),
     );
   }
 
@@ -553,8 +557,20 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     array $settings = [],
   ): array {
     $transforms = [];
-    assert($entity instanceof FieldableEntityInterface);
     $component_schema = $this->getMetadata()->schema ?? [];
+
+    // @todo Uncomment this once it is guaranteed that the POST request to add
+    // the component instance happens first.
+    // assert(!is_null(\Drupal::service(ComponentTreeLoader::class)->load($entity)->getComponentTreeItemByUuid($component_instance_uuid)), 'The passed $entity does not contain the component instance being edited.');
+
+    // Some field widgets need an entity object. Provide such a "parent" entity.
+    // @see \Drupal\Core\Field\FieldItemListInterface::getEntity()
+    // @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
+    $entity_object_for_field_widget = match (TRUE) {
+      $entity instanceof FieldableEntityInterface => $entity,
+      $entity instanceof ContentTemplate => $entity->createEmptyTargetEntity(),
+      default => throw new \LogicException(),
+    };
 
     // Allow form alterations specific to Canvas component instance forms (currently
     // only "static prop sources").
@@ -586,15 +602,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(array_key_exists($sdc_prop_name, $inputValues) || !in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
       $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
       $disabled = FALSE;
-      $label_suffix = '';
+      $linked_prop_source = $source instanceof DynamicPropSource ? $source : NULL;
       if (!$source instanceof StaticPropSource) {
         // @todo Build DynamicPropSource UX in https://www.drupal.org/i/3541037. Related: https://www.drupal.org/project/canvas/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.
         // Fall back to the static version, disabled for now where the design is undefined.
         $disabled = !$source instanceof DefaultRelativeUrlPropSource;
-        if ($source instanceof DynamicPropSource) {
-          $label_suffix = sprintf(" — ⚠️ DISABLED because this prop is actually populated by a DynamicPropSource (%s)", $source->toArray()['expression']);
-        }
         $source = $this->getDefaultStaticPropSource($sdc_prop_name);
       }
 
@@ -609,10 +622,45 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       assert($component instanceof Component);
-      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label . $label_suffix, $field_widget_plugin_id);
+      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id);
       $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
-      $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity, $form, $form_state);
+      $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+
+      if ($entity instanceof ContentTemplate) {
+        $suggestions = FieldForComponentSuggester::structureSuggestionsForResponse($this->fieldForComponentSuggester->suggest(
+          $this->getSourceSpecificComponentId(),
+          $this->getMetadata(),
+          $entity->getTargetEntityDataDefinition(),
+        ));
+        $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
+
+        // If the prop is already linked, replace the widget entirely. The
+        // replacement will show the linker by the field label, and replace the
+        // form elements with a linked field badge.
+        if ($linked_prop_source) {
+          // This full replacement of the widget ensures that the resulting form
+          // has consistent and valid html, regardless of field type and widget.
+          $form[$sdc_prop_name]['widget'] = [
+            '#type' => 'linked_prop_source',
+            '#sdc_prop_name' => $sdc_prop_name,
+            '#sdc_prop_label' => $label,
+            '#linked_prop_source' => $linked_prop_source,
+            '#field_link_suggestions' => $suggestions[$sdc_prop_name],
+            '#component' => $component,
+            '#is_required' => $is_required,
+          ];
+        }
+        // If the prop can be linked, but isn't yet, add attributes that will
+        // result in the prop linker appearing next to the field label.
+        elseif ($could_use_dynamic_prop_source) {
+          $form[$sdc_prop_name]['widget']['#prop_link_data'] = [
+            'linked' => FALSE,
+            'prop_name' => $form[$sdc_prop_name]['widget']['#field_name'],
+            'suggestions' => $suggestions[$sdc_prop_name],
+          ];
+        }
+      }
 
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($widget->getPluginId());
       if (\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas'])) {

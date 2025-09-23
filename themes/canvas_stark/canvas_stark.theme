@@ -23,6 +23,28 @@ function canvas_stark_element_info_alter(array &$type): void {
   }
 }
 
+function canvas_stark_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    // Results in a UI element that allows linking a prop to a form field.
+    'prop_linker' => [
+      'variables' => [
+        'linked' => FALSE,
+        'prop_name' => NULL,
+        'suggestions' => [],
+      ],
+      'template' => 'process_as_jsx/form/prop-linker',
+    ],
+    // Results in a box that represents a linked prop, replacing a form input.
+    'linked_field_box' => [
+      'variables' => [
+        'title' => NULL,
+        'prop_name' => NULL,
+      ],
+      'template' => 'process_as_jsx/form/linked-field-box',
+    ],
+  ];
+}
+
 function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $form_state): void {
   // Inspired by Claro to render the sidebar details as accordions.
   $form['#theme'] = ['node_edit_form'];
@@ -35,6 +57,18 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
 
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-canvas-multiple-values'] = 'true';
+
+  // If #prop_link_data is set, we need to pass it to the label attributes,
+  // which, when present, will result in a prop linker element appearing next to
+  // the label. This is specifically used for unlinked props, where the form
+  // elements are still present.
+  if (isset($variables['element']['#prop_link_data'])) {
+    $label_attributes = $variables['elements'][0]['value']['#label_attributes'] ?? [];
+    $variables['elements'][0]["value"]['#label_attributes'] = [
+      ...$label_attributes,
+      'prop_link_data' => $variables['element']['#prop_link_data'],
+    ];
+  }
 }
 
 /**
