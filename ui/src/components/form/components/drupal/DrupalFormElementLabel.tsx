@@ -17,6 +17,7 @@ const DrupalFormElementLabel = ({
   titleDisplay = '',
   required = '',
   attributes = {},
+  directLinkerData = undefined,
 }: {
   title:
     | {
@@ -26,6 +27,7 @@ const DrupalFormElementLabel = ({
   titleDisplay?: string;
   required?: string;
   attributes?: Attributes;
+  directLinkerData?: PropLinkData;
 }) => {
   const classes = clsx(
     titleDisplay === 'after' ? 'option' : '',
@@ -48,14 +50,14 @@ const DrupalFormElementLabel = ({
       {typeof title === 'string' ? title : title['#markup']}
     </FormElementLabel>
   );
-
   const getTheLabel = () => {
     // If there is prop link data, render the PropLinker next to the label.
     // We wrap the label in a div so they can appear next to each other without
     // the linker appearing inside the <label> tag.
-    if (attributes?.prop_link_data) {
-      const propLinkData: PropLinkData =
-        attributes.prop_link_data as PropLinkData;
+    if (attributes?.prop_link_data || directLinkerData) {
+      const propLinkData: PropLinkData = directLinkerData
+        ? directLinkerData
+        : (attributes.prop_link_data as PropLinkData);
       return (
         <div className="canvas-linked-prop-label-wrapper">
           {theLabel}

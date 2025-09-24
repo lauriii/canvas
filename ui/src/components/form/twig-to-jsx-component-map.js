@@ -45,6 +45,7 @@ const twigToJSXComponentMap = {
   'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
   'canvas-text': CanvasText,
   'canvas-box': CanvasBox,
+  'canvas-drupal-label': DrupalFormElementLabel,
   'drupal-linked-field-box': LinkedFieldBox,
   'drupal-prop-linker': PropLinker,
 };
