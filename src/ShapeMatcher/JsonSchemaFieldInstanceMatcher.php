@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -570,9 +571,22 @@ final class JsonSchemaFieldInstanceMatcher {
     }
     $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
     $matches = [];
+    // Default to 1 level of recursion, but increase to 2 levels for:
+    // - object shapes, because they imply more complexity, so search deeper
+    // - URIs, because to find relevant references, more connections should be
+    //   available to the end user.
+    $levels_to_recurse = match ($primitive_type) {
+      JsonSchemaType::Object => 2,
+      JsonSchemaType::String => match ($schema['format'] ?? NULL) {
+        JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value => 2,
+        JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value => 2,
+        default => 1,
+      },
+      default => 1,
+    };
     if ($host_entity_type !== NULL && $host_entity_bundle !== NULL) {
       $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
-      $matches = $this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema);
+      $matches = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
     }
     else {
       foreach ($entity_type_bundles as $entity_type_id => $bundles) {
@@ -580,7 +594,7 @@ final class JsonSchemaFieldInstanceMatcher {
           $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$entity_type_id:$bundle");
           $matches = [
             ...$matches,
-            ...$this->matchEntityProps($entity_data_definition, 1, $primitive_type, $is_required_in_json_schema, $schema),
+            ...$this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
           ];
         }
       }

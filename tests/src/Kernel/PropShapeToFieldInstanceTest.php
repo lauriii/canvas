@@ -76,10 +76,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
   }
 
   /**
-   * Tests matches for SDC props.
-   *
-   * @param string[] $modules
-   * @param array{'modules': string[], 'expected': array<string, array<mixed>>} $expected
+   * Tests matches for \Drupal\Core\Theme\Component\ComponentMetadata props.
    *
    * @dataProvider provider
    */
@@ -258,7 +255,16 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     }
 
     ksort($matches);
-    $this->assertSame($expected, $matches);
+    self::assertSame(array_keys($expected), array_keys($matches));
+    foreach (array_keys($expected) as $key) {
+      $matches_instances_extraneous = array_diff($matches[$key]['instances'], $expected[$key]['instances']);
+      $matches_instances_missing = array_diff($expected[$key]['instances'], $matches[$key]['instances']);
+      self::assertSame([], $matches_instances_extraneous, "🐛 $key — either extraneous field instance matches found, or missing expectations");
+      self::assertSame([], $matches_instances_missing, "🐛 $key — either missing field instance matches found, or too extraneous expectations");
+      self::assertSame($expected[$key], $matches[$key], "🐛 $key expectations do not match reality.");
+    }
+    // 💡 This assertion alone suffices, but makes for painful DX.
+    self::assertSame($expected, $matches);
 
     $module_installer->uninstall($modules);
   }
@@ -373,6 +379,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'instances' => [
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
             'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟{src↝entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url,poster↝entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url}',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -431,9 +438,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
+                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],
@@ -547,6 +556,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -566,6 +579,10 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1038,6 +1055,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'instances' => [
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
             'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟{src↝entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url,poster↝entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url}',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1114,6 +1132,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟src_with_alternate_widths',
@@ -1121,6 +1140,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [
@@ -1131,9 +1151,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
+                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],
@@ -1161,6 +1183,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟src_with_alternate_widths',
@@ -1168,6 +1191,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [
@@ -1178,9 +1202,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
+                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],
@@ -1452,6 +1478,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1468,6 +1496,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
@@ -1479,6 +1513,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1495,6 +1531,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
@@ -1546,6 +1588,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1562,6 +1606,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
@@ -1573,6 +1623,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'static prop source' => 'ℹ︎link␟url',
           'instances' => [
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
             'ℹ︎␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:file␝uri␞␟value',
@@ -1589,6 +1641,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:baby_videos␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
           ],
           'adapter_matches_field_type' => [],
