@@ -8,6 +8,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxCom
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -91,6 +92,7 @@ final class FieldForComponentSuggester {
             $expr_entity_data_definition->getEntityTypeId(),
             $expr_entity_data_definition->getBundles()[0],
           )->getComponents();
+          uasort($expected_order, SortArray::sortByWeightElement(...));
           $bucketed[$expr_entity_data_type] = array_fill_keys(
             array_keys($expected_order),
             [],

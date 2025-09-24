@@ -240,11 +240,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
           'required' => FALSE,
           'instances' => [
-            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Authored by → User → default_langcode" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Authored by → User → status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
             "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
             "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             "Silly image 🤡 → File → status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
             "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
@@ -256,11 +256,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
           'instances' => [
-            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Authored by → User → default_langcode" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Authored by → User → status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
             "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
             "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
+            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             "Silly image 🤡 → File → status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
             "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
@@ -272,8 +272,8 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
           'instances' => [
-            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             "Silly image 🤡 (only alt)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 (only title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
           ],
