@@ -21,7 +21,7 @@ final class ApiUsageControllers extends ApiControllerBase {
   /**
    * The maximum number of results to return per page.
    */
-  private const int MAX_PER_PAGE = 50;
+  public const int MAX_PER_PAGE = 50;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,

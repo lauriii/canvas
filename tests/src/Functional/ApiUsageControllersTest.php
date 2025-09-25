@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\Controller\ApiUsageControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
@@ -106,23 +107,27 @@ class ApiUsageControllersTest extends HttpApiTestBase {
    * @covers ::componentsList()
    */
   public function testComponentListUsage(): void {
+    $components = Component::loadMultiple();
+    $to_create = ApiUsageControllers::MAX_PER_PAGE - count($components);
+    assert($to_create >= 0);
     // Create some extra components so we have 50 exactly to make sure we don't get a `next` link.
-    $js_components_to_create = ['test_component_a' => 'Test component a', 'test_component_b' => 'Test component b'];
-    foreach ($js_components_to_create as $js_component_id => $js_component_name) {
-      JavaScriptComponent::create([
-        'machineName' => $js_component_id,
-        'name' => $js_component_name,
-        'status' => TRUE,
-        'props' => [],
-        'slots' => [],
-        'js' => ['original' => '', 'compiled' => ''],
-        'css' => [
-          'original' => '',
-          // Whitespace only CSS should be ignored.
-          'compiled' => "\n  \n",
-        ],
-        'dataDependencies' => [],
-      ])->save();
+    if ($to_create > 0) {
+      foreach (range(1, $to_create) as $index) {
+        JavaScriptComponent::create([
+          'machineName' => 'test_component_' . $index,
+          'name' => 'Test component ' . $index,
+          'status' => TRUE,
+          'props' => [],
+          'slots' => [],
+          'js' => ['original' => '', 'compiled' => ''],
+          'css' => [
+            'original' => '',
+            // Whitespace only CSS should be ignored.
+            'compiled' => "\n  \n",
+          ],
+          'dataDependencies' => [],
+        ])->save();
+      }
     }
 
     $listing_url = Url::fromRoute('canvas.api.usage.component.list')->setOption('absolute', FALSE);
@@ -140,8 +145,8 @@ class ApiUsageControllersTest extends HttpApiTestBase {
 
     // Create another component to test the next link is generated.
     JavaScriptComponent::create([
-      'machineName' => 'test_component_c',
-      'name' => 'Test component c',
+      'machineName' => 'test_component_extra',
+      'name' => 'Test component extra',
       'status' => TRUE,
       'props' => [],
       'slots' => [],
@@ -171,7 +176,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     $this->assertNull($body['links']['next']);
     $this->assertCount(1, $body['data']);
     $this->assertSame([
-      "sdc.canvas_test_sdc.video" => FALSE,
+      'sdc.canvas_test_sdc.video' => FALSE,
     ], $body['data']);
   }
 
