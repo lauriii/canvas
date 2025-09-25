@@ -1,7 +1,6 @@
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 
 import type { ReactNode } from 'react';
-import type { FolderCodeComponent } from '@/features/code-editor/CodeComponentList';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type {
   ComponentsList,
@@ -23,7 +22,7 @@ const FolderList = ({
   folder,
   children,
 }: {
-  folder: FolderInList | FolderCodeComponent;
+  folder: FolderInList;
   children: ReactNode;
 }) => {
   // Determine the length of items in the folder, be it object or array.
@@ -115,5 +114,7 @@ export const sortFolderList = (
       ) as FoldersInList)
     : [];
 };
+
+export type { FolderData };
 
 export default FolderList;

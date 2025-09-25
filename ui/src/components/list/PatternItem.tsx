@@ -10,12 +10,20 @@ import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import type React from 'react';
 import type { Pattern } from '@/types/Pattern';
 
-const PatternNode: React.FC<{
+const PatternItem: React.FC<{
   pattern: Pattern;
   onMenuOpenChange: (open: boolean) => void;
   disabled: boolean;
+  insertMenuItem?: React.ReactNode;
+  menuTitleItems?: React.ReactNode;
 }> = (props) => {
-  const { pattern, onMenuOpenChange, disabled } = props;
+  const {
+    pattern,
+    onMenuOpenChange,
+    disabled,
+    insertMenuItem,
+    menuTitleItems,
+  } = props;
   const dispatch = useAppDispatch();
   const activePanel = useAppSelector(selectActivePanel);
 
@@ -30,16 +38,22 @@ const PatternNode: React.FC<{
   };
 
   const menuItems = (
-    <PermissionCheck
-      hasPermission="patterns"
-      denied={
-        <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
-      }
-    >
-      <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-        Delete pattern
-      </UnifiedMenu.Item>
-    </PermissionCheck>
+    <>
+      {menuTitleItems}
+      {activePanel === 'library' && insertMenuItem}
+      {activePanel === 'manageLibrary' && (
+        <PermissionCheck
+          hasPermission="patterns"
+          denied={
+            <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+          }
+        >
+          <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
+            Delete pattern
+          </UnifiedMenu.Item>
+        </PermissionCheck>
+      )}
+    </>
   );
 
   return (
@@ -50,11 +64,9 @@ const PatternNode: React.FC<{
           variant="pattern"
           disabled={disabled}
           dropdownMenuContent={
-            activePanel !== 'manageLibrary' ? (
-              <UnifiedMenu.Content menuType="dropdown">
-                {menuItems}
-              </UnifiedMenu.Content>
-            ) : null
+            <UnifiedMenu.Content menuType="dropdown">
+              {menuItems}
+            </UnifiedMenu.Content>
           }
           onMenuOpenChange={onMenuOpenChange}
           draggable={activePanel !== 'manageLibrary'}
@@ -72,4 +84,4 @@ const PatternNode: React.FC<{
   );
 };
 
-export default PatternNode;
+export default PatternItem;

@@ -7,9 +7,10 @@ import { Theme } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
-import ExposedJsComponent from '@/components/list/ExposedJsComponent';
-import PatternNode from '@/components/list/PatternNode';
-import SidebarNode from '@/components/sidePanel/SidebarNode';
+import CodeComponentItem from '@/components/list/CodeComponentItem';
+import ComponentItem from '@/components/list/ComponentItem';
+import PatternItem from '@/components/list/PatternItem';
+import UnifiedMenu from '@/components/UnifiedMenu';
 import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
@@ -59,7 +60,8 @@ const ListItem: React.FC<{
 
   const makeDraggable = () => activePanel !== 'manageLibrary';
 
-  const clickToInsertHandler = (newId: string) => {
+  const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     let path: number[] | null = [0];
     if (selectedComponent) {
       path = findNodePathByUuid(layout, selectedComponent);
@@ -100,13 +102,26 @@ const ListItem: React.FC<{
     }
   };
 
+  const insertMenuItem = () => (
+    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+  );
+
+  const menuTitleItems = () => (
+    <>
+      <UnifiedMenu.Label>{item.name}</UnifiedMenu.Label>
+      <UnifiedMenu.Separator />
+    </>
+  );
+
   const renderItem = () => {
     if (type === 'pattern') {
       return (
-        <PatternNode
+        <PatternItem
           pattern={item as Pattern}
           onMenuOpenChange={setIsMenuOpen}
           disabled={isDragging}
+          insertMenuItem={insertMenuItem()}
+          menuTitleItems={menuTitleItems()}
         />
       );
     }
@@ -115,24 +130,26 @@ const ListItem: React.FC<{
       (item as JSComponent).source === 'Code component'
     ) {
       return (
-        <ExposedJsComponent
+        <CodeComponentItem
           component={item as JSComponent}
+          exposed={true}
           onMenuOpenChange={setIsMenuOpen}
           disabled={isDragging}
+          insertMenuItem={insertMenuItem()}
+          menuTitleItems={menuTitleItems()}
         />
       );
     }
     return (
-      <SidebarNode
-        title={item.name}
-        disabled={isDragging}
-        variant={
-          type === 'component' && (item as CanvasComponent).source === 'Blocks'
-            ? 'dynamicComponent'
-            : type
-        }
-        draggable={makeDraggable()}
-      />
+      <>
+        <ComponentItem
+          component={item as CanvasComponent}
+          onMenuOpenChange={setIsMenuOpen}
+          disabled={isDragging}
+          insertMenuItem={insertMenuItem()}
+          menuTitleItems={menuTitleItems()}
+        ></ComponentItem>
+      </>
     );
   };
 
@@ -152,14 +169,17 @@ const ListItem: React.FC<{
     className: clsx(styles.listItem),
   };
 
+  // Always attach onMouseEnter for preview, but only attach drag props if draggable
+  wrapperProps = {
+    ...wrapperProps,
+    onMouseEnter: () => handleMouseEnter(item),
+  };
   if (makeDraggable()) {
     wrapperProps = {
-      ...wrapperProps,
       ...attributes,
+      ...wrapperProps,
       ...listeners,
       ref: setNodeRef,
-      onClick: () => clickToInsertHandler(item.id),
-      onMouseEnter: () => handleMouseEnter(item),
     };
   }
 
@@ -178,6 +198,7 @@ const ListItem: React.FC<{
               className={styles.componentPreviewTooltipContent}
               onClick={(e) => e.stopPropagation()}
               style={{ pointerEvents: 'none' }}
+              aria-label={`${item.name} preview thumbnail`}
             >
               <Theme>
                 {previewingComponent && !isMenuOpen && (

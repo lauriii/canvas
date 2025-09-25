@@ -1,33 +1,28 @@
-import { useEffect, useState } from 'react';
-import parse from 'html-react-parser';
-import { Form } from 'radix-ui';
-import { PlusIcon } from '@radix-ui/react-icons';
-import { Box, Button, Flex, Tabs, Text, TextField } from '@radix-ui/themes';
+import { useState } from 'react';
+import { Flex, Tabs } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import Dialog from '@/components/Dialog';
 import ComponentList from '@/components/list/ComponentList';
 import PatternList from '@/components/list/PatternList';
 import PermissionCheck from '@/components/PermissionCheck';
+import LibraryToolbar from '@/components/sidePanel/LibraryToolbar';
 import CodeComponentList from '@/features/code-editor/CodeComponentList';
-import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import {
   selectManageLibraryTab,
   setManageLibraryTab,
 } from '@/features/ui/primaryPanelSlice';
-import { validateFolderNameClientSide } from '@/features/validation/validation';
-import { useCreateFolderMutation } from '@/services/componentAndLayout';
 
 import styles from '@/components/sidePanel/ManageLibrary.module.css';
 
 const ManageLibrary = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const dispatch = useAppDispatch();
   const selectedTab = useAppSelector(selectManageLibraryTab);
 
   return (
     <div className="flex flex-col h-full">
       <Tabs.Root
-        defaultValue={selectedTab || 'components'}
+        value={selectedTab || 'components'}
         onValueChange={(value) => dispatch(setManageLibraryTab(value))}
       >
         <Tabs.List justify="start" mt="-2" size="1">
@@ -58,16 +53,26 @@ const ManageLibrary = () => {
             className={styles.tabContent}
             data-testid="canvas-manage-library-components-tab-content"
           >
-            <AddFolderButton type="component" />
-            <ComponentList />
+            <LibraryToolbar
+              type="component"
+              searchTerm={searchTerm}
+              onSearch={setSearchTerm}
+              showNewMenu={true}
+            />
+            <ComponentList searchTerm={searchTerm} />
           </Tabs.Content>
           <Tabs.Content
             value={'patterns'}
             className={styles.tabContent}
             data-testid="canvas-manage-library-patterns-tab-content"
           >
-            <AddFolderButton type="pattern" />
-            <PatternList />
+            <LibraryToolbar
+              type="pattern"
+              searchTerm={searchTerm}
+              onSearch={setSearchTerm}
+              showNewMenu={true}
+            />
+            <PatternList searchTerm={searchTerm} />
           </Tabs.Content>
           <PermissionCheck hasPermission="codeComponents">
             <Tabs.Content
@@ -75,127 +80,18 @@ const ManageLibrary = () => {
               className={styles.tabContent}
               data-testid="canvas-manage-library-code-tab-content"
             >
-              <AddFolderButton type="js_component" />
-              <CodeComponentList />
+              <LibraryToolbar
+                type="js_component"
+                searchTerm={searchTerm}
+                onSearch={setSearchTerm}
+                showNewMenu={true}
+              />
+              <CodeComponentList searchTerm={searchTerm} />
             </Tabs.Content>
           </PermissionCheck>
         </Flex>
       </Tabs.Root>
     </div>
-  );
-};
-
-type FolderType = 'component' | 'pattern' | 'js_component';
-
-const AddFolderButton = ({ type }: { type: FolderType }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [folderName, setFolderName] = useState('');
-  const [validationError, setValidationError] = useState('');
-  const [createFolder, { reset, isSuccess, isError, error, isLoading }] =
-    useCreateFolderMutation();
-
-  const handleCreateFolder = async () => {
-    await createFolder({
-      name: folderName,
-      type: type,
-    });
-  };
-
-  useEffect(() => {
-    if (isError) {
-      console.error('Failed to add folder:', error);
-    }
-  }, [isError, error]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      setFolderName('');
-      setIsOpen(false);
-      reset();
-    }
-  }, [isSuccess, reset]);
-
-  const handleOnChange = (newName: string) => {
-    setFolderName(newName);
-    setValidationError(
-      newName.trim() ? validateFolderNameClientSide(newName) : '',
-    );
-  };
-
-  return (
-    <Flex className={styles.tabContent}>
-      <Button
-        data-testid="add-new-folder-button"
-        className={styles.addFolderButton}
-        my="2"
-        variant="soft"
-        size="1"
-        disabled={isOpen}
-        onClick={() => setIsOpen(true)}
-      >
-        <PlusIcon />
-        Add new folder
-      </Button>
-      {isOpen && (
-        <Dialog
-          open={isOpen}
-          title="Add new folder"
-          onOpenChange={(open) => setIsOpen(open)}
-          error={
-            isError
-              ? {
-                  title: 'Failed to add new folder',
-                  message: parse(extractErrorMessageFromApiResponse(error)),
-                  resetButtonText: 'Try again',
-                  onReset: handleCreateFolder,
-                }
-              : undefined
-          }
-          footer={{
-            cancelText: 'Cancel',
-            confirmText: 'Add',
-            onConfirm: handleCreateFolder,
-            isConfirmDisabled: !folderName.trim() || !!validationError,
-            isConfirmLoading: isLoading,
-          }}
-        >
-          <Box pb="3" m="0" data-testid="xb-manage-library-add-folder-content">
-            {isOpen && (
-              <Form.Root
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (folderName.trim() && !validationError) {
-                    handleCreateFolder();
-                  }
-                }}
-                id="add-new-folder-in-tab-form"
-              >
-                <Form.Field name="folder-name">
-                  <Form.Label htmlFor="folder-name">
-                    <Text weight="medium" size="1">
-                      Folder name
-                    </Text>
-                  </Form.Label>
-                  <TextField.Root
-                    data-testid="canvas-manage-library-new-folder-name"
-                    id="folder-name"
-                    variant="surface"
-                    onChange={(e) => handleOnChange(e.target.value)}
-                    value={folderName}
-                    size="1"
-                  />
-                  {validationError && (
-                    <Text size="1" color="red" weight="medium">
-                      {validationError}
-                    </Text>
-                  )}
-                </Form.Field>
-              </Form.Root>
-            )}
-          </Box>
-        </Dialog>
-      )}
-    </Flex>
   );
 };
 
