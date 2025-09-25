@@ -474,6 +474,7 @@ class CanvasAiPageBuilderHelper {
     // Get props.
     $props = $sdc_definition['props']['properties'] ?? [];
     if ($props) {
+      $client_normalized = $component->normalizeForClientSide()->values;
       $output[$source_id]['components'][$component_id]['props'] = [];
       foreach ($props as $prop_name => $prop_details) {
         if ($prop_name === 'attributes') {
@@ -483,7 +484,7 @@ class CanvasAiPageBuilderHelper {
           'name' => $prop_details['title'] ?? $prop_name,
           'description' => $prop_details['description'] ?? 'No description available',
           'type' => $prop_details['type'],
-          'default' => $prop_details['default'] ?? $prop_details['examples'][0] ?? NULL,
+          'default' => $client_normalized["propSources"][$prop_name]["default_values"]["resolved"] ?? $prop_details['default'] ?? $prop_details['examples'][0] ?? NULL,
         ];
         if (isset($prop_details['enum'])) {
           $output[$source_id]['components'][$component_id]['props'][$prop_name]['enum'] = $prop_details['enum'];
