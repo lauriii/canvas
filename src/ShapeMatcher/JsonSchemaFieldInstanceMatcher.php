@@ -89,27 +89,49 @@ use Symfony\Component\Validator\Constraint;
 final class JsonSchemaFieldInstanceMatcher {
 
   /**
-   * @var array<lowercase-string, class-string>
+   * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
    */
   public const IGNORE_FIELD_TYPES = [
     // The `list` field types allows each field instance to define its own set
     // of possible values. The probability of this exactly matching the explicit
-    // inputs for a component is astronomical.
-    // If we ever decide to allow this, then the `Choice` constraint must be
-    // correctly specified on it. Otherwise, `::toDataTypeShapeRequirement()`
-    // does not find any constraints and matches every such field instance
-    // against every integer/float.
-    'list_float' => ListFloatItem::class,
-    'list_integer' => ListIntegerItem::class,
-    'list_string' => ListStringItem::class,
+    // inputs (i.e. the prop shape's `enum`) for a component is astronomical.
+    'list_float' => [
+      'class' => ListFloatItem::class,
+      // Allow matching against a prop that accepts ANY floating point number.
+      // (No restrictions, such as `minimum`, `multipleOf` …)
+      'exceptions' => [
+        ['type' => 'number'],
+      ],
+    ],
+    'list_integer' => [
+      'class' => ListIntegerItem::class,
+      // Allow matching against a prop that accepts ANY integer or floating
+      // point number. (No restrictions, such as `minimum`, `multipleOf` …)
+      'exceptions' => [
+        ['type' => 'integer'],
+        ['type' => 'number'],
+      ],
+    ],
+    'list_string' => [
+      'class' => ListStringItem::class,
+      // NO exceptions for `list_string`, because such fields are virtually
+      // always configured to have human-readable labels as keys and machine
+      // names as values, meaning they are *structured* strings, not prose. The
+      // challenge is it is impossible to know what kind of structure the
+      // strings adhere to: it could be anything from locale identifiers, color
+      // names, dark-vs-light, car makes, UUIDs…
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::STRUCTURED
+      // @todo Allow matching `list_string` to any `type: string` in https://www.drupal.org/i/3548749, by flipping around how it works: it should NOT pass the *stored* string (the "value"), but the *human-readable label* (the "key") to a `type: string`. This will require adding a new computed property to the `list_string` field type that fetches the label ("key") from its `allowed_values` setting, translated to the current \Drupal\Core\Language\LanguageInterface::TYPE_CONTENT language, despite it being a config translation.
+      'exceptions' => [],
+    ],
     // The `map` field type has no widget, is broken, and is hidden in the UI.
     // @see https://www.drupal.org/node/2563843
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\MapItem
-    'map' => MapItem::class,
+    'map' => ['class' => MapItem::class, 'exceptions' => []],
     // The `password` field type can never contain data that could be reasonably
     // displayed in a component instance.
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem
-    'password' => PasswordItem::class,
+    'password' => ['class' => PasswordItem::class, 'exceptions' => []],
   ];
 
   public function __construct(
@@ -320,7 +342,12 @@ final class JsonSchemaFieldInstanceMatcher {
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
-      foreach (self::IGNORE_FIELD_TYPES as $field_type_class) {
+      foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'exceptions' => $allowed_schemas]) {
+        // DO NOT ignore the field type if it's one of a carefully selected set
+        // of exceptions.
+        if (in_array($schema, $allowed_schemas, TRUE)) {
+          continue;
+        }
         if (is_a($field_definition->getItemDefinition()->getClass(), $field_type_class, TRUE)) {
           continue 2;
         }

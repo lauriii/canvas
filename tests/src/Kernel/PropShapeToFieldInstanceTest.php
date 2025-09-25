@@ -153,6 +153,32 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
       ])->save();
     }
 
+    if (in_array('options', $modules, TRUE)) {
+      FieldStorageConfig::create([
+        'field_name' => 'one_from_an_integer_list',
+        'entity_type' => 'node',
+        'type' => 'list_integer',
+        'cardinality' => 1,
+        'settings' => [
+          'allowed_values' => [
+            // Make sure that 0 works as an option.
+            0 => 'Zero',
+            1 => 'One',
+            // Make sure that option text is properly sanitized.
+            2 => 'Some <script>dangerous</script> & unescaped <strong>markup</strong>',
+          ],
+        ],
+      ])->save();
+      FieldConfig::create([
+        'label' => 'A pre-defined integer',
+        'field_name' => 'one_from_an_integer_list',
+        'entity_type' => 'node',
+        'bundle' => 'foo',
+        'field_type' => 'list_integer',
+        'required' => TRUE,
+      ])->save();
+    }
+
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
     assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
@@ -312,7 +338,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲canvas_test_sdc:card-with-remote-image␟height',
           ],
           'static prop source' => 'ℹ︎integer␟value',
-          'instances' => [],
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝one_from_an_integer_list␞␟value',
+          ],
           'adapter_matches_field_type' => [
             'day_count' => [
               'oldest' => 'ℹ︎datetime␟value',
@@ -814,6 +842,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝changed␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝created␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_created␞␟value',
+            'ℹ︎␜entity:node:foo␝one_from_an_integer_list␞␟value',
             'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
@@ -975,6 +1004,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝changed␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝created␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_created␞␟value',
+            'ℹ︎␜entity:node:foo␝one_from_an_integer_list␞␟value',
             'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
@@ -1364,7 +1394,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'adapter_matches_instance' => [
             'unix_to_date' => [
-              'unix' => [],
+              'unix' => [
+                'ℹ︎␜entity:node:foo␝one_from_an_integer_list␞␟value',
+              ],
             ],
           ],
         ],
