@@ -129,6 +129,20 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'label' => "Silly image 🤡",
       'source' => ['sourceType' => 'dynamic', 'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}'],
     ];
+    $choice_article_author_name = [
+      'label' => 'Authored by → User → name',
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      ],
+    ];
+    $choice_article_revision_user_name = [
+      'label' => 'Revision user → User → name',
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
+      ],
+    ];
     $hash_for_choice = fn (array $choice) =>  \hash('xxh64', $choice['source']['expression']);
 
     yield 'a simple primitive example (sdc.canvas_test_sdc.heading, entity:node:article)' => [
@@ -148,7 +162,15 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'content_entity_type_id' => 'user',
       'bundle' => 'user',
       'expected' => [
-        'text' => [],
+        'text' => [
+          '67f45d35294a49e0' => [
+            'label' => 'Name',
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:user␝name␞␟value',
+            ],
+          ],
+        ],
         'style' => [],
         'element' => [],
       ],
@@ -213,6 +235,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'expected' => [
         'caption' => [
           $hash_for_choice($choice_article_title) => $choice_article_title,
+          $hash_for_choice($choice_article_author_name) => $choice_article_author_name,
           '7ca10058b43f4d0f' => [
             'label' => "Revision log message",
             'source' => [
@@ -234,6 +257,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
             ],
           ],
+          $hash_for_choice($choice_article_revision_user_name) => $choice_article_revision_user_name,
         ],
         'images' => [
           '441f35fe6e2feefd' => [
@@ -260,6 +284,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
+          $hash_for_choice($choice_article_author_name) => $choice_article_author_name,
           '7ca10058b43f4d0f' => [
             'label' => "Revision log message",
             'source' => [
@@ -281,6 +306,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
             ],
           ],
+          $hash_for_choice($choice_article_revision_user_name) => $choice_article_revision_user_name,
         ],
         'link' => [
           '4a83ce0c963911b4' => [

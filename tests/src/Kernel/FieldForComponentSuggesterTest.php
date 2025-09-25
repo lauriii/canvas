@@ -273,9 +273,11 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            'Authored by → User → name' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
             "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             "Silly image 🤡 (only alt)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 (only title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'Revision user → User → name' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
           ],
           'adapters' => [],
         ],
