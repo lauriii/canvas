@@ -221,12 +221,24 @@ tools:
 tool_settings:
   'ai_agent:edit_component_js':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agent:create_component':
     return_directly: 0
-  'ai_agent:get_js_component':
-    return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agent:get_props_type':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
+  'ai_agent:get_js_component':
+    return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
 orchestration_agent: false
 triage_agent: true
 max_loops: 10
@@ -268,15 +280,17 @@ tool_usage_limits:
       action: ''
       hide_property: 0
       values: ''
-  'ai_agent:get_js_component':
-    component_name:
-      action: ''
-      hide_property: 0
-      values: ''
   'ai_agent:get_props_type':
     derived_proptypes:
       action: ''
       hide_property: 0
       values: ''
+  'ai_agent:get_js_component':
+    component_name:
+      action: ''
+      hide_property: 0
+      values: ''
 exclude_users_role: false
 masquerade_roles: {  }
+structured_output_enabled: false
+structured_output_schema: ''

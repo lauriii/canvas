@@ -117,14 +117,29 @@ tools:
 tool_settings:
   'ai_agent:get_entity_information':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agents::ai_agent::canvas_component_agent':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agents::ai_agent::canvas_metadata_generation_agent':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agents::ai_agent::canvas_page_builder_agent':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
   'ai_agents::ai_agent::canvas_title_generation_agent':
     return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
 orchestration_agent: true
 triage_agent: false
 max_loops: 10
@@ -185,3 +200,5 @@ tool_usage_limits:
       values: ''
 exclude_users_role: false
 masquerade_roles: {  }
+structured_output_enabled: false
+structured_output_schema: ''

@@ -27,4 +27,11 @@ canvas_ai.setting:
     _title: 'Canvas AI Settings Form'
     _form: 'Drupal\canvas_ai\Form\CanvasAiSettingsForm'
   requirements:
-    _permission: 'use Drupal Canvas ai'
+    _permission: 'use Drupal Canvas AI'
+
+canvas_ai.get_progress:
+  path: '/admin/api/canvas/ai-progress'
+  defaults:
+    _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::getAiProgress'
+  requirements:
+    _permission: 'use Drupal Canvas AI'
