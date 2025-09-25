@@ -416,6 +416,10 @@ const AiWizard = () => {
   );
   let isComponentRendered = false;
   const welcomeTextRef = useRef<HTMLSpanElement>(null);
+  // Get the current layout, selected component, and available components from Redux state
+  const theLayoutModel = useAppSelector(
+    (state) => state?.layoutModel?.present as LayoutModelSliceState,
+  );
 
   // Create a ref to store current values for Deep Chat's connect prop.
   // Accessing these ensures we're working with fresh values even after the Deep
@@ -425,6 +429,7 @@ const AiWizard = () => {
     textPropsMapString,
     pageData,
     params,
+    theLayoutModel,
   });
 
   // Update the ref whenever tracked values change.
@@ -434,21 +439,14 @@ const AiWizard = () => {
       textPropsMapString,
       pageData,
       params,
+      theLayoutModel,
     };
-  }, [codeComponentName, textPropsMapString, pageData, params]);
+  }, [codeComponentName, textPropsMapString, pageData, params, theLayoutModel]);
   // Access layoutUtils and componentSelectionUtils from drupalSettings.canvas
   const layoutUtils = drupalSettings.canvas?.layoutUtils as any;
   const componentSelectionUtils = drupalSettings.canvas
     ?.componentSelectionUtils as any;
 
-  // Get the current layout, selected component, and available components from Redux state
-  const theLayoutModel = useAppSelector(
-    (state) => state?.layoutModel?.present as LayoutModelSliceState,
-  );
-  const layoutModelRef = useRef(theLayoutModel);
-  useEffect(() => {
-    layoutModelRef.current = theLayoutModel;
-  }, [theLayoutModel]);
   const selectedComponent = useAppSelector(
     (state) => state.ui.selection.items[0],
   );
@@ -463,7 +461,7 @@ const AiWizard = () => {
 
   // Helper to transform the current layout into a JSON representation.
   const transformLayout = () => {
-    const theLayout = layoutModelRef.current;
+    const theLayout = currentValuesRef.current.theLayoutModel;
     if (!theLayout?.layout) return null;
     const result: any = { layout: {} };
     theLayout.layout.forEach((region, regionIndex) => {
@@ -488,7 +486,7 @@ const AiWizard = () => {
       let nodePath: number[] | null = null;
       try {
         nodePath = layoutUtils.findNodePathByUuid(
-          theLayoutModel.layout,
+          currentValuesRef.current.theLayoutModel.layout,
           component.uuid,
         );
       } catch (e) {
