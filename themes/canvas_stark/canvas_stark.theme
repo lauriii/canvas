@@ -58,18 +58,6 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
 
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-canvas-multiple-values'] = 'true';
-
-  // If #prop_link_data is set, we need to pass it to the label attributes,
-  // which, when present, will result in a prop linker element appearing next to
-  // the label. This is specifically used for unlinked props, where the form
-  // elements are still present.
-  if (isset($variables['element']['#prop_link_data'])) {
-    $label_attributes = $variables['elements'][0]['value']['#label_attributes'] ?? [];
-    $variables['elements'][0]["value"]['#label_attributes'] = [
-      ...$label_attributes,
-      'prop_link_data' => $variables['element']['#prop_link_data'],
-    ];
-  }
 }
 
 /**

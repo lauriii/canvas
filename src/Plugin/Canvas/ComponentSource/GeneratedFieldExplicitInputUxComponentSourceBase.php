@@ -677,7 +677,43 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
     }
     $form['#attached']['canvas-transforms'] = $transforms;
+    if ($entity instanceof ContentTemplate) {
+      $form['#after_build'][] = [static::class, 'moveSuggestionsToLabel'];
+    }
     return $form;
+  }
+
+  public static function moveSuggestionsToLabel(array $element, FormStateInterface $form_state): array {
+    // Recursively traverse elements and add prop_link_data to title attributes
+    static::processElementTreeLinkerLabels($element);
+    return $element;
+  }
+
+  /**
+   * Recursively processes the element so labels get link suggestion data.
+   *
+   * @param array $element
+   *   The form element to process.
+   * @param array $propLinkData
+   *   Prop link data from a parent element to pass down.
+   */
+  public static function processElementTreeLinkerLabels(array &$element, array $propLinkData = []): void {
+    // If this element has prop_link_data, use it for this subtree
+    if (!empty($element['#prop_link_data'])) {
+      $propLinkData = $element['#prop_link_data'];
+    }
+
+    // If we have prop link data and this element has a title display, add the
+    // data to label attributes.
+    if (!empty($propLinkData) && isset($element['#title_display'])) {
+      $element['#label_attributes']['prop_link_data'] = $propLinkData;
+    }
+
+    foreach ($element as $key => &$child) {
+      if (is_array($child) && $key[0] !== '#') {
+        static::processElementTreeLinkerLabels($child, $propLinkData);
+      }
+    }
   }
 
   /**
