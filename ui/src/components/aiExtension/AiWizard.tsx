@@ -736,6 +736,10 @@ const AiWizard = () => {
                     'layout',
                     currentValuesRef.current.textPropsMapString,
                   );
+                  requestBody.append(
+                    'derived_proptypes',
+                    JSON.stringify(fixtureProps),
+                  );
                 } else {
                   requestBody = JSON.stringify({
                     ...body,
