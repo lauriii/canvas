@@ -207,6 +207,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
               </UnifiedMenu.Content>
             }
             selected={selectedTemplateId === viewMode.id}
+            indent={2.5}
           />
         </ContextMenu.Trigger>
         <UnifiedMenu.Content

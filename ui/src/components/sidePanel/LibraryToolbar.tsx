@@ -16,7 +16,7 @@ import {
   TextField,
 } from '@radix-ui/themes';
 
-import Dialog from '@/components/Dialog';
+import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import PermissionCheck from '@/components/PermissionCheck';
 import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
@@ -165,11 +165,9 @@ const LibraryToolbar = ({
                 id="add-new-folder-in-tab-form"
               >
                 <Form.Field name="folder-name">
-                  <Form.Label htmlFor="folder-name">
-                    <Text weight="medium" size="1">
-                      Folder name
-                    </Text>
-                  </Form.Label>
+                  <DialogFieldLabel htmlFor="folder-name">
+                    Folder name
+                  </DialogFieldLabel>
                   <TextField.Root
                     data-testid="canvas-manage-library-new-folder-name"
                     id="folder-name"

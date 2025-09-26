@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Flex } from '@radix-ui/themes';
 
 import ListItem from '@/components/list/ListItem';
+import { ListIndentContext } from '@/components/sidePanel/ListIndentContext';
 
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import type { ComponentsList } from '@/types/Component';
@@ -17,13 +18,14 @@ export interface ListProps {
     | LayoutItemType.PATTERN
     | LayoutItemType.DYNAMIC;
   renderItem: (item: any) => React.ReactNode;
+  indent?: number;
 }
 
 const List: React.FC<ListProps> = (props) => {
-  const { items, type, renderItem } = props;
+  const { items, type, indent, renderItem } = props;
   const listElRef = useRef<HTMLDivElement>(null);
 
-  return (
+  const content = (
     <div className={clsx('listContainer', styles.listContainer)}>
       <Flex direction="column" width="100%" ref={listElRef} role="list">
         {items &&
@@ -36,6 +38,16 @@ const List: React.FC<ListProps> = (props) => {
           )}
       </Flex>
     </div>
+  );
+
+  // If indent is provided, wrap content in IndentContext.Provider so that the SidebarNode can consume it
+  // without needing to pass the value down through multiple layers of components.
+  return indent !== undefined ? (
+    <ListIndentContext.Provider value={indent}>
+      {content}
+    </ListIndentContext.Provider>
+  ) : (
+    content
   );
 };
 

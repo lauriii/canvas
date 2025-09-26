@@ -141,6 +141,7 @@ function LibraryItemList<T extends { id: string; name: string }>({
               }
               renderItem={renderItem}
               key={folder.id}
+              indent={2.5}
             />
           </FolderList>
         ))}

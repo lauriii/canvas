@@ -15,6 +15,8 @@ import {
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
+import { useIndentContext } from './ListIndentContext';
+
 import styles from './SidebarNode.module.css';
 
 const VARIANTS = {
@@ -47,6 +49,11 @@ const SidebarNode = React.forwardRef<
     className?: string;
     onMenuOpenChange?: (open: boolean) => void;
     href?: string;
+    /**
+     * Number of indentation levels to apply to the node.
+     * Will fall back to the ListIndentContext if not provided.
+     */
+    indent?: number;
   } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
@@ -63,15 +70,19 @@ const SidebarNode = React.forwardRef<
       className,
       onMenuOpenChange,
       href,
+      indent,
       ...props
     },
     ref,
   ) => {
+    const contextIndent = useIndentContext();
+    const effectiveIndent = indent ?? contextIndent;
     const content = (
       <Flex
         align="center"
         pr="2"
         maxWidth="100%"
+        pl={`calc(${effectiveIndent} * var(--space-2))`}
         className={clsx(
           styles[`${variant}Variant`],
           {
