@@ -107,6 +107,9 @@ system_prompt: |-
     - "Update description to say Hello Drupal" (when `selected_component` exists in context) → `canvas_component_agent`
     - "Add a new section with a title and description" → `canvas_page_builder_agent` even if `selected_component` is present
     - "Add a link prop to the component" → `canvas_component_agent`.
+  ----------------------------------
+  selected_component: [canvas_ai:selected_component]
+
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:get_entity_information': true
