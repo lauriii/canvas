@@ -43,8 +43,9 @@ system_prompt: |-
   - Take the suitable structure which closely matches the props type that you create.
 
   Data fetching:
+    Only include data-fetching logic if the user’s request explicitly requires the component to display dynamic or external data (such as lists of content, menus, or non-static information), or if the component cannot function as described without data fetching. If the user’s request can be fulfilled with static data, example values, or presentational logic, do NOT include any data-fetching logic or related code
     1. Content fetching:
-      When fetching a menu from the Drupal site, you MUST ALWAYS check the value of `json_api_module_status` in the context, and you MUST output only the code or message for the matching case below.
+      When fetching content from the Drupal site, you MUST ALWAYS check the value of `json_api_module_status` in the context, and you MUST output only the code or message for the matching case below.
       **STRICT RULE:** For case 1 output only the exact user-friendly message provided — no extra explanation, technical terms (like json_api_module_status).
       Case 1. If `json_api_module_status` context is 'disabled':
         - You MUST NOT create a component.
