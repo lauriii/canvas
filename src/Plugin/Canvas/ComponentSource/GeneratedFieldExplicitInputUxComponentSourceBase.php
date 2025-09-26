@@ -18,6 +18,7 @@ use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Render\Element;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
@@ -709,10 +710,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $element['#label_attributes']['prop_link_data'] = $propLinkData;
     }
 
-    foreach ($element as $key => &$child) {
-      if (is_array($child) && $key[0] !== '#') {
-        static::processElementTreeLinkerLabels($child, $propLinkData);
-      }
+    foreach (Element::children($element) as $key) {
+      static::processElementTreeLinkerLabels($element[$key], $propLinkData);
     }
   }
 
