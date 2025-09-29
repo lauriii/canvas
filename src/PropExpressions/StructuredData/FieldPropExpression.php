@@ -75,9 +75,12 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
       }
     }
     if (is_array($propName)) {
-      // If propName is an array, fieldName must be too.
+      // If propName is an array, fieldName must be too: a field property name
+      // MUST be specified for every field name.
+      // TRICKY: ⚠️ It is possible that the same field name occurs multiple
+      // times (if different bundles use the same field).
       assert(is_array($fieldName));
-      if (array_values($fieldName) !== array_keys($propName)) {
+      if (array_values(array_unique($fieldName)) !== array_keys($propName)) {
         throw new \InvalidArgumentException('A field property name must be specified for every field name, and in the same order.');
       }
       if (array_values(array_unique($propName)) === [StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]) {
@@ -96,7 +99,19 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
       // See the above remark: the same is true for an array of field property
       // names.
-      . static::PREFIX_PROPERTY_LEVEL . implode('|', (array) $this->propName);
+      . static::PREFIX_PROPERTY_LEVEL . match (is_array($this->propName)) {
+        // phpcs:ignore Drupal.WhiteSpace.ScopeIndent.IncorrectExact
+        FALSE => $this->propName,
+        // ⚠️ TRICKY: it is possible that the same field name occurs multiple
+        // times (if different bundles use the same field). Ensure that every
+        // bundle's field has a field property listed, even if the same field
+        // (and hence field property) occurs multiple times.
+        TRUE => implode('|', array_map(
+          fn (string $field_name): string => $this->propName[$field_name],
+          // @phpstan-ignore-next-line argument.type
+          $this->fieldName,
+        )),
+      };
   }
 
   /**

@@ -203,6 +203,30 @@ class PropExpressionTest extends UnitTestCase {
         ],
       ],
 
+      // Context: >2 bundles of entity type, with a subset of the bundles using
+      // the same field name: it is possible that different bundles use the same
+      // field, which will require less information to be stored.
+      // ⚠️ Note the inconsistent ordering in the object representation, and the
+      // consistent ordering based on alphabetical bundle ordering in the string
+      // representation. Also note that the same field name for two bundle
+      // and thus same property name for those two fields.
+      ['ℹ︎␜entity:node:article|news|product␝field_image|field_photo|field_photo␞␟alt|value|value', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article', 'product']), ['article' => 'field_image', 'news' => 'field_photo', 'product' => 'field_photo'], NULL, ['field_image' => 'alt', 'field_photo' => 'value']),
+        [
+          'module' => ['node', 'file', 'file', 'file'],
+          'config' => [
+            'node.type.article',
+            'node.type.news',
+            'node.type.product',
+            'field.field.node.article.field_image',
+            'image.style.canvas_parametrized_width',
+            'field.field.node.news.field_photo',
+            'image.style.canvas_parametrized_width',
+            'field.field.node.product.field_photo',
+            'image.style.canvas_parametrized_width',
+          ],
+        ],
+      ],
+
       // Structured data expressions do NOT introspect the data model, they are
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted for all

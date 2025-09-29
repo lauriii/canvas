@@ -155,6 +155,19 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       'type' => 'product',
       'name' => 'Product',
     ])->save();
+    // ⚠️ This cannot use ::createImageField(), because that core trait blindly
+    // creates a new `FieldStorageConfig`, whereas this one explicitly needs to
+    // create multiple field instances (`FieldConfig` config entities) tied to
+    // the same field storage (`FieldStorageConfig` config entity).
+    FieldConfig::create([
+      'field_name' => 'field_photo',
+      'label' => 'field_photo',
+      'entity_type' => 'node',
+      'bundle' => 'product',
+      'required' => FALSE,
+      'settings' => [],
+      'description' => '',
+    ])->save();
     $this->createImageField('field_product_packaging_photo', 'node', 'product');
 
     User::create([
