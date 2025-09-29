@@ -24,6 +24,7 @@ import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Box, Callout, Flex } from '@radix-ui/themes';
 
 import AiPanel from '@/components/aiExtension/AiPanel';
+import DevTools from '@/components/devTools/DevTools';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
@@ -103,6 +104,7 @@ const App: React.FC = () => {
               </Flex>
               <Topbar />
               <DragEventsHandler />
+              {import.meta.env.DEV && <DevTools />}
               <SavingOverlay />
               <Toast />
             </DndProvider>

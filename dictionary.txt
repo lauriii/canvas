@@ -78,6 +78,7 @@ reduxjs
 renderify
 rightbar
 rightclick
+rtkq
 scriptification
 scriptified
 scriptify

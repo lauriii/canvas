@@ -212,6 +212,24 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },
+    ...(import.meta.env.DEV && {
+      // Configuration passed to Redux DevTools.
+      // @see https://github.com/reduxjs/redux-devtools/blob/main/extension/docs/API/Arguments.md
+      devTools: {
+        actionsDenylist: [
+          // Do not include actions from RTK Query in the logs. They are
+          // usually not useful for debugging, and can be very verbose.
+          '.*Api/.*',
+          '__rtkq',
+          // The following actions from the UI slice can fill up the list of
+          // actions very quickly. It's better to comment out the following
+          // lines when they're specifically needed for debugging.
+          'ui/setIsPanning',
+          'ui/setHoveredComponent',
+          'ui/unsetHoveredComponent',
+        ],
+      },
+    }),
     preloadedState,
   });
   // configure listeners using the provided defaults
