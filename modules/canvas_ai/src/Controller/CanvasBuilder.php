@@ -260,6 +260,14 @@ final class CanvasBuilder extends ControllerBase {
                   if (!empty($data[$key])) {
                     $response[$key] = $data[$key];
                   }
+                  if ($tool instanceof SetAIGeneratedComponentStructure) {
+                    // The tool output is a JSON string for safer decoding.
+                    $data = Json::decode($output);
+                  }
+                  else {
+                    // The output is a YAML string.
+                    $data = Yaml::parse($output);
+                  }
                 }
               }
               catch (\Throwable) {

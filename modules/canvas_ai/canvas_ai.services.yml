@@ -12,3 +12,4 @@ services:
     arguments:
       - '@Drupal\Core\Validation\BasicRecursiveValidatorFactory'
       - '@uuid'
+  Drupal\canvas_ai\CanvasAiTempStore: '@canvas_ai.tempstore'

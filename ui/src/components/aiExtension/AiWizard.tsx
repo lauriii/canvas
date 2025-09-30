@@ -463,13 +463,13 @@ const AiWizard = () => {
   const transformLayout = () => {
     const theLayout = currentValuesRef.current.theLayoutModel;
     if (!theLayout?.layout) return null;
-    const result: any = { layout: {} };
+    const result: any = { regions: {} };
     theLayout.layout.forEach((region, regionIndex) => {
-      result.layout[region.id] = {
+      result.regions[region.id] = {
         nodePathPrefix: [regionIndex],
         components: [],
       };
-      result.layout[region.id].components = processComponents(
+      result.regions[region.id].components = processComponents(
         region.components,
       );
     });
