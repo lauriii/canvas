@@ -30,6 +30,7 @@ import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+import useRouteSync from '@/hooks/useRouteSync';
 
 import type React from 'react';
 import type { CollisionDetection } from '@dnd-kit/core';
@@ -60,6 +61,8 @@ function customCollisionDetectionAlgorithm(
 }
 
 const App: React.FC = () => {
+  useRouteSync();
+
   const pointerSensor = useSensor(PointerSensor, {
     // Require the mouse to move by 3 pixels before activating - without this you can't click to select a component
     activationConstraint: {

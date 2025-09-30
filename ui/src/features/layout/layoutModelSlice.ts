@@ -305,7 +305,8 @@ export const layoutModelSlice = createSlice({
           return;
         }
 
-        state.layout = moveNodeToPath(state.layout, uuid, to);
+        // Create a mutable copy of the path array since action payloads are frozen.
+        state.layout = moveNodeToPath(state.layout, uuid, [...to]);
         // Flag a preview update.
         state.updatePreview = true;
       },
@@ -328,7 +329,10 @@ export const layoutModelSlice = createSlice({
         const components = layoutModel.layout;
         const model = layoutModel.model;
 
-        const rootIndex = to.shift();
+        // Create a mutable copy of the path array since action payloads
+        // are frozen.
+        const toPath = [...to];
+        const rootIndex = toPath.shift();
         if (rootIndex === undefined) {
           throw new Error(
             'Path should be at least two items long, starting from the root region',
@@ -347,7 +351,7 @@ export const layoutModelSlice = createSlice({
               specifyUUID ? useUUID : undefined,
             );
           updatedModel = { ...updatedModel, ...nodeUpdatedModel };
-          regionRoot = insertNodeAtPath(regionRoot, to, updatedNode);
+          regionRoot = insertNodeAtPath(regionRoot, toPath, updatedNode);
         }
 
         state.model = updatedModel;

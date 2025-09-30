@@ -11,8 +11,31 @@ const UndoRedo = () => {
   const { isUndoable, isRedoable, dispatchUndo, dispatchRedo } = useUndoRedo();
 
   // The useHotKeys hook listens to the parent document.
-  useHotkeys('mod+z', () => dispatchUndo()); // 'mod' listens for cmd on Mac and ctrl on Windows.
-  useHotkeys(['meta+shift+z', 'ctrl+y'], () => dispatchRedo()); // Mac redo is cmd+shift+z, Windows redo is ctrl+y.
+  // 'mod' listens for cmd on Mac and ctrl on Windows.
+  useHotkeys(
+    'mod+z',
+    () => {
+      dispatchUndo();
+    },
+    {
+      // Enable hotkeys on form tags. Ignore the default behavior of the browser and
+      // have redux handle the undo so it's correctly added to redux's history.
+      enableOnFormTags: true,
+      preventDefault: true,
+    },
+  );
+
+  // Mac redo is cmd+shift+z, Windows redo is ctrl+y.
+  useHotkeys(
+    ['meta+shift+z', 'ctrl+y'],
+    () => {
+      dispatchRedo();
+    },
+    {
+      enableOnFormTags: true,
+      preventDefault: true,
+    },
+  );
 
   // Add an event listener for a message from the iFrame that a user used hot keys for undo/redo
   // while inside the iFrame.

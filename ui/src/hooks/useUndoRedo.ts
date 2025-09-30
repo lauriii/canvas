@@ -1,7 +1,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
-  selectRedoType,
-  selectUndoType,
+  selectRedoItem,
+  selectUndoItem,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
@@ -14,18 +14,22 @@ interface UndoRedoState {
 
 export function useUndoRedo(): UndoRedoState {
   const dispatch = useAppDispatch();
-  const undoType = useAppSelector(selectUndoType);
-  const redoType = useAppSelector(selectRedoType);
+  const undoItem = useAppSelector(selectUndoItem);
+  const redoItem = useAppSelector(selectRedoItem);
 
   const dispatchUndo = () =>
-    undoType ? dispatch(UndoRedoActionCreators.undo(undoType)) : null;
+    undoItem
+      ? dispatch(UndoRedoActionCreators.undo(undoItem.targetSlice))
+      : null;
 
   const dispatchRedo = () =>
-    redoType ? dispatch(UndoRedoActionCreators.redo(redoType)) : null;
+    redoItem
+      ? dispatch(UndoRedoActionCreators.redo(redoItem.targetSlice))
+      : null;
 
   return {
-    isUndoable: undoType !== undefined,
-    isRedoable: redoType !== undefined,
+    isUndoable: undoItem !== undefined,
+    isRedoable: redoItem !== undefined,
     dispatchUndo,
     dispatchRedo,
   };

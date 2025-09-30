@@ -12,7 +12,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
 import {
-  selectUndoType,
+  selectUndoItem,
   initialState as uiInitialState,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
@@ -258,8 +258,8 @@ describe('Undo/redo', () => {
     expect(state.past.length).to.eq(0);
     expect(state.future.length).to.eq(0);
     store.dispatch(setLayoutModel(layout));
-    const undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
+    const undoItem = selectUndoItem(store.getState());
+    expect(undoItem.targetSlice).to.eq('layoutModel');
 
     state = selectLayoutHistory(store.getState());
     expect(state.present.layout).to.deep.equal(layout.layout);
@@ -292,8 +292,8 @@ describe('Undo/redo', () => {
     expect(state.future.length).to.eq(1);
 
     store.dispatch(setPageData({}));
-    const undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('pageData');
+    const undoItem = selectUndoItem(store.getState());
+    expect(undoItem.targetSlice).to.eq('pageData');
 
     state = selectLayoutHistory(store.getState());
     expect(state.present).to.deep.equal(initialState);

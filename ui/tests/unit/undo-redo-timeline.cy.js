@@ -11,8 +11,8 @@ import {
   setPageData,
 } from '@/features/pageData/pageDataSlice';
 import {
-  selectRedoType,
-  selectUndoType,
+  selectRedoItem,
+  selectUndoItem,
   initialState as uiInitialState,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
@@ -48,10 +48,32 @@ let layout = {
 
 describe('Undo/redo timeline works across slices', () => {
   it('Should support undo and redo across slices', () => {
+    // Mock different routes for testing.
+    const routeA = {
+      pathname: '/editor/canvas_page/1',
+      search: '?test=alpha',
+      hash: '#test-bravo',
+    };
+    const routeB = {
+      pathname: '/code-editor/component/hero',
+      search: '?test=charlie',
+      hash: '#test-delta',
+    };
+    const routeC = {
+      pathname: '/template/node/page/full',
+      search: '?test=echo',
+      hash: '#test-foxtrot',
+    };
+
+    // No need to mock window.location since middleware uses Redux state
+
     const store = makeStore({
       pageData: { present: pageData, past: [{}], future: [] },
       layoutModel: { present: layout, past: [initialState], future: [] },
-      ui: uiInitialState,
+      ui: {
+        ...uiInitialState,
+        currentRoute: routeA, // Start on route A
+      },
     });
     let pageState = selectPageDataHistory(store.getState());
     let layoutState = selectLayoutHistory(store.getState());
@@ -68,7 +90,7 @@ describe('Undo/redo timeline works across slices', () => {
     expect(store.getState().ui.undoStack).to.deep.equal([]);
 
     // Perform some actions.
-    // 1) Update page title
+    // 1) Update page title (on route A)
     const newTitle = { title: [{ value: 'New title' }] };
     store.dispatch(setPageData(newTitle));
     pageState = selectPageDataHistory(store.getState());
@@ -80,9 +102,23 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.past).to.have.lengthOf(1);
     expect(layoutState.future).to.have.lengthOf(0);
     expect(store.getState().ui.redoStack).to.deep.equal([]);
-    expect(store.getState().ui.undoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.undoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+    ]);
 
-    // 2) Change layout model
+    // Verify the route snapshot was captured correctly
+    const undoItem1 = selectUndoItem(store.getState());
+    expect(undoItem1).to.deep.equal({
+      targetSlice: 'pageData',
+      routeSnapshot: routeA,
+    });
+
+    // 2) Change layout model (simulate navigation to route B)
+    store.dispatch({ type: 'ui/setCurrentRoute', payload: routeB });
+
     const newItem = {
       layout: [
         {
@@ -117,11 +153,26 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.future).to.have.lengthOf(0);
     expect(store.getState().ui.redoStack).to.deep.equal([]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
     ]);
 
-    // 3) Change page title
+    // Verify the route snapshots were captured correctly
+    const undoItem2 = selectUndoItem(store.getState());
+    expect(undoItem2).to.deep.equal({
+      targetSlice: 'layoutModel',
+      routeSnapshot: routeB,
+    });
+
+    // 3) Change page title (simulate navigation to route C)
+    store.dispatch({ type: 'ui/setCurrentRoute', payload: routeC });
+
     const newerTitle = { title: [{ value: 'Newer title' }] };
     store.dispatch(setPageData(newerTitle));
     pageState = selectPageDataHistory(store.getState());
@@ -137,15 +188,30 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.future).to.have.lengthOf(0);
     expect(store.getState().ui.redoStack).to.deep.equal([]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'pageData',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Third action was on route C
+      },
     ]);
 
-    // 4) Undo page title change (3)
-    let undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('pageData');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    // Verify the route snapshots were captured correctly
+    const undoItem3 = selectUndoItem(store.getState());
+    expect(undoItem3).to.deep.equal({
+      targetSlice: 'pageData',
+      routeSnapshot: routeC,
+    });
+
+    // 4) Undo page title change (3) - should restore to route C
+    let undoItem = selectUndoItem(store.getState());
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -157,16 +223,33 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.past).to.have.lengthOf(2);
     expect(layoutState.future).to.have.lengthOf(0);
-    expect(store.getState().ui.redoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.redoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC,
+      },
+    ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
     ]);
 
-    // 5) Undo layout model change (2)
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    // Verify current route was restored to route C after undo
+    expect(store.getState().ui.currentRoute).to.deep.equal(routeC);
+
+    // 5) Undo layout model change (2) - should restore to route B
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem).to.deep.equal({
+      targetSlice: 'layoutModel',
+      routeSnapshot: routeB,
+    });
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -178,15 +261,32 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.future).to.have.lengthOf(1);
     expect(store.getState().ui.redoStack).to.deep.equal([
-      'layoutModel',
-      'pageData',
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Redo should restore to route B
+      },
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Redo should restore to route C
+      },
     ]);
-    expect(store.getState().ui.undoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.undoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+    ]);
 
-    // 6) Redo layout model change (2)
-    let redoType = selectRedoType(store.getState());
-    expect(redoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.redo(redoType));
+    // Verify current route was restored to route B after undo
+    expect(store.getState().ui.currentRoute).to.deep.equal(routeB);
+
+    // 6) Redo layout model change (2) - should restore to route C
+    let redoItem = selectRedoItem(store.getState());
+    expect(redoItem).to.deep.equal({
+      targetSlice: 'layoutModel',
+      routeSnapshot: routeB,
+    });
+    store.dispatch(UndoRedoActionCreators.redo(redoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -198,16 +298,33 @@ describe('Undo/redo timeline works across slices', () => {
       'Layout state restored',
     );
     expect(layoutState.future).to.have.lengthOf(0);
-    expect(store.getState().ui.redoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.redoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Redo should restore to route C
+      },
+    ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
     ]);
 
-    // 7) Redo page title change (3)
-    redoType = selectRedoType(store.getState());
-    expect(redoType).to.eq('pageData');
-    store.dispatch(UndoRedoActionCreators.redo(redoType));
+    // Verify current route was restored to route B after redo
+    expect(store.getState().ui.currentRoute).to.deep.equal(routeB);
+
+    // 7) Redo page title change (3) - should restore to route C
+    redoItem = selectRedoItem(store.getState());
+    expect(redoItem).to.deep.equal({
+      targetSlice: 'pageData',
+      routeSnapshot: routeC,
+    });
+    store.dispatch(UndoRedoActionCreators.redo(redoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newerTitle);
@@ -221,15 +338,30 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.future).to.have.lengthOf(0);
     expect(store.getState().ui.redoStack).to.deep.equal([]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'pageData',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Third action was on route C
+      },
     ]);
 
+    // Verify current route was restored to route C after redo
+    expect(store.getState().ui.currentRoute).to.deep.equal(routeC);
+
     // 8) Undo page title change (7)
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('pageData');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem).to.deep.equal({
+      targetSlice: 'pageData',
+      routeSnapshot: routeC,
+    });
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -241,13 +373,24 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.past).to.have.lengthOf(2);
     expect(layoutState.future).to.have.lengthOf(0);
-    expect(store.getState().ui.redoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.redoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Redo should restore to route C
+      },
+    ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
     ]);
 
-    // 9) Make a layout model change
+    // 9) Make a layout model change (still on route C)
     const secondNewItem = {
       layout: [
         {
@@ -285,9 +428,18 @@ describe('Undo/redo timeline works across slices', () => {
     // There is now no redo because we've performed a different action.
     expect(store.getState().ui.redoStack).to.deep.equal([]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeC, // Third action was on route C
+      },
     ]);
 
     // 10) Make a page title change
@@ -308,16 +460,31 @@ describe('Undo/redo timeline works across slices', () => {
     // There is now no redo because we've performed a different action.
     expect(store.getState().ui.redoStack).to.deep.equal([]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'layoutModel',
-      'pageData',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA, // First action was on route A
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB, // Second action was on route B
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeC, // Third action was on route C
+      },
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC, // Fourth action was on route C
+      },
     ]);
 
     // 11) Undo page title change (10)
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('pageData');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem).to.deep.equal({
+      targetSlice: 'pageData',
+      routeSnapshot: routeC,
+    });
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -330,18 +497,31 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.past).to.have.lengthOf(3);
     expect(layoutState.future).to.have.lengthOf(0);
-    // There is now no redo because we've performed a different action.
-    expect(store.getState().ui.redoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.redoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC,
+      },
+    ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA,
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB,
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeC,
+      },
     ]);
 
     // 12) Undo layout model change (9)
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem?.targetSlice).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -353,20 +533,31 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.past).to.have.lengthOf(2);
     expect(layoutState.future).to.have.lengthOf(1);
-    // There is now no redo because we've performed a different action.
     expect(store.getState().ui.redoStack).to.deep.equal([
-      'layoutModel',
-      'pageData',
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeC,
+      },
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC,
+      },
     ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA,
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB,
+      },
     ]);
 
     // 13) Redo layout model change (9)
-    redoType = selectRedoType(store.getState());
-    expect(redoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.redo(redoType));
+    redoItem = selectRedoItem(store.getState());
+    expect(redoItem?.targetSlice).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.redo(redoItem?.targetSlice));
     pageState = selectPageDataHistory(store.getState());
     layoutState = selectLayoutHistory(store.getState());
     expect(pageState.present).to.deep.equal(newTitle);
@@ -379,12 +570,25 @@ describe('Undo/redo timeline works across slices', () => {
     ]);
     expect(layoutState.past).to.have.lengthOf(3);
     expect(layoutState.future).to.have.lengthOf(0);
-    // There is now no redo because we've performed a different action.
-    expect(store.getState().ui.redoStack).to.deep.equal(['pageData']);
+    expect(store.getState().ui.redoStack).to.deep.equal([
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeC,
+      },
+    ]);
     expect(store.getState().ui.undoStack).to.deep.equal([
-      'pageData',
-      'layoutModel',
-      'layoutModel',
+      {
+        targetSlice: 'pageData',
+        routeSnapshot: routeA,
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeB,
+      },
+      {
+        targetSlice: 'layoutModel',
+        routeSnapshot: routeC,
+      },
     ]);
 
     // Simulate a patch update.
@@ -411,9 +615,9 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.present.updatePreview).to.eq(false);
 
     // Now undo the second one.
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem?.targetSlice).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
     layoutState = selectLayoutHistory(store.getState());
     // There should be a future state.
     expect(layoutState.future.length).to.eq(1);
@@ -443,9 +647,9 @@ describe('Undo/redo timeline works across slices', () => {
     ).to.eq(true);
 
     // Then undo the delete operation.
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem?.targetSlice).to.eq('layoutModel');
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
 
     // Even though the previous entry from setLayoutModel had updatePreview: false
     // the undo entry we restored from past should have updatePreview true, to
@@ -454,13 +658,19 @@ describe('Undo/redo timeline works across slices', () => {
     expect(layoutState.present.updatePreview).to.eq(true);
 
     // Now let's undo the setLayoutModel.
-    undoType = selectUndoType(store.getState());
-    expect(undoType).to.eq('layoutModel');
-    store.dispatch(UndoRedoActionCreators.undo(undoType));
+    undoItem = selectUndoItem(store.getState());
+    expect(undoItem).to.deep.equal({
+      targetSlice: 'layoutModel',
+      routeSnapshot: routeC,
+    });
+    store.dispatch(UndoRedoActionCreators.undo(undoItem?.targetSlice));
 
     // The next redo should be to set the layout.
-    redoType = selectRedoType(store.getState());
-    expect(redoType).to.eq('layoutModel');
+    redoItem = selectRedoItem(store.getState());
+    expect(redoItem).to.deep.equal({
+      targetSlice: 'layoutModel',
+      routeSnapshot: routeC,
+    });
     layoutState = selectLayoutHistory(store.getState());
     // We can redo both the setLayoutModel and the delete operation.
     expect(layoutState.future).to.have.lengthOf(2);

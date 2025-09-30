@@ -44,7 +44,7 @@ import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
 import type { UnknownAction } from 'redux';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { PageDataState } from '@/features/pageData/pageDataSlice';
-import type { UndoRedoType } from '@/features/ui/uiSlice';
+import type { UndoRedoStackItem, UndoRedoType } from '@/features/ui/uiSlice';
 
 // Reducer enhancer to decorate undoable aware reducers and unset future state
 // if an action is performed on another undoable slice.
@@ -61,8 +61,10 @@ const historyEraser = <T>(
     const type = action.type;
     if (
       type === 'ui/pushUndo' &&
-      action.payload !== undefined &&
-      action.payload !== thisType &&
+      action.payload !== null &&
+      typeof action.payload === 'object' &&
+      'targetSlice' in action.payload &&
+      (action.payload as UndoRedoStackItem).targetSlice !== thisType &&
       newState.future.length > 0
     ) {
       // Discard the future (redo) states for this slice as we've moved into a
@@ -185,7 +187,21 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
     }
     const [slice] = type.split('/');
     if (slice === 'layoutModel' || slice === 'pageData') {
-      store.dispatch(pushUndo(slice as UndoRedoType));
+      // Get current route from state and push undo with route snapshot.
+      const state = store.getState();
+      const currentRoute = state.ui.currentRoute;
+      store.dispatch(
+        pushUndo({
+          targetSlice: slice as UndoRedoType,
+          routeSnapshot: currentRoute,
+          ...(import.meta.env.DEV &&
+            import.meta.env.TEST === false && {
+              // Add debug info for the action that triggered the undo/redo,
+              // only in development mode.
+              debugInfoAction: action as Action,
+            }),
+        }),
+      );
     }
     return next(action);
   };

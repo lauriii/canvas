@@ -7,7 +7,7 @@ import {
 import {
   initialState,
   pushUndo,
-  selectUndoType,
+  selectUndoItem,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
@@ -101,9 +101,19 @@ describe('Undo/redo', () => {
     cy.wrap(state.past).should('have.length', 0);
     cy.wrap(state.future).should('have.length', 1);
 
-    store.dispatch(pushUndo('layoutModel'));
-    const undoRedoType = selectUndoType(store.getState());
-    expect(undoRedoType).to.eq('layoutModel');
+    store.dispatch(
+      pushUndo({
+        targetSlice: 'layoutModel',
+        routeSnapshot: {
+          pathname: '/test',
+          search: '',
+          hash: '',
+        },
+      }),
+    );
+    const undoRedoType = selectUndoItem(store.getState());
+    console.log('undoRedoType', undoRedoType);
+    expect(undoRedoType.targetSlice).to.eq('layoutModel');
 
     state = selectPageDataHistory(store.getState());
     expect(state.present).to.deep.equal(pageData);

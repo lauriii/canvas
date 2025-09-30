@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 
 import { createAppSlice } from '@/app/createAppSlice';
 
-import type { PayloadAction } from '@reduxjs/toolkit';
+import type { Action, PayloadAction } from '@reduxjs/toolkit';
 
 export interface DraggingStatus {
   isDragging: boolean;
@@ -42,6 +42,18 @@ export enum EditorFrameContext {
 
 export type UndoRedoType = 'layoutModel' | 'pageData';
 
+export interface RouteSnapshot {
+  pathname: string;
+  search: string;
+  hash: string;
+}
+
+export interface UndoRedoStackItem {
+  targetSlice: UndoRedoType;
+  routeSnapshot: RouteSnapshot;
+  debugInfoAction?: Action;
+}
+
 export interface uiSliceState {
   pending: boolean;
   zooming: boolean;
@@ -59,8 +71,9 @@ export interface uiSliceState {
   firstLoadComplete: boolean;
   editorFrameMode: EditorFrameMode;
   editorFrameContext: EditorFrameContext;
-  undoStack: Array<UndoRedoType>;
-  redoStack: Array<UndoRedoType>;
+  undoStack: Array<UndoRedoStackItem>;
+  redoStack: Array<UndoRedoStackItem>;
+  currentRoute: RouteSnapshot;
   PreviouslyEdited: PreviouslyEdited;
 }
 
@@ -92,6 +105,11 @@ export const initialState: uiSliceState = {
   },
   undoStack: [],
   redoStack: [],
+  currentRoute: {
+    pathname: '',
+    search: '',
+    hash: '',
+  },
   latestUndoRedoActionId: '',
   firstLoadComplete: false,
   editorFrameMode: EditorFrameMode.EDIT,
@@ -162,27 +180,40 @@ export const uiSlice = createAppSlice({
   initialState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: (create) => ({
-    pushUndo: create.reducer((state, action: PayloadAction<UndoRedoType>) => {
-      state.undoStack.push(action.payload);
-      state.redoStack = [];
-    }),
+    pushUndo: create.reducer(
+      (state, action: PayloadAction<UndoRedoStackItem>) => {
+        state.undoStack.push(action.payload);
+        state.redoStack = [];
+      },
+    ),
     performUndoOrRedo: create.reducer(
-      // Take care of moving undo/redo types:
+      // Take care of moving undo/redo items:
       // * from the undo stack to the redo stack in the case of an UNDO action;
       // * from the redo stack to the undo stack in the case of a REDO action.
+      // Also restore the route from the stack item.
       (state, action: PayloadAction<boolean>) => {
         const isUndo = action.payload;
         const undoStack = [...state.undoStack];
         const redoStack = [...state.redoStack];
+        let routeToRestore: RouteSnapshot | null = null;
+
         if (isUndo && undoStack.length > 0) {
-          redoStack.unshift(undoStack.pop() as UndoRedoType);
-          return { ...state, undoStack, redoStack };
+          const undoItem = undoStack.pop() as UndoRedoStackItem;
+          redoStack.unshift(undoItem);
+          routeToRestore = undoItem.routeSnapshot;
+        } else if (redoStack.length > 0) {
+          // Move the last redo state into the undo stack.
+          const redoItem = redoStack.shift() as UndoRedoStackItem;
+          undoStack.push(redoItem);
+          routeToRestore = redoItem.routeSnapshot;
         }
-        // Move the last redo state into the undo stack.
-        if (redoStack.length > 0) {
-          undoStack.push(redoStack.shift() as UndoRedoType);
-        }
-        return { ...state, undoStack, redoStack };
+
+        return {
+          ...state,
+          undoStack,
+          redoStack,
+          currentRoute: routeToRestore || state.currentRoute,
+        };
       },
     ),
     setPending: create.reducer((state, action: PayloadAction<boolean>) => {
@@ -326,13 +357,18 @@ export const uiSlice = createAppSlice({
         (uuid) => !uuidsToRemove.has(uuid),
       );
     },
+    setCurrentRoute: create.reducer(
+      (state, action: PayloadAction<RouteSnapshot>) => {
+        state.currentRoute = action.payload;
+      },
+    ),
   }),
   // You can define your selectors here. These selectors receive the slice
   // state as their first argument.
   selectors: {
-    selectUndoType: (ui): UndoRedoType | undefined =>
+    selectUndoItem: (ui): UndoRedoStackItem | undefined =>
       ui.undoStack[ui.undoStack.length - 1] || undefined,
-    selectRedoType: (ui): UndoRedoType | undefined =>
+    selectRedoItem: (ui): UndoRedoStackItem | undefined =>
       ui.redoStack[0] || undefined,
     selectPanning: (ui): boolean => {
       return ui.panning;
@@ -403,6 +439,9 @@ export const uiSlice = createAppSlice({
     selectPreviouslyEdited: (ui): PreviouslyEdited => {
       return ui.PreviouslyEdited;
     },
+    selectCurrentRoute: (ui): RouteSnapshot => {
+      return ui.currentRoute;
+    },
   },
 });
 
@@ -440,6 +479,7 @@ export const {
   setCollapsedLayers,
   toggleCollapsedLayer,
   removeCollapsedLayers,
+  setCurrentRoute,
 } = uiSlice.actions;
 
 export const {
@@ -457,12 +497,13 @@ export const {
   selectFirstLoadComplete,
   selectEditorFrameMode,
   selectEditorFrameContext,
-  selectUndoType,
-  selectRedoType,
+  selectUndoItem,
+  selectRedoItem,
   selectSelection,
   selectIsMultiSelect,
   selectCollapsedLayers,
   selectPreviouslyEdited,
+  selectCurrentRoute,
 } = uiSlice.selectors;
 
 // Memoized selectors using createSelector for better performance

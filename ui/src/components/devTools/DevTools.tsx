@@ -31,6 +31,10 @@ const DevTools = () => {
   const [isOpen, setIsOpen] = useState(false);
   const state = useAppSelector((state) => state);
 
+  const filteredState = Object.fromEntries(
+    Object.entries(state).filter(([key]) => !key.endsWith('Api')),
+  );
+
   const toggleDialog = () => {
     setIsOpen(!isOpen);
   };
@@ -51,7 +55,7 @@ const DevTools = () => {
         footer={{ hidden: true }}
       >
         <JSONTree
-          data={state}
+          data={filteredState}
           theme={{
             extend: theme,
             tree: {
