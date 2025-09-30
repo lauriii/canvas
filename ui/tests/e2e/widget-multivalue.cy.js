@@ -17,6 +17,7 @@ describe('Multivalue widget drag and drop', () => {
 
   it('can use a multivalue widget in the page data form', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    const entityFormSelector = '[data-testid="canvas-page-data-form"]';
     cy.findByTestId('canvas-page-data-form').as('entityForm');
     cy.get('@entityForm').recordFormBuildId();
     cy.findByRole('heading', { name: 'Canvas Unlimited Text' })
@@ -81,7 +82,7 @@ describe('Multivalue widget drag and drop', () => {
     cy.get('@unlimited-text')
       .findByRole('button', { name: 'Add another item' })
       .click();
-    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     // Wait for ajax behaviors to finish.
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 3);
@@ -130,7 +131,7 @@ describe('Multivalue widget drag and drop', () => {
     cy.get('@unlimited-text')
       .findByRole('button', { name: 'Add another item' })
       .click();
-    cy.get('@entityForm').shouldHaveUpdatedFormBuildId();
+    cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     // Wait for ajax behaviors to finish.
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
     cy.get('@unlimited-text').findAllByRole('textbox').should('have.length', 4);

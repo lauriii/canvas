@@ -39,7 +39,9 @@ export const edit = (cy) => {
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(400);
     cy.get('@add-another-text').click({ force: true });
-    cy.get('@entityForm').shouldHaveUpdatedFormBuildId(10000);
+    cy.selectorShouldHaveUpdatedFormBuildId(
+      '[data-testid="canvas-page-data-form"]',
+    );
   });
 };
 export const assertData = (response) => {

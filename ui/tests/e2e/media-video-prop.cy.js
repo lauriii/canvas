@@ -17,12 +17,13 @@ describe('Media Library', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
     cy.insertComponent({ name: 'Video' });
-    cy.insertComponent({ name: 'Video' });
-    cy.waitForElementInIframe('video:nth-of-type(2)');
-    cy.clickComponentInPreview('Video', 0);
-    cy.waitForAjax();
+    const canvasFormSelector = '[data-testid*="canvas-component-form-"]';
     cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
     cy.get('@inputForm').recordFormBuildId();
+    cy.insertComponent({ name: 'Video' });
+    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
+    cy.clickComponentInPreview('Video', 0);
+    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
     cy.get(
       '[class*="contextualPanel"] .js-media-library-open-button[data-once="drupal-ajax"]',
     )
@@ -34,7 +35,7 @@ describe('Media Library', () => {
     cy.waitForAjax();
     cy.get('div[role="dialog"]').should('not.exist');
     cy.waitForAjax();
-    cy.get('@inputForm').shouldHaveUpdatedFormBuildId({ timeout: 11000 });
+    cy.selectorShouldHaveUpdatedFormBuildId(canvasFormSelector);
     cy.get('[aria-label="Remove Duck Landscape"]').should('exist');
     cy.waitForElementInIframe('video > source[src*="duck.mp4"]');
 

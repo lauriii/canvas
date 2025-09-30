@@ -728,14 +728,13 @@ Cypress.Commands.add('recordFormBuildId', { prevSubject: true }, (subject) => {
 });
 
 Cypress.Commands.add(
-  'shouldHaveUpdatedFormBuildId',
-  {
-    prevSubject: true,
-  },
-  (subject, customTimeout) => {
-    cy.wrap(subject, {
+  'selectorShouldHaveUpdatedFormBuildId',
+  (selector, customTimeout) => {
+    cy.get('body', {
       timeout: customTimeout || Cypress.config('defaultCommandTimeout'),
-    }).should((subject) => {
+    }).should((body) => {
+      const subject = body.find(selector);
+      expect(subject).to.exist;
       const newFormBuildId = subject.find('input[name="form_build_id"]').val();
       expect(newFormBuildId).not.to.equal(formBuildId[subject.attr('id')]);
       formBuildId[subject.attr('id')] = newFormBuildId;

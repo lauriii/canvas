@@ -95,7 +95,9 @@ const testMediaLibraryInComponentInstanceForm = (
     cy.waitForAjax();
     cy.wait('@patch');
     cy.get('div[role="dialog"]').should('not.exist');
-    cy.get('@inputForm').shouldHaveUpdatedFormBuildId({ timeout: 11000 });
+    cy.selectorShouldHaveUpdatedFormBuildId(
+      '[data-testid*="canvas-component-form-"]',
+    );
     cy.get(
       `[class*="contextualPanel"] input[aria-label="${step.removeAriaLabel}"]`,
     ).should('exist');
