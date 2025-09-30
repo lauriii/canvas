@@ -257,7 +257,7 @@ class ShapeMatchingHooks {
         && $storable_prop_shape->shape->schema['contentMediaType'] === 'image/*'
         // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
         // @todo Update in https://www.drupal.org/project/canvas/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
-        && ($storable_prop_shape->shape->schema['pattern'] ?? '') === '^(?!https?://)[\w\-]+://'
+        && ($storable_prop_shape->shape->schema['x-allowed-schemes'] ?? []) === ['public']
       )
     ) {
       $media_types = self::getMediaTypesForSource(Image::class);

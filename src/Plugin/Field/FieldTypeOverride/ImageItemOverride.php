@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -90,8 +92,8 @@ class ImageItemOverride extends ImageItem {
       ->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => 'image/*'])
       // The ComputedFileUrl data type generates a browser-accessible URL (root-
       // relative, absolute using HTTP, absolute using HTTPs or relative).
-      // @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern()
-      ->addConstraint('Regex', ['pattern' => "/^(\/|https?:\/\/)?(?!.*\:\/\/)[^\s]+$/"])
+      ->addConstraint(UriConstraint::PLUGIN_ID, ['allowReferences' => TRUE])
+      ->addConstraint(UriSchemeConstraint::PLUGIN_ID, ['http', 'https'])
       ->setClass(ComputedUrlWithQueryString::class);
 
     return $properties;

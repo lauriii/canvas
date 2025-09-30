@@ -40,7 +40,6 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
       throw new \LogicException(sprintf("No `query_parameters` setting specified for %s.", $this->getName()));
     }
     $url_prop_expression = StructuredDataPropExpression::fromString($instructions['url']);
-    assert($url_prop_expression instanceof ReferenceFieldTypePropExpression);
 
     // Compute the URL from the provided instructions.
     $url = Evaluator::evaluate($field_item, $url_prop_expression, is_required: TRUE);

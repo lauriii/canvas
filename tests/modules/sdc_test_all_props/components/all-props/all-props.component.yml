@@ -8,6 +8,7 @@ props:
     - test_REQUIRED_string_html_inline
     - test_REQUIRED_string_html_block
     - test_REQUIRED_string_html
+    - test_REQUIRED_string_format_uri_reference_web_links
   properties:
     test_bool_default_false:
       title: 'Bool (default false)'
@@ -137,6 +138,16 @@ props:
       format: uri
       examples:
         - https://uri.example.com
+    test_REQUIRED_string_format_uri_reference_web_links:
+      title: 'String, format=uri-reference, x-allowed-schemes: [http, https] (required)'
+      type: string
+      format: uri-reference
+      x-allowed-schemes:
+        - http
+        - https
+      examples:
+        - https://uri.example.com
+        - /my-account
     test_string_format_uri:
       title: 'String, format=uri'
       type: string
@@ -148,8 +159,8 @@ props:
       type: string
       format: uri-reference
       contentMediaType: image/*
-      # @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern()
-      pattern: '^(/|https?://)?(?!.*\://)[^\s]+$'
+      # @see https://github.com/json-schema-org/json-schema-spec/issues/1557
+      x-allowed-schemes: [http, https]
     test_string_format_uri_image_using_ref:
       title: 'String, format=uri, relative or absolute images only — using $ref'
       $ref: json-schema-definitions://canvas.module/image-uri
@@ -159,7 +170,7 @@ props:
       # type: string
       # format: uri-reference
       # contentMediaType: image/*
-      # pattern: '^(/|https?://)?(?!.*\://)[^\s]+$'
+      # x-allowed-schemes: [http, https]
     test_string_format_uri_reference:
       title: 'String, format=uri-reference'
       type: string

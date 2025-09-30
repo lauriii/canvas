@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Validation\JsonSchema\CustomConstraintError;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
@@ -145,7 +146,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/textarea']),
-      new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
+      new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
@@ -190,6 +191,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Time->value]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Uri->value]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value]),
+      new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value, CustomConstraintError::X_ALLOWED_SCHEMES => ['http', 'https']]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriTemplate->value]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriTemplate->value, 'x-required-variables' => ['width']]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Uuid->value]),
@@ -251,19 +253,19 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldWidget: 'string_textfield',
       ),
       // ⚠️Identical to the below, because its `$ref` resolves to this.
-      'type=string&contentMediaType=image/*&format=uri-reference&pattern=^(/|https?://)?(?!.*\://)[^\s]+$' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
+      'type=string&contentMediaType=image/*&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
         fieldWidget: 'image_image',
       ),
       // ⚠️Identical to the above, because `$ref` resolves to the above.
       'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$']),
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
         fieldWidget: 'image_image',
       ),
       'type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
+        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'x-allowed-schemes' => ['public']]),
         fieldTypeProp: new ReferenceFieldTypePropExpression(
           referencer: new FieldTypePropExpression('image', 'entity'),
           referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
@@ -504,6 +506,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&format=uri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value]),
+        fieldTypeProp: new FieldTypePropExpression('link', 'url'),
+        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldWidget: 'link_default',
+      ),
+      'type=string&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value, CustomConstraintError::X_ALLOWED_SCHEMES => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
         fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
         fieldWidget: 'link_default',

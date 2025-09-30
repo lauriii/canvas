@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
+use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
 use Drupal\Core\TypedData\Type\DateTimeInterface;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
@@ -112,9 +114,29 @@ enum JsonSchemaStringFormat: string {
         // @see https://github.com/json-schema-org/json-schema-spec/issues/1557
         array_key_exists('contentMediaType', $schema) && in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
           new DataTypeShapeRequirement(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => $schema['contentMediaType']]),
+          new DataTypeShapeRequirement(UriConstraint::PLUGIN_ID, [
+            'allowReferences' => $this === static::IriReference || $this === static::UriReference,
+          ]),
+          // Require `x-allowed-schemes`, because no SDC prop ever blindly
+          // accepts any URI scheme: it's always either a stream wrapper URI or
+          // a browser-accessible URI.
+          new DataTypeShapeRequirement(UriSchemeConstraint::PLUGIN_ID, [
+            'allowedSchemes' => $schema['x-allowed-schemes'],
+          ]),
           new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
         ]),
-        default => new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
+        default => new DataTypeShapeRequirements([
+          new DataTypeShapeRequirement('PrimitiveType', [], UriInterface::class),
+          new DataTypeShapeRequirement(UriConstraint::PLUGIN_ID, [
+            'allowReferences' => $this === static::IriReference || $this === static::UriReference,
+          ]),
+          // Allow `x-allowed-schemes`. This would ensure that field properties
+          // storing Drupal-specific URIs (the `base`, `internal` and `entity`
+          // URI schemes, for example) are not matched.
+          ...!array_key_exists('x-allowed-schemes', $schema)
+            ? []
+            : [new DataTypeShapeRequirement(UriSchemeConstraint::PLUGIN_ID, ['allowedSchemes' => $schema['x-allowed-schemes']])],
+        ]),
       },
 
       // Built-in formats: URI template.
@@ -192,15 +214,10 @@ enum JsonSchemaStringFormat: string {
       // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
       static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
         // Custom: the targeted resource has `contentMediaType: image/*`.
-        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {// Canvas only supports either of the two above out of the box. For more
-          // Canvas only supports either of the two below out of the box. For more
-          // complicated needs, use hook_storage_prop_shape_alter().
-          !array_key_exists('pattern', $shape->schema) => NULL,
-
+        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {
           // Browser-accessible image URLs.
           // @see json-schema-definitions://canvas.module/image-uri
-          // @see \Drupal\Tests\canvas\Unit\SchemaJsonPatternsTest::testImageUriPattern
-          $shape->schema['pattern'] === '^(/|https?://)?(?!.*\://)[^\s]+$' => new StorablePropShape(
+          !empty(array_intersect($shape->schema['x-allowed-schemes'] ?? [], ['http', 'https'])) => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
             fieldWidget: 'image_image',
@@ -209,7 +226,7 @@ enum JsonSchemaStringFormat: string {
           // Stream wrapper image URIs.
           // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
           // @todo Update in https://www.drupal.org/project/canvas/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
-          $shape->schema['pattern'] === '^(?!https?://)[\w\-]+://' => new StorablePropShape(
+          in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE) => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new ReferenceFieldTypePropExpression(
               new FieldTypePropExpression('image', 'entity'),

@@ -982,6 +982,31 @@ activation="auto">
       'expected_output_selector' => NULL,
     ];
 
+    // @see \Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint
+    yield "SDC with invalid value for `type: string, format: uri, x-allowed-schemes: ['public']`-shaped prop " => [
+      'component_id' => 'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
+      'inputs' => [
+        'alt' => 'Majestic creature',
+        // Do not use the default StaticPropSource: the `image` field type. Use
+        // the `uri` field type so we can test what happens if an invalid value
+        // makes its way to the point where the SDC is rendered with a value not
+        // complying with the JSON Schema for the SDC prop.
+        'src' => [
+          'sourceType' => "static:field_item:uri",
+          'value' => 'https://example.com/llama.jpg',
+          'expression' => (string) new FieldTypePropExpression('uri', 'value'),
+        ],
+      ],
+      'expected_validation_errors' => [
+        \sprintf('2.inputs.%s.src', self::UUID_CRASH_TEST_DUMMY) => 'The "https" URI scheme is not allowed. The provided value is: "https://example.com/llama.jpg".',
+      ],
+      'expected_exception' => [
+        'class' => RuntimeError::class,
+        'message' => 'An exception has been thrown during the rendering of a template ("[canvas_test_sdc:card-with-stream-wrapper-image/src] The "https" URI scheme is not allowed. The provided value is: "https://example.com/llama.jpg".") in "canvas_test_sdc:card-with-stream-wrapper-image" at line 1.',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
     yield "SDC with missing prop, with exception" => [
       'component_id' => 'sdc.canvas_test_sdc.crash',
       'inputs' => [],
@@ -2309,7 +2334,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -2444,7 +2469,7 @@ activation="auto">
               'type' => 'string',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
-              'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+              'x-allowed-schemes' => ['http', 'https'],
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -2560,7 +2585,7 @@ activation="auto">
               'type' => 'string',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
-              'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+              'x-allowed-schemes' => ['http', 'https'],
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟src_with_alternate_widths',
@@ -2708,7 +2733,7 @@ activation="auto">
               'type' => 'string',
               'format' => 'uri',
               'contentMediaType' => 'image/*',
-              'pattern' => '^(?!https?://)[\w\-]+://',
+              'x-allowed-schemes' => ['public'],
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
@@ -3028,7 +3053,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3092,7 +3117,7 @@ activation="auto">
                     'type' => 'string',
                     'format' => 'uri-reference',
                     'contentMediaType' => 'image/*',
-                    'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                    'x-allowed-schemes' => ['http', 'https'],
                   ],
                   'alt' => [
                     'title' => 'Alternative text',
@@ -3162,7 +3187,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3222,7 +3247,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3272,7 +3297,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -3315,7 +3340,7 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'title' => 'Alternative text',
@@ -4071,14 +4096,14 @@ activation="auto">
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'video/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'poster' => [
                   'title' => 'Image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
               ],
             ],
@@ -4161,7 +4186,7 @@ activation="auto">
                   'type' => 'string',
                   'contentMediaType' => 'image/*',
                   'format' => 'uri-reference',
-                  'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
+                  'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'alt' => [
                   'type' => 'string',

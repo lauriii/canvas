@@ -387,6 +387,10 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
             // Valid root-relative URL.
             'src' => '/root/relative/path/to/image.png',
           ],
+          [
+            // Valid absolute URL, but using a disallowed scheme.
+            'src' => 'public://cat.jpg',
+          ],
         ],
       ],
     ]);
@@ -398,8 +402,9 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         "'src' is a required key.",
       ],
       'props.some_object.examples.1' => 'This value should not be null.',
-      'props.some_object.examples.4.src' => '<em class="placeholder">&quot;hi mum, this is not a url&quot;</em> does not match the pattern <em class="placeholder">@^(/|https?://)?(?!.*\://)[^\s]+$@</em>.',
+      'props.some_object.examples.4.src' => 'This value should be a valid URI reference.',
       'props.some_object.examples.5' => "'src' is a required key.",
+      'props.some_object.examples.8.src' => "'public' is not allowed, must be one of the allowed schemes: http, https.",
     ]);
   }
 

@@ -4,13 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
 
 /**
  * @todo Fix upstream.
  */
 class UriItemOverride extends UriItem {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
+    $properties = parent::propertyDefinitions($field_definition);
+    $properties['value']
+      ->addConstraint(UriConstraint::PLUGIN_ID, ['allowReferences' => FALSE]);
+    return $properties;
+  }
 
   /**
    * {@inheritdoc}

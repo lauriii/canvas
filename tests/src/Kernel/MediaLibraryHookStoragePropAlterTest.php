@@ -128,7 +128,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     );
 
     $storable_prop_shapes['type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-image-uri'] = new StorablePropShape(
-      shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'pattern' => '^(?!https?://)[\w\-]+://']),
+      shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri', 'x-allowed-schemes' => ['public']]),
       // @phpstan-ignore-next-line
       fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟entity␜␜entity:file␝uri␞␟value'),
       fieldWidget: 'media_library_widget',

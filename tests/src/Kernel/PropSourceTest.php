@@ -900,8 +900,8 @@ class PropSourceTest extends KernelTestBase {
             'type' => 'string',
             'contentMediaType' => 'image/*',
             'format' => 'uri-reference',
-            'pattern' => '^(/|https?://)?(?!.*\://)[^\s]+$',
             'title' => 'Image URL',
+            'x-allowed-schemes' => ['http', 'https'],
           ],
           'alt' => [
             'type' => 'string',
@@ -923,7 +923,7 @@ class PropSourceTest extends KernelTestBase {
     // serialization and deserialization works.
     // Note: title of properties have been omitted; only essential data is kept.
     $json_representation = (string) $source;
-    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","contentMediaType":"image\/*","format":"uri-reference","pattern":"^(\/|https?:\/\/)?(?!.*\\\\:\/\/)[^\\\\s]+$"},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
+    self::assertSame('{"sourceType":"default-relative-url","value":{"src":"gracie.jpg","alt":"A good dog","width":601,"height":402},"jsonSchema":{"type":"object","properties":{"src":{"type":"string","contentMediaType":"image\/*","format":"uri-reference","x-allowed-schemes":["http","https"]},"alt":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"required":["src"]},"componentId":"sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop"}', $json_representation);
     $decoded = json_decode($json_representation, TRUE);
     // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
     // order for the JSON Schema definition it contains.

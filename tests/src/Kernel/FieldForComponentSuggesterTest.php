@@ -14,6 +14,7 @@ use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 
@@ -138,6 +139,24 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
       'bundle' => 'foo',
       'required' => TRUE,
     ])->save();
+    // Create a "check it out" field on the "Foo" node type.
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_check_it_out',
+      'type' => 'link',
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_check_it_out',
+      'label' => 'Check it out!',
+      'bundle' => 'foo',
+      'required' => TRUE,
+      'settings' => [
+        'title' => DRUPAL_OPTIONAL,
+        'link_type' => LinkItemInterface::LINK_GENERIC,
+      ],
+    ])->save();
+
   }
 
   /**
@@ -275,6 +294,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
             'Authored by → User → name' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
             "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
+            'Check it out! (only title)' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
             "Silly image 🤡 (only alt)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 (only title)" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
             'Revision user → User → name' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
@@ -390,6 +410,14 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => TRUE,
           'instances' => [
             "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+          ],
+          'adapters' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri_reference_web_links' => [
+          'required' => TRUE,
+          'instances' => [
+            'Check it out! (only url)' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
@@ -398,7 +426,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
@@ -425,6 +452,8 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
+            'Check it out! (only url)' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
             "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
@@ -434,13 +463,14 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],
           'adapters' => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
+            'Check it out! (only url)' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
             "Silly image 🤡 → File → uri" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
           ],

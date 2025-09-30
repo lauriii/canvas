@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -38,7 +39,6 @@ use Drupal\Core\Validation\Plugin\Validation\Constraint\ComplexDataConstraint;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
-use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraintValidator;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
@@ -481,6 +481,7 @@ final class JsonSchemaFieldInstanceMatcher {
           // If either of those are true, the File entity's `FileExtension`
           // constraint must be reflected at the field property level to allow
           // for correct shape matching.
+          // @todo also update the stream wrappers allowed (in the `UriScheme` constraint) based on file field storage settings
           $file_entity_constraints = match (TRUE) {
             $is_file_uri_field => $entity_data_definition->getConstraints(),
             // @phpstan-ignore-next-line argument.type
@@ -572,7 +573,7 @@ final class JsonSchemaFieldInstanceMatcher {
       throw new \OutOfRangeException();
     }
     $target_content_media_type = sprintf("%s/*", array_unique($mime_media_type_names)[0]);
-    assert(UriTargetMediaTypeConstraintValidator::isValidWildCard($target_content_media_type));
+    assert(UriTargetMediaTypeConstraint::isValidWildCard($target_content_media_type));
     return $target_content_media_type;
   }
 
@@ -799,10 +800,21 @@ final class JsonSchemaFieldInstanceMatcher {
 
     // Is the data shape requirement met?
     // 1. Constraint.
+    $required_constraint = $this->constraintManager->create($required_shape->constraint, $required_shape->constraintOptions);
     $constraint_found = in_array(
-      $this->constraintManager->create($required_shape->constraint, $required_shape->constraintOptions),
+      $required_constraint,
       $constraints
     );
+    // 1.b Some constraints target a subset. For example: `uri-reference` also
+    // allows absolute URLs.
+    // @todo Generalize this ::isSupersetOf(). Find more needs first.
+    if (!$constraint_found && $required_constraint instanceof UriConstraint) {
+      $property_constraint = array_filter(
+        (array) $constraints,
+        fn ($c) => $c instanceof UriConstraint
+      );
+      $constraint_found = !empty($property_constraint) && $required_constraint->isSupersetOf(reset($property_constraint));
+    }
     // 2. Optionally: the interface.
     $interface_found = $required_shape->interface === NULL
       || is_a($property_data_definition->getClass(), $required_shape->interface, TRUE);

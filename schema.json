@@ -63,21 +63,21 @@
       "title": "Stream wrapper URI",
       "type": "string",
       "format": "uri",
-      "pattern": "^(?!https?://)[\\w\\-]+://"
+      "x-allowed-schemes": ["public"]
     },
     "stream-wrapper-image-uri": {
       "title": "Stream wrapper image URI",
       "type": "string",
       "format": "uri",
       "contentMediaType": "image/*",
-      "pattern": "^(?!https?://)[\\w\\-]+://"
+      "x-allowed-schemes": ["public"]
     },
     "image-uri": {
       "title": "Image URL",
       "type": "string",
       "format": "uri-reference",
       "contentMediaType": "image/*",
-      "pattern": "^(/|https?://)?(?!.*\\://)[^\\s]+$"
+      "x-allowed-schemes": ["http", "https"]
     },
     "heading": {
       "title": "Heading",
@@ -289,7 +289,7 @@
           "type": "string",
           "format": "uri-reference",
           "contentMediaType": "video/*",
-          "pattern": "^(/|https?://)?(?!.*\\://)[^\\s]+$"
+          "x-allowed-schemes": ["http", "https"]
         },
         "poster": {
           "title": "Poster image URL",

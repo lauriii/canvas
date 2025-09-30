@@ -7,6 +7,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
+use Symfony\Component\Validator\Exception\InvalidArgumentException;
 
 /**
  * No-op validation constraint to enable informed data connection suggestions.
@@ -29,7 +30,7 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 )]
 final class UriTargetMediaTypeConstraint extends SymfonyConstraint {
 
-  public const string PLUGIN_ID = 'UriTargetMediaTypeConstraint';
+  public const string PLUGIN_ID = 'UriTargetMediaType';
 
   /**
    * Validation constraint option to define the MIME type targeted by this URI.
@@ -50,6 +51,35 @@ final class UriTargetMediaTypeConstraint extends SymfonyConstraint {
    */
   public function getDefaultOption() : string {
     return 'mimeType';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(mixed $options = NULL, ?array $groups = NULL, mixed $payload = NULL) {
+    parent::__construct($options, $groups, $payload);
+    $mime_type = $options['mimeType'];
+    if (!(self::isValidWildCard($mime_type) || self::isValid($mime_type))) {
+      throw new InvalidArgumentException('The option "mimeType" must be a valid MIME type or wildcard.');
+    }
+  }
+
+  /**
+   * Validates wildcard MIME type: specifying only the media type.
+   *
+   * Example: `image/*`, `video/*`.
+   */
+  public static function isValidWildCard(string $mimetype): bool {
+    return preg_match('/\w+\/\*/', $mimetype) === 1;
+  }
+
+  /**
+   * Validates MIME type: type, subtype and optionally a suffix.
+   *
+   * Example: `image/avif`, `application/json`.
+   */
+  public static function isValid(string $mimetype): bool {
+    return preg_match('/\w+\/w+/', $mimetype) === 1;
   }
 
 }
