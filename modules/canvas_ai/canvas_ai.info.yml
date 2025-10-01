@@ -1,7 +1,7 @@
 name: Drupal Canvas AI
 type: module
 description: 'AI for the Drupal Canvas'
-package: AI Tools
+package: Drupal Canvas
 hidden: true
 core_version_requirement: ^10 | ^11
 dependencies:
