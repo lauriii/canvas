@@ -55,6 +55,7 @@ trait ComponentTreeItemListInstantiatorTrait {
     $graph = [];
     // First construct a graph so we can order the component instances (i.e.
     // items in a ComponentTreeItemList) based on their depth.
+    $top_level_delta = 0;
     foreach ($tree as $value) {
       \assert(\array_key_exists('uuid', $value));
       $uuid = $value['uuid'];
@@ -83,6 +84,10 @@ trait ComponentTreeItemListInstantiatorTrait {
           $graph[$uuid]['delta'] = \count($graph[$parent_uuid]['slot_children'][$slot]) - 1;
         }
       }
+      else {
+        $graph[$uuid]['delta'] = $top_level_delta;
+        $top_level_delta++;
+      }
     }
 
     // Then sort the graph.
@@ -96,7 +101,6 @@ trait ComponentTreeItemListInstantiatorTrait {
     $parent_key_lookup = [];
 
     // Loop over each vertex in the graph and construct a keyed array.
-    $outer_delta = 0;
     foreach ($sorted_graph as $uuid => $graph) {
       // If this UUID is not in the lookup, it could mean that there is an
       // invalid parent_uuid, but that parent item does not exist in the tree.
@@ -107,14 +111,12 @@ trait ComponentTreeItemListInstantiatorTrait {
       // Grab our item from the lookup.
       $item = $uuid_lookup[$uuid];
       if (!\array_key_exists('slot', $graph)) {
-        // This is a top level slot, so we key by the outer-delta.
-        $keyed_tree[(string) $outer_delta] = $item;
-        // Record the key of this component for child components to use when
-        // constructing their key.
-        $parent_key_lookup[$uuid] = (string) $outer_delta;
-        // Increment the delta so the next component with no parent appears in
-        // sequence.
-        $outer_delta++;
+        $delta = (string) $graph['delta'];
+        // This is a top level component instance, use its original input order.
+        $keyed_tree[$delta] = $item;
+        // Record the key of this component instance for child component
+        // instances to use when constructing their key.
+        $parent_key_lookup[$uuid] = $delta;
         continue;
       }
       \assert(\array_key_exists('reverse_paths', $graph));

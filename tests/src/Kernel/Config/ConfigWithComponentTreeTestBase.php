@@ -477,6 +477,162 @@ class ConfigWithComponentTreeTestBase extends KernelTestBase {
       ],
     ],
   ], 'Complex nesting')]
+  #[TestWith([
+    [
+      [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c023',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Top level component, no children',
+        ],
+      ],
+      [
+        'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Top level, Has 1 child',
+        ],
+      ],
+      [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f866',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Level 1 child',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
+      ],
+    ],
+    [
+      '0' => [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c023',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Top level component, no children',
+        ],
+      ],
+      '1' => [
+        'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Top level, Has 1 child',
+        ],
+      ],
+      '1:the_body:0' => [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f866',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Level 1 child',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab881',
+      ],
+    ],
+  ], 'Top level sort with last item only having one child.')]
+  #[TestWith([
+    [
+      [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f867',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Level 1, Has no children',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+      ],
+      [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Level 1, Has 1 child',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+      ],
+      [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c078',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Level 2, no children',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
+      ],
+      [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c022',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Top level component, no children',
+        ],
+      ],
+      [
+        'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Top level, Has 2 children',
+        ],
+      ],
+    ],
+    [
+      '0' => [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c022',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Top level component, no children',
+        ],
+      ],
+      '1' => [
+        'uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Top level, Has 2 children',
+        ],
+      ],
+      '1:the_body:0' => [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f867',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Level 1, Has no children',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+      ],
+      '1:the_body:1' => [
+        'uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'ab4d3ddce315cf64',
+        'inputs' => [
+          'heading' => 'Level 1, Has 1 child',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => '6792ad62-fbec-4ddc-8dd8-fff2f2dab880',
+      ],
+      '1:the_body:1:the_body:0' => [
+        'uuid' => '9a0f0c96-aa92-4b10-a895-58ce3f33c078',
+        'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+        'component_version' => '95f4f1d5ee47663b',
+        'inputs' => [
+          'heading' => 'Level 2, no children',
+        ],
+        'slot' => 'the_body',
+        'parent_uuid' => 'cd7d0b31-21c1-4544-9c7b-9949d040f890',
+      ],
+    ],
+  ], 'It is possible to list the deepest-in-the-tree component instances first; all that should matter is the order within each level (each parent_uuid + slot pair)')]
   public function testComponentTreeKeyOrder(array $tree_input, array $expected_sorted_output): void {
     $this->entity->setComponentTree($tree_input);
     $tree_output = $this->entity->get('component_tree');
