@@ -5,51 +5,6 @@
     - img
     - img
   - img
-  - button "@todo"
-  - button "Collapse @todo folder" [expanded]:
-    - img
-  - list:
-    - listitem:
-      - img
-      - text: Captioned video
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: Component using imports
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: Interactive
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: My Code Component Link
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: Using drupalSettings getSiteData
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: Vanilla Image
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: With enums
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: With no props
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: With props
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: With slot
-      - button "Open contextual menu"
-  - img
   - button "Atom/Media"
   - button "Collapse Atom/Media folder" [expanded]:
     - img
@@ -102,43 +57,10 @@
       - img
       - text: Shoe Tab Group
   - img
-  - button "core"
-  - button "Collapse core folder" [expanded]:
-    - img
-  - list:
-    - listitem:
-      - img
-      - text: Page title
-    - listitem:
-      - img
-      - text: Primary admin actions
-    - listitem:
-      - img
-      - text: Tabs
-  - img
   - button "Empty Components"
   - button "Collapse Empty Components folder" [expanded]:
     - img
   - list
-  - img
-  - button "Forms"
-  - button "Collapse Forms folder" [expanded]:
-    - img
-  - list:
-    - listitem:
-      - img
-      - text: User login
-  - img
-  - button "Lists (Views)"
-  - button "Collapse Lists (Views) folder" [expanded]:
-    - img
-  - list:
-    - listitem:
-      - img
-      - text: Recent content
-    - listitem:
-      - img
-      - text: Who's online
   - img
   - button "Menus"
   - button "Collapse Menus folder" [expanded]:
@@ -146,19 +68,10 @@
   - list:
     - listitem:
       - img
-      - text: Administration
-    - listitem:
-      - img
       - text: Footer
     - listitem:
       - img
       - text: Main navigation
-    - listitem:
-      - img
-      - text: Tools
-    - listitem:
-      - img
-      - text: User account menu
   - img
   - button "Other"
   - button "Collapse Other folder" [expanded]:
@@ -245,9 +158,6 @@
       - text: Breadcrumbs
     - listitem:
       - img
-      - text: Clear cache
-    - listitem:
-      - img
       - text: Messages
     - listitem:
       - img
@@ -255,12 +165,44 @@
     - listitem:
       - img
       - text: Site branding
-  - img
-  - button "User"
-  - button "Collapse User folder" [expanded]:
-    - img
   - list:
     - listitem:
       - img
-      - text: Who's new
-  - list
+      - text: Captioned video
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Component using imports
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Interactive
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: My Code Component Link
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Using drupalSettings getSiteData
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Vanilla Image
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: With enums
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: With no props
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: With props
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: With slot
+      - button "Open contextual menu"

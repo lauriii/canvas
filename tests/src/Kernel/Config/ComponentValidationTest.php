@@ -63,6 +63,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static array $propertiesWithOptionalValues = [
+    'category',
     'provider',
   ];
 
@@ -438,7 +439,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   public static function providerTestCategory(): \Generator {
     yield 'valid string' => ['foo', []];
     yield 'empty string' => ['', ['category' => 'This value should not be blank.']];
-    yield 'null' => [NULL, ['category' => 'This value should not be null.']];
+    yield 'null' => [NULL, []];
   }
 
   public function testStatusWithSdc(): void {

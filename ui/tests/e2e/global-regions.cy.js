@@ -4,6 +4,19 @@ describe('Operate on components in global regions', () => {
     cy.drupalCanvasInstall();
     cy.drupalEnableTheme('olivero');
     cy.drupalEnableThemeForCanvas('olivero');
+
+    /**
+     * @todo Convert to `await drupal.drush(`cset canvas.component.block.system_menu_block.account status 1 -y`);` when this test is converted to Playwright
+     */
+    cy.drupalLoginAsAdmin(() => {
+      cy.visit('/admin/appearance/component/');
+      cy.findByText('block.system_menu_block.account')
+        .parent('tr')
+        .findByText('List additional actions')
+        .click({ force: true });
+
+      cy.findAllByText('Enable').filter(':visible').click();
+    });
     cy.viewport('macbook-13');
   });
 

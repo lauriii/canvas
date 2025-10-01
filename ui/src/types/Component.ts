@@ -32,7 +32,6 @@ interface BaseComponent {
   id: string;
   name: string;
   library: string;
-  category: string;
   source: string;
   default_markup: string;
   css: string;

@@ -135,12 +135,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   /**
    * {@inheritdoc}
    */
-  public function getCategory(): string|TranslatableMarkup {
-    // TRICKY: this PHP class allows this value to be `NULL` to avoid
-    // \Drupal\Core\Config\Entity\ConfigEntityBase::set() triggering a PHP Type
-    // error. Fortunately, all Canvas config entities have strict config schema
-    // validation. Thanks to validation, NULL is absent from the return type.
-    assert($this->category !== NULL);
+  public function getCategory(): string|TranslatableMarkup|null {
     return $this->category;
   }
 
@@ -318,7 +313,6 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
         'id' => $this->id(),
         'name' => (string) $this->label(),
         'library' => $this->computeUiLibrary()->value,
-        'category' => (string) $this->getCategory(),
         'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
         'version' => $this->getActiveVersion(),
       ],
@@ -524,7 +518,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       $category = $this->getCategory();
 
       // If no category is set, there's no Folder to auto-create.
-      if (empty($category)) {
+      if ($category === NULL) {
         return;
       }
       $folder = Folder::loadByNameAndConfigEntityTypeId((string) $category, self::ENTITY_TYPE_ID);
@@ -545,7 +539,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     foreach ($entities as $entity) {
       /** @var \Drupal\canvas\Entity\Component $entity */
       $category = $entity->getCategory();
-      if (!empty($category)) {
+      if ($category !== NULL) {
         Folder::loadByNameAndConfigEntityTypeId((string) $category, self::ENTITY_TYPE_ID)?->removeItem($entity->id())?->save();
       }
     }

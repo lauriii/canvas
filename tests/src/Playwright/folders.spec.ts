@@ -206,25 +206,18 @@ test.describe('Folder Management', () => {
     await testAddFolder(
       ['Awesome New Folder', 'Is a Component Folder', 'Very Nice New Folder'],
       [
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::createConfigEntity()
-        // @todo Remove next line in https://www.drupal.org/project/canvas/issues/3541364
-        '@todo',
         'Atom/Media',
         'Atom/Tabs',
         'Atom/Text',
         'Awesome New Folder',
         'Container',
         'Container/Special',
-        'core',
         'Empty Components',
-        'Forms',
         'Is a Component Folder',
-        'Lists (Views)',
         'Menus',
         'Other',
         'Status',
         'System',
-        'User',
         'Very Nice New Folder',
       ],
     );

@@ -17,6 +17,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\views\Entity\View;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,6 +27,20 @@ use Psr\Log\LoggerInterface;
  * @see docs/components.md#3.2
  */
 final class BlockManager extends CoreBlockManager {
+
+  /**
+   * Block plugin IDs provided by core which should be enabled by default.
+   *
+   * @var string[]
+   */
+  const array BLOCKS_TO_KEEP_ENABLED = [
+    'system_powered_by_block',
+    'system_branding_block',
+    'system_breadcrumb_block',
+    'system_messages_block',
+    'system_menu_block:main',
+    'system_menu_block:footer',
+  ];
 
   /**
    * {@inheritdoc}
@@ -55,6 +70,11 @@ final class BlockManager extends CoreBlockManager {
       return $definitions;
     }
 
+    $all_installed_core_extensions = array_keys(array_filter(
+      $this->getModuleExtensionList()->getAllInstalledInfo(),
+      fn (array $info): bool => ($info['package'] ?? NULL) === 'Core',
+    ));
+
     foreach ($definitions as $id => $definition) {
       if ($id === 'broken') {
         continue;
@@ -64,6 +84,24 @@ final class BlockManager extends CoreBlockManager {
       // @see https://www.drupal.org/node/3519248
       if ($id === 'node_syndicate_block') {
         continue;
+      }
+
+      // By default, disable blocks provided by core, unless specifically named.
+      $status = TRUE;
+      if (in_array($definition['provider'], ['core', ...$all_installed_core_extensions], TRUE) && !in_array($id, self::BLOCKS_TO_KEEP_ENABLED, TRUE)) {
+        $status = FALSE;
+        // Special case for view blocks that are tagged with "default" are disabled as they are likely created by core.
+        if ($definition['provider'] === 'views') {
+          $config_dependencies = $definition['config_dependencies']['config'] ?? [];
+          foreach ($config_dependencies as $dependency) {
+            if (str_starts_with($dependency, 'views.view.')) {
+              $config_id = substr($dependency, strlen('views.view.'));
+              $view = View::load($config_id);
+              assert(!is_null($view));
+              $status = !in_array('default', array_map('trim', explode(',', $view->get('tag'))), TRUE);
+            }
+          }
+        }
       }
 
       // @todo is this a not going to become performance bottle neck on BlockPlugin heavy sites?
@@ -107,7 +145,7 @@ final class BlockManager extends CoreBlockManager {
           'id' => $component_id,
           'provider' => $definition['provider'],
           'source' => BlockComponent::SOURCE_PLUGIN_ID,
-          'status' => TRUE,
+          'status' => $status,
           'versioned_properties' => [VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings]],
           'active_version' => $version,
           'source_local_id' => $id,

@@ -1581,41 +1581,20 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options, array $additional_expected_cache_tags = []): void {
     assert(in_array($expected_dynamic_page_cache, ['HIT', 'MISS'], TRUE));
     $expected_contexts = [
-      'languages:language_content',
       'languages:language_interface',
-      'route',
+      'route.menu_active_trails:footer',
+      'route.menu_active_trails:main',
       'theme',
-      'url.path',
-      'url.query_args',
-      'user.node_grants:view',
       'user.permissions',
-      'user.roles:authenticated',
-      // The user_login_block is rendered as the anonymous user because for the
-      // authenticated user it is empty.
-      // @see \Drupal\canvas\Controller\ApiComponentsController::getCacheableClientSideInfo()
-      'user.roles:anonymous',
     ];
     $expected_cache_tags = [
-      'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
       'config:component_list',
       'config:core.extension',
-      'config:node_type_list',
-      'config:system.menu.account',
-      'config:system.menu.admin',
       'config:system.menu.footer',
       'config:system.menu.main',
-      'config:system.menu.tools',
       'config:system.site',
       'config:system.theme',
-      'config:views.view.content_recent',
-      'config:views.view.who_s_new',
       'http_response',
-      'local_task',
-      'node_list',
-      'user:1',
-      'user:2',
-      'user:3',
-      'user_list',
     ];
     // If expected adds new components, those components add additional cache tags. If those cache tags are not
     // present, the test will fail. This array is used to add those additional expected cache tags.
@@ -1638,9 +1617,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // - one that (intentionally) fails to render
     self::assertInstanceOf(ComponentInterface::class, Component::load('sdc.canvas_broken_sdcs.invalid-filter'));
     // - one that was installed but explicitly disabled.
-    self::assertTrue(Component::load('block.system_menu_block.tools')?->status());
-    Component::load('block.system_menu_block.tools')->disable()->save();
-    self::assertFalse(Component::load('block.system_menu_block.tools')->status());
+    self::assertTrue(Component::load('block.system_menu_block.footer')?->status());
+    Component::load('block.system_menu_block.footer')->disable()->save();
+    self::assertFalse(Component::load('block.system_menu_block.footer')->status());
+    // - one that has been disabled by default and re-enabled for this test.
+    self::assertFalse(Component::load('block.views_block.content_recent-block_1')?->status());
+    Component::load('block.views_block.content_recent-block_1')->enable()->save();
+    self::assertTrue(Component::load('block.views_block.content_recent-block_1')->status());
     // - one that does not originate from any extension, but is a code component
     //   created from scratch and exposed as a Component
     $this->createMyCtaComponentFromSdc();
@@ -1650,39 +1633,26 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->drupalGet('canvas/api/v0/config/component');
 
     $expected_tags = [
-      'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
       'config:component_list',
       'config:core.extension',
       'config:canvas.js_component.my-cta',
-      'config:system.menu.account',
-      'config:system.menu.admin',
-      'config:system.menu.footer',
       'config:system.menu.main',
       'config:system.site',
       'config:system.theme',
       'config:views.view.content_recent',
-      'config:views.view.who_s_new',
       'http_response',
-      'local_task',
       'node_list',
-      'user:1',
-      'user:2',
-      'user:3',
       'user_list',
       AutoSaveManager::CACHE_TAG,
     ];
 
     $expected_contexts = [
       'languages:language_content',
-      'route',
-      'url.path',
-      'url.query_args',
+      'languages:language_interface',
+      'route.menu_active_trails:main',
+      'theme',
       'user.node_grants:view',
-      'user.roles:authenticated',
-      // The user_login_block is rendered as the anonymous user because for the
-      // authenticated user it is empty.
-      // @see \Drupal\canvas\Controller\ApiComponentsController::getCacheableClientSideInfo()
-      'user.roles:anonymous',
+      'user.permissions',
     ];
 
     // 1. Test basic functionality.
@@ -1696,11 +1666,11 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertCacheContexts($expected_contexts);
     $this->assertDynamicPageCacheAccelerated(maxAge: '-1 (Permanent)');
     $data = Json::decode($page->getText());
-    self::assertGreaterThanOrEqual(45, count($data));
+    self::assertGreaterThanOrEqual(38, count($data));
     // Any `noUi`-flagged SDC does not appear.
     self::assertArrayNotHasKey('sdc.canvas_test_sdc.no-ui-sdc', $data);
     // The disabled block component does not appear.
-    self::assertArrayNotHasKey('block.system_menu_block.tools', $data);
+    self::assertArrayNotHasKey('block.system_menu_block.footer', $data);
     // The freshly created code component does appear.
     self::assertArrayHasKey('js.my-cta', $data);
 
@@ -1744,7 +1714,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ])->save();
     $this->drupalGet('canvas/api/v0/config/component');
     $this->assertDynamicPageCacheAccelerated(maxAge: '3600');
-    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1']), FALSE);
+    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1', 'user:2']), FALSE);
     $this->assertCacheContexts($expected_contexts);
     $recent_content_preview = \json_decode($page->getContent(), TRUE)['block.views_block.content_recent-block_1']['default_markup'];
     self::assertStringNotContainsString('No content available.', $recent_content_preview);

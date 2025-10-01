@@ -4,6 +4,8 @@ import { test } from './fixtures/DrupalSite';
 import { Drupal } from './objects/Drupal';
 import { getModuleDir } from './utilities/DrupalFilesystem';
 
+// cspell:ignore cset
+
 test.describe('Block form', () => {
   test.beforeAll(
     'Setup test site with Drupal Canvas',
@@ -12,6 +14,11 @@ test.describe('Block form', () => {
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['canvas']);
       const moduleDir = await getModuleDir();
+      // Manually enable this block component for use in this test.
+      // @see \Drupal\canvas\Plugin\BlockManager::BLOCKS_TO_KEEP_ENABLED
+      await drupal.drush(
+        `cset canvas.component.block.system_menu_block.admin status 1 -y`,
+      );
       await drupal.applyRecipe(
         `${moduleDir}/canvas/tests/fixtures/recipes/block_form`,
       );

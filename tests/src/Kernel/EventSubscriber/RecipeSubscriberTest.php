@@ -128,34 +128,4 @@ final class RecipeSubscriberTest extends KernelTestBase {
     $this->assertGreaterThan(1, $media->id());
   }
 
-  public function testComponentConfigActions(): void {
-    $recipe = $this->createRecipe(<<<YAML
-name: Disable components
-type: Testing
-install:
-  - canvas
-  - stark
-  - canvas_stark
-config:
-  import:
-    canvas: '*'
-  actions:
-    canvas.component.sdc.canvas.*:
-      disable: []
-YAML
-    );
-    RecipeRunner::processRecipe($recipe);
-
-    $components = Component::loadMultiple();
-    $this->assertNotEmpty($components);
-    // All Component config entities must be `status: true`, except this one.
-    self::assertGreaterThanOrEqual(2, count($components));
-    foreach ($components as $id => $component) {
-      $this->assertSame(
-        !str_contains($id, 'sdc.canvas.'),
-        $component->status(),
-      );
-    }
-  }
-
 }

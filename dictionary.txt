@@ -20,6 +20,7 @@ cnvst # Used for "canvas tests"
 CODEOWNERS
 codespaces
 cqmr
+cset
 csstree
 ddev
 debucketed

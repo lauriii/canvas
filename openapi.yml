@@ -436,7 +436,6 @@ paths:
                       id: 'sdc_test:my-cta'
                       name: Call to Action
                       source: Module component
-                      category: Buttons
                       library: extension_components
                       version: 53ed322c96bee384
                       metadata:
@@ -2122,7 +2121,6 @@ components:
       required:
         - name
         - id
-        - category
         - source
         - library
         - version
@@ -2141,9 +2139,6 @@ components:
         version:
           type: string
           description: Active version ID
-        category:
-          type: string
-          description: The component category
         source:
           type: string
           description: Typically, the component source plugin that provides this Component. But plugins have the freedom to choose to subdivide.

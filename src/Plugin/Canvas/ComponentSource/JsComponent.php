@@ -290,8 +290,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     return ComponentEntity::create([
       'id' => self::SOURCE_PLUGIN_ID . '.' . $js_component->id(),
       'label' => $js_component->label(),
-      // @todo Update in https://www.drupal.org/project/canvas/issues/3541364. This causes a "@todo" Folder to be created.
-      'category' => '@todo',
+      // @todo Update in https://www.drupal.org/project/canvas/issues/3541364.
+      'category' => NULL,
       'provider' => NULL,
       'source' => self::SOURCE_PLUGIN_ID,
       'source_local_id' => $js_component->id(),
