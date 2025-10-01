@@ -98,7 +98,12 @@ export const InputBehaviorsComponentPropsForm = (
     const { propsValues: values, selectedModel } = getPropsValues(
       newFormState,
       inputAndUiData,
-      transforms,
+      // If transforms are not available (typically because TransformsContext is
+      // not available to the input), fall back to the transforms stored in the
+      // global window object.
+      Object.keys(transforms || {}).length > 0
+        ? transforms
+        : (window as any)._canvasTransforms[selectedComponentType],
     );
 
     // And then send data to backend - this will:

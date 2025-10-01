@@ -5,6 +5,7 @@ import type * as ReactRedux from 'react-redux';
 import type * as ReduxToolkit from '@reduxjs/toolkit';
 import type { DrupalSettings } from '@/types/DrupalSettings';
 import type { transliterate as TransliterateType } from '@/types/transliterate';
+import type { TransformConfig } from '@/utils/transforms';
 
 interface CKEditor5Types {
   editorClassic: {
@@ -27,5 +28,6 @@ declare global {
     };
     CKEditor5: CKEditor5Types;
     jQuery: any;
+    _canvasTransforms: Record<string, TransformConfig>;
   }
 }

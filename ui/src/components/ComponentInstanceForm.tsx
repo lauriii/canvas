@@ -110,15 +110,28 @@ const ComponentInstanceFormRenderer: React.FC<
     }
   }, [error, showBoundary]);
 
-  const { html, transforms } = currentData || { html: false, transforms: {} };
+  const { html, transforms } = currentData || {
+    html: false,
+    transforms: false as const,
+  };
 
   const persistentTransforms = useRef<undefined | TransformConfig>(undefined);
 
   useEffect(() => {
-    if (transforms) {
+    if (transforms !== false && !isFetching) {
       persistentTransforms.current = transforms;
+
+      // We also store transforms in the global window object as a fallback.
+      // The persistent transforms are typically made available to other
+      // components via the TransformsContext, but in some cases such as AJAX
+      // rebuilds, the component might be active without access to that
+      // context.
+      if (!window._canvasTransforms) {
+        window._canvasTransforms = {};
+      }
+      window._canvasTransforms[selectedComponentType] = transforms;
     }
-  }, [transforms]);
+  }, [transforms, isFetching, selectedComponentType]);
 
   useEffect(() => {
     if (!html) {
@@ -252,9 +265,11 @@ const ComponentInstanceFormRenderer: React.FC<
         }}
         ref={formRef}
       >
-        <TransformsContext.Provider value={persistentTransforms.current}>
-          {jsxFormContent}
-        </TransformsContext.Provider>
+        {persistentTransforms.current && (
+          <TransformsContext.Provider value={persistentTransforms.current}>
+            {jsxFormContent}
+          </TransformsContext.Provider>
+        )}
       </div>
     </Spinner>
   );
