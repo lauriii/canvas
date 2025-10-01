@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -35,6 +36,7 @@ const Editor: React.FC<EditorProps> = ({ context }) => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const params = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     dispatch(setEditorFrameContext(context));
@@ -67,6 +69,18 @@ const Editor: React.FC<EditorProps> = ({ context }) => {
         resetButtonText={isUndoable ? 'Undo last action' : undefined}
       >
         {context === 'entity' && <Layout />}
+      </ErrorBoundary>
+      <ErrorBoundary
+        title="An error has occurred while fetching the template."
+        variant="alert"
+        onReset={() =>
+          navigate(
+            `/template/${params.entityType}/${params.bundle}/${params.viewMode}`,
+            { replace: true },
+          )
+        }
+        resetButtonText="Return to templates"
+      >
         {context === 'template' && <TemplateLayout />}
       </ErrorBoundary>
       <EditorFrame />
