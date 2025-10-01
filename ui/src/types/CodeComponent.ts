@@ -34,6 +34,7 @@ export interface CodeComponentSerialized
   props: Record<string, CodeComponentPropSerialized>;
   slots: Record<string, CodeComponentSlotSerialized>;
   dataDependencies: DataDependencies;
+  links?: Record<string, string>;
 }
 
 export interface CodeComponentProp {

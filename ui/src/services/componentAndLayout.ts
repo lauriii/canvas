@@ -86,6 +86,23 @@ export type PreviewContentEntitiesResponse = {
   [key: string]: PreviewContentEntity;
 };
 
+export type ComponentUsageListResponse = {
+  data: Record<string, boolean>;
+  links: {
+    prev: string | null;
+    next: string | null;
+  };
+};
+export type ComponentUsageDetailsResponse = {
+  content: Array<{
+    id: string;
+    title: string;
+    type?: string;
+    bundle?: string;
+    revision_id?: string;
+  }>;
+};
+
 export const componentAndLayoutApi = createApi({
   reducerPath: 'componentAndLayoutApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -113,6 +130,15 @@ export const componentAndLayoutApi = createApi({
           ),
         );
       },
+    }),
+    getComponentUsageList: builder.query<ComponentUsageListResponse, void>({
+      query: () => `/canvas/api/v0/usage/component`,
+    }),
+    getComponentUsageDetails: builder.query<
+      ComponentUsageDetailsResponse,
+      string
+    >({
+      query: (id) => `/canvas/api/v0/usage/component/${id}/details`,
     }),
     getPageLayout: builder.query<LayoutApiResponse, void>({
       query: () => {
@@ -416,6 +442,8 @@ export const componentAndLayoutApi = createApi({
 
 export const {
   useGetComponentsQuery,
+  useGetComponentUsageDetailsQuery,
+  useGetComponentUsageListQuery,
   useGetPageLayoutQuery,
   useGetTemplateLayoutQuery,
   usePostTemplateLayoutMutation,

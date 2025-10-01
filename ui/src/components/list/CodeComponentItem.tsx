@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ContextMenu } from '@radix-ui/themes';
+import { ContextMenu, HoverCard, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
@@ -141,9 +141,23 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
       {/*  Add to components*/}
       {/*</UnifiedMenu.Item>*/}
       <UnifiedMenu.Separator />
-      <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-        Delete
-      </UnifiedMenu.Item>
+      {/* If the delete form is present, the component is safe to delete. */}
+      {jsComponent?.links?.['delete-form'] ? (
+        <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
+          Delete
+        </UnifiedMenu.Item>
+      ) : (
+        <UnifiedMenu.Item color="gray" disabled={true}>
+          <HoverCard.Root>
+            <HoverCard.Trigger onClick={(e) => e.stopPropagation()}>
+              <Text as="span">Delete</Text>
+            </HoverCard.Trigger>
+            <HoverCard.Content>
+              <Text as="p">Cannot delete components that are being used.</Text>
+            </HoverCard.Content>
+          </HoverCard.Root>
+        </UnifiedMenu.Item>
+      )}
     </PermissionCheck>
   );
 
