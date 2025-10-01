@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -232,8 +234,11 @@ HTML,
     $rendered = [];
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component_id => $component) {
       assert($component instanceof ComponentInterface);
-      $build = $component->getComponentSource()->renderComponent(
+      $source = $component->getComponentSource();
+      \assert($source instanceof ComponentSourceWithSlotsInterface);
+      $build = $source->renderComponent(
         $get_default_input($component),
+        $source->getSlotDefinitions(),
         'some-uuid',
         // Preview: `isPreview: TRUE`.
         TRUE,
@@ -531,6 +536,14 @@ HTML,
 
   public function testUninstallValidator(): void {
     $this->markTestSkipped('Uninstalling make sense for ComponentSource plugins that have a dynamic set of components available. But here, it is literally impossible for the 2 components provided by this ComponentSource to disappear. Unless the module itself is uninstalled, but then due to enforced dependencies the default Component config entities, the fallback metadata would be lost too.');
+  }
+
+  protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface {
+    throw new \OutOfRangeException();
+  }
+
+  public function testIsBroken(): void {
+    $this->markTestSkipped('The set of components this ComponentSource provides is hard-coded, so it cannot be broken.');
   }
 
 }

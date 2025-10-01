@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Form;
 
-use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
-use Drupal\Core\Form\FormBase;
-use Drupal\Core\Form\FormStateInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
+use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -30,6 +34,7 @@ final class ComponentInstanceForm extends FormBase {
     // used by the parent class, can access it.
     protected ComponentTreeLoader $componentTreeLoader,
     protected ThemeHandlerInterface $themeHandler,
+    protected ComponentSourceManager $componentSourceManager,
   ) {}
 
   /**
@@ -37,11 +42,14 @@ final class ComponentInstanceForm extends FormBase {
    */
   public static function create(ContainerInterface $container): static {
     $component_tree_loader = $container->get(ComponentTreeLoader::class);
+    $component_source_manager = $container->get(ComponentSourceManager::class);
     assert($component_tree_loader instanceof ComponentTreeLoader);
+    assert($component_source_manager instanceof ComponentSourceManager);
 
     return new static(
       $component_tree_loader,
       $container->get('theme_handler'),
+      $component_source_manager,
     );
   }
 
@@ -73,7 +81,7 @@ final class ComponentInstanceForm extends FormBase {
       ];
     }
     $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
-    $this->componentTreeLoader->load($entity);
+    $stored_tree = $this->componentTreeLoader->load($entity);
 
     $request = $this->getRequest();
     $tree = $request->get('form_canvas_tree');
@@ -116,14 +124,29 @@ final class ComponentInstanceForm extends FormBase {
     // @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method
     $form['#method'] = 'dialog';
 
-    $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
+    $parents = ['canvas_component_props', $component_instance_uuid];
+    $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
+    if (!$component->getComponentSource()->isBroken()) {
+      $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
+      $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+    }
+    else {
+      $inputs = $client_model;
+      // For blocks, the client model is invalid, because $props is the "undefined" string.
+      // So let's get the data from the stored tree (better than nothing)
+      // @todo We require to harden this in the client-side.
+      if ($inputs === NULL && $component->getComponentSource() instanceof BlockComponent) {
+        $inputs = $stored_tree->getComponentTreeItemByUuid($component_instance_uuid)?->getInputs() ?? [];
+      }
+      $fallback_source = $this->componentSourceManager->createInstance(Fallback::PLUGIN_ID, ['fallback_reason' => $this->t('Component is missing. Fix the component or copy values to a new component.')]);
+      \assert($fallback_source instanceof ComponentSourceInterface);
+      $instance_form = $fallback_source->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+    }
 
     $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = self::FORM_ID;
 
-    $parents = ['canvas_component_props', $component_instance_uuid];
-    $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
-    $form['canvas_component_props'][$component_instance_uuid] = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+    $form['canvas_component_props'][$component_instance_uuid] = $instance_form;
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
     if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render

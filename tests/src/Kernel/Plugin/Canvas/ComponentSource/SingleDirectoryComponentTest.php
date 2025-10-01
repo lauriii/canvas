@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -28,6 +30,8 @@ use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
+use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
@@ -243,7 +247,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);
       foreach (array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
-        $static_prop_source = $private_method->invoke($source, $prop);
+        $static_prop_source = $private_method->invoke($source, $prop, TRUE);
         $this->assertInstanceOf(StaticPropSource::class, $static_prop_source);
       }
     }
@@ -4323,6 +4327,18 @@ activation="auto">
 
   protected function getAllowedModuleForUninstallValidatorTesting(): string {
     return 'canvas_test_sdc';
+  }
+
+  protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
+    /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
+    return \Drupal::service(CanvasComponentPluginManager::class);
+  }
+
+  public function alter(ContainerBuilder $container): void {
+    // Swap in the broken version of this class.
+    // @see ::triggerBrokenComponent()
+    // @see ::testIsBroken()
+    $container->getDefinition(CanvasComponentPluginManager::class)->setClass(BrokenComponentManager::class);
   }
 
 }

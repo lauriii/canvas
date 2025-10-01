@@ -29,6 +29,13 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
   public const string PLUGIN_ID = 'fallback';
 
   /**
+   * {@inheritdoc}
+   */
+  public function isBroken(): bool {
+    return FALSE;
+  }
+
+  /**
    * The `fallback` plugin is not required to specify a source-local ID.
    *
    * @see config/schema/canvas.schema.yml:canvas.component_source_settings.fallback
@@ -49,7 +56,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     return new TranslatableMarkup('Fallback');
   }
 
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     return [
       '#type' => 'inline_template',
       '#template' => '<div data-fallback="{{ component_uuid }}"></div>',
@@ -87,9 +94,9 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     return $item->getInputs() ?? [];
   }
 
-  public function hydrateComponent(array $explicit_input): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     return [
-      'slots' => array_map(fn($slot) => $slot['examples'][0] ?? '', $this->getSlotDefinitions()),
+      'slots' => array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions),
     ];
   }
 
@@ -101,7 +108,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
   public function getClientSideInfo(Component $component): array {
     return [
       'source' => (string) new TranslatableMarkup('Fallback component'),
-      'build' => $this->renderComponent([], $component->uuid(), FALSE),
+      'build' => $this->renderComponent([], $component->getSlotDefinitions(), $component->uuid(), FALSE),
       'metadata' => ['slots' => $this->getSlotDefinitions()],
       'field_data' => [],
       'transforms' => [],
@@ -113,7 +120,9 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     $form['warning'] = [
       '#type' => 'html_tag',
       '#tag' => 'strong',
-      '#value' => $this->t('Component has been deleted. Copy values to new component.'),
+      '#value' =>
+      $this->configuration['fallback_reason'] ??
+      $this->t('Component has been deleted. Copy values to new component.'),
     ];
     $form['input'] = [
       '#type' => 'textarea',

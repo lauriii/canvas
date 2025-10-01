@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
+use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -107,6 +109,23 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   /**
    * {@inheritdoc}
    */
+  public function isBroken(): bool {
+    try {
+      $this->getMetadata();
+    }
+    catch (ComponentNotFoundException) {
+      return TRUE;
+    }
+    // @todo Check if the required props are the same in the plugin and the saved component.
+    //   Consider returning an enum[] that could give more info for the developer, e.g. the
+    //   multiple reasons that could make this as broken/invalid. See
+    //   https://www.drupal.org/project/canvas/issues/3532514
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function getComponentPlugin(): ComponentPlugin {
     // @todo this should probably use DefaultSingleLazyPluginCollection
     if ($this->componentPlugin === NULL) {
@@ -129,7 +148,12 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    * {@inheritdoc}
    */
   public function getReferencedPluginClass(): ?string {
-    return $this->componentPluginManager->getDefinition($this->getSourceSpecificComponentId())['class'];
+    try {
+      return $this->componentPluginManager->getDefinition($this->getSourceSpecificComponentId())['class'];
+    }
+    catch (PluginNotFoundException) {
+      return NULL;
+    }
   }
 
   /**
@@ -166,13 +190,13 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     return [
       '#type' => 'component',
       '#component' => $this->getSourceSpecificComponentId(),
       '#props' => ($inputs[self::EXPLICIT_INPUT_NAME] ?? []) + [
         'canvas_uuid' => $componentUuid,
-        'canvas_slot_ids' => \array_keys($this->getSlotDefinitions()),
+        'canvas_slot_ids' => \array_keys($slot_definitions),
         'canvas_is_preview' => $isPreview,
       ],
       '#attached' => [

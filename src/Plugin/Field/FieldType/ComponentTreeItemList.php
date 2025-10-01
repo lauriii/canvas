@@ -107,7 +107,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       // @see docs/data-model.md#3.4.1
       $known_slot_names_for_component = match ($source instanceof ComponentSourceWithSlotsInterface) {
         FALSE => [],
-        TRUE => array_keys($source->getSlotDefinitions()),
+        // We explicitly load the slots from the Component and not the source,
+        // preventing the preview to become unusable if the real time definition
+        // is missing. So use the known slots at the time of the component config
+        // entity creation.
+        TRUE => $item->getComponent() ? array_keys($item->getComponent()->getSlotDefinitions()) : [],
       };
       foreach ($known_slot_names_for_component as $slot_name) {
         $component_instance_slot = [
@@ -115,7 +119,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, $slot_name)), $host_entity);
+        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity);
         $built['model'] += $child_build['model'];
         $component_instance_slot['components'] = $child_build['layout'];
         $item_layout_node['slots'][] = $component_instance_slot;
@@ -221,7 +225,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           $component = Component::load($component_instance['component']);
           assert($component instanceof Component);
           $source = $component->getComponentSource();
-          $element = $source->renderComponent($component_instance, $component_instance_uuid, $isPreview);
+          $element = $source->renderComponent($component_instance, $component->getSlotDefinitions(), $component_instance_uuid, $isPreview);
 
           // A component instance provided by a ComponentSourceWithSwitchCasesInterface
           // is guaranteed to either be a `switch` or a `case`. The `switch` component
@@ -443,7 +447,10 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source = $component->getComponentSource();
       $hydrated[$uuid] = [
         'component' => $component_id,
-      ] + $source->hydrateComponent($source->getExplicitInput($uuid, $item));
+      ] + $source->hydrateComponent(
+        $source->getExplicitInput($uuid, $item),
+        $component->getSlotDefinitions(),
+      );
     }
 
     // Transform the flat list of hydrated components into a hydrated component

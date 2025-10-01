@@ -179,15 +179,17 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * @return \Drupal\canvas\PropSource\StaticPropSource
    *   The prop source object.
    */
-  private function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name = TRUE): StaticPropSource {
+  private function getDefaultStaticPropSource(string $prop_name, bool $validate_prop_name): StaticPropSource {
     if (\array_key_exists($prop_name, $this->defaultStaticPropSources)) {
       return $this->defaultStaticPropSources[$prop_name];
     }
     assert(isset($this->configuration['prop_field_definitions']));
     assert(is_array($this->configuration['prop_field_definitions']));
-    $component_schema = $this->getMetadata()->schema ?? [];
-    if ($validate_prop_name && !array_key_exists($prop_name, $component_schema['properties'] ?? [])) {
-      throw new \OutOfRangeException(sprintf("'%s' is not a prop on the component '%s'.", $prop_name, $this->getComponentDescription()));
+    if (!array_key_exists($prop_name, $this->configuration['prop_field_definitions'])) {
+      throw new \OutOfRangeException(sprintf("'%s' is not a prop on this version of the Component '%s'.", $prop_name, $this->getComponentDescription()));
+    }
+    if ($validate_prop_name && !array_key_exists($prop_name, $this->getMetadata()->schema['properties'] ?? [])) {
+      throw new \OutOfRangeException(sprintf("'%s' is not a prop on the code powering the component '%s'.", $prop_name, $this->getComponentDescription()));
     }
 
     $sdc_prop_source = [
@@ -349,16 +351,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(array $explicit_input): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input['resolved'];
 
-    if ($slots = $this->getSlotDefinitions()) {
+    if (!empty($slot_definitions)) {
       // Use the first example defined in SDC metadata, if it exists. Otherwise,
       // fall back to `"#plain_text => ''`, which is accepted by SDC's rendering
       // logic but still results in an empty slot.
       // @see https://www.drupal.org/node/3391702
       // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
-      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0] ?? '', $slots);
+      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions);
     }
 
     return $hydrated;
@@ -390,7 +392,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         //   empty by the field type)
         // - the server side MUST fall back to a `DefaultRelativeUrlPropSource`
         //   to be able to render the component at all
-        $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name)
+        $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)
           ->toArray();
       }
       // Don't duplicate value if the resolved value matches the static value.
@@ -410,7 +412,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * {@inheritdoc}
    */
   public function requiresExplicitInput(): bool {
-    return !empty($this->getMetadata()->schema['properties']);
+    return !empty($this->configuration['prop_field_definitions']);
   }
 
   /**
@@ -420,7 +422,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $inputs = [];
     foreach (array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
       assert(is_string($prop_name));
-      $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name)->toArray();
+      $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->toArray();
     }
     return $inputs;
   }
@@ -609,7 +611,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @todo Design is undefined for the AdaptedPropSource UX.
         // Fall back to the static version, disabled for now where the design is undefined.
         $disabled = !$source instanceof DefaultRelativeUrlPropSource;
-        $source = $this->getDefaultStaticPropSource($sdc_prop_name);
+        $source = $this->getDefaultStaticPropSource($sdc_prop_name, FALSE);
       }
 
       // 1. If the given static prop source matches the *current* field type
@@ -779,7 +781,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $default_resolved_value = NULL;
       // Use the stored default, if any. This is required for all required SDC
       // props, optional for all optional SDC props.
-      $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name);
+      $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name, TRUE);
       if ($has_default_source_value) {
         $default_resolved_value = $default_static_prop_source->evaluate(NULL, is_required: FALSE);
       }
@@ -853,7 +855,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     return [
       'source' => (string) $this->getSourceLabel(),
-      'build' => $this->renderComponent([self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup], $component->uuid(), TRUE),
+      'build' => $this->renderComponent(
+        [self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup],
+        $component->getSlotDefinitions(),
+        $component->uuid(),
+        TRUE
+      ),
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
@@ -1153,7 +1160,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // The inputs have already been stored collapsed. Prove using assertions
         // (which does not have a production performance impact).
         assert($this->uncollapse($input, $prop) instanceof StaticPropSource);
-        assert($this->uncollapse($input, $prop)->hasSameShapeAs($this->getDefaultStaticPropSource($prop)));
+        assert($this->uncollapse($input, $prop)->hasSameShapeAs($this->getDefaultStaticPropSource($prop, FALSE)));
         continue;
       }
       // phpcs:ignore
@@ -1194,7 +1201,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // @todo Simplify this to just `if ($source instanceof StaticPropSource && $source->hasSameShapeAs($this->getDefaultStaticPropSource($prop_name))) { return $source->getValue(); }` in https://www.drupal.org/project/canvas/issues/3532414
     if ($source instanceof StaticPropSource) {
       try {
-        $default_source = $this->getDefaultStaticPropSource($prop_name);
+        $default_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
         return $source->hasSameShapeAs($default_source)
           ? $source->getValue()
           : $source->toArray();
@@ -1224,7 +1231,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   private function uncollapse(mixed $value, string $prop_name): PropSourceBase {
     if (!\is_array($value) || !\array_key_exists('sourceType', $value)) {
-      return $this->getDefaultStaticPropSource($prop_name)->withValue($value, allow_empty: TRUE);
+      return $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->withValue($value, allow_empty: TRUE);
     }
     // phpcs:ignore
     /** @var PropSourceArray $value */

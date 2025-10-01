@@ -25,6 +25,13 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
 
   public const string PLUGIN_ID = 'invalid_slots';
 
+  /**
+   * {@inheritdoc}
+   */
+  public function isBroken(): bool {
+    return FALSE;
+  }
+
   public function getSourceSpecificComponentId(): string {
     return '';
   }
@@ -46,7 +53,7 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     return [];
   }
 
@@ -81,7 +88,7 @@ final class InvalidSlots extends ComponentSourceBase implements ComponentSourceW
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(array $explicit_input): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     return [];
   }
 

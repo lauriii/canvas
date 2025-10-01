@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultInterface;
@@ -11,6 +12,7 @@ use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
+use Drupal\Core\Block\Plugin\Block\Broken;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Breadcrumb\Breadcrumb;
 use Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface;
@@ -120,6 +122,13 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function isBroken(): bool {
+    return $this->getBlockPlugin() instanceof Broken;
+  }
+
+  /**
    * Generate a component ID given a block plugin ID.
    *
    * @param string $pluginId
@@ -136,7 +145,12 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function getReferencedPluginClass(): ?string {
-    return $this->blockManager->getDefinition($this->configuration['local_source_id'])['class'];
+    try {
+      return $this->blockManager->getDefinition($this->configuration['local_source_id'])['class'];
+    }
+    catch (PluginNotFoundException) {
+      return NULL;
+    }
   }
 
   /**
@@ -170,7 +184,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     $block = $this->getBlockPlugin();
 
     // @todo Refine to reflect the edited entity route in https://www.drupal.org/i/3509500
@@ -228,6 +242,11 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
 
     $build['content'] = $block->build();
+    // Avoid the fallback rendering of the Block system; instead use Canvas' own.
+    // @see \Drupal\Core\Block\Plugin\Block\Broken::build()
+    if ($block instanceof Broken) {
+      $build['#pre_render'][] = [self::class, 'bubbleBrokenBlock'];
+    }
     if (Element::isEmpty($build['content'])) {
       return $build;
     }
@@ -303,7 +322,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(array $explicit_input): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     return [self::EXPLICIT_INPUT_NAME => $explicit_input];
   }
 
@@ -394,7 +413,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       return ['build' => []];
     }
 
-    return ['build' => $this->renderComponent([], $component->uuid(), TRUE)];
+    return ['build' => $this->renderComponent([], $component->getSlotDefinitions(), $component->uuid(), TRUE)];
   }
 
   /**
@@ -662,6 +681,15 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       }
 
     };
+  }
+
+  /**
+   * Used to avoid the fallback rendering of the Block system.
+   *
+   * @see \Drupal\Core\Block\Plugin\Block\Broken::build()
+   */
+  public static function bubbleBrokenBlock(): never {
+    throw new \OutOfBoundsException('This block is broken or missing.');
   }
 
 }

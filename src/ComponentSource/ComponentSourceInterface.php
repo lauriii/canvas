@@ -46,6 +46,20 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ContextAwarePluginInterface {
 
   /**
+   * Whether the logic powering this component is broken.
+   *
+   * Typical example: a developer is developing an SDC, and while developing is
+   * testing it in Canvas. They're even renaming the SDC. It'd be a terrible DX
+   * if this caused the associated Component config entity to switch to the
+   * fallback version.
+   *
+   * @see \Drupal\canvas\Entity\Component::getComponentSourcePluginId()
+   *
+   * @return bool
+   */
+  public function isBroken(): bool;
+
+  /**
    * Gets referenced plugin classes for this instance.
    *
    * This is used in validation to allow component tree items to limit the type
@@ -97,7 +111,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * @return array
    *   Render array.
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array;
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array;
 
   public function generateVersionHash(): string;
 
@@ -140,7 +154,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @see \Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface::setSlots()
    */
-  public function hydrateComponent(array $explicit_input): array;
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array;
 
   /**
    * Converts (stored) explicit inputs to the data model expected by the client.

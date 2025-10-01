@@ -316,7 +316,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $inputs = [
       BlockComponent::EXPLICIT_INPUT_NAME => $component->getSettings()['default_settings'],
     ];
-    $build = $component->getComponentSource()->renderComponent($inputs, 'some-uuid', FALSE);
+    $build = $component->getComponentSource()->renderComponent($inputs, [], 'some-uuid', FALSE);
     $document = Html::load($this->crawlerForRenderArray($build)->html());
     return trim($document->getElementsByTagName('div')[0]->textContent);
   }

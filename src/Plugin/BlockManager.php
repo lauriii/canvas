@@ -26,7 +26,7 @@ use Psr\Log\LoggerInterface;
  * @see \Drupal\canvas\Entity\Component
  * @see docs/components.md#3.2
  */
-final class BlockManager extends CoreBlockManager {
+class BlockManager extends CoreBlockManager {
 
   /**
    * Block plugin IDs provided by core which should be enabled by default.

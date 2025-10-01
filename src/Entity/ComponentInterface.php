@@ -44,6 +44,8 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
    */
   public function getSettings(): array;
 
+  public function getSlotDefinitions(): array;
+
   /**
    * Sets component settings.
    *

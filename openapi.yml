@@ -2128,6 +2128,7 @@ components:
         - css
         - js_header
         - js_footer
+        - broken
       additionalProperties: false
       properties:
         name:
@@ -2235,6 +2236,9 @@ components:
           description: The footer JS for default_markup.
         transforms:
           $ref: '#/components/schemas/ClientSideTransforms'
+        broken:
+          type: boolean
+          description: Whether this Component is safe to instantiate (false) or broken (true).
     CodeComponent:
       title: Code Component
       type: object

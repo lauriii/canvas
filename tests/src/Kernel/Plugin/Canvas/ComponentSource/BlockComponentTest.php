@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use Drupal\canvas\Plugin\BlockManager;
-use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\BlockManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\node\Entity\Node;
-use Drupal\system\Entity\Menu;
-use Drupal\Tests\canvas\Traits\BlockComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\CrawlerTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\user\Entity\User;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputNone;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputValidatable;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputValidatableCrash;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockOptionalContexts;
 use Drupal\canvas_test_block_form\Plugin\Block\CanvasTestBlockForm;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\node\Entity\Node;
+use Drupal\system\Entity\Menu;
+use Drupal\Tests\canvas\Kernel\BrokenBlockManager;
+use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
+use Drupal\Tests\canvas\Traits\BlockComponentTreeTestTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\CrawlerTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use Drupal\views\Entity\View;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -557,6 +560,18 @@ HTML,
     \assert($first instanceof ConstraintViolationInterface);
     self::assertEquals('You better call me on the phone', $first->getMessage());
     self::assertEquals(\sprintf('inputs.%s.canvas_page', $uuid), $first->getPropertyPath());
+  }
+
+  protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
+    /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
+    return \Drupal::service(BlockManager::class);
+  }
+
+  public function alter(ContainerBuilder $container): void {
+    // Swap in the broken version of this class.
+    // @see ::triggerBrokenComponent()
+    // @see ::testIsBroken()
+    $container->getDefinition(BlockManager::class)->setClass(BrokenBlockManager::class);
   }
 
 }

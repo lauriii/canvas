@@ -79,6 +79,14 @@ final class Personalization extends ComponentSourceBase implements
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function isBroken(): bool {
+    // The two components provided by this ComponentSource are hard-coded.
+    return FALSE;
+  }
+
   public function getReferencedPluginClass(): ?string {
     return NULL;
   }
@@ -105,7 +113,7 @@ final class Personalization extends ComponentSourceBase implements
     return $this->getType() === self::CASE;
   }
 
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     $build = [];
 
     // When live rendering:
@@ -139,7 +147,7 @@ final class Personalization extends ComponentSourceBase implements
       '#attributes' => [
         'canvas_uuid' => $componentUuid,
         'canvas_type' => $this->getType(),
-        'canvas_slot_ids' => \array_keys($this->getSlotDefinitions()),
+        'canvas_slot_ids' => \array_keys($slot_definitions),
       ],
     ];
     return $build;
@@ -173,13 +181,13 @@ final class Personalization extends ComponentSourceBase implements
     }
   }
 
-  public function hydrateComponent(array $explicit_input): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     $hydrated = $explicit_input;
     // Set the slots.
-    if ($slots = $this->getSlotDefinitions()) {
+    if (!empty($slot_definitions)) {
       // Use the first example defined in the components metadata, which we
       // guarantee it exists.
-      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0], $slots);
+      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0], $slot_definitions);
     }
     return $hydrated;
   }

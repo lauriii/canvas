@@ -64,6 +64,19 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   /**
    * {@inheritdoc}
    */
+  public function isBroken(): bool {
+    // Code components are powered by config entities. Config entities'
+    // dependencies SHOULD make breaking such components impossible. But it is
+    // possible to bypass both `delete` access checks and config system
+    // integrity checks, so perform the necessary confirmation.
+    $js_component_storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
+    assert($js_component_storage instanceof ConfigEntityStorageInterface);
+    return $js_component_storage->load($this->getSourceSpecificComponentId()) === NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function getComponentPlugin(): ComponentPlugin {
     if ($this->componentPlugin === NULL) {
       // Statically cache the loaded plugin.
@@ -94,7 +107,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public function getJavaScriptComponent(): JavaScriptComponent {
     if ($this->jsComponent === NULL) {
-      $js_component_storage = $this->entityTypeManager->getStorage('js_component');
+      $js_component_storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
       assert($js_component_storage instanceof ConfigEntityStorageInterface);
       $js_component = $js_component_storage->load($this->getSourceSpecificComponentId());
       assert($js_component instanceof JavaScriptComponent);
@@ -131,7 +144,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   /**
    * {@inheritdoc}
    */
-  public function renderComponent(array $inputs, string $componentUuid, bool $isPreview = FALSE): array {
+  public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     $component = $this->getJavaScriptComponent();
 
     $autoSave = $this->autoSaveManager->getAutoSaveEntity($component);
@@ -229,7 +242,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       '#component_url' => $component_url,
       '#props' => (\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props)) + [
         'canvas_uuid' => $componentUuid,
-        'canvas_slot_ids' => \array_keys($this->getSlotDefinitions()),
+        'canvas_slot_ids' => \array_keys($slot_definitions),
         'canvas_is_preview' => $isPreview,
       ],
     ];

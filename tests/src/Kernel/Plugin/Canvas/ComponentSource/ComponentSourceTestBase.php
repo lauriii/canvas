@@ -6,10 +6,14 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Druplicons
 
+use Drupal\canvas\Controller\ApiConfigControllers;
+use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\RfcLoggerTrait;
@@ -29,6 +33,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -36,8 +41,12 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\UninstallValidatorTestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 /**
  * Provides the basic infrastructure for consistently testing component sources.
@@ -58,11 +67,12 @@ use Symfony\Component\DomCrawler\Crawler;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
-abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface {
+abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface, ServiceModifierInterface {
 
   use RfcLoggerTrait;
   use UninstallValidatorTestTrait;
   use VfsPublicStreamUrlTrait;
+  use UserCreationTrait;
 
   protected const string UUID_CRASH_TEST_DUMMY = '3204a711-a1bd-401d-9ce0-895665487eaa';
 
@@ -118,6 +128,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     'filter',
     'ckeditor5',
     'editor',
+    'path_alias',
   ];
 
   /**
@@ -131,6 +142,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $this->componentTreeLoader = $this->container->get(ComponentTreeLoader::class);
     $this->renderer = $this->container->get(RendererInterface::class);
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installSchema('user', 'users_data');
     $this->installConfig('canvas');
   }
@@ -262,8 +274,10 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $rendered = [];
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component_id => $component) {
       assert($component instanceof ComponentInterface);
-      $build = $component->getComponentSource()->renderComponent(
+      $source = $component->getComponentSource();
+      $build = $source->renderComponent(
         $get_default_input($component),
+        $source instanceof ComponentSourceWithSlotsInterface ? $source->getSlotDefinitions() : [],
         'some-uuid',
         // Live: `isPreview: FALSE`.
         FALSE,
@@ -722,5 +736,98 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     self::assertNotNull($unused_component->id());
     self::assertNull($component_storage->loadUnchanged($unused_component->id()));
   }
+
+  public function alter(ContainerBuilder $container): void {
+    // Swap in the broken versions of the Component source plugin manager, e.g.
+    // \Drupal\canvas\Plugin\ComponentPluginManager or
+    // \Drupal\canvas\Plugin\BlockManager.
+    // We provide an empty implementation so those that don't need this aren't
+    // forced to implement it.
+    // @see ::testIsBroken()
+  }
+
+  public function testIsBroken(): void {
+    // Enable required themes and set the default.
+    $this->container->get('theme_installer')->install(['stark', 'canvas_stark']);
+    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+
+    // Setup the required entity-types.
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    // Set the current user to someone who can access the component list.
+    $this->setUpCurrentUser(permissions: [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
+
+    // Generate config and a component that can be used for testing.
+    $this->generateComponentConfig();
+    $component = $this->createAndSaveInUseComponentForUninstallValidationTesting();
+    $source = $component->getComponentSource();
+    $slots = [];
+    if ($source instanceof ComponentSourceWithSlotsInterface) {
+      $slots = \array_keys($source->getSlotDefinitions());
+    }
+
+    // Create a page with the given component.
+    $props = static::getPropsForUninstallValidationTesting();
+    $entity = Page::create([
+      'title' => $this->randomMachineName(),
+      'components' => self::generateFallbackOrUninstallValidationComponentTree($component, $slots, $props),
+    ]);
+
+    // The component tree should be valid.
+    self::assertCount(0, $entity->validate());
+
+    // Now save the entity.
+    $entity->save();
+
+    // Then break things.
+    // @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase::alter
+    // @see \Drupal\Tests\canvas\Kernel\BrokenPluginManagerTrait::removeBrokenPlugins
+    \Drupal::state()->set('canvas_broken_components', TRUE);
+    $pluginId = $source->getSourceSpecificComponentId();
+    $this->triggerBrokenComponent($component)?->markPluginAsMissing($pluginId);
+    // Trigger cache invalidations.
+    $this->generateComponentConfig();
+
+    // Should still be valid.
+    self::assertCount(0, $entity->validate());
+
+    // Should not trigger an exception during page view.
+    $entityView = \Drupal::entityTypeManager()->getViewBuilder(Page::ENTITY_TYPE_ID)->view($entity);
+    $pageCrawler = $this->crawlerForRenderArray($entityView);
+    $componentOutput = $pageCrawler->filter(\sprintf('[data-component-uuid="%s"]', self::UUID_FALLBACK_ROOT));
+    self::assertEquals(1, $componentOutput->count());
+    self::assertStringContainsString('Oops, something went wrong! Site admins have been notified.', $componentOutput->text());
+
+    // Should not trigger an exception during component list rendering.
+    $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
+    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, \JSON_THROW_ON_ERROR);
+    self::assertArrayHasKey($component->id(), $list);
+    // Component should be flagged as broken.
+    self::assertTrue($list[$component->id()]['broken']);
+    // And contain the failed to render message.
+    self::assertStringContainsString('Component failed to render', $list[$component->id()]['default_markup']);
+
+    // Set the current request to enable the form to be built.
+    $request = Request::create('/', 'PATCH', [
+      'form_canvas_tree' => json_encode([
+        'nodeType' => 'component',
+        'slots' => [],
+        'type' => \sprintf('%s@%s', $component->id(), $component->getActiveVersion()),
+        'uuid' => self::UUID_FALLBACK_ROOT,
+      ], JSON_THROW_ON_ERROR),
+      'form_canvas_props' => json_encode($props, JSON_THROW_ON_ERROR),
+      'form_canvas_selected' => self::UUID_FALLBACK_ROOT,
+    ]);
+    $request->setSession(new Session(new MockArraySessionStorage()));
+    $this->container->get('request_stack')->push($request);
+
+    // Should not trigger an exception in the component instance form.
+    $builtForm = \Drupal::formBuilder()->getForm(ComponentInstanceForm::class, $entity);
+    $formOut = $this->crawlerForRenderArray($builtForm);
+    // Output should show the props and allow user to copy them.
+    self::assertStringContainsString('Fix the component or copy values to a new component', $formOut->text());
+  }
+
+  abstract protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface;
 
 }

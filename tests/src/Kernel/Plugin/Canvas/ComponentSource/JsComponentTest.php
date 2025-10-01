@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
@@ -14,10 +15,12 @@ use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
@@ -150,7 +153,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);
       foreach (array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
-        $static_prop_source = $private_method->invoke($source, $prop);
+        $static_prop_source = $private_method->invoke($source, $prop, TRUE);
         $this->assertInstanceOf(StaticPropSource::class, $static_prop_source);
       }
     }
@@ -717,7 +720,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
     $island = $source->renderComponent([
       'props' => $expected_component_props,
-    ], 'some-uuid', $preview_requested);
+    ], $source->getSlotDefinitions(), 'some-uuid', $preview_requested);
 
     $this->assertEquals($expected_cacheability, CacheableMetadata::createFromRenderArray($island));
 
@@ -1137,7 +1140,8 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $js_component->id()));
     \assert($component instanceof ComponentInterface);
     $source = $component->getComponentSource();
-    $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
+    \assert($source instanceof ComponentSourceWithSlotsInterface);
+    $rendered_component = $source->renderComponent([], $source->getSlotDefinitions(), 'test-uuid', $preview);
     self::assertArrayHasKey('#import_maps', $rendered_component);
     self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
     $scoped_import_maps = $rendered_component['#import_maps']['scopes'];
@@ -1186,7 +1190,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       $autoSave->saveEntity(
         $js_component,
       );
-      $rendered_component = $source->renderComponent([], 'test-uuid', $preview);
+      $rendered_component = $source->renderComponent([], $source->getSlotDefinitions(), 'test-uuid', $preview);
       self::assertArrayHasKey('#import_maps', $rendered_component);
       self::assertArrayNotHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered_component['#import_maps']);
       self::assertNotEmpty($rendered_component['#attached']['library']);
@@ -1900,6 +1904,20 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
   protected function getAllowedModuleForUninstallValidatorTesting(): string {
     $this->markTestSkipped('Uninstall is not valid for JS Components as they only depend on config, not optional modules.');
+  }
+
+  protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface {
+    $config_storage = \Drupal::service('config.storage');
+    assert($config_storage instanceof StorageInterface);
+    $js_component_source = $component->getComponentSource();
+    assert($js_component_source instanceof JsComponent);
+
+    // Delete the JavaScriptComponent config WITHOUT triggering
+    // Component::onDependencyRemoval(), hence simulating a bypassing of all
+    // protections.
+    $config_storage->delete($js_component_source->getJavaScriptComponent()->getConfigDependencyName());
+
+    return NULL;
   }
 
 }

@@ -287,12 +287,38 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
-    $info = $this->getComponentSource()->getClientSideInfo($this);
-
-    $build = $info['build'];
-    unset($info['build']);
-
     $component_config_entity_uuid = $this->uuid();
+
+    $source = $this->getComponentSource();
+    if (!$source->isBroken()) {
+      $info = $this->getComponentSource()->getClientSideInfo($this);
+      $build = $info['build'];
+      unset($info['build']);
+      // Inform the UI this is safe to instantiate.
+      $info['broken'] = FALSE;
+    }
+    // Ensure a broken Component cannot break the Canvas HTTP API.
+    else {
+      try {
+        // Intentionally fail to render something.
+        $build = $this->getComponentSource()->renderComponent([], [], $component_config_entity_uuid, TRUE);
+      }
+      catch (\Throwable $e) {
+        // … but some ComponentSources might even fail while calling
+        // ::renderComponent(), handle this too! (They might be calling
+        $build = RenderSafeComponentContainer::handleComponentException(
+          $e,
+          componentContext: 'API',
+          isPreview: TRUE,
+          componentUuid: $component_config_entity_uuid,
+        );
+      }
+      // Inform the UI this is IMPOSSIBLE to instantiate. The UI should render
+      // this Component differently, and disallow the user from
+      // instantiating it.
+      $info = ['broken' => TRUE];
+    }
+
     // Wrap in a render-safe container.
     // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
     $build = [
@@ -438,6 +464,10 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    */
   public function getSettings(): array {
     return $this->get('settings') ?? [];
+  }
+
+  public function getSlotDefinitions(): array {
+    return $this->get('fallback_metadata')['slot_definitions'] ?? [];
   }
 
   /**
