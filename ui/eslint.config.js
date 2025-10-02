@@ -53,7 +53,7 @@ export default [
 
       parserOptions: {
         project: true,
-        tsconfigRootDir: './',
+        tsconfigRootDir: __dirname,
       },
     },
 

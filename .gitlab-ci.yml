@@ -314,6 +314,7 @@ UI eslint:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - ui/package.json
+        - ui/package-lock.json
         - ui/**/*.js
         - ui/**/*.ts
         - ui/**/*.tsx
