@@ -6,7 +6,7 @@
   "workspaces": [
     "lib/astro-hydration"
   ],
-  "version": "1.0.0-beta1",
+  "version": "0.0.0",
   "engines": {
     "node": "^20.0.0"
   },
