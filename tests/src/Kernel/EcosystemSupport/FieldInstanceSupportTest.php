@@ -51,14 +51,34 @@ use Drupal\field\Entity\FieldStorageConfig;
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
   /**
-   * The current % of supported field types whose instances can be matched.
+   * Current % of CLAIMED supported field types whose instances can be matched.
+   *
+   * Should be 100% if what we claim to support is actually supported.
    */
-  public const COMPLETION = 0.8928571428571429;
+  public const MATCHING_CLAIMED_SUPPORTED_FIELD_TYPES = 1.0;
 
   /**
-   * The current % of supported field type props.
+   * Same as above, adjusted for total (including todo/irrelevant ones).
+   *
+   * (For example: the `password` field type never makes sense to match.)
+   *
+   * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES
    */
-  public const COMPLETION_PROPS = 0.9024390243902439;
+  public const MATCHING_ALL_FIELD_TYPES = 0.8064516129032258;
+
+  /**
+   * Current % of CLAIMED supported field type field properties.
+   *
+   * Should be 100% if what we claim to support is actually supported.
+   */
+  public const MATCHING_CLAIMED_SUPPORTED_FIELD_TYPE_PROPERTIES = 1.0;
+
+  /**
+   * Same as above, adjusted for total (including irrelevant ones).
+   *
+   * (For example: the `password` field type never makes sense to match.)
+   */
+  public const MATCHING_ALL_FIELD_TYPE_PROPERTIES = 0.78;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).
@@ -97,17 +117,13 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     ],
     'datetime' => [
       // 🐛 Core bug: this is the computed equivalent of `value`, should be marked internal.
-      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/canvas/issues/3512853
+      // @see \Drupal\experience_builder\Plugin\Field\FieldTypeOverride\DateTimeItemOverride::propertyDefinitions()
       'date' => FALSE,
     ],
     'email' => [],
     'entity_reference' => [],
     'file' => [],
-    'file_uri' => [
-      // 🐛 Core bug: this is the computed equivalent of `value`, should be marked internal.
-      // @todo Give this similar treatment as `daterange` in https://www.drupal.org/project/canvas/issues/3512853
-      'url' => FALSE,
-    ],
+    'file_uri' => [],
     'float' => [],
     'image' => [
       'srcset_candidate_uri_template' => FALSE,
@@ -116,10 +132,6 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     'link' => [
       // @todo Decide in https://www.drupal.org/project/canvas/issues/3512849 whether this is okay or not; if it is: document rationale here.
       'options' => FALSE,
-      // We want to support the computed 'url' field instead as this handles
-      // resolving URIs such as entity:node/1, base:/node/1 and
-      // route:entity.node.canonical;node=1
-      'uri' => FALSE,
     ],
     'list_float' => [],
     'list_integer' => [],
@@ -214,6 +226,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $expected_supported_fields = [];
     $expected_unsupported_fields = [];
     $expected_supported_field_props = [];
+    $expected_unsupported_field_props = [];
     foreach ($entity_data->getPropertyDefinitions() as $field_name => $field_definition) {
       assert($field_definition instanceof FieldDefinitionInterface);
       if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {
@@ -256,6 +269,9 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         if (array_key_exists($field_type, self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
           $expected_supported_field_props[] = "$field_name.$field_prop_name";
         }
+        else {
+          $expected_unsupported_field_props[] = "$field_name.$field_prop_name";
+        }
       }
     }
     sort($expected_fields);
@@ -263,6 +279,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     sort($all_field_props);
     sort($expected_field_props);
     sort($expected_supported_field_props);
+    sort($expected_unsupported_field_props);
 
     // Ensure the Typed Data representation is in sync with the fields that were
     // created. This assertion is technically unnecessary, but helps ensure this
@@ -326,15 +343,20 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     self::assertSame([], \array_intersect(\array_keys($compatible_sdc_prop_shapes_per_field), $expected_unsupported_fields), 'The known supported field types are actually supported.');
     $actually_supported_fields = array_intersect($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
     $missing_fields = array_diff($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
+    self::assertSame([], $missing_fields, 'Additional field types encountered that are not yet explicitly tracked as unsupported.');
     $this->assertSame([], array_values(array_diff($expected_supported_fields, $actually_supported_fields)), 'Field types that were expected to be supported are NOT.');
     $this->assertSame([], array_values(array_diff($actually_supported_fields, $expected_supported_fields)), 'Field types that were NOT expected to be supported are.');
     $this->assertSame(
-      self::COMPLETION,
-      count($actually_supported_fields) / count($expected_fields),
+      self::MATCHING_CLAIMED_SUPPORTED_FIELD_TYPES,
+      (float) count($actually_supported_fields) / count($expected_fields),
       sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields))
     );
+    self::assertSame(
+      self::MATCHING_ALL_FIELD_TYPES,
+      (float) count($expected_fields) / (count($expected_supported_fields) + count($expected_unsupported_fields)),
+    );
     // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields)), E_USER_DEPRECATED);
+    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $expected_unsupported_fields)), E_USER_DEPRECATED);
 
     // Verify that also at the field type props level, all expectations are met.
     $this->assertSame([], array_values(array_diff($expected_supported_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop))), 'The known supported field types are actually supported, for all their field props.');
@@ -343,12 +365,16 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $this->assertSame([], array_values(array_diff($expected_supported_field_props, $actually_supported_field_props)), 'Field type props that were expected to be supported are NOT.');
     $this->assertSame([], array_values(array_diff($actually_supported_field_props, $expected_supported_field_props)), 'Field type props that were NOT expected to be supported are.');
     $this->assertSame(
-      self::COMPLETION_PROPS,
-      count($actually_supported_field_props) / count($expected_field_props),
+      self::MATCHING_CLAIMED_SUPPORTED_FIELD_TYPE_PROPERTIES,
+      (float) count($actually_supported_field_props) / count($expected_field_props),
       sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props))
     );
+    self::assertSame(
+      self::MATCHING_ALL_FIELD_TYPE_PROPERTIES,
+      (float) count($expected_field_props) / (count($expected_supported_field_props) + count($expected_unsupported_field_props)),
+    );
     // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props)), E_USER_DEPRECATED);
+    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $expected_unsupported_field_props)), E_USER_DEPRECATED);
   }
 
   private function createFieldsForAllFieldTypes(): array {

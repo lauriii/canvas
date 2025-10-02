@@ -19,6 +19,8 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\DecimalItem;
+use Drupal\Core\Field\Plugin\Field\FieldType\LanguageItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\MapItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
@@ -50,6 +52,7 @@ use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
 use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
 use Drupal\options\Plugin\Field\FieldType\ListStringItem;
+use Drupal\telephone\Plugin\Field\FieldType\TelephoneItem;
 use Drupal\text\TextProcessed;
 use Symfony\Component\Validator\Constraint;
 
@@ -92,6 +95,17 @@ final class JsonSchemaFieldInstanceMatcher {
    * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
    */
   public const IGNORE_FIELD_TYPES = [
+    // The `decimal` field type is impossible to match, because it is impossible
+    // to express decimals reliably in JSON. JSON loss of precision occurs due
+    // to its reliance on floating point numbers. Note that this field type
+    // explicitly states "Ideal for exact counts and measures".See
+    // https://stackoverflow.com/a/38357877.
+    // @todo Consider mapping these to `type: number` in https://www.drupal.org/i/3549936, but accept data loss OR only match it if the decimal field is configured with a low enough level of precision. The most common case is precision=2, which would likely be safe?
+    'decimal' => ['class' => DecimalItem::class, 'exceptions' => []],
+    // JSON Schema has no way to represent language codes, plus this is not a
+    // common need in components.
+    // @todo Consider matching against `type: string, pattern: …` in https://www.drupal.org/i/3549939
+    'language' => ['class' => LanguageItem::class, 'exceptions' => []],
     // The `list` field types allows each field instance to define its own set
     // of possible values. The probability of this exactly matching the explicit
     // inputs (i.e. the prop shape's `enum`) for a component is astronomical.
@@ -112,6 +126,7 @@ final class JsonSchemaFieldInstanceMatcher {
         ['type' => 'number'],
       ],
     ],
+    // @todo Add support in https://www.drupal.org/i/3548749
     'list_string' => [
       'class' => ListStringItem::class,
       // NO exceptions for `list_string`, because such fields are virtually
@@ -132,6 +147,10 @@ final class JsonSchemaFieldInstanceMatcher {
     // displayed in a component instance.
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem
     'password' => ['class' => PasswordItem::class, 'exceptions' => []],
+    // JSON Schema has no way to represent telephone numbers codes, plus this is
+    // not a common need in components.
+    // @todo Consider adding a computed `tel_uri` property in https://www.drupal.org/i/3549940 to expose this as a `tel:…` URI, which then would be matchable against `type: string, format: uri, x-allowed-schemes: [tel]`
+    'telephone' => ['class' => TelephoneItem::class, 'exceptions' => []],
   ];
 
   public function __construct(

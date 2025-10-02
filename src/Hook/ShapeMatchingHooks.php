@@ -13,6 +13,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\editor\EditorInterface;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\DateRangeItemOverride;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\DateTimeItemOverride;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\FileItemOverride;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\FileUriItemOverride;
@@ -98,6 +99,7 @@ class ShapeMatchingHooks {
   public function fieldInfoAlter(array &$info): void {
     $overrides = [
       'daterange' => DateRangeItemOverride::class,
+      'datetime' => DateTimeItemOverride::class,
       'file' => FileItemOverride::class,
       'file_uri' => FileUriItemOverride::class,
       'float' => FloatItemOverride::class,
