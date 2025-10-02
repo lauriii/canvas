@@ -6,6 +6,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Entity\EditorialContentEntityBase;
+use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -41,6 +42,7 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
     handlers: [
       "storage" => SqlContentEntityStorage::class,
       "access" => PageAccessControlHandler::class,
+      "list_builder" => EntityListBuilder::class,
       "view_builder" => PageViewBuilder::class,
       "views_data" => EntityViewsData::class,
       "form" => [
