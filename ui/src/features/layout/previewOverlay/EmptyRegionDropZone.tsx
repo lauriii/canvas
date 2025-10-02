@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { kebabCase } from 'lodash';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import { useDroppable } from '@dnd-kit/core';
 import { FileTextIcon } from '@radix-ui/react-icons';
@@ -58,6 +59,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           [styles.isOver]: isOver,
         })}
         ref={setDropRef}
+        data-testid={`canvas-empty-region-drop-zone-${kebabCase(region.name)}`}
       >
         {activeName ? (
           activeName

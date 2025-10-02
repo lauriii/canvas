@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import useGetComponentName from '@/hooks/useGetComponentName';
 
 import type React from 'react';
 import type {
@@ -25,6 +27,11 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   const { component, position, parentSlot, parentRegion } = props;
   const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
+  const componentName = useGetComponentName(component);
+
+  function getPositionRelation(position: ComponentDropZoneProps['position']) {
+    return position === 'top' || position === 'left' ? 'before' : 'after';
+  }
 
   const dropPath = findNodePathByUuid(layout, component.uuid);
   if (!dropPath) {
@@ -66,6 +73,8 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
         [styles.isOver]: isOver,
       })}
       ref={setDropRef}
+      data-testid={`canvas-component-drop-zone-${getPositionRelation(position)}-${kebabCase(componentName)}`}
+      // aria-label={`Drop items ${getPositionRelation(position)} ${componentName}`}
     ></div>
   );
 };

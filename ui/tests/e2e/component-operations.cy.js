@@ -345,7 +345,7 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.loadURLandWaitForCanvasLoaded();
 
     // The component begins with one content drop zone.
-    cy.findAllByTestId('canvas-empty-slot-drop-zone').should('have.length', 1);
+    cy.findAllByTestId('canvas-empty-slot').should('have.length', 1);
 
     // Assert there is an existing two column SDC on the page already.
     cy.findByTestId('canvas-primary-panel').within(() => {
@@ -358,7 +358,7 @@ describe.skip('Perform CRUD operations on components', () => {
     cy.log(
       'There should be 2 new drop zones - 2 added columns in addition to the original',
     );
-    cy.findAllByTestId('canvas-empty-slot-drop-zone').should('have.length', 3);
+    cy.findAllByTestId('canvas-empty-slot').should('have.length', 3);
 
     cy.openLayersPanel();
     // Assert that a second two column SDC has been added.

@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
@@ -26,6 +27,7 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
     regionPath.push(0);
   }
 
+  const positionLabel = position === 'before' ? 'start' : 'end';
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${region.id}_${position}`,
     data: {
@@ -42,6 +44,7 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
         [styles.isOver]: isOver,
       })}
       ref={setDropRef}
+      data-testid={`canvas-region-drop-zone-${positionLabel}-${kebabCase(region.name)}`}
     ></div>
   );
 };
