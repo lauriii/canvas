@@ -72,7 +72,7 @@ class ConverterCommand extends Command {
       // sdc.canvas_test_sdc.my-cta
       'b4cd62533ff9bd99' => '6f8647435386329e',
       // js.my-cta
-      '9454c3bca9bbbf4b' => '53ed322c96bee384',
+      '9454c3bca9bbbf4b' => 'b1db82ac808be69d',
       // js.canvas_test_code_components_with_props
       '4e53ca9f3f06b418' => 'cd8b163a8d299fea',
       // js.canvas_test_code_components_vanilla_image

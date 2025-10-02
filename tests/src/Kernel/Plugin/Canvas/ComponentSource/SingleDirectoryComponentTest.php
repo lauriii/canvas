@@ -27,6 +27,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\file\Entity\File;
+use Drupal\link\LinkItemInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
@@ -1653,6 +1654,7 @@ activation="auto">
             'field_storage_settings' => [],
             'field_instance_settings' => [
               'title' => 0,
+              'link_type' => LinkItemInterface::LINK_EXTERNAL,
             ],
             'field_widget' => 'link_default',
             'default_value' => [
@@ -1706,6 +1708,7 @@ activation="auto">
             'field_storage_settings' => [],
             'field_instance_settings' => [
               'title' => 0,
+              'link_type' => LinkItemInterface::LINK_GENERIC,
             ],
             'field_widget' => 'link_default',
             'default_value' => [
@@ -3476,6 +3479,7 @@ activation="auto">
             'sourceTypeSettings' => [
               'instance' => [
                 'title' => 0,
+                'link_type' => LinkItemInterface::LINK_EXTERNAL,
               ],
             ],
             'default_values' => [
@@ -3578,6 +3582,7 @@ activation="auto">
             'sourceTypeSettings' => [
               'instance' => [
                 'title' => 0,
+                'link_type' => LinkItemInterface::LINK_GENERIC,
               ],
             ],
             'default_values' => [

@@ -19,6 +19,7 @@ use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirement;
 use Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\link\LinkItemInterface;
 use Symfony\Component\Validator\Constraints\Ip;
 
 // phpcs:disable Drupal.Files.LineLength.TooLong
@@ -215,7 +216,9 @@ enum JsonSchemaStringFormat: string {
       static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
         // Custom: the targeted resource has `contentMediaType: image/*`.
         array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {
-          // Browser-accessible image URLs.
+          // Browser-accessible image URLs. Can be both:
+          // - relative URLs (`format: uri-reference|iri-reference`)
+          // - absolute URLs (`format: uri|iri`) with HTTP(S)
           // @see json-schema-definitions://canvas.module/image-uri
           !empty(array_intersect($shape->schema['x-allowed-schemes'] ?? [], ['http', 'https'])) => new StorablePropShape(
             shape: $shape,
@@ -223,10 +226,10 @@ enum JsonSchemaStringFormat: string {
             fieldWidget: 'image_image',
           ),
 
-          // Stream wrapper image URIs.
+          // Stream wrapper image URIs. Can only be `format: uri|iri`.
           // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
-          // @todo Update in https://www.drupal.org/project/canvas/issues/3542895  to only do this if `format==uri` — right now this also is used for `format=uri-reference`. Theoretical problem though, because using `format=uri-reference` does not make sense for stream wrapper URIs.
-          in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE) => new StorablePropShape(
+          in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
+          && ($this == static::Uri || $this == static::Iri) => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new ReferenceFieldTypePropExpression(
               new FieldTypePropExpression('image', 'entity'),
@@ -246,6 +249,17 @@ enum JsonSchemaStringFormat: string {
           fieldInstanceSettings: [
             // This shape only needs the URI, not a title.
             'title' => 0,
+            'link_type' => match ($this) {
+              // Accept all URIs.
+              static::UriReference, static::IriReference => LinkItemInterface::LINK_GENERIC,
+              // Accept only external URIs.
+              // ⚠️ External URIs are those that have a URI scheme, but they may
+              // be pointing to the current site!
+              // @see \Drupal\Component\Utility\UrlHelper::externalIsLocal()
+              // @see \Drupal\Core\Url::fromUri()
+              // @see \Drupal\link\Plugin\Validation\Constraint\LinkTypeConstraintValidator()
+              static::Uri, static::Iri => LinkItemInterface::LINK_EXTERNAL,
+            },
           ],
           fieldWidget: 'link_default',
         ),

@@ -397,7 +397,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
                   'name' => NULL,
                   'slots' => [],
                 ],
@@ -432,14 +432,14 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@888412021fbcc837',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
                   'name' => NULL,
                   'slots' => [],
                 ],

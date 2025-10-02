@@ -38,7 +38,7 @@ default:
       component_version: 76bede8677d946cd
       inputs: '{"variant_id":"halloween","segments":["halloween"]}'
       label: 'Halloween'
-    # ℹ️ This is the only component instance with `parent_uuid: 5e9d5b61-595c-4785-8af6-b78317e52c64` (the component instance of the `halloween` variant), so this (and all children etc.) defines what gets shown for the `halloween` variant. 
+    # ℹ️ This is the only component instance with `parent_uuid: 5e9d5b61-595c-4785-8af6-b78317e52c64` (the component instance of the `halloween` variant), so this (and all children etc.) defines what gets shown for the `halloween` variant.
     -
       parent_uuid: 5e9d5b61-595c-4785-8af6-b78317e52c64
       slot: content
@@ -51,7 +51,7 @@ default:
       slot: column_two
       uuid: bfdae82e-3366-4c2c-99e6-c259aee145b4
       component_id: sdc.canvas_test_sdc.my-hero
-      component_version: 888412021fbcc837
+      component_version: 9b3e9e65c8101bab
       inputs: '{"heading":"Halloween season is here","subheading":"Best candy in the market","cta1":"Buy now","cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/example.com","options":[]},"expression":"\u2139\ufe0elink\u241furi","sourceTypeSettings":{"instance":{"title":"0"}}},"cta2":"boo!"}'
     # ℹ️ This is the `default` variant (a `case` component instance of the Personalization `ComponentSource`) being tested here — note it stores:
     # - its `variant_id` — which MUST correspond to one of the `variants` in the `switch` component instance
@@ -76,7 +76,7 @@ default:
       slot: column_two
       uuid: 2b169e45-1910-49e3-8923-f19e4e1f2832
       component_id: sdc.canvas_test_sdc.my-hero
-      component_version: 888412021fbcc837
+      component_version: 9b3e9e65c8101bab
       inputs: '{"heading":"Best bikes in the market","subheading":"last deals!","cta1":"Buy now","cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/example.com","options":[]},"expression":"\u2139\ufe0elink\u241furi","sourceTypeSettings":{"instance":{"title":"0"}}},"cta2":"See specs"}'
     -
       uuid: 59451905-1edc-4f11-bf10-ef8b0d774b1c

@@ -21,6 +21,7 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
+use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
@@ -277,6 +278,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'field_storage_settings' => [],
             'field_instance_settings' => [
               'title' => 0,
+              'link_type' => LinkItemInterface::LINK_GENERIC,
             ],
             'field_widget' => 'link_default',
             'default_value' => [
@@ -1500,6 +1502,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'sourceTypeSettings' => [
               'instance' => [
                 'title' => 0,
+                'link_type' => LinkItemInterface::LINK_GENERIC,
               ],
             ],
             'default_values' => [

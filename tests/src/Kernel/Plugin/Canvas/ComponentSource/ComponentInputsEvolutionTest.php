@@ -22,6 +22,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeSchemaUpdateTestTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -154,6 +155,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
               'sourceTypeSettings' => [
                 'instance' => [
                   'title' => \DRUPAL_DISABLED,
+                  'link_type' => LinkItemInterface::LINK_EXTERNAL,
                 ],
               ],
               'value' => [

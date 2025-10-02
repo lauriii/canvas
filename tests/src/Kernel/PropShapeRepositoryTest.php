@@ -25,6 +25,7 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -460,7 +461,10 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => 'uri']),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldInstanceSettings: [
+          'title' => DRUPAL_DISABLED,
+          'link_type' => LinkItemInterface::LINK_EXTERNAL,
+        ],
         fieldWidget: 'link_default',
       ),
       'type=string&minLength=2' => new StorablePropShape(
@@ -497,25 +501,37 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=iri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Iri->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldInstanceSettings: [
+          'title' => DRUPAL_DISABLED,
+          'link_type' => LinkItemInterface::LINK_EXTERNAL,
+        ],
         fieldWidget: 'link_default',
       ),
       'type=string&format=iri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IriReference->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldInstanceSettings: [
+          'title' => DRUPAL_DISABLED,
+          'link_type' => LinkItemInterface::LINK_GENERIC,
+        ],
         fieldWidget: 'link_default',
       ),
       'type=string&format=uri-reference' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldInstanceSettings: [
+          'title' => DRUPAL_DISABLED,
+          'link_type' => LinkItemInterface::LINK_GENERIC,
+        ],
         fieldWidget: 'link_default',
       ),
       'type=string&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriReference->value, CustomConstraintError::X_ALLOWED_SCHEMES => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('link', 'url'),
-        fieldInstanceSettings: ['title' => DRUPAL_DISABLED],
+        fieldInstanceSettings: [
+          'title' => DRUPAL_DISABLED,
+          'link_type' => LinkItemInterface::LINK_GENERIC,
+        ],
         fieldWidget: 'link_default',
       ),
       'type=string&$ref=json-schema-definitions://canvas.module/textarea' => new StorablePropShape(
