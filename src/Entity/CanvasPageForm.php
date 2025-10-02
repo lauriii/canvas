@@ -34,6 +34,7 @@ final class CanvasPageForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state): array {
+    // Add simple SEO settings group.
     $form = parent::form($form, $form_state);
     $group = 'seo_settings';
     $form[$group] = [
@@ -47,6 +48,8 @@ final class CanvasPageForm extends ContentEntityForm {
       // @todo remove this once https://www.drupal.org/project/canvas/issues/3501626 lands.
       '#open' => TRUE,
     ];
+
+    // Move SEO related base fields to this group.
     $form[$group]['image'] = $form['image'];
     $form[$group]['image']['#weight'] = -10;
     // TRICKY: it seems there's a Drupal core bug wrt #group, long-term fix TBD.
@@ -55,6 +58,23 @@ final class CanvasPageForm extends ContentEntityForm {
     $form[$group]['description'] = $form['description'];
     $form[$group]['description']['#weight'] = 10;
     unset($form['description']);
+
+    // Hide most metatags fields until further decision is made which ones to
+    // show and how. The fields are confusing and numerous.
+    if (isset($form['metatags']['widget'][0])) {
+      $form['metatags']['widget'][0]['#type'] = 'container';
+      $form['metatags']['widget'][0]['basic']['#type'] = 'container';
+      $form['metatags']['widget'][0]['basic']['description']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['basic']['abstract']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['basic']['keywords']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['preamble']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['tokens']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['image_help']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['intro_text']['#access'] = FALSE;
+      $form['metatags']['widget'][0]['advanced']['#access'] = FALSE;
+    }
+
+    // Move the SEO title field only into the custom SEO settings group.
     if (isset($form['metatags']['widget'][0]['basic']['title'])) {
       $form['metatags']['widget'][0]['basic']['title']['#group'] = $group;
     }
