@@ -13,6 +13,7 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
@@ -42,6 +43,7 @@ use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
@@ -61,6 +63,7 @@ class PropSourceTest extends KernelTestBase {
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
   use NodeCreationTrait;
+  use UserCreationTrait;
   use TestFileCreationTrait;
   use VfsPublicStreamUrlTrait;
 
@@ -189,7 +192,9 @@ class PropSourceTest extends KernelTestBase {
     mixed $expected_user_value,
     string $expected_prop_expression,
     array $expected_dependencies,
+    array $permissions = [],
   ): void {
+    $this->setUpCurrentUser([], $permissions);
     // @phpstan-ignore-next-line
     $prop_source_example = StaticPropSource::parse([
       'sourceType' => $sourceType,
@@ -492,6 +497,7 @@ class PropSourceTest extends KernelTestBase {
           'media',
         ],
       ],
+      'permissions' => ['view media', 'access content'],
     ];
   }
 
@@ -500,19 +506,26 @@ class PropSourceTest extends KernelTestBase {
    * @dataProvider providerDynamicPropSource
    */
   public function testDynamicPropSource(
+    array $permissions,
     string $expression,
     string $expected_json_representation,
     string $expected_expression_class,
     mixed $expected_evaluation_with_user_host_entity,
+    ?string $expected_user_access_denied_message,
     mixed $expected_evaluation_with_node_host_entity,
+    ?string $expected_node_access_denied_message,
     array $expected_dependencies_expression_only,
     array $expected_dependencies_with_host_entity,
   ): void {
+    // Evaluating dynamic props requires entity and field access of the data
+    // being accessed.
+
     // For testing expressions relying on users.
     $this->installEntitySchema('user');
     $user = User::create([
       'uuid' => '881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
       'name' => 'John Doe',
+      'status' => 1,
     ]);
     $user->save();
 
@@ -551,6 +564,18 @@ class PropSourceTest extends KernelTestBase {
       default => throw new \LogicException(),
     };
     // - evaluate it to populate an SDC prop using a `user` host entity
+    // First try without the correct permissions.
+    if ($expected_evaluation_with_user_host_entity !== \DomainException::class) {
+      self::assertNotNull($expected_user_access_denied_message);
+      try {
+        $parsed->evaluate($user, is_required: TRUE);
+        $this->fail('Should throw an access exception.');
+      }
+      catch (CacheableAccessDeniedHttpException $e) {
+        self::assertSame($expected_user_access_denied_message, $e->getMessage());
+      }
+    }
+    $this->setUpCurrentUser(permissions: $permissions);
     try {
       $result = $parsed->evaluate($user, is_required: TRUE);
       if ($expected_evaluation_with_user_host_entity === \DomainException::class) {
@@ -564,7 +589,21 @@ class PropSourceTest extends KernelTestBase {
       self::assertSame($expected_evaluation_with_user_host_entity, \DomainException::class);
       self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `user`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
+
     // - evaluate it to populate an SDC prop using a `node` host entity
+    // First try without the correct permissions.
+    $this->setUpCurrentUser();
+    if ($expected_evaluation_with_node_host_entity !== \DomainException::class) {
+      self::assertNotNull($expected_node_access_denied_message);
+      try {
+        $parsed->evaluate($node, is_required: TRUE);
+        $this->fail('Should throw an access exception.');
+      }
+      catch (CacheableAccessDeniedHttpException $e) {
+        self::assertSame($expected_node_access_denied_message, $e->getMessage());
+      }
+    }
+    $this->setUpCurrentUser(permissions: $permissions);
     try {
       $result = $parsed->evaluate($node, is_required: TRUE);
       if ($expected_evaluation_with_node_host_entity === \DomainException::class) {
@@ -615,21 +654,27 @@ class PropSourceTest extends KernelTestBase {
 
   public static function providerDynamicPropSource(): \Generator {
     yield "simple: FieldPropExpression" => [
+      'permissions' => ['access user profiles'],
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => 'John Doe',
+      'expected_user_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
       'expected_evaluation_with_node_host_entity' => \DomainException::class,
+      'expected_node_access_denied_message' => NULL,
       'expected_dependencies_expression_only' => ['module' => ['user']],
       'expected_dependencies_with_host_entity' => ['module' => ['user']],
     ];
 
     yield "entity reference: ReferenceFieldPropExpression" => [
+      'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
       'expected_expression_class' => ReferenceFieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => 'John Doe',
+      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value, reason: The 'access content' permission is required.",
       'expected_dependencies_expression_only' => [
         'module' => ['node', 'user'],
         'config' => ['node.type.page'],
@@ -644,14 +689,17 @@ class PropSourceTest extends KernelTestBase {
     ];
 
     yield "complex object: FieldObjectPropsExpression containing a ReferenceFieldPropExpression" => [
+      'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
       'expected_expression_class' => FieldObjectPropsExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => [
         'human_id' => 'John Doe',
         'machine_id' => 1,
       ],
+      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}, reason: The 'access content' permission is required.",
       'expected_dependencies_expression_only' => [
         'module' => ['node', 'user', 'node'],
         'config' => ['node.type.page', 'node.type.page'],
@@ -690,11 +738,14 @@ class PropSourceTest extends KernelTestBase {
     $expected_node_1_expression_dependencies['content'][] = 'file:file:' . self::FILE_UUID1;
 
     yield "Contrived multi-bundle example, with per-bundle field names *and* per-field property names" => [
+      'permissions' => ['access content'],
       'expression' => 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => '<impossible to express in a data provider, see test>',
+      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths, reason: The 'access content' permission is required.",
       'expected_dependencies_expression_only' => $expected_dependencies_expression,
       'expected_dependencies_with_host_entity' => $expected_node_1_expression_dependencies,
     ];
@@ -713,6 +764,7 @@ class PropSourceTest extends KernelTestBase {
    *           ["ℹ︎␜entity:user␝roles␞-1␟target_id", "Requested delta -1, but deltas must be positive integers.", "💩"]
    */
   public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value): void {
+    $this->setUpCurrentUser(permissions: ['administer permissions', 'access user profiles', 'administer users']);
     Role::create(['id' => 'test_role_a', 'label' => 'Test role A'])->save();
     Role::create(['id' => 'test_role_b', 'label' => 'Test role B'])->save();
     $user = User::create([
@@ -721,7 +773,7 @@ class PropSourceTest extends KernelTestBase {
         'test_role_a',
         'test_role_b',
       ],
-    ]);
+    ])->activate();
 
     // @phpstan-ignore-next-line argument.type
     $dynamic_prop_source_delta_test = new DynamicPropSource(StructuredDataPropExpression::fromString($expression));
@@ -816,6 +868,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $simple_dynamic_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
+    $this->setUpCurrentUser(permissions: ['access user profiles', 'administer users']);
     $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
     $this->assertSame(11874, $simple_dynamic_example->evaluate($user, is_required: TRUE));
     self::assertSame([

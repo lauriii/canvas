@@ -21,6 +21,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * @covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
@@ -35,6 +36,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
   use GenerateComponentConfigTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
+  use UserCreationTrait;
 
   private const TEST_IMAGE_UUID = 'd650b614-3219-4842-9a1f-f9976bdc20be';
 
@@ -79,6 +81,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
   }
 
   public function testCalculateDependencies(): void {
+    $this->setUpCurrentUser(permissions: ['access content']);
     $type = NodeType::create([
       'type' => 'alpha',
       'name' => 'Alpha',

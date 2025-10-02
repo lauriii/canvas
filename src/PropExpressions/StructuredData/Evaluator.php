@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\Core\Access\AccessResultReasonInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
@@ -62,12 +65,16 @@ final class Evaluator {
     // When a list of field items is given:
     // - keep the deltas as keys
     // - evaluate each FieldItemInterface inside the list individually
+    // 💡 This branch handles multiple-cardinality StaticPropSources.
+    // @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
     if ($entity_or_field instanceof FieldItemListInterface) {
       return array_map(
         fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required),
         iterator_to_array($entity_or_field),
       );
     }
+    // 💡 This branch handles single-cardinality StaticPropSources.
+    // @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
     elseif ($entity_or_field instanceof FieldItemInterface) {
       $field = $entity_or_field;
       return match (get_class($expr)) {
@@ -96,17 +103,31 @@ final class Evaluator {
         default => throw new \LogicException('Unhandled expression type. ' . (string) $expr),
       };
     }
+    // 💡 This branch handles expressions used by DynamicPropSources.
+    // @see \Drupal\canvas\PropSource\DynamicPropSource::evaluate()
     else {
       $entity = $entity_or_field;
       // @todo support non-fieldable entities?
       assert($entity instanceof FieldableEntityInterface);
+      self::validateAccess($entity, $expr);
+      $field_name = match (get_class($expr)) {
+        FieldPropExpression::class => match (TRUE) {
+          is_string($expr->fieldName) => $expr->fieldName,
+          is_array($expr->fieldName) => $expr->fieldName[$entity->bundle()],
+        },
+        FieldObjectPropsExpression::class => $expr->fieldName,
+        ReferenceFieldPropExpression::class => match (TRUE) {
+          is_string($expr->referencer->fieldName) => $expr->referencer->fieldName,
+          is_array($expr->referencer->fieldName) => $expr->referencer->fieldName[$entity->bundle()],
+        },
+        default => throw new \LogicException('Unhandled expression type: ' . get_class($expr)),
+      };
+      $field_item_list = $entity->get($field_name);
+      assert($field_item_list instanceof FieldItemListInterface);
+      self::validateAccess($field_item_list, $expr);
+
       return match (get_class($expr)) {
-        FieldPropExpression::class => (function () use ($entity, $expr) {
-          $field_item_list = match (TRUE) {
-            is_string($expr->fieldName) => $entity->get($expr->fieldName),
-            is_array($expr->fieldName) => $entity->get($expr->fieldName[$entity->bundle()]),
-          };
-          assert($field_item_list instanceof FieldItemListInterface);
+        FieldPropExpression::class => (function () use ($entity, $expr, $field_item_list) {
           $field_definition = $field_item_list->getFieldDefinition();
           $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
           // If a specific delta is requested, validate it.
@@ -165,6 +186,23 @@ final class Evaluator {
         ),
         default => throw new \LogicException('Unhandled expression type.'),
       };
+    }
+  }
+
+  protected static function validateAccess(EntityInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr): void {
+    $access = $entity_or_field->access('view', NULL, TRUE);
+    if (!$access->isAllowed()) {
+      $access_error_cache = new CacheableMetadata();
+      $access_error_cache->addCacheableDependency($access);
+      $access_error_cache->addCacheableDependency($entity_or_field);
+      throw new CacheableAccessDeniedHttpException(
+        $access_error_cache, sprintf(
+          'Access denied to %s while evaluating expression, %s, reason: %s',
+          $entity_or_field instanceof EntityInterface ? 'entity' : 'field',
+          $expr,
+          $access instanceof AccessResultReasonInterface ? $access->getReason() : NULL
+        )
+      );
     }
   }
 

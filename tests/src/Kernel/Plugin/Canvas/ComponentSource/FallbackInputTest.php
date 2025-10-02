@@ -20,6 +20,7 @@ use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
 use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +36,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
   use MediaTypeCreationTrait;
   use AutoSaveManagerTestTrait;
   use CanvasFieldTrait;
+  use UserCreationTrait;
 
   protected static $modules = [
     // Required modules.
@@ -110,6 +112,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
    *           [false]
    */
   public function testFallbackInputCanBeRecovered(bool $publish = FALSE): void {
+    $this->setUpCurrentUser(permissions: ['view media', 'access content', Page::EDIT_PERMISSION]);
     $component_to_recover = Component::load('sdc.canvas_test_sdc.image');
     \assert($component_to_recover instanceof ComponentInterface);
     $component_to_edit = Component::load('sdc.canvas_test_sdc.heading');

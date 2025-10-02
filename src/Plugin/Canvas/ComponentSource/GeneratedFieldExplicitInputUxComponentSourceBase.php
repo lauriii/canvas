@@ -14,6 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
@@ -42,6 +43,7 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -99,6 +101,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
+    private readonly LoggerChannelInterface $logger,
   ) {
     assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -117,6 +120,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $container->get('plugin.manager.field.widget'),
       $container->get(EntityTypeManagerInterface::class),
       $container->get(FieldForComponentSuggester::class),
+      $container->get('logger.channel.canvas'),
     );
   }
 
@@ -333,18 +337,28 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $is_dangling = $item->getRoot() === $item->getParent();
     $entity = $is_dangling ? $host_entity : $item->getEntity();
     $values = $item->getInputs() ?? [];
+    $resolved_values = [];
     foreach ($values as $prop => $input) {
       $values[$prop] = $this->uncollapse($input, $prop)->toArray();
+      try {
+        $resolved_values[$prop] = PropSource::parse($values[$prop])
+          ->evaluate($entity, is_required: FALSE);
+      }
+      catch (AccessDeniedHttpException $e) {
+        $this->logger->warning('Access denied when evaluating prop source for prop %prop of component instance %uuid with input `%input`. Original error: %error', [
+          '%prop' => $prop,
+          '%input' => json_encode($input),
+          '%uuid' => $uuid,
+          '%error' => $e->getMessage(),
+        ]);
+        $resolved_values[$prop] = NULL;
+      }
+
     }
 
     return [
       'source' => $values,
-      'resolved' => array_map(
-      // @phpstan-ignore-next-line
-        fn(array $prop_source): mixed => PropSource::parse($prop_source)
-          ->evaluate($entity, is_required: FALSE),
-        $values,
-      ),
+      'resolved' => $resolved_values,
     ];
   }
 

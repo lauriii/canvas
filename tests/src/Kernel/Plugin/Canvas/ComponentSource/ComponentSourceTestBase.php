@@ -71,6 +71,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
   use RfcLoggerTrait;
   use UninstallValidatorTestTrait;
+  use UserCreationTrait;
   use VfsPublicStreamUrlTrait;
   use UserCreationTrait;
 
@@ -427,6 +428,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    * @phpstan-param array{'class': string, 'message': string}|NULL $expected_exception
    */
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
+    $this->setUpCurrentUser(permissions: ['view media']);
     $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
     // Child implementations of ::generateCrashTestDummyComponentTree may
     // install additional modules, which will rebuild the container. So we add
@@ -582,6 +584,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   }
 
   public function testFallback(): void {
+    $this->setUpCurrentUser(permissions: ['view media', 'access content']);
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->generateComponentConfig();
     $used_component = $this->createAndSaveInUseComponentForFallbackTesting();

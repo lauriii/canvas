@@ -87,7 +87,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $preview_entity_title = 'My dynamic title';
     $this->previewEntity->set('title', $preview_entity_title);
     $this->previewEntity->save();
-    $this->setUpCurrentUser([], [self::getAdminPermission($contentTemplate)]);
+    $this->setUpCurrentUser([], [self::getAdminPermission($contentTemplate), 'edit any article content']);
 
     $uuid1 = '5f71027b-d9d3-4f3d-8990-a6502c0ba676';
     $uuid2 = 'e8c95423-4f22-4210-8707-08bade75ff22';

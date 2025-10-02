@@ -149,4 +149,13 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     return $storable_prop_shapes;
   }
 
+  /**
+   * @depends testStorablePropShapes
+   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
+   */
+  public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
+    $this->setUpCurrentUser(permissions: ['access content', 'administer media']);
+    parent::testPropShapesYieldWorkingStaticPropSources($storable_prop_shapes);
+  }
+
 }

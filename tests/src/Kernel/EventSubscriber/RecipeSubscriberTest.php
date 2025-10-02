@@ -23,6 +23,7 @@ use Drupal\media\MediaInterface;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * @group canvas
@@ -35,6 +36,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use RecipeTestTrait;
   use CrawlerTrait;
+  use UserCreationTrait;
   use VfsPublicStreamUrlTrait;
 
   private const string FIXTURES_DIR = __DIR__ . '/../../../fixtures/recipes';
@@ -85,6 +87,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
   }
 
   public function testEntityReferencesInDefaultContentComponents(): void {
+    $this->setUpCurrentUser(permissions: ['view media', 'access content']);
     $image_uri = $this->getRandomGenerator()
       ->image('public://test.png', '100x100', '200x200');
     $file = File::create(['uri' => $image_uri]);

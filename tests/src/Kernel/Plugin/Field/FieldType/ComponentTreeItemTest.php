@@ -21,6 +21,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
@@ -34,6 +35,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
+  use UserCreationTrait;
   use ImageFieldCreationTrait;
 
   /**
@@ -485,6 +487,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     $test_cases['invalid values using dynamic inputs'][] = [
       'field_canvas_test.0' => "The 'dynamic' prop source type must be absent.",
     ];
+    $test_cases['invalid values using dynamic inputs'][] = ['access content'];
     $test_cases['invalid UUID, missing component_id key'][] = [
       'field_canvas_test.0.uuid' => 'This is not a valid UUID.',
       'field_canvas_test.0.component_id' => 'This value should not be blank.',
@@ -497,6 +500,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       'field_canvas_test.1' => "The 'dynamic' prop source type must be absent.",
       'field_canvas_test.2' => "The 'dynamic' prop source type must be absent.",
     ];
+    $test_cases['missing components, using dynamic inputs'][] = ['access content'];
     $test_cases['missing components, using only static inputs'][] = [
       'field_canvas_test.0.component_id' => "The 'canvas.component.sdc.sdc_test.missing' config does not exist.",
     ];
@@ -507,6 +511,7 @@ class ComponentTreeItemTest extends KernelTestBase {
       'field_canvas_test.1' => "The 'dynamic' prop source type must be absent.",
       'field_canvas_test.2' => "The 'dynamic' prop source type must be absent.",
     ];
+    $test_cases['inputs invalid, using dynamic inputs'][] = ['access content'];
     $test_cases['inputs invalid, using only static inputs'][] = [
       \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
     ];
@@ -534,7 +539,8 @@ class ComponentTreeItemTest extends KernelTestBase {
    *
    * @dataProvider providerInvalidField
    */
-  public function testInvalidField(array $field_values, array $expected_violations): void {
+  public function testInvalidField(array $field_values, array $expected_violations, array $permissions = []): void {
+    $this->setUpCurrentUser(permissions: $permissions);
     $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',

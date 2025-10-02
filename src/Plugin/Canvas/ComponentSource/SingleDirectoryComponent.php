@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Field\WidgetPluginManager;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -39,30 +40,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
 
   public const SOURCE_PLUGIN_ID = 'sdc';
 
-  /**
-   * Constructs a new SingleDirectoryComponent.
-   *
-   * @param array $configuration
-   *   Configuration.
-   * @param string $plugin_id
-   *   Plugin ID.
-   * @param array $plugin_definition
-   *   Plugin definition.
-   * @param \Drupal\Core\Theme\Component\ComponentValidator $componentValidator
-   *   Component validator.
-   * @param \Drupal\Core\Field\WidgetPluginManager $fieldWidgetPluginManager
-   *   Field widget plugin manager.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   Entity type manager.
-   * @param \Drupal\Core\Theme\ComponentPluginManager $componentPluginManager
-   *   Component manager.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
-   *   Module handler.
-   * @param \Drupal\Core\Extension\ThemeHandlerInterface $themeHandler
-   *   Theme handler.
-   * @param \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester $fieldForComponentSuggester
-   *   Field for component suggester.
-   */
   public function __construct(
     array $configuration,
     string $plugin_id,
@@ -75,6 +52,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     private readonly ThemeHandlerInterface $themeHandler,
     // @phpstan-ignore-next-line property.onlyWritten
     private readonly FieldForComponentSuggester $fieldForComponentSuggester,
+    LoggerChannelInterface $logger,
   ) {
     assert(array_key_exists('local_source_id', $configuration));
     parent::__construct(
@@ -85,6 +63,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $fieldWidgetPluginManager,
       $entityTypeManager,
       $fieldForComponentSuggester,
+      $logger,
     );
   }
 
@@ -103,6 +82,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       $container->get(ModuleHandlerInterface::class),
       $container->get(ThemeHandlerInterface::class),
       $container->get('Drupal\canvas\ShapeMatcher\FieldForComponentSuggester'),
+      $container->get('logger.channel.canvas'),
     );
   }
 

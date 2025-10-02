@@ -27,6 +27,7 @@ use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
@@ -37,6 +38,7 @@ use JsonSchema\Validator;
 class PropShapeRepositoryTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use UserCreationTrait;
   use VfsPublicStreamUrlTrait;
 
   /**
@@ -751,6 +753,13 @@ class PropShapeRepositoryTest extends KernelTestBase {
    * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
    */
   public function testPropShapesYieldWorkingStaticPropSources(array $storable_prop_shapes): void {
+    // If a test method extending this one has already set up a user with
+    // permissions, we do not need to do it again.
+    // @see \Drupal\Tests\canvas\Kernel\MediaLibraryHookStoragePropAlterTest::testPropShapesYieldWorkingStaticPropSources
+    if (\Drupal::currentUser()->isAnonymous()) {
+      $this->setUpCurrentUser(permissions: ['access content']);
+    }
+
     $this->assertNotEmpty($storable_prop_shapes);
 
     // A StaticPropSource is never rendered in an abstract context; it's always

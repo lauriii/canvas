@@ -19,6 +19,7 @@ use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * @covers \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder
@@ -32,6 +33,7 @@ final class NodeTemplatesTest extends KernelTestBase {
   use CanvasFieldCreationTrait;
   use NodeCreationTrait;
   use CrawlerTrait;
+  use UserCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -79,6 +81,7 @@ final class NodeTemplatesTest extends KernelTestBase {
         ],
       ],
     ])->save();
+    $this->setUpCurrentUser(permissions: ['access content']);
   }
 
   public function testOptContentTypeIntoCanvas(): void {
@@ -123,6 +126,8 @@ HTML;
         'format' => 'basic_html',
       ],
     ]);
+    $node->setPublished();
+    $this->setUpCurrentUser(permissions: ['access content']);
     $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
     self::assertInstanceOf(ContentTemplateAwareViewBuilder::class, $viewBuilder);
     $output = $viewBuilder->view($node);

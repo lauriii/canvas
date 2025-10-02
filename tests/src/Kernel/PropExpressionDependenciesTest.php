@@ -29,6 +29,7 @@ use Drupal\Tests\canvas\Unit\PropExpressionTest;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 
 /**
@@ -46,6 +47,7 @@ class PropExpressionDependenciesTest extends KernelTestBase {
   use EntityReferenceFieldCreationTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
+  use UserCreationTrait;
 
   public const NODE_1_UUID = '406ff859-f31b-4247-8b76-56cda80c06b9';
 
@@ -254,6 +256,8 @@ class PropExpressionDependenciesTest extends KernelTestBase {
       'bundle' => 'xyz',
       'label' => 'The XYZ map field',
     ])->save();
+
+    $this->setUpCurrentUser(permissions: ['access content', 'view media']);
   }
 
   public function testCalculateDependencies(): void {

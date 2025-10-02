@@ -879,7 +879,7 @@ activation="auto">
    * @covers ::getExplicitInput()
    * @dataProvider providerComponentResolving
    */
-  public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids): void {
+  public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids, ?array $permissions = NULL): void {
     $this->generateComponentConfig();
     $this->installEntitySchema('node');
     $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
@@ -889,6 +889,17 @@ activation="auto">
       'field_canvas_test' => $component_item_value,
     ]);
     $canvas_field_item = $node->field_canvas_test[0];
+    if ($permissions !== NULL) {
+      // If we are setting permissions to check access, we need to save the node,
+      // but we cannot use $permissions for the user saving the node because we
+      // may be testing insufficient permissions. So we temporarily set a user with
+      // 'access content' permission to save the node, then use the permissions
+      // we are testing with.
+      $this->setUpCurrentUser(permissions: ['access content']);
+      $node->save();
+      $this->setUpCurrentUser(permissions: $permissions);
+    }
+
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);
     $actual_props = array_combine(
       array_keys($expected_props_for_uuids),
@@ -926,6 +937,59 @@ activation="auto">
           'height' => 402,
         ],
       ],
+    ];
+    $hero_with_dynamic_sources = [
+      'uuid' => 'partly-dynamic-hero',
+      'component_id' => 'sdc.canvas_test_sdc.my-hero',
+      'component_version' => '888412021fbcc837',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'hello, world!',
+          'expression' => 'ℹ︎string␟value',
+        ],
+        'subheading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+        ],
+        'cta1href' => [
+          'sourceType' => 'static:field_item:uri',
+          'value' => 'https://drupal.org',
+          'expression' => 'ℹ︎uri␟value',
+        ],
+        'cta1' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+        ],
+      ],
+    ];
+    $test_cases['values values, dynamic sources WITH access'] = [
+      [
+        $hero_with_dynamic_sources,
+      ],
+      [
+        'partly-dynamic-hero' => [
+          'heading' => 'hello, world!',
+          'subheading' => 'Test node',
+          'cta1href' => 'https://drupal.org',
+          'cta1' => 'Test node',
+        ],
+      ],
+      ['access content'],
+    ];
+    $test_cases['values values, dynamic sources WITHOUT access'] = [
+      [
+        $hero_with_dynamic_sources,
+      ],
+      [
+        'partly-dynamic-hero' => [
+          'heading' => 'hello, world!',
+          'subheading' => NULL,
+          'cta1href' => 'https://drupal.org',
+          'cta1' => NULL,
+        ],
+      ],
+      [],
     ];
     return $test_cases;
   }
