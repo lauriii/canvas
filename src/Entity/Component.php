@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -493,20 +494,26 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * @see \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
    */
   public function onDependencyRemoval(array $dependencies): bool {
-    // If only module and theme dependencies are being removed, there's nothing
-    // to do: this Component cannot work any longer. So rely on the default
+    // If only module dependencies are being removed, there's nothing to do:
+    // this Component cannot work any longer. So rely on the default
     // behavior of the config system: allow this to be deleted.
-    // Note: The removal of module/theme dependencies is prevented by an
+    // Note: The removal of module dependencies is prevented by an
     // uninstall validator. So this should only be possible by using force.
     // @see \Drupal\canvas\ComponentDependencyUninstallValidator
-    if (empty($dependencies['config'] ?? []) && empty($dependencies['content'] ?? [])) {
+    // For themes, no uninstall validators exist in core,
+    // so we need to avoid new instances and rely on fallbacks
+    // by disabling the component entities instead of removing them.
+    // @todo Write an uninstall validator instead when Drupal Core's issue
+    //   https://www.drupal.org/i/3550019 is fixed and remove the check for
+    //   theme dependencies.
+    if (empty($dependencies['config'] ?? []) && empty($dependencies['theme'] ?? []) && empty($dependencies['content'] ?? [])) {
       return parent::onDependencyRemoval($dependencies);
     }
 
     // When it is affected, then if there's 0 component instances using it, still
     // there is nothing to do, because none of Drupal Canvas's config
     // entities are affected, nor are any Canvas fields on content entities.
-    if (!\Drupal::service(ComponentAudit::class)->hasUsages($this)) {
+    if (!\Drupal::service(ComponentAudit::class)->hasUsages($this, RevisionAuditEnum::All) && !\Drupal::service(ComponentAudit::class)->hasUsages($this, RevisionAuditEnum::AutoSave)) {
       return parent::onDependencyRemoval($dependencies);
     }
 

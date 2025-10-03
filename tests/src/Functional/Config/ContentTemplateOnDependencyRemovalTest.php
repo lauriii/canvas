@@ -16,7 +16,7 @@ use Drupal\Tests\canvas\Functional\FunctionalTestBase;
  *
  * @group canvas
  */
-final class ContentTemplateDependencyTest extends FunctionalTestBase {
+final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
 
   /**
    * {@inheritdoc}
