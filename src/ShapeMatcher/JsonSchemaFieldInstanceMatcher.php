@@ -514,9 +514,16 @@ final class JsonSchemaFieldInstanceMatcher {
             if (array_key_exists('FileExtension', $file_entity_constraints)) {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
+              try {
+                $mime_type = $this->fileExtensionsToTargetContentMediaType(explode(' ', $file_entity_constraints['FileExtension']['extensions']));
+              }
+              catch (\OutOfRangeException) {
+                // @todo Try to remove this try/catch in https://www.drupal.org/i/3524130
+                continue;
+              }
               $transformed_property_data_definition = clone $property_definition;
               $transformed_property_data_definition->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, [
-                'mimeType' => $this->fileExtensionsToTargetContentMediaType(explode(' ', $file_entity_constraints['FileExtension']['extensions'])),
+                'mimeType' => $mime_type,
               ]);
               $property_definition = $transformed_property_data_definition;
             }
@@ -589,7 +596,11 @@ final class JsonSchemaFieldInstanceMatcher {
     // distant future; JSON Schema doesn't allow this either.
     // @see https://json-schema.org/understanding-json-schema/reference/non_json_data#contentmediatype-and-contentencoding
     if (count(array_unique($mime_media_type_names)) > 1) {
-      throw new \OutOfRangeException();
+      // @todo Add support for this when adding support for linking documents in https://www.drupal.org/i/3524130
+      throw new \OutOfRangeException(sprintf("The file extensions `%s` correspond to more than one MIME media type (`%s`), this is not yet supported.",
+        implode(', ', $extensions),
+        implode(', ', array_unique($mime_media_type_names))
+      ));
     }
     $target_content_media_type = sprintf("%s/*", array_unique($mime_media_type_names)[0]);
     assert(UriTargetMediaTypeConstraint::isValidWildCard($target_content_media_type));
