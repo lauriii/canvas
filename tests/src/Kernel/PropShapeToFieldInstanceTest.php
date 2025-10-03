@@ -37,6 +37,8 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  * @see docs/data-model.md
  * @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest
  * @group canvas
+ *
+ * @phpstan-type ShapeMatchingResults array{'SDC props': non-empty-list<string>, 'static prop source': null|string, instances: string[], adapter_matches_field_type: string[], adapter_matches_instance: string[]}
  */
 class PropShapeToFieldInstanceTest extends KernelTestBase {
 
@@ -200,6 +202,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
     assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
 
+    /** @var array<string,ShapeMatchingResults> $matches */
     $matches = [];
     $components = $sdc_manager->getAllComponents();
     // Shape matching is only ever relevant to SDCs that may appear in the UI,
@@ -241,9 +244,21 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           $prop_shape->uniquePropSchemaKey(),
         );
 
+        if (!\array_key_exists($unique_match_key, $matches)) {
+          $matches[$unique_match_key] = [
+            'SDC props' => [],
+            'static prop source' => [],
+            'instances' => [],
+            'adapter_matches_field_type' => [],
+            'adapter_matches_instance' => [],
+          ];
+        }
+
+        // Track every SDC prop that has this shape.
         $matches[$unique_match_key]['SDC props'][] = $cpe_string;
 
-        if (isset($matches[$unique_match_key]['static prop source'])) {
+        // Only perform shape matching once per shape.
+        if (!empty($matches[$unique_match_key]['static prop source'])) {
           continue;
         }
 
@@ -313,7 +328,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
   }
 
   /**
-   * @return array<string, array{'modules': string[], 'expected': array<string, array<mixed>>}>
+   * @return array<string, array{'modules': string[], 'expected': array<string, ShapeMatchingResults>}>
    */
   public static function provider(): array {
     $cases = [];
@@ -1793,6 +1808,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
       ],
     ];
 
+    // @phpstan-ignore-next-line
     return $cases;
   }
 

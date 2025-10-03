@@ -576,14 +576,14 @@ HTML,
             'component' => 'sdc.canvas_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
-              'the_footer' => 'Example value for <strong>the_footer</strong>.',
-              'the_colophon' => '',
               'the_body' => [
                 '3b305d86-86a7-4684-8664-7ef1fc2be070' => [
                   'component' => 'sdc.canvas_test_sdc.props-no-slots',
                   'props' => ['heading' => 'Hello, from a slot!'],
                 ],
               ],
+              'the_footer' => 'Example value for <strong>the_footer</strong>.',
+              'the_colophon' => '',
             ],
           ],
         ],
@@ -610,10 +610,6 @@ HTML,
                 'canvas_is_preview' => FALSE,
               ],
               '#slots' => [
-                'the_footer' => [
-                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                ],
-                'the_colophon' => ['#plain_text' => ''],
                 'the_body' => [
                   '3b305d86-86a7-4684-8664-7ef1fc2be070' => [
                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
@@ -644,6 +640,10 @@ HTML,
                     ],
                   ],
                 ],
+                'the_footer' => [
+                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                ],
+                'the_colophon' => ['#plain_text' => ''],
               ],
               '#prefix' => Markup::create('<!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#suffix' => Markup::create('<!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
@@ -762,22 +762,16 @@ HTML,
             'component' => 'sdc.canvas_test_sdc.props-slots',
             'props' => ['heading' => 'Hello, world!'],
             'slots' => [
-              'the_footer' => 'Example value for <strong>the_footer</strong>.',
-              'the_colophon' => '',
               'the_body' => [
                 'dfd2e899-6d88-46f8-b6aa-98929d1586dd' => [
                   'component' => 'sdc.canvas_test_sdc.props-slots',
                   'props' => ['heading' => 'Hello, from slot level 1!'],
                   'slots' => [
-                    'the_footer' => 'Example value for <strong>the_footer</strong>.',
-                    'the_colophon' => '',
                     'the_body' => [
                       'e0b92f23-c177-4196-8fa4-3e837f99a357' => [
                         'component' => 'sdc.canvas_test_sdc.props-slots',
                         'props' => ['heading' => 'Hello, from slot level 2!'],
                         'slots' => [
-                          'the_footer' => 'Example value for <strong>the_footer</strong>.',
-                          'the_colophon' => '',
                           'the_body' => [
                             '81c63cac-187d-4f05-8acc-1c38fb2489d3' => [
                               'component' => 'sdc.canvas_test_sdc.props-no-slots',
@@ -812,12 +806,18 @@ HTML,
                               'props' => ['heading' => 'Hello, from slot <LAST ONE>!'],
                             ],
                           ],
+                          'the_footer' => 'Example value for <strong>the_footer</strong>.',
+                          'the_colophon' => '',
                         ],
                       ],
                     ],
+                    'the_footer' => 'Example value for <strong>the_footer</strong>.',
+                    'the_colophon' => '',
                   ],
                 ],
               ],
+              'the_footer' => 'Example value for <strong>the_footer</strong>.',
+              'the_colophon' => '',
             ],
           ],
         ],
@@ -845,10 +845,6 @@ HTML,
                 'canvas_is_preview' => FALSE,
               ],
               '#slots' => [
-                'the_footer' => [
-                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                ],
-                'the_colophon' => ['#plain_text' => ''],
                 'the_body' => [
                   'dfd2e899-6d88-46f8-b6aa-98929d1586dd' => [
                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
@@ -870,14 +866,6 @@ HTML,
                         'canvas_is_preview' => FALSE,
                       ],
                       '#slots' => [
-                        'the_footer' => [
-                          // This string is the first example value for this slot.
-                          '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                        ],
-                        'the_colophon' => [
-                          // This slot has no example value defined.
-                          '#plain_text' => '',
-                        ],
                         'the_body' => [
                           'e0b92f23-c177-4196-8fa4-3e837f99a357' => [
                             '#type' => RenderSafeComponentContainer::PLUGIN_ID,
@@ -899,10 +887,6 @@ HTML,
                                 'canvas_is_preview' => FALSE,
                               ],
                               '#slots' => [
-                                'the_footer' => [
-                                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
-                                ],
-                                'the_colophon' => ['#plain_text' => ''],
                                 'the_body' => [
                                   '81c63cac-187d-4f05-8acc-1c38fb2489d3' => [
                                     '#type' => RenderSafeComponentContainer::PLUGIN_ID,
@@ -1164,6 +1148,10 @@ HTML,
                                     ],
                                   ],
                                 ],
+                                'the_footer' => [
+                                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                                ],
+                                'the_colophon' => ['#plain_text' => ''],
                               ],
                               '#prefix' => Markup::create('<!-- canvas-start-e0b92f23-c177-4196-8fa4-3e837f99a357 -->'),
                               '#suffix' => Markup::create('<!-- canvas-end-e0b92f23-c177-4196-8fa4-3e837f99a357 -->'),
@@ -1174,6 +1162,14 @@ HTML,
                               ],
                             ],
                           ],
+                        ],
+                        'the_footer' => [
+                          // This string is the first example value for this slot.
+                          '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                        ],
+                        'the_colophon' => [
+                          // This slot has no example value defined.
+                          '#plain_text' => '',
                         ],
                       ],
                       '#prefix' => Markup::create('<!-- canvas-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd -->'),
@@ -1186,6 +1182,10 @@ HTML,
                     ],
                   ],
                 ],
+                'the_footer' => [
+                  '#plain_text' => 'Example value for <strong>the_footer</strong>.',
+                ],
+                'the_colophon' => ['#plain_text' => ''],
               ],
               '#prefix' => Markup::create('<!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 -->'),
               '#suffix' => Markup::create('<!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->'),

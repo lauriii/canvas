@@ -451,6 +451,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $source->getExplicitInput($uuid, $item),
         $component->getSlotDefinitions(),
       );
+      \assert(!array_key_exists('slots', $hydrated[$uuid]) || is_array($hydrated[$uuid]['slots']));
     }
 
     // Transform the flat list of hydrated components into a hydrated component
@@ -461,13 +462,16 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($parent_uuid === self::ROOT_UUID) {
         continue;
       }
-      assert(array_key_exists('slots', $hydrated[$parent_uuid]));
+      \assert(array_key_exists('slots', $hydrated[$parent_uuid]) && is_array($hydrated[$parent_uuid]['slots']));
 
       // Remove default slot value: this slot is populated.
       if (\array_key_exists($slot, $hydrated[$parent_uuid]['slots']) && \is_string($hydrated[$parent_uuid]['slots'][$slot])) {
-        unset($hydrated[$parent_uuid]['slots'][$slot]);
+        $hydrated[$parent_uuid]['slots'][$slot] = [];
       }
 
+      // @phpstan-ignore-next-line
+      \assert(!array_key_exists($uuid, $hydrated[$parent_uuid]['slots'][$slot]));
+      // @phpstan-ignore-next-line
       $hydrated[$parent_uuid]['slots'][$slot][$uuid] = $hydrated[$uuid];
       unset($hydrated[$uuid]);
     }
