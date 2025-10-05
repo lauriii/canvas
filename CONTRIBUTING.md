@@ -27,10 +27,10 @@ After this process, you will get the `drush uli` to login into the admin area. Y
 
 ### Usage
 The most common commands in the development process are:
-1. `ddev canvas-site-install`: This will reinstall the site and enable a couple of commands. Very useful when you update Canvas and what to have a fresh installation.
-2. `ddev canvas-ui-build`: This will build the `canvas/ui` javascript application. Required whenever you update Canvas.
-3. Tests and linting: The commands `canvas-eslint`, `canvas-fix`, `canvas-phpcs`, `canvas-phpstan` and `canvas-phpunit` must be used before any commit to ensure code looks good and pass tests.
-4. More commands with `ddev | grep canvas-` and in the [ddev-drupal-canvas-dev repo usage](https://github.com/drupal-canvas/ddev-drupal-canvas-dev#usage).
+1. `ddev xb-site-install`: This will reinstall the site and enable a couple of commands. Very useful when you update Canvas and what to have a fresh installation.
+2. `ddev xb-ui-build`: This will build the `canvas/ui` javascript application. Required whenever you update Canvas.
+3. Tests and linting: The commands `xb-eslint`, `xb-fix`, `xb-phpcs`, `xb-phpstan` and `xb-phpunit` must be used before any commit to ensure code looks good and pass tests.
+4. More commands with `ddev | grep xb-` and in the [ddev-drupal-xb-dev repo usage](https://github.com/drupal-xb/ddev-xb-canvas-dev#usage).
 
 Tip: Use `ddev help <command>` for additional information about the command and arguments available.
 
@@ -107,9 +107,9 @@ If you press & hold the `V` key and then click on the iFrame (focusing into it),
 You can then click (focus) outside the iFrame and tap the `V` key once more to return the UI.
 
 ## 2. Always start from a fresh start
-1. Reinstall the site frequently (`ddev canvas-site-install`).
+1. Reinstall the site frequently (`ddev xb-site-install`).
 2. If you're working with sqlite, delete the database frequently (`rm web/sites/default/.ht.sqlite`).
-3. Build the UI frequently (`ddev canvas-ui-build`).
+3. Build the UI frequently (`ddev xb-ui-build`).
 
 # Releases
 
