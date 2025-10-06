@@ -69,7 +69,10 @@ export interface LayoutModelPiece {
   model: ComponentModels;
 }
 
-export type ComponentModels = Record<string, ComponentModel>;
+export type ComponentModels = Record<
+  string,
+  ComponentModel | EvaluatedComponentModel
+>;
 
 export interface LayoutModelSliceState extends RootLayoutModel {
   updatePreview: boolean;
@@ -657,7 +660,9 @@ export const updateExistingComponentValues =
     const [selectedComponentType, version] = (
       node ? (node.type as string) : 'noop'
     ).split('@');
+
     const componentMetadata = components[selectedComponentType];
+    // Exit early if attempting to update a prop that does not exist.
     Object.keys(values).forEach((key) => {
       if (!componentMetadata?.propSources?.[key]) {
         console.warn(
@@ -667,55 +672,132 @@ export const updateExistingComponentValues =
       }
     });
 
+    // Resolved will be updated in all cases.
     const resolved = {
       ...model.resolved,
       ...values,
     };
 
     const type = selectEditorFrameContext(state);
+    const valuePayload = {
+      type,
+      componentInstanceUuid: componentToUpdateId,
+      componentType: `${selectedComponentType}@${version}`,
+      model: {
+        ...model,
+        resolved,
+      },
+    };
+
+    // If the model includes source data, the model value needs to be processed
+    // to account for that.
     if (isEvaluatedComponentModel(model) && componentMetadata) {
-      const source = {
+      const updatedSource = {
         ...model.source,
         ...sources,
       };
-      const valuePayload = {
-        type,
-        componentInstanceUuid: componentToUpdateId,
-        componentType: `${selectedComponentType}@${version}`,
-        model: {
-          source: syncPropSourcesToResolvedValues(
-            source,
-            componentMetadata,
-            resolved,
-          ),
+
+      valuePayload.model = {
+        source: syncPropSourcesToResolvedValues(
+          updatedSource,
+          componentMetadata,
           resolved,
-        },
+        ),
+        resolved,
       };
-      await dispatch(
-        previewApi.endpoints.updateComponent.initiate(valuePayload, {
-          fixedCacheKey: componentToUpdateId,
-        }),
-      );
-    } else {
-      const valuePayload = {
-        type,
-        componentInstanceUuid: componentToUpdateId,
-        componentType: `${selectedComponentType}@${version}`,
-        model: {
-          ...model,
-          resolved,
-        },
-      };
-      await dispatch(
-        previewApi.endpoints.updateComponent.initiate(valuePayload, {
-          fixedCacheKey: componentToUpdateId,
-        }),
-      );
     }
+    await dispatch(
+      previewApi.endpoints.updateComponent.initiate(valuePayload, {
+        fixedCacheKey: componentToUpdateId,
+      }),
+    );
+
+    // If resetSelection is not undefined, it means a component was deselected
+    // before it's values were updated, and should be re-selected now that the
+    // update is complete.
     if (resetSelection) {
       componentSelectionUtils.setSelectedComponent(resetSelection);
     }
   };
+
+// @todo this is very similar to updateExistingComponentValues, but it
+// eliminates the step of temporarily clearing the selection while updates
+// occur.
+// Ideally, updateExistingComponentValues could use this approach as well, but
+// it does not fully work in non prop-linking scenarios.
+// @see https://drupal.org/i/3549318
+export const _updateExistingComponentValuesForLinking =
+  (payload: any): AppThunk =>
+  async (dispatch, getState) => {
+    const state = getState();
+    const components: ComponentsList | undefined = state?.componentAndLayoutApi
+      ?.queries?.['getComponents(undefined)']?.data as
+      | ComponentsList
+      | undefined;
+    if (!components) {
+      console.warn('No components list found, cannot update component values.');
+      return;
+    }
+
+    const { values, componentToUpdateId, sources = {} } = payload;
+
+    const layout = selectLayout(state);
+    const model = selectModel(state)[componentToUpdateId];
+    const node = findComponentByUuid(layout, componentToUpdateId);
+    const [selectedComponentType, version] = (
+      node ? (node.type as string) : 'noop'
+    ).split('@');
+    const componentMetadata = components[selectedComponentType];
+    // Exit early if attempting to update a prop that does not exist.
+    Object.keys(values).forEach((key) => {
+      if (!componentMetadata?.propSources?.[key]) {
+        console.warn(
+          `Component ${selectedComponentType} does not have a prop named ${key}. Update cancelled.`,
+        );
+        return;
+      }
+    });
+
+    // Resolved will be updated in all cases.
+    const resolved = {
+      ...model.resolved,
+      ...values,
+    };
+
+    const type = selectEditorFrameContext(state);
+    const valuePayload = {
+      type,
+      componentInstanceUuid: componentToUpdateId,
+      componentType: `${selectedComponentType}@${version}`,
+      model: {
+        ...model,
+        resolved,
+      },
+    };
+
+    // If the model includes source data, the model value needs to be processed
+    // to account for that.
+    if (isEvaluatedComponentModel(model) && componentMetadata) {
+      const updatedSource = {
+        ...model.source,
+        ...sources,
+      };
+      valuePayload.model = {
+        source: syncPropSourcesToResolvedValues(
+          updatedSource,
+          componentMetadata,
+          resolved,
+        ),
+        resolved,
+      };
+    }
+    await dispatch(
+      previewApi.endpoints.updateComponent.initiate(valuePayload, {
+        fixedCacheKey: componentToUpdateId,
+      }),
+    );
+  };
+
 export const addNewPatternToLayout =
   (payload: AddNewPatternPayload, setSelectedComponent: Function): AppThunk =>
   (dispatch, getState) => {

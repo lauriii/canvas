@@ -1,5 +1,11 @@
+import { useEffect, useRef } from 'react';
+import { debounce } from 'lodash';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { InputBehaviorsCommon } from '@/components/form/inputBehaviors';
+import {
+  DEBOUNCE_TIMEOUT,
+  InputBehaviorsCommon,
+} from '@/components/form/inputBehaviors';
 import { FORM_TYPES } from '@/features/form/constants';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
@@ -69,6 +75,16 @@ export const InputBehaviorsEntityForm = (
     dispatch(setUpdatePreview(true));
     dispatch(setPageData(values));
   };
+
+  const debounceFormStateToStore = useRef(
+    debounce(formStateToStore, DEBOUNCE_TIMEOUT),
+  ).current;
+  useEffect(() => {
+    return () => {
+      // Cancel any pending debounced calls when the component unmounts.
+      debounceFormStateToStore.cancel();
+    };
+  }, [debounceFormStateToStore]);
 
   const parseNewValue = (e: React.ChangeEvent) => {
     const target = e.target as HTMLInputElement;
@@ -143,13 +159,22 @@ export const InputBehaviorsEntityForm = (
     });
   }
 
+  const commitFormState = (newFormState: PropsValues) => {
+    const elementType = attributes.type || attributes['data-canvas-type'];
+    if (['checkbox', 'radio'].includes(elementType as string)) {
+      formStateToStore(newFormState);
+    } else {
+      debounceFormStateToStore(newFormState);
+    }
+  };
+
   return (
     <InputBehaviorsCommon
       key={`${attributes?.name}-${latestUndoRedoActionId}`}
       OriginalInput={OriginalInput}
       props={props}
       callbacks={{
-        commitFormState: formStateToStore,
+        commitFormState,
         parseNewValue,
         validateNewValue,
       }}

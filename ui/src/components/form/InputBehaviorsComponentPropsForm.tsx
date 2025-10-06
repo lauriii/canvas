@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { debounce } from 'lodash';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useComponentTransforms } from '@/components/ComponentInstanceForm';
@@ -12,6 +13,7 @@ import {
   validateProp,
 } from '@/components/form/formUtil';
 import {
+  DEBOUNCE_TIMEOUT,
   InputBehaviorsCommon,
   POLLED_BACKGROUND_TIMEOUT,
 } from '@/components/form/inputBehaviors';
@@ -86,18 +88,15 @@ export const InputBehaviorsComponentPropsForm = (
   const isScalarProp = ['number', 'integer', 'string', 'boolean'].includes(
     component?.propSources?.[propName]?.jsonSchema?.type as string,
   );
-  // We don't debounce updates for code components where the prop is scalar -
-  // but all other components/props should be debounced to avoid thrashing the
-  // server with multiple PATCH requests.
-  const shouldDebounce =
-    !isScalarProp ||
-    components?.[selectedComponentType]?.source !== 'Code component';
 
-  const formStateToStore = (newFormState: PropsValues) => {
+  const formStateToStore = (
+    newFormState: PropsValues,
+    newInputAndUiData: InputUIData,
+  ) => {
     // Apply (client-side) transforms for form state.
     const { propsValues: values, selectedModel } = getPropsValues(
       newFormState,
-      inputAndUiData,
+      newInputAndUiData,
       // If transforms are not available (typically because TransformsContext is
       // not available to the input), fall back to the transforms stored in the
       // global window object.
@@ -198,6 +197,16 @@ export const InputBehaviorsComponentPropsForm = (
     });
   };
 
+  const debounceFormStateToStore = useRef(
+    debounce(formStateToStore, DEBOUNCE_TIMEOUT),
+  ).current;
+  useEffect(() => {
+    return () => {
+      // Cancel any pending debounced calls when the component unmounts.
+      debounceFormStateToStore.cancel();
+    };
+  }, [debounceFormStateToStore]);
+
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
@@ -276,13 +285,29 @@ export const InputBehaviorsComponentPropsForm = (
     }
   }
 
+  const commitFormState = (newFormState: PropsValues) => {
+    const elementType = attributes.type || attributes['data-canvas-type'];
+
+    // We don't debounce updates for code components where the prop is scalar -
+    // but all other components/props should be debounced to avoid thrashing the
+    // server with multiple PATCH requests.
+    const shouldDebounce =
+      !isScalarProp ||
+      components?.[selectedComponentType]?.source !== 'Code component' ||
+      !['checkbox', 'radio'].includes(elementType as string);
+    if (shouldDebounce) {
+      debounceFormStateToStore(newFormState, inputAndUiData);
+    } else {
+      formStateToStore(newFormState, inputAndUiData);
+    }
+  };
+
   return (
     <InputBehaviorsCommon
       OriginalInput={OriginalInput}
       props={{ ...props, ...propsOverrides }}
-      shouldDebounce={shouldDebounce}
       callbacks={{
-        commitFormState: formStateToStore,
+        commitFormState,
         parseNewValue,
         validateNewValue,
       }}

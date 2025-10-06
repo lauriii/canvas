@@ -5,9 +5,9 @@ import { DropdownMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  _updateExistingComponentValuesForLinking,
   isEvaluatedComponentModel,
   selectModel,
-  updateExistingComponentValues,
 } from '@/features/layout/layoutModelSlice';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 
@@ -57,7 +57,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
   const [linkerOpen, setLinkerOpen] = useState(false);
   const handleFieldClick = (value: LinkSuggestion) => {
     dispatch(
-      updateExistingComponentValues({
+      _updateExistingComponentValuesForLinking({
         componentToUpdateId: selectedComponentId,
         values: {
           [propName]: 'noop',
