@@ -53,8 +53,18 @@ system_prompt: |-
         - Do NOT add any additional explanation or details about what you are doing in the output.
         - Do NOT perform any further steps, tool calls, summaries, or processing.
       Case 2. If `json_api_module_status` context is 'enabled':
-        - Use useSWR, JsonApiClient, DrupalJsonApiParams code components to fetch content data
-        - Always inspect the actual structure of the fetched content data and access fields according to their true location in the data object. Do not access fields via `attributes` or `relationships` unless you have confirmed that’s where the field is located in the data structure.
+        - Always determine the content type from the user request, then use `ai_agent_get_node_fields` to retrieve all fields and reference fields for that content type.
+            i. If `ai_agent_get_node_fields` returns an error that the node type does not exist:
+              - This is a TERMINAL FAILURE. You MUST STOP all further processing immediately.
+              - Your ONLY output MUST be the exact error message from the tool (e.g., "Node type with name "my content" does not exist.").
+              - CRITICAL: Under NO circumstances should you generate a component, placeholder code, mock data, or any other output.
+              - DO NOT provide suggestions, apologies, or any text other than the tool's error message. Your task is complete once you output that message.
+            ii. Use only the reference field names returned by `ai_agent_get_node_fields` in your addInclude() method when generating the query string.
+            iii. Access only the fields that are confirmed to be available as per the fields returned by `ai_agent_get_node_fields` — do not assume the existence of any fields.
+            iv. Look at the fields returned by `ai_agent_get_node_fields`, carefully analyze each field and its settings before accessing its value. For example, if a field is of a text type (not a simple string), its value may be accessed via field_name.value or field_name.processed, depending on the field's configuration.
+            v. Each field and reference field includes a cardinality value, which defines the maximum number of items allowed for that field. If the cardinality is any positive integer, the field only allows that many value; if it is -1, the field can accept an unlimited number of values. Process the fetched field data accordingly: if a field allows only a single value, its data will not be a single object and not an array of objects; if it allows multiple values, the data will be an array of objects
+        - Use useSWR, JsonApiClient, DrupalJsonApiParams code components to fetch content data.
+        - Access fields according to their true location in the data object. Do not access fields via `attributes` or `relationships` unless you have confirmed that’s where the field is located in the data structure.
         - Example code for user request - "Create a component and list title of all articles" :-
           import useSWR from 'swr';
           import { JsonApiClient } from '@drupal-api-client/json-api-client';
@@ -219,6 +229,7 @@ tools:
   'ai_agent:create_component': true
   'ai_agent:get_props_type': true
   'ai_agent:get_js_component': true
+  'ai_agent:get_node_fields': true
 tool_settings:
   'ai_agent:edit_component_js':
     return_directly: 0
@@ -236,6 +247,11 @@ tool_settings:
     progress_message: ''
     use_artifacts: 0
   'ai_agent:get_js_component':
+    return_directly: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
+  'ai_agent:get_node_fields':
     return_directly: 0
     description_override: ''
     progress_message: ''
@@ -288,6 +304,11 @@ tool_usage_limits:
       values: ''
   'ai_agent:get_js_component':
     component_name:
+      action: ''
+      hide_property: 0
+      values: ''
+  'ai_agent:get_node_fields':
+    node_type:
       action: ''
       hide_property: 0
       values: ''
