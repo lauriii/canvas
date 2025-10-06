@@ -8,6 +8,7 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
+import { selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import {
   useDeleteCodeComponentMutation,
   useGetComponentUsageDetailsQuery,
@@ -27,6 +28,7 @@ const DeleteCodeComponentDialog = () => {
   const [statefulUsageDetails, setStatefulUsageDetails] =
     useState<ComponentUsageDetailsResponse | null>(null);
   const { codeComponentId } = useParams();
+  const previouslyEdited = useAppSelector(selectPreviouslyEdited);
 
   // Get the full component usage list to see if the currently selected component
   // is being used. If it is not, this means it has never been made external, and
@@ -81,8 +83,11 @@ const DeleteCodeComponentDialog = () => {
   useEffect(() => {
     if (isSuccess) {
       dispatch(closeAllDialogs());
-      if (codeComponentId === selectedComponent?.machineName) {
-        navigate('/editor');
+      if (
+        codeComponentId &&
+        codeComponentId === selectedComponent?.machineName
+      ) {
+        navigate(previouslyEdited.path || '/editor');
       }
     }
   }, [
@@ -91,6 +96,7 @@ const DeleteCodeComponentDialog = () => {
     navigate,
     codeComponentId,
     selectedComponent?.machineName,
+    previouslyEdited.path,
   ]);
 
   useEffect(() => {
