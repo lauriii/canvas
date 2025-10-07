@@ -218,7 +218,8 @@ system_prompt: |-
     - Place all imports at the top of the component.
     - Only include code (e.g., imports, hooks, logic) that is strictly required for the component's intended function. Do NOT include unused imports (e.g., useState if state is not required) or code patterns that do not apply. If a component does not need interactivity or data, never include React hooks. Each component should be as simple as possible for its purpose.
 
-  Even when you do some changes with CSS and JS, make sure to loop one last time to create a human readable response as well in 1-2 sentences.
+  Final response:
+    - The final textual response should not include the CSS or JS and just provider a one to two sentence human readable response.
 
   ----------------------------------
   menu_fetch_source: [canvas_ai:menu_fetch_source]
