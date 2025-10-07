@@ -1,5 +1,4 @@
-import { ExternalLinkIcon } from '@radix-ui/react-icons';
-import { Flex, Grid, Link } from '@radix-ui/themes';
+import { Flex, Grid } from '@radix-ui/themes';
 
 import ExtensionButton from '@/components/extensions/ExtensionButton';
 import {
@@ -7,7 +6,6 @@ import {
   getCanvasSettings,
   getDrupalSettings,
 } from '@/utils/drupal-globals';
-import { handleNonWorkingBtn } from '@/utils/function-utils';
 
 import type React from 'react';
 
@@ -46,20 +44,6 @@ const ExtensionsListDisplay: React.FC<ExtensionsListDisplayProps> = ({
 }) => {
   return (
     <>
-      <Flex justify="end" asChild pb="2">
-        <Link
-          size="1"
-          href=""
-          target="_blank"
-          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault();
-            handleNonWorkingBtn();
-          }}
-        >
-          Browse extensions&nbsp; <ExternalLinkIcon />
-        </Link>
-      </Flex>
-
       {extensions.length > 0 && (
         <Grid columns="2" gap="3">
           {extensions.map((extension) => (
