@@ -421,6 +421,10 @@ const AiWizard = () => {
     (state) => state?.layoutModel?.present as LayoutModelSliceState,
   );
 
+  const selectedComponent = useAppSelector(
+    (state) => state.ui.selection.items[0],
+  );
+
   // Create a ref to store current values for Deep Chat's connect prop.
   // Accessing these ensures we're working with fresh values even after the Deep
   // Chat component has been mounted.
@@ -430,6 +434,7 @@ const AiWizard = () => {
     pageData,
     params,
     theLayoutModel,
+    selectedComponent,
   });
 
   // Update the ref whenever tracked values change.
@@ -440,16 +445,21 @@ const AiWizard = () => {
       pageData,
       params,
       theLayoutModel,
+      selectedComponent,
     };
-  }, [codeComponentName, textPropsMapString, pageData, params, theLayoutModel]);
+  }, [
+    codeComponentName,
+    textPropsMapString,
+    pageData,
+    params,
+    selectedComponent,
+    theLayoutModel,
+  ]);
   // Access layoutUtils and componentSelectionUtils from drupalSettings.canvas
   const layoutUtils = drupalSettings.canvas?.layoutUtils as any;
   const componentSelectionUtils = drupalSettings.canvas
     ?.componentSelectionUtils as any;
 
-  const selectedComponent = useAppSelector(
-    (state) => state.ui.selection.items[0],
-  );
   const { data: availableComponents } = useGetComponentsQuery();
   const componentsRef = useRef<any>(null);
 
@@ -748,7 +758,8 @@ const AiWizard = () => {
                     selected_component:
                       currentValuesRef.current.codeComponentName,
                     layout: currentValuesRef.current.textPropsMapString,
-                    active_component_uuid: selectedComponent ?? '',
+                    active_component_uuid:
+                      currentValuesRef.current.selectedComponent ?? '',
                     current_layout: transformLayout(),
                     derived_proptypes: fixtureProps,
                     page_title:
