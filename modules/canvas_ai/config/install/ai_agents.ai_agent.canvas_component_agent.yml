@@ -170,6 +170,7 @@ system_prompt: |-
     return <Image src={src} alt={alt} width={width} height={height} /> // Use ONLY <Image>.
   }
 
+  - Note that while next-image-standalone can be imported, other Next.js components are not available.
   - The id can be the same as the prop name or a UUID if needed.
   - Always provide this props metadata array as a separate part of the response, alongside the updated JS/CSS code.
   - This metadata must reflect all and only the props defined in the component function signature.
