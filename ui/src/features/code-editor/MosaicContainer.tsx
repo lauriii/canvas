@@ -7,7 +7,7 @@ import type { MosaicNode } from 'react-mosaic-component';
 
 import './canvas-react-mosaic-component.css';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LayoutIcon } from '@radix-ui/react-icons';
 import { Box, Button, ScrollArea, Tabs } from '@radix-ui/themes';
 
@@ -30,6 +30,11 @@ import Preview from '@/features/code-editor/Preview';
 import ConflictWarning from '@/features/editor/ConflictWarning';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import { openAddToComponentsDialog } from '@/features/ui/codeComponentDialogSlice';
+import {
+  setActivePanel,
+  setManageLibraryTab,
+  unsetActivePanel,
+} from '@/features/ui/primaryPanelSlice';
 
 const defaultLayout: MosaicNode<string> = {
   direction: 'row',
@@ -64,6 +69,19 @@ const MosaicContainer = () => {
   const latestError = useAppSelector(selectLatestError);
 
   const { isLoading } = useCodeEditor();
+
+  /**
+   * Set the active panel to "manageLibrary" and tab to "code" when the code editor loads
+   * Close the panel when it unloads.
+   */
+  useEffect(() => {
+    dispatch(setActivePanel('manageLibrary'));
+    dispatch(setManageLibraryTab('code'));
+    return () => {
+      dispatch(unsetActivePanel());
+      dispatch(setManageLibraryTab('components'));
+    };
+  }, [dispatch]);
 
   // Check for conflict errors (same as Editor.tsx)
   if (latestError && latestError.status === '409') {

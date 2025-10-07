@@ -35,18 +35,21 @@ export enum LayoutItemType {
 const savedState = loadSavedState();
 
 const initialState: PrimaryPanelState = {
-  activePanel: savedState.activePanel || 'layers',
+  activePanel: savedState.activePanel || '',
   isHidden: false,
   aiPanelOpen: false,
   manageLibraryTab: null,
 };
 
 // Temporary workaround to persist primary panel state when switching between entities until
-// we can use routing without full page reloads.
+// we can use routing without full page reloads. It only remembers 'pages' or 'templates' as the active panel.
 const saveToLocalStorage = (state: PrimaryPanelState) => {
   try {
     const dataToSave = {
-      activePanel: state.activePanel,
+      activePanel:
+        state.activePanel === 'templates' || state.activePanel === 'pages'
+          ? state.activePanel
+          : '',
     };
     localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(dataToSave));
   } catch (e) {

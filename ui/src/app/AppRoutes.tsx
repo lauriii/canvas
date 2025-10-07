@@ -31,6 +31,15 @@ interface AppRoutesInterface {
   basePath: string;
 }
 
+const UiShell = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <SideMenu />
+    <PrimaryPanel />
+    {children}
+    <Dialogs />
+  </>
+);
+
 const CodeEditorUi = (
   <PermissionCheck
     hasPermission="codeComponents"
@@ -43,10 +52,9 @@ const CodeEditorUi = (
       </Flex>
     }
   >
-    <SideMenu />
-    <PrimaryPanel />
-    <MosaicContainer />
-    <CodeComponentDialogs />
+    <UiShell>
+      <MosaicContainer />
+    </UiShell>
   </PermissionCheck>
 );
 
@@ -70,23 +78,27 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             index: true, // base path
             element:
               basePath === '/canvas' ? (
-                <Welcome />
+                <UiShell>
+                  <Welcome />
+                </UiShell>
               ) : (
                 <Navigate to="/editor" replace />
               ),
           },
           {
             path: '/editor/',
-            element: <Welcome />,
+            element: (
+              <UiShell>
+                <Welcome />
+              </UiShell>
+            ),
           },
           {
             path: '/editor/:entityType/:entityId',
             element: (
-              <>
-                <SideMenu />
+              <UiShell>
                 <Editor context={EditorFrameContext.ENTITY} />
-                <Dialogs />
-              </>
+              </UiShell>
             ),
             children: [
               {
@@ -106,21 +118,17 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             path: '/template/:entityType/:bundle/:viewMode',
             element: (
-              <>
-                <SideMenu />
+              <UiShell>
                 <TemplateRoot />
-                <Dialogs />
-              </>
+              </UiShell>
             ),
           },
           {
             path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',
             element: (
-              <>
-                <SideMenu />
+              <UiShell>
                 <Editor context={EditorFrameContext.TEMPLATE} />
-                <Dialogs />
-              </>
+              </UiShell>
             ),
             children: [
               {

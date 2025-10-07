@@ -35,9 +35,17 @@ describe('Primary panel', () => {
       cy.loadURLandWaitForCanvasLoaded();
 
       cy.openLibraryPanel();
+
       cy.wait('@getComponents');
+      cy.get('[data-testid="canvas-primary-panel"]').within(() => {
+        cy.findAllByRole('listitem').should('have.length', 50);
+        cy.get('[data-canvas-component-id="canvas:component_01"]').should(
+          'be.visible',
+        );
+      });
 
       cy.get('[data-testid="canvas-primary-panel"]')
+        .find('.listContainer')
         .realMouseWheel({ deltaY: 2500 })
         .then(() => {
           cy.get('[data-canvas-component-id="canvas:component_50"]').should(

@@ -29,6 +29,7 @@ test.describe('Canvas UI Permissions', () => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLayersPanel();
     await page.getByText('Two Column').click({ button: 'right' });
 
     const menu = page.getByRole('menu', {
@@ -121,6 +122,7 @@ test.describe('Canvas UI Permissions', () => {
     await drupal.login(user);
     await page.goto('/first');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLayersPanel();
 
     await page.getByText('Two Column').click({ button: 'right' });
     const menu = page.getByRole('menu', {

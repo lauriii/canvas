@@ -44,64 +44,68 @@ export const PrimaryPanel = () => {
       data-testid="canvas-primary-panel"
       direction="column"
     >
-      <Flex align="center" className={styles.header} px="4" flexShrink="0">
-        <Heading as="h4" size="2" trim="both">
-          {panelMap[activePanel]}
-        </Heading>
-        <Box ml="auto">
-          <Button
-            ml="auto"
-            mr="0"
-            variant="ghost"
-            size="1"
-            highContrast
-            onClick={() => dispatch(unsetActivePanel())}
-          >
-            <Cross2Icon />
-          </Button>
-        </Box>
-      </Flex>
-      <Box flexGrow="1" className={styles.scrollArea}>
-        <ScrollArea scrollbars="vertical">
-          <Box p="4" className="primaryPanelContent">
-            {activePanel === 'layers' && (
-              <ErrorBoundary>
-                <Layers />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'library' && (
-              <ErrorBoundary>
-                <Library />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'manageLibrary' && (
-              <ErrorBoundary>
-                <ManageLibrary />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'pages' && (
-              <ErrorBoundary>
-                <Pages />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'extensions' && (
-              <ErrorBoundary>
-                <ExtensionsList />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'aiWizard' && (
-              <ErrorBoundary>
-                <AiWizard />
-              </ErrorBoundary>
-            )}
-            {activePanel === 'templates' && (
-              <ErrorBoundary>
-                <Templates />
-              </ErrorBoundary>
-            )}
+      {!!activePanel && (
+        <>
+          <Flex align="center" className={styles.header} px="4" flexShrink="0">
+            <Heading as="h4" size="2" trim="both">
+              {panelMap[activePanel]}
+            </Heading>
+            <Box ml="auto">
+              <Button
+                ml="auto"
+                mr="0"
+                variant="ghost"
+                size="1"
+                highContrast
+                onClick={() => dispatch(unsetActivePanel())}
+              >
+                <Cross2Icon />
+              </Button>
+            </Box>
+          </Flex>
+          <Box flexGrow="1" className={styles.scrollArea}>
+            <ScrollArea scrollbars="vertical">
+              <Box p="4" className="primaryPanelContent">
+                {activePanel === 'layers' && (
+                  <ErrorBoundary>
+                    <Layers />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'library' && (
+                  <ErrorBoundary>
+                    <Library />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'manageLibrary' && (
+                  <ErrorBoundary>
+                    <ManageLibrary />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'pages' && (
+                  <ErrorBoundary>
+                    <Pages />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'extensions' && (
+                  <ErrorBoundary>
+                    <ExtensionsList />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'aiWizard' && (
+                  <ErrorBoundary>
+                    <AiWizard />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'templates' && (
+                  <ErrorBoundary>
+                    <Templates />
+                  </ErrorBoundary>
+                )}
+              </Box>
+            </ScrollArea>
           </Box>
-        </ScrollArea>
-      </Box>
+        </>
+      )}
     </Flex>
   );
 };

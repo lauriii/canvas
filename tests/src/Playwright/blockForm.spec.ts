@@ -62,6 +62,7 @@ test.describe('Block form', () => {
     await canvasEditor.goToEditor();
 
     const componentUuid = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
+    await canvasEditor.openLayersPanel();
     await canvasEditor.openComponent('Site branding');
 
     // Remove and re-add the site logo.

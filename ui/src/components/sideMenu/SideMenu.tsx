@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useParams } from 'react-router';
 import { useLocation } from 'react-router-dom';
 import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
@@ -14,7 +15,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectActivePanel,
   setActivePanel,
-  setManageLibraryTab,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
@@ -41,17 +41,30 @@ interface SideMenuProps {}
 export const SideMenu: React.FC<SideMenuProps> = () => {
   const canvasSettings = getCanvasSettings();
   const activePanel = useAppSelector(selectActivePanel);
-  const activePanelRef = useRef(activePanel);
   let hasExtensions = false;
   if (drupalSettings && drupalSettings.canvasExtension) {
     hasExtensions = Object.values(drupalSettings.canvasExtension).length > 0;
   }
   const { pathname } = useLocation();
+  const params = useParams();
   const segments = pathname.split('/').filter(Boolean); // removes empty strings
-  const isCodeEditor = segments.includes('code-editor');
-  const isEditor = segments.includes('editor');
+
+  const hasActiveEditorFrame =
+    (segments.includes('editor') && params.entityId !== undefined) ||
+    (segments.includes('template') && params.previewEntityId !== undefined);
 
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // This use effect is a safeguard to ensure that the layers and library panels won't be shown when the editorFrame isn't loaded.
+    // If there is nothing being edited then the layers and library panels are not available so close the panel.
+    if (
+      !hasActiveEditorFrame &&
+      (activePanel === 'layers' || activePanel === 'library')
+    ) {
+      dispatch(unsetActivePanel());
+    }
+  }, [activePanel, dispatch, hasActiveEditorFrame]);
 
   const handleMenuClick = useCallback(
     (panelId: string) => {
@@ -64,25 +77,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     [dispatch, activePanel],
   );
 
-  useEffect(() => {
-    activePanelRef.current = activePanel;
-  }, [activePanel]);
-
-  /**
-   * When coming into the Code Editor switch to the Manage Library panel.
-   * When coming into the Editor from the Code Editor switch to the "Add" (library) panel.
-   * When coming into the Editor fresh, default to the Layers panel.
-   */
-  useEffect(() => {
-    if (isCodeEditor) {
-      dispatch(setActivePanel('manageLibrary'));
-      dispatch(setManageLibraryTab('code'));
-    } else if (isEditor && activePanelRef.current === 'manageLibrary') {
-      // we came from the library to the editor, so switch to "library"
-      dispatch(setActivePanel('library'));
-    }
-  }, [dispatch, isCodeEditor, isEditor]);
-
   const menuItems: SideMenuItem[] = [
     {
       type: 'button',
@@ -90,7 +84,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <PlusIcon />,
       label: 'Add',
       enabled: true,
-      hidden: isCodeEditor,
+      hidden: !hasActiveEditorFrame,
     },
     {
       type: 'button',
@@ -98,9 +92,9 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <LayersIcon />,
       label: 'Layers',
       enabled: true,
-      hidden: isCodeEditor,
+      hidden: !hasActiveEditorFrame,
     },
-    { type: 'separator', hidden: isCodeEditor },
+    { type: 'separator', hidden: !hasActiveEditorFrame },
     {
       type: 'button',
       id: 'manageLibrary',
@@ -109,7 +103,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       enabled: true,
       hidden: false,
     },
-    { type: 'separator', hidden: !canvasSettings.devMode },
     {
       type: 'button',
       id: 'pages',

@@ -90,6 +90,7 @@ test.describe('Canary Canvas', () => {
     await drupal.loginAsAdmin();
     await page.goto('/first');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLayersPanel();
     const layerPanel = 'xpath=//*[@data-testid="canvas-primary-panel"]';
     const layerPanelElement = await page.locator(layerPanel);
     await expect(layerPanelElement).toContainText('Two Column');

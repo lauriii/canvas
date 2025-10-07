@@ -12,8 +12,8 @@ const Welcome: React.FC<{ children?: React.ReactNode }> = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            Welcome to Experience Builder! This tool allows you to create and
-            manage your content experiences with ease. You can add components,
+            Welcome to Drupal Canvas! This tool allows you to create and manage
+            your content experiences with ease. You can add components,
             customize layouts, and preview your changes in real-time.
           </Callout.Text>
           <Callout.Text>

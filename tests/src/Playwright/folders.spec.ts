@@ -33,10 +33,7 @@ test.describe('Folder Management', () => {
     canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Test Page', '/test-page');
-    await page.goto('/test-page');
-    await canvasEditor.goToEditor();
-
+    await canvasEditor.goToCanvasRoot();
     await page.click('[aria-label="Manage library"]');
 
     await page.getByTestId('canvas-page-list-new-button').click();

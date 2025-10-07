@@ -413,6 +413,8 @@ Cypress.Commands.add(
       log: false,
     });
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
+    // Open the Layers panel because all tests assume it is open (it used to be by default).
+    cy.openLayersPanel();
     cy.debugPause('previewReady');
     return cy.get('@iframe');
   },

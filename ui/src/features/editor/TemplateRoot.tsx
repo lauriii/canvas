@@ -4,7 +4,6 @@ import { ExclamationTriangleIcon, PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
-import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import {
   EditorFrameContext,
   setEditorFrameContext,
@@ -114,7 +113,6 @@ const TemplateRoot = () => {
 
   return (
     <>
-      <PrimaryPanel />
       <Flex
         className={styles.noContentNotice}
         align="center"

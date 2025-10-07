@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ContextualPanel from '@/components/panel/ContextualPanel';
-import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import ConflictWarning from '@/features/editor/ConflictWarning';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
@@ -98,7 +97,6 @@ const Editor: React.FC<EditorProps> = ({ context }) => {
 
   return (
     <>
-      <PrimaryPanel />
       {renderContextContent()}
       <EditorFrame />
       <ContextualPanel />

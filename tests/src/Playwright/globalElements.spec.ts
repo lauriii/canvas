@@ -20,11 +20,9 @@ test.describe('Global elements', () => {
     },
   );
 
-  test('Page title', async ({ page, canvasEditor, drupal }) => {
+  test('Page title', async ({ canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Page Title', '/page-title');
-    await page.goto('/page-title');
-    await canvasEditor.goToEditor();
+    await canvasEditor.goToCanvasRoot();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/PageTitle.jsx`,
@@ -40,11 +38,9 @@ test.describe('Global elements', () => {
     ).toBeVisible();
   });
 
-  test('Site branding', async ({ page, canvasEditor, drupal }) => {
+  test('Site branding', async ({ canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Site Branding', '/site-branding');
-    await page.goto('/site-branding');
-    await canvasEditor.goToEditor();
+    await canvasEditor.goToCanvasRoot();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/SiteBranding.jsx`,
@@ -57,11 +53,9 @@ test.describe('Global elements', () => {
     await expect(preview.getByRole('link', { name: 'Drupal' })).toBeVisible();
   });
 
-  test('Breadcrumbs', async ({ page, canvasEditor, drupal }) => {
+  test('Breadcrumbs', async ({ canvasEditor, drupal }) => {
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Breadcrumbs', '/breadcrumbs');
-    await page.goto('/breadcrumbs');
-    await canvasEditor.goToEditor();
+    await canvasEditor.goToCanvasRoot();
     const moduleDir = await getModuleDir();
     const code = await readFile(
       `${moduleDir}/canvas/tests/fixtures/code_components/page-elements/Breadcrumbs.jsx`,
