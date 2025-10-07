@@ -13,6 +13,8 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldItemList;
+use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
@@ -295,6 +297,10 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             '#component_uuid' => $component_instance_uuid,
             '#is_preview' => $isPreview,
           ];
+        }
+        // @todo Remove when https://www.drupal.org/i/2367555 is fixed.
+        catch (EnforcedResponseException | FormAjaxException $e) {
+          throw $e;
         }
         catch (\Throwable $e) {
           // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041

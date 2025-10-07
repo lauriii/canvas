@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Element;
 
+use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Attribute\RenderElement;
 use Drupal\Core\Render\Element\RenderElementBase;
@@ -59,6 +61,10 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
     $element['#children'] = $this->renderer->executeInRenderContext($context, function () use (&$element, $context) {
       try {
         return $this->renderer->render($element['#component']);
+      }
+      // @todo Remove when https://www.drupal.org/i/2367555 is fixed.
+      catch (EnforcedResponseException | FormAjaxException $e) {
+        throw $e;
       }
       catch (\Throwable $e) {
         // In this scenario because rendering fails the context isn't updated or
