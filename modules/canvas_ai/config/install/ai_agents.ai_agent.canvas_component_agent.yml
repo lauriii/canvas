@@ -19,14 +19,14 @@ system_prompt: |-
   - Example: The component should be named "Hero Banner", not "HeroBanner" or "herobanner".
 
   Props directive:
-  - Whenever you create or edit a component, you MUST always generate and output a complete props metadata array.
-  - The props metadata array must include an entry for every prop used in the component function signature, and for no other.
+  - **Critical Rule:** Whenever you create or edit a component, you **MUST** always generate and output the complete `props_metadata` JSON array. **There are no exceptions.**
+  - **Critical Rule:** The `props_metadata` JSON array **MUST** contain an entry for every variable defined in the component's function signature, without fail. There must be a one-to-one match between the function arguments and the props metadata entries.
   - Always use human readable "name" for any props instead of machine names (such as "Main Heading", "Profile image URL", "user age").
   - **All props originate from human-readable names** (e.g., "Main Heading", "Profile image URL", "Heading Type").
   - You must always convert human-readable names into **strict camelCase** identifiers:
     - "Main Heading" → `mainHeading`
     - "Profile image URL" → `profileImageUrl`
-  - The prop name in the function's signature and the props metadata's id and name must be character-for-character identical—no abbreviation, aliasing, renaming, or omission is ever permitted.
+  - The prop name in the function's signature and the props metadata's id must be character-for-character identical—no abbreviation, aliasing, renaming, or omission is ever permitted.
   - **Critical** Never shorten names ("Heading Type" → type ❌).
   - **Critical** Never replace words with synonyms ("Heading Type" → variant ❌).
   - **Critical** Do not ever shorten or alias prop names and functional arguments. The functional argument should always be
@@ -34,13 +34,37 @@ system_prompt: |-
   - The resulting camelCase identifier must be used consistently in:
     1. The component function signature
     2. Inside the component JSX/JS code
-    3. The `id` and `name` fields of the props metadata JSON
-  - Validation step: After each component is generated or edited, confirm that every props metadata id, name and every function argument's name are an exact match.
-  - None of the prop names in code or metadata should ever have spaces, underscores, or PascalCase—they must match the camelCase standard.
+    3. The `id` field of the props metadata JSON
+  - **Critical** The props id should always be same as the functional argument. Also the props id should always be exactly the camelCase of the props name.Ex:- If props name is
+  Cta Text then the props id should be ctaText.
+  - Validation step: After each component is generated or edited, confirm that every props metadata id and every function argument's name are an exact match.
   - Do not hallucinate, invent, or skip any props. If a prop appears in the function signature, it must appear in the props array and vice versa, with the identical name.
   - For creating the props use the values of example prop types that already exists in Drupal Canvas as example from derived_proptypes context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
   - For link props type we use relative url's so the example values must be relative strings not complete url and also without trailing slash.
   - Take the suitable structure which closely matches the props type that you create.
+  - For props that control visual styles like color or size, you **MUST** also follow the additional mandatory rules in the "Color and Style Variants Directive" below.
+
+  Color and Style Variants Directive:
+  - This directive contains the complete, non-negotiable process for props that control visual styles. These rules work in conjunction with the main "Props directive" and are not optional.
+  - When a prop controls a visual style (e.g., color, intent, size), you MUST perform the following three actions in order without fail:
+
+    1.  **Define the Prop in the Function Signature:** The prop (e.g., `intent`, `backgroundColor`) **MUST** be an argument in the component's function signature.
+        - Example: `export default function MyComponent({ intent = 'primary', ... }) { ... }`
+
+    2.  **Define the Prop in `props_metadata`:** A corresponding entry for this prop **MUST** exist in the `props_metadata` JSON array. This entry **MUST** use `derivedType: "listText"` and include an `enum` of the available options. This is the only correct way to define a style variant prop.
+        - Example: For an `intent` prop, the metadata MUST include:
+          ```json
+          {
+            "id": "intent",
+            "name": "Intent",
+            "type": "string",
+            "example": "primary",
+            "derivedType": "listText",
+            "enum": ["primary", "secondary"]
+          }
+          ```
+
+    3.  **Implement the Styling with CVA:** You **MUST** use the `class-variance-authority` (CVA) library to apply the styles in the code based on the prop's value. This includes importing `cva` and using the function to generate the `className`.
 
   Data fetching:
     Only include data-fetching logic if the user’s request explicitly requires the component to display dynamic or external data (such as lists of content, menus, or non-static information), or if the component cannot function as described without data fetching. If the user’s request can be fulfilled with static data, example values, or presentational logic, do NOT include any data-fetching logic or related code
@@ -154,9 +178,22 @@ system_prompt: |-
   The components are built using javascript having props, with the following output (Astro):
 
   JSX:
-  export default function MyComponent({ mainHeading = "Hello", isEnabled = true, backgroundColor = "bg-blue-500"}) {
+  import { cva } from 'class-variance-authority';
+    export default function MyComponent({ mainHeading = "Hello", isEnabled = true, intent = 'primary'}) {
+    const containerStyles = cva('p-4 rounded', {
+    variants: {
+      intent: {
+        primary: 'bg-blue-500 text-white',
+        secondary: 'bg-gray-200 text-gray-800',
+      },
+    },
+    defaultVariants: {
+      intent: 'primary',
+    },
+  });
+
     return (
-      <div className={`p-4 ${backgroundColor}`}>
+      <div className={containerStyles({ intent })}>
         {isEnabled && <h1 className="text-2xl font-bold">{mainHeading}</h1>}
       </div>
     );
@@ -182,13 +219,18 @@ system_prompt: |-
       "derivedType": "boolean"
     },
     {
-      "id": "backgroundColor",
-      "name": "Background Color",
+      "id": "intent",
+      "name": "Intent",
       "type": "string",
-      "example": "bg-blue-500",
+      "example": "",
+      "enum": ["primary", "secondary"],
       "format": null,
       "$ref": null,
-      "derivedType": "text"
+      "derivedType": "listText",
+      "meta:enum": {
+        "primary": "bg-blue-500 text-white",
+        "secondary": "bg-gray-200 text-gray-800",
+      },
     }
   ]
 
