@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
 
 import { makeStore } from '@/app/store';
-import Layout from '@/features/layout/Layout';
+import Layout from '@/features/layout/LayoutLoader';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 
 import type { AppStore } from '@/app/store';

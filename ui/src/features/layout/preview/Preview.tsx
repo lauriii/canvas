@@ -96,7 +96,7 @@ const Preview: React.FC<PreviewProps> = () => {
 
       if (editorFrameContext === 'template') {
         sendTemplatePreviewRequest().then(() => {});
-      } else {
+      } else if (editorFrameContext === 'entity') {
         sendPreviewRequest().then(() => {
           if (invalidatePageList) {
             dispatch(

@@ -42,7 +42,6 @@ import type {
   EvaluatedComponentModel,
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
-import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 import type { CanvasComponent, FieldData } from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
@@ -56,16 +55,16 @@ export const useComponentTransforms = () => {
 
 interface ComponentInstanceFormRendererProps {
   dynamicStaticCardQueryString: string;
-  context: EditorFrameContext;
 }
 interface ComponentInstanceFormProps {}
 
 const ComponentInstanceFormRenderer: React.FC<
   ComponentInstanceFormRendererProps
 > = (props) => {
-  const { dynamicStaticCardQueryString, context } = props;
+  const { dynamicStaticCardQueryString } = props;
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
 
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
@@ -79,7 +78,7 @@ const ComponentInstanceFormRenderer: React.FC<
   );
   const { currentData, error, originalArgs, isFetching } =
     useGetComponentInstanceFormQuery(
-      { queryString: dynamicStaticCardQueryString, type: context },
+      { queryString: dynamicStaticCardQueryString, type: editorFrameContext },
       {
         skip,
       },
@@ -207,7 +206,7 @@ const ComponentInstanceFormRenderer: React.FC<
         const component = components?.[selectedComponentType];
         if (isEvaluatedComponentModel(selectedModel) && component) {
           patchComponent({
-            type: context,
+            type: editorFrameContext,
             componentInstanceUuid: selectedComponentId,
             componentType: `${selectedComponentType}@${version}`,
             model: {
@@ -222,7 +221,7 @@ const ComponentInstanceFormRenderer: React.FC<
           return;
         }
         patchComponent({
-          type: context,
+          type: editorFrameContext,
           componentInstanceUuid: selectedComponentId,
           componentType: `${selectedComponentType}@${version}`,
           model: {
@@ -283,7 +282,6 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
-  const context = useAppSelector(selectEditorFrameContext);
 
   const [dynamicStaticCardQueryString, setDynamicStaticCardQueryString] =
     useState('');
@@ -382,7 +380,6 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     dynamicStaticCardQueryString && (
       <>
         <ComponentInstanceFormRenderer
-          context={context}
           dynamicStaticCardQueryString={dynamicStaticCardQueryString}
         />
         {componentSource === 'Module component' && emptyProp ? (

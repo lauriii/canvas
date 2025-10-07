@@ -18,6 +18,7 @@ import PageDataForm from '@/components/PageDataForm';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   EditorFrameContext,
+  selectEditorFrameContext,
   selectIsMultiSelect,
   selectSelectedComponentUuid,
   selectSelection,
@@ -28,16 +29,14 @@ import type React from 'react';
 
 import styles from './ContextualPanel.module.css';
 
-interface ContextualPanelProps {
-  context: EditorFrameContext;
-}
-
-const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
+const ContextualPanel: React.FC = () => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
   const selection = useAppSelector(selectSelection);
   const dispatch = useAppDispatch();
-  const isTemplateContext = context === EditorFrameContext.TEMPLATE;
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
+  const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -66,8 +65,6 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
       setHidePanel(false);
     }
   }, [selectedComponent, isMultiSelect, isTemplateContext]);
-
-  const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
 
   return (
     <Box
@@ -178,7 +175,7 @@ const ContextualPanel: React.FC<ContextualPanelProps> = ({ context }) => {
                     forceMount={true}
                     hidden={activePanel !== 'pageData'}
                   >
-                    {context === 'entity' && <PageDataForm />}
+                    {editorFrameContext === 'entity' && <PageDataForm />}
                   </Tabs.Content>
                 )}
               </Box>

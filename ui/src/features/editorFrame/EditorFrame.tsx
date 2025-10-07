@@ -30,7 +30,9 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useResizeObserver from '@/hooks/useResizeObserver';
+import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
@@ -42,6 +44,8 @@ import styles from './EditorFrame.module.css';
 
 const EditorFrame = () => {
   const dispatch = useAppDispatch();
+  useSyncParamsToState();
+  useLayoutWatcher();
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameScrollRef = useRef<number | null>(null);

@@ -8,6 +8,7 @@ import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import {
   EditorFrameContext,
   setEditorFrameContext,
+  unsetEditorFrameContext,
 } from '@/features/ui/uiSlice';
 import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 import { getBaseUrl } from '@/utils/drupal-globals';
@@ -49,7 +50,7 @@ const TemplateRoot = () => {
   useEffect(() => {
     dispatch(setEditorFrameContext(EditorFrameContext.TEMPLATE));
     return () => {
-      dispatch(setEditorFrameContext(EditorFrameContext.NONE));
+      dispatch(unsetEditorFrameContext());
     };
   }, [dispatch]);
 

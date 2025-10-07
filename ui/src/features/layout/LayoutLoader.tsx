@@ -6,7 +6,7 @@ import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 
 import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
 
-const Layout = () => {
+const LayoutLoader = () => {
   const dispatch = useAppDispatch();
   const isInitialized = useAppSelector(selectIsInitialized);
 
@@ -63,4 +63,4 @@ const Layout = () => {
   return null;
 };
 
-export default Layout;
+export default LayoutLoader;
