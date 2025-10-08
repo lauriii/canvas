@@ -22,3 +22,13 @@
 :global(.canvas-linked-prop-label-wrapper) {
   display: flex;
 }
+
+/* Override dropdown menu item padding */
+.dropdownMenuItem {
+  padding-left: 0px!important;
+  row-gap: 0!important;
+}
+
+.hasActiveChild {
+  color: var(--slate-11);
+}

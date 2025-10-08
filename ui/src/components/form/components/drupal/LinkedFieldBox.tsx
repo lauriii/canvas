@@ -61,7 +61,7 @@ const LinkedFieldBox = ({
     if (!propData) {
       return;
     }
-    const default_values: DefaultValues = propData?.default_values;
+    const default_values: DefaultValues = propData?.default_values || {};
     if (isEvaluatedComponentModel(selectedModel)) {
       patchComponent({
         type: EditorFrameContext.TEMPLATE,

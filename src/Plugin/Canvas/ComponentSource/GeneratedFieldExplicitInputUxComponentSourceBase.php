@@ -645,7 +645,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
       if ($entity instanceof ContentTemplate) {
-        $suggestions = FieldForComponentSuggester::structureSuggestionsForResponse($this->fieldForComponentSuggester->suggest(
+        $suggestions = FieldForComponentSuggester::structureSuggestionsForHierarchicalResponse($this->fieldForComponentSuggester->suggest(
           $this->getSourceSpecificComponentId(),
           $this->getMetadata(),
           $entity->getTargetEntityDataDefinition(),
