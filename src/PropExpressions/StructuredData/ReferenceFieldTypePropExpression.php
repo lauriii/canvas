@@ -76,13 +76,12 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
     return new static($referencer, $referenced);
   }
 
-  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $field): bool {
+  public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $field): void {
     assert($field instanceof FieldItemInterface || $field instanceof FieldItemListInterface);
     $actual_field_type = $field->getFieldDefinition()->getType();
     if ($actual_field_type !== $this->referencer->fieldType) {
       throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->referencer->fieldType, $actual_field_type));
     }
-    return TRUE;
   }
 
   /**

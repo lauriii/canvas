@@ -157,7 +157,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     );
   }
 
-  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): bool {
+  public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): void {
     assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->entityType->getEntityTypeId();
     $expected_bundle = $this->entityType->getBundles()[0] ?? $expected_entity_type_id;
@@ -168,7 +168,6 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
       throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, $expected_bundle, $entity->bundle()));
     }
     // @todo validate that the field exists?
-    return TRUE;
   }
 
   public function getHostEntityDataDefinition(): EntityDataDefinitionInterface {

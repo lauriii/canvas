@@ -25,7 +25,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 final class DynamicPropSource extends PropSourceBase {
 
   public function __construct(
-    private readonly FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expression,
+    public readonly FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expression,
   ) {}
 
   /**

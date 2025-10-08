@@ -1115,6 +1115,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           $prop_source['value'] = $prop_value;
         }
         $source = PropSource::parse($prop_source);
+        if ($source instanceof DynamicPropSource) {
+          if ($host_entity === NULL) {
+            throw new \InvalidArgumentException('A host entity is required to set dynamic prop sources.');
+          }
+          $source->expression->validateSupport($host_entity);
+          $props[$prop] = $this->collapse($source, $prop);
+          continue;
+        }
         // Make sure we can evaluate this prop source with the passed values.
         $evaluated = $source->evaluate($host_entity, $is_required_prop);
 

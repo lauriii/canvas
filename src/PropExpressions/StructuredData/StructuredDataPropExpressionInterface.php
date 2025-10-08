@@ -39,8 +39,8 @@ interface StructuredDataPropExpressionInterface extends PropExpressionInterface,
    *   - A field item when the expression starts in a single-cardinality field
    *     type.
    *
-   * @return bool
+   * @return void
    */
-  public function isSupported(EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field): bool;
+  public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field): void;
 
 }

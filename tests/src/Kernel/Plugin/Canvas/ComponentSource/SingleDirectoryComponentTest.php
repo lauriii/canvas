@@ -31,6 +31,7 @@ use Drupal\link\LinkItemInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -50,6 +51,7 @@ use Twig\Error\SyntaxError;
  * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
  * @group canvas
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
+ * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
 final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
 
@@ -4237,6 +4239,161 @@ activation="auto">
     \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
     $actual_model_client = $component_source->inputToClientModel($explicit_input);
     $this->assertEquals($expected_client_model, $actual_model_client);
+  }
+
+  /**
+   * @param array{source: SingleComponentInputArray, resolved: array<string, mixed>} $clientModel
+   * @param ?array $nodeValues
+   * @param ?array $expectedInput
+   * @param ?class-string<\Throwable> $expectedExceptionClass
+   * @param ?string $expectedExceptionMessage
+   *
+   * @covers ::clientModelToInput
+   * @dataProvider providerClientModelToInput
+   */
+  public function testClientModelToInput(array $clientModel, ?array $nodeValues, ?array $expectedInput, ?string $expectedExceptionClass, ?string $expectedExceptionMessage): void {
+    $this->generateComponentConfig();
+    $component = Component::load('sdc.canvas_test_sdc.my-hero');
+    self::assertInstanceOf(Component::class, $component);
+
+    $this->installEntitySchema('node');
+    $this->installSchema('node', 'node_access');
+    NodeType::create([
+      'type' => 'page',
+      'name' => 'Page',
+    ])->save();
+    if ($nodeValues !== NULL) {
+      $hostEntity = Node::create($nodeValues);
+      self::assertCount(0, $hostEntity->validate());
+      $hostEntity->save();
+    }
+    else {
+      $hostEntity = NULL;
+    }
+
+    // Ensure the permissions required to evaluate dynamic expressions are not
+    // needed.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+    $this->setUpCurrentUser();
+
+    if ($expectedExceptionClass !== NULL) {
+      $this->expectException($expectedExceptionClass);
+      self::assertNotNull($expectedExceptionMessage);
+      $this->expectExceptionMessage($expectedExceptionMessage);
+      self::assertNull($expectedInput);
+    }
+    else {
+      self::assertNull($expectedExceptionMessage);
+      self::assertNotNull($expectedInput);
+    }
+    $input = $component->getComponentSource()->clientModelToInput('a-uuid-for-testing', $component, $clientModel, $hostEntity);
+    self::assertSame($expectedInput, $input);
+  }
+
+  public static function providerClientModelToInput(): \Generator {
+    $clientModel = [
+      'source' => [
+        'heading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:page␝title␞␟value',
+          'value' => 'Some value, will be ignored by server',
+        ],
+        'cta1' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+          'value' => 'Witty test value',
+        ],
+        'cta1href' => [
+          'sourceType' => 'static:field_item:link',
+          'value' => 'https://example.com',
+          'expression' => 'ℹ︎link␟url',
+          'sourceTypeSettings' => [
+            'instance' => [
+              'title' => 0,
+            ],
+          ],
+        ],
+        'cta2' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+          'value' => 'Inside developer joke',
+        ],
+        'subheading' => [
+          'sourceType' => 'dynamic',
+          'expression' => 'ℹ︎␜entity:node:page␝revision_log␞␟value',
+          'value' => NULL,
+        ],
+      ],
+      'resolved' => [
+        'heading' => 'Does not have to match',
+        'cta1' => 'Is what server previously sent',
+        'cta1href' => 'https://example.com',
+        'cta2' => 'Click, or don\'t',
+        'subheading' => NULL,
+      ],
+    ];
+    $expectedInput = [
+      'heading' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:page␝title␞␟value',
+      ],
+      'cta1' => 'Witty test value',
+      'cta1href' => [
+        'sourceType' => 'static:field_item:link',
+        'value' => [
+          'uri' => 'https://example.com',
+          'options' => [],
+        ],
+        'expression' => 'ℹ︎link␟url',
+        'sourceTypeSettings' => [
+          'instance' => [
+            'title' => 0,
+          ],
+        ],
+      ],
+      'cta2' => 'Inside developer joke',
+      'subheading' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:page␝revision_log␞␟value',
+      ],
+    ];
+    $nodeValues = ['type' => 'page', 'title' => 'Test page for inputToClientModel'];
+    // Explicit failure when no host entity is provided.
+    yield "Invalid: DynamicPropSource without host entity" => [
+      'clientModel' => $clientModel,
+      'nodeValues' => NULL,
+      'expectedInput' => NULL,
+      'expectedExceptionClass' => \InvalidArgumentException::class,
+      'expectedExceptionMessage' => 'A host entity is required to set dynamic prop sources.',
+    ];
+    // Expected (server-side) component instance input for the given client model when provided with a host entity.
+    // The non-required property "subheading" is linked to an empty field, revision_log.
+    yield "Valid: DynamicPropSource with host entity, empty non-required property" => [
+      'clientModel' => $clientModel,
+      'nodeValues' => $nodeValues,
+      'expectedInput' => $expectedInput,
+      'expectedExceptionClass' => NULL,
+      'expectedExceptionMessage' => NULL,
+    ];
+    // Expected (server-side) component instance input for the given client model when provided with a host entity.
+    // The non-required property "subheading" is linked to a non-empty field, revision_log.
+    $nodeValues['revision_log'] = 'This is the revision log.';
+    yield "Valid: DynamicPropSource with host entity, not empty non-required property" => [
+      'clientModel' => $clientModel,
+      'nodeValues' => $nodeValues,
+      'expectedInput' => $expectedInput,
+      'expectedExceptionClass' => NULL,
+      'expectedExceptionMessage' => NULL,
+    ];
+    // Modifying the client model to use an expression requiring a different bundle triggers an exception.
+    $clientModel['source']['heading']['expression'] = 'ℹ︎␜entity:node:article␝title␞␟value';
+    yield "Invalid: DynamicPropSource, expression with non-matching bundle" => [
+      'clientModel' => $clientModel,
+      'nodeValues' => $nodeValues,
+      'expectedInput' => NULL,
+      'expectedExceptionClass' => \DomainException::class,
+      'expectedExceptionMessage' => '`ℹ︎␜entity:node:article␝title␞␟value` is an expression for entity type `node`, bundle(s) `article`, but the provided entity is of the bundle `page`.',
+    ];
   }
 
   public static function explicitsInputsProvider(): \Generator {

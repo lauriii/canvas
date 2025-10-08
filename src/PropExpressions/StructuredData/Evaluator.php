@@ -42,7 +42,7 @@ final class Evaluator {
   private static function doEvaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): mixed {
     // Evaluating an expression when the evaluation context is NULL is
     // impossible.
-    // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::isSupported()
+    // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::validateSupport()
     if ($entity_or_field === NULL) {
       return match ($is_required) {
         // Optional value: the expression evaluates to NULL.
@@ -56,7 +56,7 @@ final class Evaluator {
     // Assert that the received entity or field meets the needs of the
     // expression.
     try {
-      $expr->isSupported($entity_or_field);
+      $expr->validateSupport($entity_or_field);
     }
     catch (\DomainException $e) {
       throw $e;
