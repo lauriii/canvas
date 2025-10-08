@@ -66,12 +66,9 @@ stages:
 # Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/main/includes/include.drupalci.variables.yml
 ################
 variables:
-  # Opt in to testing Drupal 11.2.
-  # @todo Remove when 11.2 is the default in the GitLab CI template.
-  CORE_STABLE: '11.2.2'
-
   # Show env variables always to help with debugging.
   _SHOW_ENVIRONMENT_VARIABLES: 1
+
   # Ignore that `ext-sodium` is not available in the CI environment.
   # It's required by a dependency of `drupal/simple_oauth`, but it doesn't cause any issues with what
   # `drupal/simple_oauth` does.
