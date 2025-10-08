@@ -69,7 +69,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
 
     return new JsonResponse(
       status: Response::HTTP_OK,
-      data: FieldForComponentSuggester::structureSuggestionsForResponse($suggestions),
+      data: FieldForComponentSuggester::structureSuggestionsForHierarchicalResponse($suggestions),
     );
   }
 

@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
@@ -32,8 +30,8 @@ final class FieldForComponentSuggester {
 
   public function __construct(
     private readonly JsonSchemaFieldInstanceMatcher $propMatcher,
-    private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
+    private readonly Labeler $labeler,
   ) {}
 
   /**
@@ -53,7 +51,6 @@ final class FieldForComponentSuggester {
       $bundles = $host_entity_type->getBundles();
       assert(is_array($bundles) && array_key_exists(0, $bundles));
       $host_entity_type_bundle = $bundles[0];
-      $field_definitions = $this->entityFieldManager->getFieldDefinitions($host_entity_type_id, $host_entity_type_bundle);
     }
 
     // 1. Get raw matches.
@@ -68,7 +65,7 @@ final class FieldForComponentSuggester {
       if ($host_entity_type) {
         $m['instances'] = array_filter(
           $m['instances'],
-          fn($expr) => self::getHostEntityDataDefinition($expr)->getDataType() === $host_entity_type->getDataType(),
+          fn($expr) => $expr->getHostEntityDataDefinition()->getDataType() === $host_entity_type->getDataType(),
         );
       }
 
@@ -77,7 +74,7 @@ final class FieldForComponentSuggester {
       // familiar order for site builders.
       $bucketed = [];
       foreach ($m['instances'] as $expr) {
-        $expr_entity_data_definition = self::getHostEntityDataDefinition($expr);
+        $expr_entity_data_definition = $expr->getHostEntityDataDefinition();
         $expr_entity_data_type = $expr_entity_data_definition->getDataType();
 
         // When first encountering a new entity type + bundle, generate an empty
@@ -100,7 +97,7 @@ final class FieldForComponentSuggester {
         }
 
         // Push each expression into the right (field) bucket.
-        $bucketed[$expr_entity_data_type][self::getFieldName($expr)][] = $expr;
+        $bucketed[$expr_entity_data_type][Labeler::getFieldName($expr, $expr_entity_data_definition)][] = $expr;
       }
       // Keep only non-empty (field) buckets.
       $bucketed = array_map('array_filter', $bucketed);
@@ -126,41 +123,8 @@ final class FieldForComponentSuggester {
         $debucketed = NestedArray::mergeDeep(...$m['instances'][$host_entity_type->getDataType()]);
         $suggestions[$cpe]['instances'] = array_combine(
           array_map(
-            function (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) use ($field_definitions) {
-              $field_name = self::getFieldName($e);
-              $field_definition = $field_definitions[$field_name];
-              assert($field_definition instanceof FieldDefinitionInterface);
-              assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
-              // To correctly represent this, this must take into account what
-              // JsonSchemaFieldInstanceMatcher may or may not match. It will
-              // never match:
-              // - DataReferenceTargetDefinition field props: it considers these
-              //   irrelevant; it's only the twin DataReferenceDefinition that
-              //   is relevant
-              // - props explicitly marked as internal
-              // @see \Drupal\Core\TypedData\DataDefinition::isInternal
-              $main_property = $field_definition->getItemDefinition()->getMainPropertyName();
-              assert(is_string($main_property));
-              $used_field_props = (array) static::getUsedFieldProps($e);
-              return match (self::usesMainProperty($e, $field_definition)) {
-                TRUE => match ($e instanceof ReferenceFieldPropExpression) {
-                  FALSE => (string) $this->t("@field-label", [
-                    '@field-label' => $field_definition->getLabel(),
-                  ]),
-                  TRUE => (string) $this->t("@field-label → @referenced-entity-type → @referenced-field", [
-                    '@field-label' => $field_definition->getLabel(),
-                    // Only a single level of indirection is surfaced,
-                    // @phpstan-ignore-next-line property.notFound
-                    '@referenced-entity-type' => $e->referenced->entityType->getLabel(),
-                    '@referenced-field' => implode(', ', (array) self::getFieldName($e->referenced)),
-                  ]),
-                },
-                FALSE => (string) $this->t("@field-label (only @field-prop-labels-used)", [
-                  '@field-label' => $field_definition->getLabel(),
-                  '@field-prop-labels-used' => implode(', ', $used_field_props),
-                ])
-              };
-            },
+            fn (FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $e) =>
+            (string) Labeler::flatten($this->labeler->label($e, $host_entity_type)),
             $debucketed
           ),
           $debucketed
@@ -179,17 +143,6 @@ final class FieldForComponentSuggester {
     }
 
     return $suggestions;
-  }
-
-  public static function getUsedFieldProps(FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expr): string|array {
-    return match (get_class($expr)) {
-      FieldPropExpression::class => $expr->propName,
-      ReferenceFieldPropExpression::class => $expr->referencer->propName,
-      FieldObjectPropsExpression::class => array_map(
-        fn (FieldPropExpression|ReferenceFieldPropExpression $obj_expr) => self::getUsedFieldProps($obj_expr),
-        $expr->objectPropsToFieldProps
-      ),
-    };
   }
 
   /**
@@ -214,68 +167,6 @@ final class FieldForComponentSuggester {
     }
 
     return $raw_matches;
-  }
-
-  private static function getHostEntityDataDefinition(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr): EntityDataDefinitionInterface {
-    return $expr instanceof ReferenceFieldPropExpression
-      ? $expr->referencer->entityType
-      : $expr->entityType;
-  }
-
-  private static function getFieldName(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr): string {
-    $expr_field_name = match (get_class($expr)) {
-      ReferenceFieldPropExpression::class => $expr->referencer->fieldName,
-      FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
-    };
-    // TRICKY: FieldPropExpression::$fieldName can be an array, but only
-    // when used in a reference.
-    // @see https://www.drupal.org/i/3530521
-    assert(is_string($expr_field_name));
-    return $expr_field_name;
-  }
-
-  private static function usesMainProperty(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr, FieldDefinitionInterface $field_definition): bool {
-    // Easiest case: a reference field's entire purpose is to reference, so
-    // following the reference definitely is considered using the main property.
-    if ($expr instanceof ReferenceFieldPropExpression) {
-      return TRUE;
-    }
-
-    assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
-    $main_property = $field_definition->getItemDefinition()->getMainPropertyName();
-    assert(is_string($main_property));
-
-    $used_props = (array) self::getUsedFieldProps($expr);
-    assert(count($used_props) >= 1);
-
-    // Easy case: if the main property is used directly.
-    if (in_array($main_property, $used_props, TRUE)) {
-      return TRUE;
-    }
-
-    // Otherwise, check if one of the used field properties is a computed one
-    // that depends on the main one.
-    // Drupal core does not have native support for this; Canvas adds additional
-    // metadata to be able to determine this. Any contributed field types that
-    // wish to have computed properties automatically matched/suggested, need to
-    // provide this additional metadata too.
-    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
-    // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
-    foreach ($used_props as $prop_name) {
-      $property_definition = $field_definition->getItemDefinition()->getPropertyDefinition($prop_name);
-      assert($property_definition !== NULL);
-      $expr_used_by_computed_property = JsonSchemaFieldInstanceMatcher::getReferenceDependency($property_definition);
-      if ($expr_used_by_computed_property === NULL) {
-        continue;
-      }
-      // Final sanity check: the reference expression found in the computed
-      // property definition's settings MUST target the field type used by this
-      // field instance.
-      assert($expr_used_by_computed_property->referencer->fieldType === $field_definition->getType());
-      return TRUE;
-    }
-
-    return FALSE;
   }
 
   public static function structureSuggestionsForResponse(array $suggestions): array {
@@ -314,6 +205,87 @@ final class FieldForComponentSuggester {
         array_column($suggestions, 'instances'),
       ),
     );
+  }
+
+  private static function enrichSuggestion(array $suggestion): array {
+    \assert(array_key_exists('label', $suggestion));
+    \assert(array_key_exists('source', $suggestion));
+    $label = $suggestion['label'];
+
+    $label_parts = explode(' → ', $label);
+    $depth = count($label_parts) - 1;
+
+    // Transform `$label_parts` from `['a', 'b']` to ` ['a', 'items', 'b']`:
+    // interleave every part with "items". The result is the path at which this
+    // suggestion will be hierarchically positioned.
+    $hierarchy_parts = $label_parts;
+    array_walk($hierarchy_parts, function (string &$hierarchy_part, int $index): void {
+      $hierarchy_part = $index > 0 ? "items|$hierarchy_part" : $hierarchy_part;
+    });
+    $path = explode('|', implode('|', $hierarchy_parts));
+
+    return [
+      ...$suggestion,
+      // Infer depth from label; determines hierarchy building order.
+      'depth' => $depth,
+      // Compute hierarchy path from label; determines location in hierarchy.
+      'path' => $path,
+    ];
+  }
+
+  private static function walkAndPopulateHierarchicalSuggestions(array &$hierarchical_suggestions): void {
+    foreach ($hierarchical_suggestions as $key => $value) {
+      if (array_key_exists('items', $value)) {
+        self::walkAndPopulateHierarchicalSuggestions($value['items']);
+      }
+      unset($hierarchical_suggestions[$key]);
+      $hierarchical_suggestions[] = [...$value, 'label' => $key];
+    }
+  }
+
+  public static function structureSuggestionsForHierarchicalResponse(array $suggestions): array {
+    $flat_response_structure = self::structureSuggestionsForResponse($suggestions);
+
+    $hierarchical_response = [];
+    foreach ($flat_response_structure as $prop_name => &$suggestions) {
+      // 1. Enrich and sort this prop's suggestions.
+      $enriched_suggestions = array_map(
+        [self::class, 'enrichSuggestion'],
+        $suggestions,
+      );
+      $original_order = array_keys($suggestions);
+
+      // 2. Sort this prop's suggestions from shallow to deep. This retains the
+      // relative ordering between those suggestions that have the same depth.
+      array_multisort(
+        array_column($enriched_suggestions, 'depth'), SORT_ASC,
+        $original_order, SORT_ASC,
+        $enriched_suggestions,
+      );
+
+      // 3. Walk the depth-sorted suggestions and generate a hierarchy according
+      // to the label parts.
+      $hierarchical_suggestions = [];
+      array_walk($enriched_suggestions, function ($enriched_suggestion, string $opaque_id) use (&$hierarchical_suggestions) {
+        $hierarchical_suggestion = [
+          'id' => $opaque_id,
+          'source' => $enriched_suggestion['source'],
+        ];
+        NestedArray::setValue($hierarchical_suggestions, $enriched_suggestion['path'], $hierarchical_suggestion);
+      });
+
+      // 4. Recursively process the hierarchical suggestions: move the label
+      // parts that were used in step 3 from array keys into a `label` key-value
+      // pair in each node in the tree. Replace them with numerical indexes,
+      // respecting the original sort order.
+      // TRICKY: \array_walk_recursive() cannot be used because it operates only
+      // on leaf nodes!
+      self::walkAndPopulateHierarchicalSuggestions($hierarchical_suggestions);
+
+      $hierarchical_response[$prop_name] = $hierarchical_suggestions;
+    }
+
+    return $hierarchical_response;
   }
 
 }

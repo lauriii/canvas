@@ -182,8 +182,6 @@ paths:
                       - No items to publish
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
-        '500':
-          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/auto-saves/{entityTypeId}/{entityId}:
     description:  Interact with an auto-save entry for a particular entity
     parameters:
@@ -444,6 +442,7 @@ paths:
                       css: "\u003Clink rel=\"stylesheet\" media=\"all\" href=\"/sites/default/files/css/css_xeBEV2TNeHyWToTeiA5k4v0zjcPmOd_Qpomr5aKDOlY.css?delta=0&amp;language=en&amp;theme=olivero&amp;include=eJxLzi9K1U_Ozy3Iz0vNKynWS07MK0ssji9JLS6JL05J1tXNrdRNLkkEADTcDyY\" /\u003E\n"
                       js_header: ""
                       js_footer: ""
+                      broken: false
               schema:
                 type: object
                 minProperties: 0
@@ -1907,26 +1906,65 @@ paths:
                 # There may be 0 props for this component.
                 minProperties: 0
                 additionalProperties:
-                  type: object
-                  # There may be 0 suggestions for this prop for this component.
-                  minProperties: 0
-                  additionalProperties:
-                    $ref: '#/components/schemas/StructuredDataForPropShapeSuggestion'
+                  $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
               examples:
                 Suggestions for a 'canvas_test_sdc.heading' SDC component instance in the context of an article node:
+                  summary: "Typical example: several suggestions, some with non-selectable choices in the middle of the hierarchy"
                   value:
                     text:
-                      256dc2b8dcec7355:
+                      -
                         label: "This Article's Title"
+                        id: 256dc2b8dcec7355
                         source:
                           sourceType: "dynamic"
                           expression: "ℹ︎␜entity:node:article␝title␞␟value"
-                    style: {}
-                    element: {}
+                      -
+                        label: Image
+                        items:
+                          -
+                            label: Alternative text
+                            id: 41d0eef544f546ef
+                            source:
+                              sourceType: "dynamic"
+                              expression: "ℹ︎␜entity:node:article␝field_image␞␟alt"
+                          -
+                            label: Title
+                            id: 64b16de61768ca7b
+                            source:
+                              sourceType: "dynamic"
+                              expression: "ℹ︎␜entity:node:article␝field_image␞␟title"
+                    style: []
+                    element: []
                 Suggestions for a 'canvas_test_sdc.video' SDC component instance in the context of an article node:
+                  summary: "There may be no suggestions at all"
                   value:
-                    video: {}
-                    display_width: {}
+                    video: []
+                    display_width: []
+                Suggestions for the `test_string_format_uri` prop in the 'sdc_test_all_props.all-props' SDC component instance in the context of an article node:
+                  summary: "Edge case: several suggestions, but with each level in the hierarchy selectable"
+                  description: "Edge case: several suggestions, but with each level in the hierarchy selectable (possible by matching a main property or one derived from the main property, following a reference and matching its main property, and matching a non-main property on that same reference)"
+                  value:
+                    test_string_format_uri:
+                      -
+                        label: image
+                        id: d9ab0f948b35e1f7
+                        source:
+                          sourceType: "dynamic"
+                          expression: "ℹ︎␜entity:node:article␝field_required_image␞␟src_with_alternate_widths"
+                        items:
+                          -
+                            label: URI
+                            id: 33a61863a57daac8
+                            source:
+                              sourceType: "dynamic"
+                              expression: "ℹ︎␜entity:node:article␝field_required_image␞␟entity␜␜entity:file␝uri␞␟value"
+                            items:
+                              -
+                                label: Root-relative file URL
+                                id: 2eda83e7aa37d2ba
+                                source:
+                                  sourceType: "dynamic"
+                                  expression: "ℹ︎␜entity:node:article␝field_required_image␞␟entity␜␜entity:file␝uri␞␟url"
         # @todo fix in https://www.drupal.org/project/canvas/issues/3541366
         '401':
           description: Unauthorized (unauthenticated) response.
@@ -2644,19 +2682,47 @@ components:
         weight:
           type: integer
           description: The weight of the segment, used for ordering segments.
-    StructuredDataForPropShapeSuggestion:
-      title: Suggested structured data (DynamicPropSource) for prop shape
+    StructuredDataForPropShapeHierarchicalSuggestionLevel:
+      title: Prop shape structured data suggestion hierarchy level (a level in the tree of hierarchical suggestions)
+      type: array
+      items:
+        type: object
+        oneOf:
+          - $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionPath'
+          - $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionPathWithChoice'
+      minItems: 0
+    StructuredDataForPropShapeHierarchicalSuggestionPath:
+      title: Prop shape structured data suggestion hierarchy (path only, no choice; points towards a deeper actual choice)
       type: object
       required:
         - label
+      properties:
+        label:
+          type: string
+          description: Human-readable label
+        items:
+          $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
+      additionalProperties: false
+    StructuredDataForPropShapeHierarchicalSuggestionPathWithChoice:
+      title: Prop shape structured data suggestion hierarchy (with choice)
+      type: object
+      required:
+        - label
+        - id
         - source
       properties:
         label:
           type: string
           description: Human-readable label
+        id:
+          type: string
+          description: Opaque identifier
         source:
           type: object
           description: The object representation of the DynamicPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
+        items:
+          $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
+      additionalProperties: false
     Error:
       type: object
       required:

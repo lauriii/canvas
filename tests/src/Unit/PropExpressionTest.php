@@ -27,7 +27,8 @@ use Prophecy\Prophet;
  * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression
  * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
  * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
- * @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
+ * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testLabel()
+ * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()
  * @group canvas
  *
  * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
@@ -63,7 +64,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Combines the cases of all individual data providers, assigns clear labels.
    *
-   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: string|\Exception, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function provider(): array {
     // Allow this provider to be called by a kernel test, too.
@@ -93,22 +94,25 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldPropExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: FieldPropExpression, 2: string|\Exception, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldPropExpression(): array {
     return [
       // Context: entity type, base field.
       ['ℹ︎␜entity:node␝title␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'title', NULL, 'value'),
+        'Title',
         [
           'module' => ['node'],
         ],
       ],
       ['ℹ︎␜entity:node␝title␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'title', 0, 'value'),
+        'Title␞1st item',
         [
           'module' => ['node'],
         ],
       ],
       ['ℹ︎␜entity:node␝title␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'title', 99, 'value'),
+        'Title␞100th item',
         [
           'module' => ['node'],
         ],
@@ -116,18 +120,21 @@ class PropExpressionTest extends UnitTestCase {
 
       // Context: bundle of entity type, base field.
       ['ℹ︎␜entity:node:article␝title␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', NULL, 'value'),
+        'Title',
         [
           'module' => ['node'],
           'config' => ['node.type.article'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝title␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', 0, 'value'),
+        'Title␞1st item',
         [
           'module' => ['node'],
           'config' => ['node.type.article'],
         ],
       ],
       ['ℹ︎␜entity:node:article␝title␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', 99, 'value'),
+        'Title␞100th item',
         [
           'module' => ['node'],
           'config' => ['node.type.article'],
@@ -135,19 +142,22 @@ class PropExpressionTest extends UnitTestCase {
       ],
 
       // Context: bundle of entity type, configurable field.
-      ['ℹ︎␜entity:node:article␝field_image␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'value'),
+      ['ℹ︎␜entity:node:article␝field_image␞␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'title'),
+        'field_image␟Title',
         [
           'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
         ],
       ],
-      ['ℹ︎␜entity:node:article␝field_image␞0␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'value'),
+      ['ℹ︎␜entity:node:article␝field_image␞0␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 0, 'title'),
+        'field_image␞1st item␟Title',
         [
           'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
         ],
       ],
-      ['ℹ︎␜entity:node:article␝field_image␞99␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'value'),
+      ['ℹ︎␜entity:node:article␝field_image␞99␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', 99, 'title'),
+        'field_image␞100th item␟Title',
         [
           'module' => ['node', 'file'],
           'config' => ['node.type.article', 'field.field.node.article.field_image', 'image.style.canvas_parametrized_width'],
@@ -156,6 +166,7 @@ class PropExpressionTest extends UnitTestCase {
 
       // Context: >1 bundle of entity type, base field.
       ['ℹ︎␜entity:node:article|news␝title␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article']), 'title', NULL, 'value'),
+        'Title',
         [
           'module' => ['node'],
           'config' => ['node.type.article', 'node.type.news'],
@@ -166,7 +177,8 @@ class PropExpressionTest extends UnitTestCase {
       // ⚠️ Note the inconsistent ordering in the object representation, and the
       // consistent ordering based on alphabetical bundle ordering in the string
       // representation.
-      ['ℹ︎␜entity:node:article|news|product␝field_image|field_photo|field_product_packaging_photo␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article', 'product']), ['article' => 'field_image', 'news' => 'field_photo', 'product' => 'field_product_packaging_photo'], NULL, 'value'),
+      ['ℹ︎␜entity:node:article|news|product␝field_image|field_photo|field_product_packaging_photo␞␟target_id', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article', 'product']), ['article' => 'field_image', 'news' => 'field_photo', 'product' => 'field_product_packaging_photo'], NULL, 'target_id'),
+        'field_image',
         [
           'module' => ['node', 'file', 'file', 'file'],
           'config' => [
@@ -188,7 +200,8 @@ class PropExpressionTest extends UnitTestCase {
       // ⚠️ Note the inconsistent ordering in the object representation, and the
       // consistent ordering based on alphabetical bundle ordering in the string
       // representation.
-      ['ℹ︎␜entity:node:article|foo|xyz␝field_image|bar|abc␞␟value|url|␀', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['article', 'foo', 'xyz']), ['article' => 'field_image', 'foo' => 'bar', 'xyz' => 'abc'], NULL, ['field_image' => 'value', 'bar' => 'url', 'abc' => StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]),
+      ['ℹ︎␜entity:node:article|foo|xyz␝field_image|bar|abc␞␟target_id|url|␀', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['article', 'foo', 'xyz']), ['article' => 'field_image', 'foo' => 'bar', 'xyz' => 'abc'], NULL, ['field_image' => 'target_id', 'bar' => 'url', 'abc' => StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]),
+        'field_image',
         [
           'module' => ['node', 'file'],
           'config' => [
@@ -211,6 +224,7 @@ class PropExpressionTest extends UnitTestCase {
       // representation. Also note that the same field name for two bundle
       // and thus same property name for those two fields.
       ['ℹ︎␜entity:node:article|news|product␝field_image|field_photo|field_photo␞␟alt|value|value', new FieldPropExpression(BetterEntityDataDefinition::create('node', ['news', 'article', 'product']), ['article' => 'field_image', 'news' => 'field_photo', 'product' => 'field_photo'], NULL, ['field_image' => 'alt', 'field_photo' => 'value']),
+        'field_image␟Alternative text',
         [
           'module' => ['node', 'file', 'file', 'file'],
           'config' => [
@@ -231,14 +245,19 @@ class PropExpressionTest extends UnitTestCase {
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted for all
       // aspects:
-      'invalid entity type' => ['ℹ︎␜entity:non_existent␝title␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('non_existent'), 'title', NULL, 'value'), new PluginNotFoundException('non_existent', 'The "non_existent" entity type does not exist.')],
+      'invalid entity type' => ['ℹ︎␜entity:non_existent␝title␞␟value', new FieldPropExpression(BetterEntityDataDefinition::create('non_existent'), 'title', NULL, 'value'),
+        new \LogicException('Expression expects entity type `non_existent`, actual entity type is `node`.'),
+        new PluginNotFoundException('non_existent', 'The "non_existent" entity type does not exist.'),
+      ],
       'invalid delta' => ['ℹ︎␜entity:node:article␝title␞-1␟value', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', -1, 'value'),
+        'Title␞0th item',
         [
           'module' => ['node'],
           'config' => ['node.type.article'],
         ],
       ],
       'invalid prop name' => ['ℹ︎␜entity:node:article␝title␞␟non_existent', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'title', NULL, 'non_existent'),
+        new \LogicException('Property `non_existent` does not exist on field type `string`. The following field properties exist: `value`.'),
         [
           'module' => ['node'],
           'config' => ['node.type.article'],
@@ -248,7 +267,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldPropExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: ReferenceFieldPropExpression, 2: string|\Exception, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerReferenceFieldPropExpression(): array {
     $referencer_delta_null = new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'uid', NULL, 'entity');
@@ -257,18 +276,21 @@ class PropExpressionTest extends UnitTestCase {
 
     return [
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+        'Authored by␜User␝Name',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+        'Authored by␜User␝Name␞1st item',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+        'Authored by␜User␝Name␞100th item',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
@@ -276,32 +298,46 @@ class PropExpressionTest extends UnitTestCase {
       ],
 
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+        'Authored by␞1st item␜User␝Name',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+        'Authored by␞1st item␜User␝Name␞1st item',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+        'Authored by␞1st item␜User␝Name␞100th item',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
       ],
 
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')), new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.')],
+      // Intentional nonsense: labels MUST work if at all possible (invalid
+      // deltas do not make this impossible), even when evaluation fails.
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+        'Authored by␞124th item␜User␝Name',
+        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+      ],
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+        'Authored by␞124th item␜User␝Name␞1st item',
+        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+      ],
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+        'Authored by␞124th item␜User␝Name␞100th item',
+        new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+      ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: FieldObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: FieldObjectPropsExpression, 2: string|\Exception, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldObjectPropsExpression(): array {
     return [
@@ -312,6 +348,7 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'title', 0, 'value'),
         ]),
+        'Title␞1st item',
         [
           'module' => ['node'],
         ],
@@ -322,6 +359,7 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'title', NULL, 'value'),
         ]),
+        'Title',
         [
           'module' => ['node'],
         ],
@@ -340,6 +378,7 @@ class PropExpressionTest extends UnitTestCase {
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
         ]),
+        'field_image',
         [
           'module' => ['node', 'file', 'file', 'node', 'file'],
           'config' => [
@@ -363,6 +402,7 @@ class PropExpressionTest extends UnitTestCase {
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
         ]),
+        'field_image',
         // Expected content-aware dependencies.
         [
           'module' => ['node', 'file', 'file', 'file', 'node', 'file'],
@@ -407,6 +447,7 @@ class PropExpressionTest extends UnitTestCase {
             new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'alt'),
           ),
         ]),
+        'Yo Ho',
         [
           'module' => [
             'node',
@@ -444,29 +485,33 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypePropExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: FieldTypePropExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypePropExpression(): array {
     return [
       // Field type with single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
       ['ℹ︎string␟value', new FieldTypePropExpression('string', 'value'),
+        new \TypeError(),
         [],
       ],
 
       // Field type with >1 properties.
       // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
       ['ℹ︎image␟width', new FieldTypePropExpression('image', 'width'),
+        new \TypeError(),
         [
           'module' => ['image'],
         ],
       ],
       ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
+        new \TypeError(),
         [
           'module' => ['image'],
         ],
       ],
       ['ℹ︎image␟src_with_alternate_widths', new FieldTypePropExpression('image', 'src_with_alternate_widths'),
+        new \TypeError(),
         [
           'module' => [
             'image',
@@ -490,13 +535,14 @@ class PropExpressionTest extends UnitTestCase {
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted:
       'invalid prop name' => ['ℹ︎string␟non_existent', new FieldTypePropExpression('string', 'non_existent'),
+        new \TypeError(),
         [],
       ],
     ];
   }
 
   /**
-   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerReferenceFieldTypePropExpression(): array {
     return [
@@ -513,6 +559,7 @@ class PropExpressionTest extends UnitTestCase {
           'value'
           )
         ),
+        new \TypeError(),
         [
           'module' => ['image', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
@@ -545,6 +592,7 @@ class PropExpressionTest extends UnitTestCase {
             ]
           ),
         ),
+        new \TypeError(),
         [
           'module' => ['image', 'file', 'file', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
@@ -566,6 +614,7 @@ class PropExpressionTest extends UnitTestCase {
             new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
           ),
         ),
+        new \TypeError(),
         [
           'content' => [
             'media:baby_photos:baby-photos-media-uuid',
@@ -601,7 +650,7 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: ConfigDependenciesArray|\Exception}>
+   * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypeObjectPropsExpression(): array {
     return [
@@ -612,6 +661,7 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldTypePropExpression('string', 'value'),
         ]),
+        new \TypeError(),
         [],
       ],
 
@@ -628,6 +678,7 @@ class PropExpressionTest extends UnitTestCase {
           // 2. one (leaf) field property
           'width' => new FieldTypePropExpression('image', 'width'),
         ]),
+        new \TypeError(),
         [
           'module' => ['image', 'file', 'file', 'image'],
           'content' => ['file:file:some-image-uuid'],

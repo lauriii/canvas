@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
+use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
@@ -324,7 +325,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         // First: "field -> SDC".
         $compatible_sdc_prop_shapes_per_field[$field_name][] = $cpe;
         // Second: "field prop -> SDC".
-        foreach ((array) FieldForComponentSuggester::getUsedFieldProps($expr) as $field_prop_name) {
+        foreach ((array) Labeler::getUsedFieldProps($expr, $expr->getHostEntityDataDefinition()) as $field_prop_name) {
           $compatible_sdc_prop_shapes_per_field_prop["$field_name.$field_prop_name"][] = $cpe;
         }
       }

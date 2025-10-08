@@ -38,6 +38,9 @@ final class ApiResponseValidator extends ApiMessageValidatorBase {
     if (!$response instanceof JsonResponse) {
       return;
     }
+    if ($response->getStatusCode() === 500) {
+      return;
+    }
 
     $validator = $validatorBuilder->getResponseValidator();
 

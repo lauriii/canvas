@@ -22,7 +22,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  * This functional test then complements the much more complete kernel test
  * coverage to keep the kernel tests "honest".
  *
- * @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
+ * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()
  *
  * @group canvas
  */

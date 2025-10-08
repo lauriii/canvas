@@ -122,26 +122,26 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   public static function providerSuggestStructuredDataForPropShapes(): \Generator {
     $choice_article_title = [
-      'label' => "Title",
       'source' => ['sourceType' => 'dynamic', 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value'],
+      'label' => "Title",
     ];
     $choice_article_image = [
-      'label' => "Silly image 🤡",
       'source' => ['sourceType' => 'dynamic', 'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}'],
+      'label' => "Silly image 🤡",
     ];
     $choice_article_author_name = [
-      'label' => 'Authored by → User → name',
       'source' => [
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝name␞␟value',
       ],
+      'label' => 'Name',
     ];
     $choice_article_revision_user_name = [
-      'label' => 'Revision user → User → name',
       'source' => [
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
       ],
+      'label' => 'Name',
     ];
     $hash_for_choice = fn (array $choice) =>  \hash('xxh64', $choice['source']['expression']);
 
@@ -151,7 +151,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'article',
       'expected' => [
         'text' => [
-          $hash_for_choice($choice_article_title) => $choice_article_title,
+          ['id' => $hash_for_choice($choice_article_title)] + $choice_article_title,
         ],
         'style' => [],
         'element' => [],
@@ -163,12 +163,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'user',
       'expected' => [
         'text' => [
-          '67f45d35294a49e0' => [
-            'label' => 'Name',
+          [
+            'id' => '67f45d35294a49e0',
             'source' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:user␝name␞␟value',
             ],
+            'label' => 'Name',
           ],
         ],
         'style' => [],
@@ -195,7 +196,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'article',
       'expected' => [
         'image' => [
-          $hash_for_choice($choice_article_image) => $choice_article_image,
+          ['id' => $hash_for_choice($choice_article_image)] + $choice_article_image,
         ],
       ],
     ];
@@ -205,7 +206,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'article',
       'expected' => [
         'image' => [
-          $hash_for_choice($choice_article_image) => $choice_article_image,
+          ['id' => $hash_for_choice($choice_article_image)] + $choice_article_image,
         ],
       ],
     ];
@@ -234,38 +235,67 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'article',
       'expected' => [
         'caption' => [
-          $hash_for_choice($choice_article_title) => $choice_article_title,
-          $hash_for_choice($choice_article_author_name) => $choice_article_author_name,
-          '7ca10058b43f4d0f' => [
-            'label' => "Revision log message",
+          ['id' => $hash_for_choice($choice_article_title)] + $choice_article_title,
+          [
+            'id' => '7ca10058b43f4d0f',
             'source' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             ],
+            'label' => "Revision log message",
           ],
-          '82ec95693bc89080' => [
-            'label' => "Silly image 🤡 (only alt)",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟alt',
+          [
+            'items' => [
+              [
+                'id' => '1409e675864fd2e6',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
+                ],
+                'label' => "Title",
+              ],
+              [
+                'id' => '82ec95693bc89080',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟alt',
+                ],
+                'label' => "Alternative text",
+              ],
             ],
+            'label' => 'Silly image 🤡',
           ],
-          '1409e675864fd2e6' => [
-            'label' => "Silly image 🤡 (only title)",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
+          [
+            'items' => [
+              [
+                'items' => [
+                  ['id' => $hash_for_choice($choice_article_revision_user_name)] + $choice_article_revision_user_name,
+                ],
+                'label' => 'User',
+              ],
             ],
+            'label' => 'Revision user',
           ],
-          $hash_for_choice($choice_article_revision_user_name) => $choice_article_revision_user_name,
+          [
+            'items' => [
+              [
+                'items' => [
+                  ['id' => $hash_for_choice($choice_article_author_name)] + $choice_article_author_name,
+                ],
+                'label' => 'User',
+              ],
+            ],
+            'label' => 'Authored by',
+          ],
         ],
         'images' => [
-          '441f35fe6e2feefd' => [
-            'label' => "field_screenshots",
+          [
+            'id' => '441f35fe6e2feefd',
             "source" => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝field_screenshots␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
+            'label' => "field_screenshots",
           ],
         ],
       ],
@@ -277,51 +307,87 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'article',
       'expected' => [
         'text' => [
-          '256dc2b8dcec7355' => [
-            'label' => "Title",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-          ],
-          $hash_for_choice($choice_article_author_name) => $choice_article_author_name,
-          '7ca10058b43f4d0f' => [
-            'label' => "Revision log message",
+          ['id' => $hash_for_choice($choice_article_title)] + $choice_article_title,
+          [
+            'id' => '7ca10058b43f4d0f',
             'source' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
             ],
+            'label' => "Revision log message",
           ],
-          '82ec95693bc89080' => [
-            'label' => "Silly image 🤡 (only alt)",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟alt',
+          [
+            'items' => [
+              [
+                'id' => '1409e675864fd2e6',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
+                ],
+                'label' => "Title",
+              ],
+              [
+                'id' => '82ec95693bc89080',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟alt',
+                ],
+                'label' => "Alternative text",
+              ],
             ],
+            'label' => 'Silly image 🤡',
           ],
-          '1409e675864fd2e6' => [
-            'label' => "Silly image 🤡 (only title)",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟title',
+          [
+            'items' => [
+              [
+                'items' => [
+                  ['id' => $hash_for_choice($choice_article_revision_user_name)] + $choice_article_revision_user_name,
+                ],
+                'label' => 'User',
+              ],
             ],
+            'label' => 'Revision user',
           ],
-          $hash_for_choice($choice_article_revision_user_name) => $choice_article_revision_user_name,
+          [
+            'items' => [
+              [
+                'items' => [
+                  ['id' => $hash_for_choice($choice_article_author_name)] + $choice_article_author_name,
+                ],
+                'label' => 'User',
+              ],
+            ],
+            'label' => 'Authored by',
+          ],
         ],
         'link' => [
-          '4a83ce0c963911b4' => [
-            'label' => "Silly image 🤡 → File → uri",
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            ],
-          ],
-          '4999dcb72722c69a' => [
-            'label' => "Silly image 🤡",
+          [
+            'id' => '4999dcb72722c69a',
             'source' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟src_with_alternate_widths',
             ],
+            'items' => [
+              [
+                'id' => '4a83ce0c963911b4',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+                ],
+                'items' => [
+                  [
+                    'id' => 'cd27d546be8c9a31',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+                    ],
+                    'label' => 'Root-relative file URL',
+                  ],
+                ],
+                'label' => "URI",
+              ],
+            ],
+            'label' => 'Silly image 🤡',
           ],
         ],
       ],

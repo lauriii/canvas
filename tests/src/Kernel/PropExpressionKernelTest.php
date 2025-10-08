@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
@@ -33,16 +35,15 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 
 /**
- * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies()
- * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies()
- * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies()
- * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies()
- * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies()
- * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies()
+ * Tests PropExpression functionality that cannot be tested in a unit test.
+ *
+ * Gets its test cases from the unit test though, to guarantee completeness of
+ * test coverage.
+ *
  * @see \Drupal\Tests\canvas\Unit\PropExpressionTest
  * @group canvas
  */
-class PropExpressionDependenciesTest extends KernelTestBase {
+class PropExpressionKernelTest extends KernelTestBase {
 
   use EntityReferenceFieldCreationTrait;
   use ImageFieldCreationTrait;
@@ -260,17 +261,58 @@ class PropExpressionDependenciesTest extends KernelTestBase {
     $this->setUpCurrentUser(permissions: ['access content', 'view media']);
   }
 
+  /**
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\Labeler
+   */
+  public function testLabel(): void {
+    $labeler = \Drupal::service(Labeler::class);
+    foreach (PropExpressionTest::provider() as $test_case_label => $case) {
+      $expression = $case[1];
+      $test_case_precise_label = sprintf("%s (%s)", $test_case_label, (string) $expression);
+      $expected_expression_label = $case[2];
+
+      try {
+        // @phpstan-ignore-next-line argument.type
+        $label = $labeler->label($expression, EntityDataDefinition::create('node', 'article'));
+        // If a non-existent entity type/bundle/field/field property: not even a
+        // label can be generated. An invalid delta is not a problem.
+        if ($expected_expression_label instanceof \Throwable) {
+          self::fail('Exception expected.');
+        }
+      }
+      catch (\Throwable $e) {
+        if ($expected_expression_label instanceof \Throwable) {
+          self::assertSame(get_class($expected_expression_label), get_class($e));
+          if ($expected_expression_label instanceof \Exception) {
+            self::assertSame($expected_expression_label->getMessage(), $e->getMessage(), $test_case_precise_label);
+          }
+          continue;
+        }
+        self::fail(sprintf('Unexpected exception `%s` with message `%s for case `%s`.', get_class($e), $e->getMessage(), $test_case_precise_label));
+      }
+      self::assertSame($expected_expression_label, (string) $label, $test_case_precise_label);
+    }
+  }
+
+  /**
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies()
+   */
   public function testCalculateDependencies(): void {
     $host_entity = Node::load(1);
 
     foreach (PropExpressionTest::provider() as $test_case_label => $case) {
       $expression = $case[1];
       assert($expression instanceof StructuredDataPropExpressionInterface);
-      $expected_dependencies = $case[2];
+      $expected_dependencies = $case[3];
       // Almost always, the content-aware dependencies are the same as the
       // content-unaware ones, just with the `content` key-value pair omitted,
       // if any.
-      $expected_content_unaware_dependencies = $case[3] ?? (
+      $expected_content_unaware_dependencies = $case[4] ?? (
         is_array($expected_dependencies)
           ? array_diff_key($expected_dependencies, array_flip(['content']))
           : NULL
@@ -317,6 +359,8 @@ class PropExpressionDependenciesTest extends KernelTestBase {
         })(),
       };
 
+      // If a non-existent delta: fails during evaluation, which occurs when
+      // calculating dependencies.
       if ($expected_dependencies instanceof \Exception) {
         try {
           $expression->calculateDependencies($entity_or_field);

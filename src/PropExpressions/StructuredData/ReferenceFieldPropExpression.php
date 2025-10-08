@@ -7,6 +7,7 @@ namespace Drupal\canvas\PropExpressions\StructuredData;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
@@ -91,6 +92,10 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     }
     // @todo validate that the field exists?
     return TRUE;
+  }
+
+  public function getHostEntityDataDefinition(): EntityDataDefinitionInterface {
+    return $this->referencer->getHostEntityDataDefinition();
   }
 
 }

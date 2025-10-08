@@ -167,6 +167,7 @@ there is a need for an additional choice (see the `FieldForComponentSuggester` m
 #### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
 
 See
+- `\Drupal\canvas\PropExpressions\StructuredData\Labeler`
 - `\Drupal\canvas\PropExpressions\StructuredData\Evaluator`
 - `\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface`
 - `\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression`
@@ -201,12 +202,16 @@ To express that, `prop expression`s exist, which define:
 
 Examples:
 - `ℹ︎␜entity:node:article␝title␞99␟value` declares it evaluates an "article" `content entity`, and returns the "value"
-  prop of the 100th `field item` in the "title" `field`
-- `ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt}` declares it evaluates an "image" `field item`, and returns
+  prop of the 100th `field item` in the "title" `field`. When the Site Builder constructs a content template, they are
+  presented with the corresponding label: "Title␞100th item". This is a hierarchical label; the semantical hierarchy
+  markers such as `␞` are never shown to the end user.
+- `ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt}` declares it evaluates an "image" `field item`, has no
+  corresponding label (because it is for a `static prop source` and hence never needs to be explained/presented to a
+  Canvas user), and returns
   two key-value pairs:
   - the first one being "src" for which the first "url" `field prop` of the "uri" `field` on the "file"
     `content entity` that is referenced by the "image" `field type`
-  - the second one being "alt", which can be retrieved directly from the "image" `field item`
+  - the second one being "alt", which can be retrieved directly from the "image" `field item`.
 
 For more examples, see `\Drupal\Tests\canvas\Unit\PropExpressionTest`.
 

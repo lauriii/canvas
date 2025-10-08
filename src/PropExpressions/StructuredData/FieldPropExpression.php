@@ -312,4 +312,8 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     return TRUE;
   }
 
+  public function getHostEntityDataDefinition(): EntityDataDefinitionInterface {
+    return $this->entityType;
+  }
+
 }
