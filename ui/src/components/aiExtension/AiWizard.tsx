@@ -614,6 +614,13 @@ const AiWizard = () => {
           welcomeTextRef.current.style.display = 'none';
         }
         historyStore.addMessage(message);
+        const event = new CustomEvent('canvas-message', {
+          detail: {
+            message: message,
+            time: new Date(),
+          },
+        });
+        window.dispatchEvent(event);
       }
     };
     chatEl.addEventListener('message', handler);
