@@ -198,6 +198,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'sdc.canvas_test_sdc.columns',
         'sdc.canvas_test_sdc.grid-container',
         'sdc.canvas_test_sdc.one_column',
         'sdc.canvas_test_sdc.two_column',

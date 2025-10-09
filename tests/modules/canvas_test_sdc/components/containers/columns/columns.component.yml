@@ -1,0 +1,48 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Columns
+status: stable
+group: Container
+props:
+  type: object
+  required:
+    - columns
+  properties:
+    columns:
+      type: integer
+      title: Number of Columns
+      description: How many columns to display (1-6).
+      enum: [1, 2, 3, 4, 5, 6]
+      # @todo This has no effect until https://www.drupal.org/i/3514672
+      default: 2
+      examples: [2, 3, 4]
+slots:
+  column_1:
+    title: Column One
+    description: The contents of the first column.
+    examples:
+      - <p>This is column 1 content</p>
+  column_2:
+    title: Column Two
+    description: The contents of the second column.
+    examples:
+      - <p>This is column 2 content</p>
+  column_3:
+    title: Column Three
+    description: The contents of the third column.
+    examples:
+      - <p>This is column 3 content</p>
+  column_4:
+    title: Column Four
+    description: The contents of the fourth column.
+    examples:
+      - <p>This is column 4 content</p>
+  column_5:
+    title: Column Five
+    description: The contents of the fifth column.
+    examples:
+      - <p>This is column 5 content</p>
+  column_6:
+    title: Column Six
+    description: The contents of the sixth column.
+    examples:
+      - <p>This is column 6 content</p>

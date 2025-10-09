@@ -136,6 +136,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
       new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
+      new PropShape(['type' => 'integer', 'enum' => [1, 2, 3, 4, 5, 6]]),
       new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
       new PropShape(['type' => 'integer', 'minimum' => 0]),
       new PropShape(['type' => 'integer', 'minimum' => 1]),
@@ -568,6 +569,17 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape([
           'type' => 'integer',
           'enum' => [1, 2],
+        ]),
+        fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+        ],
+      ),
+      'type=integer&enum[0]=1&enum[1]=2&enum[2]=3&enum[3]=4&enum[4]=5&enum[5]=6' => new StorablePropShape(
+        shape: new PropShape([
+          'type' => 'integer',
+          'enum' => [1, 2, 3, 4, 5, 6],
         ]),
         fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'),
         fieldWidget: 'options_select',

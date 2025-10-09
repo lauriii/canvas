@@ -61,6 +61,16 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
     paddingTop: '0px',
     paddingBottom: '0px',
   });
+  const { componentId: selectedComponent } = useParams();
+  const isHovered = useAppSelector((state) => {
+    return selectIsComponentHovered(state, slotId);
+  });
+  const targetSlot = useAppSelector(selectTargetSlot);
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
+  const slotName = useGetComponentName(slot, parentComponent);
+  const parentComponentName = useGetComponentName(parentComponent);
+  const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
+
   useEffect(() => {
     const elementInsideIframe = slotsMap[slotId]?.element;
     if (elementInsideIframe) {
@@ -71,16 +81,6 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
       });
     }
   }, [slotsMap, slotId]);
-
-  const { componentId: selectedComponent } = useParams();
-  const isHovered = useAppSelector((state) => {
-    return selectIsComponentHovered(state, slotId);
-  });
-  const targetSlot = useAppSelector(selectTargetSlot);
-  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const slotName = useGetComponentName(slot, parentComponent);
-  const parentComponentName = useGetComponentName(parentComponent);
-  const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
 
   // Recalculate the children's borders when the elementRect changes
   useEffect(() => {
@@ -111,6 +111,11 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
       padding,
     ],
   );
+
+  if (!slotElementArray) {
+    // If we can't find the element inside the iframe, don't render the overlay.
+    return null;
+  }
 
   return (
     <div

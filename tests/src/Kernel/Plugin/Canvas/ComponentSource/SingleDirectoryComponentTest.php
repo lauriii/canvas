@@ -197,6 +197,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.canvas_test_sdc.card-with-local-image',
       'sdc.canvas_test_sdc.card-with-remote-image',
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
+      'sdc.canvas_test_sdc.columns',
       'sdc.canvas_test_sdc.component-no-meta-enum',
       'sdc.canvas_test_sdc.crash',
       'sdc.canvas_test_sdc.deprecated',
@@ -629,6 +630,17 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--my-cta',
             'core/components.canvas_test_sdc--my-cta',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.columns' => [
+        'cacheability' => $default_cacheability,
+        'html' => '<div  data-component-id="canvas_test_sdc:columns"></div>
+',
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--columns',
+            'core/components.canvas_test_sdc--columns',
           ],
         ],
       ],
@@ -1466,6 +1478,21 @@ activation="auto">
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.columns' => [
+        'prop_field_definitions' => [
+          'columns' => [
+            'required' => TRUE,
+            'field_type' => 'list_integer',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [0 => ['value' => 2]],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.component-no-meta-enum' => [
         'prop_field_definitions' => [
           'style' => [
@@ -2180,6 +2207,13 @@ activation="auto">
           'core',
           'file',
           'image',
+          'options',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.columns' => [
+        'module' => [
+          'core',
           'options',
           'canvas_test_sdc',
         ],
@@ -2926,6 +2960,71 @@ activation="auto">
                 ],
               ],
               'resolved' => 'lazy',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.columns' => [
+        'expected_output_selectors' => [
+          // TRICKY: there's no content to assert, because the preview by
+          // default doe snot use slot values.
+          'div[data-component-id="canvas_test_sdc:columns"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [
+            'column_1' => [
+              'title' => 'Column One',
+              'description' => 'The contents of the first column.',
+              'examples' => ['<p>This is column 1 content</p>'],
+            ],
+            'column_2' => [
+              'title' => 'Column Two',
+              'description' => 'The contents of the second column.',
+              'examples' => ['<p>This is column 2 content</p>'],
+            ],
+            'column_3' => [
+              'title' => 'Column Three',
+              'description' => 'The contents of the third column.',
+              'examples' => ['<p>This is column 3 content</p>'],
+            ],
+            'column_4' => [
+              'title' => 'Column Four',
+              'description' => 'The contents of the fourth column.',
+              'examples' => ['<p>This is column 4 content</p>'],
+            ],
+            'column_5' => [
+              'title' => 'Column Five',
+              'description' => 'The contents of the fifth column.',
+              'examples' => ['<p>This is column 5 content</p>'],
+            ],
+            'column_6' => [
+              'title' => 'Column Six',
+              'description' => 'The contents of the sixth column.',
+              'examples' => ['<p>This is column 6 content</p>'],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'columns' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'integer',
+              'enum' => [1, 2, 3, 4, 5, 6],
+            ],
+            'sourceType' => 'static:field_item:list_integer',
+            'expression' => 'ℹ︎list_integer␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 2],
+              ],
+              'resolved' => 2,
             ],
           ],
         ],

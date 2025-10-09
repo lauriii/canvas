@@ -433,6 +433,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'REQUIRED, type=integer&enum[0]=1&enum[1]=2&enum[2]=3&enum[3]=4&enum[4]=5&enum[5]=6' => [
+          'SDC props' => [
+            0 => '⿲canvas_test_sdc:columns␟columns',
+          ],
+          'static prop source' => 'ℹ︎list_integer␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'REQUIRED, type=object&$ref=json-schema-definitions://canvas.module/image' => [
           'SDC props' => [
             '⿲canvas_test_sdc:card␟image',

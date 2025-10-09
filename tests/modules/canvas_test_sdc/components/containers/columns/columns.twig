@@ -1,0 +1,24 @@
+{# Calculate equal widths for each column #}
+{%- if columns == 1 -%}
+  {%- set widths = [100] -%}
+{%- elseif columns == 2 -%}
+  {%- set widths = [50, 50] -%}
+{%- elseif columns == 3 -%}
+  {%- set widths = [33, 33, 34] -%}
+{%- elseif columns == 4 -%}
+  {%- set widths = [25, 25, 25, 25] -%}
+{%- elseif columns == 5 -%}
+  {%- set widths = [20, 20, 20, 20, 20] -%}
+{%- elseif columns == 6 -%}
+  {%- set widths = [16, 16, 17, 17, 17, 17] -%}
+{%- endif -%}
+
+<div {{ attributes }}>
+  {%- for i in range(1, columns) -%}
+    {%- if block('column_' ~ i) is defined -%}
+      <div class="column-{{ i }} width-{{ widths[i - 1] }}">
+        {{ block('column_' ~ i)|raw }}
+      </div>
+    {%- endif -%}
+  {%- endfor -%}
+</div>
