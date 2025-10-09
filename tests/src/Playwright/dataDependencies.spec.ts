@@ -44,8 +44,7 @@ test.describe('Data dependencies', () => {
       }),
     ).toBeVisible();
     await canvasEditor.publishAllChanges(['PageTitle', 'Global CSS']);
-    await page.getByRole('button', { name: 'Add to components' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Add' }).click();
+    await canvasEditor.saveCodeComponent('js.pagetitle');
     await canvasEditor.addComponent(
       { id: 'js.pagetitle' },
       { hasInputs: false },

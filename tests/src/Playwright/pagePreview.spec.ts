@@ -29,6 +29,7 @@ test.describe('Preview Link Behavior', () => {
     await drupal.createCanvasPage('Preview 1', '/preview-page-1');
     await page.goto('/preview-page-1');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
     await page.getByText('Preview', { exact: true }).click();
@@ -66,7 +67,7 @@ test.describe('Preview Link Behavior', () => {
     await drupal.createCanvasPage('Preview 2', '/preview-page-2');
     await page.goto('/preview-page-2');
     await canvasEditor.goToEditor();
-
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
 

@@ -22,6 +22,7 @@ describe.skip('Drag and drop functionality in the Layers menu', () => {
     cy.get('#canvasPreviewOverlay .canvas--viewport-overlay')
       .first()
       .as('desktopPreviewOverlay');
+    cy.openLayersPanel();
     cy.get('.primaryPanelContent').as('layersTree');
 
     // TODO don't even have this image here in the first place! For now, we delete it

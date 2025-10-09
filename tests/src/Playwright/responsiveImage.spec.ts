@@ -27,6 +27,7 @@ test.describe('Responsive Image', () => {
     await drupal.createCanvasPage('Homepage', '/homepage');
     await page.goto('/homepage');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.image' });
 
     const frame = page
@@ -107,6 +108,7 @@ test.describe('Responsive Image', () => {
     await drupal.createCanvasPage('Cards', '/cards');
     await page.goto('/cards');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await drupal.addMediaImage(
       '../../../fixtures/images/gracie-big.jpg',

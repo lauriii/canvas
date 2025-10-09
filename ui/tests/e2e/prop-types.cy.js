@@ -61,6 +61,7 @@ describe('Prop types editing', () => {
   beforeEach(() => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLibraryPanel();
     cy.insertComponent({ name: 'Two Column' });
     cy.findByLabelText('Column Width').should('exist');
     cy.insertComponent({ name: 'All props' });
@@ -187,6 +188,7 @@ describe('Prop types editing', () => {
     cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
     cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+    cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.findByLabelText('String - Enum').should('have.value', '_none');
@@ -605,6 +607,7 @@ describe('Prop types editing', () => {
     cy.findByLabelText(labelText).clear({ force: true });
     cy.waitForElementContentNotInIframe(iframeSelector, valuePre);
     cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
+    cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
     cy.waitForElementContentInIframe(
@@ -620,7 +623,7 @@ describe('Prop types editing', () => {
     () => {
       cy.loadURLandWaitForCanvasLoaded();
       cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
-
+      cy.openLibraryPanel();
       cy.insertComponent({ name: 'All props' });
       cy.findByLabelText('String with HTML formatting (block)').should('exist');
 
@@ -698,6 +701,7 @@ describe('Prop types editing', () => {
 
   it('Select prop with _none', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLibraryPanel();
     cy.insertComponent({ name: 'Heading' });
     cy.findByLabelText('Style').should('have.value', 'primary');
     cy.findByLabelText('Style').within(() => {

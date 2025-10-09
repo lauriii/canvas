@@ -28,6 +28,7 @@ describe('Operate on components + interact in global regions', () => {
       cy.get('#canvasPreviewOverlay .canvas--viewport-overlay')
         .first()
         .as('desktopPreviewOverlay');
+      cy.openLayersPanel();
       cy.get('.primaryPanelContent').as('layersTree');
 
       // Open the layers in the Tree.

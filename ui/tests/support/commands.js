@@ -413,8 +413,6 @@ Cypress.Commands.add(
       log: false,
     });
     cy.log(`Preview '${iframeSelector}' initialized and has content document.`);
-    // Open the Layers panel because all tests assume it is open (it used to be by default).
-    cy.openLayersPanel();
     cy.debugPause('previewReady');
     return cy.get('@iframe');
   },
@@ -645,16 +643,27 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('openLibraryPanel', () => {
-  // Going to Layers and then Library ensures that if the Library is already open the panel won't get closed when clicking the Add button.
-  cy.findByTestId('canvas-side-menu').findByLabelText('Layers').click();
   cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
+
+  cy.findByText('Library', { selector: 'h4' }).should(($el) => {
+    expect(
+      $el.length,
+      'openLibraryPanel: Library panel did not open - was it already open?.',
+    ).to.be.greaterThan(0);
+  });
+
   cy.findByTestId('canvas-components-library-loading').should('not.exist');
 });
 
 Cypress.Commands.add('openLayersPanel', () => {
   // Going to Library and then Layers ensures that if Layers is already open the panel won't get closed when clicking the Layers button.
-  cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
   cy.findByTestId('canvas-side-menu').findByLabelText('Layers').click();
+  cy.findByText('Layers', { selector: 'h4' }).should(($el) => {
+    expect(
+      $el.length,
+      'openLayersPanel: Layers panel did not open - was it already open?.',
+    ).to.be.greaterThan(0);
+  });
 });
 
 /**
@@ -864,6 +873,13 @@ Cypress.Commands.add(
 Cypress.Commands.add(
   'clickComponentInLayersView',
   (componentName, index = 0) => {
+    cy.findByText('Layers', { selector: 'h4' }).should(($el) => {
+      expect(
+        $el.length,
+        'The Layers panel must be open before calling clickComponentInLayersView.',
+      ).to.be.greaterThan(0);
+    });
+
     cy.get('.primaryPanelContent')
       .findAllByLabelText(componentName)
       .eq(index)
@@ -1296,8 +1312,12 @@ Cypress.Commands.add('insertComponent', (identifier, options = {}) => {
   const { id, name } = identifier;
   const { hasInputs = true } = options;
 
-  // Open the Library panel first.
-  cy.openLibraryPanel();
+  cy.findByText('Library', { selector: 'h4' }).should(($el) => {
+    expect(
+      $el.length,
+      'The Library panel must be open before calling insertComponent.',
+    ).to.be.greaterThan(0);
+  });
 
   let selector, previewSelector;
   if (id) {

@@ -36,6 +36,7 @@ describe('Prop with autocomplete', () => {
 
   it('Works with link fields', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLibraryPanel();
     cy.insertComponent({ name: 'Hero' });
 
     cy.findByLabelText('CTA 1 link')

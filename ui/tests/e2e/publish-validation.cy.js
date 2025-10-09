@@ -45,6 +45,7 @@ describe('Publish review functionality', () => {
     ];
     paths.forEach(({ path }) => {
       cy.loadURLandWaitForCanvasLoaded({ url: path });
+      cy.openLibraryPanel();
       cy.insertComponent({ name: 'Hero' });
       cy.findByLabelText('Heading').type('{selectall}{del}');
       cy.findByLabelText('Heading').type('Z');

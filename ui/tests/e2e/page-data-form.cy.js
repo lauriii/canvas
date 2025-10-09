@@ -16,6 +16,7 @@ describe('Page data form', () => {
     cy.get('#canvasPreviewOverlay .canvas--viewport-overlay')
       .first()
       .as('desktopPreviewOverlay');
+    cy.openLayersPanel();
     cy.get('.primaryPanelContent').as('layersTree');
     cy.get('@layersTree').findByText('Two Column').should('exist');
     // Open the right sidebar by clicking on a component.

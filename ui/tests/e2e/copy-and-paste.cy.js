@@ -99,6 +99,7 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.loadURLandWaitForCanvasLoaded();
     cy.clearLocalStorage();
 
+    cy.openLayersPanel();
     cy.clickComponentInLayersView('Two Column');
     cy.realPress(['Meta', 'c']);
     cy.realPress(['Meta', 'v']);

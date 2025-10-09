@@ -17,6 +17,7 @@ describe('Image code component', () => {
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
+      cy.openLibraryPanel();
       cy.insertComponent({ name: 'Vanilla Image' });
       // Check the default image src is set.
       cy.waitForElementInIframe(

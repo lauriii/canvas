@@ -99,6 +99,7 @@ test.describe('Perform CRUD operations on components', () => {
     await drupal.createCanvasPage('Hovers', '/hovers');
     await page.goto('/hovers');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await canvasEditor.openLayersPanel();
@@ -171,7 +172,7 @@ test.describe('Perform CRUD operations on components', () => {
     await page.goto('/hero');
     await canvasEditor.goToEditor();
     await expect(page.locator('#block-stark-page-title h1')).toHaveCount(0);
-
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
 
     // Heading.
@@ -225,6 +226,7 @@ test.describe('Perform CRUD operations on components', () => {
     await drupal.createCanvasPage('Delete', '/delete');
     await page.goto('/delete');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await canvasEditor.deleteComponent('sdc.canvas_test_sdc.card');
   });
@@ -237,6 +239,7 @@ test.describe('Perform CRUD operations on components', () => {
     await drupal.createCanvasPage('Slots', '/slots');
     await page.goto('/slots');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.props-slots' });
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await canvasEditor.openLayersPanel();
@@ -295,6 +298,7 @@ test.describe('Perform CRUD operations on components', () => {
     await drupal.createCanvasPage('Load SDC CSS', '/sdc-styles');
     await page.goto('/sdc-styles');
     await canvasEditor.goToEditor();
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
     const head = await canvasEditor.getIframeHead();
@@ -318,7 +322,7 @@ test.describe('Perform CRUD operations on components', () => {
     await drupal.createCanvasPage('Blur Autocomplete', '/blur-autocomplete');
     await page.goto('/blur-autocomplete');
     await canvasEditor.goToEditor();
-
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
     // Fill in Heading and Sub-heading fields

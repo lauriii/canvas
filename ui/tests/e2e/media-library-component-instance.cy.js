@@ -188,6 +188,7 @@ describe('Media Library component instance', () => {
     () => {
       cy.drupalLogin('canvasUser', 'canvasUser');
       cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
+      cy.openLibraryPanel();
       cy.insertComponent({ name: 'Test SDC Image' });
 
       cy.insertComponent({ name: 'Test SDC Image' });

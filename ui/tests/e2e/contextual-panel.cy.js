@@ -34,6 +34,7 @@ describe('Contextual panel', () => {
 
   it('should open the context menu on right-click in primary content menu', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLayersPanel();
     // Wait for the preview iframe to load and render something that confirms it is ready.
     cy.get('iframe[data-canvas-preview]').should('exist');
     // Right-click on the element in primary content menu that should trigger the context menu.
@@ -57,6 +58,7 @@ describe('Contextual panel', () => {
 
   it('should duplicate the element on clicking the "Duplicate" button', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLayersPanel();
     cy.getIframeBody()
       .find('[data-component-id="canvas_test_sdc:two_column"]')
       .should('have.length', 1);
@@ -269,7 +271,6 @@ describe('Contextual panel', () => {
     cy.clickComponentInPreview('Test SDC Image');
 
     cy.openLibraryPanel();
-
     // Click Heading in the side menu
     cy.insertComponent({ name: 'Heading' });
     // Check if heading component has been added in the preview

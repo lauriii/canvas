@@ -14,6 +14,7 @@ describe('Undo/Redo functionality', () => {
 
   it('Performs a basic interaction with Undo/Redo', () => {
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLibraryPanel();
 
     // Assert that the undo button is disabled initially.
     cy.get('button[aria-label="Undo"]').should('be.disabled');
@@ -27,7 +28,6 @@ describe('Undo/Redo functionality', () => {
     );
     cy.intercept('POST', '**/canvas/api/v0/layout/node/1').as('getPreview');
     cy.insertComponent({ name: 'Two Column' });
-    cy.openLibraryPanel();
 
     // Click on the menu item with data-canvas-name="Hero" inside menu.
     cy.insertComponent({ name: 'Hero' });

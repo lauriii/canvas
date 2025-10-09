@@ -15,6 +15,7 @@ describe('Expand Slots on Component Selection', () => {
   it('should expand slots when a component is selected', () => {
     cy.loadURLandWaitForCanvasLoaded();
 
+    cy.openLayersPanel();
     cy.get('.primaryPanelContent').as('layersTree');
 
     cy.get('@layersTree').within(() => {
@@ -43,6 +44,8 @@ describe('Expand Slots on Component Selection', () => {
     cy.log(
       'After leaving the page and coming back, the collapsed layers should still be collapsed!',
     );
+
+    cy.openLayersPanel();
 
     cy.get('@layersTree').within(() => {
       cy.findByText('Test Code Component').should('not.exist');

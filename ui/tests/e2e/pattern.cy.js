@@ -20,6 +20,7 @@ describe('Can save and load patterns', () => {
     () => {
       cy.viewport(2000, 1320);
       cy.loadURLandWaitForCanvasLoaded();
+      cy.openLayersPanel();
       cy.get('.canvas--viewport-overlay')
         .findByLabelText('Two Column')
         .realClick({ position: 'bottomRight' });

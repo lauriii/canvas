@@ -82,7 +82,7 @@ test.describe('Canvas UI Permissions', () => {
 
     // Make a change to the page
     await expect(page.getByText('No changes')).toBeAttached();
-
+    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
     await expect(page.getByLabel('Sub-heading')).toBeAttached();

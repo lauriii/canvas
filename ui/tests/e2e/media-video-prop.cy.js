@@ -16,6 +16,7 @@ describe('Media Library', () => {
   it('Can use a video component that uses the media library widget', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
+    cy.openLibraryPanel();
     cy.insertComponent({ name: 'Video' });
     const canvasFormSelector = '[data-testid*="canvas-component-form-"]';
     cy.get('[data-testid*="canvas-component-form-"]').as('inputForm');
@@ -88,6 +89,7 @@ describe('Media Library', () => {
   it('Can handle not immediately having a value', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/2' });
+    cy.openLibraryPanel();
     cy.insertComponent({ name: 'Video' });
     cy.waitForElementInIframe('video > source');
     cy.findByLabelText('Display width').clear();

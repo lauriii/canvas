@@ -17,7 +17,7 @@ describe('Drupal Canvas overlay UI interactions', () => {
     () => {
       cy.loadURLandWaitForCanvasLoaded();
       cy.get('.canvas--viewport-overlay').as('desktopPreviewOverlay');
-
+      cy.openLayersPanel();
       cy.clickComponentInLayersView('Two Column');
 
       cy.log(

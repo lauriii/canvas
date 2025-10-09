@@ -8,6 +8,7 @@ describe('Multi-select components', () => {
     cy.drupalSession();
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded();
+    cy.openLayersPanel();
 
     // Make sure we have multiple components visible for testing
     cy.testInIframe(
