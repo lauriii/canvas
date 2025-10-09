@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\text\Plugin\Field\FieldType\TextLongItem;
@@ -15,6 +16,9 @@ use Drupal\text\Plugin\Field\FieldType\TextLongItem;
  * text content with proper semantic typing.
  */
 class TextLongItemOverride extends TextLongItem {
+
+  use CoreBugFixTextItemBaseDefaultValueTrait;
+  use CoreBugFixTextItemBaseGenerateSampleValueTrait;
 
   /**
    * {@inheritdoc}

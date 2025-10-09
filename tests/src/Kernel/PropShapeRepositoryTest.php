@@ -541,7 +541,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&contentMediaType=text/html' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
-        fieldTypeProp: new FieldTypePropExpression('text_long', 'value'),
+        fieldTypeProp: new FieldTypePropExpression('text_long', 'processed'),
         fieldWidget: 'text_textarea',
         fieldInstanceSettings: [
           'allowed_formats' => [
@@ -551,7 +551,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&contentMediaType=text/html&x-formatting-context=block' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
-        fieldTypeProp: new FieldTypePropExpression('text_long', 'value'),
+        fieldTypeProp: new FieldTypePropExpression('text_long', 'processed'),
         fieldWidget: 'text_textarea',
         fieldInstanceSettings: [
           'allowed_formats' => [
@@ -561,7 +561,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       ),
       'type=string&contentMediaType=text/html&x-formatting-context=inline' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
-        fieldTypeProp: new FieldTypePropExpression('text', 'value'),
+        fieldTypeProp: new FieldTypePropExpression('text', 'processed'),
         fieldWidget: 'text_textfield',
         fieldInstanceSettings: [
           'allowed_formats' => [

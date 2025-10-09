@@ -16,6 +16,9 @@ use Drupal\text\Plugin\Field\FieldType\TextItem;
  */
 class TextItemOverride extends TextItem {
 
+  use CoreBugFixTextItemBaseDefaultValueTrait;
+  use CoreBugFixTextItemBaseGenerateSampleValueTrait;
+
   /**
    * {@inheritdoc}
    */

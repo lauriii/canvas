@@ -16,6 +16,9 @@ use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
  */
 class TextWithSummaryItemOverride extends TextWithSummaryItem {
 
+  use CoreBugFixTextItemBaseDefaultValueTrait;
+  use CoreBugFixTextItemBaseGenerateSampleValueTrait;
+
   /**
    * {@inheritdoc}
    */

@@ -559,7 +559,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html',
           ],
-          'static prop source' => 'ℹ︎text_long␟value',
+          'static prop source' => 'ℹ︎text_long␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -568,7 +568,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block',
           ],
-          'static prop source' => 'ℹ︎text_long␟value',
+          'static prop source' => 'ℹ︎text_long␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -577,7 +577,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_inline',
           ],
-          'static prop source' => 'ℹ︎text␟value',
+          'static prop source' => 'ℹ︎text␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1437,7 +1437,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_html',
           ],
-          'static prop source' => 'ℹ︎text_long␟value',
+          'static prop source' => 'ℹ︎text_long␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1446,7 +1446,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_html_block',
           ],
-          'static prop source' => 'ℹ︎text_long␟value',
+          'static prop source' => 'ℹ︎text_long␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
@@ -1455,7 +1455,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_html_inline',
           ],
-          'static prop source' => 'ℹ︎text␟value',
+          'static prop source' => 'ℹ︎text␟processed',
           'instances' => [],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
