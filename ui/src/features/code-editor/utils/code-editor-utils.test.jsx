@@ -233,16 +233,6 @@ describe('Code editor utilities', () => {
       ]);
       matchDeserializedProps(result, [16, 17, 18, 19]);
     });
-
-    // Backwards compatibility
-    // @see https://www.drupal.org/i/3520843
-    it('of type deprecated text area - backwards compatibility', () => {
-      const result = deserializeProps([
-        serializedPropsFixture.deprecatedTextAreaWithNoExampleValue,
-        serializedPropsFixture.deprecatedTextAreaWithExampleValue,
-      ]);
-      matchDeserializedProps(result, [20, 21]);
-    });
   });
 
   it('serialize slots', () => {

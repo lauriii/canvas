@@ -26,10 +26,13 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   protected static $modules = [
     'canvas',
     // Canvas's dependencies (the subset that is needed for these tests).
+    'editor',
     'file',
+    'filter',
     'image',
     'link',
     'options',
+    'text',
     'user',
   ];
 
@@ -853,18 +856,18 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'props.image.examples.0.width' => "'width' is not a supported key.",
         ],
       ],
-      'Valid: textarea prop with $ref' => [
+      'Valid: markup prop' => [
         [
           'machineName' => 'test-props-no-slots',
           'name' => 'Test',
           'props' => [
-            'textarea' => [
-              'title' => 'Textarea',
+            'markup' => [
+              'title' => 'Markup',
               'type' => 'string',
-              '$ref' => "json-schema-definitions://canvas.module/textarea",
+              'contentMediaType' => 'text/html',
+              'x-formatting-context' => 'block',
               'examples' => [
-                'Simple',
-                'Example',
+                '<p>This is a paragraph with <strong>bold</strong> text.</p><ul><li>List item 1</li><li>List item 2</li></ul>',
               ],
             ],
           ],

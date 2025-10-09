@@ -1,10 +1,5 @@
 {
   "$defs": {
-    "textarea": {
-      "title": "Multi-line string",
-      "type": "string",
-      "pattern": "(.|\\r?\\n)*"
-    },
     "heading-element": {
       "title": "Heading element",
       "type": "string",

@@ -1374,25 +1374,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             ],
           ],
         ],
-        'optional, type=string&$ref=json-schema-definitions://canvas.module/textarea' => [
-          'SDC props' => [
-            '⿲sdc_test_all_props:all-props␟test_string_multiline',
-          ],
-          'static prop source' => 'ℹ︎string_long␟value',
-          'instances' => [
-            'ℹ︎␜entity:canvas_page␝description␞␟value',
-            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
-            'ℹ︎␜entity:canvas_page␝revision_log␞␟value',
-            'ℹ︎␜entity:media:baby_videos␝revision_log_message␞␟value',
-            'ℹ︎␜entity:media:press_releases␝revision_log_message␞␟value',
-            'ℹ︎␜entity:media:vacation_videos␝revision_log_message␞␟value',
-            'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝revision_log_message␞␟value',
-            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_log_message␞␟value',
-            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
-          ],
-          'adapter_matches_field_type' => [],
-          'adapter_matches_instance' => [],
-        ],
         'optional, type=string&contentMediaType=image/*&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Uri->value . '_image',
@@ -1963,6 +1944,25 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝uuid␞␟value',
             'ℹ︎␜entity:path_alias␝uuid␞␟value',
             'ℹ︎␜entity:user␝uuid␞␟value',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
+        'optional, type=string&pattern=(.|\r?\n)*' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_multiline',
+          ],
+          'static prop source' => 'ℹ︎string_long␟value',
+          'instances' => [
+            'ℹ︎␜entity:canvas_page␝description␞␟value',
+            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:canvas_page␝revision_log␞␟value',
+            'ℹ︎␜entity:media:baby_videos␝revision_log_message␞␟value',
+            'ℹ︎␜entity:media:press_releases␝revision_log_message␞␟value',
+            'ℹ︎␜entity:media:vacation_videos␝revision_log_message␞␟value',
+            'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:node:foo␝revision_log␞␟value',
           ],
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],

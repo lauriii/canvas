@@ -30,10 +30,8 @@ props:
     test_string_multiline:
       title: 'String — multi-line'
       type: string
-      $ref: json-schema-definitions://canvas.module/textarea
-      # Pattern in $ref:
       # @see https://json-schema.org/understanding-json-schema/reference/regular_expressions
-      #pattern: '(.|\r?\n)*'
+      pattern: '(.|\r?\n)*'
       # This pattern needs to match the pattern added in
       # \Drupal\canvas\Plugin\Field\FieldTypeOverride\StringLongItemOverride::propertyDefinitions.
       examples:

@@ -260,10 +260,7 @@ enum JsonSchemaType: string {
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
-        array_key_exists('$ref', $schema) => match ($schema['$ref']) {
-          'json-schema-definitions://canvas.module/textarea' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
-          default => NULL,
-        },
+        array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => match(in_array('', $schema['enum'], TRUE)) {
           // The empty string is not a sensible enum value. To indicate optionality, the prop should be made optional.
           TRUE => NULL,
@@ -279,7 +276,10 @@ enum JsonSchemaType: string {
         // @todo Add support for both `format` and `pattern` being present: the latter often just restricts the former.
         array_key_exists('format', $schema) => JsonSchemaStringFormat::from($schema['format'])->computeStorablePropShape($shape),
         // @todo subclass \Drupal\Core\Field\Plugin\Field\FieldType\StringItem to allow for a "pattern" setting + create subclass of \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget to pass on that pattern setting  ⚠️
-        array_key_exists('pattern', $schema) => NULL,
+        array_key_exists('pattern', $schema) => match ($schema['pattern']) {
+          '(.|\r?\n)*' => new StorablePropShape(shape: $shape, fieldWidget: 'string_textarea', fieldTypeProp: new FieldTypePropExpression('string_long', 'value')),
+          default => NULL,
+        },
         // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
         // @todo Support `minLength`.  ⚠️
         array_key_exists('maxLength', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('string', 'value'), fieldWidget: 'string_textfield', fieldStorageSettings: [

@@ -42,11 +42,8 @@ const derivedPropTypes = [
     displayName: 'Formatted text',
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' &&
-      ((prop.contentMediaType === 'text/html' &&
-        prop['x-formatting-context'] === 'block') ||
-        // Backwards compatibility
-        // @see https://www.drupal.org/i/3520843
-        prop.$ref?.includes('textarea')),
+      prop.contentMediaType === 'text/html' &&
+      prop['x-formatting-context'] === 'block',
     init: {
       type: 'string',
       contentMediaType: 'text/html',

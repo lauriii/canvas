@@ -148,7 +148,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
-      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/textarea']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
@@ -199,6 +198,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriTemplate->value, 'x-required-variables' => ['width']]),
       new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Uuid->value]),
       new PropShape(['type' => 'string', 'minLength' => 2]),
+      new PropShape(['type' => 'string', 'pattern' => '(.|\r?\n)*']),
     ], $unique_prop_shapes);
 
     return $unique_prop_shapes;
@@ -534,11 +534,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
         ],
         fieldWidget: 'link_default',
       ),
-      'type=string&$ref=json-schema-definitions://canvas.module/textarea' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/textarea']),
-        fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
-        fieldWidget: 'string_textarea',
-      ),
       'type=string&contentMediaType=text/html' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
         fieldTypeProp: new FieldTypePropExpression('text_long', 'processed'),
@@ -664,6 +659,11 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
+      ),
+      'type=string&pattern=(.|\r?\n)*' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'pattern' => '(.|\r?\n)*']),
+        fieldTypeProp: new FieldTypePropExpression('string_long', 'value'),
+        fieldWidget: 'string_textarea',
       ),
     ];
   }
