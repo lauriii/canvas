@@ -16,7 +16,6 @@ parameters:
     - src/TypedData/BetterEntityDataDefinition.php
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
-    - scripts/src/ConverterCommand.php
   treatPhpDocTypesAsCertain: false
   drupal:
     entityMapping:
