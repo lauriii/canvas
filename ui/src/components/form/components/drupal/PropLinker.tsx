@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { CheckIcon, Link1Icon, LinkNone1Icon } from '@radix-ui/react-icons';
-import { DropdownMenu, Separator, Text } from '@radix-ui/themes';
+import { DropdownMenu, Separator } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -31,13 +31,6 @@ export interface PropLinkerProps {
   linked: boolean;
   suggestions: LinkSuggestion[];
 }
-const ICON_SLOT_WIDTH = 12;
-
-const ICON_SLOT_STYLE: React.CSSProperties = {
-  width: `${ICON_SLOT_WIDTH}px`,
-  display: 'inline-flex',
-  flexShrink: 0,
-};
 
 /**
  * Appears as a link icon. When clicked, a dropdown appears with
@@ -89,23 +82,6 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
     currentExpression = fieldSource.expression;
   }
 
-  // Recursively check for active descendant in nested items.
-  const checkForActiveDescendant = (
-    items: LinkSuggestion[],
-    currentExpression: string,
-  ): boolean =>
-    items.some((item) =>
-      item.source?.expression === currentExpression
-        ? true
-        : item.items?.length
-          ? checkForActiveDescendant(item.items, currentExpression)
-          : false,
-    );
-
-  const IconSlot = ({ children }: { children?: React.ReactNode }) => (
-    <span style={ICON_SLOT_STYLE}>{children ?? null}</span>
-  );
-
   const DropdownMenuItem = ({
     item,
     isActive,
@@ -117,45 +93,32 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       <DropdownMenu.Item
         onClick={() => handleFieldClick(item)}
         disabled={isActive}
-        className={clsx(styles.dropdownMenuItem, {
+        className={clsx({
           [styles.disabled]: isActive,
         })}
       >
-        <IconSlot>{isActive && <CheckIcon />}</IconSlot>
+        {isActive && <CheckIcon />}
         {item.label}
       </DropdownMenu.Item>
     );
   };
 
-  const NestedDropdownItem = ({
-    item,
-  }: {
-    item: LinkSuggestion;
-  }): React.ReactNode => {
+  const NestedDropdownItem = ({ item }: { item: LinkSuggestion }) => {
     const isActive = item.source?.expression === currentExpression;
 
     if (item.items && item.items.length > 0) {
-      const hasActiveChild = currentExpression
-        ? checkForActiveDescendant(item.items, currentExpression)
-        : false;
       return (
         <DropdownMenu.Sub>
           <DropdownMenu.SubTrigger
-            className={clsx(styles.subTrigger, styles.dropdownMenuItem, {
+            className={clsx(styles.subTrigger, {
               [styles.disabled]: isActive && item.source,
             })}
           >
-            <IconSlot />
-            <Text
-              className={clsx({
-                [styles.hasActiveChild]: hasActiveChild,
-              })}
-            >
-              {item.label}
-            </Text>
+            {item.label}
           </DropdownMenu.SubTrigger>
 
           <DropdownMenu.SubContent>
+            {/* Show the parent item in its own menu if it has a source itself to link to. */}
             {item.source && (
               <>
                 <DropdownMenuItem
@@ -193,10 +156,13 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       <DropdownMenu.Content align="end" side="bottom">
         {suggestions.map((suggestion, index) => {
           if (suggestion.items && suggestion.items.length > 0) {
-            return <NestedDropdownItem key={index} item={suggestion} />;
+            return (
+              <NestedDropdownItem
+                key={suggestion.id || index}
+                item={suggestion}
+              />
+            );
           }
-          // @todo: Temporarily hard code this until we have a better way to filter suggestions.
-          if (suggestion.label === 'Revision log message') return null;
           const isActive = suggestion.source?.expression === currentExpression;
           return (
             <DropdownMenuItem

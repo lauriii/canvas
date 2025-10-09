@@ -58,17 +58,6 @@ const DrupalFormElementLabel = ({
       const propLinkData: PropLinkData = directLinkerData
         ? directLinkerData
         : (attributes.prop_link_data as PropLinkData);
-
-      const suggestions = propLinkData.suggestions || [];
-      // Do not render the PropLinker if there's only one suggestion with label "Revision log message".
-      // @todo: Temporarily hard code this until we have a better way to filter suggestions.
-      if (
-        suggestions.length === 1 &&
-        suggestions[0].label === 'Revision log message'
-      ) {
-        return theLabel;
-      }
-
       return (
         <div className="canvas-linked-prop-label-wrapper">
           {theLabel}
