@@ -66,6 +66,8 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       $source->getMetadata(),
       EntityDataDefinition::createFromDataType("entity:$content_entity_type_id:$bundle"),
     );
+    // @todo if $content_entity_type_id has a `canonical` URL template, also offer `host-entity-url:absolute:canonical` as a choice. Something like:
+    // $suggestions[] = (new HostEntityUrlPropSource())->asChoice();
 
     return new JsonResponse(
       status: Response::HTTP_OK,

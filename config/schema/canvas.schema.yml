@@ -307,6 +307,7 @@ canvas.component_tree:
           # content entity. A config entity typically is not associated with any content entity, so require its absence
           # by default.
           - dynamic
+          - host-entity-url
           # Not yet supported by the Canvas UI.
           - adapter
         presence: ~
@@ -616,6 +617,7 @@ field.value.component_tree:
       inputs:
         absence:
           - dynamic
+          - host-entity-url
           - adapter
         presence: ~
       tree:
@@ -652,6 +654,7 @@ canvas.pattern.*:
           inputs:
             absence:
               - dynamic
+              - host-entity-url
               - adapter
             presence: ~
           tree:
@@ -766,6 +769,7 @@ canvas.content_template.*.*.*:
           inputs:
             absence:
               - adapter
+            # Allows `dynamic` and `host-entity-url`!
             presence: ~
             # @todo For now we removed the `dynamic` requirement to allow
             #   publishing before we add UI for mapping dynamic props. This will

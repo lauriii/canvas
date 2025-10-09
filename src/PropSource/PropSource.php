@@ -8,11 +8,12 @@ namespace Drupal\canvas\PropSource;
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @phpstan-import-type AdaptedPropSourceArray from PropSourceBase
  * @phpstan-import-type DefaultRelativeUrlPropSourceArray from PropSourceBase
+ * @phpstan-import-type HostEntityUrlPropSourceArray from PropSourceBase
  */
 final class PropSource {
 
   /**
-   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray $prop_source
+   * @param PropSourceArray|AdaptedPropSourceArray|DefaultRelativeUrlPropSourceArray|HostEntityUrlPropSourceArray $prop_source
    */
   public static function parse(array $prop_source): PropSourceBase {
     $source_type_prefix = strstr($prop_source['sourceType'], PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR, TRUE);
@@ -30,6 +31,10 @@ final class PropSource {
     // @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
     if ($source_type_prefix === DefaultRelativeUrlPropSource::getSourceTypePrefix()) {
       return DefaultRelativeUrlPropSource::parse($prop_source);
+    }
+
+    if ($source_type_prefix === HostEntityUrlPropSource::getSourceTypePrefix()) {
+      return HostEntityUrlPropSource::parse($prop_source);
     }
 
     // The AdaptedPropSource is the exception: it composes multiple other prop

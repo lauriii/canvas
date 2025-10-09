@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\Exception\UndefinedLinkTemplateException;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\BooleanCheckboxWidget;
@@ -41,11 +45,13 @@ use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\TestWith;
 
 /**
  * @coversDefaultClass \Drupal\canvas\PropSource\PropSource
@@ -59,6 +65,7 @@ class PropSourceTest extends KernelTestBase {
   private const IMAGE_MEDIA_UUID2 = '93b145bb-d8c3-4410-bbd6-fdcd06e27c29';
   private const TEST_MEDIA = '43b145bb-d8c3-4410-bbd6-fdcd06e27c29';
 
+  use ContentTypeCreationTrait;
   use ContribStrictConfigSchemaTestTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
@@ -1012,6 +1019,54 @@ class PropSourceTest extends KernelTestBase {
     // This is never a choice presented to the end user; this is a purely internal prop source.
     $this->expectException(\LogicException::class);
     $source->asChoice();
+  }
+
+  /**
+   * @param string $entity_type_id
+   * @param string $entity_uuid
+   * @param string|null $expected_url
+   * @param class-string<\Throwable>|null $expected_exception
+   */
+  #[TestWith(['media', self::IMAGE_MEDIA_UUID1, '/media/1/edit', NULL])]
+  #[TestWith(['file', self::FILE_UUID1, NULL, UndefinedLinkTemplateException::class])]
+  #[TestWith(['media', 'not-a-real-uuid', NULL, MissingHostEntityException::class])]
+  #[TestWith(['node', 'with-alias', '/awesome-page', NULL])]
+  #[TestWith(['node', 'without-alias', '/node/1', NULL])]
+  public function testHostEntityUrlPropSource(string $entity_type_id, string $entity_uuid, ?string $expected_url, ?string $expected_exception): void {
+    $source = new HostEntityUrlPropSource();
+    // First, get the string representation and parse it back, to prove
+    // serialization and deserialization works.
+    $json_representation = (string) $source;
+    self::assertSame('{"sourceType":"host-entity-url"}', $json_representation);
+    $decoded = json_decode($json_representation, TRUE);
+    $source = PropSource::parse($decoded);
+    self::assertInstanceOf(HostEntityUrlPropSource::class, $source);
+    self::assertSame('host-entity-url', $source->getSourceType());
+    self::assertSame([], $source->calculateDependencies());
+    self::assertSame('host-entity-url:absolute:canonical', $source->asChoice());
+
+    $this->enableModules(['path', 'path_alias', 'text']);
+    $this->installConfig('node');
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('path_alias');
+    $this->createContentType(['type' => 'page']);
+    $this->createNode([
+      'type' => 'page',
+      'uuid' => 'without-alias',
+    ]);
+    $this->createNode([
+      'type' => 'page',
+      'uuid' => 'with-alias',
+      'path' => ['alias' => '/awesome-page'],
+    ]);
+
+    $entity = $this->container->get(EntityRepositoryInterface::class)
+      ->loadEntityByUuid($entity_type_id, $entity_uuid);
+
+    if ($expected_exception) {
+      $this->expectException($expected_exception);
+    }
+    self::assertSame($GLOBALS['base_url'] . $expected_url, $source->evaluate($entity, TRUE));
   }
 
 }

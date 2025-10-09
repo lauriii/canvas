@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
 use Drupal\canvas\PropSource\AdaptedPropSource;
@@ -95,6 +96,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       DynamicPropSource::getSourceTypePrefix(),
       AdaptedPropSource::getSourceTypePrefix(),
       DefaultRelativeUrlPropSource::getSourceTypePrefix(),
+      HostEntityUrlPropSource::getSourceTypePrefix(),
     ];
     foreach (['absence', 'presence'] as $nested_option) {
       if ($this->inputs[$nested_option] === NULL) {
