@@ -165,6 +165,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_captioned_video' => [
         'prop_field_definitions' => [
           'caption' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -175,6 +176,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎string␟value',
           ],
           'displayWidth' => [
+            'required' => FALSE,
             'field_type' => 'list_integer',
             'field_storage_settings' => [
               'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
@@ -187,6 +189,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎list_integer␟value',
           ],
           'video' => [
+            'required' => TRUE,
             'field_type' => 'entity_reference',
             'field_storage_settings' => [
               'target_type' => 'media',
@@ -210,6 +213,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_interactive' => [
         'prop_field_definitions' => [
           'name' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -228,6 +232,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_vanilla_image' => [
         'prop_field_definitions' => [
           'image' => [
+            'required' => FALSE,
             'field_type' => 'image',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -242,6 +247,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_with_enums' => [
         'prop_field_definitions' => [
           'favorite_color' => [
+            'required' => FALSE,
             'field_type' => 'list_string',
             'field_storage_settings' => [
               'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
@@ -256,6 +262,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎list_string␟value',
           ],
           'size' => [
+            'required' => FALSE,
             'field_type' => 'list_string',
             'field_storage_settings' => [
               'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
@@ -274,6 +281,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_with_link_prop' => [
         'prop_field_definitions' => [
           'link' => [
+            'required' => FALSE,
             'field_type' => 'link',
             'field_storage_settings' => [],
             'field_instance_settings' => [
@@ -290,6 +298,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎link␟url',
           ],
           'text' => [
+            'required' => FALSE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -305,6 +314,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_with_props' => [
         'prop_field_definitions' => [
           'age' => [
+            'required' => FALSE,
             'field_type' => 'integer',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -313,6 +323,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
             'expression' => 'ℹ︎integer␟value',
           ],
           'name' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
@@ -325,6 +336,7 @@ final class JsComponentTest extends ComponentSourceTestBase {
       'js.canvas_test_code_components_with_slots' => [
         'prop_field_definitions' => [
           'name' => [
+            'required' => TRUE  ,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],

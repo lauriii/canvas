@@ -10,12 +10,13 @@ provider: null
 source: js
 source_local_id: canvas_test_code_components_with_props
 category: '@todo'
-active_version: cd8b163a8d299fea
+active_version: 35f5dc23af5896ac
 versioned_properties:
   active:
     settings:
       prop_field_definitions:
         age:
+          required: false
           field_type: integer
           field_storage_settings: {  }
           field_instance_settings: {  }
@@ -24,6 +25,7 @@ versioned_properties:
             - value: 40
           expression: ℹ︎integer␟value
         name:
+          required: false
           field_type: string
           field_storage_settings: {  }
           field_instance_settings: {  }

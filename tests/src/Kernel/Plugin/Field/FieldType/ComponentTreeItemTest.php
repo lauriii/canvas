@@ -90,7 +90,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     self::assertCount(1, $component->getVersions());
     $settings = $component->getSettings();
     $settings['prop_field_definitions']['heading']['default_value'][0]['value'] = 'Updated example value 👋';
-    $component->createVersion('a9ff855f3d425e0d')
+    $component->createVersion('bcf3fbf52a2b169b')
       ->setSettings($settings)
       ->save();
     $violations = $component->getTypedData()->validate();
@@ -237,8 +237,8 @@ class ComponentTreeItemTest extends KernelTestBase {
     $this->assertCount(2, $item_list);
     $violations = $item_list->validate();
     $this->assertSame([
-      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: 'ab4d3ddce315cf64'.",
-      '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-no-slots'. Available versions: '95f4f1d5ee47663b'.",
+      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '85a5c0c7dd53e0bb'.",
+      '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-no-slots'. Available versions: 'b1e991f726a2a266'.",
     ], self::violationsToArray($violations));
   }
 

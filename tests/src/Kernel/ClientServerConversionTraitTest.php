@@ -49,7 +49,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.canvas_test_sdc.props-slots@ab4d3ddce315cf64',
+      'type' => 'sdc.canvas_test_sdc.props-slots@85a5c0c7dd53e0bb',
       'slots' => [
         [
           'id' => "$uuid/the_body",
@@ -129,12 +129,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => '8dd7b865998f53b0',
+        'component_version' => '8c01a2bdb897a810',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.canvas_test_sdc.image',
-        'component_version' => 'cc9b97c9370aabdf',
+        'component_version' => 'abadf2538ecfdecc',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -144,12 +144,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => 'ab4d3ddce315cf64',
+        'component_version' => '85a5c0c7dd53e0bb',
       ],
       [
         'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => 'ab4d3ddce315cf64',
+        'component_version' => '85a5c0c7dd53e0bb',
         'slot' => 'the_body',
         'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
       ],
@@ -182,12 +182,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => '8dd7b865998f53b0',
+        'component_version' => '8c01a2bdb897a810',
       ],
       [
         'uuid' => self::TEST_IMAGE_UUID,
         'component_id' => 'sdc.canvas_test_sdc.image',
-        'component_version' => 'cc9b97c9370aabdf',
+        'component_version' => 'abadf2538ecfdecc',
       ],
       [
         'uuid' => self::TEST_BLOCK,
@@ -244,13 +244,13 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_HEADING_UUID,
-          'type' => 'sdc.canvas_test_sdc.heading@8dd7b865998f53b0',
+          'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
           'slots' => [],
         ],
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_IMAGE_UUID,
-          'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+          'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
           'slots' => [],
         ],
         [

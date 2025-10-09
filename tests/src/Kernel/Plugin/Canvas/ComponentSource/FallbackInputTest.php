@@ -243,7 +243,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     $new_model['source']['text']['value'] = 'New heading text';
     $response = $this->request(Request::create($api_endpoint_uri, method: 'PATCH', content: \json_encode([
       'model' => $new_model,
-      'componentType' => 'sdc.canvas_test_sdc.heading@8dd7b865998f53b0',
+      'componentType' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
       'componentInstanceUuid' => $component_to_edit_uuid,
     ] + $this->getPatchContentsDefaults([$page]), JSON_THROW_ON_ERROR)));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());

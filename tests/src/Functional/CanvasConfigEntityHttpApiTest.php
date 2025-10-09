@@ -333,13 +333,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       [
         'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
         'nodeType' => 'component',
-        'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+        'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
         'slots' => [],
       ],
       [
         'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
         'nodeType' => 'component',
-        'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+        'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
         'slots' => [],
       ],
     ];
@@ -435,14 +435,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           [
             'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
             'nodeType' => 'component',
-            'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+            'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
             'name' => NULL,
             'slots' => [],
           ],
           [
             'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
             'nodeType' => 'component',
-            'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+            'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
             'name' => NULL,
             'slots' => [],
           ],
@@ -512,13 +512,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
               [
                 'uuid' => 'a3ade070-dc70-4989-b078-85cfd8fc741e',
                 'nodeType' => 'component',
-                'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+                'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
                 'slots' => [],
               ],
               [
                 'uuid' => '67d6b081-a62f-463c-a5d8-42a145ec7243',
                 'nodeType' => 'component',
-                'type' => 'sdc.canvas_test_sdc.props-no-slots@95f4f1d5ee47663b',
+                'type' => 'sdc.canvas_test_sdc.props-no-slots@b1e991f726a2a266',
                 'slots' => [],
               ],
             ],
@@ -527,7 +527,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.canvas_test_sdc.one_column@0555ab081a3c8721',
+        'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];

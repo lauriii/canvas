@@ -184,7 +184,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.canvas_test_sdc.props-slots',
-  'component_version' => 'ab4d3ddce315cf64',
+  'component_version' => '85a5c0c7dd53e0bb',
   'inputs' => [
     'heading' => [
       'sourceType' => 'static:field_item:string',
@@ -196,7 +196,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
   'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-  'component_version' => '95f4f1d5ee47663b',
+  'component_version' => 'b1e991f726a2a266',
   'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'slot' => 'the_body',
   'inputs' => [

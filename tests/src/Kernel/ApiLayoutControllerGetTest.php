@@ -88,7 +88,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $top_level_component_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => 'ab4d3ddce315cf64',
+        'component_version' => '85a5c0c7dd53e0bb',
         'inputs' => [
           'heading' => [
             'sourceType' => 'dynamic',
@@ -99,7 +99,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $nested_component_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => '95f4f1d5ee47663b',
+        'component_version' => 'b1e991f726a2a266',
         'inputs' => [
           'heading' => [
             'sourceType' => 'dynamic',
@@ -379,7 +379,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         [
           'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
           'nodeType' => 'component',
-          'type' => 'sdc.canvas_test_sdc.two_column@b1ae1e286c75438e',
+          'type' => 'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
           'name' => NULL,
           'slots' => [
             [
@@ -390,28 +390,28 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+                  'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD1,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_CODE_COMPONENT,
                   'nodeType' => 'component',
-                  'type' => 'js.test-code-component@b09d5da457224c5e',
+                  'type' => 'js.test-code-component@36a8cee6a86c3d8d',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.one_column@0555ab081a3c8721',
+                  'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
                   'name' => NULL,
                   'slots' => [
                     [
@@ -432,21 +432,21 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD2,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_CARD3,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
+                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
                   'name' => NULL,
                   'slots' => [],
                 ],
                 [
                   'uuid' => CanvasTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+                  'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
                   'name' => 'Magnificent image!',
                   'slots' => [],
                 ],

@@ -130,13 +130,13 @@ trait CanvasFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_HEADING_UUID,
-              'type' => 'sdc.canvas_test_sdc.heading@8dd7b865998f53b0',
+              'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
               'slots' => [],
             ],
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+              'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
               'slots' => [],
             ],
             [

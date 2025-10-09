@@ -640,7 +640,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       assert($component instanceof Component);
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id);
-      $is_required = isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
+      // This allows us to know that a prop that no longer exists used to be required.
+      // @todo Remove the `??` bit and everything after it once an update path has been created: then all versions of all `Component` config entities for SDCs & code components should have `required` set for each of their props!
+      $is_required = $prop_field_definitions[$sdc_prop_name]['required'] ?? isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
@@ -910,7 +912,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
 
+      $schema = $component_plugin->metadata->schema;
       $props[$cpe->propName] = [
+        'required' => isset($schema['required']) && in_array($cpe->propName, $schema['required'], TRUE),
         'field_type' => $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression
           ? $storable_prop_shape->fieldTypeProp->referencer->fieldType
           : $storable_prop_shape->fieldTypeProp->fieldType,

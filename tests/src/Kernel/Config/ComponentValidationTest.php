@@ -105,12 +105,13 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'canvas_test_sdc:my-cta',
-      'active_version' => '6f8647435386329e',
+      'active_version' => '5c4a2f6c852fec27',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
             'prop_field_definitions' => [
               'text' => [
+                'required' => TRUE,
                 // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
                 'field_type' => 'string',
                 // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget
@@ -119,6 +120,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
                 'expression' => 'ℹ︎string␟value',
               ],
               'href' => [
+                'required' => FALSE,
                 // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
                 'field_type' => 'uri',
                 // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
@@ -127,6 +129,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
                 'expression' => 'ℹ︎uri␟value',
               ],
               'target' => [
+                'required' => FALSE,
                 // @see \Drupal\options\Plugin\Field\FieldType\ListStringItem
                 'field_type' => 'list_string',
                 'field_storage_settings' => [
@@ -139,6 +142,25 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
               ],
             ],
           ],
+        ],
+        // Simulate the reality prior to `required` becoming a required key in
+        // `type: canvas.generated_field_explicit_input_ux`. This is considered
+        // valid thanks to `type: canvas.component.versioned.*.*` not validating
+        // `settings`.
+        // Note: this is a subset of the active version, with a single SDC prop
+        // and NO `required` key.
+        'nonsensical' => [
+          'settings' => [
+            'prop_field_definitions' => [
+              'text' => [
+                'field_type' => 'string',
+                'field_widget' => 'string_textfield',
+                'default_value' => [0 => ['value' => 'Hello, world!']],
+                'expression' => 'ℹ︎string␟value',
+              ],
+            ],
+          ],
+          'fallback_metadata' => ['slot_definitions' => []],
         ],
       ],
       'label' => 'Test',
@@ -197,6 +219,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // Too much.
     $this->enableModules(['media', 'media_library', 'views']);
     $invalid_settings_due_to_extraneous_prop_field_definition['prop_field_definitions']['image'] = [
+      'required' => FALSE,
       'field_type' => 'image',
       'field_storage_settings' => [
         'target_type' => 'media',
@@ -221,7 +244,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 7683487645918f28., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
+      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 0e61ac44183cad1c., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
     }
 
     // Too little.
@@ -236,13 +259,13 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected b906907408185f70., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
+      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 7ff5230cdcc4e404., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
     }
     // But an invalid version hash doesn't matter for old versions.
     $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
     \assert($this->entity instanceof ComponentInterface);
     $this->entity->createVersion(
-      '6f8647435386329e'
+      '5c4a2f6c852fec27'
     )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
     // No validation errors even though the old 'abcdef12343fa3dc'
     // version is invalid.
@@ -281,7 +304,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'my-cta',
-      'active_version' => 'b906907408185f70',
+      'active_version' => '7ff5230cdcc4e404',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -637,7 +660,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     try {
       $this->entity->createVersion(
-        '5ddd92c66000b6d0'
+        'f6cfaf1b3cf58a77'
       )->setSettings($settings)->save();
 
     }

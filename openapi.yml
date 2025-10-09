@@ -435,7 +435,7 @@ paths:
                       name: Call to Action
                       source: Module component
                       library: extension_components
-                      version: b1db82ac808be69d
+                      version: 89881c04a0fde367
                       metadata:
                         slots: {}
                       default_markup: "\u003C!-- canvas-start-9f8719d6-d32d-4012-b48b-c7eddee8aea0 --\u003E\u003Ca  data-component-id=\"canvas_test_sdc:my-cta\" href=\"https://www.drupal.org\"\u003E\n  \u003C!-- canvas-prop-start-9f8719d6-d32d-4012-b48b-c7eddee8aea0/text --\u003EPress\u003C!-- canvas-prop-end-9f8719d6-d32d-4012-b48b-c7eddee8aea0/text --\u003E\n\u003C/a\u003E\n\u003C!-- canvas-end-9f8719d6-d32d-4012-b48b-c7eddee8aea0 --\u003E"
@@ -815,7 +815,7 @@ paths:
                   -
                     uuid: 0b755464-281c-4487-82a0-ece34a9b1121
                     nodeType: component
-                    type: sdc.canvas_test_sdc.my-section@05bd00d2c481f924
+                    type: sdc.canvas_test_sdc.my-section@b277cb81a83a977f
                     slots: [ ]
                 model:
                   0b755464-281c-4487-82a0-ece34a9b1121:

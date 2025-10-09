@@ -467,6 +467,9 @@ canvas.generated_field_explicit_input_ux:
       sequence:
         type: mapping
         mapping:
+          required:
+            type: boolean
+            label: 'Required prop'
           field_type:
             type: string
             label: 'Default field type'

@@ -22,14 +22,14 @@ default:
       slot: null
       uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       component_id: js.canvas_test_code_components_with_slots
-      component_version: 5d3d256aa45dea9e
+      component_version: 6b80a3f7f6e4907f
       inputs: '{"name":"Sir Gablethorp"}'
     -
       parent_uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       slot: description
       uuid: 2c6e91ae-23ac-433d-9bb8-687144464b34
       component_id: sdc.canvas_test_sdc.props-slots
-      component_version: ab4d3ddce315cf64
+      component_version: 85a5c0c7dd53e0bb
       inputs: '{"heading":"Welcome to the site!"}'
     -
       parent_uuid: null

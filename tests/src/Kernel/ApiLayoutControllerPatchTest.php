@@ -96,7 +96,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         // Add a component with only static property sources.
         'uuid' => $uuid1,
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
-        'component_version' => '9b3e9e65c8101bab',
+        'component_version' => 'a681ae184a8f6b7f',
         'inputs' => [
           'heading' => [
             'sourceType' => 'static:field_item:string',
@@ -120,7 +120,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $uuid2,
         'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => '8dd7b865998f53b0',
+        'component_version' => '8c01a2bdb897a810',
         'inputs' => [
           'text' => [
             'sourceType' => 'dynamic',
@@ -173,7 +173,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['resolved']['heading'] = NULL;
     $updatedHeroClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
+      'componentType' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
       'componentInstanceUuid' => $uuid1,
     ] + $this->getPatchContentsDefaults([$contentTemplate]);
     $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updatedHeroClientData, JSON_THROW_ON_ERROR)));
@@ -198,7 +198,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['resolved']['heading'] = NULL;
     $updatedHeroClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.canvas_test_sdc.my-hero@9b3e9e65c8101bab',
+      'componentType' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
       'componentInstanceUuid' => $uuid1,
     ] + $this->getPatchContentsDefaults([$contentTemplate]);
     $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updatedHeroClientData, JSON_THROW_ON_ERROR)));
@@ -240,7 +240,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+        'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
       ],
     ];
     yield 'No such component in model' => [
@@ -248,7 +248,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+        'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
@@ -400,7 +400,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['source']['image']['value'] = $media->id();
     $updateImageClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+      'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
       'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
     ] + $this->getPatchContentsDefaults([$entity]);
     $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));

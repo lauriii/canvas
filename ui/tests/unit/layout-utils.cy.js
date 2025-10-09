@@ -100,7 +100,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
     // Check if node types and component types are preserved
     expect(updatedNode.type).to.equal('sdc.foo-bar');
     expect(updatedNode.slots[0].components[0].type).to.equal(
-      'sdc.canvas_test_sdc.two_column@b1ae1e286c75438e',
+      'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
     );
     expect(updatedNode.slots[0].components[1].type).to.equal(
       'sdc.canvas_test_sdc.my-cta@e5ef92acda2ee2d1',
@@ -110,7 +110,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
       'sdc.canvas_test_sdc.my-cta@e5ef92acda2ee2d1',
     );
     expect(updatedNode.slots[0].components[3].type).to.equal(
-      'sdc.canvas_test_sdc.image@cc9b97c9370aabdf',
+      'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
     );
 
     // Check if model data is preserved

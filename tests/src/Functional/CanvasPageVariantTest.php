@@ -153,7 +153,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => '95f4f1d5ee47663b',
+          'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => $generate_static_prop_source('world'),
           ],
@@ -209,7 +209,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         [
           'uuid' => self::UUID_IN_ROOT_ANOTHER,
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-          'component_version' => '95f4f1d5ee47663b',
+          'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => $generate_static_prop_source('another world'),
           ],

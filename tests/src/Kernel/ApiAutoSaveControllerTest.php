@@ -505,7 +505,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => '95f4f1d5ee47663b',
+        'component_version' => 'b1e991f726a2a266',
         'inputs' => [
           'heading' => 'Canvas is large and in charge!',
         ],
@@ -516,7 +516,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => '6cf8297a-fc60-4019-be81-c336fd828c39',
         'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
-        'component_version' => '95f4f1d5ee47663b',
+        'component_version' => 'b1e991f726a2a266',
         'inputs' => [
           'heading' => [
             'sourceType' => 'dynamic',
@@ -661,7 +661,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => self::TEST_HEADING_UUID,
         'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => '8dd7b865998f53b0',
+        'component_version' => '8c01a2bdb897a810',
         'inputs' => [
           'style' => 'flared',
           'element' => 'h3',
@@ -671,7 +671,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       [
         'uuid' => 'af42c3b3-6d62-4ea8-ad07-670c7b9ccf75',
         'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => '8dd7b865998f53b0',
+        'component_version' => '8c01a2bdb897a810',
         'inputs' => [
           // Missing input for required `element` prop.
           'text' => 'Crumbling castle',

@@ -64,24 +64,24 @@ class ConverterCommand extends Command {
     // `canvas_load_allowed_values_for_component_prop` function.
     $replacements += [
       // sdc.canvas_test_sdc.one_column
-      '836c8835c850cdc5' => '0555ab081a3c8721',
+      '836c8835c850cdc5' => '80cc82f44d0a94f2',
       // sdc.canvas_test_sdc.two_column
-      'd99140cbd47c0b51' => 'b1ae1e286c75438e',
+      'd99140cbd47c0b51' => 'f90c1f6cfb2fc04a',
       // sdc.canvas_test_sdc.heading
-      '9616e3c4ab9b4fce' => '8dd7b865998f53b0',
+      '9616e3c4ab9b4fce' => '8c01a2bdb897a810',
       // sdc.canvas_test_sdc.my-cta
       'b4cd62533ff9bd99' => '6f8647435386329e',
       // js.my-cta
-      '9454c3bca9bbbf4b' => 'b1db82ac808be69d',
+      '9454c3bca9bbbf4b' => '89881c04a0fde367',
       // js.canvas_test_code_components_with_props
-      '4e53ca9f3f06b418' => 'cd8b163a8d299fea',
+      '4e53ca9f3f06b418' => '35f5dc23af5896ac',
       // js.canvas_test_code_components_vanilla_image
-      'c69815f5c7412502' => 'b5e039b71b27fef6',
+      'c69815f5c7412502' => 'd7462e4cd76d37c6',
       // sdc.canvas_test_sdc.image, because of $ref: json-schema-definitions://canvas.module/image
-      'c06e0be7dd131740' => 'cc9b97c9370aabdf',
-      'd3a3df7d7e68efc0' => '5eabbfdb96b39a59',
+      'c06e0be7dd131740' => 'abadf2538ecfdecc',
+      'd3a3df7d7e68efc0' => 'f4d1c916802ab8db',
       // sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop, because of $ref: json-schema-definitions://canvas.module/image
-      '602623740c98a6cf' => '43b51c7233d50b97',
+      '602623740c98a6cf' => '62b720e2df69db71',
       // block.canvas_test_block_input_schema_change_poc
       '731594cf105d2a9f' => '6388b43679123f84',
       '739aaf363770b8b9' => 'af78995aa8d4160e',
