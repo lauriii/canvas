@@ -35,6 +35,7 @@ const ComponentItem: React.FC<{
           : 'component'
       }
       disabled={disabled}
+      broken={component.broken}
       onMenuOpenChange={onMenuOpenChange}
       draggable={activePanel !== 'manageLibrary'}
       {...(menuItems && {

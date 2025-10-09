@@ -9,6 +9,7 @@ import {
   ComponentBooleanIcon,
   CubeIcon,
   DotsHorizontalIcon,
+  ExclamationTriangleIcon,
   FileTextIcon,
   HomeIcon,
   SectionIcon,
@@ -30,6 +31,7 @@ const VARIANTS = {
   pattern: { icon: <SectionIcon /> },
   slot: { icon: <BoxModelIcon /> },
   template: { icon: <TemplateIcon /> },
+  broken: { icon: <ExclamationTriangleIcon /> },
 } as const;
 
 export type SideBarNodeVariant = keyof typeof VARIANTS;
@@ -44,6 +46,7 @@ const SidebarNode = React.forwardRef<
     draggable?: boolean;
     selected?: boolean;
     disabled?: boolean;
+    broken?: boolean;
     dropdownMenuContent?: React.ReactNode;
     open?: boolean;
     className?: string;
@@ -65,6 +68,7 @@ const SidebarNode = React.forwardRef<
       selected = false,
       draggable = false,
       disabled = false,
+      broken = false,
       dropdownMenuContent = null,
       open = false,
       className,
@@ -77,6 +81,7 @@ const SidebarNode = React.forwardRef<
   ) => {
     const contextIndent = useIndentContext();
     const effectiveIndent = indent ?? contextIndent;
+    const isDisabled = disabled || broken;
     const content = (
       <Flex
         align="center"
@@ -88,7 +93,7 @@ const SidebarNode = React.forwardRef<
           {
             [styles.hovered]: hovered,
             [styles.selected]: selected,
-            [styles.disabled]: disabled,
+            [styles.disabled]: isDisabled,
             [styles.draggable]: draggable,
             [styles.open]: open,
           },
@@ -109,7 +114,9 @@ const SidebarNode = React.forwardRef<
             </Flex>
           )}
           <Flex pl="2" align="center" flexShrink="0" className={styles.icon}>
-            {VARIANTS[variant].icon}
+            {broken
+              ? VARIANTS['broken']?.icon
+              : VARIANTS[variant]?.icon || <Component1Icon />}
           </Flex>
           <Flex px="2" align="center" flexGrow="1" overflow="hidden">
             <Text size="1" truncate className={styles.title}>

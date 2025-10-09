@@ -58,7 +58,9 @@ const ListItem: React.FC<{
   });
   const activePanel = useAppSelector(selectActivePanel);
 
-  const makeDraggable = () => activePanel !== 'manageLibrary';
+  // Can't drag items from Manage library, and disable drag for broken components
+  const isDraggable = () =>
+    activePanel !== 'manageLibrary' && ('broken' in item ? !item.broken : true);
 
   const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -174,7 +176,7 @@ const ListItem: React.FC<{
     ...wrapperProps,
     onMouseEnter: () => handleMouseEnter(item),
   };
-  if (makeDraggable()) {
+  if (isDraggable()) {
     wrapperProps = {
       ...attributes,
       ...wrapperProps,
