@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataType;
 
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
+use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -139,6 +141,28 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
     foreach ($this->getPropSources() as $key => $prop_source) {
       $dependencies = $prop_source->calculateDependencies($host_entity);
       if (in_array($name, $dependencies[$type] ?? [], TRUE)) {
+        yield $key => $prop_source;
+      }
+    }
+  }
+
+  /**
+   * Gets all prop sources that use a particular expression class.
+   *
+   * @param string $expression_class
+   *   The expression class (e.g. `\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::class`).
+   *
+   * @return iterable<string, \Drupal\canvas\PropSource\PropSourceBase>
+   *   An array of prop sources that use a particular expression class.
+   *   The keys will be strings in the form of "INSTANCE_UUID:PROP_NAME".
+   */
+  public function getPropSourcesUsingExpressionClass(string $expression_class): iterable {
+    assert(is_a($expression_class, StructuredDataPropExpression::class, TRUE));
+    foreach ($this->getPropSources() as $key => $prop_source) {
+      if ($prop_source instanceof AdaptedPropSource) {
+        throw new \LogicException('@todo as soon as adapted prop sources are actually used');
+      }
+      if (isset($prop_source->expression) && is_a($prop_source->expression, $expression_class)) {
         yield $key => $prop_source;
       }
     }

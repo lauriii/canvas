@@ -48,7 +48,7 @@ final class StaticPropSource extends PropSourceBase {
    */
   public function __construct(
     public readonly FieldItemListInterface $fieldItemList,
-    private readonly StructuredDataPropExpressionInterface $expression,
+    public readonly StructuredDataPropExpressionInterface $expression,
     // - which cardinality to use in case of a list (`type: array`)
     // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     private readonly ?int $cardinality,

@@ -3,7 +3,7 @@
 /**
  * @file
  * Adds Components with multiple versions tracking/not tracking the "required" flag.
- * 
+ *
  * @see generate-components-with-multiple-versions.php
  * @see \Drupal\Tests\canvas\Functional\Update\ComponentTrackingRequiredPropsUpdateTest
  */

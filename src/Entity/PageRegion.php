@@ -202,6 +202,11 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
     }
     parent::preSave($storage);
     self::getConfigUpdater()->updateConfigEntityWithComponentTreeInputs($this);
+    if ($this->isSyncing() && self::getConfigUpdater()->needsIntermediateDependenciesComponentUpdate($this)) {
+      // We might need to update dependencies even on import.
+      // @see \canvas_post_update_0002_intermediate_component_dependencies_in_page_regions()
+      $this->calculateDependencies();
+    }
   }
 
   /**

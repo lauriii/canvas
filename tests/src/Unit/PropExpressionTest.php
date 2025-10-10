@@ -405,7 +405,7 @@ class PropExpressionTest extends UnitTestCase {
         'field_image',
         // Expected content-aware dependencies.
         [
-          'module' => ['node', 'file', 'file', 'file', 'node', 'file'],
+          'module' => ['node', 'file', 'file', 'node', 'file'],
           'config' => [
             'node.type.article',
             'field.field.node.article.field_image',
@@ -517,7 +517,6 @@ class PropExpressionTest extends UnitTestCase {
             'image',
             'image',
             'file',
-            'file',
             'image',
           ],
           'content' => [
@@ -561,7 +560,7 @@ class PropExpressionTest extends UnitTestCase {
         ),
         new \TypeError(),
         [
-          'module' => ['image', 'file', 'file'],
+          'module' => ['image', 'file'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -594,7 +593,7 @@ class PropExpressionTest extends UnitTestCase {
         ),
         new \TypeError(),
         [
-          'module' => ['image', 'file', 'file', 'file', 'file'],
+          'module' => ['image', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],
@@ -625,18 +624,8 @@ class PropExpressionTest extends UnitTestCase {
             'file',
             'file',
             'file',
-            'media',
-            'file',
-            'file',
-            'file',
           ],
           'config' => [
-            'media.type.baby_photos',
-            'media.type.vacation_photos',
-            'field.field.media.baby_photos.field_media_image_1',
-            'image.style.canvas_parametrized_width',
-            'field.field.media.vacation_photos.field_media_image_2',
-            'image.style.canvas_parametrized_width',
             'media.type.baby_photos',
             'media.type.vacation_photos',
             'field.field.media.baby_photos.field_media_image_1',
@@ -680,7 +669,7 @@ class PropExpressionTest extends UnitTestCase {
         ]),
         new \TypeError(),
         [
-          'module' => ['image', 'file', 'file', 'image'],
+          'module' => ['image', 'file', 'image'],
           'content' => ['file:file:some-image-uuid'],
         ],
       ],

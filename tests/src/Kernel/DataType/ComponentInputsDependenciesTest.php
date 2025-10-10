@@ -214,7 +214,6 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
         'node',
         'file',
         'file',
-        'file',
         'node',
         'file',
         'node',

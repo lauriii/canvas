@@ -64,8 +64,11 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
       foreach ($referenced_content_entities as $referenced_content_entity) {
         $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies($referenced_content_entity));
       }
+      if (empty($referenced_content_entities)) {
+        $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
+      }
     }
-    return NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
+    return $dependencies;
   }
 
   public static function fromString(string $representation): static {

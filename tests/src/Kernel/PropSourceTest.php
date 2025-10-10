@@ -741,7 +741,6 @@ class PropSourceTest extends KernelTestBase {
     // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
     $expected_node_1_expression_dependencies = $expected_dependencies_expression;
     $expected_node_1_expression_dependencies['module'][] = 'file';
-    $expected_node_1_expression_dependencies['module'][] = 'file';
     $expected_node_1_expression_dependencies['content'][] = 'file:file:' . self::FILE_UUID1;
 
     yield "Contrived multi-bundle example, with per-bundle field names *and* per-field property names" => [

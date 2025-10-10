@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -17,11 +20,11 @@ use Drupal\field\Entity\FieldConfig;
 
 class CanvasConfigUpdater {
 
+  use ComponentTreeItemListInstantiatorTrait;
+
   public function __construct(
     private readonly ComponentSourceManager $componentSourceManager,
   ) {}
-
-  use ComponentTreeItemListInstantiatorTrait;
 
   /**
    * Flag determining whether deprecations should be triggered.
@@ -168,6 +171,21 @@ class CanvasConfigUpdater {
       \assert($item instanceof ComponentTreeItem);
       $item->optimizeInputs();
     }
+  }
+
+  public function needsIntermediateDependenciesComponentUpdate((ComponentTreeEntityInterface&ConfigEntityInterface)|FieldConfig $entity): bool {
+    if ($entity instanceof FieldConfig && $entity->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      return FALSE;
+    }
+    $component_tree = self::getComponentTreeForEntity($entity);
+    $has_reference_expression = function (ComponentTreeItem $item): bool {
+      $inputs = $item->get('inputs');
+      \assert($inputs instanceof ComponentInputs);
+      return !empty($inputs->getPropSourcesUsingExpressionClass(ReferenceFieldPropExpression::class))
+        ||
+        !empty($inputs->getPropSourcesUsingExpressionClass(ReferenceFieldTypePropExpression::class));
+    };
+    return !empty($component_tree->componentTreeItemsIterator($has_reference_expression));
   }
 
   public function needsTrackingPropsRequiredFlag(Component $component): bool {
