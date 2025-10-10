@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\Audit\RevisionAuditEnum;
+use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -549,7 +550,14 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     return TRUE;
   }
 
+  protected static function getConfigUpdater(): CanvasConfigUpdater {
+    return \Drupal::service(CanvasConfigUpdater::class);
+  }
+
   public function preSave(EntityStorageInterface $storage): void {
+    if (!$this->isSyncing()) {
+      $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
+    }
     parent::preSave($storage);
     assert($this->isLoadedVersionActiveVersion());
     $source = $this->getComponentSource();

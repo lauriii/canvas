@@ -192,7 +192,12 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
         }
       }
     }
-    $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION][$property_name] = $value;
+    // When syncing, modifying any version is possible, so ensure the loaded
+    // version is targeted.
+    $version = $this->isLoadedVersionActiveVersion()
+      ? self::ACTIVE_VERSION
+      : $this->getLoadedVersion();
+    $this->versioned_properties[$version][$property_name] = $value;
 
     return $this;
   }

@@ -641,8 +641,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert($component instanceof Component);
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id);
       // This allows us to know that a prop that no longer exists used to be required.
-      // @todo Remove the `??` bit and everything after it once an update path has been created: then all versions of all `Component` config entities for SDCs & code components should have `required` set for each of their props!
-      $is_required = $prop_field_definitions[$sdc_prop_name]['required'] ?? isset($component_schema['required']) && in_array($sdc_prop_name, $component_schema['required'], TRUE);
+      $is_required = $prop_field_definitions[$sdc_prop_name]['required'];
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
