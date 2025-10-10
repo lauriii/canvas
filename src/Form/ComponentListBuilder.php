@@ -76,13 +76,12 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
   }
 
   public function getOperations(EntityInterface $entity): array {
-    return [
+    return parent::getOperations($entity) + [
       'audit' => [
         'title' => $this->t('Audit'),
-        'weight' => 10,
         'url' => Url::fromRoute('entity.component.audit', ['component' => $entity->id()]),
       ],
-    ] + parent::getOperations($entity);
+    ];
   }
 
 }
