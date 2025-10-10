@@ -159,7 +159,7 @@ canvasData.v0:
     - canvas/canvasData.v0.jsonapiSettings
   drupalSettings:
     canvasData:
-      v0: null
+      v0: {}
 
 canvasData.v0.baseUrl:
   dependencies:
