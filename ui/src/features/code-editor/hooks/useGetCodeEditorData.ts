@@ -9,6 +9,11 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import {
+  selectForceRefresh,
+  setForceRefresh,
+} from '@/features/code-editor/codeEditorSlice';
 import {
   useGetAssetLibraryQuery,
   useGetAutoSaveQuery as useGetAutoSaveQueryAssetLibrary,
@@ -37,7 +42,8 @@ const useGetCodeEditorData = (
   { skip }: { skip?: boolean } = { skip: false },
 ): CodeEditorData => {
   const { showBoundary } = useErrorBoundary();
-
+  const forceRefresh = useAppSelector(selectForceRefresh);
+  const dispatch = useAppDispatch();
   // Returned values are tracked in local states.
   const [dataCodeComponent, setDataCodeComponent] = useState<
     CodeEditorData['dataCodeComponent'] | undefined
@@ -57,7 +63,7 @@ const useGetCodeEditorData = (
     isFetching: isLoadingGetAutoSaveCodeComponent,
     isSuccess: isSuccessGetAutoSaveCodeComponent,
   } = useGetAutoSaveQueryCodeComponent(currentComponentId, {
-    skip,
+    skip: skip && !forceRefresh,
   });
 
   // Get the code component data, but skip if auto-saved data exists.
@@ -167,6 +173,15 @@ const useGetCodeEditorData = (
     errorGetAssetLibrary,
     showBoundary,
   ]);
+
+  if (
+    forceRefresh &&
+    !isLoadingGetAutoSaveCodeComponent &&
+    isSuccessGetAutoSaveCodeComponent
+  ) {
+    // We successfully fetched the auto-save data, turn off force refresh.
+    dispatch(setForceRefresh(false));
+  }
 
   return { dataCodeComponent, dataGlobalAssetLibrary, isLoading, isSuccess };
 };

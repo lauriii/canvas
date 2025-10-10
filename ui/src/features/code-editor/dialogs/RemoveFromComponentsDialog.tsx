@@ -1,23 +1,29 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
+  setForceRefresh,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   closeAllDialogs,
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
+import {
+  setActivePanel,
+  setManageLibraryTab,
+} from '@/features/ui/primaryPanelSlice';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for removing a JS component from components. This changes
 // the component from being "exposed" to "internal".
 const RemoveFromComponentsDialog = () => {
   const navigate = useNavigate();
+  const [navigateTo, setNavigateTo] = useState(null as string | null);
   const selectedComponent = useAppSelector(selectSelectedCodeComponent);
   const isCodeEditorOpen = !!useAppSelector(
     selectCodeComponentProperty('machineName'),
@@ -27,7 +33,7 @@ const RemoveFromComponentsDialog = () => {
   const dispatch = useAppDispatch();
   const { isRemoveFromComponentsDialogOpen } =
     useAppSelector(selectDialogStates);
-
+  const { codeComponentId: codeComponentBeingEditedId } = useParams();
   const handleSave = async () => {
     if (!selectedComponent) return;
 
@@ -39,13 +45,19 @@ const RemoveFromComponentsDialog = () => {
     });
 
     if (isCodeEditorOpen) {
+      // The code editor typically won't check auto-save updates if the component
+      // being edited is the same as the one being updated. Force a refresh to
+      // avoid auto-save mismatch errors.
+      if (selectedComponent.machineName === codeComponentBeingEditedId) {
+        dispatch(setForceRefresh(true));
+      }
       // If the code editor is open when the component is being set to internal,
       // also set the status in the codeEditorSlice to internal. While the
       // `updateCodeComponent` mutation invalidates cache of the code component
       // data, the code editor won't refetch while it's open.
       dispatch(setCodeComponentProperty(['status', false]));
       // Navigate to the code editor route that handles internal code components.
-      navigate(`/code-editor/code/${selectedComponent.machineName}`);
+      setNavigateTo(`/code-editor/code/${selectedComponent.machineName}`);
     }
   };
 
@@ -55,6 +67,15 @@ const RemoveFromComponentsDialog = () => {
       dispatch(closeAllDialogs());
     }
   };
+
+  useEffect(() => {
+    if (navigateTo) {
+      navigate(navigateTo);
+      setNavigateTo(null);
+      dispatch(setActivePanel('manageLibrary'));
+      dispatch(setManageLibraryTab('code'));
+    }
+  }, [navigateTo, navigate, dispatch]);
 
   useEffect(() => {
     if (isSuccess) {

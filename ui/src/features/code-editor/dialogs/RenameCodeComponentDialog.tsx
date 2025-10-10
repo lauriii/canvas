@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Flex, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -6,6 +7,7 @@ import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
+  setForceRefresh,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   closeAllDialogs,
@@ -24,6 +26,7 @@ const RenameCodeComponentDialog = () => {
     useUpdateCodeComponentMutation();
   const dispatch = useAppDispatch();
   const { isRenameDialogOpen } = useAppSelector(selectDialogStates);
+  const { codeComponentId: codeComponentBeingEditedId } = useParams();
 
   useEffect(() => {
     if (selectedComponent) {
@@ -41,6 +44,12 @@ const RenameCodeComponentDialog = () => {
       },
     });
     if (codeEditorId === selectedComponent.machineName) {
+      if (codeEditorId === codeComponentBeingEditedId) {
+        // The code editor typically won't check auto-save updates if the
+        // component being edited is the same as the one being updated. Force a
+        // refresh to avoid auto-save mismatch errors.
+        dispatch(setForceRefresh(true));
+      }
       dispatch(setCodeComponentProperty(['name', componentName]));
     }
   };
