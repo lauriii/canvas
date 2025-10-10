@@ -49,7 +49,11 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
     }
 
     $build = $this->preview;
-    $default_markup = $renderer->renderInIsolation($build);
+    $default_markup = !empty($build['#printed'])
+      // Already rendered, use the rendered markup.
+      ? $build['#markup']
+      // Render now.
+      : $renderer->renderInIsolation($build);
     $assets = AttachedAssets::createFromRenderArray($build);
     $import_map = ImportMapResponseAttachmentsProcessor::buildHtmlTagForAttachedImportMaps(BubbleableMetadata::createFromRenderArray($build)) ?? [];
 

@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Theme\ThemeInitializationInterface;
@@ -297,12 +298,44 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       unset($info['build']);
       // Inform the UI this is safe to instantiate.
       $info['broken'] = FALSE;
+
+      // Wrap in a render-safe container.
+      // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
+      $build = [
+        '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+        '#component' => $build + [
+          // Wrap each rendered component instance in HTML comments that allow the
+          // client side to identify it.
+          // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
+          '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
+          '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
+        ],
+        '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
+        '#component_uuid' => $component_config_entity_uuid,
+        '#is_preview' => TRUE,
+      ];
+
+      // Despite the Component being available in its ComponentSource, it may
+      // crash during rendering. The preview of a Component config entity should
+      // be as rich and precise as possible, so rather than letting
+      // \Drupal\canvas\ClientSideRepresentation::renderPreviewIfAny() do the
+      // rendering, already render it early here.
+      \Drupal::service(RendererInterface::class)->renderInIsolation($build);
+
+      // It is possible that despite ComponentSourceInterface::isBroken() saying
+      // the Component is not broken, it still crashes during rendering.
+      // Consider this another form of brokenness.
+      $info['broken'] = array_key_exists('#render_crashed', $build);
     }
     // Ensure a broken Component cannot break the Canvas HTTP API.
     else {
       try {
         // Intentionally fail to render something.
         $build = $this->getComponentSource()->renderComponent([], [], $component_config_entity_uuid, TRUE);
+        throw new \LogicException(sprintf("The %s ComponentSource plugin lied about the %s Component being broken: it did not crash during rendering.",
+          $source->getPluginId(),
+          $this->source_local_id,
+        ));
       }
       catch (\Throwable $e) {
         // … but some ComponentSources might even fail while calling
@@ -320,21 +353,6 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       $info = ['broken' => TRUE];
     }
 
-    // Wrap in a render-safe container.
-    // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
-    $build = [
-      '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-      '#component' => $build + [
-        // Wrap each rendered component instance in HTML comments that allow the
-        // client side to identify it.
-        // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
-        '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
-        '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
-      ],
-      '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
-      '#component_uuid' => $component_config_entity_uuid,
-      '#is_preview' => TRUE,
-    ];
     return ClientSideRepresentation::create(
       values: $info + [
         'id' => $this->id(),

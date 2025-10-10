@@ -1,0 +1,15 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Malformed Image
+status: stable
+props:
+  type: object
+  properties:
+    image:
+      $ref: json-schema-definitions://canvas.module/image
+      title: 'Image'
+      type: object
+      examples:
+        - src: images/example-image.jpg
+          alt: 'Placeholder'
+          width: 800
+          height: 1200

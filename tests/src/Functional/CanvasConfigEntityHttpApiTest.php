@@ -170,6 +170,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'weight' => 0,
       'items' => [
         'sdc.canvas_broken_sdcs.invalid-filter',
+        'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.my-cta',
         'sdc.canvas_test_sdc.component-no-meta-enum',
         'sdc.canvas_test_sdc.card',
@@ -1721,6 +1722,16 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     self::assertStringNotContainsString('No content available.', $recent_content_preview);
     self::assertStringContainsString('Jack', $recent_content_preview);
     self::assertStringContainsString('seconds ago', $recent_content_preview);
+
+    // 4. Test that a failing SDC does not break the entire response and is
+    // marked broken.
+    $broken_sdcs = array_filter(
+      Json::decode($page->getContent()),
+      fn($component) => !empty($component['broken']));
+    $this->assertSame([
+      'sdc.canvas_broken_sdcs.invalid-filter',
+      'sdc.canvas_broken_sdcs.malformed-image',
+    ], array_keys($broken_sdcs));
   }
 
   private function assertDynamicPageCacheAccelerated(?string $maxAge = NULL): void {

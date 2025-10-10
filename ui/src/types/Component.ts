@@ -40,7 +40,7 @@ interface BaseComponent {
   version: string;
   // @todo Move to PropSourceComponent in https://www.drupal.org/project/canvas/issues/3521041
   propSources: FieldData;
-  broken?: boolean;
+  broken: boolean;
 }
 
 export type libraryTypes =

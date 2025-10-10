@@ -1010,7 +1010,7 @@ activation="auto">
   }
 
   protected function generateCrashTestDummyComponentTree(string $component_id, array $inputs, bool $assertCount = TRUE): ComponentTreeItemList {
-    if ($component_id === 'sdc.canvas_broken_sdcs.invalid-filter') {
+    if (str_starts_with($component_id, 'sdc.canvas_broken_sdcs.')) {
       // This component needs an extra module.
       $this->assertCount(0, $this->componentStorage->loadMultiple());
       \Drupal::service(ModuleInstallerInterface::class)->install(['canvas_broken_sdcs']);
@@ -1103,7 +1103,7 @@ activation="auto">
       'expected_output_selector' => NULL,
     ];
 
-    yield "SDC with invalid Twig" => [
+    yield "SDC with invalid Twig (due to filter)" => [
       'component_id' => 'sdc.canvas_broken_sdcs.invalid-filter',
       'inputs' => [
         'name' => 'Gaia',
@@ -1112,6 +1112,31 @@ activation="auto">
       'expected_exception' => [
         'class' => SyntaxError::class,
         'message' => 'Unknown "invalidFilter" filter',
+      ],
+      'expected_output_selector' => NULL,
+    ];
+
+    yield "SDC with valid prop, but invalid Twig (due to printing an object-shaped prop)" => [
+      'component_id' => 'sdc.canvas_broken_sdcs.malformed-image',
+      'inputs' => [
+        'image' => [
+          // TRICKY: Intentionally use a StaticPropSource powered by the `uri`
+          // field type (instead of the `image` field type), because it allows
+          // this test to specify an arbitrary URL as the image URL, instead of
+          // having to create a File entity that is referenced by the `image`
+          // field. Hence also use a FieldTypeObjectPropsExpression to transform
+          // it to the `type: object` prop shape expected by the SDC.
+          'sourceType' => "static:field_item:uri",
+          'value' => 'https://example.com/llama.jpg',
+          'expression' => 'ℹ︎uri␟{src↠value}',
+        ],
+      ],
+      // Note there's no validation error: the evaluated StaticPropSource yields
+      // a valid value for the SDC prop.
+      'expected_validation_errors' => [],
+      'expected_exception' => [
+        'class' => RuntimeError::class,
+        'message' => 'An exception has been thrown during the rendering of a template (""src" is an invalid render array key. Value should be an array but got a string.") in "canvas_broken_sdcs:malformed-image" at line 2.',
       ],
       'expected_output_selector' => NULL,
     ];
