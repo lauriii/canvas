@@ -1,0 +1,6 @@
+canvas_test_extension_invalid_url:
+  name: Canvas Test Extension Invalid URL
+  description: Demonstrates nothing a Canvas extension can do
+  # Invalid URL, cannot start with "/".
+  url: /ui/dist/bundle.js
+  api_version: "1.0"

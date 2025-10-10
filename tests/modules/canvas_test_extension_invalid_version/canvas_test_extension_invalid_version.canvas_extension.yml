@@ -1,0 +1,4 @@
+canvas_test_extension_invalid_version:
+  name: Canvas Test Extension Invalid Version
+  description: Demonstrates nothing a Canvas extension can do
+  url: index.html

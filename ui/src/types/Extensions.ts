@@ -1,10 +1,20 @@
-export interface ExtensionDefinition {
-  name: string;
+export interface LegacyExtension {
   id: string;
+  name: string;
   description: string;
   imgSrc: string;
   component?: any;
 }
 
-export type ExtensionsList = ExtensionDefinition[];
-export type ActiveExtension = ExtensionDefinition | null;
+export interface Extension {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  url: string;
+  type?: 'canvas' | 'code-editor';
+  api_version: string;
+  permissions?: string[];
+}
+
+export type ActiveExtension = Extension | null;

@@ -8,3 +8,5 @@ js/astro-bundles/*
 js/assets/**/*
 # Canvas's CLI tool is in TypeScript and has its own linting.
 cli/**/*
+
+tests/**/dist/*

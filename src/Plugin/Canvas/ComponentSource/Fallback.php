@@ -64,8 +64,8 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
         'component_uuid' => $componentUuid,
         // Ensure our Twig node visitor can emit the required HTML comments
         // that allow the preview overlay to work.
-        // @see \Drupal\canvas\Extension\CanvasWrapperNode
-        // @see \Drupal\canvas\Extension\CanvasPropVisitor::enterNode
+        // @see \Drupal\canvas\Twig\CanvasWrapperNode
+        // @see \Drupal\canvas\Twig\CanvasPropVisitor::enterNode
         'canvas_uuid' => $componentUuid,
         'canvas_is_preview' => $isPreview,
       ],
@@ -171,8 +171,8 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     $build['#context'] += $slots;
     $slot_names = \array_keys($slots);
     // Add the slot ID metadata that triggers the Twig node visitor.
-    // @see \Drupal\canvas\Extension\CanvasWrapperNode
-    // @see \Drupal\canvas\Extension\CanvasPropVisitor::enterNode
+    // @see \Drupal\canvas\Twig\CanvasWrapperNode
+    // @see \Drupal\canvas\Twig\CanvasPropVisitor::enterNode
     $build['#context']['canvas_slot_ids'] = $slot_names;
     $build['#template'] = '<div data-fallback="{{ component_uuid }}">';
     foreach ($slot_names as $slot_name) {
@@ -180,8 +180,8 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
       $escaped_slot_name = Html::escape((string) $slot_name);
       // Print each slot by name. This ensures our Twig node visitor can emit
       // the required HTML comments that allow the slot overlay to work.
-      // @see \Drupal\canvas\Extension\CanvasWrapperNode
-      // @see \Drupal\canvas\Extension\CanvasPropVisitor::enterNode
+      // @see \Drupal\canvas\Twig\CanvasWrapperNode
+      // @see \Drupal\canvas\Twig\CanvasPropVisitor::enterNode
       $build['#template'] .= \sprintf('{{ %s }}', $escaped_slot_name);
     }
     $build['#template'] .= '</div>';

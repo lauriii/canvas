@@ -37,19 +37,39 @@ const ExtensionDialog: React.FC<ExtensionDialogProps> = () => {
     return null;
   }
 
+  const { id, name, url } = activeExtension;
+
   return (
     <Dialog
       open={extension}
       onOpenChange={handleOpenChange}
-      title={activeExtension.name}
+      title={name}
       modal={false}
       headerClose={true}
       footer={{ hidden: true }}
     >
-      <Box
-        id="extensionPortalContainer"
-        className={`canvas-extension-${activeExtension.id}`}
-      ></Box>
+      {url ? (
+        <iframe
+          // @todo Only add 'allow-same-origin' if the extension is loaded from a local file.
+          sandbox="allow-scripts allow-same-origin"
+          id={`canvas-extension-iframe-${id}`}
+          src={url}
+          style={{
+            border: 'none',
+            width: '100%',
+            // @todo Explore how to size the iframe automatically instead of hardcoding the height.
+            // Idea: Use `srcdoc` and fetch the HTML content, then inject it with a custom script that communicates the
+            // height to the parent.
+            // This value matches the maximum height set for the dialog.
+            height: 'calc(100vh - 300px)',
+          }}
+        />
+      ) : (
+        <Box
+          id="extensionPortalContainer"
+          className={`canvas-extension-${activeExtension.id}`}
+        ></Box>
+      )}
     </Dialog>
   );
 };

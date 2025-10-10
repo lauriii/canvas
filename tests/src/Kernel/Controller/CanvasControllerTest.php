@@ -394,6 +394,7 @@ final class CanvasControllerTest extends KernelTestBase {
     yield 'none' => [
       [],
       [
+        'extensionsAvailable' => FALSE,
         'aiExtensionAvailable' => FALSE,
         'personalizationExtensionAvailable' => FALSE,
       ],
@@ -408,8 +409,15 @@ final class CanvasControllerTest extends KernelTestBase {
     yield 'personalization' => [
       ['canvas_personalization'],
       [
+        'extensionsAvailable' => FALSE,
         'aiExtensionAvailable' => FALSE,
         'personalizationExtensionAvailable' => TRUE,
+      ],
+    ];
+    yield 'extensions available' => [
+      ['canvas_test_extension'],
+      [
+        'extensionsAvailable' => TRUE,
       ],
     ];
     yield 'all' => [

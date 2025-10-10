@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Extension\CanvasExtensionPluginManager;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
@@ -49,6 +50,7 @@ final class CanvasController {
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly UrlGeneratorInterface $urlGenerator,
+    private readonly CanvasExtensionPluginManager $extensionPluginManager,
   ) {}
 
   private const HTML = <<<HTML
@@ -125,79 +127,84 @@ HTML;
         }
       }
     }
+    $extensions = $this->extensionPluginManager->getDefinitions();
 
-    return (new HtmlResponse($this->buildHtml()))->addCacheableDependency($system_site_config)->setAttachments([
-      'library' => [
-        'canvas/canvas-ui',
-        'canvas/extensions',
-        ...$this->getTransformAssetLibraries(),
+    return (new HtmlResponse($this->buildHtml()))
+      ->addCacheableDependency($extensions)
+      ->addCacheableDependency($system_site_config)
+      ->setAttachments([
+        'library' => [
+          'canvas/canvas-ui',
+          'canvas/extensions',
+          ...$this->getTransformAssetLibraries(),
         // `drupalSettings.canvasData.v0` must be unconditionally present: in case
         // the user starts creating/editing code components.
         // This is also how draft/auto-save code components ensure all "canvas data"
         // is always available.
         // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
-        'canvas/canvasData.v0',
-      ],
-      'drupalSettings' => [
-        'canvas' => [
-          'base' => $entity_type !== NULL && $entity !== NULL
-            ? Url::fromRoute('canvas.boot.entity', [
-              'entity_type' => $entity_type,
-              'entity' => $entity->id(),
-            ])->getInternalPath()
-            : Url::fromRoute('canvas.boot.empty')->getInternalPath(),
-          'entityTypeKeys' => $entity_types_with_keys,
-          'entityTypeLabels' => $entity_type_labels,
-          'devMode' => $dev_mode,
-          'aiExtensionAvailable' => $ai_extension_available,
-          'personalizationExtensionAvailable' => $personalization_extension_available,
+          'canvas/canvasData.v0',
+        ],
+        'drupalSettings' => [
+          'canvas' => [
+            'base' => $entity_type !== NULL && $entity !== NULL
+              ? Url::fromRoute('canvas.boot.entity', [
+                'entity_type' => $entity_type,
+                'entity' => $entity->id(),
+              ])->getInternalPath()
+              : Url::fromRoute('canvas.boot.empty')->getInternalPath(),
+            'entityTypeKeys' => $entity_types_with_keys,
+            'entityTypeLabels' => $entity_type_labels,
+            'devMode' => $dev_mode,
+            'extensionsAvailable' => count($extensions) > 0,
+            'aiExtensionAvailable' => $ai_extension_available,
+            'personalizationExtensionAvailable' => $personalization_extension_available,
           // Allow for perfect component previews, by letting the client side
           // know what global assets to load in component preview <iframe>s.
           // @see ui/src/components/ComponentPreview.tsx
-          'globalAssets' => [
-            'css' => $this->assetRenderer->renderCssAssets($preview_assets),
-            'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
-            'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
+            'globalAssets' => [
+              'css' => $this->assetRenderer->renderCssAssets($preview_assets),
+              'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
+              'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
+            ],
+            'canvasModulePath' => $canvas_module_path,
+            'permissions' => [
+              'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
+              'patterns' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
+              'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
+              'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
+              'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
+            ],
+            'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
+            'homepagePath' => $system_site_config->get('page.front'),
+            'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
           ],
-          'canvasModulePath' => $canvas_module_path,
-          'permissions' => [
-            'globalRegions' => $this->currentUser->hasPermission(PageRegion::ADMIN_PERMISSION),
-            'patterns' => $this->currentUser->hasPermission(Pattern::ADMIN_PERMISSION),
-            'codeComponents' => $this->currentUser->hasPermission(JavaScriptComponent::ADMIN_PERMISSION),
-            'contentTemplates' => $this->currentUser->hasPermission(ContentTemplate::ADMIN_PERMISSION),
-            'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
-          ],
-          'contentEntityCreateOperations' => $this->getContentEntityCreateOperations(),
-          'homepagePath' => $system_site_config->get('page.front'),
-          'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
-        ],
-        // Override actual `canvasData` with dummy data for code component editor
-        // development purposes.
-        'canvasData' => [
-          'v0' => [
-            'pageTitle' => 'This is a page title for testing purposes',
-            'breadcrumbs' => [
-              0 => [
-                'key' => '<front>',
-                'text' => 'Home',
-                'url' => \base_path(),
-              ],
-              1 => [
-                'key' => 'user.page',
-                'text' => 'My account',
-                'url' => \base_path() . 'user',
+          // Override actual `canvasData` with dummy data for code component editor
+          // development purposes.
+          'canvasData' => [
+            'v0' => [
+              'pageTitle' => 'This is a page title for testing purposes',
+              'breadcrumbs' => [
+                0 => [
+                  'key' => '<front>',
+                  'text' => 'Home',
+                  'url' => \base_path(),
+                ],
+                1 => [
+                  'key' => 'user.page',
+                  'text' => 'My account',
+                  'url' => \base_path() . 'user',
+                ],
               ],
             ],
           ],
         ],
-      ],
-      // Note: the tokens here are under our control, and this accepts no user
-      // input. Hence these hardcoded tokens are fine.
-      'html_response_attachment_placeholders' => [
-        'styles' => '<css-placeholder token="CSS-HERE-PLEASE">',
-        'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
-      ],
-    ]);
+        // Note: the tokens here are under our control, and this accepts no user
+        // input. Hence these hardcoded tokens are fine.
+        'html_response_attachment_placeholders' => [
+          'styles' => '<css-placeholder token="CSS-HERE-PLEASE">',
+          'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
+        ],
+      ]);
   }
 
   /**

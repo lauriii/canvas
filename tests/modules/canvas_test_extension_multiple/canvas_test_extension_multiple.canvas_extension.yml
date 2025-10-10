@@ -1,0 +1,19 @@
+canvas_test_extension_multiple:
+  name: Canvas Test Multiple Extension (First)
+  description: Demonstrates many things that multiple Canvas extensions can do
+  url: ui/dist/index.html
+  icon: icon-1.svg
+  type: code-editor
+  api_version: "1.0"
+  permissions:
+    - access content
+
+canvas_test_yet_another_extension:
+  name: Canvas Test Multiple Extension (Second)
+  description: Demonstrates many things that multiple Canvas extensions can do
+  # With a remote url.
+  url: https://example.org/canvas-extension.html
+  api_version: "0.1"
+  permissions:
+    - access content
+    - administer components

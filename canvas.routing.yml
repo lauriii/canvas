@@ -257,6 +257,17 @@ canvas.api.content.list:
   options:
     _format: 'json'
 
+canvas.api.extension.list:
+  path: '/canvas/api/v0/extensions'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiExtensionControllers::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [GET]
+  options:
+    _format: 'json'
+
 # Forms: component instance and content entity.
 # @see \Drupal\canvas\Theme\CanvasThemeNegotiator::applies()
 canvas.api.form.component_instance: &component_instance_form_route

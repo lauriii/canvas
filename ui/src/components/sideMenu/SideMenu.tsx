@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { useLocation } from 'react-router-dom';
-import ExtensionIcon from '@assets/icons/extension_sm.svg?react';
+import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   Component1Icon,
@@ -39,10 +39,13 @@ interface SideMenuProps {}
 
 export const SideMenu: React.FC<SideMenuProps> = () => {
   const activePanel = useAppSelector(selectActivePanel);
-  let hasExtensions = false;
+  let hasLegacyExtensions = false;
   if (drupalSettings && drupalSettings.canvasExtension) {
-    hasExtensions = Object.values(drupalSettings.canvasExtension).length > 0;
+    hasLegacyExtensions =
+      Object.values(drupalSettings.canvasExtension).length > 0;
   }
+  const hasExtensions =
+    drupalSettings.canvas.extensionsAvailable || hasLegacyExtensions;
   const { pathname } = useLocation();
   const params = useParams();
   const segments = pathname.split('/').filter(Boolean); // removes empty strings

@@ -48,6 +48,11 @@ services:
   Drupal\canvas\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
     public: true
+  Drupal\canvas\Extension\CanvasExtensionPluginManager:
+    arguments:
+      - '@cache.discovery'
+      - '@module_handler'
+    public: true
   # Utilities.
   Drupal\canvas\AssetRenderer: {}
   logger.channel.canvas:
@@ -142,13 +147,14 @@ services:
       - { name: access_check, applies_to: _canvas_authentication_required }
 
   # Twig.
-  Drupal\canvas\Extension\CanvasTwigExtension:
+  Drupal\canvas\Twig\CanvasTwigExtension:
     tags:
       - { name: twig.extension }
 
   # Controllers.
   Drupal\canvas\Controller\ApiConfigControllers: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
+  Drupal\canvas\Controller\ApiExtensionControllers: ~
   Drupal\canvas\Controller\ApiLayoutController: {}
   Drupal\canvas\Controller\ApiLogController: {}
   Drupal\canvas\Controller\ApiContentUpdateForDemoController: {}

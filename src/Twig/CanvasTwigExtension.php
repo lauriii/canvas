@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas\Extension;
+namespace Drupal\canvas\Twig;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\File\FileUrlGeneratorInterface;

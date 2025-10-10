@@ -1,0 +1,6 @@
+canvas_test_extension_invalid_icon:
+  name: Canvas Test Extension Invalid Icon
+  description: Demonstrates nothing a Canvas extension can do
+  # Invalid icon path, cannot start with "/".
+  icon: /icon.svg
+  api_version: "1.0"

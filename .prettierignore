@@ -20,5 +20,23 @@ ui/dist
 !cli/**/*.ts
 !cli/**/*.tsx
 
+# Explicitly enable Prettier for all packages.
+!packages/**/*.ts
+!packages/**/*.js
+!packages/**/*.jsx
+!packages/**/*.tsx
+
+# Ignore dist directories in packages.
+packages/*/dist
+
+# Explicitly enable Prettier for test extension.
+!tests/modules/canvas_test_extension/**/*.ts
+!tests/modules/canvas_test_extension/**/*.js
+!tests/modules/canvas_test_extension/**/*.jsx
+!tests/modules/canvas_test_extension/**/*.tsx
+
+# Ignore dist directory in test extension.
+tests/modules/canvas_test_extension/dist
+
 # Explicitly enable Prettier for example code components.
 !tests/fixtures/code_components/**/*.jsx

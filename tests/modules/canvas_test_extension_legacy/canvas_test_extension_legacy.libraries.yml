@@ -1,0 +1,14 @@
+app:
+  version: 1.0
+  header: true
+  js:
+    ui/dist/bundle.js:
+      attributes: { type: module }
+  drupalSettings:
+    canvasExtension:
+      testExtensionLegacy:
+        id: canvas-test-extension-legacy
+        name: Canvas Test Extension (Legacy)
+        description: Demonstrates many things that an Canvas extension can do
+  dependencies:
+    - canvas/canvas-ui

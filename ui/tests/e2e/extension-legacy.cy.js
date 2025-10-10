@@ -1,6 +1,6 @@
-describe('extending Drupal Canvas', () => {
+describe('extending Drupal Canvas (Legacy)', () => {
   before(() => {
-    cy.drupalCanvasInstall(['canvas_test_extension', 'canvas_dev_mode']);
+    cy.drupalCanvasInstall(['canvas_test_extension_legacy', 'canvas_dev_mode']);
   });
 
   after(() => {
@@ -25,7 +25,7 @@ describe('extending Drupal Canvas', () => {
       });
 
       cy.findByLabelText('Extensions').click();
-      cy.findByText('Canvas Test Extension').click();
+      cy.findByText('Canvas Test Extension (Legacy)').click();
 
       cy.findByTestId('ex-select-component').then(($select) => {
         const extensionComponents = [];

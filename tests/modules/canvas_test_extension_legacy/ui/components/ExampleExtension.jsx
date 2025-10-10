@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import ConceptProver from './ConceptProver';
 import { useState, useEffect } from 'react';
 
-const EXTENSION_ID = 'canvas-test-extension';
+const EXTENSION_ID = 'canvas-test-extension-legacy';
 const { drupalSettings } = window;
-drupalSettings.canvasExtension.testExtension.component = ConceptProver;
+drupalSettings.canvasExtension.testExtensionLegacy.component = ConceptProver;
 
 const ExampleExtension = () => {
   const [portalRoot, setPortalRoot] = useState(null);
@@ -39,7 +39,7 @@ const ExampleExtension = () => {
   // add the entry point component to drupalSettings, which should make it
   // possible to eventually manage most of this in the UI app, with the
   // extension still adding the component to drupalSettings.
-  const ExtensionComponent = drupalSettings.canvasExtension.testExtension.component;
+  const ExtensionComponent = drupalSettings.canvasExtension.testExtensionLegacy.component;
   return ReactDOM.createPortal(<ExtensionComponent />, portalRoot);
 };
 

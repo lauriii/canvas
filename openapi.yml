@@ -1234,6 +1234,14 @@ paths:
                   error:
                     type: string
                     example: Cannot find entity to duplicate.
+  '/canvas/api/v0/extensions':
+    description: Returns the available extensions metadata
+    get:
+      summary: Returns the available extensions metadata
+      responses:
+        '200':
+          $ref: '#/components/responses/ExtensionsResponse'
+
   '/canvas/api/v0/form/component-instance/content_template/{configEntityId}/{entityId}':
     description: TODO
     parameters:
@@ -2985,6 +2993,48 @@ components:
         viewMode:
           type: string
           description: Drupal View Mode
+    Extension:
+      title: Canvas Extension metadata
+      description: Canvas Extension metadata
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - description
+        - url
+      properties:
+        id:
+          type: string
+          description: ID
+        name:
+          type: string
+          description: Human Name
+        description:
+          type: string
+          description: Human Description
+        icon:
+          type: string
+          description: Icon URL (Relative, starting with /, or absolute)
+        url:
+          type: string
+          description: URL (Relative, starting with /, or absolute)
+        type:
+          type: string
+          description: Extension Type
+          enum:
+            - canvas
+            - code-editor
+        api_version:
+          type: string
+          description: Canvas Extension API version
+          examples:
+            - "1.0"
+        permissions:
+          type: array
+          description: Permissions
+          items:
+            type: string
     ContentTemplate:
       title: ContentTemplate as it appears in ContentTemplateList
       type: object
@@ -3113,6 +3163,14 @@ components:
                 description: Error items
                 items:
                   $ref: '#/components/schemas/Error'
+    ExtensionsResponse:
+      description: Canvas Extensions listing
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/Extension'
     UnauthorizedErrorResponse:
       description: Error when unauthenticated.
       content:

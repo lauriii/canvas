@@ -1,0 +1,18 @@
+{
+  "name": "@drupal-canvas/test-extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup index.ts --format iife --clean",
+    "dev": "tsup index.ts --format iife --watch",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "@drupal-canvas/extensions": "*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  }
+}

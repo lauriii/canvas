@@ -48,6 +48,7 @@ final class LibraryHooks {
         continue;
       }
 
+      // @todo #3551404: Delete when removing legacy Extensions API
       foreach ($library['drupalSettings']['canvasExtension'] as &$extension_settings) {
         $module_path = $this->moduleExtensionList->getPath($extension);
         $extension_settings['modulePath'] = $module_path;

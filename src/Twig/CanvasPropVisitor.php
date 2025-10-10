@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas\Extension;
+namespace Drupal\canvas\Twig;
 
 use Drupal\Core\Template\TwigNodeTrans;
 use Masterminds\HTML5;

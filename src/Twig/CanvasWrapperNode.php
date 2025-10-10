@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas\Extension;
+namespace Drupal\canvas\Twig;
 
 use Twig\Attribute\YieldReady;
 use Twig\Compiler;

@@ -33,6 +33,7 @@ import { assetLibraryApi } from '@/services/assetLibrary';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
+import { extensionsApi } from '@/services/extensions';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -138,6 +139,7 @@ const rootReducer = combineSlices(
   previewApi,
   componentInstanceFormApi,
   pageDataFormApi,
+  extensionsApi,
   configurationSlice,
   primaryPanelSlice,
   dialogSlice,
@@ -222,6 +224,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         previewApi.middleware,
         componentInstanceFormApi.middleware,
         pageDataFormApi.middleware,
+        extensionsApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
         contentApi.middleware,

@@ -33,6 +33,7 @@
       "test-results/**",
       "tests/fixtures/recipes/**/content/**/**",
       "tests/modules/canvas_test_extension/ui/dist/**",
+      "tests/modules/canvas_test_extension_legacy/ui/dist/**",
       "tests/modules/canvas_test_semi_coupled/semicoupled_app/dist/**",
       "ui/dist/**",
       "ui/lib/astro-hydration/**",

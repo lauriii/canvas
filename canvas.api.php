@@ -82,9 +82,9 @@ use Drupal\canvas\PropShape\CandidateStorablePropShape;
  *  dependencies:
  *    - canvas/canvas-ui
  *
- * @see tests/modules/canvas_test_extension/ui/index.jsx for how to wrap your
+ * @see tests/modules/canvas_test_extension_legacy/ui/index.jsx for how to wrap your
  * React Application so it has access to Drupal Canvas UI APIs
- * @see tests/modules/canvas_test_extension/ui/components/ConceptProver.jsx for
+ * @see tests/modules/canvas_test_extension_legacy/ui/components/ConceptProver.jsx for
  * examples of how these APIs can be used to access info about and make
  * changes to content in the UI.
  *

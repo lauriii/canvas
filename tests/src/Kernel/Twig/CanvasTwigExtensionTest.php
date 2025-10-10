@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\canvas\Kernel\Extension;
+namespace Drupal\Tests\canvas\Kernel\Twig;
 
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -51,8 +51,8 @@ final class CanvasTwigExtensionTest extends KernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Extension\CanvasTwigExtension
-   * @covers \Drupal\canvas\Extension\CanvasPropVisitor
+   * @covers \Drupal\canvas\Twig\CanvasTwigExtension
+   * @covers \Drupal\canvas\Twig\CanvasPropVisitor
    * @dataProvider providerComponents
    */
   public function testExtension(

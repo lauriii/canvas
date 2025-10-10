@@ -1,0 +1,29 @@
+{
+  "name": "@drupal-canvas/extensions",
+  "version": "0.0.1",
+  "description": "API for building extensions for Drupal Canvas",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://git.drupalcode.org/project/canvas.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "main": "dist/index.js",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "canvas",
+    "drupal",
+    "extensions"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

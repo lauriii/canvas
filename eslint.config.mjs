@@ -26,5 +26,5 @@ export default defineConfig([
       'no-empty-pattern': ['error', { allowObjectPatternsAsParameters: true }],
       '@typescript-eslint/consistent-type-imports': 'error',
     },
-  },
+  }
 ]);

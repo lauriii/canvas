@@ -9,13 +9,15 @@
   },
   "workspaces": [
     "cli",
-    "docs/user"
+    "docs/user",
+    "packages/*",
+    "tests/modules/canvas_test_extension"
   ],
   "scripts": {
     "test:playwright": "playwright install && playwright test -x",
-    "lint:eslint": "eslint cli tests/src/Playwright playwright.config.ts eslint.config.mjs",
-    "lint:prettier": "prettier tests/src/Playwright playwright.config.ts cli eslint.config.mjs --check",
-    "lint:prettier-fix": "prettier tests/src/Playwright playwright.config.ts cli eslint.config.mjs --check --write",
+    "lint:eslint": "eslint cli packages tests/src/Playwright playwright.config.ts eslint.config.mjs",
+    "lint:prettier": "prettier tests/src/Playwright playwright.config.ts cli packages eslint.config.mjs --check",
+    "lint:prettier-fix": "prettier tests/src/Playwright playwright.config.ts cli packages eslint.config.mjs --check --write",
     "lint:cspell": "cspell . --no-progress",
     "test": "npx npm-run-all --parallel --continue-on-error test:*",
     "lint": "npx npm-run-all --parallel --continue-on-error lint:*"

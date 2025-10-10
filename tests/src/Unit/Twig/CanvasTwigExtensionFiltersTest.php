@@ -7,8 +7,8 @@ namespace Drupal\Tests\canvas\Unit\Twig;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\canvas\Extension\CanvasTwigExtension;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
+use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Tests\UnitTestCase;
 
 // cspell:ignore fitok itok Bwidth
@@ -17,12 +17,12 @@ use Drupal\Tests\UnitTestCase;
  * Tests Twig filter functionality.
  *
  * @group canvas
- * @covers \Drupal\canvas\Extension\CanvasTwigExtension::toSrcSet
+ * @covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
  */
 class CanvasTwigExtensionFiltersTest extends UnitTestCase {
 
   /**
-   * @var \Drupal\canvas\Extension\CanvasTwigExtension
+   * @var \Drupal\canvas\Twig\CanvasTwigExtension
    */
   private CanvasTwigExtension $canvasTwigExtension;
 

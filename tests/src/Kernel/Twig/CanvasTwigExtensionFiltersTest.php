@@ -8,7 +8,7 @@ use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Image\ImageInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
-use Drupal\canvas\Extension\CanvasTwigExtension;
+use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
@@ -21,7 +21,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests Twig filter functionality.
  *
  * @group canvas
- * @covers \Drupal\canvas\Extension\CanvasTwigExtension::toSrcSet
+ * @covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
  */
 class CanvasTwigExtensionFiltersTest extends KernelTestBase {
 
@@ -37,7 +37,7 @@ class CanvasTwigExtensionFiltersTest extends KernelTestBase {
   ];
 
   /**
-   * @var \Drupal\canvas\Extension\CanvasTwigExtension
+   * @var \Drupal\canvas\Twig\CanvasTwigExtension
    */
   private CanvasTwigExtension $canvasTwigExtension;
 

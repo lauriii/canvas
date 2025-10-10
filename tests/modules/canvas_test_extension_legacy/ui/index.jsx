@@ -7,7 +7,7 @@ import ExampleExtension from './components/ExampleExtension';
 
 const { drupalSettings } = window;
 const container = document.createElement('div');
-container.id = 'canvas-test-extension';
+container.id = 'canvas-test-extension-legacy';
 
 document.body.append(container);
 const root = createRoot(container);

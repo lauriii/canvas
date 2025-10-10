@@ -1,0 +1,8 @@
+canvas_test_extension:
+  name: Canvas Test Extension
+  description: Demonstrates what a Canvas extension can do
+  url: index.html
+  icon: icon.svg
+  api_version: "1.0"
+  permissions:
+    - access content

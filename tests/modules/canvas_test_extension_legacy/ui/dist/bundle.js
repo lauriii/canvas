@@ -2257,10 +2257,10 @@
     });
   };
 
-  var EXTENSION_ID = 'canvas-test-extension';
+  var EXTENSION_ID = 'canvas-test-extension-legacy';
   var _window$1 = window,
     drupalSettings$2 = _window$1.drupalSettings;
-  drupalSettings$2.canvasExtension.testExtension.component = ConceptProver;
+  drupalSettings$2.canvasExtension.testExtensionLegacy.component = ConceptProver;
   var ExampleExtension = function ExampleExtension() {
     var _useState = ReactOriginal.useState(null),
       _useState2 = _slicedToArray(_useState, 2),
@@ -2293,14 +2293,14 @@
     // add the entry point component to drupalSettings, which should make it
     // possible to eventually manage most of this in the UI app, with the
     // extension still adding the component to drupalSettings.
-    var ExtensionComponent = drupalSettings$2.canvasExtension.testExtension.component;
+    var ExtensionComponent = drupalSettings$2.canvasExtension.testExtensionLegacy.component;
     return /*#__PURE__*/require$$0__default["default"].createPortal(/*#__PURE__*/jsxRuntimeExports.jsx(ExtensionComponent, {}), portalRoot);
   };
 
   var _window = window,
     drupalSettings$1 = _window.drupalSettings;
   var container = document.createElement('div');
-  container.id = 'canvas-test-extension';
+  container.id = 'canvas-test-extension-legacy';
   document.body.append(container);
   var root = clientExports.createRoot(container);
 
