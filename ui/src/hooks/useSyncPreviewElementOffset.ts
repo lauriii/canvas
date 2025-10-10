@@ -63,7 +63,11 @@ function useSyncPreviewElementOffset(
     requestAnimationFrame(() => {
       const { horizontalDistance, verticalDistance } =
         getDistanceBetweenElements(parentEls, els);
+
       setOffset((prev) => {
+        if (horizontalDistance === null || verticalDistance === null) {
+          return prev;
+        }
         if (
           prev.offsetLeft !== horizontalDistance ||
           prev.offsetTop !== verticalDistance
@@ -87,6 +91,9 @@ function useSyncPreviewElementOffset(
       els,
     );
     requestAnimationFrame(() => {
+      if (horizontalDistance === null || verticalDistance === null) {
+        return;
+      }
       setOffset({
         offsetLeft: horizontalDistance,
         offsetTop: verticalDistance,

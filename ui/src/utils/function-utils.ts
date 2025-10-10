@@ -109,18 +109,20 @@ export function getHalfwayScrollPosition(parent: HTMLElement | null) {
  * @param el1 - The first element or array of elements.
  * @param el2 - The second element or array of elements.
  * @returns An object containing the horizontal and vertical distances between the elements.
+ *          Can return null values for horizontal or vertical if elements are not found or are stale references to DOM
+ *          elements that have been removed from the document.
  */
 export function getDistanceBetweenElements(
   el1: HTMLElement | HTMLElement[],
   el2: HTMLElement | HTMLElement[],
-): { horizontalDistance: number; verticalDistance: number } {
+): { horizontalDistance: number | null; verticalDistance: number | null } {
   const rect1 = calculateBoundingRect(el1);
   const rect2 = calculateBoundingRect(el2);
 
   if (rect1 === null || rect2 === null) {
     return {
-      horizontalDistance: 0,
-      verticalDistance: 0,
+      horizontalDistance: null,
+      verticalDistance: null,
     };
   }
 
@@ -151,8 +153,8 @@ export function calculateBoundingRect(
   const elementsArray = Array.isArray(elements) ? elements : [elements];
   const expandedElements: HTMLElement[] = [];
 
-  elementsArray.forEach((el) => {
-    if (!el) {
+  elementsArray.forEach((element) => {
+    if (!element) {
       return;
     }
 
@@ -160,6 +162,11 @@ export function calculateBoundingRect(
       el: HTMLElement,
       expandedElements: HTMLElement[],
     ) {
+      const isConnected = el.isConnected;
+      if (!isConnected) {
+        // el is not connected to the DOM, it was likely deleted during a real time update
+        return;
+      }
       const style = window.getComputedStyle(el);
       if (style.display !== 'contents') {
         expandedElements.push(el);
@@ -190,8 +197,12 @@ export function calculateBoundingRect(
 
     // Elements that are display: contents; (e.g <astro-*> elements) take on the size of their children, so in that case,
     // we add the first children we find that are not display: contents to the array instead.
-    collectElementsWithCalculableSize(el, expandedElements);
+    collectElementsWithCalculableSize(element, expandedElements);
   });
+
+  if (!expandedElements.length) {
+    return null;
+  }
 
   const tops: number[] = [];
   const lefts: number[] = [];
