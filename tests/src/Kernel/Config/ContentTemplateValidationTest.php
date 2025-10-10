@@ -239,11 +239,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   public static function providerInvalidComponentTree(): \Generator {
     yield "missing `component_tree` property" => [
       'component_tree' => [],
-      'expected_messages' => [
-        // @todo Add back message when we require dynamic prop sources in
-        //   https://drupal.org/i/3541054.
-        // 'component_tree' => 'The \'dynamic\' prop source type must be present.',
-      ],
+      'expected_messages' => [],
     ];
 
     yield "no DynamicPropSource, so no structured data from the content entity" => [
@@ -255,11 +251,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'inputs' => [],
         ],
       ],
-      'expected_messages' => [
-        // @todo Add back message when we require dynamic prop sources in
-        //   https://drupal.org/i/3541054.
-        // 'component_tree' => "The 'dynamic' prop source type must be present.",
-      ],
+      'expected_messages' => [],
     ];
 
     yield "using disallowed Block-sourced Components" => [
