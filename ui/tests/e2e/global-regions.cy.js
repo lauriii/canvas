@@ -12,10 +12,8 @@ describe('Operate on components in global regions', () => {
       cy.visit('/admin/appearance/component/');
       cy.findByText('block.system_menu_block.account')
         .parent('tr')
-        .findByText('List additional actions')
+        .findByText('Enable')
         .click({ force: true });
-
-      cy.findAllByText('Enable').filter(':visible').click();
     });
     cy.viewport('macbook-13');
   });
