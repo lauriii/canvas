@@ -41,9 +41,15 @@ const UnifiedMenuContent = (
   return (
     <UnifiedMenuTypeContext.Provider value={menuType}>
       {menuType === 'context' ? (
-        <ContextMenu.Content {...contentProps} />
+        <ContextMenu.Content
+          onClick={(e) => e.stopPropagation()}
+          {...contentProps}
+        />
       ) : (
-        <DropdownMenu.Content {...contentProps} />
+        <DropdownMenu.Content
+          onClick={(e) => e.stopPropagation()}
+          {...contentProps}
+        />
       )}
     </UnifiedMenuTypeContext.Provider>
   );

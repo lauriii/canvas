@@ -187,12 +187,7 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
           }}
         />
       </ContextMenu.Trigger>
-      <UnifiedMenu.Content
-        onClick={(e) => e.stopPropagation()}
-        menuType="context"
-        align="start"
-        side="right"
-      >
+      <UnifiedMenu.Content menuType="context" align="start" side="right">
         {menuTitleItems}
         {menuContent}
       </UnifiedMenu.Content>

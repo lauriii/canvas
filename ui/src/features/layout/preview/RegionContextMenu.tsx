@@ -29,7 +29,6 @@ export const RegionContextMenuContent: React.FC<
       menuType={menuType}
       align="start"
       side="right"
-      onClick={(e) => e.stopPropagation()}
     >
       <UnifiedMenu.Label>{region.name}</UnifiedMenu.Label>
       <UnifiedMenu.Separator />

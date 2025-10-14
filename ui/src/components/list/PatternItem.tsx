@@ -72,12 +72,7 @@ const PatternItem: React.FC<{
           draggable={activePanel !== 'manageLibrary'}
         />
       </ContextMenu.Trigger>
-      <UnifiedMenu.Content
-        onClick={(e) => e.stopPropagation()}
-        menuType="context"
-        align="start"
-        side="right"
-      >
+      <UnifiedMenu.Content menuType="context" align="start" side="right">
         {menuItems}
       </UnifiedMenu.Content>
     </ContextMenu.Root>

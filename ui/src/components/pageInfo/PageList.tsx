@@ -193,12 +193,7 @@ const ContentGroup = ({
                 data-canvas-page-id={item.id}
               />
             </ContextMenu.Trigger>
-            <UnifiedMenu.Content
-              onClick={(e) => e.stopPropagation()}
-              menuType="context"
-              align="start"
-              side="right"
-            >
+            <UnifiedMenu.Content menuType="context" align="start" side="right">
               {dropdownMenuContent}
             </UnifiedMenu.Content>
           </ContextMenu.Root>

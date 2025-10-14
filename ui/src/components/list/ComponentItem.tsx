@@ -56,12 +56,7 @@ const ComponentItem: React.FC<{
   return (
     <ContextMenu.Root key={component.id} onOpenChange={onMenuOpenChange}>
       <ContextMenu.Trigger>{sidebarNode}</ContextMenu.Trigger>
-      <UnifiedMenu.Content
-        onClick={(e) => e.stopPropagation()}
-        menuType="context"
-        align="start"
-        side="right"
-      >
+      <UnifiedMenu.Content menuType="context" align="start" side="right">
         {menuTitleItems}
         {menuItems}
       </UnifiedMenu.Content>

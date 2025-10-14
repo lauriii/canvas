@@ -210,12 +210,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             indent={2.5}
           />
         </ContextMenu.Trigger>
-        <UnifiedMenu.Content
-          onClick={(e) => e.stopPropagation()}
-          menuType="context"
-          align="start"
-          side="right"
-        >
+        <UnifiedMenu.Content menuType="context" align="start" side="right">
           {menuItems}
         </UnifiedMenu.Content>
       </ContextMenu.Root>
