@@ -184,6 +184,27 @@ const metadataHandler = {
   },
 };
 
+// Filters out 'media' fields from a js component instance's fieldValues based on the
+// component definition's propSources, forcing the component to use the example
+// image from its definition.
+// @todo Refactor this after https://www.drupal.org/i/3552000 is fixed.
+function removeMediaFields(componentDef: CanvasComponent, componentInst: any) {
+  const newFieldValues = {} as any;
+  const fieldValues = componentInst.fieldValues || {};
+  for (const [key, value] of Object.entries(fieldValues)) {
+    const prop = (componentDef.propSources as any)[key];
+    const isMedia =
+      (prop?.sourceTypeSettings?.storage as any)?.target_type === 'media';
+    if (!isMedia) {
+      newFieldValues[key] = value;
+    }
+  }
+  return {
+    ...componentInst,
+    fieldValues: newFieldValues,
+  };
+}
+
 // Helper to delay the placement of components.
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -219,11 +240,15 @@ const operationsHandler = {
           if (component.id && availableComponents[component.id]) {
             const componentToUse: CanvasComponent =
               availableComponents[component.id];
+            const componentAfterFilteringImageProps = removeMediaFields(
+              componentToUse,
+              component,
+            );
             dispatch(
               layoutUtils.addNewComponentToLayout(
                 {
                   component: componentToUse,
-                  withValues: component.fieldValues,
+                  withValues: componentAfterFilteringImageProps.fieldValues,
                   to: component.nodePath,
                 },
                 componentSelectionUtils.setSelectedComponent,

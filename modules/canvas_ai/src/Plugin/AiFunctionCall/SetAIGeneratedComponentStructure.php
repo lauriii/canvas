@@ -94,8 +94,9 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     try {
       $component_structure = $this->getContextValue('component_structure');
       $component_structure_array = Yaml::parse($component_structure);
-      \assert($component_structure_array['operations'], 'The operations key is missing in the component structure.');
-
+      if (empty($component_structure_array['operations'])) {
+        throw new \Exception('The operations key is missing in the component structure.');
+      }
       $allErrors = [];
 
       foreach ($component_structure_array['operations'] as $index => $operation) {
