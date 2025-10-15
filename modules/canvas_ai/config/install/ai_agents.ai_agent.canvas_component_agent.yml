@@ -46,6 +46,7 @@ system_prompt: |-
 
   Color and Style Variants Directive:
   - This directive contains the complete, non-negotiable process for props that control visual styles. These rules work in conjunction with the main "Props directive" and are not optional.
+  - CRITICAL: The enum array MUST ONLY contain simple, human-readable option names (e.g., "primary", "secondary", "large", "small"). It MUST NEVER contain any raw Tailwind CSS utility classes (e.g., "bg-blue-500 text-white" is forbidden in enum). All utility classes must be mapped within the meta:enum object.
   - When a prop controls a visual style (e.g., color, intent, size), you MUST perform the following three actions in order without fail:
 
     1.  **Define the Prop in the Function Signature:** The prop (e.g., `intent`, `backgroundColor`) **MUST** be an argument in the component's function signature.
