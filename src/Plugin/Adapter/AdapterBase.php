@@ -87,7 +87,8 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @see \Drupal\canvas\JsonSchemaFieldInstanceMatcher::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
-    if (isset($schema['$ref'])) {
+    // @todo Refactor in https://www.drupal.org/i/3515074
+    if (isset($schema['$ref']) && str_starts_with($schema['$ref'], 'json-schema-definitions://')) {
       // Perform the same schema resolving as `justinrainbow/json-schema`.
       // @todo Delete this method, actually use `justinrainbow/json-schema`.
       $schema = json_decode(file_get_contents($schema['$ref']) ?: '{}', TRUE);

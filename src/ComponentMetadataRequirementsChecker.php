@@ -53,7 +53,7 @@ final class ComponentMetadataRequirementsChecker {
 
     $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
     $validator = new Validator();
-    foreach ($metadata->schema['properties'] as $prop_name => $prop) {
+    foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
       if (in_array(Attribute::class, $prop['type'], TRUE)) {
         continue;
       }

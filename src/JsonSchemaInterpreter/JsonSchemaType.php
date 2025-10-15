@@ -293,7 +293,8 @@ enum JsonSchemaType: string {
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       JsonSchemaType::Integer => match (TRUE) {
-        array_key_exists('$ref', $schema) => NULL,
+        // @todo Refactor in https://www.drupal.org/i/3515074
+        array_key_exists('$ref', $schema) && str_starts_with($schema['$ref'], 'json-schema-definitions://') => NULL,
         array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
@@ -312,7 +313,8 @@ enum JsonSchemaType: string {
       // - `multipleOf`: https://json-schema.org/understanding-json-schema/reference/numeric#multiples
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       JsonSchemaType::Number => match (TRUE) {
-        array_key_exists('$ref', $schema) => NULL,
+        // @todo Refactor in https://www.drupal.org/i/3515074
+        array_key_exists('$ref', $schema) && str_starts_with($schema['$ref'], 'json-schema-definitions://') => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),

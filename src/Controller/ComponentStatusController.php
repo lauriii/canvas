@@ -5,11 +5,11 @@ namespace Drupal\canvas\Controller;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Url;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
