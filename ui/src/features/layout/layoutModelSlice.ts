@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
+import { getPropsValues } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
@@ -25,6 +26,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import type { AppThunk, RootState } from '@/app/store';
 import type { CanvasComponent, ComponentsList } from '@/types/Component';
+import type { InputUIData } from '@/types/Form';
 import type { UUID } from '@/types/UUID';
 
 const canvasSettings = getCanvasSettings();
@@ -758,9 +760,22 @@ export const _updateExistingComponentValuesForLinking =
       }
     });
 
+    const formValues = state.formState['component_instance_form'].values;
+    const { propsValues } = getPropsValues(
+      formValues,
+      {
+        selectedComponent: componentToUpdateId,
+        selectedComponentType,
+        model: { [componentToUpdateId]: model },
+        components,
+      } as InputUIData,
+      window._canvasTransforms[selectedComponentType],
+    );
+
     // Resolved will be updated in all cases.
     const resolved = {
       ...model.resolved,
+      ...propsValues,
       ...values,
     };
 
