@@ -29,6 +29,7 @@ delaville
 devizzent
 dhta
 diaclone
+domcontentloaded
 drupalcode
 drupaldev
 drupalsettings

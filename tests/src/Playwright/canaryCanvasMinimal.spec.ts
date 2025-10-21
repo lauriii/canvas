@@ -14,21 +14,21 @@ test.describe('Canary Canvas Minimal', () => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['canvas', 'canvas_test_sdc']);
-      await drupal.createCanvasPage('Homepage', '/homepage');
+      await drupal.createCanvasPage('Canary minimal', '/canary-minimal');
       await page.close();
     },
   );
 
-  test('View homepage', async ({ page, drupal }) => {
+  test('View page', async ({ page, drupal }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/homepage');
+    await page.goto('/canary-minimal');
     /* eslint-disable no-useless-escape */
     await expect(page.locator('#block-stark-local-tasks')).toMatchAriaSnapshot(`
       - heading "Primary tabs" [level=2]
       - list:
         - listitem:
           - link "View":
-            - /url: /homepage
+            - /url: /canary-minimal
         - listitem:
           - link "Edit":
             - /url: /\/canvas\/editor\/canvas_page\/\\d+/

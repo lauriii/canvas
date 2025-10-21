@@ -291,8 +291,8 @@ export class CanvasEditor {
           .locator(`${inputLocator}[type="file"]`)
           .setInputFiles(nodePath.join(__dirname, propValue));
         await expect(
-          this.page.locator(`${inputLocator}[type="file"]`),
-        ).not.toBeVisible();
+          this.page.getByRole('button', { name: 'remove' }),
+        ).toBeVisible();
         break;
       default:
         await this.page.locator(inputLocator).fill(propValue);
@@ -588,12 +588,16 @@ export class CanvasEditor {
       .locator('[data-testid="canvas-topbar"]')
       .getByRole('button', { name: 'Preview' })
       .click();
-    await this.page
-      .locator('iframe[class^="_PagePreviewIframe"]')
-      .contentFrame()
-      .locator('.layout-container')
-      .waitFor({ state: 'visible' });
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
+    // Wait for no DOM mutations for a period.
+    await this.page.waitForFunction(() => {
+      const iframe = document.querySelector(
+        'iframe[class^="_PagePreviewIframe"]',
+      );
+      const iframeDocument =
+        iframe.contentDocument || iframe.contentWindow.document;
+      return iframeDocument.querySelector('main')?.children.length > 0;
+    });
     await this.page
       .locator('iframe[class^="_PagePreviewIframe"]')
       .contentFrame()

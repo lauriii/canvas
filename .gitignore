@@ -32,3 +32,7 @@
 /docs/user/.astro/
 # dependencies
 /docs/user/node_modules/
+
+# Playwright
+node_modules/
+/playwright/.auth/

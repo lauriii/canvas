@@ -18,6 +18,20 @@ test.describe('Video Component', () => {
     },
   );
 
+  test.beforeEach('Change mountain_wide', async ({ page }) => {
+    await page.route(
+      '/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4',
+      async (route) => {
+        await route.fulfill({
+          path: './tests/fixtures/videos/bear.mp4',
+          headers: {
+            'content-type': 'video/mp4',
+          },
+        });
+      },
+    );
+  });
+
   test('Can use a generic file widget to populate a video prop', async ({
     page,
     drupal,
@@ -65,8 +79,7 @@ test.describe('Video Component', () => {
 
     await canvasEditor.editComponentProp(
       'video',
-      // @todo move this to tests/fixtures/videos
-      '../../../../ui/assets/videos/mountain_wide.mp4',
+      '../../../../tests/fixtures/videos/bear.mp4',
       'file',
     );
     previewFrame = await canvasEditor.getActivePreviewFrame();
@@ -103,8 +116,7 @@ test.describe('Video Component', () => {
     // Add a different video
     await canvasEditor.editComponentProp(
       'video',
-      // @todo move this to tests/fixtures/videos
-      '../../../../ui/assets/videos/bird_vertical.mp4',
+      '../../../../tests/fixtures/videos/four-colors.mp4',
       'file',
     );
     await expect(
@@ -125,7 +137,7 @@ test.describe('Video Component', () => {
     previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');
     expect(await previewFrame.locator('video').getAttribute('src')).toContain(
-      'bird_vertical',
+      'four-colors',
     );
   });
 
@@ -163,12 +175,12 @@ test.describe('Video Component', () => {
     await canvasEditor.addComponent({ id: 'js.videomedia' });
 
     await drupal.addMediaGenericFile(
-      '../../../../ui/assets/videos/bird_vertical.mp4',
+      '../../../../tests/fixtures/videos/four-colors.mp4',
     );
     const previewFrame = await canvasEditor.getActivePreviewFrame();
     await expect(previewFrame.locator('video')).not.toHaveAttribute('poster');
     expect(await previewFrame.locator('video').getAttribute('src')).toContain(
-      'bird_vertical',
+      'four-colors',
     );
   });
 });

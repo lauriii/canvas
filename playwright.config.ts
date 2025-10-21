@@ -11,12 +11,12 @@ export default defineConfig({
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry */
-  retries: 2,
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
   /* Maximum failures */
-  maxFailures: 0,
+  maxFailures: 999999,
   /* Parallel test workers, leave undefined for automatic */
-  workers: undefined,
+  workers: '50%',
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['list'],
@@ -24,7 +24,7 @@ export default defineConfig({
     ['html', { host: '0.0.0.0', open: 'never' }],
   ],
   /* https://playwright.dev/docs/test-timeouts */
-  timeout: 120_000,
+  timeout: process.env.CI ? 120_000 : 30_000,
   expect: { timeout: 10_000 },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -32,6 +32,8 @@ export default defineConfig({
     baseURL: process.env.DRUPAL_TEST_BASE_URL,
     /* https://playwright.dev/docs/api/class-testoptions#test-options-ignore-https-errors */
     ignoreHTTPSErrors: true,
+    /* For https://playwright.dev/docs/locators#locate-by-test-id */
+    testIdAttribute: 'data-testid',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     /* Take screenshot automatically on test failure */
@@ -39,9 +41,9 @@ export default defineConfig({
       mode: 'only-on-failure',
       fullPage: true,
     },
-    /* For https://playwright.dev/docs/locators#locate-by-test-id */
-    testIdAttribute: 'data-testid', // Use default test ID attribute
+    video: 'retain-on-failure',
   },
+
   /* Configure projects for major browsers */
   projects: [
     {
@@ -55,7 +57,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         deviceScaleFactor: 1,
         /* Making the browser window/viewport much bigger avoids weird issues like the UI covering up part of the editor frame etc. */
-        viewport: { width: 2560, height: 1440 },
+        viewport: { width: 1920, height: 1080 },
       },
       dependencies: ['setup'],
     },
@@ -65,7 +67,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
         deviceScaleFactor: 1,
-        viewport: { width: 2560, height: 1440 },
+        viewport: { width: 1920, height: 1080 },
       },
       dependencies: ['setup'],
     },
@@ -77,36 +79,9 @@ export default defineConfig({
         // Explicitly set the device pixel ratio as webkit is 2 by default, and
         // chromium and firefox are 1.
         deviceScaleFactor: 1,
-        viewport: { width: 2560, height: 1440 },
+        viewport: { width: 1920, height: 1080 },
       },
       dependencies: ['setup'],
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://127.0.0.1:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
 });

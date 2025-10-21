@@ -15,7 +15,7 @@ test.describe('Basic accessibility', () => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['canvas', 'canvas_test_sdc']);
-      await drupal.createCanvasPage('Homepage', '/homepage');
+      await drupal.createCanvasPage('a11y', '/a11y');
       await page.close();
     },
   );
@@ -49,7 +49,7 @@ test.describe('Basic accessibility', () => {
     ).toEqual([]);
 
     // Layers Panel.
-    await page.goto('/homepage');
+    await page.goto('/a11y');
     await canvasEditor.goToEditor();
     await canvasEditor.openLayersPanel();
     const layersScan = await new AxeBuilder({ page })

@@ -31,9 +31,10 @@ test.describe('Menu Component', () => {
     drupal,
     canvasEditor,
   }) => {
+    await page.setViewportSize({ width: 2560, height: 1080 });
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Homepage', '/homepage');
-    await page.goto('/homepage');
+    await drupal.createCanvasPage('Menu', '/menu');
+    await page.goto('/menu');
     await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
 

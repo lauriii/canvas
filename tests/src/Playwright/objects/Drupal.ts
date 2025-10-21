@@ -105,12 +105,13 @@ export class Drupal {
     const page = this.page;
     await page.goto(`${this.drupalSite.url}/user/logout/confirm`);
     await page.locator('[data-drupal-selector="edit-submit"]').click();
+    await page.waitForURL('/');
     let cookies = await page.context().cookies();
     cookies = cookies.filter(
       (cookie) =>
         cookie.name.startsWith('SESS') || cookie.name.startsWith('SSESS'),
     );
-    await expect(cookies).toHaveLength(0);
+    expect(cookies).toHaveLength(0);
   }
 
   async createRole({ name }: { name: string }) {

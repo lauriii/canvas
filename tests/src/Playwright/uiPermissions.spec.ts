@@ -14,9 +14,7 @@ test.describe('Canvas UI Permissions', () => {
     async ({ browser, drupalSite }) => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
-      await drupal.installModules(['canvas']);
-      await drupal.applyRecipe(`core/recipes/image_media_type`);
-      await drupal.setupCanvasTestSite();
+      await drupal.installModules(['canvas', 'canvas_test_sdc']);
       await page.close();
     },
   );
@@ -27,10 +25,20 @@ test.describe('Canvas UI Permissions', () => {
     canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/first');
+    await drupal.createCanvasPage('UI Permissions 1', '/ui-perms-1');
+    await page.goto('/ui-perms-1');
     await canvasEditor.goToEditor();
+
+    await expect(page.getByText('No changes')).toBeAttached();
+
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.two_column' });
+
     await canvasEditor.openLayersPanel();
-    await page.getByText('Two Column').click({ button: 'right' });
+    await page
+      .getByTestId('canvas-primary-panel')
+      .getByText('Two Column')
+      .click({ button: 'right' });
 
     const menu = page.getByRole('menu', {
       name: 'Context menu for Two Column',
@@ -48,14 +56,12 @@ test.describe('Canvas UI Permissions', () => {
     ).toBeAttached();
 
     // Click the dropdown button with the aria-label
-    const dropdownButton = page.getByLabel(
-      'Page options for Page without a path',
-    );
+    const dropdownButton = page.getByLabel('Page options for UI Permissions 1');
     await dropdownButton.click({ force: true });
 
     // Verify the dropdown menu is visible
     const contextMenu = page.getByRole('menu', {
-      name: 'Page options for Page without',
+      name: 'Page options for UI Permissions 1',
     });
     await expect(contextMenu).toBeVisible();
 
@@ -81,7 +87,6 @@ test.describe('Canvas UI Permissions', () => {
       .click({ force: true });
 
     // Make a change to the page
-    await expect(page.getByText('No changes')).toBeAttached();
     await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
@@ -98,16 +103,13 @@ test.describe('Canvas UI Permissions', () => {
     drupal,
     canvasEditor,
   }) => {
+    await drupal.loginAsAdmin();
+    await drupal.createCanvasPage('UI Permissions 2', '/ui-perms-2');
     // Create a role with no (well, minimal) Canvas permissions
     await drupal.createRole({ name: 'canvas_no_permissions' });
     await drupal.addPermissions({
       role: 'canvas_no_permissions',
-      permissions: [
-        'view the administration theme',
-        'edit canvas_page',
-        'edit any page content',
-        'edit any article content',
-      ],
+      permissions: ['view the administration theme', 'edit canvas_page'],
     });
 
     // Create a user with that role
@@ -119,12 +121,20 @@ test.describe('Canvas UI Permissions', () => {
       roles: ['canvas_no_permissions'],
     };
     await drupal.createUser(user);
+    await drupal.logout();
     await drupal.login(user);
-    await page.goto('/first');
+    await page.goto('/ui-perms-2');
     await canvasEditor.goToEditor();
+
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.two_column' });
+
     await canvasEditor.openLayersPanel();
 
-    await page.getByText('Two Column').click({ button: 'right' });
+    await page
+      .getByTestId('canvas-primary-panel')
+      .getByText('Two Column')
+      .click({ button: 'right' });
     const menu = page.getByRole('menu', {
       name: 'Context menu for Two Column',
     });
@@ -141,14 +151,12 @@ test.describe('Canvas UI Permissions', () => {
     ).not.toBeAttached();
 
     // Click the dropdown button with the aria-label
-    const dropdownButton = page.getByLabel(
-      'Page options for Page without a path',
-    );
+    const dropdownButton = page.getByLabel('Page options for UI Permissions 2');
     await dropdownButton.click({ force: true });
 
     // Verify the dropdown menu is visible
     const contextMenu = page.getByRole('menu', {
-      name: 'Page options for Page without',
+      name: 'Page options for UI Permissions 2',
     });
     await expect(contextMenu).toBeVisible();
 
@@ -187,9 +195,13 @@ test.describe('Canvas UI Permissions', () => {
       primaryPanel.getByTestId('canvas-manage-library-patterns-tab-select'),
     ).toBeAttached();
 
-    // ⚠️️️️️⚠️️️️️⚠️️️️️⚠️️️️️⚠️️️️️ ️A change to the page was made in the PREVIOUS test, so that change should be visible here but
-    // means there might be implications for parallelization later.
-    await page.getByText('Review 1 change').click();
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ name: 'Hero' });
+    await page.getByTestId('canvas-publish-review').click();
+    await page
+      .getByTestId('canvas-publish-reviews-content')
+      .filter({ hasText: 'Unpublished changes' })
+      .waitFor({ state: 'visible' });
     await page.getByTestId('canvas-publish-review-select-all').click();
     // but the user should not be able to publish changes.
     await expect(page.getByText('Publish 1 selected')).not.toBeAttached();

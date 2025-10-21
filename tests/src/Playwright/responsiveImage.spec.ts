@@ -24,8 +24,8 @@ test.describe('Responsive Image', () => {
     canvasEditor,
   }) => {
     await drupal.loginAsAdmin();
-    await drupal.createCanvasPage('Homepage', '/homepage');
-    await page.goto('/homepage');
+    await drupal.createCanvasPage('Responsive image', '/responsive-image');
+    await page.goto('/responsive-image');
     await canvasEditor.goToEditor();
     await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.image' });

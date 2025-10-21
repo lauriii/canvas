@@ -17,7 +17,7 @@ test.describe('Data dependencies', () => {
       const page = await browser.newPage();
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.installModules(['canvas']);
-      await drupal.createCanvasPage('Homepage', '/homepage');
+      await drupal.createCanvasPage('Data dependencies', '/data-dependencies');
       await page.close();
     },
   );
@@ -28,7 +28,7 @@ test.describe('Data dependencies', () => {
     drupal,
   }) => {
     await drupal.loginAsAdmin();
-    await page.goto('/homepage');
+    await page.goto('/data-dependencies');
     await canvasEditor.goToEditor();
     const moduleDir = await getModuleDir();
     const code = await readFile(
@@ -49,10 +49,12 @@ test.describe('Data dependencies', () => {
       { id: 'js.pagetitle' },
       { hasInputs: false },
     );
-    await canvasEditor.publishAllChanges(['Homepage']);
-    await page.goto('/homepage');
+    await canvasEditor.publishAllChanges(['Data dependencies']);
+    await page.goto('/data-dependencies');
     await expect(
-      page.locator('canvas-island').getByRole('heading', { name: 'Homepage' }),
+      page
+        .locator('canvas-island')
+        .getByRole('heading', { name: 'Data dependencies' }),
     ).toBeVisible();
   });
 });

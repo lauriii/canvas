@@ -466,7 +466,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: justafish/drupalci-environments-playwright:latest
+  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -503,7 +503,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: justafish/drupalci-environments-playwright:latest
+  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
   before_script:
     - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
   script:
@@ -522,20 +522,8 @@ lint (OpenAPI):
 playwright:
   stage: test
   needs: []
-  image: justafish/drupalci-environments-playwright:latest
-  # This doesn't actually work 🤦‍♀️
-  # https://www.drupal.org/project/infrastructure/issues/3387117
-  cache:
-    key: cache-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
-    fallback_keys:
-      - cache-$CI_JOB_NAME-$CI_DEFAULT_BRANCH
-      - cache-$CI_JOB_NAME-default
-    paths:
-      - /root/.composer/cache
-      - /root/.npm
-      - /root/.cache/ms-playwright/ms-playwright
-      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/node_modules
-      - $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/node_modules
+  interruptible: true
+  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
   extends:
     - .test-variables
   variables:
@@ -544,6 +532,7 @@ playwright:
     DRUPAL_TEST_BASE_URL: http://localhost
     DRUPAL_TEST_WEBSERVER_USER: www-data
     DRUPAL_TEST_PLAYWRIGHT_SKIP_TEARDOWN: true
+    COMPOSER_IGNORE_PLATFORM_REQS:
   before_script:
     - !reference [ .drupal ]
     - composer run install-dev-deps
@@ -551,11 +540,21 @@ playwright:
     - npm ci
     - npm run test:playwright
   after_script:
-    - mkdir -p $CI_PROJECT_DIR/logs
-    - cp -R /var/log/apache2 $CI_PROJECT_DIR/logs/apache2
-    - cp -R /var/log/supervisor $CI_PROJECT_DIR/logs/supervisor
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
+    - |
+      cat > $CI_PROJECT_DIR/test-results/links.json << EOF
+      {
+        "playwright": [
+          {
+            "external_link": {
+              "label": "Playwright test report",
+              "url": "https://${CI_PROJECT_NAMESPACE}.${CI_PAGES_DOMAIN}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
+            }
+          }
+        ]
+      }
+      EOF
   artifacts:
     expose_as: 'Playwright Test Reports'
     when: always
@@ -563,10 +562,10 @@ playwright:
     paths:
       - playwright-report/
       - test-results/
-      - logs/
     reports:
       junit:
         - test-results/playwright.xml
+      annotations: test-results/links.json
 
 CLI Test:
   stage: test
