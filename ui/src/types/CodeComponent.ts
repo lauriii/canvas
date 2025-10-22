@@ -37,11 +37,16 @@ export interface CodeComponentSerialized
   links?: Record<string, string>;
 }
 
+export interface CodeComponentPropEnumItem {
+  label: string;
+  value: string | number;
+}
+
 export interface CodeComponentProp {
   id: string;
   name: string;
   type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
-  enum?: string[];
+  enum?: CodeComponentPropEnumItem[];
   example?:
     | string
     | boolean
@@ -65,6 +70,10 @@ export interface CodeComponentPropSerialized {
   title: string;
   type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
   enum?: (string | number)[];
+  'meta:enum'?: Record<
+    CodeComponentPropEnumItem['value'],
+    CodeComponentPropEnumItem['label']
+  >;
   examples?: (
     | string
     | number

@@ -59,7 +59,20 @@
     {
       "name": "Text list with no example value",
       "type": "string",
-      "enum": ["Not Started", "In Progress", "Completed"],
+      "enum": [
+        {
+          "label": "Pending",
+          "value": "Not Started"
+        },
+        {
+          "label": "Thinking",
+          "value": "In Progress"
+        },
+        {
+          "label": "Finished",
+          "value": "Completed"
+        }
+      ],
       "example": "",
       "id": "aa2e3ece-9431-4db9-a64e-1d2f0699912d",
       "derivedType": "listText"
@@ -67,7 +80,20 @@
     {
       "name": "Text list with example value",
       "type": "string",
-      "enum": ["Not Started", "In Progress", "Completed"],
+      "enum": [
+        {
+          "label": "Pending",
+          "value": "Not Started"
+        },
+        {
+          "label": "Thinking",
+          "value": "In Progress"
+        },
+        {
+          "label": "Finished",
+          "value": "Completed"
+        }
+      ],
       "example": "In Progress",
       "id": "80c7cc4c-4e84-41fc-a42e-2bfbc19f4a96",
       "derivedType": "listText"
@@ -75,7 +101,20 @@
     {
       "name": "Integer list with no example value",
       "type": "integer",
-      "enum": ["1", "2", "3"],
+      "enum": [
+        {
+          "label": "One",
+          "value": 1
+        },
+        {
+          "label": "Two",
+          "value": 2
+        },
+        {
+          "label": "Three",
+          "value": 3
+        }
+      ],
       "example": "",
       "id": "a361cca0-6aca-4d55-907d-10275df8c7fa",
       "derivedType": "listInteger"
@@ -83,7 +122,20 @@
     {
       "name": "Integer list with example value",
       "type": "integer",
-      "enum": ["1", "2", "3"],
+      "enum": [
+        {
+          "label": "One",
+          "value": 1
+        },
+        {
+          "label": "Two",
+          "value": 2
+        },
+        {
+          "label": "Three",
+          "value": 3
+        }
+      ],
       "example": "2",
       "id": "30b57352-8c6c-48b1-a782-8bcbc69d7df7",
       "derivedType": "listInteger"
@@ -240,9 +292,9 @@
       "type": "string",
       "enum": ["Not Started", "In Progress", "Completed"],
       "meta:enum": {
-        "Not Started": "Not Started",
-        "In Progress": "In Progress",
-        "Completed": "Completed"
+        "Not Started": "Pending",
+        "In Progress": "Thinking",
+        "Completed": "Finished"
       }
     },
     "textListWithExampleValue": {
@@ -251,9 +303,9 @@
       "enum": ["Not Started", "In Progress", "Completed"],
       "examples": ["In Progress"],
       "meta:enum": {
-        "Not Started": "Not Started",
-        "In Progress": "In Progress",
-        "Completed": "Completed"
+        "Not Started": "Pending",
+        "In Progress": "Thinking",
+        "Completed": "Finished"
       }
     },
     "integerListWithNoExampleValue": {
@@ -261,9 +313,9 @@
       "type": "integer",
       "enum": [1, 2, 3],
       "meta:enum": {
-        "1": 1,
-        "2": 2,
-        "3": 3
+        "1": "One",
+        "2": "Two",
+        "3": "Three"
       }
     },
     "integerListWithExampleValue": {
@@ -272,9 +324,9 @@
       "enum": [1, 2, 3],
       "examples": [2],
       "meta:enum": {
-        "1": 1,
-        "2": 2,
-        "3": 3
+        "1": "One",
+        "2": "Two",
+        "3": "Three"
       }
     },
     "formattedTextWithNoExampleValue": {

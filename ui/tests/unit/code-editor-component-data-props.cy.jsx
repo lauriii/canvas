@@ -128,7 +128,11 @@ describe('Component data / props in code editor', () => {
       expect(props[1]).to.deep.include({
         name: 'Variant',
         type: 'string',
-        enum: ['Alpha', 'Bravo', 'Charlie'],
+        enum: [
+          { label: 'Alpha', value: 'Alpha' },
+          { label: 'Bravo', value: 'Bravo' },
+          { label: 'Charlie', value: 'Charlie' },
+        ],
         example: 'Bravo',
         format: undefined,
         $ref: undefined,
@@ -159,8 +163,8 @@ describe('Component data / props in code editor', () => {
     // Reorder the props again. Move the first prop to the second position.
     cy.findAllByLabelText('Move prop')
       .first()
-      .realDnd('[data-testid="prop-1"]', {
-        position: 'top',
+      .realDnd('[data-testid="prop-0"]', {
+        position: 'bottom',
       });
     // Check that the props in the store are in the new order.
     cy.wrap(store).then((store) => {
@@ -452,7 +456,10 @@ describe('Component data / props in code editor', () => {
       cy.wrap(store).then((store) => {
         expect(
           selectCodeComponentProperty('props')(store.getState())[0].enum,
-        ).to.deep.equal(['Alpha'], 'Should have the appropriate enum values');
+        ).to.deep.equal(
+          [{ label: 'Alpha', value: 'Alpha' }],
+          'Should have the appropriate enum values',
+        );
       });
 
       // Clear the value, make sure "Default value" is not shown.
@@ -461,7 +468,10 @@ describe('Component data / props in code editor', () => {
       cy.wrap(store).then((store) => {
         expect(
           selectCodeComponentProperty('props')(store.getState())[0].enum,
-        ).to.deep.equal([''], 'Should have the following enum values: ""');
+        ).to.deep.equal(
+          [{ label: '', value: '' }],
+          'Should have the following enum values: ""',
+        );
       });
 
       // Type a value, then add two more values.
@@ -474,7 +484,11 @@ describe('Component data / props in code editor', () => {
         expect(
           selectCodeComponentProperty('props')(store.getState())[0].enum,
         ).to.deep.equal(
-          ['Alpha', 'Bravo', 'Charlie'],
+          [
+            { label: 'Alpha', value: 'Alpha' },
+            { label: 'Bravo', value: 'Bravo' },
+            { label: 'Charlie', value: 'Charlie' },
+          ],
           'Should have the appropriate enum values',
         );
       });
@@ -488,7 +502,11 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['Alpha', 'Bravo', 'Charlie'],
+            enum: [
+              { label: 'Alpha', value: 'Alpha' },
+              { label: 'Bravo', value: 'Bravo' },
+              { label: 'Charlie', value: 'Charlie' },
+            ],
             example: 'Alpha',
           },
           'Should have the appropriate enum and example values',
@@ -505,7 +523,11 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['', 'Bravo', 'Charlie'],
+            enum: [
+              { label: '', value: '' },
+              { label: 'Bravo', value: 'Bravo' },
+              { label: 'Charlie', value: 'Charlie' },
+            ],
             example: 'Bravo',
           },
           'Should have the appropriate enum and example values',
@@ -523,7 +545,11 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['', 'Bravo', 'Charlie'],
+            enum: [
+              { label: '', value: '' },
+              { label: 'Bravo', value: 'Bravo' },
+              { label: 'Charlie', value: 'Charlie' },
+            ],
             example: 'Charlie',
           },
           'Should have the appropriate enum and example values',
@@ -540,7 +566,11 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['', 'Bravo', 'CharlieZulu'],
+            enum: [
+              { label: '', value: '' },
+              { label: 'Bravo', value: 'Bravo' },
+              { label: 'CharlieZulu', value: 'CharlieZulu' },
+            ],
             example: 'Bravo',
           },
           'Should have the appropriate enum and example values',
@@ -557,7 +587,11 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['', 'BravoYankee', 'CharlieZulu'],
+            enum: [
+              { label: '', value: '' },
+              { label: 'BravoYankee', value: 'BravoYankee' },
+              { label: 'CharlieZulu', value: 'CharlieZulu' },
+            ],
             example: 'BravoYankee',
           },
           'Should have the appropriate enum and example values',
@@ -580,7 +614,10 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['BravoYankee', 'CharlieZulu'],
+            enum: [
+              { label: 'BravoYankee', value: 'BravoYankee' },
+              { label: 'CharlieZulu', value: 'CharlieZulu' },
+            ],
             example: 'BravoYankee',
           },
           'Should have the appropriate enum and example values',
@@ -597,7 +634,7 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['CharlieZulu'],
+            enum: [{ label: 'CharlieZulu', value: 'CharlieZulu' }],
             example: 'CharlieZulu',
           },
           'Should have the appropriate enum and example values',
@@ -615,7 +652,7 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['CharlieZuluXRay'],
+            enum: [{ label: 'CharlieZuluXRay', value: 'CharlieZuluXRay' }],
             example: 'CharlieZuluXRay',
           },
           'Should have the appropriate enum and example values',
@@ -633,7 +670,12 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['CharlieZuluXRayWhiskey'],
+            enum: [
+              {
+                label: 'CharlieZuluXRayWhiskey',
+                value: 'CharlieZuluXRayWhiskey',
+              },
+            ],
             example: '',
           },
           'Should have the appropriate enum and example values',
@@ -652,7 +694,12 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['CharlieZuluXRayWhiskey'],
+            enum: [
+              {
+                label: 'CharlieZuluXRayWhiskey',
+                value: 'CharlieZuluXRayWhiskey',
+              },
+            ],
             example: 'CharlieZuluXRayWhiskey',
           },
           'Should have the appropriate enum and example values',
@@ -674,6 +721,18 @@ describe('Component data / props in code editor', () => {
           'Should have the appropriate enum and example values',
         );
       });
+
+      cy.log('User should be warned that each value must be unique');
+      // Add a new value.
+      cy.findByText('Add value').click();
+      cy.findByText('Add value').click();
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-0`).type('Same');
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).type('Same');
+      cy.findAllByText('Value must be unique.')
+        .should('exist')
+        .and('have.length', 2);
+      cy.findByTestId(`canvas-prop-enum-value-${propId}-1`).type('... not!');
+      cy.findAllByText('Value must be unique.').should('not.exist');
     });
   });
 
@@ -719,7 +778,7 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['1'],
+            enum: [{ label: '1', value: '1' }],
             example: '',
           },
           'Should have the appropriate enum and example values',
@@ -735,7 +794,7 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['1'],
+            enum: [{ label: '1', value: '1' }],
             example: '1',
           },
           'Should have the appropriate enum and example values',
@@ -750,7 +809,10 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['1', '2'],
+            enum: [
+              { label: '1', value: '1' },
+              { label: '2', value: '2' },
+            ],
             example: '1',
           },
           'Should have the appropriate enum and example values',
@@ -765,7 +827,10 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['1', '2'],
+            enum: [
+              { label: '1', value: '1' },
+              { label: '2', value: '2' },
+            ],
             example: '2',
           },
           'Should have the appropriate enum and example values',
@@ -781,12 +846,91 @@ describe('Component data / props in code editor', () => {
           selectCodeComponentProperty('props')(store.getState())[0],
         ).to.deep.include(
           {
-            enum: ['1'],
+            enum: [{ label: '1', value: '1' }],
             example: '1',
           },
           'Should have the appropriate enum and example values',
         );
       });
+    });
+  });
+
+  it('allows the label of an existing text list prop to be updated independently of its value', () => {
+    // Set up: Add a listText prop with one enum value directly to the store.
+    cy.wrap(store).then((store) => {
+      store.dispatch(addProp());
+      const newProp = selectCodeComponentProperty('props')(store.getState())[0];
+      cy.log(
+        `Added new prop directly to the store: ${JSON.stringify(newProp)}`,
+      );
+      store.dispatch(
+        updateProp({
+          id: newProp.id,
+          updates: {
+            name: 'Title',
+            example: 'Alpha',
+            derivedType: 'listText',
+            enum: [
+              {
+                label: 'Alpha',
+                value: 'Alpha',
+              },
+            ],
+          },
+        }),
+      );
+      const updatedProp = selectCodeComponentProperty('props')(
+        store.getState(),
+      )[0];
+      cy.log(
+        `Updated prop directly in the store: ${JSON.stringify(updatedProp)}`,
+      );
+    });
+
+    // Validate setup state
+    cy.findByLabelText('Prop name').should('have.value', 'Title');
+    cy.findByLabelText('Type').should('have.text', 'List: text');
+    cy.findByLabelText('Default value').should('have.text', 'Alpha');
+
+    cy.log('Existing labels should not auto update when the value is changed');
+    cy.findByLabelText('Value').type('Bravo');
+    cy.findByLabelText('Label').should('have.value', 'Alpha');
+
+    cy.log('New values should auto update the label when they are entered');
+    cy.findByText('Add value').click();
+    cy.findAllByLabelText('Value').eq(1).type('Xray');
+    cy.findAllByLabelText('Label').eq(1).should('have.value', 'Xray');
+
+    cy.log('New values should auto update the label when they are changed');
+    cy.findAllByLabelText('Value').eq(1).type('Zulu');
+    cy.findAllByLabelText('Label').eq(1).should('have.value', 'XrayZulu');
+
+    cy.log(
+      'Once a label has been changed, it should not be auto updated anymore',
+    );
+    cy.findAllByLabelText('Label').eq(1).clear();
+    cy.findAllByLabelText('Label').eq(1).type('Custom label');
+    cy.findAllByLabelText('Value').eq(1).type('Charlie');
+    cy.findAllByLabelText('Label').eq(1).should('have.value', 'Custom label');
+
+    cy.wrap(store).then((store) => {
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0],
+      ).to.deep.include(
+        {
+          enum: [
+            {
+              label: 'Alpha',
+              value: 'AlphaBravo',
+            },
+            {
+              label: 'Custom label',
+              value: 'XrayZuluCharlie',
+            },
+          ],
+        },
+        'Should have the appropriate enum and example values',
+      );
     });
   });
 
@@ -801,7 +945,7 @@ describe('Component data / props in code editor', () => {
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
-      ).to.deep.equal(['Alpha']);
+      ).to.deep.equal([{ label: 'Alpha', value: 'Alpha' }]);
     });
 
     // Change the type to List: integer. The enum value should be removed.
@@ -819,7 +963,7 @@ describe('Component data / props in code editor', () => {
     cy.wrap(store).then((store) => {
       expect(
         selectCodeComponentProperty('props')(store.getState())[0].enum,
-      ).to.deep.equal(['922']);
+      ).to.deep.equal([{ label: '922', value: '922' }]);
     });
 
     // Change the type to List: text. The enum value should be removed.

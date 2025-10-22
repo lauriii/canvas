@@ -143,12 +143,13 @@ export function serializeProps(props: CodeComponentProp[]) {
             ],
           }),
           ...(enumValues && {
-            enum: isNumberType ? enumValues.map(Number) : enumValues,
+            enum: enumValues
+              .filter(({ value }) => value !== '')
+              .map(({ value }) => (isNumberType ? Number(value) : value)),
             'meta:enum': Object.fromEntries(
-              enumValues.map((value) => [
-                value.replace('.', '_'),
-                isNumberType ? Number(value) : value,
-              ]),
+              enumValues
+                .filter(({ value }) => value !== '')
+                .map(({ value, label }) => [value, label]),
             ),
           }),
           ...($ref && { $ref }),
@@ -185,11 +186,14 @@ export function deserializeProps(
       type,
       examples,
       enum: enumValues,
+      'meta:enum': metaEnum,
       $ref,
       format,
       contentMediaType,
       'x-formatting-context': xFormattingContext,
     } = prop;
+
+    const isNumberType = ['integer', 'number'].includes(type);
     let example: CodeComponentProp['example'] = '';
     const derivedType =
       derivedPropTypes.find((type) => type.derive(prop))?.type ?? null;
@@ -207,6 +211,7 @@ export function deserializeProps(
       }
     }
 
+    // This should use meta:enum to build the list of values/labels if available but fallback to use the enum array if meta:enum is not there.
     const deserializedProp = {
       id: uuidv4(),
       name: title,
@@ -215,7 +220,18 @@ export function deserializeProps(
         isVideo && typeof example === 'object'
           ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
           : example,
-      ...(enumValues && { enum: enumValues.map(String) }),
+      ...(enumValues && {
+        enum: enumValues.map((value) => ({
+          value: isNumberType ? Number(value) : value,
+          label: String(value),
+        })),
+      }),
+      ...(metaEnum && {
+        enum: Object.entries(metaEnum).map(([value, label]) => ({
+          value: isNumberType ? Number(value) : value,
+          label,
+        })),
+      }),
       ...($ref && { $ref }),
       ...(format && { format }),
       ...(contentMediaType && { contentMediaType }),
