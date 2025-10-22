@@ -17,6 +17,7 @@ import {
   setActivePanel,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
+import { hasPermission } from '@/utils/permissions';
 
 import styles from './SideMenu.module.css';
 
@@ -118,7 +119,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <TemplateIcon />,
       label: 'Templates',
       enabled: true,
-      hidden: false,
+      hidden: !hasPermission('contentTemplates'),
     },
     { type: 'separator', hidden: !hasExtensions },
     {
