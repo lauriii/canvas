@@ -383,6 +383,14 @@ YAML;
                     props:
                       text: "Above existing component"
                       element: "h2"
+                - sdc.canvas_test_sdc.two_column:
+                    props:
+                      width: 25
+                    slots:
+                      column_two:
+                        - sdc.canvas_test_sdc.druplicon: {}
+                        - sdc.canvas_test_sdc.druplicon: {}
+                        - sdc.canvas_test_sdc.druplicon: {}
             - target: 'content'
               reference_uuid: '72384115-a8ee-44bc-9a13-de1c7a4d9b96'
               placement: 'below'
@@ -414,8 +422,30 @@ YAML;
                   ],
                 ],
                 [
+                  'id' => 'sdc.canvas_test_sdc.two_column',
+                  'nodePath' => [1, 1],
+                  'fieldValues' => [
+                    'width' => 25,
+                  ],
+                ],
+                [
+                  'id' => 'sdc.canvas_test_sdc.druplicon',
+                  'nodePath' => [1, 1, 1, 0],
+                  'fieldValues' => [],
+                ],
+                [
+                  'id' => 'sdc.canvas_test_sdc.druplicon',
+                  'nodePath' => [1, 1, 1, 1],
+                  'fieldValues' => [],
+                ],
+                [
+                  'id' => 'sdc.canvas_test_sdc.druplicon',
+                  'nodePath' => [1, 1, 1, 2],
+                  'fieldValues' => [],
+                ],
+                [
                   'id' => 'sdc.canvas_test_sdc.heading',
-                  'nodePath' => [1, 2],
+                  'nodePath' => [1, 3],
                   'fieldValues' => [
                     'text' => 'Below existing component',
                     'element' => 'h2',

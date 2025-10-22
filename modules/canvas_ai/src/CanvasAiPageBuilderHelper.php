@@ -141,7 +141,7 @@ class CanvasAiPageBuilderHelper {
         $node_path = $this->getCalculatedNodepath($predicted_layout, $component_data['uuid'], $target);
         $component_data_to_append['id'] = $id;
         $component_data_to_append['nodePath'] = $node_path;
-        $component_data_to_append['fieldValues'] = $component_data['props'];
+        $component_data_to_append['fieldValues'] = $component_data['props'] ?? [];
         $result_components[] = $component_data_to_append;
 
         // Recursively process any components in slots.
@@ -566,10 +566,10 @@ class CanvasAiPageBuilderHelper {
     }
 
     // Get the descriptions for slots of the JS component.
-    if (isset($component_data['slots']) && is_array($component_data['slots'])) {
-      $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['metadata']['slots'] = [];
+    if (isset($component_data['metadata']['slots']) && is_array($component_data['metadata']['slots'])) {
+      $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['slots'] = [];
       foreach ($component_data['metadata']['slots'] as $slot_name => $slot_details) {
-        $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['metadata']['slots'][$slot_name] = [
+        $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['slots'][$slot_name] = [
           'name' => $slot_details['title'] ?? $slot_name,
           // Keep the slot description as the slot name for as there is no
           // option to provide a description in the JS component.
@@ -839,7 +839,7 @@ class CanvasAiPageBuilderHelper {
     $tree = [];
 
     foreach ($components as $component) {
-      foreach ($component as $component_data) {
+      foreach ($component as $component_id => $component_data) {
         $uuid = $component_data['uuid'];
         $slots = $component_data['slots'] ?? [];
 
@@ -850,9 +850,10 @@ class CanvasAiPageBuilderHelper {
         if (!empty($slots)) {
           foreach ($slots as $slot_name => $slot_components) {
             if (!empty($slot_components)) {
+              $tree[$uuid][$slot_name]['slot_index'] = $this->getSlotIndexFromSlotName($slot_name, $component_id);
               // Recursively build nested component tree.
               $nested_tree = $this->createInputComponentTree($slot_components);
-              $tree[$uuid][$slot_name] = $nested_tree;
+              $tree[$uuid][$slot_name]['components'] = $nested_tree;
             }
             else {
               $tree[$uuid][$slot_name] = [];
@@ -1086,7 +1087,13 @@ class CanvasAiPageBuilderHelper {
     $findPath = function ($array, $uuid, $path = []) use (&$findPath) {
       $i = 0;
       foreach ($array as $key => $value) {
-        $currentPath = array_merge($path, [$i]);
+        if (isset($value['slot_index']) && !empty($value['components'])) {
+          $currentPath = array_merge($path, [$value['slot_index']]);
+          $value = $value['components'];
+        }
+        else {
+          $currentPath = array_merge($path, [$i]);
+        }
 
         if ($key === $uuid) {
           return $currentPath;
