@@ -125,7 +125,7 @@ export class ApiService {
       if (raw) {
         throw error;
       }
-      this.handleApiError(error as Error);
+      this.handleApiError(error);
       throw new Error(`Failed to create component: '${component.machineName}'`);
     }
   }
@@ -197,7 +197,7 @@ export class ApiService {
     }
   }
 
-  private handleApiError(error: Error): void {
+  private handleApiError(error: unknown): void {
     const config = getConfig();
     const verbose = config.verbose;
 

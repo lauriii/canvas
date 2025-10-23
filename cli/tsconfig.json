@@ -16,7 +16,8 @@
     "inlineSourceMap": true,
     "inlineSources": false,
     "paths": {
-      "@drupal-canvas/ui/*": ["../ui/src/*"]
+      "@drupal-canvas/ui/*": ["../ui/src/*"],
+      "@/*": ["../ui/src/*"]
     }
   }
 }

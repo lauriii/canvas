@@ -30,7 +30,7 @@ import FormPropTypeLink from '@/features/code-editor/component-data/forms/FormPr
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
 import FormPropTypeVideo from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 import SortableList from '@/features/code-editor/component-data/SortableList';
-import { getPropMachineName } from '@/features/code-editor/utils';
+import { getPropMachineName } from '@/features/code-editor/utils/utils';
 
 import type {
   CodeComponentProp,

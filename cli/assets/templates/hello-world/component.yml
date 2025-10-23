@@ -28,4 +28,3 @@ slots:
     description: Content to display below the greeting
     examples:
       - <div>Example slot content</div>
-dataDependencies: []

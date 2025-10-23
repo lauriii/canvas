@@ -30,7 +30,7 @@ export interface DataDependencies {
 }
 
 export interface CodeComponentSerialized
-  extends Omit<CodeComponent, 'props' | 'slots'> {
+  extends Omit<CodeComponent, 'props' | 'slots' | 'dataFetches'> {
   props: Record<string, CodeComponentPropSerialized>;
   slots: Record<string, CodeComponentSlotSerialized>;
   dataDependencies: DataDependencies;

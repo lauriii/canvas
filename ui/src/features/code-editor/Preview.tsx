@@ -15,9 +15,11 @@ import {
 import {
   getDataDependenciesFromAst,
   getImportsFromAst,
+} from '@/features/code-editor/utils/ast-utils';
+import {
   getPropValuesForPreview,
   getSlotNamesForPreview,
-} from '@/features/code-editor/utils';
+} from '@/features/code-editor/utils/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   getBaseUrl,

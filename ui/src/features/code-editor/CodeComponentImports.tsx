@@ -25,7 +25,7 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
-import { formatToValidImportName } from '@/features/code-editor/utils';
+import { formatToValidImportName } from '@/features/code-editor/utils/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 
 import styles from '@/features/code-editor/Import.module.css';

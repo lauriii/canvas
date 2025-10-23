@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectValidPropOrSlotChange } from '../utils';
+import { detectValidPropOrSlotChange } from './utils';
 
 describe('detectValidSlotsOrPropChange', () => {
   it('invalid change when arrays are identical', () => {

@@ -8,7 +8,7 @@ import { downloadCommand } from './commands/download';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
 
-const version = packageJson.version;
+const version = (packageJson as { version?: string }).version;
 
 const program = new Command();
 program

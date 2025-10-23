@@ -13,7 +13,10 @@ import {
   selectStatus,
   setStatus,
 } from '@/features/code-editor/codeEditorSlice';
-import { serializeProps, serializeSlots } from '@/features/code-editor/utils';
+import {
+  serializeProps,
+  serializeSlots,
+} from '@/features/code-editor/utils/utils';
 import { useUpdateAutoSaveMutation as updateGlobalAssetLibraryMutation } from '@/services/assetLibrary';
 import { useUpdateAutoSaveMutation as updateCodeComponentMutation } from '@/services/componentAndLayout';
 

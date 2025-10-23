@@ -31,11 +31,11 @@ import {
 } from '@/features/code-editor/codeEditorSlice';
 import useCompileCss from '@/features/code-editor/hooks/useCompileCss';
 import useCompileJavaScript from '@/features/code-editor/hooks/useCompileJavaScript';
+import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
 import {
   detectValidPropOrSlotChange,
   getJsForSlotsPreview,
-} from '@/features/code-editor/utils';
-import { upsertClassNameCandidatesInComment } from '@/features/code-editor/utils/classNameCandidates';
+} from '@/features/code-editor/utils/utils';
 
 import type {
   CodeComponentProp,

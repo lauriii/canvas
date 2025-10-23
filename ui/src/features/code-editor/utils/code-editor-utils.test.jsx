@@ -5,15 +5,17 @@ import fixtureProps from '@tests/fixtures/code-component-props.json';
 import fixtureSlots from '@tests/fixtures/code-component-slots.json';
 
 import {
+  getDataDependenciesFromAst,
+  getImportsFromAst,
+} from '@/features/code-editor/utils/ast-utils';
+import {
   deserializeProps,
   deserializeSlots,
   formatToValidImportName,
-  getDataDependenciesFromAst,
-  getImportsFromAst,
   getPropValuesForPreview,
   serializeProps,
   serializeSlots,
-} from '@/features/code-editor/utils';
+} from '@/features/code-editor/utils/utils';
 
 const {
   deserialized: deserializedPropsFixture,

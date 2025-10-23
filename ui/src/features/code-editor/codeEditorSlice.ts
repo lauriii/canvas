@@ -5,7 +5,7 @@ import {
   getPropMachineName,
   serializeProps,
   serializeSlots,
-} from '@/features/code-editor/utils';
+} from '@/features/code-editor/utils/utils';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
@@ -415,7 +415,6 @@ export const selectCodeComponentSerialized = createSelector(
     compiledJs: codeComponent.compiledJs,
     compiledCss: codeComponent.compiledCss,
     importedJsComponents: codeComponent.importedJsComponents,
-    dataFetches: codeComponent.dataFetches,
     dataDependencies: codeComponent.dataDependencies,
   }),
 );

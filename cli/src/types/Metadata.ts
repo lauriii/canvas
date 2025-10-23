@@ -1,13 +1,11 @@
-export interface Metadata {
-  name: string;
-  machineName: string;
-  status: boolean;
-  required: string[];
+import type { CodeComponentSerialized } from '@drupal-canvas/ui/types/CodeComponent';
+
+export interface Metadata
+  extends Pick<
+    CodeComponentSerialized,
+    'name' | 'machineName' | 'status' | 'required' | 'slots'
+  > {
   props: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    properties: Record<string, any>;
+    properties: CodeComponentSerialized['props'];
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  slots: Record<string, any>;
-  importedJsComponents: string[];
 }

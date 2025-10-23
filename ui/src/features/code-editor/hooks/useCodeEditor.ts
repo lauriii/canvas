@@ -22,7 +22,7 @@ import {
 import useAutoSave from '@/features/code-editor/hooks/useAutoSave';
 import useGetCodeEditorData from '@/features/code-editor/hooks/useGetCodeEditorData';
 import useSourceCode from '@/features/code-editor/hooks/useSourceCode';
-import { deserializeCodeComponent } from '@/features/code-editor/utils';
+import { deserializeCodeComponent } from '@/features/code-editor/utils/utils';
 
 import type {
   AssetLibrary,

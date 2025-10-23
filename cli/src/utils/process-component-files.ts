@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
 
-import type { Component } from '../types/Component';
+import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 
 /**
@@ -122,6 +122,7 @@ export function createComponentPayload(params: {
   sourceCodeCss: string;
   compiledCss: string;
   importedJsComponents: string[];
+  dataDependencies: DataDependencies;
 }): Component {
   const {
     metadata,
@@ -131,6 +132,8 @@ export function createComponentPayload(params: {
     compiledJs,
     sourceCodeCss,
     compiledCss,
+    importedJsComponents,
+    dataDependencies,
   } = params;
 
   // Ensure props is correctly structured
@@ -153,7 +156,7 @@ export function createComponentPayload(params: {
     compiledJs: compiledJs,
     sourceCodeCss: sourceCodeCss,
     compiledCss: compiledCss,
-    importedJsComponents: metadata.importedJsComponents || [],
-    dataDependencies: metadata.dataDependencies || [],
+    importedJsComponents: importedJsComponents || [],
+    dataDependencies: dataDependencies || {},
   };
 }

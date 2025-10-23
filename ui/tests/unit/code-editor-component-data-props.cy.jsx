@@ -10,7 +10,7 @@ import {
 } from '@/features/code-editor/codeEditorSlice';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
 import { parseExampleSrc as parseImageExampleSrc } from '@/features/code-editor/component-data/forms/FormPropTypeImage';
-import { getPropMachineName } from '@/features/code-editor/utils';
+import { getPropMachineName } from '@/features/code-editor/utils/utils';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';

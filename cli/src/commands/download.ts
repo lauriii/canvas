@@ -191,8 +191,6 @@ export function downloadCommand(program: Command): void {
                 properties: component.props || {},
               },
               slots: component.slots || {},
-              importedJsComponents: component.importedJsComponents || [],
-              dataDependencies: component.dataDependencies || [],
             };
 
             await fs.writeFile(

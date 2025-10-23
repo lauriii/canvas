@@ -590,6 +590,7 @@ CLI Test:
       - 100
   script:
     - npm ci
+    - npm run type-check --workspace=cli
     - npm run test --workspace=cli
     - npm run build --workspace=cli
     - npm version 0.0.1 --workspace=cli
