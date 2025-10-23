@@ -18,8 +18,10 @@ use Drupal\canvas\EntityHandlers\StagedConfigUpdateStorage;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 
+#[Group('canvas')]
 #[CoversClass(StagedConfigUpdate::class)]
 #[CoversClass(StagedConfigUpdateStorage::class)]
 final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModifierInterface {
