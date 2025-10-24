@@ -222,6 +222,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.canvas_test_sdc.shoe_tab_group',
       'sdc.canvas_test_sdc.shoe_tab_panel',
       'sdc.canvas_test_sdc.sparkline',
+      'sdc.canvas_test_sdc.tags',
       'sdc.canvas_test_sdc.two_column',
       'sdc.canvas_test_sdc.video',
     ], $auto_created_components);
@@ -617,6 +618,21 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--sparkline',
             'core/components.canvas_test_sdc--sparkline',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.tags' => [
+        'html' => '  <div class="tag-list">
+          <span class="tag">foo</span>
+          <span class="tag">bar</span>
+          <span class="tag">baz</span>
+      </div>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--tags',
+            'core/components.canvas_test_sdc--tags',
           ],
         ],
       ],
@@ -2126,6 +2142,24 @@ activation="auto">
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.tags' => [
+        'prop_field_definitions' => [
+          'tags' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => ['value' => 'foo'],
+              1 => ['value' => 'bar'],
+              2 => ['value' => 'baz'],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.two_column' => [
         'prop_field_definitions' => [
           'width' => [
@@ -2416,6 +2450,12 @@ activation="auto">
         ],
       ],
       'sdc.canvas_test_sdc.sparkline' => [
+        'module' => [
+          'core',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.tags' => [
         'module' => [
           'core',
           'canvas_test_sdc',
@@ -4287,6 +4327,41 @@ activation="auto">
         ],
         'transforms' => [],
       ],
+      'sdc.canvas_test_sdc.tags' => [
+        'expected_output_selectors' => [
+          'div.tag-list > span.tag:nth-child(3)',
+        ],
+        'source' => 'Module component',
+        'metadata' => [
+          'slots' => [],
+        ],
+        'propSources' => [
+          'tags' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+              ],
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'sourceTypeSettings' => [
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'foo'],
+                1 => ['value' => 'bar'],
+                2 => ['value' => 'baz'],
+              ],
+              'resolved' => ['foo', 'bar', 'baz'],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+
       'sdc.canvas_test_sdc.two_column' => [
         'expected_output_selectors' => [
           'div[data-component-id="canvas_test_sdc:two_column"]',

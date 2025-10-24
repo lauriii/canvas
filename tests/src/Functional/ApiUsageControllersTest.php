@@ -108,27 +108,11 @@ class ApiUsageControllersTest extends HttpApiTestBase {
    */
   public function testComponentListUsage(): void {
     $components = Component::loadMultiple();
-    $to_create = ApiUsageControllers::MAX_PER_PAGE - count($components);
-    assert($to_create >= 0);
-    // Create some extra components so we have 50 exactly to make sure we don't get a `next` link.
-    if ($to_create > 0) {
-      foreach (range(1, $to_create) as $index) {
-        JavaScriptComponent::create([
-          'machineName' => 'test_component_' . $index,
-          'name' => 'Test component ' . $index,
-          'status' => TRUE,
-          'props' => [],
-          'slots' => [],
-          'js' => ['original' => '', 'compiled' => ''],
-          'css' => [
-            'original' => '',
-            // Whitespace only CSS should be ignored.
-            'compiled' => "\n  \n",
-          ],
-          'dataDependencies' => [],
-        ])->save();
-      }
-    }
+    $to_delete = count($components) - ApiUsageControllers::MAX_PER_PAGE;
+    assert($to_delete > 0);
+    // Delete some Components, to end up at 50 exactly for testing purposes (to
+    // make sure no `next` link is generated).
+    array_map(fn (Component $c) => $c->delete(), array_slice($components, ApiUsageControllers::MAX_PER_PAGE));
 
     $listing_url = Url::fromRoute('canvas.api.usage.component.list')->setOption('absolute', FALSE);
     $body = $this->assertExpectedResponse('GET', $listing_url, [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
@@ -176,7 +160,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     $this->assertNull($body['links']['next']);
     $this->assertCount(1, $body['data']);
     $this->assertSame([
-      'sdc.canvas_test_sdc.video' => FALSE,
+      array_keys($components)[ApiUsageControllers::MAX_PER_PAGE - 1] => FALSE,
     ], $body['data']);
   }
 

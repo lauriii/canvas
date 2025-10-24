@@ -132,6 +132,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
+      new PropShape(['type' => 'array', 'items' => ['type' => 'string']]),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
@@ -631,6 +632,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'min' => -100,
           'max' => 100,
         ],
+      ),
+      'type=array&items[type]=string' => new StorablePropShape(
+        shape: new PropShape(['type' => 'array', 'items' => ['type' => 'string']]),
+        fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        fieldWidget: 'string_textfield',
       ),
       'type=string&enum[0]=7&enum[1]=3.14' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'enum' => ['7', '3.14']]),

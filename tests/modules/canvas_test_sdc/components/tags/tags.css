@@ -1,0 +1,8 @@
+.tag-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.tag {
+  display: inline-block;
+  padding: .25rem .6rem;
+  border-radius: .25rem;
+  background: #e7e7e7;
+  font-size: .875rem;
+}

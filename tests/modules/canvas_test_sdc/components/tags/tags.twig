@@ -1,0 +1,7 @@
+{% if tags is not empty %}
+  <div class="tag-list">
+    {% for tag in tags %}
+      <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </div>
+{% endif %}

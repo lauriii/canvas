@@ -90,6 +90,21 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'required' => FALSE,
     ])->save();
 
+    // Optional, multiple-cardinality tags field.
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_tags',
+      'type' => 'entity_reference',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_tags',
+      'label' => 'Tags',
+      'bundle' => 'article',
+      'required' => FALSE,
+    ])->save();
+
     $account = $this->createUser([
       ContentTemplate::ADMIN_PERMISSION,
       'edit any article content',
@@ -225,6 +240,63 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'expected' => [
         'image' => [
           // @todo This SHOULD find the `user_picture` field, fix in https://www.drupal.org/project/canvas/issues/3541361
+        ],
+      ],
+    ];
+
+    yield 'an OPTIONAL array of strings example (sdc.canvas_test_sdc.tags, entity:node:article)' => [
+      'component_config_entity_id' => 'sdc.canvas_test_sdc.tags',
+      'content_entity_type_id' => 'node',
+      'bundle' => 'article',
+      'expected' => [
+        'tags' => [
+          [
+            'items' => [
+              [
+                'id' => '1138e38cc9e6b7dd',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_screenshots␞␟title',
+                ],
+                'label' => 'Title',
+              ],
+              [
+                'id' => '6f972dac9b3e8954',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝field_screenshots␞␟alt',
+                ],
+                'label' => 'Alternative text',
+              ],
+            ],
+            'label' => 'field_screenshots',
+          ],
+          [
+            'items' => [
+              [
+                'items' => [
+                  [
+                    'id' => '28f59b9e85cecf53',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:node␝revision_log␞␟value',
+                    ],
+                    'label' => 'Revision log message',
+                  ],
+                  [
+                    'id' => '563f6a4e0001da4c',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:node␝title␞␟value',
+                    ],
+                    'label' => 'Title',
+                  ],
+                ],
+                'label' => 'Content',
+              ],
+            ],
+            'label' => 'Tags',
+          ],
         ],
       ],
     ];

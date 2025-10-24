@@ -17,6 +17,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
 /**
  * @coversClass \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
@@ -25,6 +26,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 class FieldForComponentSuggesterTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
+  use EntityReferenceFieldCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -57,6 +59,7 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
     // Create sample configurable fields on the `node` entity type.
     'node',
     'field',
+    'taxonomy',
     // Modules that field type-providing modules depend on.
     'filter',
     'ckeditor5',
@@ -156,7 +159,8 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
         'link_type' => LinkItemInterface::LINK_GENERIC,
       ],
     ])->save();
-
+    $this->installEntitySchema('taxonomy_term');
+    $this->createEntityReferenceField('node', 'foo', 'field_tags', 'Tags', 'taxonomy_term', cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
   }
 
   /**
@@ -246,6 +250,23 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             'Silly image 🤡 → srcset template' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
+          ],
+          'adapters' => [],
+        ],
+      ],
+    ];
+
+    yield 'the tags component' => [
+      'canvas_test_sdc:tags',
+      'entity:node:foo',
+      [
+        '⿲canvas_test_sdc:tags␟tags' => [
+          'required' => FALSE,
+          'instances' => [
+            'field_screenshots → Alternative text' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
+            'field_screenshots → Title' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟title',
+            'Tags → Taxonomy term → Name' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            'Tags → Taxonomy term → Revision log message' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
           ],
           'adapters' => [],
         ],
@@ -634,6 +655,9 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
             "field_screenshots → File size" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
             "field_screenshots → Height" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
             "field_screenshots → Width" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            'Tags → Taxonomy term → Changed' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝changed␞␟value',
+            'Tags → Taxonomy term → Revision create time' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_created␞␟value',
+            'Tags → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
           ],
           'adapters' => [],
         ],

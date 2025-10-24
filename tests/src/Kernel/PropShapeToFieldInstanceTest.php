@@ -784,6 +784,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'optional, type=array&items[type]=string' => [
+          'SDC props' => [
+            '⿲canvas_test_sdc:tags␟tags',
+          ],
+          'static prop source' => 'ℹ︎string␟value',
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'optional, type=boolean' => [
           'SDC props' => [
             '⿲canvas_test_sdc:shoe_badge␟pill',
