@@ -128,4 +128,18 @@ final class PageHooks {
     }
   }
 
+  /**
+   * Implements hook_gin_ignore_sticky_form_actions().
+   *
+   * Make sure the media library works in the Canvas sidebar with Gin.
+   *
+   * @todo This should be fixed in Gin at https://www.drupal.org/i/3554265.
+   * @todo If not, https://www.drupal.org/i/3498525 should generalize this to
+   *   all eligible content entity types.
+   */
+  #[Hook('gin_ignore_sticky_form_actions')]
+  public function ignoreGinStickyForm(): array {
+    return ['canvas_page_form'];
+  }
+
 }
