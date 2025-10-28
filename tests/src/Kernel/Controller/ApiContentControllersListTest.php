@@ -240,6 +240,7 @@ class ApiContentControllersListTest extends KernelTestBase {
       'canvas_page_list',
       // Access check on home-page adds this.
       'config:system.site',
+      'test_create_access_cache_tag',
       AutoSaveManager::CACHE_TAG,
     ];
     $actual_cache_tags = $cache_metadata->getCacheTags();

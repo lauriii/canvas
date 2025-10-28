@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_test_page\Hook;
 
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -60,6 +62,11 @@ class CanvasTestPageHooks {
         'diaclone' => [],
       ],
     ];
+  }
+
+  #[Hook('canvas_page_create_access')]
+  public function createAccess(): AccessResultInterface {
+    return AccessResult::neutral()->addCacheTags(['test_create_access_cache_tag']);
   }
 
 }

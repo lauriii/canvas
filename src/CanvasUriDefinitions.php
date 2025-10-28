@@ -11,6 +11,7 @@ namespace Drupal\canvas;
  */
 class CanvasUriDefinitions {
 
+  const string LINK_REL_CREATE = 'create';
   const string LINK_REL_EDIT = 'edit-form';
   const string LINK_REL_DELETE = 'delete-form';
   const string LINK_REL_DUPLICATE = 'https://drupal.org/project/canvas#link-rel-duplicate';

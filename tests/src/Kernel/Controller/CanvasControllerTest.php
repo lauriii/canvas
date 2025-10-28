@@ -39,7 +39,9 @@ final class CanvasControllerTest extends KernelTestBase {
    */
   protected static $modules = [
     'canvas',
+    'canvas_test_page',
     'entity_test',
+    'canvas_entity_test',
     ...self::PAGE_TEST_MODULES,
     'block',
     'node',
@@ -125,6 +127,10 @@ final class CanvasControllerTest extends KernelTestBase {
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
       'config:system.site',
+      'test_create_access_cache_tag',
+      'entity_field_info',
+      'entity_bundles',
+      'entity_types',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -185,6 +191,10 @@ final class CanvasControllerTest extends KernelTestBase {
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
       'config:system.site',
+      'test_create_access_cache_tag',
+      'entity_field_info',
+      'entity_bundles',
+      'entity_types',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -306,6 +316,10 @@ final class CanvasControllerTest extends KernelTestBase {
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
       'config:system.site',
+      'test_create_access_cache_tag',
+      'entity_field_info',
+      'entity_bundles',
+      'entity_types',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -385,6 +399,10 @@ final class CanvasControllerTest extends KernelTestBase {
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertSame([
       'config:system.site',
+      'test_create_access_cache_tag',
+      'entity_field_info',
+      'entity_bundles',
+      'entity_types',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
