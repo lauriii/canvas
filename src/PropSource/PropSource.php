@@ -33,6 +33,13 @@ final class PropSource {
       return DefaultRelativeUrlPropSource::parse($prop_source);
     }
 
+    // The HostEntityUrlPropSource allows generating a URL to the host entity.
+    // TRICKY: currently, only component trees in ContentTemplates are allowed
+    // to contain such prop sources, but the host entity is NOT a
+    // ContentTemplate config entity, but a fieldable entity of the entity type
+    // and bundle that the ContentTemplate targets.
+    // @todo Possibly support different link templates and options in
+    //   https://www.drupal.org/i/3551455.
     if ($source_type_prefix === HostEntityUrlPropSource::getSourceTypePrefix()) {
       return HostEntityUrlPropSource::parse($prop_source);
     }

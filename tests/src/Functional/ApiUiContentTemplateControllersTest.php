@@ -434,6 +434,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         ],
         'link' => [
           [
+            'id' => '7ec753fd20670823',
+            'source' => [
+              'sourceType' => 'host-entity-url',
+            ],
+            'label' => 'Canonical absolute URL',
+          ],
+          [
             'id' => '4999dcb72722c69a',
             'source' => [
               'sourceType' => 'dynamic',

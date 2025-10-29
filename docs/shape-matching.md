@@ -1,5 +1,5 @@
 
-# Drupal Canvas's Shape Matching into Field Types
+# Drupal Canvas's Shape Matching
 
 In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
@@ -50,6 +50,7 @@ to one of us! 😊 🙏
 - `prop source`: a source for retrieving a prop value
   - `static prop source`: a `prop source` powered by a `conjured field` (i.e. `unstructured data`)
   - `dynamic prop source`: a `prop source` powered by a `base field` or `bundle field` (i.e. `structured data`)
+  - `host entity URL prop source`: a `prop source` that generates various URLs for the `content entity` that contains it (e.g., the entity's canonical URL)
   - TBD: `remote prop source`: a `prop source` powered by a remote source ("external data"), i.e. data stored outside Drupal
 - `structured data`: the data model defined by a Site Builder in a `content type`, and whose smallest units are `field props` — queryable by Views
 - `unstructured data`: the ad-hoc data used to populate `component input`s that are not populated using `unstructured data` — NOT queryable by Views, this should be minimized/discouraged
@@ -82,6 +83,8 @@ See `\Drupal\canvas\PropShape\PropShape`.
 Each `component input` must have a schema that defines the primitive type (string, number,  integer, object, array or
 boolean), with typically additional restrictions (e.g. a  string containing a URI vs a date,  or an integer in a certain
 range). That primitive type plus additional restrictions identifies a unique `prop shape`.
+
+Some `prop source`s only support particular `prop shape`s, others may be able to support virtually any `prop shape`.
 
 #### 3.1.2 Finding fitting `field type`: `conjured field`s and `field instance`s
 
@@ -215,6 +218,20 @@ Examples:
 
 For more examples, see `\Drupal\Tests\canvas\Unit\PropExpressionTest`.
 
+
+#### 3.1.4 Non-structured data `prop source`: `host entity URL prop source`
+
+There may be additional `prop source`s that may be offered as suggestions to Site Builders and/or Content Authors to
+populate `component input`s.
+
+For the various URI `prop shape`s (see also [3.2.2](#3.2.2)!), there is the `host entity URL prop source`, which is able
+to generate various URIs that point to the host entity (i.e. the containing `content entity`).
+
+See:
+- `\Drupal\canvas\PropSource\HostEntityUrlPropSource`
+- `\Drupal\canvas\ShapeMatcher\FieldForComponentSuggester::matchHostEntityUrlPropSources()`
+
+
 ### 3.2 Additional functionality overlaid on top of the SDC JSON Schema
 
 Drupal Canvas extends SDC JSON Schema to support additional prop shapes to complete the content editing experience.
@@ -230,6 +247,7 @@ Two additional metadata properties are used to indicate HTML content — one is 
 other is a [custom annotation](https://json-schema.org/understanding-json-schema/reference/non_json_data#contentmediatype)
 (which can be recognized by the `x-` prefix).
 
+Example:
 ```yaml
 heading:
   type: string
@@ -237,6 +255,7 @@ heading:
   x-formatting-context: inline
 ```
 
+Explanation:
 - `contentMediaType: text/html` - Indicates this is a prop expecting to receive HTML content
 - `x-formatting-context: inline|block` - Optionally specifies the formatting context (`block` is the default):
   - `inline`: Only inline elements allowed (`<strong>`, `<em>`, `<u>`, `<a>`)
@@ -271,3 +290,28 @@ props:
     # This is the default, so it can be omitted.
     x-formatting-context: block
 ```
+
+#### 3.2.2 URIs pointing to particular types of targets and allowed URI schemes
+
+Two additional metadata properties are used to indicate:
+1. types of targets using `contentMediaType` (repurposing an existing part of the JSON Schema spec per [a JSON Schema
+   spec issue](https://github.com/json-schema-org/json-schema-spec/issues/1557)
+2. allowed URI schemes using `x-allowed-schemes` (which is another [custom annotation](https://json-schema.org/understanding-json-schema/reference/non_json_data#contentmediatype))
+
+Example:
+```yaml
+heading:
+  type: string
+  format: uri
+  contentMediaType: image/*
+  x-allowed-schemes: [http, https]
+```
+
+Explanation:
+- `contentMediaType: image/*` - Optional; indicates this is a prop expecting to receive a URI pointing to an image
+  resource (using a wildcard MIME type). See
+  [JSON Schema spec issue](https://github.com/json-schema-org/json-schema-spec/issues/1557) and Canvas'
+  `UriTargetMediaTypeConstraint`.
+- `x-allowed-schemes` - Optional; indicates which URI schemes are allowed for URIs passed into this shape. Specifying
+  `[http, https]` conveys the URI must be resolvable by web browsers. (As opposed to something like Drupal's `public` or
+  `private`, or other proprietary URI schemes.)

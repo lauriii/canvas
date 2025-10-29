@@ -123,6 +123,7 @@
 # Issues: https://www.drupal.org/project/issues/canvas?component=Shape+matching
 # @see https://en.wikipedia.org/wiki/Schema_matching
 [Shape matching] @wimleers @tedbow
+/docs/shape-matching.md
 /src/Hook/ShapeMatchingHooks.php
 /src/JsonSchemaInterpreter/
 /src/PropShape/

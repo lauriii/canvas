@@ -769,11 +769,10 @@ canvas.content_template.*.*.*:
           inputs:
             absence:
               - adapter
-            # Allows `dynamic` and `host-entity-url`!
+            # The only Canvas component tree that allows `dynamic` and `host-entity-url`!
+            # @see \Drupal\canvas\PropSource\DynamicPropSource
+            # @see \Drupal\canvas\PropSource\HostEntityUrlPropSource
             presence: ~
-            # @todo For now we removed the `dynamic` requirement to allow
-            #   publishing before we add UI for mapping dynamic props. This will
-            #   be re-added in https://drupal.org/i/3541057.
           tree:
             absence:
               # Components implementing either of these 2 interfaces are only allowed to live at

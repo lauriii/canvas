@@ -78,7 +78,6 @@ final class ApiLayoutController {
    * Returns JSON for the entity layout and fields that the user can edit.
    */
   public function get((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    // @todo Start using $preview_entity in https://www.drupal.org/i/3541057
     assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
     $regions = PageRegion::loadForActiveTheme();
 

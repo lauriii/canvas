@@ -93,6 +93,7 @@ structurizr
 subcontent
 subroute
 subtrigger
+supersets
 superstrongpassword
 SVAY
 tseslint

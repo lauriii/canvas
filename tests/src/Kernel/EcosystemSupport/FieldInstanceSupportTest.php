@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
@@ -15,7 +16,6 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
@@ -46,7 +46,7 @@ use Drupal\field\Entity\FieldStorageConfig;
  * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
  * @covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  * @see \Drupal\Tests\canvas\Kernel\PropShapeToFieldInstanceTest
- * @see docs/shape-matching-into-field-types.md#3.1.2.a
+ * @see docs/shape-matching.md#3.1.2.a
  * @group canvas
  */
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
@@ -307,8 +307,9 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $compatible_sdc_prop_shapes_per_field = [];
     $compatible_sdc_prop_shapes_per_field_prop = [];
     foreach ($suggestions as $cpe => ['instances' => $suggested_instances]) {
-      foreach ($suggested_instances as $expr) {
-        assert($expr instanceof StructuredDataPropExpressionInterface);
+      foreach ($suggested_instances as $dynamic_prop_source) {
+        \assert($dynamic_prop_source instanceof DynamicPropSource);
+        $expr = $dynamic_prop_source->expression;
         $field_name = match (get_class($expr)) {
           FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
           ReferenceFieldPropExpression::class => $expr->referencer->fieldName,

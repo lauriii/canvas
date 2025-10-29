@@ -38,6 +38,10 @@ final class PropShape {
     return new PropShape(self::normalizePropSchema($raw_sdc_prop_schema));
   }
 
+  public function getType(): JsonSchemaType {
+    return JsonSchemaType::from($this->resolvedSchema['type']);
+  }
+
   /**
    * @param JsonSchema $schema
    * @return JsonSchema

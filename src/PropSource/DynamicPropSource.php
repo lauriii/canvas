@@ -17,10 +17,16 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 /**
  * Describes structured data to map to 1 explicit input of a component instance.
  *
+ * Conceptual sibling of HostEntityUrlPropSource, but:
+ * - HostEntityUrlPropSource generates a URL to the host entity
+ * - this retrieves information from structured data in the host entity (aka a
+ *   field on the host entity)
+ *
+ * @see \Drupal\canvas\PropSource\HostEntityUrlPropSource
  * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
- * @internal
  *
  * @phpstan-import-type PropSourceArray from PropSourceBase
+ * @internal
  */
 final class DynamicPropSource extends PropSourceBase {
 

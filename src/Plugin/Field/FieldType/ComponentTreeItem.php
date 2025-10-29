@@ -56,9 +56,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
   constraints: [
     'ValidComponentTreeItem' => [],
     'ComponentTreeMeetRequirements' => [
-      // Only StaticPropSources may be used, because using DynamicPropSources is
-      // a decision that should be made at the Content Type Template level by a
-      // Site Builder, not by each Content Creator.
+      // Only StaticPropSources may be used, because using DynamicPropSources or
+      // HostEntityUrlPropSources a decision that should be made at the Content
+      // Template level by a Site Builder, not by each Content Creator.
       // @see https://www.drupal.org/project/canvas/issues/3455629
       'inputs' => [
         'absence' => [

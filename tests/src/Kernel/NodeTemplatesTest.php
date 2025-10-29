@@ -91,12 +91,17 @@ final class NodeTemplatesTest extends KernelTestBase {
       'content_entity_type_bundle' => 'article',
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
-        // A static marker so we can easily tell if we're rendering with Canvas.
+        // A static marker so we can easily tell if we're rendering with Canvas,
+        // but simultaneously with a dynamically generated URL.
         [
           'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_sdc.my-cta',
+          'component_version' => '89881c04a0fde367',
           'inputs' => [
-            'heading' => 'Canvas is large and in charge!',
+            'text' => 'Canvas is large and in charge!',
+            'href' => [
+              'sourceType' => 'host-entity-url',
+            ],
           ],
         ],
         // The node body, which needs to be using a dynamic prop source
@@ -134,8 +139,7 @@ HTML;
     $crawler = $this->crawlerForRenderArray($output);
     // The content type has not been opted into Canvas, so it should not be using
     // Canvas for rendering.
-    $html = $crawler->html();
-    self::assertStringNotContainsString('Canvas is large and in charge!', $html);
+    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
 
@@ -144,7 +148,7 @@ HTML;
     $template = ContentTemplate::load('node.article.full');
     assert($template instanceof ContentTemplate);
     self::assertFalse($template->status());
-    self::assertStringNotContainsString('Canvas is large and in charge!', $html);
+    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
 
@@ -167,6 +171,7 @@ HTML;
 
     self::assertTrue($template->status());
     self::assertStringContainsString('Canvas is large and in charge!', $html);
+    self::assertCount(1, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
 
@@ -176,10 +181,9 @@ HTML;
 
     $output = $viewBuilder->view($node, 'teaser');
     $crawler = $this->crawlerForRenderArray($output);
-    $html = $crawler->html();
     // Confirm that the template is NOT used when viewing the node as a teaser,
     // even though the content type is opted into Canvas.
-    self::assertStringNotContainsString('Canvas is large and in charge!', $html);
+    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
     $this->assertTrue($logger->hasRecordThatContains("hook_entity_display_build_alter for node {$node->id()} in teaser view mode"));

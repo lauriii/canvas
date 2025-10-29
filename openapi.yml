@@ -1921,6 +1921,11 @@ paths:
                   value:
                     text:
                       -
+                        label: "Canonical absolute URL"
+                        id: 7ec753fd20670823
+                        source:
+                          sourceType: "host-entity-url"
+                      -
                         label: "This Article's Title"
                         id: 256dc2b8dcec7355
                         source:
@@ -2727,7 +2732,7 @@ components:
           description: Opaque identifier
         source:
           type: object
-          description: The object representation of the DynamicPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
+          description: The object representation of a DynamicPropSource or HostEntityUrlPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
         items:
           $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
       additionalProperties: false

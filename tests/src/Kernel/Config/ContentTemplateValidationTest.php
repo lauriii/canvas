@@ -142,6 +142,22 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
             ],
           ],
         ],
+        // An SDC populated with the host entity's canonical URL.
+        [
+          'uuid' => '15616c29-72c6-417a-a7d9-aff329467cc4',
+          'component_id' => 'sdc.canvas_test_sdc.my-cta',
+          'component_version' => '89881c04a0fde367',
+          'inputs' => [
+            'text' => [
+              'sourceType' => 'static:field_item:string',
+              'value' => 'Behold this node in all its glory',
+              'expression' => 'ℹ︎string␟value',
+            ],
+            'href' => [
+              'sourceType' => 'host-entity-url',
+            ],
+          ],
+        ],
         // A block component.
         [
           'uuid' => 'b7f36452-ecd9-4c7c-a73c-492b81538512',

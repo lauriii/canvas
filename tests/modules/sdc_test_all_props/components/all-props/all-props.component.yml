@@ -286,7 +286,7 @@ props:
 
     #
     # HTML props using `contentMediaType: text/html`
-    # @see docs/shape-matching-into-field-types.md#3.2.1
+    # @see docs/shape-matching.md#3.2.1
     test_string_html_inline:
       title: 'String with HTML formatting (inline)'
       type: string
