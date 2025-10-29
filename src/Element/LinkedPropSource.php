@@ -2,7 +2,6 @@
 
 namespace Drupal\canvas\Element;
 
-use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\Core\Render\Attribute\RenderElement;
 use Drupal\Core\Render\Element\RenderElementBase;
@@ -23,7 +22,6 @@ class LinkedPropSource extends RenderElementBase {
    * - #sdc_prop_label: The label of the prop in the component.
    * - #linked_prop_source: The dynamic prop source object.
    * - #field_link_suggestions: An array of field name suggestions for linking.
-   * - #component: The component with props being linked.
    * - #is_required: Whether the prop is required.
    *
    * @see \Drupal\canvas\PropSource\DynamicPropSource
@@ -38,7 +36,6 @@ class LinkedPropSource extends RenderElementBase {
       '#sdc_prop_name' => NULL,
       '#linked_prop_source' => NULL,
       '#field_link_suggestions' => [],
-      '#component' => NULL,
       '#is_required' => FALSE,
       '#attributes' => [
         'class' => ['canvas-linked-prop-wrapper'],
@@ -58,8 +55,6 @@ class LinkedPropSource extends RenderElementBase {
     assert($linked_prop_source instanceof DynamicPropSource);
     $field_link_suggestions = $element['#field_link_suggestions'] ?? [];
     assert(is_array($field_link_suggestions));
-    $component = $element['#component'];
-    assert($component instanceof ComponentInterface);
     $is_required = $element['#is_required'] ?? FALSE;
 
     $element['label_wrap'] = [

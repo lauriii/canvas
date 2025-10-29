@@ -125,7 +125,7 @@ final class ComponentInstanceForm extends FormBase {
     $form['#method'] = 'dialog';
 
     $parents = ['canvas_component_props', $component_instance_uuid];
-    $sub_form = ['#parents' => $parents, '#component' => $component, '#tree' => TRUE];
+    $sub_form = ['#parents' => $parents, '#tree' => TRUE];
     if (!$component->getComponentSource()->isBroken()) {
       $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
       $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
@@ -143,7 +143,6 @@ final class ComponentInstanceForm extends FormBase {
       $instance_form = $fallback_source->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     }
 
-    $form['#component'] = $component;
     $form['#attributes']['data-form-id'] = self::FORM_ID;
 
     $form['canvas_component_props'][$component_instance_uuid] = $instance_form;

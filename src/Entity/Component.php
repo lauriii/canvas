@@ -131,6 +131,15 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   /**
    * {@inheritdoc}
    */
+  public function __sleep(): array {
+    // @see \Drupal\Core\Database\Connection::__sleep()
+    // @see \Drupal\Core\Site\Settings::__sleep()
+    throw new \LogicException('The Canvas Component config entity type should never be serialized; it should always be loaded when needed.');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function id(): string {
     return $this->id;
   }
