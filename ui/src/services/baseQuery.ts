@@ -22,7 +22,9 @@ export const baseQuery: BaseQueryFn<
  * @param url - The URL string to parse.
  * @returns An object with entityType and entityId, or undefined values if not found.
  */
-const extractEntityParams = (url: string) => {
+export const extractEntityParams = (url: string) => {
+  // Remove query parameters and hash fragments
+  url = url.split('?')[0].split('#')[0];
   // Match /canvas/(editor||preview)/:entityType/:entityId/
   const matchPageEditor = url.match(
     /\/canvas\/(editor|preview)\/([^/]+)\/([^/]+)\/?/,
@@ -49,7 +51,7 @@ const extractEntityParams = (url: string) => {
  * Replaces {entity_type} and {entity_id} in a URL string with extracted values.
  * Throws an error if a required value is missing.
  */
-const replaceEntityParamsInUrl = (
+export const replaceEntityParamsInUrl = (
   url: string,
   entityType?: string,
   entityId?: string,
