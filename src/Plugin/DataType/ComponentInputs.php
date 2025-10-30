@@ -112,15 +112,14 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * Retrieves the list of unique types of prop sources used.
    *
    * @return string[]
-   *   A list of all unique PropSourceBase::getSourceTypePrefix() return values
-   *   stored in this list of component input values, for this component tree.
+   *   A list of all unique prop source types in this list of component input
+   *   values, for this component tree.
    */
-  public function getPropSourceTypePrefixList(): array {
-    $source_type_prefixes = [];
-    foreach ($this->getPropSources() as $propSource) {
-      $source_type_prefixes[] = explode(':', $propSource->getSourceType())[0];
-    }
-    return array_unique($source_type_prefixes);
+  public function getPropSourceTypes(): array {
+    return array_unique(array_map(
+      PropSource::getTypePrefix(...),
+      iterator_to_array($this->getPropSources()),
+    ));
   }
 
   /**

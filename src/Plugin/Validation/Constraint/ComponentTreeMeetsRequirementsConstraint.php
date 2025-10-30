@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
-use Drupal\canvas\PropSource\AdaptedPropSource;
-use Drupal\canvas\PropSource\DynamicPropSource;
-use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
-use Drupal\canvas\PropSource\StaticPropSource;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
@@ -49,11 +45,11 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
    *
    * Accepts for both `absence` and `presence` either NULL (no requirement) or a
    * list of:
-   * - a prop source prefix
+   * - a prop source type (i.e., the value of a PropSource enum case)
    *
    * @var array{'absence': ?array<PropSourceTypePrefix>, 'presence': ?array<PropSourceTypePrefix>}
    *
-   * @see \Drupal\canvas\PropSource\PropSourceBase::getSourceTypePrefix()
+   * @see \Drupal\canvas\PropSource\PropSource
    */
   public array $inputs;
 
@@ -91,13 +87,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
 
     // Verify sensible values are present for $this->inputs: an array of source
     // type prefixes, or NULL if there is no requirement.
-    $supported_prop_source_types = [
-      StaticPropSource::getSourceTypePrefix(),
-      DynamicPropSource::getSourceTypePrefix(),
-      AdaptedPropSource::getSourceTypePrefix(),
-      DefaultRelativeUrlPropSource::getSourceTypePrefix(),
-      HostEntityUrlPropSource::getSourceTypePrefix(),
-    ];
+    $supported_prop_source_types = array_column(PropSource::cases(), 'value');
     foreach (['absence', 'presence'] as $nested_option) {
       if ($this->inputs[$nested_option] === NULL) {
         continue;

@@ -36,20 +36,6 @@ final class DynamicPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
-   */
-  public static function getSourceTypePrefix(): string {
-    return 'dynamic';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSourceType(): string {
-    return self::getSourceTypePrefix();
-  }
-
-  /**
-   * {@inheritdoc}
    *
    * @return PropSourceArray
    */

@@ -24,14 +24,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  */
 final class HostEntityUrlPropSource extends PropSourceBase {
 
-  public static function getSourceTypePrefix(): string {
-    return 'host-entity-url';
-  }
-
-  public function getSourceType(): string {
-    return self::getSourceTypePrefix();
-  }
-
   /**
    * @return HostEntityUrlPropSourceArray
    */
@@ -45,7 +37,7 @@ final class HostEntityUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function parse(array $prop_source): static {
-    \assert($prop_source === ['sourceType' => self::getSourceTypePrefix()]);
+    \assert($prop_source === ['sourceType' => PropSource::HostEntityUrl->value]);
     return new self();
   }
 
@@ -69,7 +61,7 @@ final class HostEntityUrlPropSource extends PropSourceBase {
   public function asChoice(): string {
     // @todo Account for the two likely future parameters mentioned in
     //   ::evaluate() in https://www.drupal.org/i/3551455.
-    return self::getSourceTypePrefix() . ':absolute:canonical';
+    return PropSource::HostEntityUrl->value . ':absolute:canonical';
   }
 
   /**

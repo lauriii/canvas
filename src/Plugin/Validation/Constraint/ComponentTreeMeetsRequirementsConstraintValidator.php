@@ -81,7 +81,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       $detected_component_interfaces = [...$detected_component_interfaces, ...class_implements($fqcn)];
     }
     $detected_component_interfaces = \array_unique($detected_component_interfaces);
-    $detected_prop_source_prefixes = $component_tree_item_list->getPropSourceTypePrefixList();
+    $detected_prop_source_prefixes = $component_tree_item_list->getPropSourceTypes();
     sort($detected_prop_source_prefixes);
 
     foreach (['tree:component_ids', 'tree:component_interfaces', 'inputs:prop_sources'] as $aspect_to_check) {

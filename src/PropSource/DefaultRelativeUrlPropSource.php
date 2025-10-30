@@ -44,20 +44,6 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
   /**
    * {@inheritdoc}
-   */
-  public static function getSourceTypePrefix(): string {
-    return 'default-relative-url';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSourceType(): string {
-    return self::getSourceTypePrefix();
-  }
-
-  /**
-   * {@inheritdoc}
    *
    * @return DefaultRelativeUrlPropSourceArray
    */

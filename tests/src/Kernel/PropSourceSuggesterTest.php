@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
@@ -446,7 +447,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -460,7 +461,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -472,7 +473,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -510,7 +511,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -522,7 +523,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -538,7 +539,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [
             'Canonical absolute URL' => [
-              'sourceType' => HostEntityUrlPropSource::getSourceTypePrefix(),
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],

@@ -29,15 +29,8 @@ final class AdaptedPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public static function getSourceTypePrefix(): string {
-    return 'adapter';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getSourceType(): string {
-    return $this->getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->adapter_instance->getPluginId();
+    return parent::getSourceType() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->adapter_instance->getPluginId();
   }
 
   /**

@@ -398,7 +398,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // to in order to correctly render the component instance.
       // Also note that this will NOT run anymore for a given prop once the
       // Content Creator has specified a value in the generated field widget.
-      if ($model['source'][$prop_name]['sourceType'] === DefaultRelativeUrlPropSource::getSourceTypePrefix()) {
+      if (PropSource::tryFrom($model['source'][$prop_name]['sourceType']) === PropSource::DefaultRelativeUrl) {
         // TRICKY: use the default static prop source as-is, with its default
         // value, because:
         // - the server side can ONLY store a `StaticPropSource` if it actually
@@ -1114,7 +1114,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @see EvaluatedComponentModel type-script definition.
         // For static props undo what ::inputToClientModel() did: restore the
         // omitted `'value'` in cases where it is the same as the source value.
-        if (str_starts_with($prop_source['sourceType'] ?? '', StaticPropSource::getSourceTypePrefix()) && !\array_key_exists('value', $prop_source)) {
+        if (str_starts_with($prop_source['sourceType'] ?? '', PropSource::getTypePrefix(StaticPropSource::class)) && !\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;
         }
         $source = PropSource::parse($prop_source);

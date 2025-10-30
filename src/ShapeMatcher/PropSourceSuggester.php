@@ -10,6 +10,7 @@ use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
@@ -296,7 +297,7 @@ final class PropSourceSuggester {
       'depth' => match ($suggestion['source']['sourceType']) {
         // DynamicPropSources have hierarchy: infer depth from label; determines
         // hierarchy building order.
-        DynamicPropSource::getSourceTypePrefix() => $depth,
+        PropSource::Dynamic->value => $depth,
         // All other PropSources: keep outside the hierarchy and list first by
         // generating an artificially impossibly low depth.
         default => -1,

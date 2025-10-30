@@ -63,13 +63,6 @@ final class StaticPropSource extends PropSourceBase {
   ) {}
 
   /**
-   * {@inheritdoc}
-   */
-  public static function getSourceTypePrefix(): string {
-    return 'static';
-  }
-
-  /**
    * Two StaticPropSources have the same shape if they have identical storage.
    *
    * @return bool
@@ -399,7 +392,7 @@ final class StaticPropSource extends PropSourceBase {
   }
 
   public function getSourceType(): string {
-    return self::getSourceTypePrefix() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldItemList->getItemDefinition()->getDataType();
+    return parent::getSourceType() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldItemList->getItemDefinition()->getDataType();
   }
 
   public function getValue(): mixed {

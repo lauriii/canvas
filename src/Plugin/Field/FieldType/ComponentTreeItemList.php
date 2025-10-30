@@ -496,16 +496,16 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * Retrieves the list of unique types of prop sources used.
    *
    * @return string[]
-   *   A list of all unique PropSourceBase::getSourceTypePrefix() return values
-   *   stored in this list of component input values, for this component tree.
+   *   A list of all unique prop source types in this list of component input
+   *   values, for this component tree.
    */
-  public function getPropSourceTypePrefixList(): array {
+  public function getPropSourceTypes(): array {
     $source_type_prefixes = [];
     foreach ($this as $item) {
       \assert($item instanceof ComponentTreeItem);
       /** @var \Drupal\canvas\Plugin\DataType\ComponentInputs $inputs */
       $inputs = $item->get('inputs');
-      $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypePrefixList());
+      $source_type_prefixes = \array_merge($source_type_prefixes, $inputs->getPropSourceTypes());
     }
     return \array_unique($source_type_prefixes);
   }

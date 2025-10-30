@@ -27,9 +27,9 @@ abstract class PropSourceBase implements \Stringable, ContentAwareDependentInter
 
   abstract public function asChoice(): string;
 
-  abstract public static function getSourceTypePrefix(): string;
-
-  abstract public function getSourceType(): string;
+  public function getSourceType(): string {
+    return PropSource::getTypePrefix($this);
+  }
 
   /**
    * Gets the array representation.
