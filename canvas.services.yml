@@ -12,7 +12,7 @@ services:
       $constraintManager: '@validation.constraint'
       $cache: '@cache.static'
       $extensionMimeTypeGuesser: '@file.mime_type.guesser.extension'
-  Drupal\canvas\ShapeMatcher\FieldForComponentSuggester:
+  Drupal\canvas\ShapeMatcher\PropSourceSuggester:
     public: true
   Drupal\canvas\ComponentIncompatibilityReasonRepository: {}
   Drupal\canvas\JsonSchemaDefinitionsStreamwrapper:

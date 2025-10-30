@@ -64,3 +64,13 @@ function canvas_post_update_0002_intermediate_component_dependencies_in_field_co
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, 'field_config', static fn(FieldConfig $field): bool => $canvasConfigUpdater->needsIntermediateDependenciesComponentUpdate($field));
 }
+
+/**
+ * Rebuild the container after service rename.
+ *
+ * @see https://www.drupal.org/node/2960601
+ * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester
+ */
+function canvas_post_update_0003_rename_service(): void {
+  // Empty update to trigger container rebuild.
+}

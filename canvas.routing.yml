@@ -462,10 +462,10 @@ canvas.api.ui.content_template.suggestions.preview_content_entities:
     _format: 'json'
   methods: [GET]
 
-canvas.api.ui.content_template.suggestions.structured_data_for_prop_shapes:
-  path: '/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{content_entity_type_id}/{bundle}/{component_config_entity_id}'
+canvas.api.ui.content_template.suggestions.prop_sources:
+  path: '/canvas/api/v0/ui/content_template/suggestions/prop-sources/{content_entity_type_id}/{bundle}/{component_config_entity_id}'
   defaults:
-    _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::suggestStructuredDataForPropShapes'
+    _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::suggestPropSources'
   requirements:
     _canvas_authentication_required: TRUE
     _canvas_entity_create_access: 'content_template'

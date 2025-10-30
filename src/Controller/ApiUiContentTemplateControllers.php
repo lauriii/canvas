@@ -14,7 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -26,20 +26,20 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  *
- * @see \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
+ * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester
  */
 final class ApiUiContentTemplateControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
-    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
+    private readonly PropSourceSuggester $propSourceSuggester,
     private readonly EntityTypeBundleInfoInterface $bundleInfo,
     private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
   ) {}
 
   /**
-   * Provides suggestions for a given Component based on entity type and bundle.
+   * Suggests prop sources for an SDC-like Component.
    *
    * @param string $content_entity_type_id
    *   A content entity type ID.
@@ -54,14 +54,14 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
    * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
    * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    */
-  public function suggestStructuredDataForPropShapes(string $content_entity_type_id, string $bundle, string $component_config_entity_id): JsonResponse {
+  public function suggestPropSources(string $content_entity_type_id, string $bundle, string $component_config_entity_id): JsonResponse {
     // @see \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber
     $this->validateRequest($content_entity_type_id, $bundle, $component_config_entity_id);
     // @phpstan-ignore-next-line
     $source = Component::load($component_config_entity_id)->getComponentSource();
     assert($source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
 
-    $suggestions = $this->fieldForComponentSuggester->suggest(
+    $suggestions = $this->propSourceSuggester->suggest(
       $source->getSourceSpecificComponentId(),
       $source->getMetadata(),
       EntityDataDefinition::createFromDataType("entity:$content_entity_type_id:$bundle"),
@@ -69,7 +69,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
 
     return new JsonResponse(
       status: Response::HTTP_OK,
-      data: FieldForComponentSuggester::structureSuggestionsForHierarchicalResponse($suggestions),
+      data: PropSourceSuggester::structureSuggestionsForHierarchicalResponse($suggestions),
     );
   }
 

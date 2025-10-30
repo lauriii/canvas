@@ -153,8 +153,8 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
         // because its purpose is to test the ability for components to opt in
         // to consuming additional computed properties on a field instance.
         // See the `the image-srcset-candidate-template-uri component` test case
-        // in FieldForComponentSuggesterTest.
-        // @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
+        // in PropSourceSuggesterTest.
+        // @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>srcSetCandidateTemplate</code> prop, with the shape <code>{"type":"string","format":"uri-template","x-required-variables":["width"]}</code>.',
       ],
       'sdc.canvas_test_sdc.obsolete' => [

@@ -8,7 +8,7 @@ use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -21,12 +21,12 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
 /**
- * @coversClass \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
+ * @coversClass \Drupal\canvas\ShapeMatcher\PropSourceSuggester
  * @group canvas
  *
  * @phpstan-import-type HostEntityUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  */
-class FieldForComponentSuggesterTest extends KernelTestBase {
+class PropSourceSuggesterTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use EntityReferenceFieldCreationTrait;
@@ -171,14 +171,14 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
    *
    * @dataProvider provider
    */
-  public function test(string $component_plugin_id, ?string $data_type_context, array $expected): void {
+  public function test(string $component_plugin_id, string $data_type_context, array $expected): void {
     $component = \Drupal::service(ComponentPluginManager::class)->find($component_plugin_id);
     assert($component instanceof Component);
-    $suggestions = $this->container->get(FieldForComponentSuggester::class)
+    $suggestions = $this->container->get(PropSourceSuggester::class)
       ->suggest(
         $component_plugin_id,
         $component->metadata,
-        $data_type_context ? EntityDataDefinition::createFromDataType($data_type_context) : NULL,
+        EntityDataDefinition::createFromDataType($data_type_context),
       );
 
     // All expectations that are present must be correct.
@@ -209,22 +209,6 @@ class FieldForComponentSuggesterTest extends KernelTestBase {
           'instances' => [
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
-          'adapters' => [
-            'Apply image style' => 'image_apply_style',
-            'Make relative image URL absolute' => 'image_url_rel_to_abs',
-          ],
-          'host_entity_urls' => [],
-        ],
-      ],
-    ];
-
-    yield 'the image component — free of context' => [
-      'canvas_test_sdc:image',
-      NULL,
-      [
-        '⿲canvas_test_sdc:image␟image' => [
-          'required' => TRUE,
-          'instances' => [],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
             'Make relative image URL absolute' => 'image_url_rel_to_abs',

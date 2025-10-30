@@ -7,6 +7,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\canvas\Entity\Page;
@@ -262,6 +265,22 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
       unset($components['canvas_test_sdc:' . $key]);
     }
 
+    // Gather the full list of fieldable entity types' IDs and bundles to find
+    // matches for.
+    $entity_types_and_bundles = [];
+    $entity_types = $this->container->get(EntityTypeManagerInterface::class)->getDefinitions();
+    $bundle_info = $this->container->get(EntityTypeBundleInfoInterface::class);
+    foreach ($entity_types as $entity_type_id => $entity_type) {
+      if (!$entity_type->entityClassImplements(FieldableEntityInterface::class)) {
+        continue;
+      }
+      $bundles = array_keys($bundle_info->getBundleInfo($entity_type_id));
+      sort($bundles);
+      foreach ($bundles as $bundle) {
+        $entity_types_and_bundles[] = ['type' => $entity_type_id, 'bundle' => $bundle];
+      }
+    }
+
     foreach ($components as $component) {
       // Do not find a match for every unique SDC prop, but only for unique prop
       // shapes. This avoids a lot of meaningless test expectations.
@@ -303,7 +322,13 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         $primitive_type = JsonSchemaType::from($schema['type']);
         // 2. find matching field instances
         // @see \Drupal\canvas\PropSource\DynamicPropSource
-        $instance_candidates = $matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema);
+        $instance_candidates = [];
+        foreach ($entity_types_and_bundles as ['type' => $entity_type_id, 'bundle' => $bundle]) {
+          $instance_candidates = [
+            ...$instance_candidates,
+            ...$matcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema, $entity_type_id, $bundle),
+          ];
+        }
         // 3. adapters.
         // @see \Drupal\canvas\PropSource\AdaptedPropSource
         $adapter_output_matches = $matcher->findAdaptersByMatchingOutput($schema);
@@ -319,7 +344,13 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             );
 
             $input_is_required = $match->inputIsRequired($input_name);
-            $instance_matches = $matcher->findFieldInstanceFormatMatches($input_primitive_type, $input_is_required, $input_schema);
+            $instance_matches = [];
+            foreach ($entity_types_and_bundles as ['type' => $entity_type_id, 'bundle' => $bundle]) {
+              $instance_matches = [
+                ...$instance_matches,
+                ...$matcher->findFieldInstanceFormatMatches($input_primitive_type, $input_is_required, $input_schema, $entity_type_id, $bundle),
+              ];
+            }
 
             $adapter_matches_field_type[$match->getPluginId()][$input_name] = $storable_prop_shape_for_adapter_input
               ? (string) $storable_prop_shape_for_adapter_input->fieldTypeProp

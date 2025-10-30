@@ -5,15 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\Field\WidgetPluginManager;
-use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\canvas\Attribute\ComponentSource;
@@ -24,7 +20,6 @@ use Drupal\canvas\ComponentSource\UrlRewriteInterface;
 use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityBase;
-use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Path;
 
@@ -40,50 +35,19 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
 
   public const SOURCE_PLUGIN_ID = 'sdc';
 
-  public function __construct(
-    array $configuration,
-    string $plugin_id,
-    array $plugin_definition,
-    ComponentValidator $componentValidator,
-    WidgetPluginManager $fieldWidgetPluginManager,
-    EntityTypeManagerInterface $entityTypeManager,
-    private readonly ComponentPluginManager $componentPluginManager,
-    private readonly ModuleHandlerInterface $moduleHandler,
-    private readonly ThemeHandlerInterface $themeHandler,
-    // @phpstan-ignore-next-line property.onlyWritten
-    private readonly FieldForComponentSuggester $fieldForComponentSuggester,
-    LoggerChannelInterface $logger,
-  ) {
-    assert(array_key_exists('local_source_id', $configuration));
-    parent::__construct(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $componentValidator,
-      $fieldWidgetPluginManager,
-      $entityTypeManager,
-      $fieldForComponentSuggester,
-      $logger,
-    );
-  }
+  protected ComponentPluginManager $componentPluginManager;
+  protected ModuleHandlerInterface $moduleHandler;
+  protected ThemeHandlerInterface $themeHandler;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get(ComponentValidator::class),
-      $container->get('plugin.manager.field.widget'),
-      $container->get(EntityTypeManagerInterface::class),
-      $container->get(ComponentPluginManager::class),
-      $container->get(ModuleHandlerInterface::class),
-      $container->get(ThemeHandlerInterface::class),
-      $container->get('Drupal\canvas\ShapeMatcher\FieldForComponentSuggester'),
-      $container->get('logger.channel.canvas'),
-    );
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+    $instance->componentPluginManager = $container->get(ComponentPluginManager::class);
+    $instance->moduleHandler = $container->get(ModuleHandlerInterface::class);
+    $instance->themeHandler = $container->get(ThemeHandlerInterface::class);
+    return $instance;
   }
 
   /**

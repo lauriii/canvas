@@ -286,7 +286,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     $component_id = 'sdc.canvas_test_sdc.my-hero';
     $this->setUpCurrentUser(permissions: ['administer content templates', 'edit any article content']);
-    $fieldSuggestions = self::decodeResponse($this->parentRequest(Request::create("canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/node/article/$component_id")));
+    $fieldSuggestions = self::decodeResponse($this->parentRequest(Request::create("canvas/api/v0/ui/content_template/suggestions/prop-sources/node/article/$component_id")));
     $getFieldSuggestionByLabel = function (string $label, string $prop) use ($fieldSuggestions) {
       foreach ($fieldSuggestions[$prop] as $suggestion) {
         if ($suggestion['label'] === $label) {
@@ -323,7 +323,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     // Second request: with a valid expression in DynamicPropSource.
     // 💡 These are the ones provided by the API response at the start of the
-    // test (…/suggestions/structured-data-for-prop_shapes/…).
+    // test (…/suggestions/prop-sources/…).
     $form_canvas_props['source']['heading'] = $getFieldSuggestionByLabel('Title', 'heading')['source'];
     $form_canvas_props['source']['subheading'] = $getFieldSuggestionByLabel('Revision log message', 'subheading')['source'];
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);

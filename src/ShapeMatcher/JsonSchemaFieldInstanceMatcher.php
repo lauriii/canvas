@@ -9,7 +9,6 @@ use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
@@ -156,7 +155,6 @@ final class JsonSchemaFieldInstanceMatcher {
   public function __construct(
     private readonly TypedDataManagerInterface $typedDataManager,
     private readonly ConstraintManager $constraintManager,
-    private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly AdapterManager $adapterManager,
     private readonly CacheBackendInterface $cache,
@@ -549,7 +547,7 @@ final class JsonSchemaFieldInstanceMatcher {
           // @code
           // (string) $current_entity_field_prop == 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths'
           // @endcode
-          // And add a test case to FieldForComponentSuggesterTest::provider(),
+          // And add a test case to PropSourceSuggesterTest::provider(),
           // that will allow hitting this point in seconds.
           if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
             $matches[] = $current_entity_field_prop;
@@ -616,20 +614,21 @@ final class JsonSchemaFieldInstanceMatcher {
     JsonSchemaType $primitive_type,
     bool $is_required_in_json_schema,
     array $schema,
-    ?string $host_entity_type = NULL,
-    ?string $host_entity_bundle = NULL,
+    string $host_entity_type,
+    string $host_entity_bundle,
   ): array {
     \ksort($schema);
-    $cid = \sprintf('%s:%s:%s', $primitive_type->value, (string) $is_required_in_json_schema, \http_build_query($schema));
-    if ($host_entity_type !== NULL && $host_entity_bundle !== NULL) {
-      $cid .= \sprintf(':%s:%s', $host_entity_type, $host_entity_bundle);
-    }
+    $cid = implode(':', [
+      $primitive_type->value,
+      (string) $is_required_in_json_schema,
+      \http_build_query($schema),
+      $host_entity_type,
+      $host_entity_bundle,
+    ]);
     $cached = $this->cache->get($cid);
     if ($cached !== FALSE && $cached->data) {
       return $cached->data;
     }
-    $entity_type_bundles = $this->entityTypeBundleInfo->getAllBundleInfo();
-    $matches = [];
     // Default to 1 level of recursion, but increase to 2 levels for:
     // - object shapes, because they imply more complexity, so search deeper
     // - URIs, because to find relevant references, more connections should be
@@ -643,21 +642,8 @@ final class JsonSchemaFieldInstanceMatcher {
       },
       default => 1,
     };
-    if ($host_entity_type !== NULL && $host_entity_bundle !== NULL) {
-      $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
-      $matches = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
-    }
-    else {
-      foreach ($entity_type_bundles as $entity_type_id => $bundles) {
-        foreach (array_keys($bundles) as $bundle) {
-          $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$entity_type_id:$bundle");
-          $matches = [
-            ...$matches,
-            ...$this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema),
-          ];
-        }
-      }
-    }
+    $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
+    $matches = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
     /** @var array<\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);

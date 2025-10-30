@@ -118,13 +118,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @dataProvider providerSuggestStructuredDataForPropShapes
-   * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
+   * @dataProvider providerSuggestPropSources
+   * @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
    */
-  public function testSuggestStructuredDataForPropShapes(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
+  public function testSuggestPropSources(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/$content_entity_type_id/$bundle/$component_config_entity_id"),
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/$content_entity_type_id/$bundle/$component_config_entity_id"),
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: NULL,
@@ -135,7 +135,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->assertSame($expected, $json);
   }
 
-  public static function providerSuggestStructuredDataForPropShapes(): \Generator {
+  public static function providerSuggestPropSources(): \Generator {
     $choice_article_title = [
       'source' => ['sourceType' => 'dynamic', 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value'],
       'label' => "Title",
@@ -486,10 +486,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    *           ["node/b/sdc.canvas_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."]
    *           ["node/article/block.user_login_block", 400, "Only components that define their inputs using JSON Schema and use fields to populate their inputs are currently supported."]
    */
-  public function testSuggestStructuredDataForPropShapesClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
+  public function testSuggestPropSourcesClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/' . $trail),
       request_options: [],
       expected_status: $expected_status_code,
       expected_cache_contexts: NULL,
@@ -506,7 +506,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->drupalLogin($this->limitedPermissionsUser);
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/' . $trail),
+      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/suggestions/prop-sources/' . $trail),
       request_options: [],
       expected_status: Response::HTTP_FORBIDDEN,
       expected_cache_contexts: ['user.permissions'],

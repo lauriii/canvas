@@ -138,8 +138,7 @@ value that fits in the `prop shape`.
 See `\Drupal\canvas\PropSource\DynamicPropSource`.
 
 ⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
-suggested by `\Drupal\canvas\ShapeMatcher\FieldForComponentSuggester`. The Content Creator or Site Builder
-will choose one.
+suggested by `\Drupal\canvas\ShapeMatcher\PropSourceSuggester`. The Content Creator or Site Builder will choose one.
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldTypeSupportTest`.
 
@@ -165,7 +164,7 @@ See `\Drupal\canvas\PropSource\StaticPropSource`.
 
 ⚠️ When choosing to use `unstructured data` to populate a `component input`, Canvas decides
 using the aforementioned logic what `field type`, `field widget` et cetera to use. Only when using `structured data`,
-there is a need for an additional choice (see the `FieldForComponentSuggester` mentioned in 3.1.2.a).
+there is a need for an additional choice (see the `PropSourceSuggester` mentioned in 3.1.2.a).
 
 #### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
 
@@ -229,7 +228,7 @@ to generate various URIs that point to the host entity (i.e. the containing `con
 
 See:
 - `\Drupal\canvas\PropSource\HostEntityUrlPropSource`
-- `\Drupal\canvas\ShapeMatcher\FieldForComponentSuggester::matchHostEntityUrlPropSources()`
+- `\Drupal\canvas\ShapeMatcher\PropSourceSuggester::matchHostEntityUrlPropSources()`
 
 
 ### 3.2 Additional functionality overlaid on top of the SDC JSON Schema

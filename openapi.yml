@@ -1896,17 +1896,17 @@ paths:
         '404':
           description: Non-existent content entity type or bundle.
           $ref: '#/components/responses/ClientErrorResponse'
-  /canvas/api/v0/ui/content_template/suggestions/structured-data-for-prop_shapes/{entityTypeId}/{bundle}/{configEntityId}:
-    description: Provides suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+  /canvas/api/v0/ui/content_template/suggestions/prop-sources/{entityTypeId}/{bundle}/{configEntityId}:
+    description: Provides suggestions for populating the props of a given component using prop sources available for the specified entity type and bundle.
     get:
-      summary: Gets suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+      summary: Gets suggestions for populating the props of a given component using prop sources available for the specified entity type and bundle.
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
         - $ref: '#/components/parameters/bundle'
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: suggestions for populating the props of a given component using structured data of the specified entity type and bundle.
+          description: Suggestions for populating the props of a given component using prop sources available for the specified entity type and bundle.
           content:
             application/json:
               schema:
@@ -1914,7 +1914,7 @@ paths:
                 # There may be 0 props for this component.
                 minProperties: 0
                 additionalProperties:
-                  $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
+                  $ref: '#/components/schemas/SuggestedPropSources'
               examples:
                 Suggestions for a 'canvas_test_sdc.heading' SDC component instance in the context of an article node:
                   summary: "Typical example: several suggestions, some with non-selectable choices in the middle of the hierarchy"
@@ -2695,17 +2695,17 @@ components:
         weight:
           type: integer
           description: The weight of the segment, used for ordering segments.
-    StructuredDataForPropShapeHierarchicalSuggestionLevel:
-      title: Prop shape structured data suggestion hierarchy level (a level in the tree of hierarchical suggestions)
+    SuggestedPropSources:
+      title: A list of suggested prop sources (a level in the tree of hierarchical suggestions)
       type: array
       items:
         type: object
         oneOf:
-          - $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionPath'
-          - $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionPathWithChoice'
+          - $ref: '#/components/schemas/HierarchicalPathToSuggestedPropSourcesItem'
+          - $ref: '#/components/schemas/SuggestedPropSourceItem'
       minItems: 0
-    StructuredDataForPropShapeHierarchicalSuggestionPath:
-      title: Prop shape structured data suggestion hierarchy (path only, no choice; points towards a deeper actual choice)
+    HierarchicalPathToSuggestedPropSourcesItem:
+      title: A path to a child level (so, a labeled parent) of suggested prop sources (path only, no choice; points towards a deeper actual choice)
       type: object
       required:
         - label
@@ -2714,10 +2714,10 @@ components:
           type: string
           description: Human-readable label
         items:
-          $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
+          $ref: '#/components/schemas/SuggestedPropSources'
       additionalProperties: false
-    StructuredDataForPropShapeHierarchicalSuggestionPathWithChoice:
-      title: Prop shape structured data suggestion hierarchy (with choice)
+    SuggestedPropSourceItem:
+      title: Suggested prop source, optionally with a child level if the prop source originates from structured data
       type: object
       required:
         - label
@@ -2734,7 +2734,7 @@ components:
           type: object
           description: The object representation of a DynamicPropSource or HostEntityUrlPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
         items:
-          $ref: '#/components/schemas/StructuredDataForPropShapeHierarchicalSuggestionLevel'
+          $ref: '#/components/schemas/SuggestedPropSources'
       additionalProperties: false
     Error:
       type: object

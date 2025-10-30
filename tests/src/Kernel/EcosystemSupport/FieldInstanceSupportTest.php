@@ -16,7 +16,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\canvas\ShapeMatcher\FieldForComponentSuggester;
+use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -42,8 +42,8 @@ use Drupal\field\Entity\FieldStorageConfig;
  *
  * @todo Also test non-default FieldStorageConfig setting in https://www.drupal.org/project/canvas/issues/3512848
  *
- * @covers \Drupal\canvas\ShapeMatcher\FieldForComponentSuggester
- * @see \Drupal\Tests\canvas\Kernel\FieldForComponentSuggesterTest
+ * @covers \Drupal\canvas\ShapeMatcher\PropSourceSuggester
+ * @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
  * @covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  * @see \Drupal\Tests\canvas\Kernel\PropShapeToFieldInstanceTest
  * @see docs/shape-matching.md#3.1.2.a
@@ -294,7 +294,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     // test-only `all-props` SDC, which contains EVERY possible SDC prop shape.
     $component = \Drupal::service(ComponentPluginManager::class)->find('sdc_test_all_props:all-props');
     assert($component instanceof Component);
-    $suggestions = $this->container->get(FieldForComponentSuggester::class)
+    $suggestions = $this->container->get(PropSourceSuggester::class)
       ->suggest(
         $component->getPluginId(),
         $component->metadata,
