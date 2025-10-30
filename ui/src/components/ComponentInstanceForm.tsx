@@ -12,7 +12,11 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getPropsValues } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
-import { clearFieldValues } from '@/features/form/formStateSlice';
+import { FORM_TYPES } from '@/features/form/constants';
+import {
+  clearFieldValues,
+  selectFormValues,
+} from '@/features/form/formStateSlice';
 import {
   isEvaluatedComponentModel,
   selectLayout,
@@ -61,6 +65,9 @@ interface ComponentInstanceFormProps {}
 const ComponentInstanceFormRenderer: React.FC<
   ComponentInstanceFormRendererProps
 > = (props) => {
+  const formState = useAppSelector((state) =>
+    selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
+  );
   const { dynamicStaticCardQueryString } = props;
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
@@ -198,11 +205,28 @@ const ComponentInstanceFormRenderer: React.FC<
           // Nothing has changed, no need to patch.
           return;
         }
+
+        // This update will include the entire model, so ensure all existing
+        // values are properly transformed.
+        const { propsValues: transformedFormState } = getPropsValues(
+          formState,
+          {
+            ...inputAndUiData,
+            model: { [selectedComponentId]: selectedModel },
+          },
+          currentData ? currentData.transforms : {},
+        );
+
         // And then send data to backend - this will:
         // a) Trigger server side validation/transformation
         // b) Update both the preview and the model - see the pessimistic update
         //    in onQueryStarted in preview.ts
-        const resolved = { ...selectedModel.resolved, ...values };
+        const resolved = {
+          ...selectedModel.resolved,
+          ...transformedFormState,
+          ...values,
+        };
+
         const component = components?.[selectedComponentType];
         if (isEvaluatedComponentModel(selectedModel) && component) {
           patchComponent({
