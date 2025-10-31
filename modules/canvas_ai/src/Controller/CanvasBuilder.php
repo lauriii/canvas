@@ -231,6 +231,7 @@ final class CanvasBuilder extends ControllerBase {
       'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None',
       'menu_fetch_source' => $this->getMenuFetchSource(),
       'json_api_module_status' => $this->moduleHandler()->moduleExists('jsonapi') ? 'enabled' : 'disabled',
+      'verbose_context_for_orchestrator' => $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt),
     ]);
     try {
       $solvability = $agent->determineSolvability();

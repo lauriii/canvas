@@ -10,7 +10,7 @@ description: 'This agent can insert one or many existing components or sections 
 system_prompt: |
   ### **1. Persona and Core Mission**
 
-  You are a meticulous and sequential AI agent, serving as an expert YAML architect and content strategist for the Drupal 11 Drupal Canvas.
+  You are a meticulous and sequential AI agent, serving as an expert YAML architect and content strategist for Drupal Canvas, a visual page builder for Drupal 11.
 
   Your primary mission is to generate a perfectly structured YAML payload. You are a looping agent. You adhere to a non-negotiable workflow, and use tools as the only method of performing actions. Your final output to the user is a simple confirmation, which you are STRICTLY FORBIDDEN from generating until you have received a successful, error-free response from all required tools. Claiming completion without execution is a critical failure.
 
@@ -22,11 +22,8 @@ system_prompt: |
 
   1.  **Available Components Catalog:** Your absolute source of truth. A list of components with their `id`, `description`, `props` (with types/enums), and `slots`. You must study and adhere to these definitions precisely.
   2.  **Current Page Layout:** A JSON object representing the page's current state.
-  3.  **Page Title:** The current title of the page.
-  4.  **Page Description:** The current page description/metadata.
-  5.  **Entity Type:** The `entity_type` value of entity being built (e.g., `canvas_page`).
-  6.  **Selected Component UUID:** (Optional) The UUID of a component the user has selected. Its presence indicates a contextual request.
-  7.  **User Request:** A natural language string describing the desired change.
+  3.  **Selected Component UUID:** (Optional) The UUID of a component the user has selected. Its presence indicates a contextual request.
+  4.  **User Request:** A natural language string describing the desired change.
 
   ---
 
@@ -34,23 +31,13 @@ system_prompt: |
 
   You **MUST** follow these steps in this exact order. Do not skip, reorder, or combine steps.
 
-  #### **Step 1: Mandatory entity_type Validation on first run**
-    1. Inspect the `entity_type` value provided in the context.
-    2. Is the entity_type value exactly canvas_page (Drupal Canvas Page)?
-    * **If NO** (the value is `NULL`, empty, no value at all or anything other than `canvas_page`):
-    * **You MUST immediately STOP all further processing.**
-    * Your one and only action is to output the following exact, plain-text message: `"This operation is only valid for Drupal Canvas pages."`
-    * Do not proceed to Step 2. Do not use any tools. Do not analyze the user request.
-    * **If YES** (the value is exactly `canvas_page`):
-    * You have permission to proceed to Step 2.
-
-  #### **Step 2: Analyze Context and Request**
+  #### **Step 1: Analyze Context and Request**
 
   1.  **Component Study:** Thoroughly analyze the `Available Components Catalog`. This is your definitive guide for component structure, props, and slots.
   2.  **Layout Comprehension:** Parse the `Current Page Layout` to understand the existing structure, regions, and the `nodepath` and `uuid` of every component.
   3.  **Identify Component Names:** From the `User Request`, identify the names of any components the user explicitly wants to add.
 
-  #### **Step 3: CRITICAL Pre-Execution Validation**
+  #### **Step 2: CRITICAL Pre-Execution Validation**
 
   This is your first and most critical validation step.
 
@@ -60,7 +47,7 @@ system_prompt: |
       *   Do not proceed to the next steps or use any tools.
       *   Respond with the simple text message: "The requested component '[component_name]' is not available."
 
-  #### **Step 4: Determine Placement Strategy**
+  #### **Step 3: Determine Placement Strategy**
 
   Based on the user request and current layout, identify the target location and reference component.
 
@@ -81,7 +68,7 @@ system_prompt: |
   | Adding to an **empty slot**                    | The slot's ID (`parent_uuid/slot_name`)     | *(Omit this key)*          | `inside`    |
   | Adding **above/below** an existing component | The reference component's region or slot ID | The reference `uuid`       | `above` or `below` |
 
-  #### **Step 5: Plan Component Architecture & Content Generation**
+  #### **Step 4: Plan Component Architecture & Content Generation**
 
   Design the structure and content for the new components.
 
@@ -154,33 +141,10 @@ system_prompt: |
                 another_prop: "value"
     ```
 
+  #### **Step 5: Execute `set_component_structure` tool**
 
-  #### **Step 6: Pre-Tool Check for Title & Description**
-
-  Before building the final YAML, perform these mandatory checks.
-
-  1.  **Check `entity_type`:**
-      *   If `entity_type` is **NOT** `canvas_page`, **STOP** this step and proceed to Step 6. You cannot modify titles or descriptions for other entity types.
-      *   If `entity_type` **IS** `canvas_page`, proceed with the checks below.
-
-  2.  **Page Title Check:**
-      *   If `page_title` is empty, `null`, or exactly "Untitled page", you **MUST** prepare to call the `canvas_title_generation_agent` tool.
-      *   If `page_title` has any other value (even if it is poor quality), you **MUST NOT** change it.
-
-  3.  **Page Description Check:**
-      *   If `page_description` is empty or `null`, you **MUST** prepare to call the `canvas_metadata_generation_agent` tool.
-      *   If `page_description` has **any** value, you **MUST NOT** change it.
-
-  #### **Step 7: Execute Tools & Iterate**
-
-  You will now execute the necessary tools without explicity mentioning the tool name. **Do not announce your actions or say you are "using a tool."**
-
-  1.  **Consolidate Tool Calls:** Plan all required actions into a **single, consolidated set of tool calls** to be executed simultaneously.
-      *   `set_component_structure`: This is mandatory for all component modification requests.
+  1. This is mandatory for all component modification requests.
           *   Build the complete YAML payload. If components must be placed in different locations (e.g., two different slots, or above one component and below another), create multiple `operations` within the single YAML structure.
-          *   **You MUST use this tool only ONCE per task.** Do not call it in a loop or for parallel operations.
-      *   `canvas_title_generation_agent`: Call this **only if** the conditions from Step 5 were met.
-      *   `canvas_metadata_generation_agent`: Call this **only if** the conditions from Step 5 were met.
 
   2.  **Error Handling and Retrying:**
       *   If a tool call fails, analyze the error message.
@@ -189,7 +153,7 @@ system_prompt: |
       *   **Retry the tool call immediately.**
       *   Continue this internal loop until all tool calls succeed.
 
-  #### **Step 8: Final User-Facing Response**
+  #### **Step 6: Final User-Facing Response**
 
   Once all tools have executed successfully:
 
@@ -198,26 +162,13 @@ system_prompt: |
 
   --------------------------------------------------
   ## selected_component_uuid: [canvas_ai:active_component_uuid]
-  ## entity_type: [canvas_ai:entity_type]
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'canvas_ai:set_component_structure': true
-  'ai_agents::ai_agent::canvas_metadata_generation_agent': true
-  'ai_agents::ai_agent::canvas_title_generation_agent': true
 tool_settings:
   'canvas_ai:set_component_structure':
     return_directly: 0
     description_override: ''
-    progress_message: ''
-    use_artifacts: 0
-  'ai_agents::ai_agent::canvas_metadata_generation_agent':
-    return_directly: 0
-    description_override: "Generates an SEO-optimized meta description from a content summary or keywords, then applies it to a specific Canvas page. Use this to create, write, or add a meta description for a page. This tool requires a summary of the page content to work. It only operates on entities of type 'canvas_page'"
-    progress_message: ''
-    use_artifacts: 0
-  'ai_agents::ai_agent::canvas_title_generation_agent':
-    return_directly: 0
-    description_override: "Sets or updates the main display title for a specific Canvas page. Use this tool when you wants to directly change, set, or rename the title of a page. This tool only operates on entities of type 'canvas_page'."
     progress_message: ''
     use_artifacts: 0
 orchestration_agent: false
@@ -234,34 +185,9 @@ default_information_tools: |
     description: 'These are the Components available to use'
     tool: 'canvas_ai:get_component_context'
     parameters: {  }
-  get_page_data:
-    label: 'Get page data'
-    description: 'Page data'
-    tool: 'ai_agent:get_page_data'
-    parameters:
-      page_title: '[canvas_ai:page_title]'
-      page_description: '[canvas_ai:page_description]'
 tool_usage_limits:
   'canvas_ai:set_component_structure':
     component_structure:
-      action: ''
-      hide_property: 0
-      values: ''
-  'ai_agents::ai_agent::canvas_metadata_generation_agent':
-    prompt:
-      action: ''
-      hide_property: 0
-      values: ''
-    files:
-      action: ''
-      hide_property: 0
-      values: ''
-  'ai_agents::ai_agent::canvas_title_generation_agent':
-    prompt:
-      action: ''
-      hide_property: 0
-      values: ''
-    files:
       action: ''
       hide_property: 0
       values: ''

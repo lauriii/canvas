@@ -247,4 +247,68 @@ YAML;
     $this->assertEquals($expected, $result);
   }
 
+  /**
+   * Data provider for testing generateVerboseContextForOrchestrator.
+   */
+  public static function generateVerboseContextProvider(): array {
+    return [
+      'empty values' => [
+        [
+          'entity_type' => '',
+          'selected_component' => '',
+          'page_title' => 'Untitled page',
+          'page_description' => '',
+        ],
+        'User has not created any entities',
+      ],
+      'node with component' => [
+        [
+          'entity_type' => 'node',
+          'selected_component' => 'hero_banner',
+          'page_title' => 'What is drupal canvas?',
+          'page_description' => 'Drupal canvas is a visual page-builder tool for Drupal CMS',
+        ],
+        'User is now in the code component editor, viewing a code component with id hero_banner',
+      ],
+      'node without component' => [
+        [
+          'entity_type' => 'node',
+          'selected_component' => '',
+          'page_title' => 'What is drupal canvas?',
+          'page_description' => 'Drupal canvas is a visual page-builder tool for Drupal CMS',
+        ],
+        'The user is currently working on a \'node\' entity',
+      ],
+      'canvas page' => [
+        [
+          'entity_type' => 'canvas_page',
+          'selected_component' => '',
+          'page_title' => 'What is drupal canvas?',
+          'page_description' => 'Drupal canvas is a visual page-builder tool for Drupal CMS',
+        ],
+        'The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: What is drupal canvas?. Page description: Drupal canvas is a visual page-builder tool for Drupal CMS',
+      ],
+      'canvas page with selected component and empty fields' => [
+        [
+          'entity_type' => 'canvas_page',
+          'selected_component' => '',
+          'active_component_uuid' => 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+          'page_title' => 'Untitled page',
+          'page_description' => '',
+        ],
+        'The user is currently working on a canvas_page entity. User has selected a component in the page with uuid f47ac10b-58cc-4372-a567-0e02b2c3d479. Page title is empty. GENERATE THE TITLE FOR THE PAGE. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE.',
+      ],
+    ];
+  }
+
+  /**
+   * Tests the generateVerboseContextForOrchestrator method.
+   *
+   * @dataProvider generateVerboseContextProvider
+   */
+  public function testGenerateVerboseContextForOrchestrator(array $prompt, string $expected): void {
+    $result = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt);
+    $this->assertEquals($expected, $result);
+  }
+
 }
