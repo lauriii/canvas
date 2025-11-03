@@ -8,6 +8,8 @@ import {
   setGlobalAssetLibraryProperty,
 } from '@/features/code-editor/codeEditorSlice';
 
+import styles from '../CanvasCodeMirror.module.css';
+
 const GlobalCssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
   const value = useAppSelector(
@@ -22,11 +24,13 @@ const GlobalCssEditor = ({ isLoading }: { isLoading: boolean }) => {
   }
   return (
     <CodeMirror
-      className="canvas-code-mirror-editor"
+      className={styles.canvasCodeMirrorEditor}
       value={value}
       onChange={onChangeHandler}
       theme={githubLight}
       extensions={[css()]}
+      width="100%"
+      height="100%"
     />
   );
 };

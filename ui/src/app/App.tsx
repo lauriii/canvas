@@ -1,16 +1,3 @@
-import { HTML5toTouch } from 'rdndmb-html5-to-touch';
-// `react-mosaic` (https://github.com/nomcopter/react-mosaic) uses `react-dnd`
-// for its drag & drop functionality. The primary component of `react-mosaic`,
-// `Mosaic` doesn't require to be wrapped in `DndProvider`, it does that on its
-// own, but we use `MosaicWithoutDragDropContext`, so we can explicity decide
-// where to add the `DndProvider` context provider in the app's component tree.
-// This solves a race condition where multiple context providers would be
-// mounted as users are quickly changing routes.
-// @see `ui/src/features/code-editor/MosaicContainer.tsx`
-// @see https://drupal.org/i/3510436
-// @see https://drupal.org/i/3520994
-import { DndProvider } from 'react-dnd';
-import { MultiBackend } from 'react-dnd-multi-backend';
 import { Outlet } from 'react-router-dom';
 import {
   DndContext,
@@ -100,19 +87,17 @@ const App: React.FC = () => {
             sensors={sensors}
             collisionDetection={customCollisionDetectionAlgorithm}
           >
-            <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-              <Flex className={styles.canvasContainer} gap="0">
-                <ErrorBoundary variant="page">
-                  <AiPanel />
-                  <Outlet />
-                </ErrorBoundary>
-              </Flex>
-              <Topbar />
-              <DragEventsHandler />
-              {import.meta.env.DEV && <DevTools />}
-              <SavingOverlay />
-              <Toast />
-            </DndProvider>
+            <Flex className={styles.canvasContainer} gap="0">
+              <ErrorBoundary variant="page">
+                <AiPanel />
+                <Outlet />
+              </ErrorBoundary>
+            </Flex>
+            <Topbar />
+            <DragEventsHandler />
+            {import.meta.env.DEV && <DevTools />}
+            <SavingOverlay />
+            <Toast />
           </DndContext>
         </ErrorBoundary>
       </div>

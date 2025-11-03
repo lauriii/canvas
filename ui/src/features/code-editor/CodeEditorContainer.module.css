@@ -1,0 +1,66 @@
+.scrollArea {
+  border: 1px solid var(--slate-6);
+  border-radius: var(--radius-3);
+}
+
+.codeEditorPanel {
+  background: var(--slate-2);
+}
+
+.tabList {
+  box-shadow: none !important; /* Override default box shadow from Radix */
+}
+
+.tabTrigger {
+  padding-right: var(--space-1) !important;
+  padding-left: var(--space-1) !important;
+}
+
+.addToComponentsButton {
+  border-bottom: 1px solid var(--slate-6);
+}
+
+.resizeHandle {
+  flex: 0 0 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  outline: none;
+  color: var(--slate-10);
+  border-right: 1px solid var(--slate-6);
+  background: var(--slate-2);
+}
+.resizeHandle:hover {
+  color: var(--blue-7);
+}
+.resizeHandle[data-resize-handle-active] {
+  color: var(--blue-7);
+  border-right: 1px solid var(--blue-7);
+  border-bottom: none;
+}
+
+.resizeHandle[data-panel-group-direction="vertical"] {
+  border-bottom: 1px solid var(--slate-6);
+  border-right: none;
+  background: white;
+}
+
+.resizeHandle[data-panel-group-direction="vertical"][data-resize-handle-active] {
+  border-bottom: 1px solid var(--blue-7);
+  border-right: none;
+}
+
+.resizeHandle[data-panel-group-direction="vertical"] .resizeHandleThumb {
+  rotate: 90deg;
+}
+
+@media (pointer: coarse) {
+  .resizeHandle {
+    flex: 0 0 2rem;
+  }
+
+  .resizeHandle .resizeHandleThumb {
+    height: 21px;
+    width: 21px;
+  }
+}

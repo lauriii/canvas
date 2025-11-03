@@ -1,6 +1,3 @@
-import { HTML5toTouch } from 'rdndmb-html5-to-touch';
-import { DndProvider } from 'react-dnd';
-import { MultiBackend } from 'react-dnd-multi-backend';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Theme } from '@radix-ui/themes';
@@ -36,9 +33,7 @@ const AppWrapper = ({
               appearance="light"
             >
               <ErrorBoundary title="An unexpected error has occurred in the code editor.">
-                <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-                  {children}
-                </DndProvider>
+                {children}
               </ErrorBoundary>
             </Theme>
           </Provider>

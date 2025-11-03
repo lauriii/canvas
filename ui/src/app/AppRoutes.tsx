@@ -14,8 +14,8 @@ import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import PermissionCheck from '@/components/PermissionCheck';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
+import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import MosaicContainer from '@/features/code-editor/MosaicContainer';
 import Editor from '@/features/editor/Editor';
 import TemplateRoot from '@/features/editor/TemplateRoot';
 import PagePreview from '@/features/pagePreview/PagePreview';
@@ -53,7 +53,7 @@ const CodeEditorUi = (
     }
   >
     <UiShell>
-      <MosaicContainer />
+      <CodeEditorContainer />
     </UiShell>
   </PermissionCheck>
 );

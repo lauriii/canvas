@@ -9,6 +9,8 @@ import {
 } from '@/features/code-editor/codeEditorSlice';
 import ImportButton from '@/features/code-editor/ImportButton';
 
+import styles from '@/features/code-editor/CanvasCodeMirror.module.css';
+
 const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
   const value = useAppSelector(selectCodeComponentProperty('sourceCodeJs'));
@@ -21,14 +23,16 @@ const JavaScriptEditor = ({ isLoading }: { isLoading: boolean }) => {
   }
   return (
     <>
-      <ImportButton />
       <CodeMirror
-        className="canvas-code-mirror-editor"
+        className={styles.canvasCodeMirrorEditor}
         value={value}
         onChange={onChangeHandler}
         theme={githubLight}
         extensions={[javascript({ jsx: true })]}
+        width="100%"
+        height="100%"
       />
+      <ImportButton />
     </>
   );
 };

@@ -1,5 +1,12 @@
 import { useEffect } from 'react';
-import { Box, Flex, ScrollArea, Spinner, Tabs } from '@radix-ui/themes';
+import {
+  Box,
+  Flex,
+  Heading,
+  ScrollArea,
+  Spinner,
+  Tabs,
+} from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -52,14 +59,19 @@ export default function ComponentData({
 
   return (
     <Spinner loading={isLoading}>
-      <Box height="100%" pt="4">
-        <Tabs.Root defaultValue="props" className={styles.tabRoot}>
-          <Tabs.List size="1" mx="4">
-            <Tabs.Trigger value="props">Props</Tabs.Trigger>
-            <Tabs.Trigger value="slots">Slots</Tabs.Trigger>
-            <Tabs.Trigger value="data-fetch">Data Fetch</Tabs.Trigger>
-          </Tabs.List>
-          <Flex direction="column" height="100%">
+      <Heading as="h5" size="2" weight="medium">
+        Component data
+      </Heading>
+      <Tabs.Root defaultValue="props" className={styles.tabRoot} asChild>
+        <Flex height="calc(100% - 34px)" direction="column" pt="4">
+          <Box>
+            <Tabs.List size="1">
+              <Tabs.Trigger value="props">Props</Tabs.Trigger>
+              <Tabs.Trigger value="slots">Slots</Tabs.Trigger>
+              <Tabs.Trigger value="data-fetch">Data Fetch</Tabs.Trigger>
+            </Tabs.List>
+          </Box>
+          <Flex direction="column" flexGrow="1" height="calc(100% - 32px)">
             <ScrollArea>
               <Box px="4">
                 <Tabs.Content value="props">
@@ -80,8 +92,8 @@ export default function ComponentData({
               </Box>
             </ScrollArea>
           </Flex>
-        </Tabs.Root>
-      </Box>
+        </Flex>
+      </Tabs.Root>
     </Spinner>
   );
 }

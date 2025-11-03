@@ -8,6 +8,8 @@ import {
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
 
+import styles from '@/features/code-editor/CanvasCodeMirror.module.css';
+
 const CssEditor = ({ isLoading }: { isLoading: boolean }) => {
   const dispatch = useAppDispatch();
   const value = useAppSelector(selectCodeComponentProperty('sourceCodeCss'));
@@ -20,11 +22,13 @@ const CssEditor = ({ isLoading }: { isLoading: boolean }) => {
   }
   return (
     <CodeMirror
-      className="canvas-code-mirror-editor"
+      className={styles.canvasCodeMirrorEditor}
       value={value}
       onChange={onChangeHandler}
       theme={githubLight}
       extensions={[css()]}
+      width="100%"
+      height="100%"
     />
   );
 };

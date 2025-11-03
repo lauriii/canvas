@@ -14,11 +14,6 @@ export default defineConfig({
       optimizer: {
         web: {
           enabled: true,
-          // react-mosaic-component has some code that uses require() to import
-          // an ES module, which is a problem for Vitest.
-          // The following optimizations are needed to prevent an error.
-          include: ['react-mosaic-component'],
-          exclude: ['react-dnd'],
         },
       },
     },
