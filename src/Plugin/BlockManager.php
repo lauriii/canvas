@@ -21,7 +21,7 @@ use Drupal\views\Entity\View;
 use Psr\Log\LoggerInterface;
 
 /**
- * Decorator that auto-creates/updates an Drupal Canvas Component entity per Block plugin.
+ * Decorator that auto-creates/updates a Drupal Canvas Component entity per Block plugin.
  *
  * @see \Drupal\canvas\Entity\Component
  * @see docs/components.md#3.2

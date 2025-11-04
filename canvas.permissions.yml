@@ -27,17 +27,17 @@ administer content templates:
 # @see \Drupal\canvas\Entity\Page::CREATE_PERMISSION
 create canvas_page:
   title: 'Create Canvas Page'
-  description: 'Create an Drupal Canvas page.'
+  description: 'Create a Drupal Canvas page.'
 
 # @see \Drupal\canvas\Entity\Page::EDIT_PERMISSION
 edit canvas_page:
   title: 'Edit Canvas Page'
-  description: 'Edit an Drupal Canvas page.'
+  description: 'Edit a Drupal Canvas page.'
 
 # @see \Drupal\canvas\Entity\Page::DELETE_PERMISSION
 delete canvas_page:
   title: 'Delete Canvas Page'
-  description: 'Delete an Drupal Canvas page.'
+  description: 'Delete a Drupal Canvas page.'
 
 publish auto-saves:
   title: 'Publish Drupal Canvas Content'

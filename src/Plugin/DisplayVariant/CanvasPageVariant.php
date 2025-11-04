@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides a page display variant decorating the main content with components.
  *
  * Uses the theme's `page.html.twig` and populates each region in that Twig
- * template with an Drupal Canvas component tree, which are defined in the
+ * template with a Drupal Canvas component tree, which are defined in the
  * Drupal Canvas PageRegion config entities for that theme's regions.
  *
  * The `content` region is a special case: it is the only theme region required

@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Response subscriber that validates an Drupal Canvas API response.
+ * Response subscriber that validates a Drupal Canvas API response.
  *
  * @internal
  */

@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Request subscriber that validates an Drupal Canvas API request.
+ * Request subscriber that validates a Drupal Canvas API request.
  *
  * @internal
  */

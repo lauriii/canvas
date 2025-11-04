@@ -27,7 +27,7 @@ use JsonSchema\Exception\RuntimeException;
 use JsonSchema\SchemaStorage;
 
 /**
- * Decorator that auto-creates/updates an Drupal Canvas Component entity per SDC.
+ * Decorator that auto-creates/updates a Drupal Canvas Component entity per SDC.
  *
  * @see \Drupal\canvas\Entity\Component
  */
