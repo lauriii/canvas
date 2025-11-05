@@ -79,7 +79,7 @@ final class UriTargetMediaTypeConstraint extends SymfonyConstraint {
    * Example: `image/avif`, `application/json`.
    */
   public static function isValid(string $mimetype): bool {
-    return preg_match('/\w+\/w+/', $mimetype) === 1;
+    return preg_match('/\w+\/\w+/', $mimetype) === 1;
   }
 
 }

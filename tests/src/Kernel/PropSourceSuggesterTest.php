@@ -502,11 +502,14 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            'Silly image 🤡 → User ID → URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -530,11 +533,14 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            'Silly image 🤡 → User ID → URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
           ],
           'adapters' => [],
           'host_entity_urls' => [

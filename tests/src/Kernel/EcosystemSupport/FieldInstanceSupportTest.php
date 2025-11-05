@@ -79,7 +79,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    *
    * (For example: the `password` field type never makes sense to match.)
    */
-  public const MATCHING_ALL_FIELD_TYPE_PROPERTIES = 0.78;
+  public const MATCHING_ALL_FIELD_TYPE_PROPERTIES = 0.7843137254901961;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).

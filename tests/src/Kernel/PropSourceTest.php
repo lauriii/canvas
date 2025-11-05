@@ -515,12 +515,13 @@ class PropSourceTest extends KernelTestBase {
   public function testDynamicPropSource(
     array $permissions,
     string $expression,
+    bool $is_required,
     string $expected_json_representation,
     string $expected_expression_class,
     mixed $expected_evaluation_with_user_host_entity,
-    ?string $expected_user_access_denied_message,
+    ?array $expected_user_access_denied_message,
     mixed $expected_evaluation_with_node_host_entity,
-    ?string $expected_node_access_denied_message,
+    ?array $expected_node_access_denied_message,
     array $expected_dependencies_expression_only,
     array $expected_dependencies_with_host_entity,
   ): void {
@@ -574,17 +575,26 @@ class PropSourceTest extends KernelTestBase {
     // First try without the correct permissions.
     if ($expected_evaluation_with_user_host_entity !== \DomainException::class) {
       self::assertNotNull($expected_user_access_denied_message);
-      try {
-        $parsed->evaluate($user, is_required: TRUE);
-        $this->fail('Should throw an access exception.');
-      }
-      catch (CacheableAccessDeniedHttpException $e) {
-        self::assertSame($expected_user_access_denied_message, $e->getMessage());
+      \assert(count($permissions) === count($expected_user_access_denied_message));
+      for ($i = 0; $i < count($expected_user_access_denied_message); $i++) {
+        // First try without the correct permissions; then grant each permission
+        // one-by-one, to observe what the effect is on the evaluation result.
+        if ($i >= 1) {
+          $this->setUpCurrentUser(permissions: array_slice($permissions, 0, $i));
+        }
+        try {
+          $parsed->evaluate($user, $is_required);
+          $this->fail('Should throw an access exception.');
+        }
+        catch (CacheableAccessDeniedHttpException $e) {
+          self::assertSame($expected_user_access_denied_message[$i], $e->getMessage());
+        }
       }
     }
+    // Grant all permissions, now it should succeed.
     $this->setUpCurrentUser(permissions: $permissions);
     try {
-      $result = $parsed->evaluate($user, is_required: TRUE);
+      $result = $parsed->evaluate($user, $is_required);
       if ($expected_evaluation_with_user_host_entity === \DomainException::class) {
         self::fail('Should throw an exception.');
       }
@@ -602,17 +612,26 @@ class PropSourceTest extends KernelTestBase {
     $this->setUpCurrentUser();
     if ($expected_evaluation_with_node_host_entity !== \DomainException::class) {
       self::assertNotNull($expected_node_access_denied_message);
-      try {
-        $parsed->evaluate($node, is_required: TRUE);
-        $this->fail('Should throw an access exception.');
-      }
-      catch (CacheableAccessDeniedHttpException $e) {
-        self::assertSame($expected_node_access_denied_message, $e->getMessage());
+      \assert(count($permissions) === count($expected_node_access_denied_message));
+      for ($i = 0; $i < count($expected_node_access_denied_message); $i++) {
+        // First try without the correct permissions; then grant each permission
+        // one-by-one, to observe what the effect is on the evaluation result.
+        if ($i >= 1) {
+          $this->setUpCurrentUser(permissions: array_slice($permissions, 0, $i));
+        }
+        try {
+          $parsed->evaluate($node, $is_required);
+          $this->fail('Should throw an access exception.');
+        }
+        catch (CacheableAccessDeniedHttpException $e) {
+          self::assertSame($expected_node_access_denied_message[$i], $e->getMessage());
+        }
       }
     }
+    // Grant all permissions, now it should succeed.
     $this->setUpCurrentUser(permissions: $permissions);
     try {
-      $result = $parsed->evaluate($node, is_required: TRUE);
+      $result = $parsed->evaluate($node, $is_required);
       if ($expected_evaluation_with_node_host_entity === \DomainException::class) {
         self::fail('Should throw an exception.');
       }
@@ -642,14 +661,14 @@ class PropSourceTest extends KernelTestBase {
     if ($expression === 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths') {
       // For the "bio" node, expect `image-2` and an `alternateWidths` query
       // string (NOT: a URI template).
-      $this->assertStringContainsString('image-2', $parsed->evaluate($node, is_required: TRUE));
-      $this->assertStringContainsString('?alternateWidths=', $parsed->evaluate($node, is_required: TRUE));
-      $this->assertStringNotContainsString('{width}', $parsed->evaluate($node, is_required: TRUE));
+      $this->assertStringContainsString('image-2', $parsed->evaluate($node, $is_required));
+      $this->assertStringContainsString('?alternateWidths=', $parsed->evaluate($node, $is_required));
+      $this->assertStringNotContainsString('{width}', $parsed->evaluate($node, $is_required));
       // For the "bio" node, expect `image-3` and a URI template (NOT: an
       // `alternateWidths` query string).
-      $this->assertStringContainsString('image-3', $parsed->evaluate($node2, is_required: TRUE));
-      $this->assertStringContainsString('{width}', $parsed->evaluate($node2, is_required: TRUE));
-      $this->assertStringNotContainsString('?alternateWidths=', $parsed->evaluate($node2, is_required: TRUE));
+      $this->assertStringContainsString('image-3', $parsed->evaluate($node2, $is_required));
+      $this->assertStringContainsString('{width}', $parsed->evaluate($node2, $is_required));
+      $this->assertStringNotContainsString('?alternateWidths=', $parsed->evaluate($node2, $is_required));
 
       // The expression in the context of node 2 (a `bio` node), which surfaces
       // no `content` dependencies because the `srcset_candidate_uri_template`
@@ -663,25 +682,97 @@ class PropSourceTest extends KernelTestBase {
     yield "simple: FieldPropExpression" => [
       'permissions' => ['access user profiles'],
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
+      'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => 'John Doe',
-      'expected_user_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
+      'expected_user_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required."],
       'expected_evaluation_with_node_host_entity' => \DomainException::class,
       'expected_node_access_denied_message' => NULL,
       'expected_dependencies_expression_only' => ['module' => ['user']],
       'expected_dependencies_with_host_entity' => ['module' => ['user']],
     ];
 
-    yield "entity reference: ReferenceFieldPropExpression" => [
+    yield "entity reference: FieldPropExpression using the `url` property, for a REQUIRED component prop" => [
+      'permissions' => [
+        // Grant access to the host entity.
+        'access content',
+        // Grant access to the referenced entity.
+        'access user profiles',
+      ],
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      'is_required' => TRUE,
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_user_access_denied_message' => NULL,
+      'expected_evaluation_with_node_host_entity' => '/user/1',
+      'expected_node_access_denied_message' => [
+        // Exception due to host entity being inaccessible.
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟url, reason: The 'access content' permission is required.",
+        // Exception due to referenced entity being inaccessible.
+        "Required field property empty due to entity or field access while evaluating expression ℹ︎␜entity:node:page␝uid␞␟url, reason: The 'access user profiles' permission is required.",
+      ],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+        'content' => [
+          'user:user:881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
+        ],
+      ],
+    ];
+
+    // In contrast with the above test case:
+    // - the `access user profiles` permission is NOT granted, to simulate the
+    //   referenced entity not being accessible to the current user
+    // - the expected evaluation result is `NULL`, which is acceptable for an
+    //   optional component prop
+    yield "entity reference: FieldPropExpression using the `url` property, for an OPTIONAL component prop" => [
+      'permissions' => [
+        // Grant access to the host entity.
+        'access content',
+      ],
+      'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      'is_required' => FALSE,
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_user_access_denied_message' => NULL,
+      'expected_evaluation_with_node_host_entity' => NULL,
+      'expected_node_access_denied_message' => [
+        // Exception due to host entity being inaccessible.
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟url, reason: The 'access content' permission is required.",
+      ],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node'],
+        'config' => ['node.type.page'],
+        'content' => [
+          'user:user:881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
+        ],
+      ],
+    ];
+
+    yield "entity reference: ReferenceFieldPropExpression following the `entity` property" => [
       'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
       'expected_expression_class' => ReferenceFieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
       'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => 'John Doe',
-      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value, reason: The 'access content' permission is required.",
+      'expected_node_access_denied_message' => [
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value, reason: The 'access content' permission is required.",
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
+      ],
       'expected_dependencies_expression_only' => [
         'module' => ['node', 'user'],
         'config' => ['node.type.page'],
@@ -698,6 +789,7 @@ class PropSourceTest extends KernelTestBase {
     yield "complex object: FieldObjectPropsExpression containing a ReferenceFieldPropExpression" => [
       'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+      'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
       'expected_expression_class' => FieldObjectPropsExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
@@ -706,7 +798,10 @@ class PropSourceTest extends KernelTestBase {
         'human_id' => 'John Doe',
         'machine_id' => 1,
       ],
-      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}, reason: The 'access content' permission is required.",
+      'expected_node_access_denied_message' => [
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}, reason: The 'access content' permission is required.",
+        "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
+      ],
       'expected_dependencies_expression_only' => [
         'module' => ['node', 'user', 'node'],
         'config' => ['node.type.page', 'node.type.page'],
@@ -746,12 +841,13 @@ class PropSourceTest extends KernelTestBase {
     yield "Contrived multi-bundle example, with per-bundle field names *and* per-field property names" => [
       'permissions' => ['access content'],
       'expression' => 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
+      'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => \DomainException::class,
       'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => '<impossible to express in a data provider, see test>',
-      'expected_node_access_denied_message' => "Access denied to entity while evaluating expression, ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths, reason: The 'access content' permission is required.",
+      'expected_node_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths, reason: The 'access content' permission is required."],
       'expected_dependencies_expression_only' => $expected_dependencies_expression,
       'expected_dependencies_with_host_entity' => $expected_node_1_expression_dependencies,
     ];
@@ -766,7 +862,7 @@ class PropSourceTest extends KernelTestBase {
    *           ["ℹ︎␜entity:user␝roles␞␟target_id", null, ["test_role_a", "test_role_b"]]
    *           ["ℹ︎␜entity:user␝roles␞0␟target_id", null, "test_role_a"]
    *           ["ℹ︎␜entity:user␝roles␞1␟target_id", null, "test_role_b"]
-   *           ["ℹ︎␜entity:user␝roles␞5␟target_id", null, null]
+   *           ["ℹ︎␜entity:user␝roles␞5␟target_id", "Requested delta 5 for unlimited cardinality field, but only deltas [0, 1] exist.", "💩"]
    *           ["ℹ︎␜entity:user␝roles␞-1␟target_id", "Requested delta -1, but deltas must be positive integers.", "💩"]
    */
   public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value): void {

@@ -180,10 +180,12 @@ class PropExpressionKernelTest extends KernelTestBase {
     ])->save();
     Vocabulary::create(['name' => 'Tags', 'vid' => 'tags'])->save();
     Term::create([
+      'uuid' => 'some-term-uuid',
       'name' => 'term1',
       'vid' => 'tags',
     ])->save();
     Term::create([
+      'uuid' => 'another-term-uuid',
       'name' => 'term2',
       'vid' => 'tags',
     ])->save();

@@ -465,8 +465,47 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
                 ],
                 'label' => "URI",
               ],
+              [
+                'items' => [
+                  [
+                    'id' => 'b2b210ff285206ee',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
+                    ],
+                    'label' => 'URL',
+                  ],
+                ],
+                'label' => 'User ID',
+              ],
             ],
             'label' => 'Silly image 🤡',
+          ],
+          [
+            'items' => [
+              [
+                'id' => '40aec6943bb1f70a',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝uid␞␟url',
+                ],
+                'label' => 'URL',
+              ],
+            ],
+            'label' => 'Authored by',
+          ],
+          [
+            'items' => [
+              [
+                'id' => 'f406165063d98f55',
+                'source' => [
+                  'sourceType' => 'dynamic',
+                  'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟url',
+                ],
+                'label' => 'URL',
+              ],
+            ],
+            'label' => 'Revision user',
           ],
         ],
       ],

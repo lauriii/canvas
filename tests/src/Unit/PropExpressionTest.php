@@ -140,6 +140,69 @@ class PropExpressionTest extends UnitTestCase {
           'config' => ['node.type.article'],
         ],
       ],
+      ['ℹ︎␜entity:node:article␝uid␞␟url', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'uid', NULL, 'url'),
+        'Authored by␟URL',
+        [
+          'module' => ['node'],
+          'config' => ['node.type.article'],
+          'content' => ['user:user:some-user-uuid'],
+        ],
+      ],
+      'all tag URLs' => ['ℹ︎␜entity:node:article␝field_tags␞␟url', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_tags', NULL, 'url'),
+        'Tags␟URL',
+        [
+          'module' => [
+            'node',
+            // TRICKY: because `field_tags` is not a base field.
+            'taxonomy',
+          ],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_tags',
+            'taxonomy.vocabulary.tags',
+          ],
+          'content' => [
+            // All entities referenced — because no delta is specified.
+            'taxonomy_term:tags:some-term-uuid',
+            'taxonomy_term:tags:another-term-uuid',
+          ],
+        ],
+      ],
+      'second (and last) tag URL' => ['ℹ︎␜entity:node:article␝field_tags␞1␟url', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_tags', 1, 'url'),
+        'Tags␞2nd item␟URL',
+        [
+          'module' => [
+            'node',
+            // TRICKY: because `field_tags` is not a base field.
+            'taxonomy',
+          ],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_tags',
+            'taxonomy.vocabulary.tags',
+          ],
+          'content' => [
+            // Only the entity referenced by the specified delta.
+            'taxonomy_term:tags:another-term-uuid',
+          ],
+        ],
+      ],
+      'third (and non-existent delta!) tag URL' => ['ℹ︎␜entity:node:article␝field_tags␞2␟url', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_tags', 2, 'url'),
+        'Tags␞3rd item␟URL',
+        [
+          'module' => [
+            'node',
+            // TRICKY: because `field_tags` is not a base field.
+            'taxonomy',
+          ],
+          'config' => [
+            'node.type.article',
+            'field.field.node.article.field_tags',
+            'taxonomy.vocabulary.tags',
+          ],
+          // TRICKY: no `content` dependencies because non-existent delta.
+        ],
+      ],
 
       // Context: bundle of entity type, configurable field.
       ['ℹ︎␜entity:node:article␝field_image␞␟title', new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'title'),
@@ -602,7 +665,7 @@ class PropExpressionTest extends UnitTestCase {
       // ℹ️ This test case requires quite some simulating in the sibling kernel
       // test that tests the expected dependencies. To ensure it is accurate,
       // this particular test case also has a functional test.
-      // @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
+      // @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()
       // @see \Drupal\Tests\canvas\Functional\PropExpressionDependenciesTest::testIntermediateDependencies()
       [
         'ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image_1|field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value',

@@ -167,6 +167,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
         $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
           $host_entity,
           $this->fieldName,
+          $this->delta,
           $this->propName,
           $field_definition
         ));
@@ -198,6 +199,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
           $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
             $host_entity,
             $bundle_specific_field_name,
+            $this->delta,
             $prop_name,
             // @phpstan-ignore-next-line argument.type
             $host_entity->getFieldDefinition($bundle_specific_field_name),
@@ -209,7 +211,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     return $dependencies;
   }
 
-  private static function calculateDependenciesForProperty(FieldableEntityInterface $host_entity, string $field_name, string $prop_name, FieldDefinitionInterface $field_definition): array {
+  private static function calculateDependenciesForProperty(FieldableEntityInterface $host_entity, string $field_name, ?int $targeted_delta, string $prop_name, FieldDefinitionInterface $field_definition): array {
     $dependencies = [];
 
     $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
@@ -219,7 +221,10 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
     }
     elseif (is_a($property_definitions[$prop_name]->getClass(), DependentPluginInterface::class, TRUE)) {
       assert($property_definitions[$prop_name]->isComputed());
-      foreach ($host_entity->get($field_name) as $field_item) {
+      foreach ($host_entity->get($field_name) as $delta => $field_item) {
+        if ($targeted_delta !== NULL && $targeted_delta !== $delta) {
+          continue;
+        }
         assert($field_item->get($prop_name) instanceof DependentPluginInterface);
         $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($prop_name)->calculateDependencies());
       }

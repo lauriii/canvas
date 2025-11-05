@@ -15,6 +15,20 @@ use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
+/**
+ * Evaluates an expression, starting with the given context (entity or field).
+ *
+ * It is crucial to know whether the result is required or optional. (In Canvas,
+ * this typically means the SDC prop that is being populated by this expression
+ * is required or not.)
+ *
+ * Impacts:
+ * - absence of context would result in NULL if optional, exception otherwise
+ * - when a field property value targeted by an expression evaluates to NULL
+ *   (returned by its `::getCastedValue()`), this is fine if optional.
+ *   However, if it is required, NULL is unacceptable. This can only happen due
+ *   to inaccessible values, so a CacheableAccessDeniedHttpException is thrown.
+ */
 final class Evaluator {
 
   public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required): mixed {
@@ -127,7 +141,7 @@ final class Evaluator {
       self::validateAccess($field_item_list, $expr);
 
       return match (get_class($expr)) {
-        FieldPropExpression::class => (function () use ($entity, $expr, $field_item_list) {
+        FieldPropExpression::class => (function () use ($entity, $expr, $field_item_list, $is_required) {
           $field_definition = $field_item_list->getFieldDefinition();
           $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
           // If a specific delta is requested, validate it.
@@ -141,8 +155,12 @@ final class Evaluator {
             elseif ($cardinality !== FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED && $expr->delta >= $cardinality) {
               throw new \LogicException(sprintf("Requested delta %d for %d cardinality field, but must be in range [0, %d].", $expr->delta, $cardinality, $cardinality - 1));
             }
+            elseif (!$field_item_list->offsetExists($expr->delta)) {
+              throw new \LogicException(sprintf("Requested delta %d for unlimited cardinality field, but only deltas [0, %d] exist.", $expr->delta, $field_item_list->count() - 1));
+            }
           }
           $result = [];
+          $raw_result = [];
           foreach ($field_item_list as $delta => $field_item) {
             if ($expr->delta === NULL || $expr->delta === $delta) {
               assert(is_string($expr->propName) || (is_array($expr->propName) && is_array($expr->fieldName)));
@@ -161,16 +179,59 @@ final class Evaluator {
                 return StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP;
               }
               $prop = $field_item->get($prop_name);
+              $raw_result[$delta] = $prop->getValue();
               $result[$delta] = $prop instanceof PrimitiveInterface
                 ? $prop->getCastedValue()
-                : $prop->getValue();
+                : $raw_result[$delta];
             }
           }
+
+          // - Single-cardinality or delta requested ⇒ single value.
+          // - Multiple-cardinality and no delta requested ⇒ multiple values.
           if ($cardinality === 1 || is_int($expr->delta)) {
-            // Non-existent deltas on multiple-cardinality fields return NULL.
-            return $result[$expr->delta ?? 0] ?? NULL;
+            $result = $result[$expr->delta ?? 0] ?? NULL;
+            $raw_result = $raw_result[$expr->delta ?? 0] ?? NULL;
           }
-          return $result;
+          if (!$is_required) {
+            return $result;
+          }
+
+          // If the evaluation is for a required component prop, then the shape
+          // matching infrastructure would have guaranteed that Typed Data flags
+          // indicated the entire path in the given expression was required. In
+          // other words: a value MUST exist.
+          // But here we are: there is no value, there is NULL.
+          // The only possible explanation for this is that some field
+          // properties are computed and access checks prevent them from
+          // returning the actual underlying value, to prevent information
+          // disclosure vulnerabilities.
+          $required_yet_empty = match(is_array($result)) {
+            // Multiple-cardinality and no delta requested.
+            TRUE => array_all($result, fn ($prop_value) => $prop_value === NULL),
+            // Single-cardinality or delta requested
+            default => $result === NULL,
+          };
+
+          // Required and populated: evaluation successful.
+          if (!$required_yet_empty) {
+            return $result;
+          }
+
+          // Required and empty: evaluation failed; infer access was forbidden.
+          $access_error_cache = new CacheableMetadata();
+          if (!is_array($result)) {
+            $access_error_cache->addCacheableDependency($raw_result);
+          }
+          else {
+            array_walk($raw_result, $access_error_cache->addCacheableDependency(...));
+          }
+          throw new CacheableAccessDeniedHttpException(
+            $access_error_cache, sprintf(
+              'Required field property empty due to entity or field access while evaluating expression %s, reason: %s',
+              $expr,
+              $raw_result instanceof AccessResultReasonInterface ? $raw_result->getReason() : ''
+            )
+          );
         })(),
         ReferenceFieldPropExpression::class => self::evaluate(
           self::evaluate($entity, $expr->referencer, $is_required),
