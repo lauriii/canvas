@@ -1032,7 +1032,7 @@ const AiWizard = () => {
           #chat-view:has(#messages:empty) {
             display: block;
           }
-          #input:has(#file-attachment-container[style*='display: block']) {
+          #chat-view:has(#messages:empty) #input:has(#file-attachment-container[style*='display: block']) {
             margin-top: 40px;
           }
           .text-message h1 {
