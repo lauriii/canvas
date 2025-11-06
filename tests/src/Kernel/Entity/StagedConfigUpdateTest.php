@@ -40,6 +40,7 @@ final class StagedConfigUpdateTest extends KernelTestBase implements ServiceModi
     'options',
     'path',
     'link',
+    'text',
     'media',
     'system',
   ];

@@ -33,6 +33,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
+    'text',
+    'filter',
   ];
 
   /**

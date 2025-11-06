@@ -17,6 +17,7 @@ trait PageTrait {
     'path_alias',
     'field',
     'image',
+    'text',
     'media',
     'views',
     'filter',

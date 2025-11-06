@@ -129,6 +129,13 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   protected ?VersionedConfigurationSubsetSingleLazyPluginCollection $sourcePluginCollection = NULL;
 
   /**
+   * Tracks the new versions created during its lifetime, until saving.
+   *
+   * @see ::preSave()
+   */
+  protected array $newVersionsDuringLifeTime = [];
+
+  /**
    * {@inheritdoc}
    */
   public function __sleep(): array {
@@ -564,24 +571,62 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     return \Drupal::service(CanvasConfigUpdater::class);
   }
 
-  public function preSave(EntityStorageInterface $storage): void {
-    if (!$this->isSyncing()) {
-      $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
-    }
-    parent::preSave($storage);
+  /**
+   * Computes the `fallback_metadata` except when using the `fallback` source.
+   *
+   * @return void
+   */
+  private function populateFallbackMetadata(): void {
     assert($this->isLoadedVersionActiveVersion());
     $source = $this->getComponentSource();
-    // Compute the appropriate `fallback_metadata` upon saving, except for the
-    // fallback plugin.
+
     if ($source instanceof Fallback) {
       return;
     }
-    elseif ($source instanceof ComponentSourceWithSlotsInterface) {
-      $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = \array_map(self::cleanSlotDefinition(...), $source->getSlotDefinitions());
+
+    $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = NULL;
+    if ($source instanceof ComponentSourceWithSlotsInterface) {
+      $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = \array_map(
+        self::cleanSlotDefinition(...),
+        $source->getSlotDefinitions(),
+      );
     }
-    else {
-      $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata']['slot_definitions'] = NULL;
+  }
+
+  public function preSave(EntityStorageInterface $storage): void {
+    if (!$this->isSyncing()) {
+      $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
+      $this->getConfigUpdater()->updatePropFieldDefinitionsUsingTextValue($this);
     }
+    parent::preSave($storage);
+
+    // Populates the fallback metadata for the active version.
+    $this->populateFallbackMetadata();
+    // If multiple versions were created, they must all have been for the same
+    // implementation of that component: that cannot change mid-request! Hence
+    // use the same fallback metadata for all those versions.
+    // all the versions that were created during this .
+    foreach ($this->newVersionsDuringLifeTime as $new_version) {
+      if ($new_version === $this->getActiveVersion()) {
+        continue;
+      }
+      // If a version was created and immediately deleted, it doesn't need any
+      // fallback metadata.
+      if (!in_array($new_version, $this->getVersions())) {
+        continue;
+      }
+      $this->versioned_properties[$new_version]['fallback_metadata'] = $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata'];
+    }
+    $this->newVersionsDuringLifeTime = [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createVersion(string $version): static {
+    parent::createVersion($version);
+    $this->newVersionsDuringLifeTime[] = $version;
+    return $this;
   }
 
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {

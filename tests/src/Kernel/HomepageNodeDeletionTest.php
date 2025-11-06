@@ -33,6 +33,7 @@ class HomepageNodeDeletionTest extends KernelTestBase {
     'field',
     'link',
     'text',
+    'filter',
     'datetime',
     'file',
     'image',

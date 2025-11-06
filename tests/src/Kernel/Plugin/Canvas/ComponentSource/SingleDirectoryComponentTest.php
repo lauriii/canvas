@@ -193,6 +193,7 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc');
     self::assertSame([
       'sdc.canvas_test_sdc.attributes',
+      'sdc.canvas_test_sdc.banner',
       'sdc.canvas_test_sdc.card',
       'sdc.canvas_test_sdc.card-with-local-image',
       'sdc.canvas_test_sdc.card-with-remote-image',
@@ -315,6 +316,40 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--attributes',
             'core/components.canvas_test_sdc--attributes',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.banner' => [
+        'html' => <<<HTML
+<article class="banner">
+  <header>
+    <h2>My banner title</h2>
+  </header>
+  <div class="container">
+          <div class="image">
+        <img
+   class="banner--image"
+   src="::CANVAS_MODULE_PATH::/tests/modules/canvas_test_sdc/components/banner/balloons.png"
+           alt="Hot air balloons"
+           width="640"
+           height="427"
+      loading="lazy"
+    data-testid="banner-component-image" data-component-id="canvas:image"
+/>
+      </div>
+        <div class="content">
+      <p><p>In a curious work, published in <em>Paris</em> in 1863 by <strong>Delaville Dedreux</strong>, there is a suggestion for reaching the North Pole by an aerostat.</p></p>
+    </div>
+  </div>
+</article>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--banner',
+            'core/components.canvas--image',
+            'core/components.canvas_test_sdc--banner',
           ],
         ],
       ],
@@ -1170,6 +1205,50 @@ activation="auto">
             'field_widget' => 'string_textfield',
             'default_value' => [0 => ['value' => 'The not-attributes SDC prop!']],
             'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.banner' => [
+        'prop_field_definitions' => [
+          'heading' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'My banner title',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'image' => [
+            'required' => FALSE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'text' => [
+            'required' => FALSE,
+            'field_type' => 'text_long',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'allowed_formats' => [
+                'canvas_html_block',
+              ],
+            ],
+            'field_widget' => 'text_textarea',
+            'default_value' => [
+              0 => [
+                'value' => '<p>In a curious work, published in <em>Paris</em> in 1863 by <strong>Delaville Dedreux</strong>, there is a suggestion for reaching the North Pole by an aerostat.</p>',
+                'format' => 'canvas_html_block',
+              ],
+            ],
+            'expression' => 'ℹ︎text_long␟processed',
           ],
         ],
       ],
@@ -2221,6 +2300,19 @@ activation="auto">
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.banner' => [
+        'config' => [
+          'filter.format.canvas_html_block',
+          'image.style.canvas_parametrized_width',
+        ],
+        'module' => [
+          'core',
+          'file',
+          'image',
+          'text',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.card' => [
         'config' => [
           'image.style.canvas_parametrized_width',
@@ -2503,6 +2595,101 @@ activation="auto">
                 0 => ['value' => 'The not-attributes SDC prop!'],
               ],
               'resolved' => 'The not-attributes SDC prop!',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.banner' => [
+        'expected_output_selectors' => [
+          'article.banner',
+          'article.banner img.banner--image',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => 'My banner title',
+                ],
+              ],
+              'resolved' => 'My banner title',
+            ],
+          ],
+          'text' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'contentMediaType' => 'text/html',
+              'x-formatting-context' => 'block',
+            ],
+            'sourceType' => 'static:field_item:text_long',
+            'expression' => 'ℹ︎text_long␟processed',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'allowed_formats' => [
+                  'canvas_html_block',
+                ],
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => [
+                  'value' => '<p>In a curious work, published in <em>Paris</em> in 1863 by <strong>Delaville Dedreux</strong>, there is a suggestion for reaching the North Pole by an aerostat.</p>',
+                  'format' => 'canvas_html_block',
+                ],
+              ],
+              'resolved' => '<p>In a curious work, published in <em>Paris</em> in 1863 by <strong>Delaville Dedreux</strong>, there is a suggestion for reaching the North Pole by an aerostat.</p>',
+            ],
+          ],
+          'image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'title' => 'image',
+              'type' => 'object',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'image/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => '/' . \Drupal::service(ExtensionPathResolver::class)->getPath('module', 'canvas_test_sdc') . '/components/banner/balloons.png',
+                'alt' => 'Hot air balloons',
+                'width' => 640,
+                'height' => 427,
+              ],
             ],
           ],
         ],

@@ -27,6 +27,7 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     'user',
     'canvas_test_sdc',
     'text',
+    'filter',
   ];
 
   protected array $tree = [];

@@ -44,6 +44,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     'options',
     'path',
     'link',
+    'text',
     'filter',
     'ckeditor5',
     'editor',

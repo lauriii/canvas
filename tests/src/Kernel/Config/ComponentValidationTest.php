@@ -54,6 +54,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
+    'text',
     'filter',
     'ckeditor5',
     'editor',

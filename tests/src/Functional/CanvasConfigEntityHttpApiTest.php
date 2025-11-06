@@ -173,6 +173,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.my-cta',
         'sdc.canvas_test_sdc.component-no-meta-enum',
+        'sdc.canvas_test_sdc.banner',
         'sdc.canvas_test_sdc.card',
         'sdc.canvas_test_sdc.props-no-slots',
         'sdc.canvas_test_sdc.image-required-with-example',

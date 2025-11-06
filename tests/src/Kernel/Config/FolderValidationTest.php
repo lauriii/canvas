@@ -31,6 +31,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
+    'text',
     'filter',
     'ckeditor5',
     'editor',

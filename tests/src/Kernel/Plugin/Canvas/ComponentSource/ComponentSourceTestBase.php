@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Form\ComponentInstanceForm;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -119,6 +120,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     'image',
     'link',
     'options',
+    'text',
     'system',
     'media',
     'path',
@@ -513,7 +515,19 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     }
 
     // Test all other expected client-side info.
-    self::assertSame($expected_client_side_info, $actual_client_side_info);
+    // As we cannot compare FilteredMarkup objects, let's cast those to strings.
+    $filteredMarkupAsString = function (array &$values) use (&$filteredMarkupAsString): array {
+      foreach ($values as &$value) {
+        if ($value instanceof MarkupInterface) {
+          $value = (string) $value;
+        }
+        if (is_array($value)) {
+          $filteredMarkupAsString($value);
+        }
+      }
+      return $values;
+    };
+    self::assertSame($filteredMarkupAsString($expected_client_side_info), $filteredMarkupAsString($actual_client_side_info));
   }
 
   /**

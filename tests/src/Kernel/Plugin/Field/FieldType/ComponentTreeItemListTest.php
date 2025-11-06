@@ -60,6 +60,8 @@ class ComponentTreeItemListTest extends KernelTestBase {
     'options',
     'path',
     'link',
+    'text',
+    'filter',
     'system',
     'user',
     'serialization',

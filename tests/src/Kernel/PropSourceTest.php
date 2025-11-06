@@ -1033,7 +1033,7 @@ class PropSourceTest extends KernelTestBase {
    * @coversClass \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
    */
   public function testDefaultRelativeUrlPropSource(): void {
-    $this->enableModules(['canvas_test_sdc', 'link', 'image', 'options']);
+    $this->enableModules(['canvas_test_sdc', 'link', 'image', 'options', 'text']);
     // Force rebuilding of the definitions which will create the required
     // component.
     $plugin_manager = $this->container->get(ComponentPluginManager::class);

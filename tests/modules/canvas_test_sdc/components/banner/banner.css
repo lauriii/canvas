@@ -1,0 +1,30 @@
+.banner {
+  border: 1px solid #999;
+  border-radius: 3px;
+  overflow: hidden;
+
+  h2 {
+    margin: 0;
+    padding: 0.5rem;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: auto auto;
+
+    .image img {
+      height: auto;
+      display: block;
+      width: 100%;
+      object-fit: cover;
+    }
+
+    .content {
+      padding: 0.5rem;
+      display: inline-block;
+    }
+
+  }
+
+}
+

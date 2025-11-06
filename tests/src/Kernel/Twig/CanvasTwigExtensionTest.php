@@ -39,6 +39,8 @@ final class CanvasTwigExtensionTest extends KernelTestBase {
     'options',
     'path',
     'link',
+    'text',
+    'filter',
   ];
 
   /**

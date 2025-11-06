@@ -31,6 +31,7 @@ final class MediaLibrariesBuildTest extends KernelTestBase {
     'options',
     'path',
     'link',
+    'text',
     'system',
     'user',
   ];

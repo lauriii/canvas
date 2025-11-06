@@ -63,6 +63,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     'image',
     'link',
     'options',
+    'text',
     'system',
     'block',
     'datetime',

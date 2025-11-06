@@ -33,6 +33,8 @@ final class ComponentTreeStructureConstraintValidatorTest extends KernelTestBase
     'options',
     'path',
     'link',
+    'text',
+    'filter',
     'system',
     'user',
   ];

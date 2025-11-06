@@ -40,6 +40,8 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
     'options',
     'path',
     'link',
+    'text',
+    'filter',
   ];
 
   /**

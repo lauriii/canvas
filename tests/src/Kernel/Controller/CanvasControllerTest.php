@@ -46,7 +46,6 @@ final class CanvasControllerTest extends KernelTestBase {
     'block',
     'node',
     // Canvas's dependencies (modules providing field types + widgets).
-    'text',
     'datetime',
     'file',
     'image',
@@ -54,6 +53,7 @@ final class CanvasControllerTest extends KernelTestBase {
     'options',
     'path',
     'link',
+    'text',
     'system',
     'user',
   ];

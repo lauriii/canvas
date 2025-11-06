@@ -38,6 +38,7 @@ final class CanvasHtmlRouteProviderTest extends KernelTestBase {
     'options',
     'path',
     'link',
+    'text',
     'system',
     'user',
   ];

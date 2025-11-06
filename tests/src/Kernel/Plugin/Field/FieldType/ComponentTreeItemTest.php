@@ -56,6 +56,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     'image',
     'options',
     'link',
+    'text',
     'system',
     'media',
     'canvas_test_code_components',

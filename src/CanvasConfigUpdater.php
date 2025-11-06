@@ -6,6 +6,8 @@ namespace Drupal\canvas;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -228,6 +230,8 @@ class CanvasConfigUpdater {
       return FALSE;
     }
 
+    $updated_versions = [];
+
     // Get the list of required props from the component metadata.
     $component_source = $component->getComponentSource();
     \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
@@ -254,6 +258,7 @@ class CanvasConfigUpdater {
       if (!isset($prop_field_definition['required'])) {
         $prop_field_definition['required'] = in_array($prop_name, $required_props, TRUE);
         $active_version_updated = TRUE;
+        $updated_versions[] = $component->getActiveVersion();
       }
     }
     // >=1 missing `required` was added. The active version is validated against
@@ -291,6 +296,7 @@ class CanvasConfigUpdater {
         if (!isset($prop_field_definition['required'])) {
           $prop_field_definition['required'] = in_array($prop_name, $required_props, TRUE);
           $past_version_updated = TRUE;
+          $updated_versions[] = $version;
         }
       }
       if ($past_version_updated) {
@@ -304,6 +310,164 @@ class CanvasConfigUpdater {
 
     // Typically, the active version is loaded, unless otherwise requested.
     $component->resetToActiveVersion();
+
+    $deprecations_triggered = &$this->triggeredDeprecations['3550334'][\sprintf('%s:%s', $component->getEntityTypeId(), $component->id())];
+    if ($this->deprecationsEnabled && !$deprecations_triggered) {
+      $deprecations_triggered = TRUE;
+      // phpcs:ignore
+      @trigger_error(\sprintf('%s with ID %s has one or more versions (%s) that had `prop_field_definitions` without `required` metadata - this is deprecated in canvas:1.0.0-rc1 and will be removed in canvas:2.0.0. See https://www.drupal.org/node/3556444', $component->getEntityType()->getLabel(), $component->id(), implode(', ', $updated_versions)), E_USER_DEPRECATED);
+    }
+
+    return $active_version_updated || $past_version_updated;
+  }
+
+  public function needsUpdatingPropFieldDefinitionsUsingTextValue(Component $component): bool {
+    $component_source = $component->getComponentSource();
+    // @see `type: canvas.generated_field_explicit_input_ux`
+    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+      return FALSE;
+    }
+
+    // Track the originally loaded version to enable avoiding side effects.
+    $originally_loaded_version = $component->getLoadedVersion();
+
+    // Any versions of the Component config entity cannot have a
+    // `FieldTypePropExpression('text', 'value')` nor
+    // `FieldTypePropExpression('text_long', 'value')`.
+    // Note: Start with the oldest version, because it is most likely they have
+    // one of those. (Sites updated to `1.0.0-beta2` might have this fixed for
+    // new versions, but not for old versions: it lacked an update path.)
+    $needs_updating = FALSE;
+    foreach (array_reverse($component->getVersions()) as $version) {
+      $component->loadVersion($version);
+      $settings = $component->getSettings();
+      assert(\array_key_exists('prop_field_definitions', $settings));
+      foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+        \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+        $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
+        $needs_updating = match(TRUE) {
+          $prop_field_definition['field_type'] === 'text' && $expression->propName === 'value' => TRUE,
+          $prop_field_definition['field_type'] === 'text_long' && $expression->propName === 'value' => TRUE,
+          default => FALSE,
+        };
+        if ($needs_updating) {
+          break 2;
+        }
+      }
+    }
+
+    // Avoid side effects: ensure the given Component still has the same version
+    // loaded. (Not strictly necessary, just a precaution.)
+    $component->loadVersion($originally_loaded_version);
+    return $needs_updating;
+  }
+
+  public function updatePropFieldDefinitionsUsingTextValue(Component $component) : bool {
+    if (!$this->needsUpdatingPropFieldDefinitionsUsingTextValue($component)) {
+      return FALSE;
+    }
+
+    $updated_versions = [];
+
+    // Get the list of required props from the component metadata.
+    $component_source = $component->getComponentSource();
+    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    $metadata = $component_source->getMetadata();
+    assert(\is_array($metadata->schema));
+    assert(\array_key_exists('properties', $metadata->schema));
+
+    // This must update Component versions from newest to oldest. The newest
+    // is called the "active" version. It:
+    // - DOES NOT need updating for sites that previously updated to
+    //   `1.0.0-beta2` AND rediscovered their SDCs and code components. Because
+    //   that release shipped with the logic, but without the update path.
+    // - DOES need updating in all other scenarios
+    // Note that in the "DOES" case, a new version will be created, which means
+    // there will be one new "past version".
+    // If this would update oldest to newest, it'd fail to update the newly
+    // created past version.
+    $new_past_version = $component->getActiveVersion();
+    $component->loadVersion($new_past_version);
+    $settings = $component->getSettings();
+    assert(\array_key_exists('prop_field_definitions', $settings));
+    $active_version_updated = FALSE;
+    foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+      \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+      $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
+      $needs_updating = match(TRUE) {
+        $prop_field_definition['field_type'] === 'text' && $expression->propName === 'value' => TRUE,
+        $prop_field_definition['field_type'] === 'text_long' && $expression->propName === 'value' => TRUE,
+        default => FALSE,
+      };
+      if ($needs_updating) {
+        $prop_field_definition['expression'] = (string) (new FieldTypePropExpression($prop_field_definition['field_type'], 'processed'));
+        $active_version_updated = TRUE;
+        $updated_versions[] = $component->getActiveVersion();
+      }
+    }
+    // >=1 expression was changed. The active version is validated against
+    // `type: canvas.component.versioned.active.*`, which means a new version is
+    // required — otherwise the version hash will not match, triggering a
+    // validation error.
+    if ($active_version_updated) {
+      $source_for_new_version = $this->componentSourceManager->createInstance(
+        $component_source->getPluginId(),
+        [
+          'local_source_id' => $component->get('source_local_id'),
+          ...$settings,
+        ],
+      );
+      \assert($source_for_new_version instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+      $version = $source_for_new_version->generateVersionHash();
+      $component->createVersion($version)
+        ->setSettings($settings);
+    }
+
+    // Now update all past versions. These won't require generating new versions
+    // because they are validated against `type: canvas.component.versioned.*.*`
+    // which uses `type: ignore` for `settings`.
+    $past_version_updated = FALSE;
+    foreach ($component->getVersions() as $version) {
+      if ($version === $component->getActiveVersion()) {
+        // The active version has already been updated above.
+        continue;
+      }
+      $component->loadVersion($version);
+      \assert(!$component->isLoadedVersionActiveVersion());
+      $settings = $component->getSettings();
+      assert(\array_key_exists('prop_field_definitions', $settings));
+      foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+        \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+        $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
+        $needs_updating = match(TRUE) {
+          $prop_field_definition['field_type'] === 'text' && $expression->propName === 'value' => TRUE,
+          $prop_field_definition['field_type'] === 'text_long' && $expression->propName === 'value' => TRUE,
+          default => FALSE,
+        };
+        if ($needs_updating) {
+          $prop_field_definition['expression'] = (string) (new FieldTypePropExpression($prop_field_definition['field_type'], 'processed'));
+          $past_version_updated = TRUE;
+          $updated_versions[] = $version;
+        }
+      }
+      if ($past_version_updated) {
+        // Pretend to be syncing; otherwise changing settings of past versions
+        // is forbidden.
+        $component->setSyncing(TRUE)
+          ->setSettings($settings)
+          ->setSyncing(FALSE);
+      }
+    }
+
+    // Typically, the active version is loaded, unless otherwise requested.
+    $component->resetToActiveVersion();
+
+    $deprecations_triggered = &$this->triggeredDeprecations['3550334'][\sprintf('%s:%s', $component->getEntityTypeId(), $component->id())];
+    if ($this->deprecationsEnabled && !$deprecations_triggered) {
+      $deprecations_triggered = TRUE;
+      // phpcs:ignore
+      @trigger_error(\sprintf('%s with ID %s has one or more versions (%s) that use the "text" field type and is erroneously using the `value` instead of the `processed` field property - this is deprecated in canvas:1.0.0-rc1 and will be removed in canvas:2.0.0. See https://www.drupal.org/node/3556442', $component->getEntityType()->getLabel(), $component->id(), implode(', ', $updated_versions)), E_USER_DEPRECATED);
+    }
 
     return $active_version_updated || $past_version_updated;
   }

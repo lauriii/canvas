@@ -1,0 +1,20 @@
+<article class="{{ class ?? 'banner' }}">
+  <header>
+    <h2>{{ heading }}</h2>
+  </header>
+  <div class="container">
+    {% if image is defined %}
+      <div class="image">
+        {% include 'canvas:image' with image|merge({
+          class: 'banner--image',
+          attributes: create_attribute({
+            'data-testid': 'banner-component-image',
+          })
+        }|filter((value) => value is not null)) only %}
+      </div>
+    {% endif %}
+    <div class="content">
+      <p>{{ text|default('') }}</p>
+    </div>
+  </div>
+</article>

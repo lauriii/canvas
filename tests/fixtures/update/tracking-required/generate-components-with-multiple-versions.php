@@ -17,7 +17,7 @@
  *
  * After we run this on alpha1, we need to export the dump, and find
  * the relevant inserts to these config entities, and put those in our
- * actual fixture script. See `tracking_required_fixture.php`.
+ * actual fixture script. See `tracking-required-fixture.php`.
  */
 
 use Drupal\canvas\Entity\JavaScriptComponent;

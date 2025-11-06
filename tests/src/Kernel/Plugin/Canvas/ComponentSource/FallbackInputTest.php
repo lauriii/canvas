@@ -52,6 +52,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     'image',
     'link',
     'options',
+    'text',
     // Allow using media for image plugin.
     'media',
     'media_library',
