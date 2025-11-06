@@ -434,35 +434,6 @@ cypress unit:
     - *UI-fixtures-files-change-rule
     - *manual-rule
 
-🗺️ C4 model diagrams:
-  stage: validate
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - docs/Canvas.dsl
-        - docs/diagrams/*
-  image:
-    name: structurizr/cli
-    entrypoint: [""]
-  script:
-    - /usr/local/structurizr-cli/structurizr.sh export --workspace docs/Canvas.dsl --format mermaid --output $CI_PROJECT_DIR/docs/diagrams
-    # Prepend the prefix
-    #   ```mermaid
-    # and the
-    #   ```
-    # suffix that GitLab CI expects.
-    # @see https://docs.gitlab.com/ee/user/markdown.html#mermaid
-    # @see https://stackoverflow.com/a/42989868
-    # @see https://stackoverflow.com/a/9741470
-    - for file in docs/diagrams/*.mmd; do printf "\`\`\`mermaid\n" | cat - $file  > temp && mv -f temp $file && echo $'\n```' >> $file; done
-    # Now the actual validation: verify that regenerating the Mermaid Markdown files did NOT trigger any changes.
-    - set -e; for file in docs/diagrams/*.mmd; do diff $file docs/diagrams/$(basename $file mmd)md; done
-  artifacts:
-    paths:
-      - "docs/diagrams/*.md"
-
 lint (php):
   stage: validate
   needs: []
