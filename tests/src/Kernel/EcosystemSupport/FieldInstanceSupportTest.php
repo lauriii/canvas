@@ -266,7 +266,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         }
         // All known-to-be-supported field types are expected to have all props
         // supported, except the ones known to not yet work, either due to a
-        // core bug, or due to an Canvas bug.
+        // core bug, or due to a Canvas bug.
         if (array_key_exists($field_type, self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
           $expected_supported_field_props[] = "$field_name.$field_prop_name";
         }

@@ -104,7 +104,8 @@ trait ComponentTreeItemListInstantiatorTrait {
     foreach ($sorted_graph as $uuid => $graph) {
       // If this UUID is not in the lookup, it could mean that there is an
       // invalid parent_uuid, but that parent item does not exist in the tree.
-      // Validation doesn't happen until after this, so we can't rely on it here.
+      // Validation doesn't happen until after this, so we can't rely on it
+      // here.
       if (!\array_key_exists($uuid, $uuid_lookup)) {
         continue;
       }

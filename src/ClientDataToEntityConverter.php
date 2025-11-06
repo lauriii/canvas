@@ -259,7 +259,8 @@ class ClientDataToEntityConverter {
       }
     }
 
-    // 'Peek' at the form to work out any form fields that are booleans or buttons.
+    // 'Peek' at the form to work out any form fields that are booleans or
+    // buttons.
     $peek_form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
     $peek_form_state = $this->buildFormState($peek_form_object, $entity, 'default')
       // Don't fetch any form values from the request
@@ -370,8 +371,13 @@ class ClientDataToEntityConverter {
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     assert($original_entity instanceof FieldableEntityInterface);
     // Filter out form_build_id, form_id and form_token.
-    $entity_form_fields = array_filter($entity_form_fields, static fn (string|int $key): bool => is_string($key) && $entity->hasField($key), ARRAY_FILTER_USE_KEY);
-    // Copied from \Drupal\jsonapi\Controller\EntityResource::updateEntityField().
+    $entity_form_fields = array_filter(
+      $entity_form_fields,
+      static fn (string|int $key): bool => is_string($key) && $entity->hasField($key),
+      ARRAY_FILTER_USE_KEY,
+    );
+    // Copied from
+    // \Drupal\jsonapi\Controller\EntityResource::updateEntityField().
     foreach ($entity_form_fields as $field_name => $field_value) {
       \assert(\is_string($field_name));
       try {

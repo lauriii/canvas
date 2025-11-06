@@ -43,11 +43,11 @@ class ContentCreatorVisibleCanvasConfigEntityAccessControlHandler extends Canvas
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
-      // We allow viewing the label of these entities if the user has access to Canvas to allow them
-      // to be published.
+      // We allow viewing the label of these entities if the user has access to
+      // Canvas to allow them to be published.
       'view label' => $this->canvasUiAccessCheck->access($account)->addCacheableDependency($entity),
-      // We allow viewing these entities if the user has access to Canvas, and their
-      // status is enabled.
+      // We allow viewing these entities if the user has access to Canvas, and
+      // their status is enabled.
       'view' => $this->canvasUiAccessCheck->access($account)->andIf(AccessResult::allowedIf($entity->status())
         ->addCacheableDependency($entity)),
       default => parent::checkAccess($entity, $operation, $account),

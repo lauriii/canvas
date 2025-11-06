@@ -10,10 +10,11 @@ use Drupal\Core\Routing\RouteMatchInterface;
 /**
  * Decorator to avoid displaying messages on Canvas API routes.
  *
- * No messages should ever be visible in the previews rendered by Canvas API routes.
+ * No messages should ever be visible in the previews rendered by Canvas API
+ * routes.
  *
- * (The only messages relevant in the Canvas UI are validation errors, and those are
- * displayed when reviewing/publishing all auto-saved changes.)
+ * (The only messages relevant in the Canvas UI are validation errors, and
+ * those are displayed when reviewing/publishing all auto-saved changes.)
  */
 readonly class Messenger implements MessengerInterface {
 

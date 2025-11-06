@@ -13,9 +13,10 @@ use Drupal\canvas\Entity\Component;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Not every unavailable/disabled SDC will have Component entity, so we're using a controller instead of EntityListBuilder for this.
- *
  * @see \Drupal\canvas\Plugin\ComponentPluginManager::setCachedDefinitions()
+ *
+ * Not every unavailable/disabled SDC will have Component entity, so we're using
+ * a controller instead of EntityListBuilder for this.
  *
  * @todo Ensure reasons are translated.
  */

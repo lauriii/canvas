@@ -21,7 +21,7 @@ use Drupal\views\Entity\View;
 use Psr\Log\LoggerInterface;
 
 /**
- * Decorator that auto-creates/updates a Drupal Canvas Component entity per Block plugin.
+ * Decorator that auto-creates/updates a Canvas Component per Block plugin.
  *
  * @see \Drupal\canvas\Entity\Component
  * @see docs/components.md#3.2
@@ -63,7 +63,8 @@ class BlockManager extends CoreBlockManager {
   protected function setCachedDefinitions($definitions): array {
     parent::setCachedDefinitions($definitions);
 
-    // Do not auto-create/update Canvas configuration when syncing config/deploying.
+    // Do not auto-create/update Canvas configuration when syncing
+    // config/deploying.
     // @todo Introduce a "Canvas development mode" similar to Twig's: https://www.drupal.org/node/3359728
     // @phpstan-ignore-next-line
     if (\Drupal::isConfigSyncing()) {
@@ -90,7 +91,8 @@ class BlockManager extends CoreBlockManager {
       $status = TRUE;
       if (in_array($definition['provider'], ['core', ...$all_installed_core_extensions], TRUE) && !in_array($id, self::BLOCKS_TO_KEEP_ENABLED, TRUE)) {
         $status = FALSE;
-        // Special case for view blocks that are tagged with "default" are disabled as they are likely created by core.
+        // Special case for view blocks that are tagged with "default" are
+        // disabled as they are likely created by core.
         if ($definition['provider'] === 'views') {
           $config_dependencies = $definition['config_dependencies']['config'] ?? [];
           foreach ($config_dependencies as $dependency) {
@@ -119,8 +121,8 @@ class BlockManager extends CoreBlockManager {
         // We are using strict config schema validation, so we need to provide
         // valid default settings for each block.
         'default_settings' => [
-            // The generic block plugin settings: all block plugins have at least
-            // this.
+            // The generic block plugin settings: all block plugins have at
+            // least this.
             // @see `type: block_settings`
             // @see `type: block.settings.*`
             // @todo Simplify when core simplifies `type: block_settings` in

@@ -26,7 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * A *private* main content renderer for Canvas endpoints returning preview markup.
+ * A *private* main content renderer for endpoints returning preview markup.
  *
  * It is private because it is not exposed as a `render.main_content_renderer`-
  * tagged service. Used only by PreviewEnvelopeViewSubscriber.
@@ -89,9 +89,9 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
       if ($region === CanvasPageVariant::MAIN_CONTENT_REGION) {
         continue;
       }
-      // Empty regions don't need HTML comments to inform the Canvas UI; empty regions
-      // are not visible. They can only be reached by right-clicking in the UI
-      // and moving it to such a not yet visible region.
+      // Empty regions don't need HTML comments to inform the Canvas UI; empty
+      // regions are not visible. They can only be reached by right-clicking in
+      // the UI and moving it to such a not yet visible region.
       if ($page[$region] === []) {
         continue;
       }

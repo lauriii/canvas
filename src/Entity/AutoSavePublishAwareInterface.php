@@ -7,7 +7,7 @@ namespace Drupal\canvas\Entity;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * Defines an interface for entities that have specific actions on auto-save publish.
+ * Interface for entities that have specific actions on auto-save publish.
  */
 interface AutoSavePublishAwareInterface extends EntityInterface {
 

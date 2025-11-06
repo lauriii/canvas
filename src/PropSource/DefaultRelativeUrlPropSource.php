@@ -67,7 +67,8 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function parse(array $sdc_prop_source): static {
-    // `sourceType = default-relative-url` requires a value and schema to be specified.
+    // `sourceType = default-relative-url` requires a value and schema to be
+    // specified.
     $missing = array_diff(['value', 'jsonSchema', 'componentId'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));

@@ -14,7 +14,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 /**
  * Handles logging of error messages via an API endpoint.
  *
- * Accepts a JSON payload with a 'message' and 'level', validates the input, and logs the message using Drupal's logging system.
+ * Accepts a JSON payload with a 'message' and 'level', validates the input, and
+ * logs the message using Drupal's logging system.
  */
 final class ApiLogController {
 

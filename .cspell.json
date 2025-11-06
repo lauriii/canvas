@@ -22,7 +22,6 @@
       "docs/diagrams/**",
       "js/assets/**",
       "js/astro-bundles/**",
-      "modules/same_page_preview/**",
       "modules/canvas_vite/**",
       "node_modules",
       "node_modules/**",

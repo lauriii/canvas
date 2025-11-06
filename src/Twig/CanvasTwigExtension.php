@@ -69,7 +69,7 @@ final class CanvasTwigExtension extends AbstractExtension {
   }
 
   /**
-   * Filter to generate `srcset` from URLs with an `alternateWidths` parameter, or a local file.
+   * Generates `srcset` from URLs with ?alternateWidths and stream wrapper URIs.
    *
    * @param string $src
    *   An img.src attribute.

@@ -84,7 +84,7 @@ Given a component developed by a [Front-End Developer](diagrams/structurizr-Syst
 Content Creator to place a `component instance` in the `component tree`, specify values for the `component input`s and
 `component slot`s?
 
-### 3.1 Data Model: from Front-End Developer to an Canvas data model that empowers the Content Creator
+### 3.1 Data Model: from Front-End Developer to a Canvas data model that empowers the Content Creator
 
 Moved to the [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md).
 

@@ -24,4 +24,3 @@ interface ComponentSourceWithSwitchCasesInterface extends ComponentSourceInterfa
   public function isNegotiatedCase(array $inputs): bool;
 
 }
-

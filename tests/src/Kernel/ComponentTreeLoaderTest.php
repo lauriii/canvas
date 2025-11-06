@@ -78,7 +78,7 @@ class ComponentTreeLoaderTest extends KernelTestBase {
     $node = Node::load($node->id());
     self::assertNotNull($node);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('This entity does not have an Canvas field!');
+    $this->expectExceptionMessage('This entity does not have a Canvas field!');
     /** @var \Drupal\canvas\Storage\ComponentTreeLoader $component_tree_loader */
     $component_tree_loader = $this->container->get(ComponentTreeLoader::class);
     $component_tree_loader->load($node);

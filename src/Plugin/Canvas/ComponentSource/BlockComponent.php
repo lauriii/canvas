@@ -242,7 +242,8 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
 
     $build['content'] = $block->build();
-    // Avoid the fallback rendering of the Block system; instead use Canvas' own.
+    // Avoid the fallback rendering of the Block system; instead use Canvas'
+    // own.
     // @see \Drupal\Core\Block\Plugin\Block\Broken::build()
     if ($block instanceof Broken) {
       $build['#pre_render'][] = [self::class, 'bubbleBrokenBlock'];

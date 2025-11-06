@@ -32,15 +32,16 @@ function semi_coupled_theme(array $existing, string $type, string $theme, string
  * @see themes/engines/semi_coupled/README.md
  */
 function semi_coupled_render_template(string $template_file, array $variables): string|MarkupInterface {
-  // If the template is not provided by the canvas_stark theme, render with Twig.
+  // If the template is not provided by the canvas_stark theme, render with
+  // Twig.
   if (!str_contains($template_file, '/process_as_jsx/')) {
     /* @phpstan-ignore function.notFound */
     return twig_render_template($template_file, $variables);
   }
 
-  // If we've reached this point, the template filename ends with `--canvascanvas` and the
-  // template contents should be a JSON object that maps render array properties
-  // to the data types they should be treated as when sent to React.
+  // If we've reached this point, the template contents should be a JSON object
+  // that maps render array properties to the data types they should be treated
+  // as when sent to React.
   $file_contents = file_get_contents($template_file);
   if ($file_contents === FALSE) {
     $file_contents = '';

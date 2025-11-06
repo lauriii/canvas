@@ -12,8 +12,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  * This trait is used to validate that the client is aware of the latest
  * auto-saves for both:
  * 1. data part of the page preview:
- *    - the component tree (`layout` + `model` in the client-side representation)
- *    - values for all entity fields besides the Canvas field (aka component tree)
+ *    - the component tree (`layout` + `model` in the client-side
+ *      representation)
+ *    - values for all entity fields besides the Canvas field (aka component
+ *      tree)
  *    - PageRegion config entities
  * 2. config entities which are explicitly edited and auto-saved
  *    - JavaScriptComponent config entities
@@ -60,7 +62,8 @@ trait AutoSaveValidateTrait {
     ksort($autoSaves);
     if (!$foundClientIdMismatch) {
       // If the client ID matches, we can skip the check for the auto-saves
-      // hashes. Client requests may be sent off before the last request returns.
+      // hashes. Client requests may be sent off before the last request
+      // returns.
       // Remove 'hash' from the expected auto-saves and actual ones. But we
       // should still make sure the 'autoSaveStartingPoint' matches.
       array_walk($expected_auto_saves, function (&$value) {

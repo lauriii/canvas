@@ -18,7 +18,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxCom
 use Drupal\canvas\PropSource\FieldStorageDefinition;
 
 /**
- * Provides allowed values for a 'list_*' field used in an Canvas StaticPropSource.
+ * Provides allowed values for a 'list_*' field used in a StaticPropSource.
  *
  * @see callback_allowed_values_function()
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getOptionsForExplicitInputEnumProps()
@@ -60,8 +60,8 @@ function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInt
  */
 function canvas_preprocess_region(array &$variables):void {
   if (!array_key_exists('#canvas_region_preview', $variables['elements'])) {
-    // Nothing to do: this is a region being rendered outside of an Canvas preview
-    // context.
+    // Nothing to do: this is a region being rendered outside of a Canvas
+    // preview context.
     return;
   }
 
@@ -70,8 +70,9 @@ function canvas_preprocess_region(array &$variables):void {
 
   $content = (string) $variables['content'];
 
-  // Additional `content-start` and `content-end` comment annotations to surround just the {{ content }} output
-  // to allow Canvas's UI to more accurately render the region overlays
+  // Additional `content-start` and `content-end` comment annotations to
+  // surround just the {{ content }} output to allow Canvas's UI to more
+  // accurately render the region overlays.
   $variables['content'] = Markup::create(<<<HTML
 <!-- canvas-region-content-start-$region -->
 $content

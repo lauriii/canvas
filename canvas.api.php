@@ -64,7 +64,8 @@ use Drupal\canvas\PropShape\CandidateStorablePropShape;
  * Any library with `drupalSettings.canvasExtension` will be identified as an
  * Drupal Canvas extension and will be loaded with the UI. Be sure
  * to add `canvas/ui` as a dependency.
- * So, your `*.libraries.yml` file should contain an entry that looks similar to this:
+ * So, your `*.libraries.yml` file should contain an entry that looks similar to
+ * this:
  * @code
  * app:
  *  header: true
@@ -88,7 +89,8 @@ use Drupal\canvas\PropShape\CandidateStorablePropShape;
  * examples of how these APIs can be used to access info about and make
  * changes to content in the UI.
  *
- * This functionality is currently experimental and a more formal API will be available in future versions.
+ * This functionality is currently experimental and a more formal API will be
+ * available in future versions.
  *
  * @}
  */
@@ -121,8 +123,8 @@ function hook_storage_prop_shape_alter(CandidateStorablePropShape $storable_prop
   // The `type: string, format: duration` JSON schema does not have a field type
   // in Drupal core that supports that shape. A contrib module could add support
   // for it.
-  // ⚠️ Any field widget that is used must have `canvas.transforms` defined on the
-  // field widget's plugin definition. See hook_field_widget_info_alter().
+  // ⚠️ Any field widget that is used must have `canvas.transforms` defined on
+  // the field widget's plugin definition. See hook_field_widget_info_alter().
   if ($storable_prop_shape->fieldTypeProp === NULL && $storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'duration']) {
     $storable_prop_shape->fieldTypeProp = new FieldTypePropExpression('contrib_duration_field', 'value');
     $storable_prop_shape->fieldWidget = 'fancy_duration_widget';

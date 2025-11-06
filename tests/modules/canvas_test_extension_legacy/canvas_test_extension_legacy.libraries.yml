@@ -9,6 +9,6 @@ app:
       testExtensionLegacy:
         id: canvas-test-extension-legacy
         name: Canvas Test Extension (Legacy)
-        description: Demonstrates many things that an Canvas extension can do
+        description: Demonstrates many things that a Canvas extension can do
   dependencies:
     - canvas/canvas-ui

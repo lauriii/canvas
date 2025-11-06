@@ -36,7 +36,8 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     }, $this->objectPropsToFieldProps));
     array_walk($objectPropsToFieldProps, function (StructuredDataPropExpressionInterface $expr) {
       // Each of the expressions in $objectPropsToFieldProps MUST target the
-      // same field item; otherwise it'd be nonsense. IOW: the following MUST match `entityType`, `fieldName` and `delta`.
+      // same field item; otherwise it'd be nonsense. IOW: the following MUST
+      // match `entityType`, `fieldName` and `delta`.
       $targets_same_field_item = $expr instanceof ReferenceFieldPropExpression
         ? $expr->referencer->entityType == $this->entityType && $expr->referencer->fieldName === $this->fieldName && $expr->referencer->delta === $this->delta
         : $expr->entityType == $this->entityType && $expr->fieldName === $this->fieldName && $expr->delta === $this->delta;

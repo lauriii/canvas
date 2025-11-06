@@ -61,8 +61,9 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       return TRUE;
     }
     // @todo Check if the required props are the same in the plugin and the saved component.
-    //   Consider returning an enum[] that could give more info for the developer, e.g. the
-    //   multiple reasons that could make this as broken/invalid. See
+    //   Consider returning an enum[] that could give more info for the
+    //   developer, e.g. the multiple reasons that could make this as
+    //   broken/invalid. See
     //   https://www.drupal.org/project/canvas/issues/3532514
     return FALSE;
   }
@@ -161,7 +162,9 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   /**
    * Converts an SDC plugin machine name into a config entity ID.
    *
-   * The naming convention for SDC plugin components is [module/theme]:[component machine name]. Colon is invalid config entity name, so we replace it with '.'.
+   * The naming convention for SDC plugin components is
+   * [module/theme]:[component machine name]. Colon is invalid config entity
+   * name, so we replace it with '.'.
    *
    * @param string $machine_name
    *   The SDC plugin.

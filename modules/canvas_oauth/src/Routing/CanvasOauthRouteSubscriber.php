@@ -12,7 +12,7 @@ use Symfony\Component\Routing\RouteCollection;
 class CanvasOauthRouteSubscriber extends RouteSubscriberBase {
 
   /**
-   * Name of route option Canvas uses to mark a route as an external API endpoint.
+   * Name of route option Canvas uses to mark an external API endpoint.
    */
   private const ROUTE_OPTION_EXTERNAL_API = 'canvas_external_api';
 
@@ -25,10 +25,11 @@ class CanvasOauthRouteSubscriber extends RouteSubscriberBase {
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection): void {
-    // The Canvas routes don't define an `_auth` option, which means that all global
-    // authentication providers are allowed to authenticate on these routes. We
-    // intend to keep that behavior, but explicitly adding an `_auth` option
-    // means only the providers listed in the option are allowed to authenticate.
+    // The Canvas routes don't define an `_auth` option, which means that all
+    // global authentication providers are allowed to authenticate on these
+    // routes. We intend to keep that behavior, but explicitly adding an `_auth`
+    // option means only the providers listed in the option are allowed to
+    // authenticate.
     // At the same time, we don't want to mark this module's authentication
     // provider as global.
     // So let's collect all global providers, and place `canvas_oauth` at the

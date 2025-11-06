@@ -8,7 +8,7 @@ use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 
 /**
- * For versioned config entities with versionable subset of plugin configuration.
+ * For versioned config entities with versionable subset of plugin config.
  *
  * @see \Drupal\canvas\Entity\VersionedConfigEntityBase::preSave()
  * @internal
@@ -16,7 +16,7 @@ use Drupal\Core\Plugin\DefaultSingleLazyPluginCollection;
 final class VersionedConfigurationSubsetSingleLazyPluginCollection extends DefaultSingleLazyPluginCollection {
 
   /**
-   * Constructs a new VersionedConfigurationSubsetSingleLazyPluginCollection object.
+   * Constructs a VersionedConfigurationSubsetSingleLazyPluginCollection object.
    *
    * @param string[] $omittedKeys
    *   The keys of the key-value pairs in $configuration that should be omitted

@@ -85,7 +85,8 @@ final class ApiContentControllers {
     }
     else {
       // Note: this intentionally does not catch content entity type storage
-      // handler exceptions: the generic Canvas API exception subscriber handles them.
+      // handler exceptions: the generic Canvas API exception subscriber handles
+      // them.
       // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
       $entity_type_definition = $this->entityTypeManager->getDefinition($entity_type);
       $new = $this->entityTypeManager->getStorage($entity_type)->create([
@@ -118,7 +119,7 @@ final class ApiContentControllers {
   }
 
   /**
-   * Returns a list of Canvas Page content entities, with only high-level metadata.
+   * Returns a list of content entities, with only high-level metadata.
    *
    * TRICKY: there are reasons Canvas has its own internal HTTP API rather than
    * using Drupal core's JSON:API. As soon as this method is updated to return

@@ -183,7 +183,7 @@ describe('Media Library component instance', () => {
   });
 
   it(
-    'Can open the media library widget in an canvas_page props form',
+    'Can open the media library widget in a canvas_page props form',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.drupalLogin('canvasUser', 'canvasUser');

@@ -33,7 +33,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * Controllers exposing HTTP API for interacting with Canvas's Config entity types.
+ * Controllers exposing HTTP API for interacting with Canvas's Config entities.
  *
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
@@ -60,12 +60,12 @@ final class ApiConfigControllers extends ApiControllerBase {
   /**
    * Returns a list of enabled Canvas config entities in client representation.
    *
-   * This controller provides a critical response for the Canvas UI. Therefore it
-   * should hence be as fast and cacheable as possible. High-cardinality cache
-   * contexts (such as 'user' and 'session') result in poor cacheability.
+   * This controller provides a critical response for the Canvas UI. Therefore,
+   * it should hence be as fast and cacheable as possible. High-cardinality
+   * cache contexts (such as 'user' and 'session') result in poor cacheability.
    * Fortunately, these cache contexts only are present for the markup used for
-   * previewing Canvas Components. So Canvas chooses to sacrifice accuracy of the
-   * preview slightly to be able to guarantee strong cacheability and fast
+   * previewing Canvas Components. So Canvas chooses to sacrifice accuracy of
+   * the preview slightly to be able to guarantee strong cacheability and fast
    * responses.
    */
   public function list(string $canvas_config_entity_type_id): CacheableJsonResponse {
@@ -75,7 +75,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     // Load the queried config entities: a list of all of them.
     $storage = $this->entityTypeManager->getStorage($canvas_config_entity_type_id);
     $query = $storage->getQuery()->accessCheck(TRUE);
-    // Load only enabled Canvas config entities if the Canvas config entity type:
+    // Load only enabled Canvas config entities if the config entity type:
     // - specifies the `status` property as a lookup key
     // - does not use the special "visible when disabled" access control handler
     if (in_array('status', $canvas_config_entity_type->getLookupKeys(), TRUE) && $canvas_config_entity_type->getHandlerClass('access') !== VisibleWhenDisabledCanvasConfigEntityAccessControlHandler::class) {
@@ -128,7 +128,8 @@ final class ApiConfigControllers extends ApiControllerBase {
     $total_cacheability->setCacheTags(array_filter(
       $total_cacheability->getCacheTags(),
       fn (string $tag): bool =>
-        // Support both Canvas config entity types provided by the main Canvas module…
+        // Support both Canvas config entity types provided by the main Canvas
+        // module…
         !str_starts_with($tag, 'config:canvas.' . $canvas_config_entity_type_id)
         // … and by optional submodules.
         && !str_starts_with($tag, 'config:canvas_personalization.' . $canvas_config_entity_type_id),

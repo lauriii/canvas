@@ -219,10 +219,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
       ],
     ];
 
-    // 💡 Demonstrate it is possible to reuse an Canvas-defined prop shape, add a
+    // 💡 Demonstrate it is possible to reuse a Canvas-defined prop shape, add a
     // new computed property to a field type, and match that, too. (This
-    // particular computed property happens to be added by Canvas itself, but any
-    // module can follow this pattern.)
+    // particular computed property happens to be added by Canvas itself, but
+    // any module can follow this pattern.)
     yield 'the image-srcset-candidate-template-uri component' => [
       'canvas_test_sdc:image-srcset-candidate-template-uri',
       'entity:node:foo',

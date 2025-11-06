@@ -152,10 +152,10 @@ HTML;
           'canvas/canvas-ui',
           'canvas/extensions',
           ...$this->getTransformAssetLibraries(),
-        // `drupalSettings.canvasData.v0` must be unconditionally present: in case
-        // the user starts creating/editing code components.
-        // This is also how draft/auto-save code components ensure all "canvas data"
-        // is always available.
+        // `drupalSettings.canvasData.v0` must be unconditionally present: in
+        // case the user starts creating/editing code components.
+        // This is also how draft/auto-save code components ensure all
+        // "canvas data" is always available.
         // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
           'canvas/canvasData.v0',
         ],
@@ -193,8 +193,8 @@ HTML;
             'homepagePath' => $system_site_config->get('page.front'),
             'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
           ],
-          // Override actual `canvasData` with dummy data for code component editor
-          // development purposes.
+          // Override actual `canvasData` with dummy data for code component
+          // editor development purposes.
           'canvasData' => [
             'v0' => [
               'pageTitle' => 'This is a page title for testing purposes',
@@ -306,7 +306,7 @@ HTML;
   }
 
   /**
-   * Ensures Canvas informs developers when using missing client-side transforms.
+   * Ensures developers are informed when using missing client-side transforms.
    */
   private function validateTransformAssetLibraries(): true {
     // Find all used client-side transforms.

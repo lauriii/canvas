@@ -207,7 +207,7 @@ final class ApiLayoutController {
   }
 
   /**
-   * PATCH request updates a single component instance in the auto-saved model and returns a preview.
+   * Updates single component instance's auto-save entry and returns a preview.
    */
   public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
@@ -290,7 +290,7 @@ final class ApiLayoutController {
   }
 
   /**
-   * POST request returns a preview, and updates the auto-saved layout, model and entity form fields.
+   * Updates the auto-saved layout, model and entity form fields.
    *
    * @todo Remove this in https://drupal.org/i/3492065
    */
@@ -342,7 +342,7 @@ final class ApiLayoutController {
       throw new NotFoundHttpException('Unknown regions: ' . implode(', ', array_keys($missing_regions)));
     }
     foreach (array_keys($region_layouts) as $client_side_region_id) {
-      // Check access to regions if any component was added or removed from them.
+      // Check access to regions if any component was added or removed.
       if (!$regions[$client_side_region_id]->access('edit')) {
         throw new AccessDeniedHttpException(sprintf('Access denied for region %s', $client_side_region_id));
       }
@@ -478,14 +478,15 @@ final class ApiLayoutController {
         \assert($autoSaveData->entity instanceof $stored_entity);
         $stored_entity = $autoSaveData->entity;
         // AutoSaveManager::getAutoSaveEntity calls ::create which makes the
-        // entity appear new. There are some form widgets that check if the entity
-        // is new when constructing their form element. The auto-save entity is
-        // never new so we enforce that to avoid issues with form widgets.
+        // entity appear new. There are some form widgets that check if the
+        // entity is new when constructing their form element. The auto-save
+        // entity is never new so we enforce that to avoid issues with form
+        // widgets.
         // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::formElement
         $stored_entity->enforceIsNew(FALSE);
-        // We also need to record the loaded revision ID as the auto-save manager
-        // does not do this for us and some widgets make use of this information
-        // to load a particular revision.
+        // We also need to record the loaded revision ID as the auto-save
+        // manager does not do this for us and some widgets make use of this
+        // information to load a particular revision.
         // @see \Drupal\content_moderation\Plugin\Field\FieldWidget\ModerationStateWidget::formElement
         if ($stored_entity instanceof RevisionableInterface) {
           $stored_entity->updateLoadedRevisionId();

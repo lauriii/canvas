@@ -80,7 +80,7 @@ final class JavascriptComponentStorage extends CanvasAssetStorage {
       return;
     }
 
-    // Before exposing a JavaScriptComponent as an Canvas Component for the first
+    // Before exposing a JavaScriptComponent as a Canvas Component for the first
     // time it must be flagged as being added to Canvas's component library.
     if ($entity->status() === FALSE) {
       return;

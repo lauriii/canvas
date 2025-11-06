@@ -16,7 +16,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 /**
  * Checks access to the Canvas UI: requires >=1 component tree to be editable.
  *
- * Ignores per-entity field access control; relies on 'edit' access to an Canvas
+ * Ignores per-entity field access control; relies on 'edit' access to a Canvas
  * field.
  *
  * @see \Drupal\canvas\Access\ComponentTreeEditAccessCheck
@@ -31,7 +31,7 @@ class CanvasUiAccessCheck implements AccessInterface {
   ) {}
 
   public function access(AccountInterface $account): AccessResult {
-    $access = AccessResult::neutral('Requires >=1 content entity type with an Canvas field that can be created or edited.');
+    $access = AccessResult::neutral('Requires >=1 content entity type with a Canvas field that can be created or edited.');
 
     // Early access return if the account has permissions for content templates
     // or code components.
@@ -77,9 +77,9 @@ class CanvasUiAccessCheck implements AccessInterface {
           $access = $access->orIf($entity_create_access->andIf($canvas_field_edit_access));
           // 2. edit such a content entity (and update the Canvas field)
           $access = $access->orIf($entity_update_access->andIf($canvas_field_edit_access));
-          // If we have access to edit a single Canvas-field in a single bundle,
-          // or code components, we must grant access to Canvas and can avoid extra
-          // checks.
+          // If we have access to edit a single Canvas-field in a single
+          // bundle, or code components, we must grant access to Canvas and can
+          // avoid extra checks.
           if ($access->isAllowed()) {
             return $access;
           }

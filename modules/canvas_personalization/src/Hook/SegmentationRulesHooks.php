@@ -21,9 +21,7 @@ final class SegmentationRulesHooks {
   #[Hook('plugin_filter_condition__canvas_personalization_alter')]
   public function conditionPersonalizationAlter(array &$definitions, array $extra): void {
     $allowlist = [
-      // @todo Will remove these when we have the ones we need, but
-      //   using these temporarily for testing. See https://drupal.org/i/3527076, which
-      //   will be the second one.
+      // @todo Will remove these when we have the ones we need, but using these temporarily for testing. See https://drupal.org/i/3527076, which will be the second one.
       'current_theme',
       'user_role',
     ];
@@ -33,7 +31,8 @@ final class SegmentationRulesHooks {
         unset($definitions[$key]);
       }
     }
-    // Re-order them, as we depend on their sorting (by provider) in our Drupal UI.
+    // Re-order them, as we depend on their sorting (by provider) in our Drupal
+    // UI.
     // @todo Revisit in https://www.drupal.org/i/3527086, probably removing this sorting.
     ksort($definitions);
   }

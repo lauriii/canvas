@@ -88,7 +88,8 @@ final class ConfigEntityVersionReference extends EntityReference {
       if ($entity !== NULL &&
         $this->version !== NULL &&
         $entity->getLoadedVersion() !== $this->version &&
-        // Do not allow a component instance to explicitly reference the fallback version.
+        // Do not allow a component instance to explicitly reference the
+        // fallback version.
         $this->version !== ComponentInterface::FALLBACK_VERSION
       ) {
         // A non-default version is referenced, so load that one.

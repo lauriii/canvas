@@ -115,9 +115,9 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
 
     // A few Drupal asset libraries need Canvas-specific variants, because of:
     // - some assets in the library conflict
-    // - the library is requested by `canvas_stark` but should be rendered by the
-    //   current admin theme, so we account for the admin theme's library extend
-    //   and overrides.
+    // - the library is requested by `canvas_stark` but should be rendered by
+    //   the current admin theme, so we account for the admin theme's library
+    //   extend and overrides.
     // @see \Drupal\canvas\Hook\LibraryHooks::customizeDialogLibrary()
     // This is performed here instead of library_info_alter() as this
     // information is cached per-theme and this distinction needs to be made

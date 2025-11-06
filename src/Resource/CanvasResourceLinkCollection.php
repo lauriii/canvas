@@ -16,7 +16,8 @@ use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
  * Heavily inspired by \Drupal\jsonapi\JsonApiResource\LinkCollection.
  * The differences are:
  * - JsonApi LinkCollection requires a context while we don't here.
- * - Each link rel can hold an array of links in JsonApi, while we only allow one.
+ * - Each link rel can hold an array of links in JsonApi, while we allow
+ * only one.
  * - Implements \Drupal\Core\Cache\CacheableDependencyInterface and
  * \Drupal\Core\Cache\RefinableCacheableDependencyInterface.
  *
@@ -76,8 +77,8 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
    *   The link to insert.
    *
    * @return static
-   *   A new CanvasResourceLinkCollection with the given link inserted or merged with the
-   *   current set of links.
+   *   A new CanvasResourceLinkCollection with the given link inserted or
+   *   merged with the current set of links.
    */
   public function withLink(string $key, CanvasResourceLink $new_link): CanvasResourceLinkCollection {
     assert(static::validKey($key));

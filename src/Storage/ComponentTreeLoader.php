@@ -67,7 +67,7 @@ final class ComponentTreeLoader {
         return $field_name;
       }
     }
-    throw new \LogicException("This entity does not have an Canvas field!");
+    throw new \LogicException("This entity does not have a Canvas field!");
   }
 
 }

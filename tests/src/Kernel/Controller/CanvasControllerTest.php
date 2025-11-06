@@ -154,7 +154,7 @@ final class CanvasControllerTest extends KernelTestBase {
         [
           'name' => 'Test entity',
         ],
-        'Requires >=1 content entity type with an Canvas field that can be created or edited.',
+        'Requires >=1 content entity type with a Canvas field that can be created or edited.',
       ],
     ];
   }

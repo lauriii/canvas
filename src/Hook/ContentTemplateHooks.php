@@ -53,7 +53,8 @@ final class ContentTemplateHooks {
       if (empty($canvas_fields)) {
         return;
       }
-      // Publishable entities are automatically published when publishing auto-saved changes.
+      // Publishable entities are automatically published when publishing
+      // auto-saved changes.
       // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
       $form_display->removeComponent($published_key);
     }
@@ -66,9 +67,9 @@ final class ContentTemplateHooks {
   public function entityTypeAlter(array $definitions): void {
     /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
     foreach ($definitions as $entity_type) {
-      // Canvas pages don't have any structured data, and therefore don't support
-      // content templates (which require structured data anyway -- that is, they
-      // need to be using at least one dynamic prop source).
+      // Canvas pages don't have any structured data, and therefore don't
+      // support content templates (which require structured data anyway – that
+      // is, they need to be using at least one dynamic prop source).
       // @see docs/adr/0004-page-entity-type.md
       if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
         continue;

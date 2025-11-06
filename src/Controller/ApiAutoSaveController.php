@@ -171,10 +171,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // User display names depend on configuration.
     $cache->addCacheableDependency($this->configFactory->get('user.settings'));
 
-    // Remove 'data', 'client_id', 'entity' keys because this will reduce the amount of
-    // data sent to the client and back to the server. Also, 'client_id' is only
-    // used to determine if the client has the latest changes when editing an
-    // entity in Drupal Canvas and not needed for the publishing process.
+    // Remove 'data', 'client_id', 'entity' keys because this will reduce the
+    // amount of data sent to the client and back to the server. Also,
+    // 'client_id' is only used to determine if the client has the latest
+    // changes when editing an entity in Drupal Canvas and not needed for the
+    // publishing process.
     $filtered = \array_map(fn(array $item) => \array_diff_key($item, \array_flip(['data', 'client_id', 'entity'])), $filtered);
 
     $withUserDetails = \array_map(fn(array $item) => [
@@ -212,7 +213,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
 
     // We keep these in an array instead of making use of a collection like
-    // ConstraintViolationList, so we can keep violations grouped by each entity.
+    // ConstraintViolationList, so we can keep violations grouped by each
+    // entity.
     $violationSets = [];
     $entities = [];
     // The client auto-saves do not contain the 'data' key, so we need to use
@@ -320,11 +322,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
           $entity->set($revision_user, $this->currentUser->id());
         }
         // Even though we will validate each entity individually before it is
-        // saved to ensure the data is still valid after other entities have been
-        // saved, we should still validate here before we save any entities to
-        // avoid saving any entities if any are invalid. This is to avoid, when
-        // possible, any side effects of saving entities that cannot be undone
-        // by rolling back the database transaction, such as sending emails.
+        // saved to ensure the data is still valid after other entities have
+        // been saved, we should still validate here before we save any entities
+        // to avoid saving any entities if any are invalid. This is to avoid,
+        // when possible, any side effects of saving entities that cannot be
+        // undone by rolling back the database transaction, such as sending
+        // emails.
         $violations = $entity->validate();
         $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);
         foreach ($form_violations as $form_violation) {
@@ -434,7 +437,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Validate different types of entities and throw an exception if there are violations.
+   * Validates an entity and throw an exception if there are violations.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to validate.

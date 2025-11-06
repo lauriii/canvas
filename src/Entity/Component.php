@@ -199,10 +199,10 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *   The corresponding list of PHP FQCNs. Depending on the component type,
    *   this may be one unique class per Component config entity (ID), or the
    *   same class for all.
-   *   For example: all SDC-sourced Canvas Components use the same (plugin) class
-   *   (and even interface) interface, but every Block plugin-sourced Canvas
-   *   Components has a unique (plugin) class, and often even a unique (plugin)
-   *   interface.
+   *   For example: all SDC-sourced Canvas Components use the same (plugin)
+   *   class (and even interface) interface, but every Block plugin-sourced
+   *   Canvas Components has a unique (plugin) class, and often even a unique
+   *   (plugin) interface.
    *   @see \Drupal\Core\Theme\ComponentPluginManager::$defaults
    */
   public static function getClasses(array $ids): array {
@@ -314,8 +314,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       $build = [
         '#type' => RenderSafeComponentContainer::PLUGIN_ID,
         '#component' => $build + [
-          // Wrap each rendered component instance in HTML comments that allow the
-          // client side to identify it.
+          // Wrap each rendered component instance in HTML comments that allow
+          // the client side to identify it.
           // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
           '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
           '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
@@ -378,8 +378,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   /**
    * Uses heuristics to compute the appropriate "library" in the Canvas UI.
    *
-   * Each Component appears in a well-defined "library" in the Canvas UI. This is a
-   * set of heuristics with a particular decision tree.
+   * Each Component appears in a well-defined "library" in the Canvas UI. This
+   * is a set of heuristics with a particular decision tree.
    *
    * @see https://www.drupal.org/project/canvas/issues/3498419#comment-15997505
    */
@@ -538,16 +538,17 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       return parent::onDependencyRemoval($dependencies);
     }
 
-    // When it is affected, then if there's 0 component instances using it, still
-    // there is nothing to do, because none of Drupal Canvas's config
+    // When it is affected, then if there's 0 component instances using it,
+    // still there is nothing to do, because none of Drupal Canvas's config
     // entities are affected, nor are any Canvas fields on content entities.
     if (!\Drupal::service(ComponentAudit::class)->hasUsages($this, RevisionAuditEnum::All) && !\Drupal::service(ComponentAudit::class)->hasUsages($this, RevisionAuditEnum::AutoSave)) {
       return parent::onDependencyRemoval($dependencies);
     }
 
     // However, if there's >=1 component instance for it, make this Component
-    // use the `fallback` component source plugin to avoid deleting dependent Canvas
-    // config entities and breaking Canvas component trees in content entities.
+    // use the `fallback` component source plugin to avoid deleting dependent
+    // Canvas config entities and breaking Canvas component trees in content
+    // entities.
     $last_active_version = $this->getActiveVersion();
     $this->createVersion(ComponentInterface::FALLBACK_VERSION)
       ->setSettings([
@@ -570,7 +571,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     parent::preSave($storage);
     assert($this->isLoadedVersionActiveVersion());
     $source = $this->getComponentSource();
-    // Compute the appropriate `fallback_metadata` upon saving, except for the fallback plugin.
+    // Compute the appropriate `fallback_metadata` upon saving, except for the
+    // fallback plugin.
     if ($source instanceof Fallback) {
       return;
     }

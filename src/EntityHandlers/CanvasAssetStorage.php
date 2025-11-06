@@ -14,7 +14,7 @@ use Drupal\canvas\Entity\CanvasAssetInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Defines storage handler for Canvas config entities implementing CanvasAssetInterface.
+ * Storage handler for Canvas config entities implementing CanvasAssetInterface.
  *
  * @internal
  */

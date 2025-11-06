@@ -80,4 +80,3 @@ foreach (ComponentTrackingRequiredPropsUpdateTest::TEST_CASES as $machine_name =
   }
 
 }
-

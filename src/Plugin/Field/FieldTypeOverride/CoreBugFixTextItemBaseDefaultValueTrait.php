@@ -22,7 +22,8 @@ trait CoreBugFixTextItemBaseDefaultValueTrait {
   }
 
   public function setValue($values, $notify = TRUE): void {
-    // If `format` is missing, fall back to the first allowed format from settings if any.
+    // If `format` is missing, fall back to the first allowed format from
+    // settings if any.
     if (!is_array($values) || !array_key_exists('format', $values)) {
       $this->applyDefaultValue(FALSE);
       // Now `format` is guaranteed to be set, which is what is used below.

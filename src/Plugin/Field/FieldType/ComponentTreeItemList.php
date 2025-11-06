@@ -111,8 +111,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         FALSE => [],
         // We explicitly load the slots from the Component and not the source,
         // preventing the preview to become unusable if the real time definition
-        // is missing. So use the known slots at the time of the component config
-        // entity creation.
+        // is missing. So use the known slots at the time of the component
+        // config entity creation.
         TRUE => $item->getComponent() ? array_keys($item->getComponent()->getSlotDefinitions()) : [],
       };
       foreach ($known_slot_names_for_component as $slot_name) {
@@ -229,29 +229,31 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component->getSlotDefinitions(), $component_instance_uuid, $isPreview);
 
-          // A component instance provided by a ComponentSourceWithSwitchCasesInterface
-          // is guaranteed to either be a `switch` or a `case`. The `switch` component
-          // instance is the inevitable container (that may render nothing at all on the
-          // live site) that contains the different possible `case`s. On the live site,
-          // only ONE `case` will ever be rendered: the negotiated one.
+          // A component instance provided by a
+          // ComponentSourceWithSwitchCasesInterface is guaranteed to either be
+          // a `switch` or a `case`. The `switch` component instance is the
+          // inevitable container (that may render nothing at all on the live
+          // site) that contains the different possible `case`s. On the live
+          // site, only ONE `case` will ever be rendered: the negotiated one.
           if ($source instanceof ComponentSourceWithSwitchCasesInterface && !$isPreview) {
             if ($source->isCase() && !$source->isNegotiatedCase($component_instance)) {
               unset($component_instance['slots']);
             }
           }
 
-          // Wrap each rendered component instance in HTML comments that allow the
-          // client side to identify it.
+          // Wrap each rendered component instance in HTML comments that allow
+          // the client side to identify it.
           if ($isPreview) {
             $element['#prefix'] = Markup::create("<!-- canvas-start-$component_instance_uuid -->");
             $element['#suffix'] = Markup::create("<!-- canvas-end-$component_instance_uuid -->");
           }
 
-          // Associate the `Component` config entity cache tag with every rendered
-          // component instance — remove the need for each `ComponentSource`
-          // plugin to do this in an awkward way in their `::renderComponent()`.
-          // This also associates any cache contexts and max-age; both may be used
-          // for dynamic config overrides.
+          // Associate the `Component` config entity cache tag with every
+          // rendered component instance — remove the need for each
+          // `ComponentSource` plugin to do this in an awkward way in their
+          // `::renderComponent()`.
+          // This also associates any cache contexts and max-age; both may be
+          // used for dynamic config overrides.
           CacheableMetadata::createFromRenderArray($element)
             ->addCacheableDependency($component)
             ->applyTo($element);
@@ -269,8 +271,8 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
                   ? ['#plain_text' => $slot_value]
                   // TRICKY: this goes beyond what Drupal core appears to allow
                   // in https://www.drupal.org/node/3398039, but the SDC plugin
-                  // manager accepts this as a valid SDC definition, so Canvas has
-                  // no choice but to support it.
+                  // manager accepts this as a valid SDC definition, so Canvas
+                  // has no choice but to support it.
                   : ['#markup' => $slot_value];
               }
               // When previewing and the slot value is a default: omit the

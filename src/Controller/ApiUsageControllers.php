@@ -86,7 +86,7 @@ final class ApiUsageControllers extends ApiControllerBase {
   }
 
   /**
-   * Returns a paginated list of components and whether they are in use as a boolean.
+   * Returns a paginated list of components and whether they are in use.
    */
   public function componentsList(Request $request): JsonResponse {
     $storage = $this->entityTypeManager->getStorage(Component::ENTITY_TYPE_ID);

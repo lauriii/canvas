@@ -48,8 +48,8 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
     // Only handle Canvas API routes. Special care is needed for 404s caused by
     // requests to individual config entities that do not exist. This is not a
     // challenge in the generic (HTTP) exception handling because that
-    // determined by the (wrapper) format, whereas Canvas API routes *always* return
-    // a JSON response.
+    // determined by the (wrapper) format, whereas Canvas API routes *always*
+    // return a JSON response.
     // @see \Drupal\Core\EventSubscriber\HttpExceptionSubscriberBase::onException()
     // @todo Consider adding a `_format` requirement to all Canvas API routes, that
     // might allow this to be simplified.
@@ -126,7 +126,8 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    // Lower than the priority of \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber.
+    // Lower than the priority of
+    // \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber.
     $events[KernelEvents::EXCEPTION][] = ['onException', 50];
     return $events;
   }

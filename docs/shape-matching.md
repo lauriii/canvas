@@ -71,7 +71,7 @@ This adds to the product requirements listed in [`Canvas Components` doc](compon
 
 This uses the terms defined above.
 
-### 3.1 Data Model: from Front-End Developer to an Canvas data model that empowers the Content Creator
+### 3.1 Data Model: from Front-End Developer to a Canvas data model that empowers the Content Creator
 
 ⚠️ This only applies to `component`s originating from a `Component Source Plugin` that DO NOT have an input UX (such as
 `SDC`), for others the UX and storage are both simply the existing one, and NOTHING in this document applies! ⚠️

@@ -58,9 +58,9 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
           $referenced_content_entities,
         ),
       ];
-      // The referenced content entity is the starting point for the `referenced`
-      // expression, so pass it as the host entity. This is necessary to ensure
-      // content dependencies in references are identified.
+      // The referenced content entity is the starting point for the
+      // `referenced` expression, so pass it as the host entity. This is
+      // necessary to ensure content dependencies in references are identified.
       foreach ($referenced_content_entities as $referenced_content_entity) {
         $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies($referenced_content_entity));
       }

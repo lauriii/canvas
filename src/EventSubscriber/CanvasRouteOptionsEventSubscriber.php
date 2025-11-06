@@ -29,9 +29,9 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    // Allow Canvas routes to declare they must always use a particular main content
-    // renderer, by accepting a `_wrapper_format` route option that is upcast
-    // to the URL query parameter that Drupal core expects.
+    // Allow Canvas routes to declare they must always use a particular main
+    // content renderer, by accepting a `_wrapper_format` route option that is
+    // upcast to the URL query parameter that Drupal core expects.
     // @see \Drupal\Core\EventSubscriber\MainContentViewSubscriber::WRAPPER_FORMAT
     // @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
     $route_object = $this->routeMatch->getRouteObject();
@@ -57,7 +57,8 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
   public function preventRouteNormalization(RouteBuildEvent $event): void {
     foreach ($event->getRouteCollection()->getIterator() as $route_name => $route) {
       assert($route instanceof Route);
-      // This ensures our react based routing works with redirect module enabled.
+      // This ensures our react based routing works with redirect module
+      // enabled.
       // @see \Drupal\canvas\PathProcessor\CanvasPathProcessor::processInbound.
       if (str_starts_with($route_name, 'canvas.')) {
         $route->setDefault('_disable_route_normalizer', TRUE);

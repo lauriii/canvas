@@ -42,7 +42,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
     // Simulate 3 users:
     // - visitor (end user)
-    // - content creator (able to modify >=1 entity with an Canvas field)
+    // - content creator (able to modify >=1 entity with a Canvas field)
     // - code component developer (without the ability to create content)
     $visitor = $this->drupalCreateUser(['access content']);
     $this->assertInstanceOf(AccountInterface::class, $visitor);
@@ -142,7 +142,7 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
       if (!$should_pass) {
         $this->assertSession()->statusCodeEquals(403);
-        self::assertSame('Requires >=1 content entity type with an Canvas field that can be created or edited.', $parsed_response['errors'][0]);
+        self::assertSame('Requires >=1 content entity type with a Canvas field that can be created or edited.', $parsed_response['errors'][0]);
       }
       else {
         $this->assertSession()->statusCodeEquals(200);

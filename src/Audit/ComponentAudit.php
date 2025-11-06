@@ -50,7 +50,8 @@ final class ComponentAudit {
         ->accessCheck(FALSE);
       if ($entity_type->isRevisionable()) {
         // Only check the latest revision, this is the case for code components
-        // as deletion can only happen when it is not used, checking all revisions is too restrictive.
+        // as deletion can only happen when it is not used, checking all
+        // revisions is too restrictive.
         match ($which_revisions) {
           RevisionAuditEnum::All => $query->allRevisions(),
           RevisionAuditEnum::Default => $query->currentRevision(),

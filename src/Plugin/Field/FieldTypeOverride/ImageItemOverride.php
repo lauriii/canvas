@@ -57,7 +57,8 @@ class ImageItemOverride extends ImageItem {
     // @see https://tools.ietf.org/html/rfc6570
     // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth::getAllowedWidths()
     // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
-    // ⚠️ TRICKY: switching to adapters will require an update path for ALL component trees where this field property is being consumed.
+    // ⚠️ TRICKY: switching to adapters will require an update path for ALL
+    // component trees where this field property is being consumed.
     $properties['srcset_candidate_uri_template'] = DataDefinition::create(UriTemplate::PLUGIN_ID)
       ->setLabel(new TranslatableMarkup('srcset template'))
       ->setDescription(new TranslatableMarkup('Image candidate string URL template.'))
@@ -73,7 +74,8 @@ class ImageItemOverride extends ImageItem {
     // parameter that contains an (encoded) URI template for a front-end
     // developer to use if they choose to do so.
     // @todo It's not sustainable nor ecosystem-friendly to add computed field properties to field types. Remove in favor of adapters in https://www.drupal.org/project/canvas/issues/3464003.
-    // ⚠️ TRICKY: switching to adapters will require an update path for ALL component trees where this field property is being consumed.
+    // ⚠️ TRICKY: switching to adapters will require an update path for ALL
+    // component trees where this field property is being consumed.
     $properties['src_with_alternate_widths'] = DataDefinition::create('uri')
       ->setLabel(new TranslatableMarkup('Resolved image URL with ?alternateWidths query parameter'))
       ->setDescription(new TranslatableMarkup('Combines the referenced image file URL with the computed srcset template'))

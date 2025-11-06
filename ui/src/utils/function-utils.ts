@@ -468,7 +468,7 @@ export function getSlotParentsByHTMLComments(
   });
   let currentNode = walker.nextNode();
 
-  // Each time an canvas-slot-start comment is found, add the parent HTMLElement to the array
+  // Each time a canvas-slot-start comment is found, add the parent HTMLElement to the array
   while (currentNode) {
     if (currentNode.parentElement) {
       slotParents.push(currentNode.parentElement);

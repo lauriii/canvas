@@ -386,7 +386,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     if (!$entity) {
       return;
     }
-    // Auto-saves can only occur for Canvas config entities modified by the Canvas UI.
+    // Auto-saves can only occur for Canvas config entities modified by the
+    // Canvas UI.
     if (!$entity instanceof CanvasHttpApiEligibleConfigEntityInterface) {
       return;
     }

@@ -395,4 +395,3 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   }
 
 }
-

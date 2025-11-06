@@ -252,7 +252,8 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   DynamicPropSources.
    * @param \Symfony\Component\Validator\ConstraintViolationListInterface|null $violations
    *   If validation should be performed, a violation constraint list, or NULL
-   *   otherwise. Use ::addViolation to add violations detected during conversion.
+   *   otherwise. Use ::addViolation to add violations detected during
+   *   conversion.
    *
    * @phpcs:ignore
    * @return OptimizedSingleComponentInputArray

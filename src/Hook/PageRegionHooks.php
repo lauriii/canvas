@@ -70,7 +70,8 @@ class PageRegionHooks {
     $editable = $form_state->getValue('editable');
     $existing_page_regions = PageRegion::loadForTheme($theme, TRUE);
     if ($enable) {
-      // When enabling: ensure every theme region gets a PageRegion config entity.
+      // When enabling: ensure every theme region gets a PageRegion config
+      // entity.
       $page_regions_generated_from_block_layout = PageRegion::createFromBlockLayout($theme);
       foreach ($editable as $key => $value) {
         // The `content` region never gets a PageRegion config entity.
@@ -78,8 +79,8 @@ class PageRegionHooks {
           continue;
         }
 
-        // Update existing PageRegion config entity's if it exists: mark editable
-        // or not based on the checkbox value.
+        // Update existing PageRegion config entity's if it exists: mark
+        // editable or not based on the checkbox value.
         if (array_key_exists($key, $existing_page_regions)) {
           $existing_page_regions[$key]->setStatus((bool) $value)->save();
           continue;
@@ -92,8 +93,8 @@ class PageRegionHooks {
       }
     }
     else {
-      // When disabling: of the PageRegion config entities that exist, disable the
-      // ones that are enabled (aka "editable").
+      // When disabling: of the PageRegion config entities that exist, disable
+      // the ones that are enabled (aka "editable").
       foreach ($existing_page_regions as $region) {
         $region->disable()->save();
       }

@@ -22,7 +22,9 @@ function canvas_post_update_0001_track_props_have_required_flag_in_components(ar
 }
 
 /**
+ * @phpcs:ignore Drupal.Files.LineLength.TooLong
  * Update component dependencies after finding intermediate dependencies in patterns.
+ * @phpcs:enable
  */
 function canvas_post_update_0002_intermediate_component_dependencies_in_patterns(array &$sandbox): void {
   $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
@@ -33,7 +35,9 @@ function canvas_post_update_0002_intermediate_component_dependencies_in_patterns
 }
 
 /**
+ * @phpcs:ignore Drupal.Files.LineLength.TooLong
  * Update component dependencies after finding intermediate dependencies in page regions.
+ * @phpcs:enable
  */
 function canvas_post_update_0002_intermediate_component_dependencies_in_page_regions(array &$sandbox): void {
   $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
@@ -44,7 +48,9 @@ function canvas_post_update_0002_intermediate_component_dependencies_in_page_reg
 }
 
 /**
+ * @phpcs:ignore Drupal.Files.LineLength.TooLong
  * Update component dependencies after finding intermediate dependencies in content templates.
+ * @phpcs:enable
  */
 function canvas_post_update_0002_intermediate_component_dependencies_in_content_templates(array &$sandbox): void {
   $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
@@ -55,7 +61,9 @@ function canvas_post_update_0002_intermediate_component_dependencies_in_content_
 }
 
 /**
+ * @phpcs:ignore Drupal.Files.LineLength.TooLong
  * Update component dependencies after finding intermediate dependencies in Canvas component tree instances' default values.
+ * @phpcs:enable
  */
 function canvas_post_update_0002_intermediate_component_dependencies_in_field_config_component_trees(array &$sandbox): void {
   $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);

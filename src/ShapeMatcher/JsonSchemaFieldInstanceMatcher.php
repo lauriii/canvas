@@ -385,8 +385,13 @@ final class JsonSchemaFieldInstanceMatcher {
         // would not make sense, because it's no longer an array.
         // All other cases would result in problematic UX.
         // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
-        // 1. JSON schema cardinality `unlimited`, field cardinality 1–N => would mean only partially populating an array
-        // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` => would mean some structured data values would not be visible; the content author would need to either be informed only the first N would be visible, or they'd need to be able to pick specific values
+        // 1. JSON schema cardinality `unlimited`, field cardinality 1–N =>
+        //    would mean only partially populating an array;
+        // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` =>
+        //    would mean some structured data values would not be visible; the
+        //    content author would need to either be informed only the first N
+        //    would be visible, or they'd need to be able to pick specific
+        //    values.
         if (!($field_cardinality > 1 && $cardinality_in_json_schema > $field_cardinality)) {
           continue;
         }
@@ -400,9 +405,9 @@ final class JsonSchemaFieldInstanceMatcher {
         // 2. explicitly marked as internal (which means ::isInternal() cannot
         //    be used, due to its fallback to ::isComputed())
         // 3. sources for a computed property, even if they're not internal.
-        // 4. on read-only non-computed base fields: these store non-user data such as the
-        //    monotonically increasing integer entity ID, bundle name, entity
-        //    UUID and so on.
+        // 4. on read-only non-computed base fields: these store non-user data
+        //    such as the monotonically increasing integer entity ID, bundle
+        //    name, entity UUID and so on.
         //    For now, the "uuid" field, to allow testing that prop shape.
         // @phpstan-ignore-next-line
         if ($property_definition instanceof DataReferenceTargetDefinition || $property_definition['internal'] === TRUE) {
@@ -527,7 +532,9 @@ final class JsonSchemaFieldInstanceMatcher {
               $property_definition = $transformed_property_data_definition;
             }
           }
-          // TRICKY: treat TextProcessed as a primitive, because it must retain its FilteredMarkup encapsulation to avoid Twig escaping the processed text.
+          // TRICKY: treat TextProcessed as a primitive, because it must retain
+          // its FilteredMarkup encapsulation to avoid Twig escaping the
+          // processed text.
           // @see \Drupal\filter\Render\FilteredMarkup
           assert(is_a($property_definition->getClass(), PrimitiveInterface::class, TRUE) || is_a($property_definition->getClass(), TextProcessed::class, TRUE));
           $field_item = $this->typedDataManager->createInstance("field_item:" . $field_definition->getType(), [
@@ -544,9 +551,11 @@ final class JsonSchemaFieldInstanceMatcher {
           // 💡 Debugging tip: put a conditional breakpoint here when figuring
           // out why a particular field instance prop is not being matched, use
           // a condition like
+          // @phpcs:disable Drupal.Files.LineLength.TooLong
           // @code
           // (string) $current_entity_field_prop == 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths'
           // @endcode
+          // phpcs:enable
           // And add a test case to PropSourceSuggesterTest::provider(),
           // that will allow hitting this point in seconds.
           if ($this->dataLeafMatchesFormat($property, $primitive_type, $is_required_in_json_schema, $schema)) {
@@ -671,7 +680,9 @@ final class JsonSchemaFieldInstanceMatcher {
       is_a($data_type_class, FloatData::class, TRUE) => [JsonSchemaType::Number],
       is_a($data_type_class, BooleanData::class, TRUE) => [JsonSchemaType::Boolean],
       // @todo object + array
-      // - for object: initially support only a single level of nesting, then we can expect HERE a ComplexDataInterface with only primitives underneath (hence all leaves)
+      // - for object: initially support only a single level of nesting, then
+      //   we can expect HERE a ComplexDataInterface with only primitives
+      //   underneath (hence all leaves)
       // - for array: ListDefinitionInterface
       TRUE => [],
     };
@@ -698,9 +709,11 @@ final class JsonSchemaFieldInstanceMatcher {
     // phpcs:disable Drupal.Commenting.InlineComment.NotCapital
     // 💡 Debugging tip: put a conditional breakpoint here when figuring out why
     // a particular field instance property is not being matched, use
+    // phpcs:disable Drupal.Files.LineLength.TooLong
     // @code
     // $schema['type'] == 'string' && isset($schema['contentMediaType']) && $data->getRoot()->getDataDefinition()->getDataType() == 'field_item:file_uri'
     // @endcode
+    // phpcs:enable Drupal.Files.LineLength.TooLong
     // to check:
     // - either the SDC prop for which no match is being found (by checking
     //   information in $schema)

@@ -126,7 +126,7 @@ The `Component` config entity contains:
   "obsolete"). Existing content can then continue to use disabled `Component`s (in other words: nothing breaks), while
   new content must use the most current Site Builder-curated list of `Component`s.
 - which `field type` and `field widget` must be used to populate it with `unstructured data` — for algorithmic details,
- see [`Canvas Data model`, section 3.1: "from Front-End Developer to an Canvas data model that empowers the Content Creator](./data-model.md#3.1)
+ see [`Canvas Data model`, section 3.1: "from Front-End Developer to a Canvas data model that empowers the Content Creator](./data-model.md#3.1)
 - the (versioned) `fallback_metadata`: when the `Component Source Plugin` can no longer find the `component` because a dependency is
   removed (e.g. the module providing an SDC is uninstalled or a `JavaScriptComponent` config entity is deleted), this
   metadata (currently only slot definitions) will be used to fall back to the special `fallback` source to ensure
@@ -179,7 +179,7 @@ restrictions are applied during validation:
   schema_! This ensures a good DX for those modifying (exported) configuration by hand.
   See `config/schema/canvas.json_schema.yml`.
 
-Once a _code component_ is considered ready for use by its creator, it can be exposed as an Canvas `component` (which under
+Once a _code component_ is considered ready for use by its creator, it can be exposed as a Canvas `component` (which under
 the hood involves creating a sibling `Component config entity` — see [section 3.1](#3.1) above). This is made possible
 by the `JS` `Component Source Plugin`. Section `3.2.1` below describes this in detail.
 

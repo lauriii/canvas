@@ -659,4 +659,3 @@ class TestTime extends Time {
   }
 
 }
-

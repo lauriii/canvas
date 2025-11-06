@@ -77,7 +77,8 @@ class ModuleHooks {
    */
   #[Hook('page_attachments')]
   public function pageAttachments(array &$page): void {
-    // Adds `track_navigation` library to all pages, to allow Canvas's "Back" link to know which URL to go back to.
+    // Adds `track_navigation` library to all pages, to allow Canvas's "Back"
+    // link to know which URL to go back to.
     $page['#attached']['library'][] = 'canvas/track_navigation';
   }
 
@@ -101,8 +102,8 @@ class ModuleHooks {
       if ($this->requestStack->getCurrentRequest()
           ?->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== \NULL) {
         // Add the data-ajax flag and manually add the form ID as pre render
-        // callbacks aren't fired during AJAX rendering because the whole form is
-        // not rendered, just the returned elements.
+        // callbacks aren't fired during AJAX rendering because the whole form
+        // is not rendered, just the returned elements.
         FormIdPreRender::addAjaxAttribute($form, self::PAGE_DATA_FORM_ID);
       }
 

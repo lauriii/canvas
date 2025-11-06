@@ -12,8 +12,8 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 /**
  * Defines a data type that resolves to the parent component tree item.
  *
- * This serves as 'parent_component' property of component tree item field items and
- * gets its value set from the parent, i.e. ComponentTreeItem.
+ * This serves as 'parent_component' property of component tree item field items
+ * and gets its value set from the parent, i.e. ComponentTreeItem.
  *
  * @property \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $parent
  * @property ?\Drupal\Core\TypedData\TypedDataInterface $target

@@ -25,7 +25,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * to exist. To keep the Drupal Canvas UX simple and consistent, it:
  * - is not possible to customize what appears in the `content `region: it is
  *   always, and only, the main content. This guarantees that the result of the
- *   matched route's controller is always available when Canvas renders the page.
+ *   matched route's controller is always available when Canvas renders the
+ *   page.
  * - falls back to displaying the "messages" in the `content` region, if and
  *   only if it does not appear in any other region. (Because that can also be
  *   essential information.)

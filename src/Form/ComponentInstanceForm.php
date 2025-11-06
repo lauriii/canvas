@@ -132,7 +132,8 @@ final class ComponentInstanceForm extends FormBase {
     }
     else {
       $inputs = $client_model;
-      // For blocks, the client model is invalid, because $props is the "undefined" string.
+      // For blocks, the client model is invalid, because $props is the
+      // "undefined" string.
       // So let's get the data from the stored tree (better than nothing)
       // @todo We require to harden this in the client-side.
       if ($inputs === NULL && $component->getComponentSource() instanceof BlockComponent) {
@@ -164,4 +165,3 @@ final class ComponentInstanceForm extends FormBase {
   }
 
 }
-

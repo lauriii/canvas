@@ -30,7 +30,7 @@ Related Canvas issue queue components:
 ### 1.3 Canvas terminology
 
 - `component`: see [`Canvas Components` doc](components.md)
-- `Semi-Coupled theme engine`: An Canvas-provided `theme engine` that allows a mixture of `Twig` and `React component`s as `template`s.
+- `Semi-Coupled theme engine`: A Canvas-provided `theme engine` that allows a mixture of `Twig` and `React component`s as `template`s.
 - [`Hyperscriptify`](https://github.com/drupal-jsx/hyperscriptify): A JS library created for Canvas that converts `Semi-Coupled theme engine` markup (provided by `Twig` and `JSX` templates) into `React elements`.
 
 ## 2. Product requirements
@@ -182,7 +182,7 @@ hyperscriptify(
 ## Using `<canvas-something>` elements in Twig templates
 This is not technically part of the "engine" part of the  `Semi-Coupled theme engine`, but is syntax that can be used within Twig templates to indicate it should be rendered by a React component. For example:
 - You can use the `<canvas-text>` element in a Twig template.
-- That element is then mapped in `ui/src/components/form/twig-to-jsx-component-map.js` to the `CanvasText` React component. 
+- That element is then mapped in `ui/src/components/form/twig-to-jsx-component-map.js` to the `CanvasText` React component.
 - The attributes from `<canvas-text>` are passed as props to the `CanvasText` component.
 
 This approach makes it possible to render text with the React-defined theming without having to fully override a template to be processed by the `Semi-Coupled theme engine`. This approach could also be used for more complex components as the need arises.

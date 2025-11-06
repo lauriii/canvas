@@ -30,7 +30,7 @@ use Drupal\canvas\Version;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Defines a component source based on Canvas JavaScript Component config entities.
+ * Component source based on Canvas JavaScript Component config entities.
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
@@ -269,7 +269,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * Creates the Component config entity for a "code component" config entity.
    *
    * @param \Drupal\canvas\Entity\JavaScriptComponent $js_component
-   *   An Canvas "code component" config entity.
+   *   A Canvas "code component" config entity.
    *
    * @return \Drupal\canvas\Entity\ComponentInterface
    *   The component config entity.
@@ -320,7 +320,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
    * Updates the Component config entity for a "code component" config entity.
    *
    * @param \Drupal\canvas\Entity\JavaScriptComponent $js_component
-   *   An Canvas "code component" config entity.
+   *   A Canvas "code component" config entity.
    *
    * @return \Drupal\canvas\Entity\ComponentInterface
    *   The component config entity.
@@ -449,7 +449,8 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       $scoped_dependencies[$component_url]["@/components/{$js_component_dependency_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
       $scoped_dependencies = array_merge($scoped_dependencies, $this->getScopedDependencies($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
       if (isset($scoped_dependencies[$dependency_component_url])) {
-        // The dependencies of my dependencies are also my dependencies, so says the logic.
+        // The dependencies of my dependencies are also my dependencies, so says
+        // the logic.
         $scoped_dependencies[$component_url] = array_merge($scoped_dependencies[$component_url], $scoped_dependencies[$dependency_component_url]);
       }
     }

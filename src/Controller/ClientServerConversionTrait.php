@@ -155,8 +155,7 @@ trait ClientServerConversionTrait {
           $source->validateComponentInput($items[$delta]['inputs'], $uuid, $entity)
         );
         if ($component_violations->count() > 0) {
-          // @todo Remove the foreach and use ::addAll once
-          // https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
+          // @todo Remove the foreach and use ::addAll once https://www.drupal.org/project/drupal/issues/3490588 has been resolved.
           foreach ($component_violations as $violation) {
             $violation_list->add($violation);
           }

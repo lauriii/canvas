@@ -149,7 +149,7 @@ final class CanvasResourceLink implements CacheableDependencyInterface {
    *   The second link.
    *
    * @return static
-   *   A new CanvasResourceLink object with the cacheability of both links merged.
+   *   A new CanvasResourceLink object with merged cacheability of both links.
    */
   public static function merge(CanvasResourceLink $a, CanvasResourceLink $b): CanvasResourceLink {
     assert(static::compare($a, $b) === 0, 'Only equivalent links can be merged.');

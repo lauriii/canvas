@@ -15,10 +15,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
 
 /**
- * Provides a service to expose site metadata to drupalSettings for JS components.
+ * Service to expose site metadata to drupalSettings for JS components.
  *
  * This includes site branding, breadcrumbs, page title and base URL.
- * Intended for use with dynamic JavaScript components such as those in Drupal Canvas.
+ * Intended for use with dynamic JavaScript components such as those in Drupal
+ * Canvas.
  */
 readonly final class CodeComponentDataProvider {
 

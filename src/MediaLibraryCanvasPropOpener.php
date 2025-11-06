@@ -36,9 +36,9 @@ final class MediaLibraryCanvasPropOpener extends MediaLibraryFieldWidgetOpener {
       return AccessResult::forbidden("field_widget_id parameter is missing.")->addCacheableDependency($state);
     }
 
-    // No further access checking is necessary: this can only be reached if Canvas
-    // triggered this, plus MediaLibraryState::fromRequest() already validated
-    // the hash.
+    // No further access checking is necessary: this can only be reached if
+    // Canvas triggered this, plus MediaLibraryState::fromRequest() already
+    // validated the hash.
     // @see \Drupal\media_library\MediaLibraryState::fromRequest()
     // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementMediaLibraryWidgetFormAlter()
     assert($state->isValidHash($state->getHash()));

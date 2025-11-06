@@ -44,7 +44,8 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
         return $entity_access;
       }
 
-      // If the component tree is a field on the entity, also check field access.
+      // If the component tree is a field on the entity, also check field
+      // access.
       if ($entity instanceof FieldableEntityInterface) {
         assert(
           // Every fieldable entity's component tree field has the edited entity

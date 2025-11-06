@@ -353,8 +353,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
     parent::postSave($storage, $update);
-    // The files generated in CanvasAssetStorage::doSave() have a content-dependent
-    // hash in their name. This has 2 consequences:
+    // The files generated in CanvasAssetStorage::doSave() have a
+    // content-dependent hash in their name. This has 2 consequences:
     // 1. Cached responses that referred to an older version, continue to work.
     // 2. New responses must use the newly generated files, which requires the
     //    asset library to point to those new files. Hence the library info must
@@ -436,10 +436,10 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * {@inheritdoc}
    */
   public function getAssetLibrary(bool $isPreview): string {
-    // Inside the Canvas UI, always load the draft even if there isn't one. Let the
-    // controller logic automatically serve the non-draft assets when a draft
-    // disappears. This is necessary to allow for asset library dependencies,
-    // and avoids race conditions.
+    // Inside the Canvas UI, always load the draft even if there isn't one. Let
+    // the controller logic automatically serve the non-draft assets when a
+    // draft disappears. This is necessary to allow for asset library
+    // dependencies, and avoids race conditions.
     // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
     // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getCss()
     // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getJs()

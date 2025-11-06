@@ -41,8 +41,8 @@ final class LibraryHooks {
    */
   #[Hook('library_info_alter')]
   public function libraryInfoAlter(array &$libraries, string $extension): void {
-    // Find all libraries that specify canvasExtension in drupalSettings and provide
-    // default values and image paths.
+    // Find all libraries that specify canvasExtension in drupalSettings and
+    // provide default values and image paths.
     foreach ($libraries as &$library) {
       if (!isset($library['drupalSettings']['canvasExtension'])) {
         continue;
@@ -148,10 +148,10 @@ final class LibraryHooks {
     }
     $this->buildExtensionLibraries($libraries);
 
-    // Collect the CSS file paths from all of these Canvas-specific libraries so they
-    // can be made available in drupalSettings. This makes is possible to add
-    // dialog-scoped versions of this CSS on page load, so even dialogs that are
-    // not opened with AJAX can be styled correctly.
+    // Collect the CSS file paths from all of these Canvas-specific libraries so
+    // they can be made available in drupalSettings. This makes is possible to
+    // add dialog-scoped versions of this CSS on page load, so even dialogs that
+    // are not opened with AJAX can be styled correctly.
     $css_files = [];
     foreach ($libraries as $library_name => &$library) {
       foreach ($libraries[$library_name]['css'] ?? [] as $files) {
@@ -181,7 +181,8 @@ final class LibraryHooks {
    * @param array $canvas_replacing_cores
    *   Every key is a core library and the value its Canvas-specific version.
    * @param array $dependencies_to_check
-   *   An array of dependencies to check and potentially create Canvas versions of.
+   *   An array of dependencies to check and potentially create Canvas versions
+   *   of.
    * @param array $existing_libraries
    *   An array of library definitions with admin theme overrides applied.
    * @param string $prefix
@@ -312,7 +313,8 @@ final class LibraryHooks {
     $admin_theme_library_definitions = $this->libraryDiscoveryParser->buildByExtension($admin_theme_name);
     $this->themeManager->setActiveTheme($actual_active_theme);
 
-    // This array keeps track of the core libraries that will have Canvas equivalents.
+    // This array keeps track of the core libraries that will have Canvas
+    // equivalents.
     $canvas_replacing_cores = [
       'core/drupal.dialog' => 'canvas.drupal.dialog',
       'core/drupal.ajax' => 'canvas.drupal.ajax',
@@ -324,9 +326,10 @@ final class LibraryHooks {
 
     $ajax_library_definition = $core_libraries_via_admin_theme['drupal.ajax'];
 
-    // Depending on the message library results in Olivero bringing in a firehose
-    // of dependencies we don't want, and in some cases like the navigation JS,
-    // will cause errors due to the JS expecting elements that aren't present.
+    // Depending on the message library results in Olivero bringing in a
+    // firehose of dependencies we don't want, and in some cases like the
+    // navigation JS, will cause errors due to the JS expecting elements that
+    // aren't present.
     $ajax_library_definition['dependencies'] = array_diff($ajax_library_definition['dependencies'], ['core/drupal.message']);
     $ajax_library_definition['js'][] = [
       ...$ajax_library_definition['js'][0],
@@ -340,9 +343,9 @@ final class LibraryHooks {
     $this->convertDependencies($ajax_dialog_definition, $libraries, $canvas_replacing_cores, $ajax_dialog_definition['dependencies'], $core_libraries_via_admin_theme);
     $libraries['canvas.drupal.dialog.ajax'] = $ajax_dialog_definition;
 
-    // Now that we've created every library requiring an Canvas-specific version, go
-    // through the dependencies declared by each and swap out any remaining core
-    // versions that should be summoning the Canvas versions instead.
+    // Now that we've created every library requiring a Canvas-specific version,
+    // go through the dependencies declared by each and swap out any remaining
+    // core versions that should be summoning the Canvas versions instead.
     $dependencies_already_added = [];
     foreach ($libraries as &$library) {
       if (!isset($library['dependencies'])) {
@@ -428,7 +431,8 @@ final class LibraryHooks {
         // CSS_AGGREGATE_DEFAULT constants. Some of these are altered further
         // after they're built and may not correspond to one of the original
         // constants, so we fall back to 'component'. We cast to an int because
-        // some weights could have been altered to floats to add extra precision.
+        // some weights could have been altered to floats to add extra
+        // precision.
         $group = $group_css_ids[(int) $css['weight']] ?? 'component';
         // Add to a group and index by filename. Make the path absolute since it
         // is referencing core assets in a library owned by Drupal Canvas.
@@ -458,8 +462,9 @@ final class LibraryHooks {
       }
     }
 
-    // Theme overrides of core/drupal.dialog are already accounted for, but there
-    // may be non-core drupal.dialog dependencies that have admin theme overrides.
+    // Theme overrides of core/drupal.dialog are already accounted for, but
+    // there may be non-core drupal.dialog dependencies that have admin theme
+    // overrides.
     $overrides = $active_admin_theme->getLibrariesOverride();
     foreach ($overrides as $theme_overrides) {
       foreach ($theme_overrides as $library_name => $override) {

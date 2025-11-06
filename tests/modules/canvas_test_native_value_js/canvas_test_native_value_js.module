@@ -42,4 +42,3 @@ function canvas_test_native_value_js_form_component_instance_form_alter(array &$
   ];
   $form['#attached']['library'][] = 'canvas_test_native_value_js/test';
 }
-
