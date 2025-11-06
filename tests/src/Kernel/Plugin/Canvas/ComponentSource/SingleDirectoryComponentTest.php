@@ -103,6 +103,8 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     $directory = 'public://';
     $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
     $file_system->copy($source, $destination, FileExists::Replace);
+
+    $this->container->get('theme_installer')->install(['sdc_theme_test']);
   }
 
   /**
@@ -125,6 +127,9 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     // Nothing discovered initially.
     self::assertSame([], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc'));
     self::assertSame([], $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc'));
+
+    self::assertSame([], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'sdc_theme_test'));
+    self::assertSame([], $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'sdc_theme_test'));
 
     // Trigger component generation, as if the test module was just installed.
     // (Kernel tests don't trigger all hooks that are triggered in reality.)
@@ -190,7 +195,14 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>data</code> prop, with the shape <code>{"type":"array","items":{"type":"integer","minimum":-100,"maximum":100},"maxItems":100,"minItems":2}</code>.',
       ],
     ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc'));
-    $auto_created_components = $this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc');
+    self::assertSame([
+      'sdc.sdc_theme_test.css-load-order' => ['Prop "dummy" must have title'],
+      'sdc.sdc_theme_test.foo' => ['Prop "prop1" must have title'],
+    ], $this->findIneligibleComponents(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'sdc_theme_test'));
+    $auto_created_components = [
+      ...$this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'canvas_test_sdc'),
+      ...$this->findCreatedComponentConfigEntities(SingleDirectoryComponent::SOURCE_PLUGIN_ID, 'sdc_theme_test'),
+    ];
     self::assertSame([
       'sdc.canvas_test_sdc.attributes',
       'sdc.canvas_test_sdc.banner',
@@ -226,6 +238,10 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
       'sdc.canvas_test_sdc.tags',
       'sdc.canvas_test_sdc.two_column',
       'sdc.canvas_test_sdc.video',
+      'sdc.sdc_theme_test.bar',
+      'sdc.sdc_theme_test.lib-overrides',
+      'sdc.sdc_theme_test.my-card',
+      'sdc.sdc_theme_test_base.my-card-no-schema',
     ], $auto_created_components);
 
     return array_combine($auto_created_components, $auto_created_components);
@@ -905,6 +921,68 @@ activation="auto">
           'library' => [
             'core/components.canvas_test_sdc--video',
             'core/components.canvas_test_sdc--video',
+          ],
+        ],
+      ],
+      'sdc.sdc_theme_test.bar' => [
+        'html' => <<<'HTML'
+<h1>Bar</h1>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.sdc_theme_test--bar',
+            'core/components.sdc_theme_test--bar',
+          ],
+        ],
+      ],
+      'sdc.sdc_theme_test.lib-overrides' => [
+        'html' => 'It works
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.sdc_theme_test--lib-overrides',
+            'core/components.sdc_theme_test--lib-overrides',
+          ],
+        ],
+      ],
+      'sdc.sdc_theme_test.my-card' => [
+        'html' => <<<'HTML'
+<div  data-component-id="sdc_theme_test:my-card">
+  <h2 class="component--my-card__header">I am a header!</h2>
+  <div class="component--my-card__body">
+          Default contents for a card
+      </div>
+</div>
+
+HTML
+        ,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.sdc_theme_test--my-card',
+            'core/components.sdc_theme_test--my-card',
+          ],
+        ],
+      ],
+      'sdc.sdc_theme_test_base.my-card-no-schema' => [
+        'html' => <<<'HTML'
+<div  data-component-id="sdc_theme_test_base:my-card-no-schema">
+  <h2 class="component--my-card-no-schema__header"></h2>
+  <div class="component--my-card-no-schema__body">
+          Default contents for a card
+      </div>
+</div>
+
+HTML
+        ,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.sdc_theme_test_base--my-card-no-schema',
+            'core/components.sdc_theme_test_base--my-card-no-schema',
           ],
         ],
       ],
@@ -2285,6 +2363,32 @@ activation="auto">
           ],
         ],
       ],
+      'sdc.sdc_theme_test.bar' => [
+        'prop_field_definitions' => [],
+      ],
+      'sdc.sdc_theme_test.lib-overrides' => [
+        'prop_field_definitions' => [],
+      ],
+      'sdc.sdc_theme_test.my-card' => [
+        'prop_field_definitions' => [
+          'header' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'I am a header!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
+      'sdc.sdc_theme_test_base.my-card-no-schema' => [
+        'prop_field_definitions' => [],
+      ],
     ];
   }
 
@@ -2567,6 +2671,19 @@ activation="auto">
           1 => 'file',
           2 => 'canvas_test_sdc',
         ],
+      ],
+      'sdc.sdc_theme_test.bar' => [
+        'theme' => ['sdc_theme_test'],
+      ],
+      'sdc.sdc_theme_test.lib-overrides' => [
+        'theme' => ['sdc_theme_test'],
+      ],
+      'sdc.sdc_theme_test.my-card' => [
+        'module' => ['core'],
+        'theme' => ['sdc_theme_test'],
+      ],
+      'sdc.sdc_theme_test_base.my-card-no-schema' => [
+        'theme' => ['sdc_theme_test_base'],
       ],
     ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
   }
@@ -4671,6 +4788,67 @@ activation="auto">
             ],
           ],
         ],
+        'transforms' => [],
+      ],
+      'sdc.sdc_theme_test.bar' => [
+        'expected_output_selectors' => [
+          'h1',
+        ],
+        'source' => 'Theme component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'transforms' => [],
+      ],
+      'sdc.sdc_theme_test.lib-overrides' => [
+        'expected_output_selectors' => [
+          ':root ',
+        ],
+        'source' => 'Theme component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
+        'transforms' => [],
+      ],
+      'sdc.sdc_theme_test.my-card' => [
+        'expected_output_selectors' => [
+          '[data-component-id="sdc_theme_test:my-card"]',
+        ],
+        'source' => 'Theme component',
+        'metadata' => [
+          'slots' => [
+            'card_body' => [
+              'title' => 'Body',
+              'description' => 'The contents of the card.',
+              'examples' => [
+                '<p>Foo is <strong>NOT</strong> bar.</p>',
+              ],
+            ],
+          ],
+        ],
+        'propSources' => [
+          'header' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'I am a header!'],
+              ],
+              'resolved' => 'I am a header!',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.sdc_theme_test_base.my-card-no-schema' => [
+        'expected_output_selectors' => [
+          '[data-component-id="sdc_theme_test_base:my-card-no-schema"]',
+        ],
+        'source' => 'Theme component',
+        'metadata' => ['slots' => []],
+        'propSources' => [],
         'transforms' => [],
       ],
     ];

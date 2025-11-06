@@ -190,7 +190,7 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    *   The component config entity.
    */
   public static function createConfigEntity(ComponentPlugin $component_plugin): ComponentEntity {
-    assert(is_array($component_plugin->metadata->schema));
+    assert(is_null($component_plugin->metadata->schema) || is_array($component_plugin->metadata->schema));
     $props = self::getPropsForComponentPlugin($component_plugin);
     assert(is_array($component_plugin->getPluginDefinition()));
     // Disabled if obsolete or flagged with noUi.
@@ -236,9 +236,9 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
    *   The component config entity.
    */
   public static function updateConfigEntity(ComponentPlugin $component_plugin): ComponentEntity {
+    assert(is_null($component_plugin->metadata->schema) || is_array($component_plugin->metadata->schema));
     $component = ComponentEntity::load(self::convertMachineNameToId($component_plugin->getPluginId()));
     assert($component instanceof ComponentEntity);
-    assert(is_array($component_plugin->metadata->schema));
 
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),

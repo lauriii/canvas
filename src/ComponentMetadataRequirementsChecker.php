@@ -33,12 +33,6 @@ final class ComponentMetadataRequirementsChecker {
    */
   public static function check(string $component_id, ComponentMetadata $metadata, array $required_props): void {
     $messages = [];
-    // Canvas always requires schema, even for theme components.
-    // @see \Drupal\Core\Theme\ComponentPluginManager::shouldEnforceSchemas()
-    // @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo()
-    if ($metadata->schema === NULL) {
-      throw new ComponentDoesNotMeetRequirementsException(['Component has no props schema']);
-    }
 
     if ($metadata->group == 'Elements') {
       $messages[] = 'Component uses the reserved "Elements" category';

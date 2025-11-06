@@ -916,7 +916,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
 
-      $schema = $component_plugin->metadata->schema;
+      $schema = $component_plugin->metadata->schema ?? [];
       $props[$cpe->propName] = [
         'required' => isset($schema['required']) && in_array($cpe->propName, $schema['required'], TRUE),
         'field_type' => $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression

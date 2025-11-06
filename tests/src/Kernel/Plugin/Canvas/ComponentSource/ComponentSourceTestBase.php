@@ -217,7 +217,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     return $return_values;
   }
 
-  public function findCreatedComponentConfigEntities(string $component_source_plugin_id, string $test_module): array {
+  public function findCreatedComponentConfigEntities(string $component_source_plugin_id, string $extension): array {
     // @phpstan-ignore-next-line
     $component_config_entity_type_prefix = $this->componentStorage->getEntityType()->getConfigPrefix();
 
@@ -227,7 +227,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       '%s.%s.%s',
       $component_config_entity_type_prefix,
       $component_source_plugin_id,
-      $test_module,
+      $extension,
     );
 
     // Transform from `canvas.component.<ID>` to just `<ID>`.
@@ -241,12 +241,12 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     return $discovered_component_entity_ids;
   }
 
-  public function findIneligibleComponents(string $component_source_plugin_id, string $test_module): array {
+  public function findIneligibleComponents(string $component_source_plugin_id, string $extension): array {
     $ineligible_components = $this->componentReasonRepository->getReasons()[$component_source_plugin_id] ?? [];
     ksort($ineligible_components);
     return array_filter(
       $ineligible_components,
-      fn (string $id) => str_starts_with($id, $component_source_plugin_id . '.' . $test_module),
+      fn (string $id) => str_starts_with($id, $component_source_plugin_id . '.' . $extension),
       ARRAY_FILTER_USE_KEY,
     );
   }
