@@ -55,7 +55,7 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-final class CreateComponent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
+final class CreateComponent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   use ConstraintPropertyPathTranslatorTrait;
 
@@ -160,14 +160,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       $this->setOutput(Yaml::dump(['error' => sprintf('Failed to process Javascript component data: %s', $e->getMessage())], 10, 2));
       return;
     }
-
-    // \Drupal\canvas_ai\Controller\CanvasBuilder::render() expects a YAML parsable
-    // string.
-    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
-    $this->setOutput(Yaml::dump([
-      'component_structure' => $output,
-    ], 10, 2)
-    );
+    $this->setStructuredOutput(['component_structure' => $output]);
   }
 
 }

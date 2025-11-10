@@ -10,6 +10,7 @@ use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\GenericType\ImageFile;
 use Drupal\ai_agents\Service\AgentStatus\Interfaces\AiAgentStatusPollerServiceInterface;
 use Drupal\ai_agents\Service\AgentStatus\UpdateItems\TextGenerated;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\BuilderResponseFunctionCallInterface;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\CsrfTokenGenerator;
@@ -17,12 +18,6 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateComponent;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,7 +25,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Renders the Drupal Canvas AI calls.
@@ -258,40 +252,10 @@ final class CanvasBuilder extends ControllerBase {
     elseif ($solvability == AiAgentInterface::JOB_SOLVABLE) {
       $response['status'] = TRUE;
       $tools = $agent->getToolResults(TRUE);
-      $map = [
-        EditComponentJs::class => ['js_structure', 'props_metadata'],
-        CreateComponent::class => ['component_structure'],
-        CreateFieldContent:: class => ['created_content'],
-        EditFieldContent:: class => ['refined_text'],
-        AddMetadata::class => ['metadata'],
-        SetAIGeneratedComponentStructure::class => ['operations'],
-      ];
       if (!empty($tools)) {
         foreach ($tools as $tool) {
-          foreach ($map as $class => $keys) {
-            if ($tool instanceof $class) {
-              // @todo Refactor this after https://www.drupal.org/i/3529313 is fixed.
-              $output = $tool->getReadableOutput();
-              try {
-                $data = Yaml::parse($output);
-                foreach ($keys as $key) {
-                  if (!empty($data[$key])) {
-                    $response[$key] = $data[$key];
-                  }
-                  if ($tool instanceof SetAIGeneratedComponentStructure) {
-                    // The tool output is a JSON string for safer decoding.
-                    $data = Json::decode($output);
-                  }
-                  else {
-                    // The output is a YAML string.
-                    $data = Yaml::parse($output);
-                  }
-                }
-              }
-              catch (\Throwable) {
-                // Do nothing, the output is not YAML parsable.
-              }
-            }
+          if ($tool instanceof BuilderResponseFunctionCallInterface) {
+            $response = array_merge($response, $tool->getStructuredOutput());
           }
           if ($tool instanceof AiAgentWrapper) {
             $response['message'] = $tool->getReadableOutput();

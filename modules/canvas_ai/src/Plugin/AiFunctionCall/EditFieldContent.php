@@ -8,7 +8,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Plugin implementation of edit field content function.
@@ -35,40 +34,14 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-class EditFieldContent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
-
-  /**
-   * The text value.
-   *
-   * @var string
-   */
-  protected string $value = "";
-
-  /**
-   * The field name.
-   *
-   * @var string
-   */
-  protected string $fieldName = "";
+class EditFieldContent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
    * {@inheritdoc}
    */
   public function execute(): void {
-    $this->value = $this->getContextValue('text_value');
-    $this->fieldName = $this->getContextValue('field_name');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getReadableOutput(): string {
-    // \Drupal\canvas_ai\Controller\CanvasBuilder::render() expects a YAML parsable
-    // string.
-    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
-    return Yaml::dump([
-      'refined_text' => $this->value,
-      'field_name' => $this->fieldName,
+    $this->setStructuredOutput([
+      'refined_text' => $this->getContextValue('text_value'),
     ]);
   }
 

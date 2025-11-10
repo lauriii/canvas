@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata;
 use Drupal\KernelTests\KernelTestBase;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the AddMetadata function call plugin.
@@ -47,7 +46,7 @@ class AddMetadataTest extends KernelTestBase {
    */
   public function testAddMetadata(): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:add_metadata');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $this->assertInstanceOf(AddMetadata::class, $tool);
 
     $generated_metadata = 'This is metatag description';
     $expected_result = [
@@ -57,12 +56,9 @@ class AddMetadataTest extends KernelTestBase {
     ];
     $tool->setContextValue('metadata', $generated_metadata);
     $tool->execute();
-    $result = $tool->getReadableOutput();
-    $this->assertIsString($result);
-
-    $parsed_result = Yaml::parse($result);
-    $this->assertArrayHasKey('metadata', $parsed_result);
-    $this->assertEquals($expected_result, $parsed_result);
+    $result = $tool->getStructuredOutput();
+    $this->assertArrayHasKey('metadata', $result);
+    $this->assertEquals($expected_result, $result);
   }
 
 }

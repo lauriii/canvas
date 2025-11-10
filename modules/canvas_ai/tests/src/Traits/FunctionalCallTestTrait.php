@@ -17,8 +17,9 @@ trait FunctionalCallTestTrait {
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
 
     foreach ($contexts as $key => $context) {
-      $tool->setContextValue($key, $context)->execute();
+      $tool->setContextValue($key, $context);
     }
+    $tool->execute();
     return $tool->getReadableOutput();
   }
 

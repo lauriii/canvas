@@ -8,7 +8,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Plugin implementation of create field content function.
@@ -35,41 +34,15 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-final class CreateFieldContent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
-
-  /**
-   * The text value.
-   *
-   * @var string
-   */
-  protected string $value = '';
-
-  /**
-   * The field name.
-   *
-   * @var string
-   */
-  protected string $fieldName = "";
+final class CreateFieldContent extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
    * {@inheritdoc}
    */
   public function execute(): void {
-    $this->value = $this->getContextValue('field_content');
-    $this->fieldName = $this->getContextValue('field_name');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getReadableOutput(): string {
-    // \Drupal\canvas_ai\Controller\CanvasBuilder::render() expects a YAML parsable
-    // string.
-    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
-    return Yaml::dump([
-      'created_content' => $this->value,
-      'field_name' => $this->fieldName,
-    ], 10, 2);
+    $this->setStructuredOutput([
+      'created_content' => $this->getContextValue('field_content'),
+    ]);
   }
 
 }

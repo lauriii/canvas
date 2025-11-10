@@ -6,7 +6,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\Entity\Page;
-use Drupal\Component\Serialization\Json;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -95,8 +95,11 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
     // Set the current layout to a valid layout.
     $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
-    $result = $this->getComponentToolOutput($yaml_input);
-    $this->assertEquals(Json::encode($expected_output), $result);
+    $tool = $this->functionCallManager->createInstance('canvas_ai:set_component_structure');
+    $this->assertInstanceOf(SetAIGeneratedComponentStructure::class, $tool);
+    $tool->setContextValue('component_structure', $yaml_input);
+    $tool->execute();
+    self::assertEquals($expected_output, $tool->getStructuredOutput());
   }
 
   /**

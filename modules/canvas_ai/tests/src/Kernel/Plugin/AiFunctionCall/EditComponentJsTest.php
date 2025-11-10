@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\Component\Serialization\Json;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Symfony\Component\Yaml\Yaml;
 
@@ -70,7 +70,7 @@ final class EditComponentJsTest extends KernelTestBase {
    */
   public function testEditComponentJs(): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:edit_component_js');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $this->assertInstanceOf(EditComponentJs::class, $tool);
 
     $js_content = 'console.log("Hello World"); const component = { init: () => {} };';
     $props_metadata = Json::encode([
@@ -92,15 +92,12 @@ final class EditComponentJsTest extends KernelTestBase {
     $tool->setContextValue('props_metadata', $props_metadata);
     $tool->setContextValue('component_machine_name', 'existing_component');
     $tool->execute();
-    $result = $tool->getReadableOutput();
+    $result = $tool->getStructuredOutput();
 
-    $this->assertIsString($result);
-    $parsed_result = Yaml::parse($result);
-
-    $this->assertArrayHasKey('js_structure', $parsed_result);
-    $this->assertArrayHasKey('props_metadata', $parsed_result);
-    $this->assertEquals($js_content, $parsed_result['js_structure']);
-    $this->assertEquals($props_metadata, $parsed_result['props_metadata']);
+    $this->assertArrayHasKey('js_structure', $result);
+    $this->assertArrayHasKey('props_metadata', $result);
+    $this->assertEquals($js_content, $result['js_structure']);
+    $this->assertEquals($props_metadata, $result['props_metadata']);
   }
 
   public function testComponentValidation(): void {

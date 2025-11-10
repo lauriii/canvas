@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent;
 use Drupal\KernelTests\KernelTestBase;
-use Symfony\Component\Yaml\Yaml;
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 
 /**
  * Tests for the EditFieldContentTest function call plugin.
@@ -47,7 +46,7 @@ final class EditFieldContentTest extends KernelTestBase {
    */
   public function testEditFieldContent(): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:edit_field_content');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $this->assertInstanceOf(EditFieldContent::class, $tool);
 
     $refined_content = [
       'refined_text' => 'Hello World!',
@@ -56,14 +55,9 @@ final class EditFieldContentTest extends KernelTestBase {
     $tool->setContextValue('text_value', $refined_content['refined_text']);
     $tool->setContextValue('field_name', $refined_content['field_name']);
     $tool->execute();
-    $result = $tool->getReadableOutput();
-    $this->assertIsString($result);
-
-    $parsed_result = Yaml::parse($result);
-
-    $this->assertArrayHasKey('refined_text', $parsed_result);
-    $this->assertArrayHasKey('field_name', $parsed_result);
-    $this->assertEquals($refined_content, $parsed_result);
+    $result = $tool->getStructuredOutput();
+    unset($refined_content['field_name']);
+    $this->assertEquals($refined_content, $result);
   }
 
 }

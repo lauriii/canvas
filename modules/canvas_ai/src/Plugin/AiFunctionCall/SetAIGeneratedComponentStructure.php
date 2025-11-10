@@ -12,7 +12,6 @@ use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
-use Drupal\Component\Serialization\Json;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -36,7 +35,7 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-final class SetAIGeneratedComponentStructure extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
+final class SetAIGeneratedComponentStructure extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
    * The Canvas page builder helper service.
@@ -110,8 +109,9 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
 
       // Once validated, convert this yml to JSON that will be processed by
       // the Canvas UI.
-      $output = $this->pageBuilderHelper->customYamlToArrayMapper($component_structure);
-      $this->setOutput(Json::encode($output));
+      $custom_yaml = $this->pageBuilderHelper->customYamlToArrayMapper($component_structure);
+      \assert(array_keys($custom_yaml) === ['operations']);
+      $this->setStructuredOutput($custom_yaml);
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());

@@ -8,7 +8,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Plugin implementation of the add metadata function.
@@ -29,34 +28,15 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-class AddMetadata extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
-
-  /**
-   * The metadata.
-   *
-   * @var string
-   */
-  protected string $metadata = "";
+class AddMetadata extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
    * {@inheritdoc}
    */
   public function execute(): void {
-    $this->metadata = $this->getContextValue('metadata');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getReadableOutput(): string {
-    // \Drupal\canvas_ai\Controller\CanvasBuilder::render() expects a YAML parsable
-    // string.
-    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
-    return Yaml::dump([
-      'metadata' => [
-        'metatag_description' => $this->metadata,
-      ],
-    ], 10, 2);
+    $this->setStructuredOutput([
+      'metadata' => ['metatag_description' => $this->getContextValue('metadata')],
+    ]);
   }
 
 }

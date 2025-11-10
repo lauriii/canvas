@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateComponent;
 use Drupal\Component\Serialization\Json;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Symfony\Component\Yaml\Yaml;
@@ -52,7 +52,7 @@ final class CreateComponentTest extends KernelTestBase {
    */
   public function testCreateNewComponent(): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:create_component');
-    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $this->assertInstanceOf(CreateComponent::class, $tool);
 
     $component_name = 'Test Component';
     $javascript = 'console.log("Hello World");';
@@ -77,12 +77,10 @@ final class CreateComponentTest extends KernelTestBase {
     $tool->setContextValue('css_structure', $css);
     $tool->setContextValue('props_metadata', $props_metadata);
     $tool->execute();
-    $result = $tool->getReadableOutput();
-    $this->assertIsString($result);
-    $parsed_result = Yaml::parse($result);
+    $result = $tool->getStructuredOutput();
 
-    $this->assertArrayHasKey('component_structure', $parsed_result);
-    $component_structure = $parsed_result['component_structure'];
+    $this->assertArrayHasKey('component_structure', $result);
+    $component_structure = $result['component_structure'];
     $this->assertEquals($component_name, $component_structure['name']);
     $this->assertEquals('test_component', $component_structure['machineName']);
     $this->assertFalse($component_structure['status']);
