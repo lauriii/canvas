@@ -9,7 +9,6 @@ use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Symfony\Component\Yaml\Yaml;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 
 /**
  * Plugin implementation to get entity information.
@@ -48,7 +47,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
     ),
   ],
 )]
-final class GetEntityInformation extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, ContainerFactoryPluginInterface {
+final class GetEntityInformation extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
 
   /**
    * The entity type.

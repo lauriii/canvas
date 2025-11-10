@@ -95,39 +95,39 @@ class CanvasAiHooks {
       foreach ($tokens as $name => $original) {
         switch ($name) {
           case 'entity_type':
-            $replacements[$original] = !empty($data['entity_type']) ? $data['entity_type'] : NULL;
+            $replacements[$original] = $data['entity_type'] ?? NULL;
             break;
 
           case 'entity_id':
-            $replacements[$original] = !empty($data['entity_id']) ? $data['entity_id'] : NULL;
+            $replacements[$original] = $data['entity_id'] ?? NULL;
             break;
 
           case 'selected_component':
-            $replacements[$original] = !empty($data['selected_component']) ? $data['selected_component'] : NULL;
+            $replacements[$original] = $data['selected_component'] ?? NULL;
             break;
 
           case 'layout':
-            $replacements[$original] = !empty($data['layout']) ? $data['layout'] : NULL;
+            $replacements[$original] = $data['layout'] ?? NULL;
             break;
 
           case 'derived_proptypes':
-            $replacements[$original] = !empty($data['derived_proptypes']) ? $data['derived_proptypes'] : NULL;
+            $replacements[$original] = $data['derived_proptypes'] ?? NULL;
             break;
 
           case 'page_title':
-            $replacements[$original] = !empty($data['page_title']) ? $data['page_title'] : NULL;
+            $replacements[$original] = $data['page_title'] ?? NULL;
             break;
 
           case 'page_description':
-            $replacements[$original] = !empty($data['page_description']) ? $data['page_description'] : NULL;
+            $replacements[$original] = $data['page_description'] ?? NULL;
             break;
 
           case 'active_component_uuid':
-            $replacements[$original] = !empty($data['active_component_uuid']) ? $data['active_component_uuid'] : 'None';
+            $replacements[$original] = $data['active_component_uuid'] ?? 'None';
             break;
 
           case 'menu_fetch_source':
-            $replacements[$original] = !empty($data['menu_fetch_source']) ? $data['menu_fetch_source'] : NULL;
+            $replacements[$original] = $data['menu_fetch_source'] ?? NULL;
             break;
 
           case 'json_api_module_status':

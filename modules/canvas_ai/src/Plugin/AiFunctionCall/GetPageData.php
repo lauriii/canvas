@@ -6,7 +6,6 @@ use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\Yaml\Yaml;
@@ -36,7 +35,7 @@ use Symfony\Component\Yaml\Yaml;
     ),
   ],
 )]
-class GetPageData extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, ContainerFactoryPluginInterface {
+class GetPageData extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
 
   /**
    * The page title.
@@ -57,7 +56,7 @@ class GetPageData extends FunctionCallBase implements ExecutableFunctionCallInte
    */
   public function execute(): void {
     $this->pageTitle = $this->getContextValue('page_title');
-    $this->pageDescription = $this->getContextValue('page_description') ?? NULL;
+    $this->pageDescription = $this->getContextValue('page_description');
   }
 
   /**

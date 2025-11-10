@@ -15,7 +15,6 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Yaml\Yaml;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 
 /**
  * Plugin implementation to get node fields.
@@ -36,14 +35,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
     ),
   ],
 )]
-final class GetNodeFields extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, ContainerFactoryPluginInterface {
-
-  /**
-   * The node type.
-   *
-   * @var string
-   */
-  protected string $nodeType;
+final class GetNodeFields extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface {
 
   /**
    * The entity type manager.
@@ -91,11 +83,11 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
       throw new \Exception('The current user does not have the right permissions to run this tool.');
     }
 
-    $this->nodeType = $this->getContextValue('node_type');
+    $node_type = $this->getContextValue('node_type');
 
     // Check if node type exists.
-    if (is_null($this->entityTypeManager->getStorage('node_type')->load($this->nodeType))) {
-      $this->setOutput('Node type with name "' . $this->nodeType . '" does not exist.');
+    if (is_null($this->entityTypeManager->getStorage('node_type')->load($node_type))) {
+      $this->setOutput('Node type with name "' . $node_type . '" does not exist.');
       return;
     }
 
@@ -103,8 +95,8 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
     $entity_reference_fields = [];
     $fields = $this->entityTypeManager->getStorage('field_config')->loadMultiple();
     foreach ($fields as $field) {
-      if ($field->getTargetBundle() == $this->nodeType) {
-        if ($field->getType() == 'entity_reference') {
+      if ($field->getTargetBundle() === $node_type) {
+        if ($field->getType() === 'entity_reference') {
           $entity_reference_fields[] = $field;
         }
         else {
@@ -118,7 +110,7 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
     foreach ($entity_reference_fields as $entity_reference_field) {
       $entity_reference_field_cardinality = $entity_reference_field->getFieldStorageDefinition()->getCardinality();
       $entity_reference_field_handler_setting = $entity_reference_field->getSetting('handler_settings');
-      if ($entity_reference_field_handler_setting !== NULL && $entity_reference_field_handler_setting['target_bundles'] != NULL) {
+      if ($entity_reference_field_handler_setting !== NULL && $entity_reference_field_handler_setting['target_bundles'] !== NULL) {
         foreach ($entity_reference_field_handler_setting['target_bundles'] as $bundle) {
           foreach ($fields as $field) {
             if ($field->getTargetEntityTypeId() === $entity_reference_field->getSettings()['target_type'] && $field->getTargetBundle() === $bundle) {

@@ -121,33 +121,33 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
 
   private function validatePlacementParams(array $operation, int $index): array {
     $errors = [];
-    $index = 'Operation ' . $index;
+    $errorKey = 'Operation ' . $index;
 
     if (!isset($operation['placement']) || !in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
-      $errors[$index][] = 'The placement key is missing or invalid in the operation.';
+      $errors[$errorKey][] = 'The placement key is missing or invalid in the operation.';
       return $errors;
     }
 
     $placement = $operation['placement'];
     // If placement is 'above' or 'below', `reference_uuid` must be provided.
     if (in_array($placement, ['above', 'below'], TRUE) && empty($operation['reference_uuid'])) {
-      $errors[$index][] = 'The reference_uuid must be provided for above/below placement.';
+      $errors[$errorKey][] = 'The reference_uuid must be provided for above/below placement.';
     }
 
     // If placement is 'inside', `reference_uuid` is not needed.
     if ($placement === 'inside') {
       if (!empty($operation['reference_uuid'])) {
-        $errors[$index][] = 'The reference_uuid is not required for inside placement.';
+        $errors[$errorKey][] = 'The reference_uuid is not required for inside placement.';
       }
       // If placement is 'inside', the target must not contain child components.
       if ($this->pageBuilderHelper->hasChildComponents($operation['target'])) {
-        $errors[$index][] = 'The target ' . $operation['target'] . ' has "inside" placement specified, but it contains child components. Select any child component in the target and use "above" or "below" placement instead.';
+        $errors[$errorKey][] = 'The target ' . $operation['target'] . ' has "inside" placement specified, but it contains child components. Select any child component in the target and use "above" or "below" placement instead.';
       }
     }
 
     // Operation must contain components.
     if (empty($operation['components'])) {
-      $errors[$index][] = 'The operation must contain components.';
+      $errors[$errorKey][] = 'The operation must contain components.';
     }
 
     return $errors;

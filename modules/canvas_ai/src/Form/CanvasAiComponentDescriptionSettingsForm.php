@@ -160,7 +160,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
         $form[$source]['components'][$component_id]['description'] = [
           '#type' => 'textarea',
           '#title' => $this->t('Description'),
-          '#default_value' => is_null($this->getDefaultValue($source, $component_id)) ? $component_data['description'] : $this->getDefaultValue($source, $component_id),
+          '#default_value' => $this->getDefaultValue($source, $component_id) ?? $component_data['description'],
         ];
 
         // Description elements for each prop.
@@ -176,7 +176,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
             $form[$source]['components'][$component_id]['props'][$prop_id]['description'] = [
               '#type' => 'textarea',
               '#title' => $prop_data['name'],
-              '#default_value' => is_null($this->getDefaultValue($source, $component_id, $prop_id, 'props')) ? $prop_data['description'] : $this->getDefaultValue($source, $component_id, $prop_id, 'props'),
+              '#default_value' => $this->getDefaultValue($source, $component_id, $prop_id, 'props') ?? $prop_data['description'],
             ];
           }
         }
@@ -193,7 +193,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
             $form[$source]['components'][$component_id]['slots'][$slot_id]['description'] = [
               '#type' => 'textarea',
               '#title' => $slot_data['name'],
-              '#default_value' => is_null($this->getDefaultValue($source, $component_id, $slot_id, 'slots')) ? $slot_data['description'] : $this->getDefaultValue($source, $component_id, $slot_id, 'slots'),
+              '#default_value' => $this->getDefaultValue($source, $component_id, $slot_id, 'slots') ?? $slot_data['description'],
             ];
           }
         }
