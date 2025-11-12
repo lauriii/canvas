@@ -1,6 +1,7 @@
 /**
  * ⚠️ This is highly experimental and *will* be refactored.
  */
+import { useEffect } from 'react';
 import clsx from 'clsx';
 import { Cross2Icon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Heading, ScrollArea } from '@radix-ui/themes';
@@ -18,6 +19,7 @@ import {
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
+import { hasPermission } from '@/utils/permissions';
 
 import AiWizard from '../aiExtension/AiWizard';
 
@@ -27,6 +29,12 @@ export const PrimaryPanel = () => {
   const activePanel = useAppSelector(selectActivePanel);
   const dispatch = useAppDispatch();
   const offLeftClasses = useHidePanelClasses('left');
+
+  useEffect(() => {
+    if (activePanel === 'templates' && !hasPermission('contentTemplates')) {
+      dispatch(unsetActivePanel());
+    }
+  }, [activePanel, dispatch]);
 
   const panelMap: Record<string, string> = {
     library: 'Library',
@@ -96,11 +104,12 @@ export const PrimaryPanel = () => {
                     <AiWizard />
                   </ErrorBoundary>
                 )}
-                {activePanel === 'templates' && (
-                  <ErrorBoundary>
-                    <Templates />
-                  </ErrorBoundary>
-                )}
+                {activePanel === 'templates' &&
+                  hasPermission('contentTemplates') && (
+                    <ErrorBoundary>
+                      <Templates />
+                    </ErrorBoundary>
+                  )}
               </Box>
             </ScrollArea>
           </Box>
