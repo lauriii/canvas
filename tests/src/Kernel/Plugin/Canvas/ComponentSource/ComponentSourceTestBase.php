@@ -237,7 +237,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       $discovered_component_config_names
     );
 
-    ksort($discovered_component_entity_ids);
+    sort($discovered_component_entity_ids);
     return $discovered_component_entity_ids;
   }
 
