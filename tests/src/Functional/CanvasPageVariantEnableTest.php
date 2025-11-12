@@ -53,6 +53,7 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
     // No template is created if we do not enable Canvas; no warning messages on
     // block listing.
     $this->submitForm(['use_canvas' => FALSE], 'Save configuration');
+    // @phpstan-ignore-next-line method.alreadyNarrowedType
     $this->assertEmpty(PageRegion::loadMultiple());
     $this->drupalGet('/admin/structure/block');
     $assert->elementsCount('css', '[aria-label="Warning message"]', 0);

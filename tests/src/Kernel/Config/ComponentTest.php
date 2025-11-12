@@ -105,6 +105,7 @@ class ComponentTest extends KernelTestBase {
     $this->assertEmpty(Component::loadMultiple());
     $this->componentPluginManager->getDefinitions();
     $initial_components = Component::loadMultiple();
+    // @phpstan-ignore-next-line method.impossibleType
     $this->assertNotEmpty($initial_components);
 
     // Originally:
