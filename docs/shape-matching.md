@@ -138,7 +138,9 @@ value that fits in the `prop shape`.
 See `\Drupal\canvas\PropSource\DynamicPropSource`.
 
 ⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
-suggested by `\Drupal\canvas\ShapeMatcher\PropSourceSuggester`. The Content Creator or Site Builder will choose one.
+suggested by `\Drupal\canvas\ShapeMatcher\PropSourceSuggester`, with irrelevant choices omitted (such as the
+"Default translation" boolean, or the "Revision log message" prose string). The Content Creator or Site Builder will
+choose one.
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldTypeSupportTest`.
 

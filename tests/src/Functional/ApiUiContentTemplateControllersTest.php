@@ -276,14 +276,6 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               [
                 'items' => [
                   [
-                    'id' => '28f59b9e85cecf53',
-                    'source' => [
-                      'sourceType' => 'dynamic',
-                      'expression' => 'ℹ︎␜entity:node:article␝field_tags␞␟entity␜␜entity:node␝revision_log␞␟value',
-                    ],
-                    'label' => 'Revision log message',
-                  ],
-                  [
                     'id' => '563f6a4e0001da4c',
                     'source' => [
                       'sourceType' => 'dynamic',
@@ -308,14 +300,6 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'expected' => [
         'caption' => [
           ['id' => $hash_for_choice($choice_article_title)] + $choice_article_title,
-          [
-            'id' => '7ca10058b43f4d0f',
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
-            ],
-            'label' => "Revision log message",
-          ],
           [
             'items' => [
               [
@@ -380,14 +364,6 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'expected' => [
         'text' => [
           ['id' => $hash_for_choice($choice_article_title)] + $choice_article_title,
-          [
-            'id' => '7ca10058b43f4d0f',
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝revision_log␞␟value',
-            ],
-            'label' => "Revision log message",
-          ],
           [
             'items' => [
               [
@@ -464,19 +440,6 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
                   ],
                 ],
                 'label' => "URI",
-              ],
-              [
-                'items' => [
-                  [
-                    'id' => 'b2b210ff285206ee',
-                    'source' => [
-                      'sourceType' => 'dynamic',
-                      'expression' => 'ℹ︎␜entity:node:article␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
-                    ],
-                    'label' => 'URL',
-                  ],
-                ],
-                'label' => 'User ID',
               ],
             ],
             'label' => 'Silly image 🤡',

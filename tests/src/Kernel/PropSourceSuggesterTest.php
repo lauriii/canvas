@@ -259,7 +259,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'field_screenshots → Alternative text' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
             'field_screenshots → Title' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟title',
             'Tags → Taxonomy term → Name' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
-            'Tags → Taxonomy term → Revision log message' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝revision_log_message␞␟value',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -274,15 +273,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → Default translation" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
-            "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
-            "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
             "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
-            "Revision user → User → Default translation" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
@@ -291,15 +284,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → Default translation" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
-            "Promoted to front page" => 'ℹ︎␜entity:node:foo␝promote␞␟value',
-            "Sticky at top of lists" => 'ℹ︎␜entity:node:foo␝sticky␞␟value',
             "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "Default translation" => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value',
             "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            "Default revision" => 'ℹ︎␜entity:node:foo␝revision_default␞␟value',
-            "Revision user → User → Default translation" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝default_langcode␞␟value',
             "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
@@ -310,7 +297,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'instances' => [
             "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
             'Authored by → User → Name' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
-            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             'Check it out! → Link text' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
             "Silly image 🤡 → Alternative text" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 → Title" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
@@ -321,9 +307,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
         ],
         '⿲sdc_test_all_props:all-props␟test_string_multiline' => [
           'required' => FALSE,
-          'instances' => [
-            "Revision log message" => 'ℹ︎␜entity:node:foo␝revision_log␞␟value',
-          ],
+          'instances' => [],
           'adapters' => [],
           'host_entity_urls' => [],
         ],
@@ -430,7 +414,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'instances' => [
             "Authored by → User → UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             "Authored by → Target UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
-            "Silly image 🤡 → User ID → Target UUID" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟target_uuid',
             "Silly image 🤡 → UUID" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
             "Revision user → User → UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
             "Revision user → Target UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
@@ -505,7 +488,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
-            'Silly image 🤡 → User ID → URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
@@ -536,7 +518,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
-            'Silly image 🤡 → User ID → URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uid␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -271,11 +273,31 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     ];
   }
 
+  private static function findSuggestionByLabel(string|array $label, string $prop, array $suggestions): array {
+    $is_final_level = is_string($label) || count($label) === 1;
+    $needle = is_array($label) ? reset($label) : $label;
+    // When recursing, the $prop key won't exist.
+    $haystack = array_key_exists($prop, $suggestions) ? $suggestions[$prop] : $suggestions;
+    assert(array_is_list($haystack));
+    foreach ($haystack as $suggestion) {
+      if ($suggestion['label'] === $needle) {
+        if ($is_final_level) {
+          assert(array_key_exists('id', $suggestion));
+          assert(array_key_exists('source', $suggestion));
+          assert(array_key_exists('label', $suggestion));
+          return $suggestion;
+        }
+        return self::findSuggestionByLabel(array_slice($label, 1), $prop, $suggestion['items']);
+      }
+    }
+    throw new \LogicException(sprintf('No suggestion found for prop %s with label %s', $prop, $needle));
+  }
+
   public function testDynamicProps(): void {
     $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
     self::assertCount(0, $node->validate());
     $node->save();
-    self::assertNull($node->getRevisionLogMessage());
+    self::assertEmpty($node->get('media_image_field'));
     $template = ContentTemplate::create([
       'content_entity_type_id' => 'node',
       'content_entity_type_bundle' => 'article',
@@ -287,14 +309,6 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $component_id = 'sdc.canvas_test_sdc.my-hero';
     $this->setUpCurrentUser(permissions: ['administer content templates', 'edit any article content']);
     $fieldSuggestions = self::decodeResponse($this->parentRequest(Request::create("canvas/api/v0/ui/content_template/suggestions/prop-sources/node/article/$component_id")));
-    $getFieldSuggestionByLabel = function (string $label, string $prop) use ($fieldSuggestions) {
-      foreach ($fieldSuggestions[$prop] as $suggestion) {
-        if ($suggestion['label'] === $label) {
-          return $suggestion;
-        }
-      }
-      throw new \LogicException(sprintf('No suggestion found for prop %s with label %s', $prop, $label));
-    };
 
     $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
     $component_entity = Component::load($component_id);
@@ -324,8 +338,17 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // Second request: with a valid expression in DynamicPropSource.
     // 💡 These are the ones provided by the API response at the start of the
     // test (…/suggestions/prop-sources/…).
-    $form_canvas_props['source']['heading'] = $getFieldSuggestionByLabel('Title', 'heading')['source'];
-    $form_canvas_props['source']['subheading'] = $getFieldSuggestionByLabel('Revision log message', 'subheading')['source'];
+    $form_canvas_props['source']['heading'] = self::findSuggestionByLabel('Title', 'heading', $fieldSuggestions)['source'];
+    $form_canvas_props['source']['subheading'] = self::findSuggestionByLabel(['A Media Image Field', 'Media', 'Name'], 'subheading', $fieldSuggestions)['source'];
+    // Confirm:
+    // - `heading` can NOT be NULL, and currently evaluates to a not-NULL value
+    // - `subheading` CAN be NULL, and currently evaluates to NULL
+    // @phpstan-ignore-next-line method.nonObject
+    self::assertTrue($node->getFieldDefinition('title')->isRequired());
+    self::assertSame('Test node', Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['heading']['expression']), is_required: FALSE));
+    // @phpstan-ignore-next-line method.nonObject
+    self::assertFalse($node->getFieldDefinition('media_image_field')->isRequired());
+    self::assertNull(Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']), is_required: FALSE));
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);
     // Confirm the linked prop fields are rendered.
     self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));
@@ -342,7 +365,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
       $this->fail('Expected DomainException not thrown.');
     }
     catch (\DomainException $e) {
-      self::assertSame('`ℹ︎␜entity:node:page␝revision_log␞␟value` is an expression for entity type `node`, bundle(s) `page`, but the provided entity is of the bundle `article`.', $e->getMessage());
+      self::assertSame('`ℹ︎␜entity:node:page␝media_image_field␞␟entity␜␜entity:media␝name␞␟value` is an expression for entity type `node`, bundle(s) `page`, but the provided entity is of the bundle `article`.', $e->getMessage());
     }
   }
 

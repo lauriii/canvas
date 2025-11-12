@@ -6,14 +6,19 @@ namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Theme\Component\ComponentMetadata;
@@ -51,7 +56,70 @@ final class PropSourceSuggester {
     private readonly JsonSchemaFieldInstanceMatcher $propMatcher,
     private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
     private readonly Labeler $labeler,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
+
+  /**
+   * Whether the expression uses a field/field property considered irrelevant.
+   *
+   * These are subjective decisions, intended to improve the UX.
+   *
+   * For example:
+   * - an entity's revision log message is very unlikely to ever be displayed
+   * - a reference to a File entity is very unlikely to ever need to display the
+   *   owner of the File
+   * - et cetera
+   *
+   * @todo Refactor after https://www.drupal.org/project/drupal/issues/3557353
+   */
+  private function isConsideredIrrelevant(FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expression): bool {
+    $entity_type_id = $expression->getHostEntityDataDefinition()->getEntityTypeId();
+    $expression_field_name = Labeler::getFieldName($expression, $expression->getHostEntityDataDefinition());
+    $referenced_entity_type_id = $expression instanceof ReferenceFieldPropExpression
+      ? $expression->referenced->getHostEntityDataDefinition()->getEntityTypeId()
+      : NULL;
+    $referenced_expression_field_name = $expression instanceof ReferenceFieldPropExpression
+      ? Labeler::getFieldName($expression->referenced, $expression->referenced->getHostEntityDataDefinition())
+      : NULL;
+
+    // Node-specific heuristics:
+    // 1. never suggest `promote` base field
+    // 2. never suggest `sticky` base field
+    if ($entity_type_id === 'node' && in_array($expression_field_name, ['promote', 'sticky'], TRUE)) {
+      return TRUE;
+    }
+
+    // File-specific heuristics:
+    // 1. do not suggest `uid` base field if the File entity was referenced
+    if ($referenced_entity_type_id === 'file' && $expression instanceof ReferenceFieldPropExpression && $referenced_expression_field_name === 'uid') {
+      return TRUE;
+    }
+
+    // Generic heuristics:
+    // 1. never suggest `default_langcode` base field
+    // 2. never suggest `revision_log_message` base field
+    // 3. never suggest `revision_default` base field
+    $content_entity_type_definition = $this->entityTypeManager->getDefinition($entity_type_id);
+    \assert($content_entity_type_definition instanceof ContentEntityTypeInterface);
+    $is_irrelevant = in_array($expression_field_name, [
+      $content_entity_type_definition->getKey('default_langcode'),
+      $content_entity_type_definition->getRevisionMetadataKey('revision_default'),
+      $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
+    ], TRUE);
+    if ($is_irrelevant) {
+      return TRUE;
+    }
+
+    // Recurse, if needed.
+    return match ($expression::class) {
+      FieldPropExpression::class => FALSE,
+      ReferenceFieldPropExpression::class => $this->isConsideredIrrelevant($expression->referenced),
+      FieldObjectPropsExpression::class => array_any(
+        $expression->objectPropsToFieldProps,
+        fn(FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => $this->isConsideredIrrelevant($sub_expr),
+      ),
+    };
+  }
 
   /**
    * @param string $component_plugin_id
@@ -88,9 +156,13 @@ final class PropSourceSuggester {
         array_keys($expected_order),
         [],
       );
-      // Push each expression into the right (field) bucket.
+      // Push each expression into the right (field) bucket, but only if
+      // considered relevant.
       foreach ($m['instances'] as $s) {
         $expr = $s->expression;
+        if ($this->isConsideredIrrelevant($expr)) {
+          continue;
+        }
         $bucketed_by_field[Labeler::getFieldName($expr, $expr->getHostEntityDataDefinition())][] = $s;
       }
       // Keep only non-empty (field) buckets.
