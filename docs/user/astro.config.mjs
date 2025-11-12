@@ -40,7 +40,10 @@ export default defineConfig({
             },
             {
               label: 'CLI tool',
-              slug: 'code-components/cli-tool',
+              items: [
+                { label: 'Introduction', slug: 'code-components/cli-tool' },
+                { label: 'Prop schemas', slug: 'code-components/cli-tool/prop-schemas' },
+              ],
             },
           ],
         },
