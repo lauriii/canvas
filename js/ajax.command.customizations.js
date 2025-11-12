@@ -580,4 +580,22 @@
       };
     },
   };
+
+  const ajaxCanProceed = () => !drupalSettings?.canvas?.canvasLayoutRequestInProgress || drupalSettings.canvas.canvasLayoutRequestInProgress.length === 0;
+  const originalEventResponse = Drupal.Ajax.prototype.eventResponse;
+  Drupal.Ajax.prototype.eventResponse = function(...args) {
+    if (ajaxCanProceed()) {
+      originalEventResponse.apply(this, args)
+      return;
+    }
+    // Listen for the canvasLayoutRequestComplete event.
+    const canvasLayoutRequestCompleteListener = () => {
+      originalEventResponse.apply(this, args)
+    };
+    document.addEventListener(
+      'canvasLayoutRequestComplete',
+      canvasLayoutRequestCompleteListener,
+      { once: true }
+    );
+  }
 })(Drupal, csstree, drupalSettings);

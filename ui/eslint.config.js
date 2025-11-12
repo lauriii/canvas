@@ -45,6 +45,7 @@ export default [
         JSX: true,
         NodeJS: true,
         React: true,
+        jQuery: true,
       },
 
       parser: tsParser,

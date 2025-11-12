@@ -4,7 +4,11 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import { setLayoutModel } from '@/features/layout/layoutModelSlice';
 import { setHtml } from '@/features/pagePreview/previewSlice';
-import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import {
+  baseQueryWithAutoSaves,
+  popCanvasLayoutRequest,
+  pushCanvasLayoutRequest,
+} from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
@@ -78,7 +82,11 @@ export const previewApi = createApi({
         };
       },
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        // Force any ajax calls to wait.
+        pushCanvasLayoutRequest();
         const { data, meta } = await queryFulfilled;
+        // Tell ajax calls they're good to go.
+        popCanvasLayoutRequest();
         const { html, layout, model, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([

@@ -2,7 +2,11 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import addAjaxPageState from '@/services/addAjaxPageState';
-import { baseQuery } from '@/services/baseQuery';
+import {
+  baseQuery,
+  popCanvasLayoutRequest,
+  pushCanvasLayoutRequest,
+} from '@/services/baseQuery';
 import processResponseAssets from '@/services/processResponseAssets';
 
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
@@ -40,6 +44,13 @@ export const componentInstanceFormApi = createApi({
             'Content-Type': 'application/x-www-form-urlencoded',
           },
         };
+      },
+      async onQueryStarted(queryString, { queryFulfilled }): Promise<void> {
+        // Force any ajax calls to wait.
+        pushCanvasLayoutRequest();
+        await queryFulfilled;
+        // Tell ajax calls they're good to go.
+        popCanvasLayoutRequest();
       },
       forceRefetch: ({ currentArg, previousArg, endpointState }) => {
         // When true, this will fetch new data on the request, but will use

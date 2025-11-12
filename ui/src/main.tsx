@@ -30,6 +30,7 @@ import {
   getDrupal,
   getDrupalSettings,
 } from '@/utils/drupal-globals';
+import { isAjaxing } from '@/utils/isAjaxing';
 
 // Provide these dependencies as globals so extensions do not have redundant and
 // potentially conflicting dependencies.
@@ -56,10 +57,16 @@ const appConfiguration: AppConfiguration = {
   homepagePath: canvasSettings.homepagePath,
 };
 
-const isAjaxing = () =>
-  Drupal.ajax.instances.some(
-    (instance: { ajaxing: boolean }) => instance && instance.ajaxing === true,
-  );
+jQuery(document).on('ajaxStop', () => {
+  // When all ajax is finished, ajaxStop is triggered using jQuery's trigger.
+  // Although .trigger() simulates an event activation, complete with a
+  // synthesized event object, it does not perfectly replicate a
+  // naturally occurring event. We fire a CustomEvent to allow listeners added
+  // in components to fire.
+  // @see inputBehaviors.tsx
+  // @see https://api.jquery.com/trigger/
+  document.dispatchEvent(new CustomEvent('drupalAjaxStop'));
+});
 
 const attachBehaviorsAfterAjaxing = (
   theContext: HTMLElement,

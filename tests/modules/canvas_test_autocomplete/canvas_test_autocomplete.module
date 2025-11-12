@@ -10,4 +10,36 @@ function canvas_test_autocomplete_form_component_instance_form_alter(array &$for
     '#title' => 'Autocomplete Field',
     '#autocomplete_route_name' => 'some.autocomplete.results',
   ];
+
+  $form['test_ajax_container'] = [
+    '#type' => 'container',
+    '#attributes' => ['id' => 'test-ajax-container'],
+  ];
+
+  $form['add_test_content'] = [
+    '#type' => 'button',
+    '#value' => t('Click to test AJAX vs PATCH'),
+    '#ajax' => [
+      'callback' => 'canvas_test_autocomplete_add_test_content_callback',
+      'wrapper' => 'test-ajax-container',
+    ],
+  ];
+  $form['add_test_content_help'] = [
+    '#markup' => '<p>
+        To test AJAX before PATCH, enter "z" in the autocomplete input then click the button to blur it.
+        </p>
+        <p>
+        To test PATCH before AJAX, throttle your connection speed, enter a value in any non-autocomplete input then quickly click the button.
+        </p>',
+  ];
+}
+
+/**
+ * AJAX callback to add a div with test content.
+ */
+function canvas_test_autocomplete_add_test_content_callback(array &$form, FormStateInterface $form_state): array {
+  $form['test_ajax_container']['test_content'] = [
+    '#markup' => '<div>Test content added by AJAX. ' . time() . '</div>',
+  ];
+  return $form['test_ajax_container'];
 }

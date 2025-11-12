@@ -20,6 +20,7 @@ import {
   setFieldValue,
 } from '@/features/form/formStateSlice';
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
+import { isAjaxing } from '@/utils/isAjaxing';
 
 import type { ErrorObject } from 'ajv/dist/types';
 import type { FormId } from '@/features/form/formStateSlice';
@@ -236,7 +237,17 @@ export const InputBehaviorsCommon = ({
         }
       }
 
-      commitFormState({ ...formValues, [fieldName]: newValue });
+      // If no AJAX operations are in progress, update the form state and store.
+      if (!isAjaxing()) {
+        commitFormState({ ...formValues, [fieldName]: newValue });
+        return;
+      }
+      // This is only reached if AJAX operations are in progress. Add an event
+      // listener to update the form state once ajax is complete.
+      const stopListener = () => {
+        commitFormState({ ...formValues, [fieldName]: newValue });
+      };
+      document.addEventListener('drupalAjaxStop', stopListener, { once: true });
     };
 
     attributes.onBlur = (e: React.FocusEvent) => {
