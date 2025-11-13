@@ -12,6 +12,7 @@ import {
 } from '@/features/configuration/configurationSlice';
 import useDebounce from '@/hooks/useDebounce';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -19,7 +20,7 @@ import {
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
 } from '@/services/content';
-import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type { ContentStub } from '@/types/Content';
 
@@ -29,6 +30,7 @@ export const HOMEPAGE_CONFIG_ID = 'canvas_set_homepage';
 const Pages = () => {
   const { showBoundary } = useErrorBoundary();
   const { setEditorEntity } = useEditorNavigation();
+  const { redirectToNextBestPage } = useSmartRedirect();
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -46,7 +48,6 @@ const Pages = () => {
     search: debouncedSearchTerm,
   });
 
-  const baseUrl = getBaseUrl();
   const [
     createContent,
     {
@@ -78,29 +79,17 @@ const Pages = () => {
   }
 
   async function handleDeletePage(item: ContentStub) {
-    // Find another page to redirect to (filtering out the page being deleted)
-    const remainingPages =
-      pageItems?.filter((page) => page.id !== item.id) || [];
     const pageToDeleteId = String(item.id);
     await deleteContent({
       entityType: 'canvas_page',
       entityId: pageToDeleteId,
     });
-    const homepage = pageItems?.find(
-      (page) => page.internalPath === homepagePath,
-    );
-    // If the current page is the one being deleted, redirect to the homepage.
-    if (homepage) {
-      setEditorEntity('canvas_page', String(homepage.id));
-    } else if (remainingPages.length > 0) {
-      // It's possible there is no homepage set yet right now, so we redirect to the first remaining page.
-      setEditorEntity('canvas_page', String(remainingPages[0].id));
-    } else {
-      // If there are no more pages, redirect out of Canvas.
-      setTimeout(() => {
-        window.location.href = baseUrl;
-      }, 100);
+
+    // If the current page is the one being deleted, redirect using smart logic
+    if (entityType === 'canvas_page' && entityId === pageToDeleteId) {
+      redirectToNextBestPage(pageToDeleteId);
     }
+
     // Keep local storage tidy and clear out the array of collapsed layers for the deleted item.
     window.localStorage.removeItem(
       `Canvas.collapsedLayers.canvas_page.${pageToDeleteId}`,

@@ -8,6 +8,7 @@ import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
+import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import {
   useDeleteContentTemplateMutation,
   useGetContentTemplatesQuery,
@@ -124,14 +125,27 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
 
 const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [
-    deleteContentTemplate,
-    { isLoading, error, isError, isSuccess, reset },
-  ] = useDeleteContentTemplateMutation();
+  const [deleteContentTemplate, { isLoading, error, isError, reset }] =
+    useDeleteContentTemplateMutation();
   const selectedTemplateId = useGetEditedTemplateId();
+  const { redirectToNextBestPage } = useSmartRedirect();
 
   const handleDelete = async () => {
-    await deleteContentTemplate(viewMode.id);
+    try {
+      const result = await deleteContentTemplate(viewMode.id);
+
+      // If the mutation completed without error, treat it as success.
+      // We handle this synchronously because the component unmounts when the
+      // query re-fetches (after cache invalidation), preventing useEffect from
+      // running.
+      if (result && !result.error) {
+        setDeleteDialogOpen(false);
+        reset();
+        redirectToNextBestPage();
+      }
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+    }
   };
 
   const deleteDialog = (
@@ -163,13 +177,6 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
       }}
     ></Dialog>
   );
-
-  useEffect(() => {
-    if (isSuccess) {
-      setDeleteDialogOpen(false);
-      reset();
-    }
-  }, [isSuccess, reset]);
 
   useEffect(() => {
     if (isError) {
