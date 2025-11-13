@@ -137,3 +137,13 @@ function canvas_post_update_0005_use_processed_for_text_props_in_components(arra
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->needsUpdatingPropFieldDefinitionsUsingTextValue($component));
 }
+
+/**
+ * Rebuilds the container after service gained a new argument.
+ *
+ * @see https://www.drupal.org/node/2960601
+ * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ */
+function canvas_post_update_0006_add_service_argument(): void {
+  // Empty update to trigger container rebuild.
+}

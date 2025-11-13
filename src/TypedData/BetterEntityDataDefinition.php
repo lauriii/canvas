@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionBase;
 
@@ -69,7 +70,8 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
     if (!isset($this->propertyDefinitions)) {
       if ($entity_type_id = $this->getEntityTypeId()) {
         // Return an empty array for entities that are not content entities.
-        $entity_type_class = \Drupal::entityTypeManager()->getDefinition($entity_type_id)->getClass();
+        $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+        $entity_type_class = $entity_type->getClass();
         if (!in_array('Drupal\Core\Entity\FieldableEntityInterface', class_implements($entity_type_class))) {
           $this->propertyDefinitions = [];
         }
@@ -77,8 +79,12 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
           // @todo Add support for handling multiple bundles.
           // See https://www.drupal.org/node/2169813.
           $bundles = $this->getBundles();
-          if (is_array($bundles) && count($bundles) == 1) {
-            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, reset($bundles));
+          $specific_bundle = (is_array($bundles) && count($bundles) == 1) ? reset($bundles) : NULL;
+          if ($specific_bundle === NULL && !$entity_type->hasKey('bundle')) {
+            $specific_bundle = $entity_type_id;
+          }
+          if ($specific_bundle !== NULL) {
+            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $specific_bundle);
           }
           else {
             $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($entity_type_id);
@@ -148,12 +154,27 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
   public function setBundles(?array $bundles = NULL) {
     if (isset($bundles)) {
       $this->addConstraint('Bundle', $bundles);
+      $this->propertyDefinitions = NULL;
     }
     else {
       // Remove the constraint.
       unset($this->definition['constraints']['Bundle']);
     }
     return $this;
+  }
+
+  public static function createFromBuggyInCoreEntityDataDefinition(EntityDataDefinition $def): static {
+    $better = static::create($def->getEntityTypeId(), $def->getBundles());
+    foreach ($def->getConstraints() as $constraint_name => $options) {
+      if ($constraint_name === 'EntityType') {
+        continue;
+      }
+      if ($constraint_name === 'Bundle') {
+        continue;
+      }
+      $better->addConstraint($constraint_name, $options);
+    }
+    return $better;
   }
 
 }

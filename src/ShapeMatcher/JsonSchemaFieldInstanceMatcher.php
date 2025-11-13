@@ -6,9 +6,11 @@ namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
@@ -155,12 +157,12 @@ final class JsonSchemaFieldInstanceMatcher {
   public function __construct(
     private readonly TypedDataManagerInterface $typedDataManager,
     private readonly ConstraintManager $constraintManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly AdapterManager $adapterManager,
     private readonly CacheBackendInterface $cache,
     private readonly ExtensionMimeTypeGuesser|LazyExtensionMimeTypeGuesser $extensionMimeTypeGuesser,
-  ) {
-  }
+  ) {}
 
   /**
    * @see https://json-schema.org/understanding-json-schema/reference/type
@@ -278,7 +280,7 @@ final class JsonSchemaFieldInstanceMatcher {
       // ⚠️ This does not support nested objects, so it's okay to directly
       // call ::matchEntityPropsForScalar(). If support for nested objects is
       // ever needed, this will need to call ::matchEntityProps() instead.
-      $object_prop_matches[$name] = $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, JsonSchemaType::from($sub_schema['type']), $sub_required, $sub_schema, $cardinality_in_json_schema);
+      $object_prop_matches[$name] = $this->matchEntityPropsForScalar($entity_data_definition, $levels_to_recurse, JsonSchemaType::from($sub_schema['type']), $is_required_in_json_schema && $sub_required, $sub_schema, $cardinality_in_json_schema);
     }
 
     // Invert $object_prop_matches to determine different match types.
@@ -449,22 +451,25 @@ final class JsonSchemaFieldInstanceMatcher {
           if ($property_definition instanceof DataReferenceDefinitionInterface && is_a($property_definition->getClass(), EntityReference::class, TRUE)) {
             $target = $this->getConstrainedTargetDefinition($field_definition, $property_definition);
 
-            // Matches in $target:
-            // - both base + bundle fields if <=1 bundle is specified
-            // - only base fields if >1 bundle is specified
+            // TRICKY: due to a bug in EntityReferenceItem in Drupal core, the
+            // `entity` property is NEVER constrained to a bundle. Therefore the
+            // resulting target definition also never specifies a bundle. Hence
+            // matches in $target only ever target base fields!
+            // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::propertyDefinitions()
             // @see \Drupal\Core\Entity\TypedData\EntityDataDefinition::getPropertyDefinitions()
+            // @see https://www.drupal.org/project/canvas/issues/3541361#comment-16344739
             $referenced_matches = $this->matchEntityProps($target, $levels_to_recurse - 1, $primitive_type, $is_required_in_json_schema, $schema);
             foreach ($referenced_matches as $referenced_match) {
               $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
             }
 
-            // When >1 bundle is specified, the above only matched base fields.
+            // As explained, the above only matched base fields.
             // Iterate over all possible target bundles, set each on a clone of
             // $target, and hence repeat the same process as above — but exclude
             // base fields that are re-matched.
             // @see \Drupal\Core\Entity\TypedData\EntityDataDefinition::getPropertyDefinitions()
             $target_bundles = $field_definition->getItemDefinition()->getSettings()['handler_settings']['target_bundles'] ?? [];
-            if (count($target_bundles) > 1) {
+            if (count($target_bundles) > 0) {
               $base_field_names = array_keys($target->getPropertyDefinitions());
               foreach ($target_bundles as $target_bundle) {
                 assert($target->getBundles() === NULL);
@@ -866,10 +871,15 @@ final class JsonSchemaFieldInstanceMatcher {
         $entity_type_id = $dd->getEntityTypeId();
         assert(is_string($entity_type_id));
         // If no bundles or multiple bundles are specified, inspect the base
-        // fields. Otherwise (if a single bundle is specified), inspect all
-        // fields.
-        if ($dd->getBundles() !== NULL && count($dd->getBundles()) === 1) {
-          return $this->entityFieldManager->getFieldDefinitions($entity_type_id, $dd->getBundles()[0]);
+        // fields. Otherwise (if a single bundle is specified, or if it is a
+        // bundleless entity type), inspect all fields.
+        $bundles = $dd->getBundles();
+        $specific_bundle = (is_array($bundles) && count($bundles) == 1) ? reset($bundles) : NULL;
+        if ($specific_bundle === NULL && !$this->entityTypeManager->getDefinition($dd->getEntityTypeId())->hasKey('bundle')) {
+          $specific_bundle = $entity_type_id;
+        }
+        if ($specific_bundle !== NULL) {
+          return $this->entityFieldManager->getFieldDefinitions($entity_type_id, $specific_bundle);
         }
         return $this->entityFieldManager->getBaseFieldDefinitions($entity_type_id);
       })($dd),
@@ -936,7 +946,10 @@ final class JsonSchemaFieldInstanceMatcher {
     assert(is_a($property_definition->getClass(), EntityReference::class, TRUE));
 
     $target = $property_definition->getTargetDefinition();
-    assert($target instanceof EntityDataDefinitionInterface);
+    assert($target instanceof EntityDataDefinition);
+    // @todo Remove this once https://www.drupal.org/project/drupal/issues/2169813 is fixed.
+    $target = BetterEntityDataDefinition::createFromBuggyInCoreEntityDataDefinition($target);
+
     // When referencing an entity, enrich the EntityDataDefinition with
     // constraints that are imposed by the entity reference field, to
     // narrow the matching.

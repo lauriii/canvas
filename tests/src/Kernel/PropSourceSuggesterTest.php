@@ -77,6 +77,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
     parent::setUp();
     $this->installConfig('canvas');
     $this->installEntitySchema('node');
+    $this->installEntitySchema('user');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
     // Create a "Foo" node type.
@@ -165,6 +166,25 @@ class PropSourceSuggesterTest extends KernelTestBase {
     ])->save();
     $this->installEntitySchema('taxonomy_term');
     $this->createEntityReferenceField('node', 'foo', 'field_tags', 'Tags', 'taxonomy_term', cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
+
+    // Optional, single-cardinality user profile picture field.
+    // @see core/profiles/standard/config/install/field.storage.user.user_picture.yml
+    FieldStorageConfig::create([
+      'entity_type' => 'user',
+      'field_name' => 'user_picture',
+      'type' => 'image',
+      'translatable' => FALSE,
+      'cardinality' => 1,
+    ])->save();
+    // @see core/profiles/standard/config/install/field.field.user.user.user_picture.yml
+    FieldConfig::create([
+      'label' => 'Picture',
+      'description' => '',
+      'field_name' => 'user_picture',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'required' => FALSE,
+    ])->save();
   }
 
   /**
@@ -241,7 +261,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → srcset template' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
             'Silly image 🤡 → srcset template' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
+            'Revision user → User → Picture → srcset template' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -297,10 +319,14 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'instances' => [
             "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
             'Authored by → User → Name' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
+            'Authored by → User → Picture → Alternative text' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            'Authored by → User → Picture → Title' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟title',
             'Check it out! → Link text' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
             "Silly image 🤡 → Alternative text" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 → Title" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
             'Revision user → User → Name' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
+            'Revision user → User → Picture → Alternative text' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            'Revision user → User → Picture → Title' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -451,7 +477,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡 → URI" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -463,8 +491,12 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -474,8 +506,12 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image_using_ref' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -485,12 +521,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
           ],
           'adapters' => [],
@@ -503,7 +545,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -515,12 +559,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'instances' => [
+            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
             'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
             'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
           ],
           'adapters' => [],
@@ -554,6 +604,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [],
         ],
+        // @todo This blindly matches any integer, regardless of its semantics: UNIX timestamp, file size, dimension with some unit, et cetera. Fix this overwhelming and confusing list of suggestions in https://www.drupal.org/project/canvas/issues/3533675.
         '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
           'instances' => [
@@ -561,6 +612,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Authored by → User → Changed" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
             "Authored by → User → Created" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
             "Authored by → User → Last login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            'Authored by → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            'Authored by → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
             "Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
             "Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
             "Silly image 🤡 → Changed" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
@@ -573,6 +626,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Revision user → User → Changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
             "Revision user → User → Created" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
             "Revision user → User → Last login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            'Revision user → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            'Revision user → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
           ],
           'adapters' => [
             'Count days' => 'day_count',
@@ -596,6 +651,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [],
         ],
+        // @todo This blindly matches any number and even integer, regardless of its semantics: UNIX timestamp, file size, dimension with some unit, et cetera. Fix this overwhelming and confusing list of suggestions in https://www.drupal.org/project/canvas/issues/3533675.
         '⿲sdc_test_all_props:all-props␟test_number' => [
           'required' => FALSE,
           'instances' => [
@@ -603,6 +659,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Authored by → User → Changed" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
             "Authored by → User → Created" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
             "Authored by → User → Last login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            'Authored by → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            'Authored by → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
             "Authored on" => 'ℹ︎␜entity:node:foo␝created␞␟value',
             "Changed" => 'ℹ︎␜entity:node:foo␝changed␞␟value',
             "Silly image 🤡 → Changed" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
@@ -615,6 +673,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Revision user → User → Changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
             "Revision user → User → Created" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
             "Revision user → User → Last login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            'Revision user → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            'Revision user → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -622,7 +682,13 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'instances' => [
+            // @todo Fix in https://www.drupal.org/project/canvas/issues/3557612
+            // @todo Bug #1: the label does IMHO not make sense in this case: omitting the intermediary "File" entity is fine, but here it loses too much. I'd expect: "Authored by → Picture"?
+            // @todo Bug #2: the `src` is populated by the user picture field, but for some reason it doesn't use the `src_with_alternate_widths` property. Which is probably related to why `alt`, `width` and `height` are not populated by `user_picture`, either!
+            'Authored by' => 'ℹ︎␜entity:node:foo␝uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            // @todo Same bugs here as for "Authored by" above.
+            'Revision user' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',

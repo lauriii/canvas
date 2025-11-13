@@ -74,6 +74,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     ])->save();
 
     // Optional, single-cardinality user profile picture field.
+    // @see core/profiles/standard/config/install/field.storage.user.user_picture.yml
     FieldStorageConfig::create([
       'entity_type' => 'user',
       'field_name' => 'user_picture',
@@ -81,8 +82,9 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'translatable' => FALSE,
       'cardinality' => 1,
     ])->save();
+    // @see core/profiles/standard/config/install/field.field.user.user.user_picture.yml
     FieldConfig::create([
-      'label' => 'User Picture',
+      'label' => 'Picture',
       'description' => '',
       'field_name' => 'user_picture',
       'entity_type' => 'user',
@@ -151,12 +153,40 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       ],
       'label' => 'Name',
     ];
+    $choice_article_author_picture_alt = [
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+      ],
+      'label' => 'Alternative text',
+    ];
+    $choice_article_author_picture_title = [
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+      ],
+      'label' => 'Title',
+    ];
     $choice_article_revision_user_name = [
       'source' => [
         'sourceType' => 'dynamic',
         'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
       ],
       'label' => 'Name',
+    ];
+    $choice_article_revision_user_picture_alt = [
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+      ],
+      'label' => 'Alternative text',
+    ];
+    $choice_article_revision_user_picture_title = [
+      'source' => [
+        'sourceType' => 'dynamic',
+        'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+      ],
+      'label' => 'Title',
     ];
     $hash_for_choice = fn (array $choice) =>  \hash('xxh64', $choice['source']['expression']);
 
@@ -222,6 +252,22 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'expected' => [
         'image' => [
           ['id' => $hash_for_choice($choice_article_image)] + $choice_article_image,
+          [
+            'id' => '8437c547519af72f',
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
+            ],
+            'label' => 'Revision user',
+          ],
+          [
+            'id' => 'e4baf41f72d2c86e',
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
+            ],
+            'label' => 'Authored by',
+          ],
         ],
       ],
     ];
@@ -239,7 +285,14 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       'bundle' => 'user',
       'expected' => [
         'image' => [
-          // @todo This SHOULD find the `user_picture` field, fix in https://www.drupal.org/project/canvas/issues/3541361
+          [
+            'id' => '57e3db5a8919b50e',
+            'source' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+            'label' => 'Picture',
+          ],
         ],
       ],
     ];
@@ -326,6 +379,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               [
                 'items' => [
                   ['id' => $hash_for_choice($choice_article_revision_user_name)] + $choice_article_revision_user_name,
+                  [
+                    'items' => [
+                      ['id' => $hash_for_choice($choice_article_revision_user_picture_alt)] + $choice_article_revision_user_picture_alt,
+                      ['id' => $hash_for_choice($choice_article_revision_user_picture_title)] + $choice_article_revision_user_picture_title,
+                    ],
+                    'label' => 'Picture',
+                  ],
                 ],
                 'label' => 'User',
               ],
@@ -337,6 +397,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               [
                 'items' => [
                   ['id' => $hash_for_choice($choice_article_author_name)] + $choice_article_author_name,
+                  [
+                    'items' => [
+                      ['id' => $hash_for_choice($choice_article_author_picture_alt)] + $choice_article_author_picture_alt,
+                      ['id' => $hash_for_choice($choice_article_author_picture_title)] + $choice_article_author_picture_title,
+                    ],
+                    'label' => 'Picture',
+                  ],
                 ],
                 'label' => 'User',
               ],
@@ -390,6 +457,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               [
                 'items' => [
                   ['id' => $hash_for_choice($choice_article_revision_user_name)] + $choice_article_revision_user_name,
+                  [
+                    'items' => [
+                      ['id' => $hash_for_choice($choice_article_revision_user_picture_alt)] + $choice_article_revision_user_picture_alt,
+                      ['id' => $hash_for_choice($choice_article_revision_user_picture_title)] + $choice_article_revision_user_picture_title,
+                    ],
+                    'label' => 'Picture',
+                  ],
                 ],
                 'label' => 'User',
               ],
@@ -401,6 +475,13 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
               [
                 'items' => [
                   ['id' => $hash_for_choice($choice_article_author_name)] + $choice_article_author_name,
+                  [
+                    'items' => [
+                      ['id' => $hash_for_choice($choice_article_author_picture_alt)] + $choice_article_author_picture_alt,
+                      ['id' => $hash_for_choice($choice_article_author_picture_title)] + $choice_article_author_picture_title,
+                    ],
+                    'label' => 'Picture',
+                  ],
                 ],
                 'label' => 'User',
               ],
@@ -454,6 +535,39 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
                 ],
                 'label' => 'URL',
               ],
+              [
+                'items' => [
+                  [
+                    'id' => '134a8de6cbb83338',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+                    ],
+                    'items' => [
+                      [
+                        'id' => 'b3d2d175491909ed',
+                        'source' => [
+                          'sourceType' => 'dynamic',
+                          'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+                        ],
+                        'items' => [
+                          [
+                            'id' => 'ecacb2058b74367b',
+                            'source' => [
+                              'sourceType' => 'dynamic',
+                              'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+                            ],
+                            'label' => 'Root-relative file URL',
+                          ],
+                        ],
+                        'label' => 'URI',
+                      ],
+                    ],
+                    'label' => 'Picture',
+                  ],
+                ],
+                'label' => 'User',
+              ],
             ],
             'label' => 'Authored by',
           ],
@@ -466,6 +580,39 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
                   'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟url',
                 ],
                 'label' => 'URL',
+              ],
+              [
+                'items' => [
+                  [
+                    'id' => '5b16c0771fff7364',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+                    ],
+                    'items' => [
+                      [
+                        'id' => '09abeca99c3ea43b',
+                        'source' => [
+                          'sourceType' => 'dynamic',
+                          'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+                        ],
+                        'items' => [
+                          [
+                            'id' => '1dfa84dcb4d9bbe3',
+                            'source' => [
+                              'sourceType' => 'dynamic',
+                              'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+                            ],
+                            'label' => 'Root-relative file URL',
+                          ],
+                        ],
+                        'label' => 'URI',
+                      ],
+                    ],
+                    'label' => 'Picture',
+                  ],
+                ],
+                'label' => 'User',
               ],
             ],
             'label' => 'Revision user',
