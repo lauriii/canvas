@@ -38,7 +38,6 @@ use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
-use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -53,12 +52,11 @@ use Twig\Error\SyntaxError;
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
-final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
+final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTest {
 
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
-  use GenerateComponentConfigTrait;
   use CiModulePathTrait;
   use CrawlerTrait;
   use MediaTypeCreationTrait;
@@ -78,6 +76,11 @@ final class SingleDirectoryComponentTest extends ComponentSourceTestBase {
     'field',
     'text',
   ];
+
+  /**
+   * @see ::testRenderSdcWithOptionalObjectShape())
+   */
+  protected string $componentWithOptionalImageProp = 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop';
 
   /**
    * Setup tests.

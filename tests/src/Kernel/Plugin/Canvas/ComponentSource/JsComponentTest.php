@@ -48,7 +48,7 @@ use Drupal\canvas_test_code_components\Hook\IslandCastaway;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
-final class JsComponentTest extends ComponentSourceTestBase {
+final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTest {
 
   use CiModulePathTrait;
   use UserCreationTrait;
@@ -57,6 +57,12 @@ final class JsComponentTest extends ComponentSourceTestBase {
 
   protected readonly AssetResolverInterface $assetResolver;
   protected readonly CodeComponentDataProvider $codeComponentDataProvider;
+
+  /**
+   * @see ::testRenderSdcWithOptionalObjectShape())
+   */
+  protected string $componentWithOptionalImageProp = 'js.canvas_test_code_components_vanilla_image';
+
   /**
    * {@inheritdoc}
    */
@@ -1935,6 +1941,19 @@ final class JsComponentTest extends ComponentSourceTestBase {
     $config_storage->delete($js_component_source->getJavaScriptComponent()->getConfigDependencyName());
 
     return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Code components do not render final HTML, so adjust expectations.
+   */
+  public static function providerHydrationAndRenderingEdgeCases(): array {
+    $test_cases = parent::providerHydrationAndRenderingEdgeCases();
+    $test_cases['populated optional object prop'][2] = 'props="{&quot;image&quot;:[&quot;raw&quot;,{&quot;src&quot;:&quot;\/cat.jpg&quot;,&quot;alt&quot;:&quot;\ud83e\udd99&quot;,&quot;width&quot;:1,&quot;height&quot;:1}]}"';
+    $test_cases['NULLish optional object prop'][2] = 'props="{}"';
+    $test_cases['NULL optional object prop'][2] = 'props="{}"';
+    return $test_cases;
   }
 
 }

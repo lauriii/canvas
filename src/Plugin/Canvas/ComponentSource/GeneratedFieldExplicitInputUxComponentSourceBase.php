@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\Component\Plugin\DependentPluginInterface;
@@ -367,6 +368,32 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input['resolved'];
+
+    // Omit optional props whose value evaluated to NULL. Otherwise, an SDC
+    // validation error is triggered.
+    // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+    $prop_field_definitions = $this->configuration['prop_field_definitions'];
+    foreach ($hydrated[self::EXPLICIT_INPUT_NAME] as $prop => $resolved_value) {
+      // The stored inputs SHOULD match the live schema, but mid-development or
+      // due to a botched release, that is impossible to guarantee.
+      // @see https://en.wikipedia.org/wiki/Robustness_principle
+      if (!array_key_exists($prop, $prop_field_definitions)) {
+        continue;
+      }
+      $is_required = $prop_field_definitions[$prop]['required'];
+      if (!$is_required && $resolved_value === NULL) {
+        unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
+        continue;
+      }
+      // Special case: optional `type: object`-shaped props if all key-value
+      // pairs evaluated to NULL (which is only possible/allowed because the
+      // entire object is optional).
+      $prop_expression = StructuredDataPropExpression::fromString($prop_field_definitions[$prop]['expression']);
+      $is_object_prop_shape = $prop_expression instanceof FieldTypeObjectPropsExpression;
+      if (!$is_required && $is_object_prop_shape && empty(array_filter($resolved_value))) {
+        unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
+      }
+    }
 
     if (!empty($slot_definitions)) {
       // Use the first example defined in SDC metadata, if it exists. Otherwise,
