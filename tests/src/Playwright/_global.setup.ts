@@ -1,7 +1,6 @@
 import { chmodSync, existsSync, mkdirSync } from 'node:fs';
+import { getRootDir } from '@drupal-canvas/test-utils';
 import { test as setup } from '@playwright/test';
-
-import { getRootDir } from './utilities/DrupalFilesystem';
 
 setup('Create sites/simpletest folder', async () => {
   const rootDir = getRootDir();

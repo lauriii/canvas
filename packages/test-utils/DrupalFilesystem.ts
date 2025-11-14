@@ -36,7 +36,7 @@ export const getComposerDir = async (): Promise<string | null> => {
 
 export const getVendorDir = async (): Promise<string | null> => {
   const composerRoot = await getComposerDir();
-  if (existsSync(`${composerRoot}/composer.json`)) {
+  if (composerRoot !== null && existsSync(`${composerRoot}/composer.json`)) {
     try {
       const { stdout }: { stdout: string } = await exec(
         'composer config vendor-dir --no-interaction',

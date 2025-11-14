@@ -30,6 +30,7 @@ export interface Config {
   scope: string;
   componentDir: string;
   verbose: boolean;
+  userAgent: string;
   all?: boolean;
 }
 
@@ -40,6 +41,7 @@ let config: Config = {
   scope: process.env.CANVAS_SCOPE || 'canvas:js_component canvas:asset_library',
   componentDir: process.env.CANVAS_COMPONENT_DIR || './components',
   verbose: process.env.CANVAS_VERBOSE === 'true',
+  userAgent: process.env.CANVAS_USER_AGENT || '',
 };
 
 export function getConfig(): Config {

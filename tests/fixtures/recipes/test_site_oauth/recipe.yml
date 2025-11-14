@@ -1,0 +1,13 @@
+name: 'Test site OAuth for CLI'
+description: 'Provides a base site with OAuth features for CLI testing'
+type: 'Canvas'
+install:
+  - simple_oauth
+  - canvas_oauth
+recipes:
+  - base
+  - test_site
+config:
+  import:
+    simple_oauth: '*'
+    canvas_oauth: '*'

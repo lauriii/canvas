@@ -10,6 +10,7 @@ export interface ApiOptions {
   clientId: string;
   clientSecret: string;
   scope: string;
+  userAgent?: string;
 }
 
 export class ApiService {
@@ -18,6 +19,7 @@ export class ApiService {
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly scope: string;
+  private readonly userAgent: string;
   private accessToken: string | null = null;
 
   private constructor(options: ApiOptions) {
@@ -25,15 +27,23 @@ export class ApiService {
     this.clientSecret = options.clientSecret;
     this.siteUrl = options.siteUrl;
     this.scope = options.scope;
+    this.userAgent = options.userAgent || '';
 
     // Create the client without authorization headers by default
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      // Add the CLI marker header to identify CLI requests
+      'X-Canvas-CLI': '1',
+    };
+
+    // Add User-Agent header if provided
+    if (this.userAgent) {
+      headers['User-Agent'] = this.userAgent;
+    }
+
     this.client = axios.create({
       baseURL: options.siteUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        // Add the CLI marker header to identify CLI requests
-        'X-Canvas-CLI': '1',
-      },
+      headers,
       // Allow longer timeout for uploads
       timeout: 30000,
       transformResponse: [
@@ -351,5 +361,6 @@ export function createApiService(): Promise<ApiService> {
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     scope: config.scope,
+    userAgent: config.userAgent,
   });
 }

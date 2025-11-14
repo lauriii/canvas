@@ -15,31 +15,33 @@ export const exec = async (command: string, cwd?: string): Promise<string> => {
     sudo = `sudo -u ${process.env.DRUPAL_TEST_WEBSERVER_USER} `;
   }
   try {
-    const { stdout }: { stdout: string } = await execPromise(
-      `${sudo}${command}`,
-      { cwd: cwd ?? getRootDir() },
-    );
+    const { stdout, stderr }: { stdout: string; stderr: string } =
+      await execPromise(`${sudo}${command}`, { cwd: cwd ?? getRootDir() });
+    console.log(stderr);
     return stdout;
   } catch (error) {
     console.log(error);
-    throw new Error(error);
+    throw error;
   }
 };
 
 export const execDrush = async (
   command: string,
-  drupalSiteInstall: DrupalSiteInstall,
+  drupalSiteInstall: {
+    url: string;
+    userAgent: string;
+  },
 ): Promise<string> => {
   const vendorDir = await getVendorDir();
   const rootDir = path.resolve(getRootDir());
   try {
-    const { stdout }: { stdout: string } = await execPromise(
-      `HTTP_USER_AGENT=${drupalSiteInstall.userAgent} ${path.relative(rootDir, vendorDir)}/bin/drush ${command} -y --uri=${drupalSiteInstall.url}`,
-      { cwd: rootDir },
+    const stdout = await exec(
+      `HTTP_USER_AGENT=${drupalSiteInstall.userAgent} ${path.relative(rootDir, vendorDir || '')}/bin/drush ${command} -y --uri=${drupalSiteInstall.url}`,
+      rootDir,
     );
     return stdout.toString().trim();
   } catch (error) {
     console.log(error);
-    throw new Error(error);
+    throw error;
   }
 };

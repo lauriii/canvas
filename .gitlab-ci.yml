@@ -556,7 +556,7 @@ playwright:
 
 CLI Test:
   stage: test
-  image: node:20-alpine
+  image: ghcr.io/drupal-xb/drupal-testing:1.0.1
   needs: []
   rules:
     - changes:
@@ -568,8 +568,19 @@ CLI Test:
         - src/Controller/ApiConfigControllers.php
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
     - *manual-rule
+  variables:
+    GIT_DEPTH: 1
+    _TARGET_DB_TYPE: sqlite
+    # Right now CORE_STABLE is 11.2.5, we need #3553664 in 11.2.6.
+    DRUPAL_CORE: 11.2.7
+    TEST_CANVAS_CLIENT_ID: cli
+    TEST_CANVAS_CLIENT_SECRET: secret
+    DRUPAL_TEST_WEBSERVER_USER: www-data
+    DRUPAL_TEST_BASE_URL: http://localhost
   before_script:
-    mkdir -p test-results
+    - !reference [ .drupal ]
+    - composer run install-dev-deps
+    - mkdir -p test-results
   # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.
   allow_failure:
     exit_codes:

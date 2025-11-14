@@ -1,10 +1,9 @@
+import { exec, hasDrush } from '@drupal-canvas/test-utils';
 import { test as base, mergeTests } from '@playwright/test';
 
 import { Ai } from '../objects/Ai';
 import { CanvasEditor } from '../objects/CanvasEditor';
 import { Drupal } from '../objects/Drupal';
-import { exec } from '../utilities/DrupalExec';
-import { hasDrush } from '../utilities/DrupalFilesystem';
 
 export type DrupalSite = {
   dbPrefix: string;

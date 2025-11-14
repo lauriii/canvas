@@ -30,6 +30,37 @@ describe('api service', () => {
       expect(client.getAccessToken()).toBe('test-access-token');
     });
 
+    it('should set custom user agent when provided', async () => {
+      const customUserAgent = 'CustomCanvasCLI/1.0.0';
+      const client = await ApiService.create({
+        ...mockConfig,
+        userAgent: customUserAgent,
+      });
+
+      // @ts-expect-error allow accessing client directly in the test.
+      const userAgentHeader = client.client.defaults.headers['User-Agent'];
+      expect(userAgentHeader).toBe(customUserAgent);
+    });
+
+    it('should not set user agent header when not provided', async () => {
+      const client = await ApiService.create(mockConfig);
+
+      // @ts-expect-error allow accessing client directly in the test.
+      const userAgentHeader = client.client.defaults.headers['User-Agent'];
+      expect(userAgentHeader).toBeUndefined();
+    });
+
+    it('should not set user agent header when empty string provided', async () => {
+      const client = await ApiService.create({
+        ...mockConfig,
+        userAgent: '',
+      });
+
+      // @ts-expect-error allow accessing client directly in the test.
+      const userAgentHeader = client.client.defaults.headers['User-Agent'];
+      expect(userAgentHeader).toBeUndefined();
+    });
+
     it('should handle invalid credentials', async () => {
       await expect(
         ApiService.create({
