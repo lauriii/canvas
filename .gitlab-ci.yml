@@ -82,6 +82,10 @@ variables:
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
   _CONCURRENCY_THREADS: '12'
 
+  # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
+  # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
+  _CANVAS_E2E_TESTS: true
+
 # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
 .is-push-rule: &is-push-rule
   if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_ROOT_NAMESPACE == "project"
@@ -136,6 +140,9 @@ variables:
     changes:
       - ui/tests/fixtures/**/*
     when: on_success
+
+.e2e-tests-are-enabled-rule: &e2e-tests-are-enabled-rule
+  - if: $_CANVAS_E2E_TESTS == "true"
 
 # Disable jobs from the upstream template.
 phpcs:
@@ -274,6 +281,9 @@ eslint:
     - ln -sf $CI_PROJECT_DIR/$_WEB_ROOT/core/.prettierrc.json .
   rules:
     - *is-push-rule
+    - changes:
+        - ".gitlab-ci.yml"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .prettier*
@@ -365,6 +375,9 @@ vitest:
   needs:
     - composer
     - UI
+  rules:
+    - *e2e-tests-are-enabled-rule
+    - *manual-rule
   extends:
     - .test-variables
   before_script:
@@ -493,6 +506,9 @@ lint (OpenAPI):
 playwright:
   stage: test
   needs: []
+  rules:
+    - *e2e-tests-are-enabled-rule
+    - *manual-rule
   interruptible: true
   image: ghcr.io/drupal-xb/drupal-testing:1.0.0
   extends:
@@ -550,8 +566,8 @@ CLI Test:
         - openapi.yml
         - src/Entity/JavaScriptComponent.php
         - src/Controller/ApiConfigControllers.php
-        - .gitlab-ci.yml
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
+    - *manual-rule
   before_script:
     mkdir -p test-results
   # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.

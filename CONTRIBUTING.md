@@ -106,3 +106,9 @@ Therefore, every release must build the UI, commit the built UI, and revert it. 
 This has been semi-automated: use `sh scripts/tag-release.sh` to be asked what tag to create, and it'll create that tag
 in a (temporary) working directory without touching the Drupal Canvas `git` repository the command runs from. Prior
 to pushing, you'll be given the opportunity to inspect the result.
+
+# Frequent contributors: expert tips
+
+1. When early in an MR and/or developing low-level functionality that is unlikely to affect end-to-end (E2E) tests,
+   disable them by changing `_CANVAS_E2E_TESTS: true` to `false`.
+2. _Please contribute more! 🙏_
