@@ -9,9 +9,12 @@ use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
+use Drupal\Core\Hook\Order\OrderAfter;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\canvas\Form\FormIdPreRender;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotEqualTo;
@@ -19,12 +22,16 @@ use Symfony\Component\Validator\Constraints\Unique;
 
 class ModuleHooks {
 
+  use StringTranslationTrait;
+
   const PAGE_DATA_FORM_ID = 'page_data_form';
 
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
+    TranslationInterface $string_translation,
   ) {
+    $this->setStringTranslation($string_translation);
   }
 
   /**
@@ -135,6 +142,17 @@ class ModuleHooks {
       '#weight' => 5,
     ];
     return $items;
+  }
+
+  /**
+   * Implements hook_menu_links_discovered_alter().
+   */
+  #[Hook('menu_links_discovered_alter', order: new OrderAfter(['navigation']))]
+  public function menuLinksDiscoveredAlter(array &$links): void {
+    if (isset($links['navigation.content'])) {
+      $links['navigation.content']['title'] = $this->t('CMS');
+      $links['navigation.content']['options']['icon']['icon_id'] = 'database';
+    }
   }
 
 }

@@ -1,0 +1,9 @@
+navigation.pages:
+  title: 'Pages'
+  route_name: entity.canvas_page.collection
+  menu_name: content
+  weight: -5
+  options:
+    icon:
+      pack_id: navigation
+      icon_id: file

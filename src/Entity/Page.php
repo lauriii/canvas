@@ -57,6 +57,7 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
         "revision" => RevisionHtmlRouteProvider::class,
       ],
     ],
+    collection_permission: self::EDIT_PERMISSION,
     base_table: "canvas_page",
     revision_table: "canvas_page_revision",
     data_table: "canvas_page_field_data",
@@ -69,6 +70,7 @@ use Drupal\Core\Entity\Routing\RevisionHtmlRouteProvider;
       "revision-delete-form" => "/page/{canvas_page}/revisions/{canvas_page_revision}/delete",
       "revision-revert-form" => "/page/{canvas_page}/revisions/{canvas_page_revision}/revert",
       "version-history" => "/page/{canvas_page}/revisions",
+      "collection" => "/admin/content/pages",
     ],
     translatable: TRUE,
     entity_keys: [
