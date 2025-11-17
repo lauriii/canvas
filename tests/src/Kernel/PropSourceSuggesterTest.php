@@ -18,6 +18,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
@@ -185,6 +186,32 @@ class PropSourceSuggesterTest extends KernelTestBase {
       'bundle' => 'user',
       'required' => FALSE,
     ])->save();
+
+    // Optional, multi-bundle reference field.
+    Vocabulary::create(['name' => 'Vocab 1', 'vid' => 'vocab_1'])->save();
+    Vocabulary::create(['name' => 'Vocab 2', 'vid' => 'vocab_2'])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'some_text',
+      'type' => 'text',
+      'entity_type' => 'taxonomy_term',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'some_text',
+      'entity_type' => 'taxonomy_term',
+      'bundle' => 'vocab_2',
+      'label' => 'Some text field',
+    ])->save();
+    $this->createEntityReferenceField(
+      'node',
+      'foo',
+      'primary_topic',
+      'Primary topic',
+      'taxonomy_term',
+      'default',
+      ['target_bundles' => ['vocab_1', 'vocab_2']],
+      cardinality: 1,
+    );
   }
 
   /**
@@ -248,6 +275,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'instances' => [
             'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             'Silly image 🤡' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Primary topic → Taxonomy term → Revision user' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
@@ -318,6 +346,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
             "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            'Primary topic → Taxonomy term → Published' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
             "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
@@ -329,6 +358,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
             "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
             "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            'Primary topic → Taxonomy term → Published' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
             "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
           ],
           'adapters' => [],
@@ -344,6 +374,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Check it out! → Link text' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
             "Silly image 🤡 → Alternative text" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
             "Silly image 🤡 → Title" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            'Primary topic → Taxonomy term → Name' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
             'Revision user → User → Name' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
             'Revision user → User → Picture → Alternative text' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
             'Revision user → User → Picture → Title' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
@@ -461,6 +492,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Authored by → User → UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
             "Authored by → Target UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
             "Silly image 🤡 → UUID" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
+            'Primary topic → Taxonomy term → Revision user → Target UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟target_uuid',
+            'Primary topic → Taxonomy term → UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝uuid␞␟value',
+            'Primary topic → Target UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟target_uuid',
             "Revision user → User → UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
             "Revision user → Target UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
             "UUID" => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
@@ -515,6 +549,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
           ],
@@ -530,6 +565,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
             'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
           ],
@@ -550,6 +586,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
+            'Primary topic → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
             'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
             'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
@@ -588,6 +627,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
             'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
             'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            'Primary topic → Taxonomy term → Revision user → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
+            'Primary topic → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
             'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
             'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
@@ -641,6 +683,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Silly image 🤡 → File size" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
             "Silly image 🤡 → Height" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
             "Silly image 🤡 → Width" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            'Primary topic → Taxonomy term → Changed' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝changed␞␟value',
+            'Primary topic → Taxonomy term → Revision create time' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_created␞␟value',
+            'Primary topic → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             "Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
             "Revision user → User → Last access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
             "Revision user → User → Changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
@@ -688,6 +733,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
             "Silly image 🤡 → File size" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
             "Silly image 🤡 → Height" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
             "Silly image 🤡 → Width" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            'Primary topic → Taxonomy term → Changed' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝changed␞␟value',
+            'Primary topic → Taxonomy term → Revision create time' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_created␞␟value',
+            'Primary topic → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
             "Revision create time" => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
             "Revision user → User → Last access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
             "Revision user → User → Changed" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
@@ -704,6 +752,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'instances' => [
             'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Primary topic → Taxonomy term → Revision user' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
             'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
@@ -744,6 +793,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            'Primary topic → Taxonomy term → Some text field → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
+            'Primary topic → Taxonomy term → Description → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -752,6 +803,8 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'required' => FALSE,
           'instances' => [
             "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            'Primary topic → Taxonomy term → Some text field → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
+            'Primary topic → Taxonomy term → Description → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
           ],
           'adapters' => [],
           'host_entity_urls' => [],
