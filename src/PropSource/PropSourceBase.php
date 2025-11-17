@@ -13,7 +13,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
  * that.
  * @phpstan-type AdaptedPropSourceArray array{sourceType: string, adapterInputs: array<string, mixed>}
  * @phpstan-type DefaultRelativeUrlPropSourceArray array{sourceType: string, value: mixed, jsonSchema: array, componentId: string}
- * @phpstan-type HostEntityUrlPropSourceArray array{sourceType: string}
+ * @phpstan-type HostEntityUrlPropSourceArray array{sourceType: string, absolute?: bool}
  */
 abstract class PropSourceBase implements \Stringable, ContentAwareDependentInterface {
 

@@ -509,8 +509,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => TRUE,
             ],
           ],
         ],
@@ -523,8 +524,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => FALSE,
             ],
           ],
         ],
@@ -537,8 +539,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => TRUE,
             ],
           ],
         ],
@@ -596,8 +599,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => FALSE,
             ],
           ],
         ],
@@ -610,8 +614,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Absolute URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => TRUE,
             ],
           ],
         ],
@@ -637,8 +642,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
           ],
           'adapters' => [],
           'host_entity_urls' => [
-            'Canonical absolute URL' => [
+            'Relative URL' => [
               'sourceType' => PropSource::HostEntityUrl->value,
+              'absolute' => FALSE,
             ],
           ],
         ],

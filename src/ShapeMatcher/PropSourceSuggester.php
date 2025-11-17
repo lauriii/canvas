@@ -277,6 +277,7 @@ final class PropSourceSuggester {
     if (!in_array($string_format, $allowed_string_formats, TRUE)) {
       return NULL;
     }
+    $supports_only_absolute_urls = in_array($string_format, [JsonSchemaStringFormat::Uri, JsonSchemaStringFormat::Iri], TRUE);
 
     // If an `x-allowed-schemes` shape restriction is present, and it doesn't
     // allow HTTP nor HTTPS, then no viable HostEntityUrlPropSource can exist.
@@ -296,9 +297,8 @@ final class PropSourceSuggester {
     }
 
     $matches = [];
-    // @todo Offer `canonical` vs `edit-form` vs … (and check whether the given entity type actually contains such a link template) in https://www.drupal.org/i/3551455.
-    // @todo Return either relative (`uri-reference`) or absolute (`uri`) suggestions in https://www.drupal.org/i/3551455.
-    $matches[] = new HostEntityUrlPropSource();
+    // @todo Offer `canonical` vs `edit-form` vs … (and check whether the given entity type actually contains such a link template).
+    $matches[] = new HostEntityUrlPropSource(absolute: $supports_only_absolute_urls);
     return $matches;
   }
 

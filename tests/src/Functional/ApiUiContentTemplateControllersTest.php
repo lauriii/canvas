@@ -511,11 +511,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         ],
         'link' => [
           [
-            'id' => '7ec753fd20670823',
+            'id' => '51af7eb3ee57c3a5',
             'source' => [
               'sourceType' => 'host-entity-url',
+              'absolute' => FALSE,
             ],
-            'label' => 'Canonical absolute URL',
+            'label' => 'Relative URL',
           ],
           [
             'id' => '4999dcb72722c69a',

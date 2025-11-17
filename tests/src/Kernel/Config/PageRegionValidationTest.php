@@ -240,6 +240,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
             ],
             'href' => [
               'sourceType' => 'host-entity-url',
+              'absolute' => TRUE,
             ],
           ],
         ],

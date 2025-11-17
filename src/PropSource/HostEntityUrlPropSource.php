@@ -24,12 +24,23 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  */
 final class HostEntityUrlPropSource extends PropSourceBase {
 
+  public readonly string $rel;
+
+  public function __construct(
+    public readonly bool $absolute,
+  ) {
+    // At the moment, only linking to the entity's canonical URL is supported.
+    $this->rel = 'canonical';
+  }
+
   /**
    * @return HostEntityUrlPropSourceArray
    */
   public function toArray(): array {
     return [
       'sourceType' => $this->getSourceType(),
+      'absolute' => $this->absolute,
+      // @todo Allow picking link templates other than `canonical`.
     ];
   }
 
@@ -37,8 +48,13 @@ final class HostEntityUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function parse(array $prop_source): static {
-    \assert($prop_source === ['sourceType' => PropSource::HostEntityUrl->value]);
-    return new self();
+    assert(
+      isset($prop_source['sourceType']) &&
+      $prop_source['sourceType'] === PropSource::getTypePrefix(self::class)
+    );
+    // Absolute URLs are the default.
+    $absolute = $prop_source['absolute'] ?? TRUE;
+    return new self($absolute);
   }
 
   public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
@@ -46,22 +62,18 @@ final class HostEntityUrlPropSource extends PropSourceBase {
       throw new MissingHostEntityException();
     }
 
-    // @todo Allow picking `canonical` vs `edit-form` vs … ? in
-    //   https://www.drupal.org/i/3551455.
-    return $host_entity->toUrl('canonical')
-      // Absolute URLs are accepted by both `type: string, format: uri` and
-      // `format: uri-reference`. Relative URLs are only accepted by the latter.
-      // @todo Allow specifying relative or absolute in
-      //   https://www.drupal.org/i/3551455.
-      ->setAbsolute()
+    return $host_entity->toUrl()
+      ->setAbsolute($this->absolute)
       ->toString(TRUE)
       ->getGeneratedUrl();
   }
 
   public function asChoice(): string {
-    // @todo Account for the two likely future parameters mentioned in
-    //   ::evaluate() in https://www.drupal.org/i/3551455.
-    return PropSource::HostEntityUrl->value . ':absolute:canonical';
+    return implode(':', [
+      PropSource::getTypePrefix($this),
+      $this->absolute ? 'absolute' : 'relative',
+      $this->rel,
+    ]);
   }
 
   /**
@@ -73,11 +85,10 @@ final class HostEntityUrlPropSource extends PropSourceBase {
     return [];
   }
 
-  /**
-   * @todo Generate appropriate labels depending on link relation type (and possibly based on relative vs absolute) in https://www.drupal.org/i/3551455
-   */
   public function label(): TranslatableMarkup {
-    return new TranslatableMarkup('Canonical absolute URL', []);
+    return $this->absolute
+      ? new TranslatableMarkup('Absolute URL')
+      : new TranslatableMarkup('Relative URL');
   }
 
 }
