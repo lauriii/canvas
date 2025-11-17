@@ -1,29 +1,22 @@
-# @see https://docs.gitlab.com/ee/user/project/codeowners/reference.html
+# Every maintainer of the project is able to approve any changes.
+* @@maintainer
 
-[project metadata][3] @balintbrews @bnjmnm @f.mazeikis @hooroomoo @jessebaker @lauriii @tedbow @wimleers @larowlan @justafish
-/*.info.yml
-/composer.json
-/docs/user/
+# Relevant configuration in GitLab:
+# https://git.drupalcode.org/project/canvas/-/settings/merge_requests
+# - One approval is required;
+# - Merge request creators are prevented from self-approving.
 
+# *OPTIONAL SECTIONS*
+# Sections are defined *for niche areas only* to facilitate seeking input from
+# maintainers who have the most experience in a particular area. This is optional,
+# and should be used sparingly.
+# The goal is to identify people who are likely able to provide valuable input in
+# case of questions or complex decisions. While it's encouraged to seek such
+# input, it's not required.
 
-#
-# Client side.
-#
-
-[UI] @balintbrews @bnjmnm @jessebaker @hooroomoo @larowlan
-/ui/
-
-[UI utils] @balintbrews @bnjmnm @jessebaker @hooroomoo @effulgentsia
-/ui/src/utils/
-
-#
-# Hybrid side: the bridges connecting client & server sides.
-#
-
+^[OpenAPI] @larowlan @wimleers
 # Issues: https://www.drupal.org/project/issues/search/canvas?issue_tags=openapi
-[OpenAPI] @traviscarden @larowlan @wimleers
 /openapi.yml
-# For whatever reason, it MUST be `.yaml`, not `.yml`.
 /redocly.yaml
 /.redocly.lint-ignore.yaml
 /src/EventSubscriber/ApiMessageValidatorBase.php
@@ -33,8 +26,8 @@
 /tests/src/Unit/OpenApiSpecValidationTest.php
 /tests/src/Unit/UiFixturesValidationTest.php
 
+^[Semi-coupled theme engine] @bnjmnm @effulgentsia @hooroomoo
 # Issues: https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine
-[Semi-Coupled theme engine] @bnjmnm @hooroomoo @effulgentsia
 /src/Hook/SemiCoupledThemeEngineHooks.php
 /src/Hook/SemiCoupledThemeEngineForceTwigHooks.php
 /src/Theme/CanvasThemeNegotiator.php
@@ -42,8 +35,8 @@
 /ui/src/components/form/*.tsx
 /ui/src/components/form/twig-to-jsx-component-map.js
 
+^[Redux-integrated field widgets] @bnjmnm @effulgentsia @larowlan
 # Issues: https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets
-[Redux-integrated field widgets] @bnjmnm @effulgentsia @balintbrews @larowlan
 /src/Hook/ReduxIntegratedFieldWidgetHooks.php
 /src/MediaLibraryCanvasPropOpener.php
 /ui/src/components/form/inputBehaviors.tsx
@@ -53,22 +46,14 @@
 /templates/form/
 /ui/src/components/form/inputBehaviors.tsx
 
-#
-# Server side.
-#
-
-# The default for the back-end, with more specific code owners for specific areas.
-[Page Builder back-end] @wimleers @f.mazeikis @tedbow @effulgentsia @larowlan @penyaskito
-/src/
-
+^[Component sources] @f.mazeikis @larowlan @longwave @wimleers
 # Issues: https://www.drupal.org/project/issues/canvas?component=Component+sources
-[Component sources] @f.mazeikis @longwave @larowlan @wimleers
 /src/ComponentSource/
 /src/Hook/ComponentSourceHooks.php
 /tests/src/Kernel/Plugin/Canvas/ComponentSource/
 
+^[Config management] @f.mazeikis @larowlan @wimleers
 # Issues: https://www.drupal.org/project/issues/canvas?component=Config+management
-[Config management] @f.mazeikis @wimleers @larowlan
 /docs/config-management.md
 /docs/diagrams/config-management.md
 /config/schema/
@@ -79,8 +64,8 @@
 /tests/src/Kernel/Config/
 /tests/src/Functional/Config/
 
+^[Data model] @effulgentsia @tedbow @larowlan @wimleers
 # Issues: https://www.drupal.org/project/issues/canvas?component=Data+model
-[Data model] @effulgentsia @tedbow @wimleers @larowlan
 /docs/data-model.md
 /docs/diagrams/data-model.md
 # data type
@@ -89,9 +74,13 @@
 # field type
 /src/Plugin/Field/FieldType/
 /tests/src/Kernel/Plugin/Field/FieldType/
+# data descriptions
+/src/PropExpressions/
+# the JSONable-PHP-objects representing the different sources to retrieve a prop value
+/src/PropSource/
 
+^[Page] @mglaman @penyaskito
 # Issues: https://www.drupal.org/project/issues/canvas?component=Page
-[Page] @mglaman
 /src/Entity/Routing/
 /src/Entity/Page.php
 /src/Entity/PageAccessControlHandler.php
@@ -101,28 +90,17 @@
 /tests/src/Kernel/Entity/
 /tests/src/Kernel/Traits/Page*
 
+^[Auto-save] @larowlan @tedbow
 # Issues: https://www.drupal.org/project/issues/canvas?component=Auto-save
-[Auto-save] @tedbow @larowlan
 /src/AutoSaveData.php
 /src/AutoSave/
 /src/Hook/AutoSaveHooks.php
 /tests/**/*AutoSave*
 /tests/Kernel/AutoSave/
 
-# ⚠️
-# ⚠️ Highly experimental new concepts ⚠️
-# ⚠️
-
-# To become part of `[Data model]`, but likely to change significantly
-[Data model: highly experimental new concepts] @effulgentsia @tedbow @wimleers
-# data descriptions
-/src/PropExpressions/
-# the JSONable-PHP-objects representing the different sources to retrieve a prop value
-/src/PropSource/
-
+^[Shape matching] @phenaproxima @wimleers
 # Issues: https://www.drupal.org/project/issues/canvas?component=Shape+matching
 # @see https://en.wikipedia.org/wiki/Schema_matching
-[Shape matching] @wimleers @tedbow
 /docs/shape-matching.md
 /src/Hook/ShapeMatchingHooks.php
 /src/JsonSchemaInterpreter/
@@ -132,34 +110,37 @@
 /src/Plugin/Field/FieldTypeOverride/
 /src/Plugin/Validation/Constraint/StringSemanticsConstraint.php
 
+^[Editor frame] @jessebaker
+/docs/react-codebase/page-preview.md
+/src/features/editorFrame
+/src/features/layout/preview/
+/src/features/layout/previewOverlay/
 
-#
-# Tests
-#
+^[Canvas OAuth] @balintbrews @wimleers
+/modules/canvas_oauth/
 
-[tests] @balintbrews @bnjmnm @f.mazeikis @jessebaker @larowlan @lauriii @tedbow @wimleers @hooroomoo @penyaskito
-/tests/
+^[Code Components & CLI] @balintbrews @hooroomoo @mglaman
+# Issues: https://www.drupal.org/project/issues/canvas?component=Theme+builder
+# Issues: https://www.drupal.org/project/issues/canvas?component=CLI+Tool
+/ui/src/features/code-editor/
+/ui/src/services/assetLibrary.ts
+/ui/src/services/componentAndLayout.ts
+/cli/
 
+^[Extensions] @balintbrews @penyaskito
+# Issues: https://www.drupal.org/project/issues/canvas?component=Extensions
+/packages/extensions/
+/src/Extension/
+/src/Controller/ApiExtensionControllers.php
+/tests/modules/canvas_test_extension*/
+/tests/src/*/Extension/
+/ui/src/components/extensions/
+/ui/src/features/extensions/
+/ui/src/services/extensions.ts
+/ui/src/types/Extensions.ts
+/ui/tests/e2e/extension*.cy.js
 
-#
-# DX
-#
-
-[DX: CI] @wimleers @bnjmnm @larowlan @longwave
-/.gitlab-ci.yml
-
-[DX: JS] @balintbrews @bnjmnm @jessebaker @hooroomoo
-/ui/*.json
-/ui/*.config.ts
-
-[DX: hot reload] @hooroomoo @balintbrews
-/modules/canvas_vite/
-
-[DX: PHP] @effulgentsia @wimleers @larowlan
-/phpcs.xml
-/phpstan.neon
-/tests/src/Unit/DxRouteConsistencyTest.php
-
-[Personalization] @penyaskito @effulgentsia
+^[Personalization] @effulgentsia @penyaskito @wimleers
+# Issues: https://www.drupal.org/project/issues/canvas?component=Personalization
 /modules/canvas_personalization
 /docs/personalization.md
