@@ -1093,6 +1093,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // The client should always provide a resolved value when providing a
       // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;
+      $is_static_prop_source = str_starts_with($prop_source['sourceType'] ?? '', PropSource::getTypePrefix(StaticPropSource::class));
       try {
         // TRICKY: this is always set, *except* in the case of an auto-saved
         // code component that just gained a new prop.
@@ -1124,14 +1125,17 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // In these cases, fall back to `DefaultRelativeUrlPropSource`.
         // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
         // @see ::exampleValueRequiresEntity()
-        if ($default_source_value === []) {
+        if ($default_source_value === [] && $is_static_prop_source) {
           assert($this->configuration['prop_field_definitions'][$prop]['default_value'] === []);
           if (array_key_exists(0, $this->getMetadata()->schema['properties'][$prop]['examples'] ?? [])) {
             // Detect 2 possible `resolved` values from the client model:
             // 1. the empty array
             // 2. an exact match for what's in the client-side info
             // Ignore these and fall back fall back to the example value stored
-            // in the component itself,
+            // in the component itself, but again: only if the user intent is to
+            // populate this using a StaticPropSource: otherwise the default URL
+            // would override the (potentially empty!) resolved value of a
+            // DynamicPropSource.
             // @see ::getClientSideInfo()
             $client_side_info = $this->getClientSideInfo($component);
             \assert(isset($client_side_info['propSources'][$prop]['jsonSchema']));
@@ -1146,7 +1150,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // @see EvaluatedComponentModel type-script definition.
         // For static props undo what ::inputToClientModel() did: restore the
         // omitted `'value'` in cases where it is the same as the source value.
-        if (str_starts_with($prop_source['sourceType'] ?? '', PropSource::getTypePrefix(StaticPropSource::class)) && !\array_key_exists('value', $prop_source)) {
+        if ($is_static_prop_source && !\array_key_exists('value', $prop_source)) {
           $prop_source['value'] = $prop_value;
         }
         $source = PropSource::parse($prop_source);

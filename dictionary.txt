@@ -59,6 +59,7 @@ metacharacter
 metatag
 microlink
 mymodule
+naïvely
 networkidle
 Nygard
 Nygard's

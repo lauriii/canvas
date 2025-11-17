@@ -221,7 +221,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
   }
 
   public static function provider(): \Generator {
-    yield 'the image component' => [
+    yield 'a component with a required "image" object-shaped prop' => [
       'canvas_test_sdc:image',
       'entity:node:foo',
       [
@@ -229,6 +229,26 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'required' => TRUE,
           'instances' => [
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'adapters' => [
+            'Apply image style' => 'image_apply_style',
+            'Make relative image URL absolute' => 'image_url_rel_to_abs',
+          ],
+          'host_entity_urls' => [],
+        ],
+      ],
+    ];
+
+    yield 'a component with an optional "image" object-shaped-prop' => [
+      'canvas_test_sdc:image-optional-with-example',
+      'entity:node:foo',
+      [
+        '⿲canvas_test_sdc:image-optional-with-example␟image' => [
+          'required' => FALSE,
+          'instances' => [
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Silly image 🤡' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -682,13 +702,9 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'instances' => [
-            // @todo Fix in https://www.drupal.org/project/canvas/issues/3557612
-            // @todo Bug #1: the label does IMHO not make sense in this case: omitting the intermediary "File" entity is fine, but here it loses too much. I'd expect: "Authored by → Picture"?
-            // @todo Bug #2: the `src` is populated by the user picture field, but for some reason it doesn't use the `src_with_alternate_widths` property. Which is probably related to why `alt`, `width` and `height` are not populated by `user_picture`, either!
-            'Authored by' => 'ℹ︎␜entity:node:foo␝uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
+            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            // @todo Same bugs here as for "Authored by" above.
-            'Revision user' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
+            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',

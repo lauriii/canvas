@@ -93,6 +93,24 @@ enum JsonSchemaType: string {
   }
 
   /**
+   * Constructs a JsonSchemaType from a typical SDC prop JSON schema.
+   *
+   * TRICKY: SDC always allowed `object` for Twig integration reasons.
+   *
+   * @param JsonSchema $schema
+   *
+   * @return static
+   *
+   * @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo
+   */
+  public static function fromSdcPropJsonSchema(array $schema) : static {
+    $type = is_array($schema['type'])
+      ? $schema['type'][0]
+      : $schema['type'];
+    return JsonSchemaType::from($type);
+  }
+
+  /**
    * Maps the given schema to data type shape requirements.
    *
    * Used for matching against existing field instances, to find candidate

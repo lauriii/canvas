@@ -253,20 +253,40 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'image' => [
           ['id' => $hash_for_choice($choice_article_image)] + $choice_article_image,
           [
-            'id' => '8437c547519af72f',
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
-            ],
-            'label' => 'Revision user',
-          ],
-          [
-            'id' => 'e4baf41f72d2c86e',
-            'source' => [
-              'sourceType' => 'dynamic',
-              'expression' => 'ℹ︎␜entity:node:article␝uid␞␟{src↝entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝created␞␟value,height↝entity␜␜entity:user␝changed␞␟value}',
+            'items' => [
+              [
+                'items' => [
+                  [
+                    'id' => '0bded99fb661deb7',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+                    ],
+                    'label' => 'Picture',
+                  ],
+                ],
+                'label' => 'User',
+              ],
             ],
             'label' => 'Authored by',
+          ],
+          [
+            'items' => [
+              [
+                'items' => [
+                  [
+                    'id' => '32b7fa7b2bad34a6',
+                    'source' => [
+                      'sourceType' => 'dynamic',
+                      'expression' => 'ℹ︎␜entity:node:article␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+                    ],
+                    'label' => 'Picture',
+                  ],
+                ],
+                'label' => 'User',
+              ],
+            ],
+            'label' => 'Revision user',
           ],
         ],
       ],

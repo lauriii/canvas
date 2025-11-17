@@ -173,11 +173,32 @@ class PropExpressionKernelTest extends KernelTestBase {
     ])->save();
     $this->createImageField('field_product_packaging_photo', 'node', 'product');
 
+    // Optional, single-cardinality user profile picture field.
+    // @see core/profiles/standard/config/install/field.storage.user.user_picture.yml
+    FieldStorageConfig::create([
+      'entity_type' => 'user',
+      'field_name' => 'user_picture',
+      'type' => 'image',
+      'translatable' => FALSE,
+      'cardinality' => 1,
+    ])->save();
+    // @see core/profiles/standard/config/install/field.field.user.user.user_picture.yml
+    FieldConfig::create([
+      'label' => 'Picture',
+      'description' => '',
+      'field_name' => 'user_picture',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'required' => FALSE,
+    ])->save();
+
     User::create([
       'uuid' => 'some-user-uuid',
       'name' => 'user1',
       'mail' => 'user@localhost',
-    ])->save();
+    ])
+      ->activate()
+      ->save();
     Vocabulary::create(['name' => 'Tags', 'vid' => 'tags'])->save();
     Term::create([
       'uuid' => 'some-term-uuid',
@@ -260,7 +281,7 @@ class PropExpressionKernelTest extends KernelTestBase {
       'label' => 'The XYZ map field',
     ])->save();
 
-    $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+    $this->setUpCurrentUser(permissions: ['access content', 'view media', 'access user profiles']);
   }
 
   /**

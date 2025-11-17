@@ -62,6 +62,19 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::getReferenceChainPrefixes()
+   * @dataProvider providerReferenceFieldPropExpression
+   */
+  public function testGetReferenceChainPrefixes(string $string_representation, StructuredDataPropExpressionInterface $expression, string|\Exception $irrelevant_here_one, array|\Exception $irrelevant_here_two, null|array $irrelevant_here_three, array $expected_reference_chain_prefixes): void {
+    $reconstructed = call_user_func([get_class($expression), 'fromString'], $string_representation);
+    self::assertInstanceOf(ReferenceFieldPropExpression::class, $reconstructed);
+    // PHPStan bug: despite the above test assertion, which PHPStan understands,
+    // it instantly forgets that that also means any method on it can be called.
+    // @phpstan-ignore-next-line method.notFound
+    self::assertSame($expected_reference_chain_prefixes, $expression->getReferenceChainPrefixes());
+  }
+
+  /**
    * Combines the cases of all individual data providers, assigns clear labels.
    *
    * @return array<array{0: string, 1: FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression|FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression, 2: string|\Exception, 3: ConfigDependenciesArray|\Exception}>
@@ -338,12 +351,15 @@ class PropExpressionTest extends UnitTestCase {
     $referencer_delta_high = new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'uid', 123, 'entity');
 
     return [
+      // 1. References that point to a FieldPropExpression.
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
         'Authored by␜User␝Name',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
         'Authored by␜User␝Name␞1st item',
@@ -351,6 +367,8 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
         'Authored by␜User␝Name␞100th item',
@@ -358,6 +376,8 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
 
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
@@ -366,6 +386,8 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
         'Authored by␞1st item␜User␝Name␞1st item',
@@ -373,12 +395,85 @@ class PropExpressionTest extends UnitTestCase {
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
         ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
         'Authored by␞1st item␜User␝Name␞100th item',
         [
           'module' => ['node', 'user'],
           'content' => ['user:user:some-user-uuid'],
+        ],
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
+      ],
+
+      // 2. References that point to a reference.
+      [
+        'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+        new ReferenceFieldPropExpression(
+          $referencer_delta_null,
+          new ReferenceFieldPropExpression(
+            new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          ),
+        ),
+        'Authored by␜User␝Picture␝URI␟Root-relative file URL',
+        [
+          'module' => ['node', 'user', 'file', 'file'],
+          'content' => ['user:user:some-user-uuid'],
+          'config' => [
+            'field.field.user.user.user_picture',
+            // @todo 🐛 This is not actually used by this expression!
+            'image.style.canvas_parametrized_width',
+          ],
+        ],
+        NULL,
+        [
+          'ℹ︎␜entity:node␝uid␞␟entity␜',
+          'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜',
+        ],
+      ],
+
+      // 3. References that point to a FieldObjectPropsExpression.
+      [
+        'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
+        new ReferenceFieldPropExpression(
+          $referencer_delta_null,
+          new FieldObjectPropsExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, [
+            'src' => new ReferenceFieldPropExpression(
+              new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+            ),
+            'alt' => new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'alt'),
+            'width' => new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'width'),
+            'height' => new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'height'),
+          ]),
+        ),
+        'Authored by␜User␝Picture',
+        [
+          'module' => [
+            'node', 'user', 'file', 'file',
+            'user', 'file',
+            'user', 'file',
+            'user', 'file',
+          ],
+          'content' => ['user:user:some-user-uuid'],
+          'config' => [
+            'field.field.user.user.user_picture',
+            // @todo 🐛 This is not actually used by this expression!
+            'image.style.canvas_parametrized_width',
+            'field.field.user.user.user_picture',
+            'image.style.canvas_parametrized_width',
+            'field.field.user.user.user_picture',
+            'image.style.canvas_parametrized_width',
+            'field.field.user.user.user_picture',
+            'image.style.canvas_parametrized_width',
+          ],
+        ],
+        NULL,
+        [
+          'ℹ︎␜entity:node␝uid␞␟entity␜',
         ],
       ],
 
@@ -387,14 +482,20 @@ class PropExpressionTest extends UnitTestCase {
       ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
         'Authored by␞124th item␜User␝Name',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
         'Authored by␞124th item␜User␝Name␞1st item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
       ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
         'Authored by␞124th item␜User␝Name␞100th item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
+        NULL,
+        ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
     ];
   }
