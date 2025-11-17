@@ -697,7 +697,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
             '#sdc_prop_label' => $label,
             '#linked_prop_source' => $linked_prop_source,
             '#field_link_suggestions' => $suggestions[$sdc_prop_name],
-            '#component' => $component,
             '#is_required' => $is_required,
           ];
         }
