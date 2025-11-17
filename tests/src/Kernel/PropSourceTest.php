@@ -1111,6 +1111,21 @@ class PropSourceTest extends KernelTestBase {
     self::assertSame([
       'config' => ['canvas.component.sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop'],
     ], $source->calculateDependencies());
+
+    // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
+    // order for the JSON Schema definition properties it contains.
+    $decoded['jsonSchema']['properties'] = array_reverse($decoded['jsonSchema']['properties']);
+    $source = PropSource::parse($decoded);
+    self::assertInstanceOf(DefaultRelativeUrlPropSource::class, $source);
+    self::assertSame('default-relative-url', $source->getSourceType());
+
+    // Ensure that DefaultRelativeUrlPropSource::parse() does not care about key
+    // order for the JSON Schema definition properties attributes it contains.
+    $decoded['jsonSchema']['properties']['src'] = array_reverse($decoded['jsonSchema']['properties']['src']);
+    $source = PropSource::parse($decoded);
+    self::assertInstanceOf(DefaultRelativeUrlPropSource::class, $source);
+    self::assertSame('default-relative-url', $source->getSourceType());
+
     // This is never a choice presented to the end user; this is a purely internal prop source.
     $this->expectException(\LogicException::class);
     $source->asChoice();

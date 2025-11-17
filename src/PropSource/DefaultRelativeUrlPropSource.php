@@ -82,10 +82,13 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     // First do basic normalization, and resolve.
       PropShape::normalize($sdc_prop_source['jsonSchema'])->resolvedSchema
     )->schema;
-    ksort($sdc_prop_source['jsonSchema']);
-    ksort($minimal);
-    if ($sdc_prop_source['jsonSchema'] !== $minimal) {
-      throw new \LogicException(sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source['jsonSchema'], JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
+
+    $sdc_prop_source_json_schema = $sdc_prop_source['jsonSchema'];
+    self::recursiveKsort($sdc_prop_source_json_schema);
+    self::recursiveKsort($minimal);
+
+    if ($sdc_prop_source_json_schema !== $minimal) {
+      throw new \LogicException(sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source_json_schema, JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
     }
 
     return new self(
@@ -93,6 +96,18 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       $sdc_prop_source['jsonSchema'],
       $sdc_prop_source['componentId'],
     );
+  }
+
+  /**
+   * @todo Remove this once Canvas requires Drupal 11.3, which added this to Drupal core: https://www.drupal.org/project/drupal/issues/3556987
+   */
+  private static function recursiveKsort(array &$array): void {
+    ksort($array);
+    foreach ($array as &$value) {
+      if (is_array($value)) {
+        self::recursiveKsort($value);
+      }
+    }
   }
 
   /**
