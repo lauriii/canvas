@@ -3,6 +3,7 @@
 namespace Drupal\canvas\Element;
 
 use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Core\Render\Attribute\RenderElement;
 use Drupal\Core\Render\Element\RenderElementBase;
 
@@ -20,7 +21,8 @@ class LinkedPropSource extends RenderElementBase {
    * Properties:
    * - #sdc_prop_name: The name of the prop in the component.
    * - #sdc_prop_label: The label of the prop in the component.
-   * - #linked_prop_source: The dynamic prop source object.
+   * - #linked_prop_source: The dynamic prop source object or
+   *   HostEntityUrlPropSource object.
    * - #field_link_suggestions: An array of field name suggestions for linking.
    * - #is_required: Whether the prop is required.
    *
@@ -52,7 +54,7 @@ class LinkedPropSource extends RenderElementBase {
     $sdc_prop_label = $element['#sdc_prop_label'];
     assert(is_string($sdc_prop_label));
     $linked_prop_source = $element['#linked_prop_source'];
-    assert($linked_prop_source instanceof DynamicPropSource);
+    assert($linked_prop_source instanceof DynamicPropSource || $linked_prop_source instanceof HostEntityUrlPropSource);
     $field_link_suggestions = $element['#field_link_suggestions'] ?? [];
     assert(is_array($field_link_suggestions));
     $is_required = $element['#is_required'] ?? FALSE;

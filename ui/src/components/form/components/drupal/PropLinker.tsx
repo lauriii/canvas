@@ -12,8 +12,8 @@ import {
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 
 import type {
+  BasePropSource,
   ComponentModel,
-  DynamicPropSource,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
 
@@ -69,7 +69,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
     );
   };
 
-  let currentExpression = undefined;
+  let selectedSourceAsString = '';
   if (
     isEvaluatedComponentModel(selectedModel) &&
     selectedModel?.source?.[propName] &&
@@ -78,8 +78,10 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
       'expression',
     )
   ) {
-    const fieldSource = selectedModel.source[propName] as DynamicPropSource;
-    currentExpression = fieldSource.expression;
+    // The selected source must be treated as an opaque object, so compare the entire object by using stringify.
+    selectedSourceAsString = JSON.stringify(
+      selectedModel.source[propName] as BasePropSource,
+    );
   }
 
   const DropdownMenuItem = ({
@@ -104,7 +106,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
   };
 
   const NestedDropdownItem = ({ item }: { item: LinkSuggestion }) => {
-    const isActive = item.source?.expression === currentExpression;
+    const isActive = JSON.stringify(item.source) === selectedSourceAsString;
 
     if (item.items && item.items.length > 0) {
       return (
@@ -163,7 +165,8 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               />
             );
           }
-          const isActive = suggestion.source?.expression === currentExpression;
+          const isActive =
+            JSON.stringify(suggestion.source) === selectedSourceAsString;
           return (
             <DropdownMenuItem
               key={suggestion.id}
