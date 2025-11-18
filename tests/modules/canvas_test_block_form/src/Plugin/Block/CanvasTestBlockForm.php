@@ -88,9 +88,17 @@ final class CanvasTestBlockForm extends BlockBase implements ContainerFactoryPlu
     $page = $form_state->getValue('canvas_page');
     \assert($page !== NULL);
     $this->setConfigurationValue('canvas_page', $page);
-    // Set a configuration value that has no form equivalent and can only be set
-    // from submitting the block form.
-    $this->setConfigurationValue('multiplier', $page * 3);
+    // When validation fails, Canvas resets the value back to that entered by
+    // the user so that validation can be re-run before publishing. When that
+    // happens, the value here might not have been transformed into a valid
+    // page ID by
+    // \Drupal\Core\Entity\Element\EntityAutocomplete::validateEntityAutocomplete
+    // and will be the original non-numeric value the user entered.
+    if (\is_numeric($page)) {
+      // Set a configuration value that has no form equivalent and can only be set
+      // from submitting the block form.
+      $this->setConfigurationValue('multiplier', (int) $page * 3);
+    }
   }
 
   /**

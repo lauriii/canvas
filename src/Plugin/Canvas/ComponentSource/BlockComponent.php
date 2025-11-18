@@ -627,11 +627,14 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
           foreach ($errors as $element_path => $error) {
             $parents = \explode('][', $element_path);
             $element = NestedArray::getValue($form, $parents);
+            // If validation changed the user's input but still resulted in an
+            // error, revert back to the user-provided value so that is stored
+            // in the temp store.
             // Check for #required errors.
+            $form_state->setValue($parents, NestedArray::getValue($input, $parents));
             if (($error instanceof TranslatableMarkup && $error->getUntranslatedString() === '@name field is required.') ||
               ((string) $error === ($element['#required_error'] ?? NULL))) {
-              // Fall-back to the default value and ignore the error.
-              $form_state->setValue($parents, NestedArray::getValue($input, $parents));
+              // Ignore the error.
               continue;
             }
             // Remove the 'settings' key added in the ::buildForm method.

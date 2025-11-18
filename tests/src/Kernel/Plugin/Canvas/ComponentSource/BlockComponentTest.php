@@ -555,11 +555,49 @@ HTML,
       ],
     ], NULL);
     $violations = $source->validateComponentInput($input, $uuid, NULL);
-    self::assertCount(1, $violations);
-    $first = $violations[0];
-    \assert($first instanceof ConstraintViolationInterface);
-    self::assertEquals('You better call me on the phone', $first->getMessage());
-    self::assertEquals(\sprintf('inputs.%s.canvas_page', $uuid), $first->getPropertyPath());
+    $violationMap = \array_map(static fn(ConstraintViolationInterface $violation) => \sprintf('%s:%s', $violation->getPropertyPath(), $violation->getMessage()), \iterator_to_array($violations));
+    self::assertCount(2, $violations, \implode(', ', $violationMap));
+    self::assertEquals([
+      \sprintf('inputs.%s.canvas_page:This value should be of the correct primitive type.', $uuid),
+      \sprintf('inputs.%s.canvas_page:You better call me on the phone', $uuid),
+    ], $violationMap);
+
+    // Test that the violation error bubbles to a parent entity.
+    $page3 = Page::create(['title' => 'Glitter shot']);
+    $page3->set('components', [
+      [
+        'uuid' => '922b4cbd-4b99-46ce-a253-ff80f8560e9d',
+        'component_id' => 'block.' . CanvasTestBlockForm::PLUGIN_ID,
+        'inputs' => [
+          'label' => 'Page',
+          'label_display' => '0',
+          'multiplier' => 0,
+          'canvas_page' => 0,
+        ],
+      ],
+    ]);
+    $item = $page3->get('components')->first();
+    \assert($item instanceof ComponentTreeItem);
+    $component = $item->getComponent();
+    \assert($component instanceof Component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof BlockComponent);
+    // Simulate submitting invalid input.
+    $item->setInput(
+      // @phpstan-ignore-next-line
+      $source->clientModelToInput('922b4cbd-4b99-46ce-a253-ff80f8560e9d', $component, [
+        'resolved' => [
+          'canvas_page' => 'There is no such place',
+        ],
+      ], $page3)
+    );
+    $violations = $page3->validate();
+    $violationMap = \array_map(static fn(ConstraintViolationInterface $violation) => \sprintf('%s:%s', $violation->getPropertyPath(), $violation->getMessage()), \iterator_to_array($violations));
+    self::assertCount(2, $violations, \implode(', ', $violationMap));
+    self::assertEquals([
+      "components.0.inputs.922b4cbd-4b99-46ce-a253-ff80f8560e9d.canvas_page:This value should be of the correct primitive type.",
+      'components.0.inputs.922b4cbd-4b99-46ce-a253-ff80f8560e9d.canvas_page:There are no pages matching "There is no such place".',
+    ], $violationMap);
   }
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
