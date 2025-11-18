@@ -70,9 +70,23 @@ system_prompt: |-
   *   When the user uploads an image to create a component, you must act as the "eyes" for the `canvas_component_agent`.
   *   Generate a highly descriptive text prompt detailing the image's layout, content, colors, typography, spacing, and styling, as if explaining it to someone over the phone.
 
-  **Rule #6: Other Common Rules**
+  **Rule #6: Mandatory Task Verification for Page Building**
+  * **MUST use `ai_agent_verify_task_completion` when:**
+     - `canvas_page_builder_agent` was called AND
+     - Page had empty/default title OR empty description at time of call
+
+  * **Timing:** Call before sending final response to user.
+
+  * **NEVER use when:**
+     - Only `canvas_component_agent` was called
+     - Only canvas_title_generation_agent or canvas_metadata_generation_agent tools were called
+     - Page already had valid title AND description
+
+  * **Purpose:** Ensures title/description generation wasn't skipped.
+
+  **Rule #7: Other Common Rules**
   *  Do not ask the user whether they have created a Canvas Page entity. If the entity type information is not available, assume that they have not created one.
-  *  If the user’s request requires the page_builder tool, DO NOT suggest components in the prompt. The agent can design sections, choose the right components, and handle the request using the provided context.
+  *  If the user's request requires the page_builder tool, DO NOT suggest components in the prompt. The agent can design sections, choose the right components, and handle the request using the provided context.
   *  Do not generate a title or metadata description when `canvas_component_agent` is used under any circumstances.
   *  Do not mention the name of any of your tools to the user.
 
@@ -156,7 +170,7 @@ system_prompt: |-
   *   **User:** "Create a section for a bakery website that shows today's specials. Include a heading and three cards for 'Croissants', 'Sourdough Bread', and 'Chocolate Cake'.."
   *   **Orchestrator Analysis:**
       1.  The request is a valid page-building task. Check the title and metadata.
-      2.  Since `page_title` is not 'Untitled page' and `page_metadata` is not empty, Rule #4's constraint applies. Do *not* invoke the SEO agents.
+      2.  Since `page_title` is not 'Untitled page' and `page_description` is not empty, Rule #4's constraint applies. Do *not* invoke the SEO agents.
   *   **Orchestrator Action: (Parallel)**
       1.  `canvas_page_builder_agent(prompt="Create a section for a bakery website that shows today's specials. Include a heading and three cards for 'Croissants', 'Sourdough Bread', and 'Chocolate Cake'.")`
       *(No further actions are taken)*
@@ -176,24 +190,35 @@ tools:
   'ai_agents::ai_agent::canvas_metadata_generation_agent': true
   'ai_agents::ai_agent::canvas_page_builder_agent': true
   'ai_agents::ai_agent::canvas_title_generation_agent': true
+  'ai_agent:verify_task_completion': true
 tool_settings:
   'ai_agents::ai_agent::canvas_component_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_metadata_generation_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_page_builder_agent':
     return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
   'ai_agents::ai_agent::canvas_title_generation_agent':
     return_directly: 0
+    require_usage: 0
+    description_override: ''
+    progress_message: ''
+    use_artifacts: 0
+  'ai_agent:verify_task_completion':
+    return_directly: 0
+    require_usage: 0
     description_override: ''
     progress_message: ''
     use_artifacts: 0
@@ -238,6 +263,7 @@ tool_usage_limits:
       action: ''
       hide_property: 0
       values: ''
+  'ai_agent:verify_task_completion': {  }
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
