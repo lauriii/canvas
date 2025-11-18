@@ -53,14 +53,24 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const handleWidthClick = (viewportSize: viewportSize) => {
     dispatch(setViewportWidth(viewportSize.width));
     dispatch(setViewportMinHeight(viewportSize.height));
+    // Remember user's last chosen viewport size so it can persist across page reloads/navigation etc.
+    localStorage.setItem('Canvas.editorFrame.viewportSize', viewportSize.id);
   };
 
-  const getViewportByWidth = (width: number) => {
-    return viewportSizes.find((vw) => vw.width === width);
+  const getViewportByWidth = (width: number): viewportSize => {
+    const viewportSize = viewportSizes.find((vw) => vw.width === width);
+    if (!viewportSize) {
+      throw new Error(`No viewport found with width: ${width}`);
+    }
+    return viewportSize;
   };
 
-  const getViewportByName = (name: string) => {
-    return viewportSizes.find((vw) => vw.name === name);
+  const getViewportById = (id: string): viewportSize => {
+    const viewportSize = viewportSizes.find((vw) => vw.id === id);
+    if (!viewportSize) {
+      throw new Error(`No viewport found with id: ${id}`);
+    }
+    return viewportSize;
   };
 
   const handleScaleToFit = () => {
@@ -98,10 +108,19 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   };
 
   useLayoutEffect(() => {
-    const defaultVs = getViewportByName('Tablet') as viewportSize;
-    dispatch(setViewportWidth(defaultVs.width));
-    dispatch(setViewportMinHeight(defaultVs.height));
-  }, [dispatch]);
+    // Attempt to restore user's last viewport choice from localStorage
+    const storedViewportId = localStorage.getItem(
+      'Canvas.editorFrame.viewportSize',
+    );
+    let vs: viewportSize;
+    if (currentWidth) {
+      vs = getViewportByWidth(currentWidth);
+    } else {
+      vs = getViewportById(storedViewportId || 'tablet');
+    }
+    dispatch(setViewportWidth(vs.width));
+    dispatch(setViewportMinHeight(vs.height));
+  }, [currentWidth, dispatch]);
 
   return (
     <Flex
@@ -118,7 +137,9 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
             className={clsx(styles.toolbarButton, styles.viewportSelect)}
           >
             <BreakpointIcon width={currentWidth} />
-            {getViewportByWidth(currentWidth)?.name}
+            {currentWidth
+              ? getViewportByWidth(currentWidth)?.name
+              : 'Select viewport'}
             <DropdownMenu.TriggerIcon />
           </Button>
         </DropdownMenu.Trigger>
