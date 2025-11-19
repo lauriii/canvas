@@ -546,4 +546,8 @@ HTML,
     $this->markTestSkipped('The set of components this ComponentSource provides is hard-coded, so it cannot be broken.');
   }
 
+  protected function getExpectedVerboseErrorMessage(): string {
+    return '';
+  }
+
 }

@@ -170,30 +170,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     return [
       'js.canvas_test_code_components_captioned_video' => [
         'prop_field_definitions' => [
-          'caption' => [
-            'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              ['value' => 'A video'],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'displayWidth' => [
-            'required' => FALSE,
-            'field_type' => 'list_integer',
-            'field_storage_settings' => [
-              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-            ],
-            'field_instance_settings' => [],
-            'field_widget' => 'options_select',
-            'default_value' => [
-              ['value' => 400],
-            ],
-            'expression' => 'ℹ︎list_integer␟value',
-          ],
           'video' => [
             'required' => TRUE,
             'field_type' => 'entity_reference',
@@ -213,6 +189,30 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
             'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:video␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url}',
+          ],
+          'displayWidth' => [
+            'required' => FALSE,
+            'field_type' => 'list_integer',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              ['value' => 400],
+            ],
+            'expression' => 'ℹ︎list_integer␟value',
+          ],
+          'caption' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              ['value' => 'A video'],
+            ],
+            'expression' => 'ℹ︎string␟value',
           ],
         ],
       ],
@@ -286,6 +286,15 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_link_prop' => [
         'prop_field_definitions' => [
+          'text' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [0 => ['value' => 'This is my link']],
+            'expression' => 'ℹ︎string␟value',
+          ],
           'link' => [
             'required' => FALSE,
             'field_type' => 'link',
@@ -303,15 +312,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             ],
             'expression' => 'ℹ︎link␟url',
           ],
-          'text' => [
-            'required' => FALSE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [0 => ['value' => 'This is my link']],
-            'expression' => 'ℹ︎string␟value',
-          ],
         ],
       ],
       'js.canvas_test_code_components_with_no_props' => [
@@ -319,15 +319,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'js.canvas_test_code_components_with_props' => [
         'prop_field_definitions' => [
-          'age' => [
-            'required' => FALSE,
-            'field_type' => 'integer',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'number',
-            'default_value' => [0 => ['value' => 40]],
-            'expression' => 'ℹ︎integer␟value',
-          ],
           'name' => [
             'required' => TRUE,
             'field_type' => 'string',
@@ -337,6 +328,16 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             'default_value' => [0 => ['value' => 'Canvas']],
             'expression' => 'ℹ︎string␟value',
           ],
+          'age' => [
+            'required' => FALSE,
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => [0 => ['value' => 40]],
+            'expression' => 'ℹ︎integer␟value',
+          ],
+
         ],
       ],
       'js.canvas_test_code_components_with_slots' => [
@@ -1954,6 +1955,12 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $test_cases['NULLish optional object prop'][2] = 'props="{}"';
     $test_cases['NULL optional object prop'][2] = 'props="{}"';
     return $test_cases;
+  }
+
+  protected function getExpectedVerboseErrorMessage(): string {
+    // The code component was deleted by bypassing lots of protections.
+    // @see ::triggerBrokenComponent()
+    return 'assert($js_component instanceof JavaScriptComponent)';
   }
 
 }

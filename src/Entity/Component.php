@@ -347,16 +347,19 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     // Ensure a broken Component cannot break the Canvas HTTP API.
     else {
       try {
-        // Intentionally fail to render something.
-        $build = $this->getComponentSource()->renderComponent([], [], $component_config_entity_uuid, TRUE);
-        throw new \LogicException(sprintf("The %s ComponentSource plugin lied about the %s Component being broken: it did not crash during rendering.",
-          $source->getPluginId(),
-          $this->source_local_id,
-        ));
+        // Wrap in a render-safe container.
+        // If ::renderComponent() fails, it falls into "catch" block.
+        $build = [
+          '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+          '#component' => $this->getComponentSource()->renderComponent([], [], $component_config_entity_uuid, TRUE),
+          '#component_context' => 'API',
+          '#component_uuid' => $component_config_entity_uuid,
+          '#is_preview' => TRUE,
+        ];
       }
       catch (\Throwable $e) {
         // … but some ComponentSources might even fail while calling
-        // ::renderComponent(), handle this too! (They might be calling
+        // ::renderComponent(), handle this too!
         $build = RenderSafeComponentContainer::handleComponentException(
           $e,
           componentContext: 'API',
@@ -597,6 +600,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     if (!$this->isSyncing()) {
       $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
       $this->getConfigUpdater()->updatePropFieldDefinitionsUsingTextValue($this);
+      $this->getConfigUpdater()->updatePropOrder($this);
     }
     parent::preSave($storage);
 

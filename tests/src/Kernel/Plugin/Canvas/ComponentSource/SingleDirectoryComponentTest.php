@@ -1304,15 +1304,6 @@ HTML
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-          'image' => [
-            'required' => FALSE,
-            'field_type' => 'image',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'image_image',
-            'default_value' => [],
-            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-          ],
           'text' => [
             'required' => FALSE,
             'field_type' => 'text_long',
@@ -1331,10 +1322,32 @@ HTML
             ],
             'expression' => 'ℹ︎text_long␟processed',
           ],
+          'image' => [
+            'required' => FALSE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
         ],
       ],
       'sdc.canvas_test_sdc.card' => [
         'prop_field_definitions' => [
+          'heading' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Card',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
           'content' => [
             'required' => FALSE,
             'field_type' => 'string',
@@ -1361,19 +1374,6 @@ HTML
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-          'heading' => [
-            'required' => FALSE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'Card',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
           'image' => [
             'required' => TRUE,
             'field_type' => 'image',
@@ -1382,6 +1382,19 @@ HTML
             'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'sizes' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'auto 50vw',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
           ],
           'loading' => [
             'required' => TRUE,
@@ -1398,7 +1411,11 @@ HTML
             ],
             'expression' => 'ℹ︎list_string␟value',
           ],
-          'sizes' => [
+        ],
+      ],
+      'sdc.canvas_test_sdc.card-with-local-image' => [
+        'prop_field_definitions' => [
+          'heading' => [
             'required' => FALSE,
             'field_type' => 'string',
             'field_storage_settings' => [],
@@ -1406,24 +1423,7 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'auto 50vw',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-        ],
-      ],
-      'sdc.canvas_test_sdc.card-with-local-image' => [
-        'prop_field_definitions' => [
-          'alt' => [
-            'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'A classic druplicon',
+                'value' => 'Card with local image',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -1454,15 +1454,24 @@ HTML
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-          'heading' => [
-            'required' => FALSE,
+          'src' => [
+            'required' => TRUE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
+          ],
+          'alt' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Card with local image',
+                'value' => 'A classic druplicon',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -1482,28 +1491,19 @@ HTML
             ],
             'expression' => 'ℹ︎list_string␟value',
           ],
-          'src' => [
-            'required' => TRUE,
-            'field_type' => 'image',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'image_image',
-            'default_value' => [],
-            'expression' => 'ℹ︎image␟src_with_alternate_widths',
-          ],
         ],
       ],
       'sdc.canvas_test_sdc.card-with-remote-image' => [
         'prop_field_definitions' => [
-          'alt' => [
-            'required' => TRUE,
+          'heading' => [
+            'required' => FALSE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Hot air balloons',
+                'value' => 'Card with remote image',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -1534,18 +1534,40 @@ HTML
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-          'heading' => [
-            'required' => FALSE,
+          'src' => [
+            'required' => TRUE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟src_with_alternate_widths',
+          ],
+          'alt' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Card with remote image',
+                'value' => 'Hot air balloons',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+          ],
+          'width' => [
+            'required' => TRUE,
+            'field_type' => 'integer',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => [
+              0 => [
+                'value' => 640,
+              ],
+            ],
+            'expression' => 'ℹ︎integer␟value',
           ],
           'height' => [
             'required' => TRUE,
@@ -1575,41 +1597,19 @@ HTML
             ],
             'expression' => 'ℹ︎list_string␟value',
           ],
-          'src' => [
-            'required' => TRUE,
-            'field_type' => 'image',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'image_image',
-            'default_value' => [],
-            'expression' => 'ℹ︎image␟src_with_alternate_widths',
-          ],
-          'width' => [
-            'required' => TRUE,
-            'field_type' => 'integer',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'number',
-            'default_value' => [
-              0 => [
-                'value' => 640,
-              ],
-            ],
-            'expression' => 'ℹ︎integer␟value',
-          ],
         ],
       ],
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image' => [
         'prop_field_definitions' => [
-          'alt' => [
-            'required' => TRUE,
+          'heading' => [
+            'required' => FALSE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Hot air balloons',
+                'value' => 'Card with stream wrapper',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -1640,15 +1640,24 @@ HTML
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-          'heading' => [
-            'required' => FALSE,
+          'src' => [
+            'required' => TRUE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
+          ],
+          'alt' => [
+            'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Card with stream wrapper',
+                'value' => 'Hot air balloons',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -1667,15 +1676,6 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎list_string␟value',
-          ],
-          'src' => [
-            'required' => TRUE,
-            'field_type' => 'image',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'image_image',
-            'default_value' => [],
-            'expression' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
           ],
         ],
       ],
@@ -1768,20 +1768,18 @@ HTML
       ],
       'sdc.canvas_test_sdc.heading' => [
         'prop_field_definitions' => [
-          'element' => [
+          'text' => [
             'required' => TRUE,
-            'field_type' => 'list_string',
-            'field_storage_settings' => [
-              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-            ],
+            'field_type' => 'string',
+            'field_storage_settings' => [],
             'field_instance_settings' => [],
-            'field_widget' => 'options_select',
+            'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'h1',
+                'value' => 'A heading element',
               ],
             ],
-            'expression' => 'ℹ︎list_string␟value',
+            'expression' => 'ℹ︎string␟value',
           ],
           'style' => [
             'required' => FALSE,
@@ -1798,18 +1796,20 @@ HTML
             ],
             'expression' => 'ℹ︎list_string␟value',
           ],
-          'text' => [
+          'element' => [
             'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
             'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
+            'field_widget' => 'options_select',
             'default_value' => [
               0 => [
-                'value' => 'A heading element',
+                'value' => 'h1',
               ],
             ],
-            'expression' => 'ℹ︎string␟value',
+            'expression' => 'ℹ︎list_string␟value',
           ],
         ],
       ],
@@ -1922,6 +1922,19 @@ HTML
       ],
       'sdc.canvas_test_sdc.my-cta' => [
         'prop_field_definitions' => [
+          'text' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Press',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
           'href' => [
             'required' => TRUE,
             'field_type' => 'link',
@@ -1950,7 +1963,11 @@ HTML
             'default_value' => NULL,
             'expression' => 'ℹ︎list_string␟value',
           ],
-          'text' => [
+        ],
+      ],
+      'sdc.canvas_test_sdc.my-hero' => [
+        'prop_field_definitions' => [
+          'heading' => [
             'required' => TRUE,
             'field_type' => 'string',
             'field_storage_settings' => [],
@@ -1958,15 +1975,24 @@ HTML
             'field_widget' => 'string_textfield',
             'default_value' => [
               0 => [
-                'value' => 'Press',
+                'value' => 'There goes my hero',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
           ],
-        ],
-      ],
-      'sdc.canvas_test_sdc.my-hero' => [
-        'prop_field_definitions' => [
+          'subheading' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Watch him as he goes!',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
           'cta1' => [
             'required' => FALSE,
             'field_type' => 'string',
@@ -2006,32 +2032,6 @@ HTML
             'default_value' => [
               0 => [
                 'value' => 'Click',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'heading' => [
-            'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'There goes my hero',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'subheading' => [
-            'required' => FALSE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'Watch him as he goes!',
               ],
             ],
             'expression' => 'ℹ︎string␟value',
@@ -2102,6 +2102,21 @@ HTML
       ],
       'sdc.canvas_test_sdc.shoe_badge' => [
         'prop_field_definitions' => [
+          'variant' => [
+            'required' => TRUE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'primary',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
           'pill' => [
             'required' => FALSE,
             'field_type' => 'boolean',
@@ -2128,25 +2143,36 @@ HTML
             ],
             'expression' => 'ℹ︎boolean␟value',
           ],
-          'variant' => [
-            'required' => TRUE,
-            'field_type' => 'list_string',
-            'field_storage_settings' => [
-              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-            ],
-            'field_instance_settings' => [],
-            'field_widget' => 'options_select',
-            'default_value' => [
-              0 => [
-                'value' => 'primary',
-              ],
-            ],
-            'expression' => 'ℹ︎list_string␟value',
-          ],
         ],
       ],
       'sdc.canvas_test_sdc.shoe_tab' => [
         'prop_field_definitions' => [
+          'label' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'Tab 1',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'panel' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              0 => [
+                'value' => 'tab_1',
+              ],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
           'active' => [
             'required' => FALSE,
             'field_type' => 'boolean',
@@ -2174,36 +2200,25 @@ HTML
             'default_value' => NULL,
             'expression' => 'ℹ︎boolean␟value',
           ],
-          'label' => [
-            'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'Tab 1',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'panel' => [
-            'required' => TRUE,
-            'field_type' => 'string',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'string_textfield',
-            'default_value' => [
-              0 => [
-                'value' => 'tab_1',
-              ],
-            ],
-            'expression' => 'ℹ︎string␟value',
-          ],
         ],
       ],
       'sdc.canvas_test_sdc.shoe_tab_group' => [
         'prop_field_definitions' => [
+          'placement' => [
+            'required' => TRUE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [
+              0 => [
+                'value' => 'top',
+              ],
+            ],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
           'activation' => [
             'required' => FALSE,
             'field_type' => 'list_string',
@@ -2232,34 +2247,10 @@ HTML
             ],
             'expression' => 'ℹ︎boolean␟value',
           ],
-          'placement' => [
-            'required' => TRUE,
-            'field_type' => 'list_string',
-            'field_storage_settings' => [
-              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-            ],
-            'field_instance_settings' => [],
-            'field_widget' => 'options_select',
-            'default_value' => [
-              0 => [
-                'value' => 'top',
-              ],
-            ],
-            'expression' => 'ℹ︎list_string␟value',
-          ],
         ],
       ],
       'sdc.canvas_test_sdc.shoe_tab_panel' => [
         'prop_field_definitions' => [
-          'active' => [
-            'required' => FALSE,
-            'field_type' => 'boolean',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [],
-            'field_widget' => 'boolean_checkbox',
-            'default_value' => NULL,
-            'expression' => 'ℹ︎boolean␟value',
-          ],
           'name' => [
             'required' => TRUE,
             'field_type' => 'string',
@@ -2272,6 +2263,15 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+          ],
+          'active' => [
+            'required' => FALSE,
+            'field_type' => 'boolean',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'boolean_checkbox',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎boolean␟value',
           ],
         ],
       ],
@@ -2341,6 +2341,17 @@ HTML
       ],
       'sdc.canvas_test_sdc.video' => [
         'prop_field_definitions' => [
+          'video' => [
+            'required' => TRUE,
+            'field_type' => 'file',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'file_extensions' => 'mp4',
+            ],
+            'field_widget' => 'file_generic',
+            'default_value' => [],
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
+          ],
           'display_width' => [
             'required' => FALSE,
             'field_type' => 'integer',
@@ -2352,17 +2363,6 @@ HTML
             'field_widget' => 'number',
             'default_value' => NULL,
             'expression' => 'ℹ︎integer␟value',
-          ],
-          'video' => [
-            'required' => TRUE,
-            'field_type' => 'file',
-            'field_storage_settings' => [],
-            'field_instance_settings' => [
-              'file_extensions' => 'mp4',
-            ],
-            'field_widget' => 'file_generic',
-            'default_value' => [],
-            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url}',
           ],
         ],
       ],
@@ -5204,6 +5204,12 @@ HTML
     // @see ::triggerBrokenComponent()
     // @see ::testIsBroken()
     $container->getDefinition(CanvasComponentPluginManager::class)->setClass(BrokenComponentManager::class);
+  }
+
+  protected function getExpectedVerboseErrorMessage(): string {
+    // The test simulates the SDC's Twig template having been deleted, so it fails to load.
+    // @see ::triggerBrokenComponent()
+    return 'Twig\Error\LoaderError occurred during rendering of component';
   }
 
 }

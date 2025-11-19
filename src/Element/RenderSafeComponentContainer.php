@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Element;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\Attribute\RenderElement;
 use Drupal\Core\Render\Element\RenderElementBase;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -101,20 +103,28 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
   }
 
   public static function handleComponentException(\Throwable $e, string $componentContext, bool $isPreview, string $componentUuid): array {
-    \Drupal::logger('canvas')->error(\sprintf('%s occurred during rendering of component %s in %s: %s', $e::class, $componentUuid, $componentContext, $e->getMessage()));
+    $error_message = \sprintf('%s occurred during rendering of component %s in %s: %s', $e::class, $componentUuid, $componentContext, $e->getMessage());
+    \Drupal::logger('canvas')->error($error_message);
+    $is_verbose = \Drupal::configFactory()->get('system.logging')->get('error_level') === ERROR_REPORTING_DISPLAY_VERBOSE;
     if ($isPreview) {
       return [
         '#type' => 'container',
         '#attributes' => [
           'data-component-uuid' => $componentUuid,
         ],
-        '#markup' => new TranslatableMarkup('Component failed to render, check logs for more detail.'),
+        '#markup' => $is_verbose
+          ? Markup::create('<pre style="white-space: pre-wrap"><code>' . Xss::filterAdmin($error_message) . '</code></pre>')
+          : new TranslatableMarkup('Component failed to render, check logs for more detail.'),
       ];
     }
     return [
       '#type' => 'container',
-      '#attributes' => ['data-component-uuid' => $componentUuid],
-      '#markup' => new TranslatableMarkup('Oops, something went wrong! Site admins have been notified.'),
+      '#attributes' => [
+        'data-component-uuid' => $componentUuid,
+      ],
+      '#markup' => $is_verbose
+        ? Markup::create('<pre style="white-space: pre-wrap"><code>' . Xss::filterAdmin($error_message) . '</code></pre>')
+        : new TranslatableMarkup('Oops, something went wrong! Site admins have been notified.'),
     ];
   }
 

@@ -34,7 +34,7 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
   private function assertExpectedVersionsCount(string $component_id, int $versions_count): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
-    self::assertCount($versions_count, $component->getVersions());
+    self::assertCount($versions_count, $component->getVersions(), $component_id);
   }
 
   /**

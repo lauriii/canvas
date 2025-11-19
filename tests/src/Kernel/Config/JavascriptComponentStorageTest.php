@@ -189,7 +189,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
 
     $component = $this->loadComponent($component_id);
     self::assertEquals($new_name, $component->label());
-    self::assertEquals(['noodles', 'title'], \array_keys($component->getSettings()['prop_field_definitions']));
+    self::assertEquals(['title', 'noodles'], \array_keys($component->getSettings()['prop_field_definitions']));
 
     return $js_component->toArray();
   }

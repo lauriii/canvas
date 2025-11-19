@@ -147,3 +147,17 @@ function canvas_post_update_0005_use_processed_for_text_props_in_components(arra
 function canvas_post_update_0006_add_service_argument(): void {
   // Empty update to trigger container rebuild.
 }
+
+/**
+ * Ensures the right order of props in Component config entities.
+ *
+ * @see https://www.drupal.org/node/2960601
+ * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
+ */
+function canvas_post_update_0007_respect_prop_ordering(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->needsPropReordering($component));
+}

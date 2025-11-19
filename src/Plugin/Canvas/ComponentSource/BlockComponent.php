@@ -187,6 +187,12 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     $block = $this->getBlockPlugin();
 
+    // Avoid the fallback rendering of the Block system; instead use Canvas'
+    // own.
+    // @see \Drupal\Core\Block\Plugin\Block\Broken::build()
+    if ($block instanceof Broken) {
+      throw new \OutOfBoundsException('This block is broken or missing.');
+    }
     // @todo Refine to reflect the edited entity route in https://www.drupal.org/i/3509500
     if ($isPreview && $block instanceof SystemBreadcrumbBlock) {
       $block = new SystemBreadcrumbBlock(
@@ -242,12 +248,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     }
 
     $build['content'] = $block->build();
-    // Avoid the fallback rendering of the Block system; instead use Canvas'
-    // own.
-    // @see \Drupal\Core\Block\Plugin\Block\Broken::build()
-    if ($block instanceof Broken) {
-      $build['#pre_render'][] = [self::class, 'bubbleBrokenBlock'];
-    }
     if (Element::isEmpty($build['content'])) {
       return $build;
     }
@@ -685,15 +685,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       }
 
     };
-  }
-
-  /**
-   * Used to avoid the fallback rendering of the Block system.
-   *
-   * @see \Drupal\Core\Block\Plugin\Block\Broken::build()
-   */
-  public static function bubbleBrokenBlock(): never {
-    throw new \OutOfBoundsException('This block is broken or missing.');
   }
 
 }

@@ -824,6 +824,25 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // And contain the failed to render message.
     self::assertStringContainsString('Component failed to render', $list[$component->id()]['default_markup']);
 
+    // Page view should output verbose error, if 'error_level' is set to 'verbose'.
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
+    \Drupal::configFactory()->getEditable('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
+    $entityView = \Drupal::entityTypeManager()->getViewBuilder(Page::ENTITY_TYPE_ID)->view($entity);
+    $pageCrawler = $this->crawlerForRenderArray($entityView);
+    $componentOutput = $pageCrawler->filter(\sprintf('[data-component-uuid="%s"]', self::UUID_FALLBACK_ROOT));
+    self::assertEquals(1, $componentOutput->count());
+    // Should contain "verbose" error message.
+    self::assertStringContainsString($this->getExpectedVerboseErrorMessage(), $componentOutput->text());
+
+    // Component list's preview should also output verbose error.
+    $listOutput = \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
+    $list = \json_decode($listOutput->getContent() ?: '[]', TRUE, \JSON_THROW_ON_ERROR);
+    self::assertArrayHasKey($component->id(), $list);
+    // Component should be flagged as broken.
+    self::assertTrue($list[$component->id()]['broken']);
+    // And contain the "verbose" failed to render message.
+    self::assertStringContainsString($this->getExpectedVerboseErrorMessage(), $list[$component->id()]['default_markup']);
+
     // Set the current request to enable the form to be built.
     $request = Request::create('/', 'PATCH', [
       'form_canvas_tree' => json_encode([
@@ -846,5 +865,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   }
 
   abstract protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface;
+
+  abstract protected function getExpectedVerboseErrorMessage(): string;
 
 }

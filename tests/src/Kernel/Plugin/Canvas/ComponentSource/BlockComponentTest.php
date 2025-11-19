@@ -612,4 +612,8 @@ HTML,
     $container->getDefinition(BlockManager::class)->setClass(BrokenBlockManager::class);
   }
 
+  protected function getExpectedVerboseErrorMessage(): string {
+    return 'This block is broken or missing.';
+  }
+
 }

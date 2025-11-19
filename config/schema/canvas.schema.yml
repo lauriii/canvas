@@ -464,7 +464,13 @@ canvas.generated_field_explicit_input_ux:
   mapping:
     prop_field_definitions:
       type: sequence
-      orderby: key
+      # Respect the order of the props in the JSON Schema for this component, this allows the component developer to
+      # control which order the props appear in the auto-generated form.
+      # Note: simply reordering the props in the schema without other changes (such as changing the example value) will
+      # result in an identical component version hash. That means all existing component instances are automatically
+      # "upgraded" to the updated prop order.
+      # @see \Drupal\experience_builder\Plugin\ExperienceBuilder\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildConfigurationForm()
+      orderby: ~
       sequence:
         type: mapping
         mapping:
