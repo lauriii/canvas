@@ -168,6 +168,10 @@ phpstan (next minor):
   rules:
     - when: never
 
+phpunit (next minor):
+  rules:
+    - when: never
+
 phpcs-rules-match-drupal-11:
   stage: development
   script:
@@ -270,7 +274,8 @@ phpunit:
     - *UI-fixtures-files-change-rule
     - *manual-rule
 
-phpunit (next minor):
+# Canvas requires 11.2, but may provide >11.2-only features.
+phpunit (>11.2-only features):
   extends: phpunit
   needs:
     - composer (next minor)

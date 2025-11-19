@@ -52,7 +52,7 @@ use Twig\Error\SyntaxError;
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
-final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTest {
+final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use ConstraintViolationsTestTrait;
   use ContribStrictConfigSchemaTestTrait;

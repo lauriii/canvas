@@ -11,7 +11,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 /**
  * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
  */
-abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTest extends ComponentSourceTestBase {
+abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
 
   use GenerateComponentConfigTrait;
 

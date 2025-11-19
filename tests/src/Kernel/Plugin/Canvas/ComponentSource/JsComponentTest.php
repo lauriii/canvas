@@ -48,7 +48,7 @@ use Drupal\canvas_test_code_components\Hook\IslandCastaway;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
-final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTest {
+final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use CiModulePathTrait;
   use UserCreationTrait;
