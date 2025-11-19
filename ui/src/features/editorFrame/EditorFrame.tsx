@@ -51,17 +51,25 @@ const EditorFrame = () => {
   const animFrameScrollRef = useRef<number | null>(null);
   const animFrameScaleRef = useRef<number | null>(null);
   const scalingContainerRef = useRef<HTMLDivElement | null>(null);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  // Use a ref for panningStart to ensure immediate access in event handlers
+  const panningStartRef = useRef<{
+    mouseX: number;
+    mouseY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
   const editorViewPort = useAppSelector(selectEditorViewPort);
   const firstLoadComplete = useAppSelector(selectFirstLoadComplete);
   const [isVisible, setIsVisible] = useState(false);
-  const [middleMouseDown, setMiddleMouseDown] = useState(false);
+  const [panningMode, setPanningMode] = useState(false);
   const isPanning = useAppSelector(selectPanning);
-  const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
-  const modifierKeyPressedRef = useRef(false);
+  const [zoomModifierKeyPressed, setZoomModifierKeyPressed] = useState(false);
+  const zoomModifierKeyPressedRef = useRef(false);
+  const [spaceKeyPressed, setSpaceKeyPressed] = useState(false);
+  const spaceKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
-  const middleMouseDownRef = useRef(middleMouseDown);
+  const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { isUndoable, dispatchUndo } = useUndoRedo();
@@ -71,13 +79,33 @@ const EditorFrame = () => {
   useHotkeys(['Minus', 'NumpadSubtract'], () =>
     dispatch(editorViewPortZoomOut()),
   );
-  useHotkeys('ctrl', () => setModifierKeyPressed(true), {
+  useHotkeys('ctrl', () => setZoomModifierKeyPressed(true), {
     keydown: true,
     keyup: false,
   });
-  useHotkeys('ctrl', () => setModifierKeyPressed(false), {
+  useHotkeys('ctrl', () => setZoomModifierKeyPressed(false), {
     keydown: false,
     keyup: true,
+  });
+
+  useHotkeys(
+    'space',
+    (event) => {
+      if (!event.repeat && !spaceKeyPressedRef.current) {
+        setSpaceKeyPressed(true);
+      }
+    },
+    {
+      keydown: true,
+      keyup: false,
+      preventDefault: true,
+      eventListenerOptions: { capture: true }, // ensure we capture the space key before other handlers (like selecting the current focused component)
+    },
+  );
+  useHotkeys('space', () => setSpaceKeyPressed(false), {
+    keydown: false,
+    keyup: true,
+    preventDefault: true,
   });
 
   // TODO This should have a better keyboard shortcut, but as the Interactive mode is still
@@ -138,12 +166,16 @@ const EditorFrame = () => {
   }, 250);
 
   useEffect(() => {
-    middleMouseDownRef.current = middleMouseDown;
-  }, [middleMouseDown]);
+    panningModeRef.current = panningMode;
+  }, [panningMode]);
 
   useEffect(() => {
-    modifierKeyPressedRef.current = modifierKeyPressed;
-  }, [modifierKeyPressed]);
+    zoomModifierKeyPressedRef.current = zoomModifierKeyPressed;
+  }, [zoomModifierKeyPressed]);
+
+  useEffect(() => {
+    spaceKeyPressedRef.current = spaceKeyPressed;
+  }, [spaceKeyPressed]);
 
   useEffect(() => {
     if (!firstLoadComplete) {
@@ -187,53 +219,69 @@ const EditorFrame = () => {
   );
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Reset modifierKeyPressed to false if left button is clicked along with ctrl key press
+    // Reset zoomModifierKeyPressed to false if left button is clicked along with ctrl key press
     if (e.ctrlKey && e.button === 0) {
-      setModifierKeyPressed(false);
+      setZoomModifierKeyPressed(false);
       e.preventDefault();
       return;
     }
-    if (e.button === 1) {
-      const { clientX, clientY } = e;
-      setMiddleMouseDown(true);
+
+    // Space + mouse left button || middle mouse button
+    if ((spaceKeyPressedRef.current && e.button === 0) || e.button === 1) {
+      setPanningMode(true);
       dispatch(setIsPanning(true));
       if (editorPaneRef.current) {
-        setStartPos({
-          x: clientX + editorPaneRef.current.scrollLeft,
-          y: clientY + editorPaneRef.current.scrollTop,
-        });
+        panningStartRef.current = {
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          scrollLeft: editorPaneRef.current.scrollLeft,
+          scrollTop: editorPaneRef.current.scrollTop,
+        };
       }
+      document.addEventListener('mousemove', handleDocumentMouseMove);
+      document.addEventListener('mouseup', handleDocumentMouseUp);
       e.preventDefault();
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (middleMouseDownRef.current) {
-      const { clientX, clientY } = e;
-      const translationX = startPos.x - clientX;
-      const translationY = startPos.y - clientY;
+  const handleDocumentMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (
+        panningModeRef.current &&
+        panningStartRef.current &&
+        editorPaneRef.current
+      ) {
+        const deltaX = e.clientX - panningStartRef.current.mouseX;
+        const deltaY = e.clientY - panningStartRef.current.mouseY;
+        const newScrollLeft = panningStartRef.current.scrollLeft - deltaX;
+        const newScrollTop = panningStartRef.current.scrollTop - deltaY;
 
-      if (animFrameScrollRef.current) {
-        cancelAnimationFrame(animFrameScrollRef.current);
+        if (animFrameScrollRef.current) {
+          cancelAnimationFrame(animFrameScrollRef.current);
+        }
+
+        animFrameScrollRef.current = requestAnimationFrame(() => {
+          if (scalingContainerRef.current) {
+            scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
+          }
+          if (editorPaneRef.current) {
+            editorPaneRef.current.scrollLeft = newScrollLeft;
+            editorPaneRef.current.scrollTop = newScrollTop;
+          }
+          debouncedScrollPosUpdate();
+        });
       }
+    },
+    [editorViewPort.scale, debouncedScrollPosUpdate],
+  );
 
-      animFrameScrollRef.current = requestAnimationFrame(() => {
-        if (scalingContainerRef.current) {
-          scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
-        }
-        if (editorPaneRef.current) {
-          editorPaneRef.current.scrollLeft = translationX;
-          editorPaneRef.current.scrollTop = translationY;
-        }
-        debouncedScrollPosUpdate();
-      });
-    }
-  };
-
-  const handleMouseUp = useCallback(() => {
-    setMiddleMouseDown(false);
+  const handleDocumentMouseUp = useCallback(() => {
+    setPanningMode(false);
+    panningStartRef.current = null;
     debouncedIsPanningUpdate();
-  }, [debouncedIsPanningUpdate]);
+    document.removeEventListener('mousemove', handleDocumentMouseMove);
+    document.removeEventListener('mouseup', handleDocumentMouseUp);
+  }, [debouncedIsPanningUpdate, handleDocumentMouseMove]);
 
   // Track the last time we processed a wheel event.
   const lastWheelEventTimeRef = useRef<number>(0);
@@ -289,14 +337,15 @@ const EditorFrame = () => {
   }, [editorViewPort.scale]);
 
   useEffect(() => {
-    window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
-      window.removeEventListener('mouseup', handleMouseUp);
+      // Cleanup on unmount in case any listeners are still attached.
       window.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('mousemove', handleDocumentMouseMove);
+      document.removeEventListener('mouseup', handleDocumentMouseUp);
     };
-  }, [handleWheel, handleMouseUp]);
+  }, [handleWheel, handleDocumentMouseMove, handleDocumentMouseUp]);
 
   // Update the editorFrame size when the scale changes or on initial render.
   useLayoutEffect(() => {
@@ -307,14 +356,13 @@ const EditorFrame = () => {
     <div className={styles.editorFrameContainer}>
       <div
         className={clsx(styles.editorPane, {
-          [styles.modifierKeyPressed]: modifierKeyPressed,
+          [styles.spaceKeyPressed]: spaceKeyPressed,
+          [styles.zoomModifierKeyPressed]: zoomModifierKeyPressed,
           [styles.isPanning]: isPanning,
+          [styles.panningMode]: panningMode,
         })}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
         onScroll={handlePaneScroll}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
         ref={editorPaneRef}
       >
         <div

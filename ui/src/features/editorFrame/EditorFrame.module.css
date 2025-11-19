@@ -34,7 +34,7 @@
   }
 }
 
-.modifierKeyPressed .editorFrame {
+.zoomModifierKeyPressed * {
   cursor: zoom-in;
   user-select: none;
 }
@@ -43,8 +43,17 @@
   user-select: none;
 }
 
-.modifierKeyPressed .editorFrame > *,
-.isPanning .editorFrame > * {
+.spaceKeyPressed .editorFrame {
+  cursor: grab;
+}
+
+.panningMode .editorFrame {
+  cursor: grabbing;
+}
+
+.spaceKeyPressed .editorFrame *,
+.zoomModifierKeyPressed .editorFrame *,
+.isPanning .editorFrame * {
   user-select: none;
   pointer-events: none;
 }

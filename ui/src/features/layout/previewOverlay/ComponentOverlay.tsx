@@ -147,7 +147,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.code === 'Enter' || (event.code === 'Space' && !event.repeat)) {
       event.preventDefault(); // Prevents scrolling when space is pressed
       event.stopPropagation(); // Prevents key firing on a parent component
       setSelectedComponent(component.uuid);
