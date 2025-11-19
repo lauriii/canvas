@@ -39,7 +39,7 @@ export function downloadCommand(program: Command): void {
     .option('--all', 'Download all components')
     .option('--verbose', 'Enable verbose output')
     .action(async (options: DownloadOptions) => {
-      p.intro('Drupal Canvas Component Download');
+      p.intro(chalk.bold('Drupal Canvas CLI: download'));
 
       try {
         // Update config with CLI options

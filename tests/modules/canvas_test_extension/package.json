@@ -12,7 +12,7 @@
     "@drupal-canvas/extensions": "*"
   },
   "devDependencies": {
-    "tsup": "^8.5.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.8.3"
   }
 }

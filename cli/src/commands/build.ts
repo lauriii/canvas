@@ -38,7 +38,7 @@ export function buildCommand(program: Command): void {
     .option('--site-url <url>', 'Site URL')
     .option('--verbose', 'Enable verbose output')
     .action(async (options: BuildOptions) => {
-      p.intro('Drupal Canvas Component Build');
+      p.intro(chalk.bold('Drupal Canvas CLI: build'));
 
       const allFlag = options.all || false;
       const skipTailwind = !options.tailwind;

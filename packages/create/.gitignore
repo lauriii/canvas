@@ -1,0 +1,7 @@
+# When developing this project, the app will be scaffolded inside the project
+# directory. We need to ignore it otherwise initializing the app repo would fail
+# given that we're already in a repository. (Plus we don't want to accidentially
+# commit the scaffolded app's code.)
+# This also means that you need to use the `my-canvas-app` as the app name when
+# testing locally.
+my-canvas-app

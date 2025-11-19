@@ -56,7 +56,7 @@ export function uploadCommand(program: Command): void {
       const skipTailwind = !options.tailwind;
 
       try {
-        p.intro('Drupal Canvas Component Upload');
+        p.intro(chalk.bold('Drupal Canvas CLI: upload'));
 
         // Update config with CLI options
         if (options.clientId) setConfig({ clientId: options.clientId });

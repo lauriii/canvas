@@ -10,8 +10,10 @@ autocompleteselect
 autodocs
 !autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
 !Autosave # Use "auto-save", "AutoSave", or "auto_save" instead.
+balintbrews
 basepath
 biscoff
+bunx
 Carden
 cebe
 cnvs
@@ -63,6 +65,7 @@ naïvely
 networkidle
 Nygard
 Nygard's
+OPENCOLLECTIVE
 outro
 personalizable
 placehold

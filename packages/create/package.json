@@ -1,0 +1,49 @@
+{
+  "name": "@drupal-canvas/create",
+  "version": "0.0.1",
+  "description": "CLI to scaffold a codebase for working with Drupal Canvas Code Components",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "main": "dist/index.js",
+  "bin": "./dist/index.js",
+  "type": "module",
+  "files": [
+    "dist",
+    "templates.json",
+    "README.md"
+  ],
+  "keywords": [
+    "canvas",
+    "drupal",
+    "cli",
+    "create"
+  ],
+  "engines": {
+    "node": ">=18.20.0"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "cross-spawn": "^7.0.6",
+    "rimraf": "^6.1.0",
+    "simple-git": "^3.30.0",
+    "validate-npm-package-name": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/validate-npm-package-name": "^4.0.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "NODE_ENV=production tsup",
+    "dev": "NODE_ENV=development tsup --watch",
+    "type-check": "tsc --noEmit --pretty"
+  }
+}

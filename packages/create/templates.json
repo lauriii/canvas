@@ -1,0 +1,10 @@
+[
+  {
+    "id": "canvas-cc-starter",
+    "label": "canvas-cc-starter",
+    "repository": {
+      "url": "git@github.com:balintbrews/canvas-cc-starter.git",
+      "ref": "main"
+    }
+  }
+]

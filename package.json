@@ -45,5 +45,8 @@
     "prettier": "^3.5.3",
     "typescript-eslint": "^8.32.0",
     "yaml-lint": "^1.7.0"
+  },
+  "overrides": {
+    "glob": "^11.1.0"
   }
 }

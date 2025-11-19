@@ -31,7 +31,7 @@ export function scaffoldCommand(program: Command): void {
     )
     .option('--verbose', 'Enable verbose output')
     .action(async (options: ScaffoldOptions) => {
-      p.intro('Drupal Canvas Component Scaffold');
+      p.intro(chalk.bold('Drupal Canvas CLI: scaffold'));
 
       try {
         // Update config with CLI options
