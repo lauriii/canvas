@@ -6,6 +6,7 @@ namespace Drupal\canvas_test_block\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -16,6 +17,7 @@ final class CanvasTestBlockHooks {
   public function __construct(
     #[Autowire(service: 'keyvalue')]
     private readonly KeyValueFactoryInterface $keyValueFactory,
+    private readonly StateInterface $state,
   ) {
   }
 
@@ -30,6 +32,14 @@ final class CanvasTestBlockHooks {
         'value' => 'Not Canvas',
         'message' => 'This is only for Canvas, get out of here!',
       ];
+    }
+  }
+
+  #[Hook('block_alter')]
+  public function blockAlter(array &$definitions): void {
+    $remove_definitions = $this->state->get('canvas_test_block.remove_definitions', []);
+    foreach ($remove_definitions as $definition_id) {
+      unset($definitions[$definition_id]);
     }
   }
 

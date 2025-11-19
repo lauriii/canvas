@@ -5,10 +5,20 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Controller\ClientServerConversionTrait;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use Drupal\canvas\Plugin\BlockManager;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
@@ -226,6 +236,82 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       $invalid_tree_client_json,
       ['layout.children.1.component_id' => "The 'canvas.component.sdc.canvas.missing_component' config does not exist."]
     );
+  }
+
+  /**
+   * Test conversion with broken components.
+   *
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::isBroken()
+   */
+  public function testConvertClientToServerWithBrokenComponents(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install([
+      'canvas_test_block',
+      'canvas_test_code_components',
+    ]);
+    $layout = [
+      [
+        'nodeType' => 'component',
+        'uuid' => '8b4f9376-879f-4a6c-9b10-a12991736995',
+        'type' => 'js.canvas_test_code_components_with_no_props@8fe3be948e0194e1',
+        'slots' => [],
+      ],
+      [
+        'nodeType' => 'component',
+        'uuid' => '587334b5-8a05-48f5-9f48-02b5a84e7267',
+        'type' => 'block.canvas_test_block_input_none@f91f8d4aff4aba7c',
+        'slots' => [],
+      ],
+    ];
+    $model = [
+      '8b4f9376-879f-4a6c-9b10-a12991736995' => [
+        'resolved' => [],
+        'source' => [],
+      ],
+      '587334b5-8a05-48f5-9f48-02b5a84e7267' => [
+        'resolved' => [],
+        'source' => [],
+      ],
+    ];
+    // @phpstan-ignore-next-line
+    $converted_items = self::convertClientToServer($layout, $model);
+    self::assertEqualsCanonicalizing([
+      '8b4f9376-879f-4a6c-9b10-a12991736995' => [],
+      '587334b5-8a05-48f5-9f48-02b5a84e7267' => [
+        'label_display' => '0',
+        'label' => 'Test block with no settings.',
+      ],
+    ], \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
+
+    // Now render both of these broken and assert we can still convert.
+    $this->container->get(StateInterface::class)->set('canvas_test_block.remove_definitions', ['canvas_test_block_input_none']);
+    $this->container->get(BlockManager::class)->clearCachedDefinitions();
+    // Delete the code component through the config factory to avoid normal
+    // dependency cleanup that would also remove the Component entity.
+    $this->container->get(ConfigFactoryInterface::class)
+      ->getEditable('canvas.js_component.canvas_test_code_components_with_no_props')
+      ->delete();
+    $this->container->get(EntityTypeManagerInterface::class)
+      ->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)
+      ->resetCache();
+    $js_component = Component::load('js.canvas_test_code_components_with_no_props');
+    self::assertTrue($js_component?->getComponentSource()->isBroken());
+    $block_component = Component::load('block.canvas_test_block_input_none');
+    self::assertTrue($block_component?->getComponentSource()->isBroken());
+
+    // Now simulate the front-end POSTing a component model/layout when both
+    // components are now broken on the backend.
+    // @phpstan-ignore-next-line
+    $converted_items = self::convertClientToServer($layout, $model);
+    self::assertEqualsCanonicalizing([
+      '8b4f9376-879f-4a6c-9b10-a12991736995' => [],
+      '587334b5-8a05-48f5-9f48-02b5a84e7267' => [],
+    ], \array_combine(\array_column($converted_items, 'uuid'), \array_column($converted_items, 'inputs')));
+    $node = Node::load(1);
+    \assert($node instanceof NodeInterface);
+    $item_list = $this->container->get(ComponentTreeLoader::class)->load($node);
+    \assert($item_list instanceof ComponentTreeItemList);
+    $item_list->setValue($converted_items);
+    self::assertCount(0, $item_list->validate());
   }
 
   private function assertConversionErrors(array $client_json, array $errors): void {

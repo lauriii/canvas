@@ -10,6 +10,7 @@ use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
+use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
@@ -109,8 +110,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     if ($this->jsComponent === NULL) {
       $js_component_storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
       assert($js_component_storage instanceof ConfigEntityStorageInterface);
-      $js_component = $js_component_storage->load($this->getSourceSpecificComponentId());
-      assert($js_component instanceof JavaScriptComponent);
+      $id = $this->getSourceSpecificComponentId();
+      $js_component = $js_component_storage->load($id);
+      if (!$js_component instanceof JavaScriptComponent) {
+        throw new ComponentNotFoundException(sprintf('The JavaScript Component with ID `%s` does not exist.', $id));
+      }
       $this->jsComponent = $js_component;
     }
     return $this->jsComponent;

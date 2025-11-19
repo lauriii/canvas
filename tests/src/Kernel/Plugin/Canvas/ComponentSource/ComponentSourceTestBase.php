@@ -861,6 +861,9 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $builtForm = \Drupal::formBuilder()->getForm(ComponentInstanceForm::class, $entity);
     $formOut = $this->crawlerForRenderArray($builtForm);
     // Output should show the props and allow user to copy them.
+    // TRICKY: for edge cases around this, additional test coverage exists.
+    // @see \Drupal\Tests\canvas\Kernel\ComponentInstanceFormTest::testBlockComponentThatHasGoneAway()
+    // @see \Drupal\Tests\canvas\Kernel\ComponentInstanceFormTest::testCodeComponentNoPropsThatHasGoneAway()
     self::assertStringContainsString('Fix the component or copy values to a new component', $formOut->text());
   }
 

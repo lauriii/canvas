@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\canvas\Entity\Component;
@@ -145,9 +150,24 @@ trait ClientServerConversionTrait {
       assert($component instanceof ComponentInterface);
       $component->loadVersion($version);
       $source = $component->getComponentSource();
+      $useFallback = $component->getComponentSource()->isBroken();
       // First we transform the incoming client model into input values using
       // the source plugin.
-      $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $entity, $violation_list);
+      if (!$useFallback) {
+        try {
+          $items[$delta]['inputs'] = $source->clientModelToInput($uuid, $component, $inputs, $entity, $violation_list);
+        }
+        catch (ComponentNotFoundException) {
+          $useFallback = TRUE;
+        }
+      }
+      if ($useFallback) {
+        $fallback_source = \Drupal::service(ComponentSourceManager::class)->createInstance(Fallback::PLUGIN_ID, [
+          'fallback_reason' => new TranslatableMarkup('Component is missing. Fix the component or copy values to a new component.'),
+        ]);
+        \assert($fallback_source instanceof ComponentSourceInterface);
+        $items[$delta]['inputs'] = $fallback_source->clientModelToInput($uuid, $component, $inputs['resolved'] ?? [], $entity, $violation_list);
+      }
       if ($violation_list !== NULL) {
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(

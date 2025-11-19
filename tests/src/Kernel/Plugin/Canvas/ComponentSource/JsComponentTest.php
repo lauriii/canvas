@@ -63,6 +63,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
    */
   protected string $componentWithOptionalImageProp = 'js.canvas_test_code_components_vanilla_image';
 
+  const string PSEUDO_RANDOM_CODE_COMPONENT_ID = 'pseudo_random_id';
+
   /**
    * {@inheritdoc}
    */
@@ -1886,9 +1888,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   protected function createAndSaveInUseComponentForUninstallValidationTesting(): ComponentInterface {
-    $js_component_id = $this->randomMachineName();
     $js_component = JavaScriptComponent::create([
-      'machineName' => $js_component_id,
+      'machineName' => self::PSEUDO_RANDOM_CODE_COMPONENT_ID,
       'name' => $this->getRandomGenerator()->sentences(5),
       'status' => FALSE,
       'props' => [
@@ -1912,7 +1913,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'dataDependencies' => [],
     ]);
     $js_component->enable()->save();
-    $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);
+    $component_id = JsComponent::componentIdFromJavascriptComponentId(self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
     /** @var \Drupal\canvas\Entity\ComponentInterface */
     return Component::load($component_id);
   }
@@ -1960,7 +1961,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   protected function getExpectedVerboseErrorMessage(): string {
     // The code component was deleted by bypassing lots of protections.
     // @see ::triggerBrokenComponent()
-    return 'assert($js_component instanceof JavaScriptComponent)';
+    return sprintf('The JavaScript Component with ID `%s` does not exist.', self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
   }
 
 }

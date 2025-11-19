@@ -9,7 +9,6 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityInterface;
@@ -81,7 +80,6 @@ final class ComponentInstanceForm extends FormBase {
       ];
     }
     $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
-    $stored_tree = $this->componentTreeLoader->load($entity);
 
     $request = $this->getRequest();
     $tree = $request->get('form_canvas_tree');
@@ -131,17 +129,21 @@ final class ComponentInstanceForm extends FormBase {
       $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
     }
     else {
-      $inputs = $client_model;
-      // For blocks, the client model is invalid, because $props is the
-      // "undefined" string.
-      // So let's get the data from the stored tree (better than nothing)
-      // @todo We require to harden this in the client-side.
-      if ($inputs === NULL && $component->getComponentSource() instanceof BlockComponent) {
-        $inputs = $stored_tree->getComponentTreeItemByUuid($component_instance_uuid)?->getInputs() ?? [];
-      }
+      $inputs_to_show = match(TRUE) {
+        // Common case.
+        is_array($client_model) && array_key_exists('resolved', $client_model) => $client_model['resolved'],
+        // For robustness.
+        // @see https://en.wikipedia.org/wiki/Robustness_principle
+        is_array($client_model) => $client_model,
+        // Worst case: fall back to stored data, if this component instance had
+        // previously been saved. If none, fall back to the empty array.
+        default => $this->componentTreeLoader->load($entity)
+          ->getComponentTreeItemByUuid($component_instance_uuid)
+          ?->getInputs() ?? [],
+      };
       $fallback_source = $this->componentSourceManager->createInstance(Fallback::PLUGIN_ID, ['fallback_reason' => $this->t('Component is missing. Fix the component or copy values to a new component.')]);
       \assert($fallback_source instanceof ComponentSourceInterface);
-      $instance_form = $fallback_source->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+      $instance_form = $fallback_source->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs_to_show, $entity, $component->get('settings'));
     }
 
     $form['#attributes']['data-form-id'] = self::FORM_ID;

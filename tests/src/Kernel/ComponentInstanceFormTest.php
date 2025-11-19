@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -16,6 +20,7 @@ use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -36,11 +41,11 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->container->get('theme_installer')->install(['stark']);
-    $this->container->get('module_installer')->install(['system', 'canvas_test_sdc']);
+    $this->container->get('module_installer')->install(['system', 'canvas_test_sdc', 'canvas_test_block']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
     (new CanvasTestSetup())->setup();
-    $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes']);
+    $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes', Page::EDIT_PERMISSION]);
   }
 
   #[DataProvider('providerOptionalImages')]
@@ -369,7 +374,119 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     }
   }
 
-  private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, array $form_canvas_props): Crawler {
+  /**
+   * Tests additional edge cases of the impact of broken components.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\JsComponentTest::testIsBroken())
+   */
+  #[TestWith([
+    'canvas_test_block_input_none',
+    '',
+    'Previously stored input {"id":"canvas_test_block_input_none","label":"Test block with no settings.","label_display":"0","provider":"canvas_test_block"}',
+  ])]
+  #[TestWith([
+    'canvas_test_block_input_validatable',
+    'Name Enter a name to display in the block.',
+    'Previously stored input {"id":"canvas_test_block_input_validatable","label":"Test Block with settings","label_display":"0","provider":"canvas_test_block","name":"Canvas"}',
+  ])]
+  public function testBlockComponentThatHasGoneAway(string $block_plugin_id, string $expected_form_when_not_broken, string $fyi): void {
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    // Loading the component instance form initially should be possible.
+    $component = Component::load(BlockComponent::SOURCE_PLUGIN_ID . ".$block_plugin_id");
+    self::assertInstanceOf(Component::class, $component);
+    self::assertCount(0, $component->getTypedData()->validate());
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, []);
+    self::assertSame($expected_form_when_not_broken, $response->text());
+
+    // Create a component instance with the block plugin's default settings.
+    $page->setComponentTree([
+      [
+        'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+        'component_id' => $component->id(),
+        'inputs' => $component->getSettings()['default_settings'],
+      ],
+    ]);
+    self::assertCount(0, $page->validate());
+    self::assertSame(SAVED_UPDATED, $page->save());
+
+    // Simulate the tested block plugin being broken.
+    // @see \Drupal\Tests\canvas\Kernel\BrokenBlockManager
+    // @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\BlockComponentTest::triggerBrokenComponent()
+    $this->container->get('state')->set('canvas_test_block.remove_definitions', [$block_plugin_id]);
+    $this->container->get('plugin.manager.block')->clearCachedDefinitions();
+
+    // Despite the tested block plugin being broken:
+    self::assertTrue($component->getComponentSource()->isBroken());
+    // - The stored component tree is still valid: it references the Component.
+    self::assertCount(0, $page->validate());
+    // - The Component became invalid though.
+    self::assertGreaterThan(0, $component->getTypedData()->validate()->count());
+
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
+    self::assertSame("Component is missing. Fix the component or copy values to a new component. $fyi", $response->text());
+  }
+
+  /**
+   * Tests additional edge cases of the impact of broken components.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\JsComponentTest::testIsBroken())
+   */
+  public function testCodeComponentNoPropsThatHasGoneAway(): void {
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'no-props-component',
+      'name' => 'No Props Component',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'js' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'dataDependencies' => [],
+    ]);
+    self::assertCount(0, $code_component->getTypedData()->validate());
+    $code_component->save();
+
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($code_component->id()));
+    self::assertInstanceOf(Component::class, $component);
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, []);
+    self::assertSame('', $response->text());
+
+    // Create an instance of the no-props code component.
+    $page->setComponentTree([
+      [
+        'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+        'component_id' => $component->id(),
+        'inputs' => [],
+      ],
+    ]);
+    self::assertCount(0, $page->validate());
+    self::assertSame(SAVED_UPDATED, $page->save());
+
+    // Delete the code component through the config factory to avoid normal
+    // dependency cleanup that would also remove the Component entity.
+    $this->container->get('config.factory')
+      ->getEditable($code_component->getConfigDependencyName())
+      ->delete();
+
+    $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
+    self::assertSame('Component is missing. Fix the component or copy values to a new component. Previously stored input []', $response->text());
+  }
+
+  private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {
+    // `$form_canvas_props` is nullable, so we can simulate the request having
+    // `undefined` as value, which happens when the inputs are empty on a
+    // missing component.
+    // @todo Make it not nullable in https://www.drupal.org/i/3558721
     $json = self::decodeResponse($this->request(Request::create($form_url, 'PATCH', [
       'form_canvas_tree' => json_encode([
         'nodeType' => 'component',
