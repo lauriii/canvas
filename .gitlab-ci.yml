@@ -82,6 +82,9 @@ variables:
   PHPUNIT_FAIL_ON_PHPUNIT_DEPRECATION: 0
   _CONCURRENCY_THREADS: '12'
 
+  # Enable testing against next minor version of Drupal core
+  OPT_IN_TEST_NEXT_MINOR: '1'
+
   # Enable Canvas contributors to change this from `true` to `false` to disable E2E (end-to-end) tests.
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
   _CANVAS_E2E_TESTS: true
@@ -158,6 +161,10 @@ cspell:
     - when: never
 
 composer-lint:
+  rules:
+    - when: never
+
+phpstan (next minor):
   rules:
     - when: never
 
@@ -254,6 +261,39 @@ phpunit:
   image:
     name: $_CONFIG_DOCKERHUB_ROOT/php-$PHP_VERSION-ubuntu-apache:$_TARGET_PHP_IMAGE_TAG
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
+  rules:
+    - *is-push-rule
+    - *php-files-change-rule
+    - *module-metadata-files-change-rule
+    - *module-config-files-change-rule
+    - *SDC-files-change-rule
+    - *UI-fixtures-files-change-rule
+    - *manual-rule
+
+phpunit (next minor):
+  extends: phpunit
+  needs:
+    - composer (next minor)
+    - UI
+  variables:
+    _PHPUNIT_TESTGROUPS: ''
+    _PHPUNIT_CONCURRENT: 0
+    _PHPUNIT_EXTRA: '--filter DefaultContentExportImportTest'
+  parallel:
+    matrix:
+      - _TARGET_DB_TYPE: sqlite
+        _TARGET_DB_VERSION: '3'
+        _TARGET_PHP: '8.3-ubuntu'
+        _FOR_EVERY_MR_COMMIT: 'true'
+      - _TARGET_DB_TYPE: 'mariadb'
+        _TARGET_DB_VERSION: '10.6'
+        _FOR_EVERY_MR_COMMIT: 'false'
+      - _TARGET_DB_TYPE: 'mysql'
+        _TARGET_DB_VERSION: '8'
+        _FOR_EVERY_MR_COMMIT: 'false'
+      - _TARGET_DB_TYPE: 'pgsql'
+        _TARGET_DB_VERSION: '16'
+        _FOR_EVERY_MR_COMMIT: 'false'
   rules:
     - *is-push-rule
     - *php-files-change-rule

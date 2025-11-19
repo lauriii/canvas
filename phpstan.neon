@@ -58,3 +58,40 @@ parameters:
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php
+    # The following ignores can be removed when we depend on Drupal 11.3 or later.
+    -
+      message: "#^Class Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent not found\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Parameter \\$event of method Drupal\\\\canvas\\\\EventSubscriber\\\\DefaultContentSubscriber\\:\\:preExport\\(\\) has invalid type Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Call to method setCallback\\(\\) on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Parameter \\$metadata of anonymous function has invalid type Drupal\\\\Core\\\\DefaultContent\\\\ExportMetadata\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Call to method addDependency\\(\\) on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\ExportMetadata\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent not found\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Parameter \\$event of method Drupal\\\\canvas\\\\EventSubscriber\\\\DefaultContentSubscriber\\:\\:preEntityImport\\(\\) has invalid type Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Access to property \\$metadata on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
+      count: 4
+      path: src/EventSubscriber/DefaultContentSubscriber.php
+    -
+      message: "#^Access to property \\$data on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
+      count: 1
+      path: src/EventSubscriber/DefaultContentSubscriber.php

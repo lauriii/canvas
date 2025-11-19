@@ -12,6 +12,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 
 /**
  * @group canvas
+ * @group default_content_api
  */
 class DefaultContentImportTest extends FunctionalTestBase {
 
