@@ -91,6 +91,13 @@ const EditorFrame = () => {
   useHotkeys(
     'space',
     (event) => {
+      // Canvas AI's input is in the shadowDom and thus is not recognized as a form
+      // element or content editable which are normally ignored automatically by useHotKeys.
+      // We need to manually check the target to avoid interfering with typing spaces in there.
+      if ((event.target as HTMLElement)?.tagName === 'DEEP-CHAT') {
+        return;
+      }
+      event.preventDefault();
       if (!event.repeat && !spaceKeyPressedRef.current) {
         setSpaceKeyPressed(true);
       }
@@ -98,7 +105,6 @@ const EditorFrame = () => {
     {
       keydown: true,
       keyup: false,
-      preventDefault: true,
       eventListenerOptions: { capture: true }, // ensure we capture the space key before other handlers (like selecting the current focused component)
     },
   );
