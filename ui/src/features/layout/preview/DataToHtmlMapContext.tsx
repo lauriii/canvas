@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useState } from 'react';
+import isEqual from 'lodash/isEqual';
 
 import type { ReactNode } from 'react';
 import type { ComponentsMap, RegionsMap, SlotsMap } from '@/types/Annotations';
@@ -49,17 +50,34 @@ export const ComponentHtmlMapProvider: React.FC<
   const [componentsMap, setComponentsMap] = useState<ComponentsMap>({});
   const [slotsMap, setSlotsMap] = useState<SlotsMap>({});
 
-  // Memoized updater functions
   const updateRegionsMap = useCallback((newRegions: RegionsMap) => {
-    setRegionsMap(newRegions);
+    setRegionsMap((prevRegions) => {
+      // Avoid unnecessary re-renders by checking for deep equality before updating state.
+      if (isEqual(prevRegions, newRegions)) {
+        return prevRegions;
+      }
+      return newRegions;
+    });
   }, []);
 
   const updateComponentsMap = useCallback((newComponents: ComponentsMap) => {
-    setComponentsMap(newComponents);
+    setComponentsMap((prevComponents) => {
+      // Avoid unnecessary re-renders by checking for deep equality before updating state.
+      if (isEqual(prevComponents, newComponents)) {
+        return prevComponents;
+      }
+      return newComponents;
+    });
   }, []);
 
   const updateSlotsMap = useCallback((newSlots: SlotsMap) => {
-    setSlotsMap(newSlots);
+    setSlotsMap((prevSlots) => {
+      // Avoid unnecessary re-renders by checking for deep equality before updating state.
+      if (isEqual(prevSlots, newSlots)) {
+        return prevSlots;
+      }
+      return newSlots;
+    });
   }, []);
 
   return (
