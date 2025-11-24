@@ -445,7 +445,7 @@ vitest:
     #
     # 👆
     #
-    - cd modules/custom/$CI_PROJECT_NAME
+    - cd $DRUPAL_PROJECT_FOLDER
     - echo -e "\e[0Ksection_start:`date +%s`:Cypress-install[collapsed=true]\r\e[0KInstall Cypress."
     - cp ./ui/.env.example ./ui/.env
     - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> ./ui/.env
