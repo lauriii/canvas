@@ -7,17 +7,20 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 // cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\GeneratedUrl;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
@@ -717,7 +720,10 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $js_component = $source->getJavaScriptComponent();
     $expected_component_compiled_js = $js_component->getJs();
     $expected_component_compiled_css = $js_component->getCss();
-    $expected_component_props = $js_component->getProps();
+    $expected_component_props = array_map(
+      fn (array $prop_json_schema) => new EvaluationResult($prop_json_schema['examples'][0]),
+      $js_component->getProps() ?? [],
+    );
 
     // Create auto-save entry if that's expected by this test case.
     if ($auto_save_exists) {
@@ -756,9 +762,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // they should not be present as props in the canvas-island element.
     // Ternary because empty arrays are encoded as '[]' in Json::encode().
     $json_expected = (empty($expected_component_props)) ? '{}' :
-      Json::encode(\array_map(static fn(mixed $value): array => [
+      Json::encode(\array_map(static fn(EvaluationResult $r): array => [
         'raw',
-        $value,
+        $r->value,
       ], $expected_component_props));
     self::assertJsonStringEqualsJsonString($json_expected, $element->attr('props') ?? '');
 
@@ -817,14 +823,25 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $source = $video_component->getComponentSource();
     self::assertInstanceOf(JsComponent::class, $source);
 
+    $assert_cacheability = function (GeneratedUrl $g) {
+      self::assertEqualsCanonicalizing([], $g->getCacheTags());
+      self::assertEqualsCanonicalizing([], $g->getCacheContexts());
+      self::assertSame(Cache::PERMANENT, $g->getCacheMaxAge());
+    };
+
     // Assert that the two example videos Canvas ships with are rewritten to include
     // the relative path on the current site.
     $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas');
-    self::assertSame(\base_path() . $module_path . JsComponent::EXAMPLE_VIDEO_HORIZONTAL, $source->rewriteExampleUrl(JsComponent::EXAMPLE_VIDEO_HORIZONTAL));
-    self::assertSame(\base_path() . $module_path . JsComponent::EXAMPLE_VIDEO_VERTICAL, $source->rewriteExampleUrl(JsComponent::EXAMPLE_VIDEO_VERTICAL));
+    foreach ([JsComponent::EXAMPLE_VIDEO_HORIZONTAL, JsComponent::EXAMPLE_VIDEO_VERTICAL] as $shipped_video_file) {
+      $generated_url = $source->rewriteExampleUrl($shipped_video_file);
+      self::assertSame(\base_path() . $module_path . $shipped_video_file, $generated_url->getGeneratedUrl());
+      $assert_cacheability($generated_url);
+    }
 
-    // Assert that full URLs are left alone.
-    self::assertSame('https://www.example.com/', $source->rewriteExampleUrl('https://www.example.com/'));
+    // Assert that full URLs are left alone, and get permanent cacheability.
+    $generated_url = $source->rewriteExampleUrl('https://www.example.com/');
+    self::assertSame('https://www.example.com/', $generated_url->getGeneratedUrl());
+    $assert_cacheability($generated_url);
 
     // Assert that any other `/ui/assets/…` URL is disallowed, not even one to
     // the containing directory.

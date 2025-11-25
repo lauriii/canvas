@@ -5,18 +5,22 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -45,7 +49,6 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -332,18 +335,19 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $resolved_values[$prop] = PropSource::parse($values[$prop])
           ->evaluate($entity, is_required: FALSE);
       }
-      catch (AccessDeniedHttpException $e) {
+      catch (CacheableAccessDeniedHttpException $e) {
         $this->logger->warning('Access denied when evaluating prop source for prop %prop of component instance %uuid with input `%input`. Original error: %error', [
           '%prop' => $prop,
           '%input' => json_encode($input),
           '%uuid' => $uuid,
           '%error' => $e->getMessage(),
         ]);
-        $resolved_values[$prop] = NULL;
+        $resolved_values[$prop] = new EvaluationResult(NULL, $e);
       }
-
     }
 
+    // @phpstan-ignore staticMethod.alreadyNarrowedType
+    \assert(Inspector::assertAllObjects($resolved_values, EvaluationResult::class));
     return [
       'source' => $values,
       'resolved' => $resolved_values,
@@ -355,6 +359,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input['resolved'];
+    \assert(Inspector::assertAllObjects($explicit_input['resolved'], EvaluationResult::class));
 
     // Omit optional props whose value evaluated to NULL. Otherwise, an SDC
     // validation error is triggered.
@@ -368,7 +373,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         continue;
       }
       $is_required = $prop_field_definitions[$prop]['required'];
-      if (!$is_required && $resolved_value === NULL) {
+      if (!$is_required && $resolved_value->value === NULL) {
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
         continue;
       }
@@ -377,7 +382,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // entire object is optional).
       $prop_expression = StructuredDataPropExpression::fromString($prop_field_definitions[$prop]['expression']);
       $is_object_prop_shape = $prop_expression instanceof FieldTypeObjectPropsExpression;
-      if (!$is_required && $is_object_prop_shape && empty(array_filter($resolved_value))) {
+      if (!$is_required && $is_object_prop_shape && empty(array_filter($resolved_value->value))) {
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
       }
     }
@@ -395,14 +400,37 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   }
 
   /**
+   * @param array<string, EvaluationResult> $props_evaluation_results
+   *
+   * @return array{0: array<string, mixed>, 1: \Drupal\Core\Cache\CacheableMetadata}
+   */
+  protected static function getResolvedPropsAndCacheability(array $props_evaluation_results): array {
+    \assert(Inspector::assertAllObjects($props_evaluation_results, EvaluationResult::class));
+    $props_cacheability = new CacheableMetadata();
+    $props = [];
+    foreach ($props_evaluation_results as $prop_name => $evaluation_result) {
+      $props_cacheability->addCacheableDependency($evaluation_result);
+      $props[$prop_name] = $evaluation_result->value;
+    }
+    return [$props, $props_cacheability];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function inputToClientModel(array $explicit_input): array {
     // @see PropSourceComponent type-script definition.
     // @see EvaluatedComponentModel type-script definition.
-    $model = $explicit_input;
+    \assert(is_array($explicit_input['resolved']));
+    \assert(Inspector::assertAllObjects($explicit_input['resolved'], EvaluationResult::class));
+    $model = [
+      'source' => $explicit_input['source'],
+      // The client model doesn't need cacheability metadata.
+      'resolved' => array_map(fn (EvaluationResult $r) => $r->value, $explicit_input['resolved']),
+    ];
+    \assert(Inspector::assertAll(fn ($r) => !$r instanceof EvaluationResult, $model['resolved']));
 
-    foreach ($explicit_input['resolved'] as $prop_name => $value) {
+    foreach ($explicit_input['resolved'] as $prop_name => $evaluation_result) {
       // Undo what ::clientModelToInput() and ::getExplicitInput() did: restore
       // the `source` to pass the necessary information to the client that
       // \Drupal\canvas\Form\ComponentInstanceForm expects (and hence
@@ -428,7 +456,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // that it's possible for the preview ('resolved') to not match the input
       // ('source'): the source will retain its own value, even if that is the
       // empty array in for example the case of a default image.
-      if (\array_key_exists('value', $model['source'][$prop_name]) && $value === $model['source'][$prop_name]['value']) {
+      if (\array_key_exists('value', $model['source'][$prop_name]) && $evaluation_result->value === $model['source'][$prop_name]['value']) {
         unset($model['source'][$prop_name]['value']);
       }
     }
@@ -502,7 +530,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $resolvedInputValues = array_map(
       // @phpstan-ignore-next-line
         fn(array $prop_source): mixed => PropSource::parse($prop_source)
-          ->evaluate($entity, is_required: FALSE),
+          ->evaluate($entity, is_required: FALSE)->value,
         $inputValues,
       );
     }
@@ -816,12 +844,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // - populate the client-side (data) `model`
       // … which in both cases boils down to: "this value is passed directly
       // into the SDC".
-      $default_resolved_value = NULL;
+      $default_resolved = new EvaluationResult(NULL);
       // Use the stored default, if any. This is required for all required SDC
       // props, optional for all optional SDC props.
       $default_static_prop_source = $this->getDefaultStaticPropSource($prop_name, TRUE);
       if ($has_default_source_value) {
-        $default_resolved_value = $default_static_prop_source->evaluate(NULL, is_required: FALSE);
+        $default_resolved = $default_static_prop_source->evaluate(NULL, is_required: FALSE);
       }
       // One special case: example values that require a Drupal entity to
       // exist. In these cases (for either required or optional SDC props),
@@ -830,14 +858,17 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // An example may be present in the SDC metadata, it just cannot be
         // mapped to a default value in the prop source.
         if (isset($this->getMetadata()->schema['properties'][$prop_name]['examples'][0])) {
-          $default_resolved_value = $this->getMetadata()->schema['properties'][$prop_name]['examples'][0];
+          $default_resolved = new EvaluationResult(
+            $this->getMetadata()->schema['properties'][$prop_name]['examples'][0],
+            (new CacheableMetadata())->setCacheTags($this->getPluginDefinition()['discoveryCacheTags']),
+          );
         }
       }
 
       // Collect the 'resolved' values for all SDC props, to generate a preview
       // ("default markup").
-      if ($default_resolved_value !== NULL) {
-        $default_props_for_default_markup[$prop_name] = $default_resolved_value;
+      if ($default_resolved->value !== NULL) {
+        $default_props_for_default_markup[$prop_name] = $default_resolved;
       }
       // Track those SDC props without a 'resolved' value (because an example
       // value is missing, which is allowed for optional SDC props), because it
@@ -854,19 +885,20 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         'required' => in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
         'jsonSchema' => array_diff_key($prop_shape->resolvedSchema, array_flip(['meta:enum', 'x-translation-context'])),
       ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
-      if ($default_resolved_value !== NULL) {
+      if ($default_resolved->value !== NULL) {
         $field_data[$prop_name]['default_values']['source'] = $default_source_value;
-        $field_data[$prop_name]['default_values']['resolved'] = $default_resolved_value;
+        $field_data[$prop_name]['default_values']['resolved'] = $default_resolved->value;
       }
 
       // Now that the JSON schema is available, generate the final resolved
       // example value (with relative URLs rewritten), if needed for this prop.
-      if (self::exampleValueRequiresEntity($storable_prop_shape) && $default_resolved_value !== NULL) {
-        $default_props_for_default_markup[$prop_name] = $field_data[$prop_name]['default_values']['resolved'] = (new DefaultRelativeUrlPropSource(
-          value: $default_resolved_value,
+      if (self::exampleValueRequiresEntity($storable_prop_shape) && $default_resolved->value !== NULL) {
+        $default_props_for_default_markup[$prop_name] = (new DefaultRelativeUrlPropSource(
+          value: $default_resolved->value,
           jsonSchema: $field_data[$prop_name]['jsonSchema'],
           componentId: $component->id(),
         ))->evaluate(NULL, is_required: FALSE);
+        $field_data[$prop_name]['default_values']['resolved'] = $default_props_for_default_markup[$prop_name]->value;
       }
 
       // Build transforms from widget metadata.
@@ -1154,7 +1186,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           continue;
         }
         // Make sure we can evaluate this prop source with the passed values.
-        $evaluated = $source->evaluate($host_entity, $is_required_prop);
+        // Cacheability does not matter here: requests containing a client model
+        // do not need cached responses: the client model changes rapidly.
+        $evaluated = $source->evaluate($host_entity, $is_required_prop)->value;
 
         // Optional component props that evaluate to NULL can be omitted:
         // storing these would be a waste of storage space.

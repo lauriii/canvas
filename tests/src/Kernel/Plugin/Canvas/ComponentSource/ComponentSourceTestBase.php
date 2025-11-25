@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Form\ComponentInstanceForm;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
@@ -336,7 +337,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
           continue;
         }
 
-        $explicit_inputs[$sdc_prop_name] = $client_side_info_for_prop['default_values']['resolved'];
+        $explicit_inputs[$sdc_prop_name] = new EvaluationResult($client_side_info_for_prop['default_values']['resolved']);
         continue;
       }
 

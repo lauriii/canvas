@@ -14,8 +14,10 @@ balintbrews
 basepath
 biscoff
 bunx
+cacheabilities
 Carden
 cebe
+Clurichaun
 cnvs
 cnvst # Used for "canvas tests"
 CODEOWNERS

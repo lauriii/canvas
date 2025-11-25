@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -113,13 +115,21 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
     if (is_string($this->value)) {
       \assert(self::isUrlJsonSchema($this->jsonSchema));
-      return $this->componentSource->rewriteExampleUrl($this->value);
+      $generated_url = $this->componentSource->rewriteExampleUrl($this->value);
+      return new EvaluationResult(
+        $generated_url->getGeneratedUrl(),
+        (new CacheableMetadata())
+          ->setCacheTags($this->componentSource->getPluginDefinition()['discoveryCacheTags'])
+          ->addCacheableDependency($generated_url),
+      );
     }
 
-    return self::recurse($this->jsonSchema, $this->value, $this->componentSource);
+    return new EvaluationResult(
+      self::recurse($this->jsonSchema, $this->value, $this->componentSource),
+    );
   }
 
   private static function recurse(array $json_schema, mixed $value, UrlRewriteInterface $component_source): mixed {
@@ -140,7 +150,13 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       return $evaluated;
     }
     elseif (is_string($value) && self::isUrlJsonSchema($json_schema)) {
-      return $component_source->rewriteExampleUrl($value);
+      $generated_url = $component_source->rewriteExampleUrl($value);
+      return new EvaluationResult(
+        $generated_url->getGeneratedUrl(),
+        (new CacheableMetadata())
+          ->setCacheTags($component_source->getPluginDefinition()['discoveryCacheTags'])
+          ->addCacheableDependency($generated_url),
+      );
     }
     else {
       return $value;

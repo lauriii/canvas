@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Element;
 
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -88,6 +89,7 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
           $element['#component_context'] ?? '',
           $element['#is_preview'] ?? FALSE,
           $element['#component_uuid'] ?? '',
+          CacheableMetadata::createFromRenderArray($element['#component']),
         );
         // Convey to the caller that this component instance render crashed.
         $element['#render_crashed'] = TRUE;
@@ -102,7 +104,7 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
     return $element;
   }
 
-  public static function handleComponentException(\Throwable $e, string $componentContext, bool $isPreview, string $componentUuid): array {
+  public static function handleComponentException(\Throwable $e, string $componentContext, bool $isPreview, string $componentUuid, CacheableMetadata $component_exception_cacheability): array {
     $error_message = \sprintf('%s occurred during rendering of component %s in %s: %s', $e::class, $componentUuid, $componentContext, $e->getMessage());
     \Drupal::logger('canvas')->error($error_message);
     $is_verbose = \Drupal::configFactory()->get('system.logging')->get('error_level') === ERROR_REPORTING_DISPLAY_VERBOSE;
@@ -117,7 +119,7 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
           : new TranslatableMarkup('Component failed to render, check logs for more detail.'),
       ];
     }
-    return [
+    $build = [
       '#type' => 'container',
       '#attributes' => [
         'data-component-uuid' => $componentUuid,
@@ -126,6 +128,8 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
         ? Markup::create('<pre style="white-space: pre-wrap"><code>' . Xss::filterAdmin($error_message) . '</code></pre>')
         : new TranslatableMarkup('Oops, something went wrong! Site admins have been notified.'),
     ];
+    $component_exception_cacheability->applyTo($build);
+    return $build;
   }
 
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\PropSource;
 
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -57,15 +58,14 @@ final class HostEntityUrlPropSource extends PropSourceBase {
     return new self($absolute);
   }
 
-  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
     if ($host_entity === NULL) {
       throw new MissingHostEntityException();
     }
-
-    return $host_entity->toUrl()
+    $generated_url = $host_entity->toUrl($this->rel)
       ->setAbsolute($this->absolute)
-      ->toString(TRUE)
-      ->getGeneratedUrl();
+      ->toString(collect_bubbleable_metadata: TRUE);
+    return new EvaluationResult($generated_url->getGeneratedUrl(), $generated_url);
   }
 
   public function asChoice(): string {

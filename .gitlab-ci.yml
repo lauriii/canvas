@@ -235,6 +235,9 @@ phpunit:
   variables:
     # Note: Canvas uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
     _PHPUNIT_CONCURRENT: 1
+    # 💡To run a single PHPUnit test, e.g. PropSourceTest, comment the above and uncomment the below.
+    # _PHPUNIT_CONCURRENT: 0
+    # _PHPUNIT_EXTRA: '--filter PropSourceTest'
   needs:
     - composer
     - UI

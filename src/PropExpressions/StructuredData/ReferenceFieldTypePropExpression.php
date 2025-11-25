@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -42,7 +43,7 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
     else {
       // ⚠️ Do not require values while calculating dependencies: this MUST not
       // fail.
-      $referenced_content_entities = Evaluator::evaluate($field_item_list, $this->referencer, is_required: FALSE);
+      $referenced_content_entities = Evaluator::evaluate($field_item_list, $this->referencer, is_required: FALSE)->value;
       $referenced_content_entities = match (gettype($referenced_content_entities)) {
         // Reference field containing nothing.
         'null' => [],
@@ -51,6 +52,7 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
         // Reference field containing a single reference.
         default => [$referenced_content_entities],
       };
+      \assert(Inspector::assertAllObjects($referenced_content_entities, FieldableEntityInterface::class));
       $dependencies['content'] = [
         ...$dependencies['content'] ?? [],
         ...array_map(

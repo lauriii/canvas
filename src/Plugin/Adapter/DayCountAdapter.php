@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 #[Adapter(
@@ -21,7 +22,7 @@ final class DayCountAdapter extends AdapterBase {
   protected string $oldest;
   protected ?string $newest = NULL;
 
-  public function adapt(): mixed {
+  public function adapt(): EvaluationResult {
     $utc = new \DateTimeZone("UTC");
     $oldest = \DateTime::createFromFormat('Y-m-d', $this->oldest, $utc);
     $newest = $this->newest
@@ -30,7 +31,7 @@ final class DayCountAdapter extends AdapterBase {
     // Note: $oldest and $newest are already guaranteed to be valid, so this
     // assertion exists only to satisfy PHPStan.
     assert($oldest !== FALSE && $newest !== FALSE);
-    return $newest->diff($oldest)->days;
+    return new EvaluationResult($newest->diff($oldest)->days);
   }
 
 }

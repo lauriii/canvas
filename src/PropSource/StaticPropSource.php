@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -381,7 +382,7 @@ final class StaticPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
     return match ($this->getCardinality()) {
       // @phpstan-ignore-next-line
       1 => Evaluator::evaluate($this->fieldItemList->first(), $this->expression, $is_required),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Entity\FieldableEntityInterface;
 
 /**
@@ -24,7 +25,7 @@ abstract class PropSourceBase implements \Stringable, ContentAwareDependentInter
    */
   abstract public static function parse(array $sdc_prop_source): static;
 
-  abstract public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed;
+  abstract public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult;
 
   abstract public function asChoice(): string;
 

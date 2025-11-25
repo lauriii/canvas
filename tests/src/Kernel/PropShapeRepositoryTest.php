@@ -871,7 +871,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
         'properties' => [$some_prop_name => $storable_prop_shape->shape->schema],
         'additionalProperties' => FALSE,
       ]);
-      $props = Validator::arrayToObjectRecursive([$some_prop_name => $reloaded_randomized_prop_source->evaluate(NULL, is_required: TRUE)]);
+      $props = Validator::arrayToObjectRecursive([
+        $some_prop_name => $reloaded_randomized_prop_source->evaluate(NULL, is_required: TRUE)->value,
+      ]);
       $validator = new Validator();
       $validator->validate($props, $schema, Constraint::CHECK_MODE_TYPE_CAST);
       $this->assertSame(

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
@@ -52,7 +54,9 @@ final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactory
   protected array $image;
   protected string $imageStyle;
 
-  public function adapt(): mixed {
+  public function adapt(): EvaluationResult {
+    $adaptation_cacheability = new CacheableMetadata();
+
     $files = $this->entityTypeManager
       ->getStorage('file')
       ->loadByProperties(['filename' => urldecode(basename($this->image['src']))]);
@@ -60,6 +64,7 @@ final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactory
     if (!$image instanceof FileInterface) {
       throw new \Exception('No image file found');
     }
+    $adaptation_cacheability->addCacheableDependency($image);
 
     $image_style = ImageStyle::load($this->imageStyle);
     if ($image_style instanceof ImageStyleInterface) {
@@ -70,16 +75,23 @@ final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactory
     }
     else {
       $src = $image->createFileUrl(FALSE);
+      // An absolute URL was generated, so a different one must be generated per
+      // site served by this Drupal instance.
+      // @see \Drupal\Core\Cache\Context\SiteCacheContext
+      $adaptation_cacheability->addCacheContexts(['url.site']);
       $height = $this->image['height'];
       $width = $this->image['width'];
     }
 
-    return [
-      'src' => $src,
-      'alt' => $this->image['alt'],
-      'width' => $width,
-      'height' => $height,
-    ];
+    return new EvaluationResult(
+      [
+        'src' => $src,
+        'alt' => $this->image['alt'],
+        'width' => $width,
+        'height' => $height,
+      ],
+      $adaptation_cacheability,
+    );
   }
 
 }

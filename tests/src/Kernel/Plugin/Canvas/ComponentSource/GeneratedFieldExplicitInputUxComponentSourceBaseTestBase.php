@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 /**
@@ -69,7 +70,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     $component_with_optional_image_object_shape = Component::load($this->componentWithOptionalImageProp);
     self::assertNotNull($component_with_optional_image_object_shape);
     $source = $component_with_optional_image_object_shape->getComponentSource();
-    $resolved = ['heading' => 'Yo', 'image' => $resolved_explicit_input_values_for_object_prop];
+    $resolved = [
+      'heading' => new EvaluationResult('Yo'),
+      'image' => new EvaluationResult($resolved_explicit_input_values_for_object_prop),
+    ];
 
     // Allow for reuse among different ComponentSource plugins using this base
     // class, without requiring each of the test components to have exactly the

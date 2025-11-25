@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
@@ -26,7 +27,7 @@ final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginIn
    */
   protected array $image;
 
-  public function adapt(): mixed {
+  public function adapt(): EvaluationResult {
     $files = $this->entityTypeManager
       ->getStorage('file')
       ->loadByProperties(['filename' => urldecode(basename($this->image['src']))]);
@@ -35,12 +36,15 @@ final class ImageAdapter extends AdapterBase implements ContainerFactoryPluginIn
       throw new \Exception('No image file found');
     }
 
-    return [
-      'src' => $image->createFileUrl(FALSE),
-      'alt' => $this->image['alt'],
-      'width' => $this->image['width'],
-      'height' => $this->image['height'],
-    ];
+    return new EvaluationResult(
+      [
+        'src' => $image->createFileUrl(FALSE),
+        'alt' => $this->image['alt'],
+        'width' => $this->image['width'],
+        'height' => $this->image['height'],
+      ],
+      $image,
+    );
   }
 
 }

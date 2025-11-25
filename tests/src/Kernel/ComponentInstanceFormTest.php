@@ -367,10 +367,10 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // - `subheading` CAN be NULL, and currently evaluates to NULL
     // @phpstan-ignore-next-line method.nonObject
     self::assertTrue($node->getFieldDefinition('title')->isRequired());
-    self::assertSame('Test node', Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['heading']['expression']), is_required: FALSE));
+    self::assertSame('Test node', Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['heading']['expression']), is_required: FALSE)->value);
     // @phpstan-ignore-next-line method.nonObject
     self::assertFalse($node->getFieldDefinition('media_image_field')->isRequired());
-    self::assertNull(Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']), is_required: FALSE));
+    self::assertNull(Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']), is_required: FALSE)->value);
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);
     // Confirm the linked prop fields are rendered.
     self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));

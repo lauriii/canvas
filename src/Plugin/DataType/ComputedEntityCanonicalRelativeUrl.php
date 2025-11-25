@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
@@ -17,9 +21,15 @@ use Drupal\Core\TypedData\Plugin\DataType\Uri;
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup("URL of the referenced entity")
 )]
-class ComputedEntityCanonicalRelativeUrl extends Uri implements DependentPluginInterface {
+class ComputedEntityCanonicalRelativeUrl extends Uri implements DependentPluginInterface, CacheableDependencyInterface {
+
+  use ComputedDataTypeWithCacheabilityTrait {
+    getValue as private traitGetValue;
+  }
 
   public const string PLUGIN_ID = 'computed_entity_canonical_relative_url';
+
+  private ?MaybeUrl $computedValue = NULL;
 
   /**
    * @see \Drupal\Core\Field\EntityReferenceFieldItemList::referencedEntities())
@@ -49,8 +59,18 @@ class ComputedEntityCanonicalRelativeUrl extends Uri implements DependentPluginI
    * {@inheritdoc}
    */
   public function getValue(): ?MaybeUrl {
+    return $this->traitGetValue();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  private function computeValue(): ?MaybeUrl {
+    \assert($this->isComputed === FALSE);
+
     $referenced_entity = $this->getReferencedEntity();
     if ($referenced_entity === NULL) {
+      $this->cacheability = new CacheableMetadata();
       return NULL;
     }
 
@@ -60,6 +80,7 @@ class ComputedEntityCanonicalRelativeUrl extends Uri implements DependentPluginI
     // Auto-create entity reference fields may reference unsaved entities, for
     // which no link can be generated.
     catch (EntityMalformedException) {
+      $this->cacheability = CacheableMetadata::createFromObject($referenced_entity);
       return NULL;
     }
 

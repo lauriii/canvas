@@ -66,6 +66,8 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   // While Canvas does not support context mappings yet, Block plugins also can
   // contain logic and perform e.g. database queries that fetch data to present.
   supportsImplicitInputs: TRUE,
+  // @see \Drupal\Core\Block\BlockManager::__construct()
+  discoveryCacheTags: [],
 )]
 final class BlockComponent extends ComponentSourceBase implements ContainerFactoryPluginInterface {
 

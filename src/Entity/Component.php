@@ -6,6 +6,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\CanvasConfigUpdater;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -365,6 +366,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
           componentContext: 'API',
           isPreview: TRUE,
           componentUuid: $component_config_entity_uuid,
+          component_exception_cacheability: CacheableMetadata::createFromObject($this),
         );
       }
       // Inform the UI this is IMPOSSIBLE to instantiate. The UI should render

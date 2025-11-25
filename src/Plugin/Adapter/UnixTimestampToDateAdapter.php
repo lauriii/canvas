@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Adapter;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 #[Adapter(
@@ -19,11 +20,11 @@ final class UnixTimestampToDateAdapter extends AdapterBase {
 
   protected string $unix;
 
-  public function adapt(): mixed {
+  public function adapt(): EvaluationResult {
     // @todo Ensure that the `unix` input is constrained to the appropriate range.
     $datetime = \DateTime::createFromFormat('U', $this->unix);
     assert($datetime !== FALSE);
-    return $datetime->format('Y-m-d');
+    return new EvaluationResult($datetime->format('Y-m-d'));
   }
 
 }

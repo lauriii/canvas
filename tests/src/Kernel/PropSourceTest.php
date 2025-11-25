@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\Exception\UndefinedLinkTemplateException;
 use Drupal\Core\Extension\ExtensionPathResolver;
@@ -52,6 +55,7 @@ use Drupal\Tests\TestFileCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
@@ -198,6 +202,7 @@ class PropSourceTest extends KernelTestBase {
     string $expected_json_representation,
     array|null $field_widgets,
     mixed $expected_user_value,
+    CacheableMetadata $expected_cacheability,
     string $expected_prop_expression,
     array $expected_dependencies,
     array $permissions = [],
@@ -263,12 +268,17 @@ class PropSourceTest extends KernelTestBase {
         }
       }
     }
-    $this->assertSame($expected_user_value, $prop_source_example->evaluate(User::create([]), is_required: TRUE));
+    $evaluation_result = $prop_source_example->evaluate(User::create(), is_required: TRUE);
+    self::assertSame($expected_user_value, $evaluation_result->value);
+    self::assertEqualsCanonicalizing($expected_cacheability->getCacheTags(), $evaluation_result->getCacheTags());
+    self::assertEqualsCanonicalizing($expected_cacheability->getCacheContexts(), $evaluation_result->getCacheContexts());
+    self::assertSame($expected_cacheability->getCacheMaxAge(), $evaluation_result->getCacheMaxAge());
     // - the field type's item's raw value is minimized if it is single-property
     $this->assertSame($value, $prop_source_example->getValue());
   }
 
   public static function providerStaticPropSource(): \Generator {
+    $permanent_cacheability = new CacheableMetadata();
     yield "scalar shape, field type=string, cardinality=1" => [
       'sourceType' => 'static:field_item:string',
       'sourceTypeSettings' => NULL,
@@ -281,6 +291,7 @@ class PropSourceTest extends KernelTestBase {
         'string_textarea' => StringTextfieldWidget::class,
       ],
       'expected_user_value' => 'Hello, world!',
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
     ];
@@ -295,6 +306,7 @@ class PropSourceTest extends KernelTestBase {
         'uri' => UriWidget::class,
       ],
       'expected_user_value' => 'https://drupal.org',
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
     ];
@@ -309,6 +321,7 @@ class PropSourceTest extends KernelTestBase {
         'boolean_checkbox' => BooleanCheckboxWidget::class,
       ],
       'expected_user_value' => TRUE,
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
     ];
@@ -339,6 +352,7 @@ class PropSourceTest extends KernelTestBase {
         88,
         92,
       ],
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypePropExpression::class,
       'expected_dependencies' => [],
     ];
@@ -360,6 +374,7 @@ class PropSourceTest extends KernelTestBase {
         'start' => '2020-04-16T00:00',
         'stop' => '2024-07-10T10:24',
       ],
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
       'expected_dependencies' => [
         'module' => [
@@ -401,6 +416,7 @@ class PropSourceTest extends KernelTestBase {
           'stop' => '2024-09-26T11:31',
         ],
       ],
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
       'expected_dependencies' => [
         'module' => [
@@ -427,6 +443,9 @@ class PropSourceTest extends KernelTestBase {
         'media_library_widget' => MediaLibraryWidget::class,
       ],
       'expected_user_value' => NULL,
+      // A (dangling) reference field that doesn't reference anything never
+      // becomes stale.
+      'expected_cacheability' => $permanent_cacheability,
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
       'expected_dependencies' => [
         'config' => [
@@ -481,6 +500,15 @@ class PropSourceTest extends KernelTestBase {
           'src' => 'Jack is awesome!',
         ],
       ],
+      'expected_cacheability' => (new CacheableMetadata())
+        ->setCacheTags([
+          'media:1', 'media:2', 'media:3',
+          'file:1', 'file:2',
+          'config:image.style.canvas_parametrized_width',
+        ])
+        // Cache contexts added by referenced entity access checking.
+        // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+        ->setCacheContexts(['user.permissions']),
       'expected_prop_expression' => FieldTypeObjectPropsExpression::class,
       'expected_dependencies' => [
         'config' => [
@@ -518,9 +546,9 @@ class PropSourceTest extends KernelTestBase {
     bool $is_required,
     string $expected_json_representation,
     string $expected_expression_class,
-    mixed $expected_evaluation_with_user_host_entity,
+    ?EvaluationResult $expected_evaluation_with_user_host_entity,
     ?array $expected_user_access_denied_message,
-    mixed $expected_evaluation_with_node_host_entity,
+    ?EvaluationResult $expected_evaluation_with_node_host_entity,
     ?array $expected_node_access_denied_message,
     array $expected_dependencies_expression_only,
     array $expected_dependencies_with_host_entity,
@@ -573,7 +601,7 @@ class PropSourceTest extends KernelTestBase {
     };
     // - evaluate it to populate an SDC prop using a `user` host entity
     // First try without the correct permissions.
-    if ($expected_evaluation_with_user_host_entity !== \DomainException::class) {
+    if ($expected_evaluation_with_user_host_entity instanceof EvaluationResult) {
       self::assertNotNull($expected_user_access_denied_message);
       \assert(count($permissions) === count($expected_user_access_denied_message));
       for ($i = 0; $i < count($expected_user_access_denied_message); $i++) {
@@ -583,7 +611,7 @@ class PropSourceTest extends KernelTestBase {
           $this->setUpCurrentUser(permissions: array_slice($permissions, 0, $i));
         }
         try {
-          $parsed->evaluate($user, $is_required);
+          $parsed->evaluate(clone $user, $is_required);
           $this->fail('Should throw an access exception.');
         }
         catch (CacheableAccessDeniedHttpException $e) {
@@ -594,23 +622,25 @@ class PropSourceTest extends KernelTestBase {
     // Grant all permissions, now it should succeed.
     $this->setUpCurrentUser(permissions: $permissions);
     try {
-      $result = $parsed->evaluate($user, $is_required);
-      if ($expected_evaluation_with_user_host_entity === \DomainException::class) {
+      $result = $parsed->evaluate(clone $user, $is_required);
+      if (!$expected_evaluation_with_user_host_entity instanceof EvaluationResult) {
         self::fail('Should throw an exception.');
       }
       else {
-        self::assertSame($expected_evaluation_with_user_host_entity, $result);
+        self::assertSame($expected_evaluation_with_user_host_entity->value, $result->value);
+        self::assertEqualsCanonicalizing($expected_evaluation_with_user_host_entity->getCacheTags(), $result->getCacheTags());
+        self::assertEqualsCanonicalizing($expected_evaluation_with_user_host_entity->getCacheContexts(), $result->getCacheContexts());
+        self::assertSame($expected_evaluation_with_user_host_entity->getCacheMaxAge(), $result->getCacheMaxAge());
       }
     }
     catch (\DomainException $e) {
-      self::assertSame($expected_evaluation_with_user_host_entity, \DomainException::class);
       self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `user`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
 
     // - evaluate it to populate an SDC prop using a `node` host entity
     // First try without the correct permissions.
     $this->setUpCurrentUser();
-    if ($expected_evaluation_with_node_host_entity !== \DomainException::class) {
+    if ($expected_evaluation_with_node_host_entity instanceof EvaluationResult) {
       self::assertNotNull($expected_node_access_denied_message);
       \assert(count($permissions) === count($expected_node_access_denied_message));
       for ($i = 0; $i < count($expected_node_access_denied_message); $i++) {
@@ -620,7 +650,7 @@ class PropSourceTest extends KernelTestBase {
           $this->setUpCurrentUser(permissions: array_slice($permissions, 0, $i));
         }
         try {
-          $parsed->evaluate($node, $is_required);
+          $parsed->evaluate(clone $node, $is_required);
           $this->fail('Should throw an access exception.');
         }
         catch (CacheableAccessDeniedHttpException $e) {
@@ -631,21 +661,23 @@ class PropSourceTest extends KernelTestBase {
     // Grant all permissions, now it should succeed.
     $this->setUpCurrentUser(permissions: $permissions);
     try {
-      $result = $parsed->evaluate($node, $is_required);
-      if ($expected_evaluation_with_node_host_entity === \DomainException::class) {
+      $result = $parsed->evaluate(clone $node, $is_required);
+      if (!$expected_evaluation_with_node_host_entity instanceof EvaluationResult) {
         self::fail('Should throw an exception.');
       }
       else {
+        self::assertEqualsCanonicalizing($expected_evaluation_with_node_host_entity->getCacheTags(), $result->getCacheTags());
+        self::assertEqualsCanonicalizing($expected_evaluation_with_node_host_entity->getCacheContexts(), $result->getCacheContexts());
+        self::assertSame($expected_evaluation_with_node_host_entity->getCacheMaxAge(), $result->getCacheMaxAge());
         // TRICKY: this one test case is hard to parametrize using a data
         // provider, see the more precise/expansive assertions at the end of the
         // test method.
         if ($expression !== 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths') {
-          self::assertSame($expected_evaluation_with_node_host_entity, $result);
+          self::assertSame($expected_evaluation_with_node_host_entity->value, $result->value);
         }
       }
     }
     catch (\DomainException $e) {
-      self::assertSame($expected_evaluation_with_node_host_entity, \DomainException::class);
       self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `node`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
 
@@ -661,14 +693,20 @@ class PropSourceTest extends KernelTestBase {
     if ($expression === 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths') {
       // For the "bio" node, expect `image-2` and an `alternateWidths` query
       // string (NOT: a URI template).
-      $this->assertStringContainsString('image-2', $parsed->evaluate($node, $is_required));
-      $this->assertStringContainsString('?alternateWidths=', $parsed->evaluate($node, $is_required));
-      $this->assertStringNotContainsString('{width}', $parsed->evaluate($node, $is_required));
+      // @phpstan-ignore argument.type
+      $this->assertStringContainsString('image-2', $parsed->evaluate($node, $is_required)->value);
+      // @phpstan-ignore argument.type
+      $this->assertStringContainsString('?alternateWidths=', $parsed->evaluate($node, $is_required)->value);
+      // @phpstan-ignore argument.type
+      $this->assertStringNotContainsString('{width}', $parsed->evaluate($node, $is_required)->value);
       // For the "bio" node, expect `image-3` and a URI template (NOT: an
       // `alternateWidths` query string).
-      $this->assertStringContainsString('image-3', $parsed->evaluate($node2, $is_required));
-      $this->assertStringContainsString('{width}', $parsed->evaluate($node2, $is_required));
-      $this->assertStringNotContainsString('?alternateWidths=', $parsed->evaluate($node2, $is_required));
+      // @phpstan-ignore argument.type
+      $this->assertStringContainsString('image-3', $parsed->evaluate($node2, $is_required)->value);
+      // @phpstan-ignore argument.type
+      $this->assertStringContainsString('{width}', $parsed->evaluate($node2, $is_required)->value);
+      // @phpstan-ignore argument.type
+      $this->assertStringNotContainsString('?alternateWidths=', $parsed->evaluate($node2, $is_required)->value);
 
       // The expression in the context of node 2 (a `bio` node), which surfaces
       // no `content` dependencies because the `srcset_candidate_uri_template`
@@ -685,9 +723,19 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
       'expected_expression_class' => FieldPropExpression::class,
-      'expected_evaluation_with_user_host_entity' => 'John Doe',
+      'expected_evaluation_with_user_host_entity' => new EvaluationResult(
+        'John Doe',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'user:1',
+          ])
+          // Cache contexts added by host entity access checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
       'expected_user_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required."],
-      'expected_evaluation_with_node_host_entity' => \DomainException::class,
+      'expected_evaluation_with_node_host_entity' => NULL,
       'expected_node_access_denied_message' => NULL,
       'expected_dependencies_expression_only' => ['module' => ['user']],
       'expected_dependencies_with_host_entity' => ['module' => ['user']],
@@ -704,9 +752,23 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
       'expected_expression_class' => FieldPropExpression::class,
-      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
-      'expected_evaluation_with_node_host_entity' => '/user/1',
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        '/user/1',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The referenced entity.
+            'user:1',
+          ])
+          // Cache contexts added by host entity access checking AND access
+          // checks in the computed field property.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          // @see \Drupal\canvas\Plugin\DataType\ComputedEntityCanonicalRelativeUrl
+          ->setCacheContexts(['user.permissions']),
+      ),
       'expected_node_access_denied_message' => [
         // Exception due to host entity being inaccessible.
         "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟url, reason: The 'access content' permission is required.",
@@ -740,9 +802,29 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => FALSE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
       'expected_expression_class' => FieldPropExpression::class,
-      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
-      'expected_evaluation_with_node_host_entity' => NULL,
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        NULL,
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // TRICKY: the tag for the referenced entity (`user:1`) is ABSENT
+            // because it played no role in denying access.
+            // @see \Drupal\user\UserAccessControlHandler::checkAccess()
+          ])
+          // Cache contexts added by host entity access checking AND access
+          // checks in the computed field property.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          // @see \Drupal\canvas\Plugin\DataType\ComputedEntityCanonicalRelativeUrl
+          // Cache contexts added by access checking.
+          // @see \Drupal\canvas\Plugin\DataType\ComputedEntityCanonicalRelativeUrl
+          ->setCacheContexts([
+            'user',
+            'user.permissions',
+          ]),
+      ),
       'expected_node_access_denied_message' => [
         // Exception due to host entity being inaccessible.
         "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟url, reason: The 'access content' permission is required.",
@@ -766,9 +848,22 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
       'expected_expression_class' => ReferenceFieldPropExpression::class,
-      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
-      'expected_evaluation_with_node_host_entity' => 'John Doe',
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        'John Doe',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The referenced entity.
+            'user:1',
+          ])
+          // Cache contexts added by host entity and referenced entity access
+          // checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
       'expected_node_access_denied_message' => [
         "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value, reason: The 'access content' permission is required.",
         "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
@@ -792,12 +887,25 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
       'expected_expression_class' => FieldObjectPropsExpression::class,
-      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
-      'expected_evaluation_with_node_host_entity' => [
-        'human_id' => 'John Doe',
-        'machine_id' => 1,
-      ],
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        [
+          'human_id' => 'John Doe',
+          'machine_id' => 1,
+        ],
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The referenced entity.
+            'user:1',
+          ])
+          // Cache contexts added by host entity and referenced entity access
+          // checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
       'expected_node_access_denied_message' => [
         "Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}, reason: The 'access content' permission is required.",
         "Access denied to entity while evaluating expression, ℹ︎␜entity:user␝name␞␟value, reason: The 'access user profiles' permission is required.",
@@ -844,28 +952,99 @@ class PropSourceTest extends KernelTestBase {
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
       'expected_expression_class' => FieldPropExpression::class,
-      'expected_evaluation_with_user_host_entity' => \DomainException::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
-      'expected_evaluation_with_node_host_entity' => '<impossible to express in a data provider, see test>',
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        '<impossible to express in a data provider, see test>',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The entity used by the computed `src_with_alternate_widths` field
+            // property.
+            // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
+            // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
+            'file:1',
+            // The parametrized image style used by the computed
+            // `srcset_candidate_uri_template` field property, which is in turn
+            // used by the above `src_with_alternate_widths` field property.
+            // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
+            // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth
+            'config:image.style.canvas_parametrized_width',
+          ])
+          // Cache contexts added by host entity and referenced entity access
+          // checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
       'expected_node_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths, reason: The 'access content' permission is required."],
       'expected_dependencies_expression_only' => $expected_dependencies_expression,
       'expected_dependencies_with_host_entity' => $expected_node_1_expression_dependencies,
     ];
   }
 
+  public static function providerInvalidDynamicPropSourceFieldPropExpressionDueToDelta(): iterable {
+    yield [
+      "ℹ︎␜entity:user␝name␞␟value",
+      NULL,
+      "John Doe",
+      (new CacheableMetadata())->setCacheContexts(['user.permissions']),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝name␞0␟value",
+      NULL,
+      "John Doe",
+      (new CacheableMetadata())->setCacheContexts(['user.permissions']),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝name␞-1␟value",
+      "Requested delta -1, but deltas must be positive integers.",
+      "💩",
+      (new CacheableMetadata()),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝name␞5␟value",
+      "Requested delta 5 for single-cardinality field, must be either zero or omitted.",
+      "💩",
+      (new CacheableMetadata()),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝roles␞␟target_id",
+      NULL,
+      ["test_role_a", "test_role_b"],
+      (new CacheableMetadata())->setCacheContexts(['user.permissions']),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝roles␞0␟target_id",
+      NULL,
+      "test_role_a",
+      (new CacheableMetadata())->setCacheContexts(['user.permissions']),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝roles␞1␟target_id",
+      NULL,
+      "test_role_b",
+      (new CacheableMetadata())->setCacheContexts(['user.permissions']),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝roles␞5␟target_id",
+      "Requested delta 5 for unlimited cardinality field, but only deltas [0, 1] exist.",
+      "💩",
+      (new CacheableMetadata()),
+    ];
+    yield [
+      "ℹ︎␜entity:user␝roles␞-1␟target_id",
+      "Requested delta -1, but deltas must be positive integers.",
+      "💩",
+      (new CacheableMetadata()),
+    ];
+  }
+
   /**
    * @covers \Drupal\canvas\PropExpressions\StructuredData\Evaluator
-   * @testWith ["ℹ︎␜entity:user␝name␞␟value", null, "John Doe"]
-   *           ["ℹ︎␜entity:user␝name␞0␟value", null, "John Doe"]
-   *           ["ℹ︎␜entity:user␝name␞-1␟value", "Requested delta -1, but deltas must be positive integers.", "💩"]
-   *           ["ℹ︎␜entity:user␝name␞5␟value", "Requested delta 5 for single-cardinality field, must be either zero or omitted.", "💩"]
-   *           ["ℹ︎␜entity:user␝roles␞␟target_id", null, ["test_role_a", "test_role_b"]]
-   *           ["ℹ︎␜entity:user␝roles␞0␟target_id", null, "test_role_a"]
-   *           ["ℹ︎␜entity:user␝roles␞1␟target_id", null, "test_role_b"]
-   *           ["ℹ︎␜entity:user␝roles␞5␟target_id", "Requested delta 5 for unlimited cardinality field, but only deltas [0, 1] exist.", "💩"]
-   *           ["ℹ︎␜entity:user␝roles␞-1␟target_id", "Requested delta -1, but deltas must be positive integers.", "💩"]
    */
-  public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value): void {
+  #[DataProvider('providerInvalidDynamicPropSourceFieldPropExpressionDueToDelta')]
+  public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value, CacheableMetadata $expected_cacheability): void {
     $this->setUpCurrentUser(permissions: ['administer permissions', 'access user profiles', 'administer users']);
     Role::create(['id' => 'test_role_a', 'label' => 'Test role A'])->save();
     Role::create(['id' => 'test_role_b', 'label' => 'Test role B'])->save();
@@ -885,7 +1064,12 @@ class PropSourceTest extends KernelTestBase {
       $this->expectExceptionMessage($expected_message);
     }
 
-    self::assertSame($expected_value, $dynamic_prop_source_delta_test->evaluate($user, is_required: TRUE));
+    $evaluation_result = $dynamic_prop_source_delta_test->evaluate($user, is_required: TRUE);
+    self::assertSame($expected_value, $evaluation_result->value);
+    self::assertSame($expected_cacheability->getCacheTags(), $evaluation_result->getCacheTags());
+    self::assertSame($expected_cacheability->getCacheContexts(), $evaluation_result->getCacheContexts());
+    self::assertSame($expected_cacheability->getCacheMaxAge(), $evaluation_result->getCacheMaxAge());
+
   }
 
   /**
@@ -927,7 +1111,16 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $simple_static_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame(1663, $simple_static_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
+    $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
+    // TRICKY: entities must be saved for them to have cache tags.
+    $user->save();
+    self::assertEquals(
+      new EvaluationResult(
+        1663,
+        (new CacheableMetadata())->setCacheTags(['user:1']),
+      ),
+      $simple_static_example->evaluate($user, is_required: TRUE),
+    );
     self::assertSame([
       'module' => [
         'canvas',
@@ -971,8 +1164,14 @@ class PropSourceTest extends KernelTestBase {
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
     $this->setUpCurrentUser(permissions: ['access user profiles', 'administer users']);
-    $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
-    $this->assertSame(11874, $simple_dynamic_example->evaluate($user, is_required: TRUE));
+    self::assertEquals(
+      new EvaluationResult(
+        11874,
+        (new CacheableMetadata())
+          ->setCacheTags(['user:1'])
+          ->setCacheContexts(['user.permissions'])),
+      $simple_dynamic_example->evaluate($user, is_required: TRUE)
+    );
     self::assertSame([
       'module' => [
         'canvas',
@@ -1018,7 +1217,15 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame('adapter:day_count', $complex_example->getSourceType());
     // Test the functionality of a DynamicPropSource:
     // - evaluate it to populate an SDC prop
-    $this->assertSame(1546, $complex_example->evaluate(User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]), is_required: TRUE));
+    self::assertEquals(
+      new EvaluationResult(
+        1546,
+        (new CacheableMetadata())
+          ->setCacheTags(['user:1'])
+          ->setCacheContexts(['user.permissions']),
+      ),
+      $complex_example->evaluate($user, is_required: TRUE)
+    );
     self::assertSame([
       'module' => [
         'canvas',
@@ -1102,12 +1309,16 @@ class PropSourceTest extends KernelTestBase {
     );
     self::assertSame((string) $equivalent_source, $json_representation);
     // Test that the URL resolves on evaluation.
+    $evaluation_result = $source->evaluate(NULL, is_required: TRUE);
     self::assertSame([
       'src' => Url::fromUri(\sprintf('base:%s/gracie.jpg', $path))->toString(),
       'alt' => 'A good dog',
       'width' => 601,
       'height' => 402,
-    ], $source->evaluate(NULL, is_required: TRUE));
+    ], $evaluation_result->value);
+    self::assertEqualsCanonicalizing(['component_plugins'], $evaluation_result->getCacheTags());
+    self::assertEqualsCanonicalizing([], $evaluation_result->getCacheContexts());
+    self::assertSame(Cache::PERMANENT, $evaluation_result->getCacheMaxAge());
     self::assertSame([
       'config' => ['canvas.component.sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop'],
     ], $source->calculateDependencies());
@@ -1236,7 +1447,7 @@ class PropSourceTest extends KernelTestBase {
     if ($expected_exception) {
       $this->expectException($expected_exception);
     }
-    self::assertSame($expected_url, $source->evaluate($entity, TRUE));
+    self::assertSame($expected_url, $source->evaluate($entity, TRUE)->value);
   }
 
 }

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\canvas\Plugin\DataType\ComputedDataTypeWithCacheabilityTrait;
 use Drupal\Core\Cache\CacheableDependencyInterface;
-use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Plugin\DataType\UriTemplate;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
+use Drupal\Core\GeneratedUrl;
 use Drupal\file\Entity\File;
 
 /**
@@ -22,7 +23,25 @@ use Drupal\file\Entity\File;
  */
 final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements CacheableDependencyInterface {
 
-  use CacheableDependencyTrait;
+  use ComputedDataTypeWithCacheabilityTrait {
+    getValue as private traitGetValue;
+  }
+
+  private ?GeneratedUrl $computedValue;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getValue(): ?GeneratedUrl {
+    return $this->traitGetValue();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCastedValue(): ?string {
+    return $this->getValue()?->getGeneratedUrl();
+  }
 
   private function getParametrizedImageStyle(): ParametrizedImageStyle {
     // @phpstan-ignore-next-line
@@ -32,7 +51,7 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
   /**
    * {@inheritdoc}
    */
-  public function getValue() {
+  public function computeValue() : ?GeneratedUrl {
     if ($this->getParent() === NULL) {
       return NULL;
     }
@@ -49,7 +68,8 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     assert($file instanceof File);
 
     assert(is_string($file->getFileUri()));
-    $url_template = $this->getParametrizedImageStyle()->buildUrlTemplate($file->getFileUri());
+    $parametrized_image_style = $this->getParametrizedImageStyle();
+    $url_template = $parametrized_image_style->buildUrlTemplate($file->getFileUri());
     assert(str_contains($url_template, '{width}'));
 
     // Transform absolute to relative URL template.
@@ -57,23 +77,9 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     assert($file_url_generator instanceof FileUrlGeneratorInterface);
     $url_template = $file_url_generator->transformRelative($url_template);
     assert(str_contains($url_template, '{width}'));
-    return $url_template;
-  }
-
-  public function getCastedValue(): string {
-    return $this->getValue();
-  }
-
-  public function getCacheTags() {
-    return $this->getParametrizedImageStyle()->getCacheTags();
-  }
-
-  public function getCacheContexts() {
-    return $this->getParametrizedImageStyle()->getCacheContexts();
-  }
-
-  public function getCacheMaxAge() {
-    return $this->getParametrizedImageStyle()->getCacheMaxAge();
+    return (new GeneratedUrl())->setGeneratedUrl($url_template)
+      ->addCacheableDependency($parametrized_image_style)
+      ->addCacheableDependency($file);
   }
 
 }

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\Plugin\AdapterManager;
@@ -76,14 +78,22 @@ final class AdaptedPropSource extends PropSourceBase {
   /**
    * {@inheritdoc}
    */
-  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): mixed {
+  public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
+    $inputs_cacheability = new CacheableMetadata();
+    if ($host_entity !== NULL) {
+      $inputs_cacheability->addCacheableDependency($host_entity);
+    }
     foreach ($this->adapter_inputs as $input_name => $input) {
       $value_object = $this->getInputPropSource($input_name);
-      $value = $value_object->evaluate($host_entity, $is_required);
-      $this->adapter_instance->addInput($input_name, $value);
+      $input = $value_object->evaluate($host_entity, $is_required);
+      $inputs_cacheability->addCacheableDependency($input);
+      $this->adapter_instance->addInput($input_name, $input->value);
     }
 
-    return $this->adapter_instance->adapt();
+    return new EvaluationResult(
+      $this->adapter_instance->adapt(),
+      $inputs_cacheability,
+    );
   }
 
   public function asChoice(): string {

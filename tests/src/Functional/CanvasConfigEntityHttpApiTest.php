@@ -1599,6 +1599,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:system.site',
       'config:system.theme',
       'http_response',
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::rewriteExampleUrl()
+      'component_plugins',
     ];
     // If expected adds new components, those components add additional cache tags. If those cache tags are not
     // present, the test will fail. This array is used to add those additional expected cache tags.
@@ -1648,6 +1650,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'node_list',
       'user_list',
       AutoSaveManager::CACHE_TAG,
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::rewriteExampleUrl()
+      'component_plugins',
     ];
 
     $expected_contexts = [

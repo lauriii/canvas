@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ExtensionPathResolver;
@@ -13,6 +15,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -1003,23 +1006,49 @@ HTML
     // Assert that existing files are rewritten to include the module path.
     $canvas_test_sdc_module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_test_sdc');
 
-    self::assertStringEndsWith($canvas_test_sdc_module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('600x400.png'));
-    self::assertStringEndsWith($canvas_test_sdc_module_path . '/components/image/600x400.png', $source->rewriteExampleUrl('/600x400.png'));
-    self::assertStringEndsWith('/tests/fixtures/600x400.png', $source->rewriteExampleUrl('../../tests/fixtures/600x400.png'));
+    $assert_cacheability = function (GeneratedUrl $g, $cache_tags = []) {
+      self::assertEqualsCanonicalizing($cache_tags, $g->getCacheTags());
+      self::assertEqualsCanonicalizing([], $g->getCacheContexts());
+      self::assertSame(Cache::PERMANENT, $g->getCacheMaxAge());
+    };
+
+    // Assert that relative URL to a file inside the SDC DOES get the
+    // `component_plugins` cache tag.
+    $cases = [
+      '600x400.png' => $canvas_test_sdc_module_path . '/components/image/600x400.png',
+      '/600x400.png' => $canvas_test_sdc_module_path . '/components/image/600x400.png',
+    ];
+    foreach ($cases as $case => $expectation) {
+      $generated_url = $source->rewriteExampleUrl($case);
+      self::assertStringEndsWith($expectation, $generated_url->getGeneratedUrl());
+      $assert_cacheability($generated_url, cache_tags: ['component_plugins']);
+    }
+
+    // Assert that relative URL to a file outside the SDC does NOT get the
+    // `component_plugins` cache tag.
+    $generated_url = $source->rewriteExampleUrl('../../tests/fixtures/600x400.png');
+    self::assertStringEndsWith('/tests/fixtures/600x400.png', $generated_url->getGeneratedUrl());
+    $assert_cacheability($generated_url);
 
     // Assert that non-existing links have a leading slash but do not include the module nor SDC path.
-    $url = $source->rewriteExampleUrl('test/path');
+    $generated_url = $source->rewriteExampleUrl('test/path');
+    $url = $generated_url->getGeneratedUrl();
     self::assertStringEndsWith('/test/path', $url);
     self::assertStringNotContainsString($canvas_test_sdc_module_path, $url);
     self::assertStringNotContainsString('components', $url);
+    $assert_cacheability($generated_url);
 
     // Assert that non-existing links with a leading slash are not doubled.
-    $url = $source->rewriteExampleUrl('/test/path');
+    $generated_url = $source->rewriteExampleUrl('/test/path');
+    $url = $generated_url->getGeneratedUrl();
     self::assertStringEndsWith('/test/path', $url);
     self::assertStringNotContainsString('//', $url);
+    $assert_cacheability($generated_url);
 
     // Assert that full URLs are left alone.
-    self::assertSame('https://www.example.com/', $source->rewriteExampleUrl('https://www.example.com/'));
+    $generated_url = $source->rewriteExampleUrl('https://www.example.com/');
+    self::assertSame('https://www.example.com/', $generated_url->getGeneratedUrl());
+    $assert_cacheability($generated_url);
   }
 
   /**
@@ -1055,7 +1084,7 @@ HTML
         array_keys($expected_props_for_uuids)
       )
     );
-    $this->assertSame($expected_props_for_uuids, $actual_props);
+    self::assertEquals($expected_props_for_uuids, $actual_props);
   }
 
   public static function providerComponentResolving(): array {
@@ -1068,7 +1097,7 @@ HTML
     $test_cases['invalid UUID, missing component_id key'][] = [];
     $test_cases['valid values using static inputs'][] = [
       'dynamic-static-card2df' => [
-        'heading' => 'They say I am static, but I want to believe I can change!',
+        'heading' => new EvaluationResult('They say I am static, but I want to believe I can change!'),
       ],
     ];
     $test_cases['valid values for propless component'][] = [
@@ -1076,13 +1105,16 @@ HTML
     ];
     $test_cases['valid value for optional explicit input using an URL prop shape, with default value'][] = [
       'optional-url-with-default-value' => [
-        'heading' => 'Gracie says hi!',
-        'image' => [
-          'src' => self::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
-          'alt' => 'A good dog',
-          'width' => 601,
-          'height' => 402,
-        ],
+        'heading' => new EvaluationResult('Gracie says hi!'),
+        'image' => new EvaluationResult(
+          [
+            'src' => self::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg',
+            'alt' => 'A good dog',
+            'width' => 601,
+            'height' => 402,
+          ],
+          (new CacheableMetadata())->setCacheTags(['component_plugins']),
+        ),
       ],
     ];
     $hero_with_dynamic_sources = [
@@ -1116,10 +1148,26 @@ HTML
       ],
       [
         'partly-dynamic-hero' => [
-          'heading' => 'hello, world!',
-          'subheading' => 'Test node',
-          'cta1href' => 'https://drupal.org',
-          'cta1' => 'Test node',
+          // Permanent cacheability because populated by StaticPropSource
+          // without references.
+          'heading' => new EvaluationResult('hello, world!'),
+          // Node 1 and access-dependent cacheability because DynamicPropSource.
+          'subheading' => new EvaluationResult(
+            'Test node',
+            (new CacheableMetadata())
+              ->setCacheTags(['node:1'])
+              ->setCacheContexts(['user.permissions'])
+          ),
+          // Permanent cacheability because populated by StaticPropSource
+          // without references.
+          'cta1href' => new EvaluationResult('https://drupal.org'),
+          // Node 1 and access-dependent cacheability because DynamicPropSource.
+          'cta1' => new EvaluationResult(
+            'Test node',
+            (new CacheableMetadata())
+              ->setCacheTags(['node:1'])
+              ->setCacheContexts(['user.permissions'])
+          ),
         ],
       ],
       ['access content'],
@@ -1130,10 +1178,18 @@ HTML
       ],
       [
         'partly-dynamic-hero' => [
-          'heading' => 'hello, world!',
-          'subheading' => NULL,
-          'cta1href' => 'https://drupal.org',
-          'cta1' => NULL,
+          'heading' => new EvaluationResult('hello, world!'),
+          // Node access-dependent cacheability because DynamicPropSource.
+          'subheading' => new EvaluationResult(
+            NULL,
+            (new CacheableMetadata())->setCacheContexts(['user.permissions'])
+          ),
+          'cta1href' => new EvaluationResult('https://drupal.org'),
+          // Node access-dependent cacheability because DynamicPropSource.
+          'cta1' => new EvaluationResult(
+            NULL,
+            (new CacheableMetadata())->setCacheContexts(['user.permissions'])
+          ),
         ],
       ],
       [],
@@ -4868,7 +4924,7 @@ HTML
     // could lead to misleading test results.
     foreach ($explicit_input['source'] as $prop_name => $prop_source_array) {
       $resolved_source = PropSource::parse($prop_source_array)->evaluate(NULL, is_required: TRUE);
-      self::assertSame($resolved_source, $explicit_input['resolved'][$prop_name]);
+      self::assertEquals($resolved_source, $explicit_input['resolved'][$prop_name]);
     }
 
     $component = Component::load($component_id);
@@ -5043,7 +5099,7 @@ HTML
           'image' => [
             'sourceType' => 'default-relative-url',
             'value' => [
-              'src' => '/modules/contrib/canvas_test_sdc/components/image/600x400.png',
+              'src' => '/600x400.png',
               'alt' => 'Boring placeholder',
               'width' => 600,
               'height' => 400,
@@ -5075,12 +5131,15 @@ HTML
           ],
         ],
         'resolved' => [
-          'image' => [
-            'src' => '/modules/contrib/canvas_test_sdc/components/image/600x400.png',
-            'alt' => 'Boring placeholder',
-            'width' => 600,
-            'height' => 400,
-          ],
+          'image' => new EvaluationResult(
+            [
+              'src' => static::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/image/600x400.png',
+              'alt' => 'Boring placeholder',
+              'width' => 600,
+              'height' => 400,
+            ],
+            (new CacheableMetadata())->setCacheTags(['component_plugins']),
+          ),
         ],
       ],
       [
@@ -5093,7 +5152,7 @@ HTML
         ],
         'resolved' => [
           'image' => [
-            'src' => '/modules/contrib/canvas_test_sdc/components/image/600x400.png',
+            'src' => static::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/image/600x400.png',
             'alt' => 'Boring placeholder',
             'width' => 600,
             'height' => 400,

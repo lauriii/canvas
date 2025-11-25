@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -146,7 +147,7 @@ final class PageTest extends KernelTestBase {
           '09365c2d-1ee1-47fd-b5a3-7e4f34866186' => [
             'component' => 'sdc.canvas_test_sdc.props-slots',
             'props' => [
-              'heading' => $test_heading_text,
+              'heading' => new EvaluationResult($test_heading_text),
             ],
             'slots' => [
               'the_body' => '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>',
