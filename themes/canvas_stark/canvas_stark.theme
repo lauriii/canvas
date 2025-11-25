@@ -40,6 +40,8 @@ function canvas_stark_theme(array $existing, string $type, string $theme, string
       'variables' => [
         'title' => NULL,
         'prop_name' => NULL,
+        'description_display' => NULL,
+        'description' => NULL,
       ],
       'template' => 'process_as_jsx/form/linked-field-box',
     ],

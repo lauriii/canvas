@@ -48,6 +48,23 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes', Page::EDIT_PERMISSION]);
   }
 
+  public function testDescription(): void {
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    self::assertCount(0, $node->validate());
+    $node->save();
+
+    $component_id = 'sdc.canvas_test_sdc.my-cta';
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/node/1',
+      $component_entity,
+      $form_canvas_props
+    );
+    self::assertStringContainsString('The title for the cta', $crawler->text());
+  }
+
   #[DataProvider('providerOptionalImages')]
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);

@@ -1,0 +1,10 @@
+.description {
+  padding-bottom: 0;
+  color: var(--slate-11);
+}
+
+.descriptionUnwrapped {
+  margin-top: calc(-2 * var(--space-1));
+  margin-bottom: var(--space-4);
+}
+

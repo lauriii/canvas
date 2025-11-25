@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Canvas Stark override for a media library fieldset.
+ * Default theme implementation for a fieldset element and its children.
  *
  * Available variables:
  * - attributes: HTML attributes for the <fieldset> element.
@@ -30,48 +30,42 @@
 #}
 {%
   set classes = [
-  'js-form-item',
-  'form-item',
-  'js-form-wrapper',
-  'form-wrapper',
-]
+    'js-form-item',
+    'form-item',
+    'js-form-wrapper',
+    'form-wrapper',
+  ]
 %}
-<fieldset{{ attributes.addClass(classes) }} data-canvas-media-library-fieldset='true'>
-  <legend>
-    <canvas-drupal-label
-        title="{{ legend.title }}"
-        {% if prop_link_data %}
-          direct_linker_data="{{ prop_link_data }}"
-        {% endif  %}
-    >
-    </canvas-drupal-label>
+<fieldset{{ attributes.addClass(classes) }}>
+  {%
+    set legend_span_classes = [
+      'fieldset-legend',
+      required ? 'js-form-required',
+      required ? 'form-required',
+    ]
+  %}
+  {# Always wrap fieldset legends in a <span> for CSS positioning. #}
+  <legend{{ legend.attributes }}>
+    <span{{ legend_span.attributes.addClass(legend_span_classes) }}>{{ legend.title }}</span>
   </legend>
-
-  {# If the prefix is the weight toggle, it is positioned above the wrapper. #}
-  {% if prefix and prefix['weight_toggle'] is defined %}
-    {{ prefix }}
-  {% endif %}
-  <div class="fieldset-wrapper" data-canvas-media-library-fieldset-wrapper='true'>
-{#  @todo the designs don't include any uses of the prefix when it isn't the weight,
-      but it's here as a comment in the event it needs inclusion later.
-
-    {% if prefix and prefix['weight_toggle'] is not defined %}
-      <span class="field-prefix">{{ prefix }}</span>
+  <div class="fieldset-wrapper">
+    {% if description_display == 'before' and description.content %}
+      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content }}" />
     {% endif %}
-#}
     {% if errors %}
       <div>
         {{ errors }}
       </div>
     {% endif %}
-
-    {% if suffix %}
-      {#  The suffix is the "add media" button    #}
-      {{ suffix }}
+    {% if prefix %}
+      <span class="field-prefix">{{ prefix }}</span>
     {% endif %}
     {{ children }}
-    {% if description.content %}
-      <canvas-description description="{{ description.content }}" />
+    {% if suffix %}
+      <span class="field-suffix">{{ suffix }}</span>
+    {% endif %}
+    {% if description_display in ['after', 'invisible'] and description.content %}
+      <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content }}" />
     {% endif %}
   </div>
 </fieldset>

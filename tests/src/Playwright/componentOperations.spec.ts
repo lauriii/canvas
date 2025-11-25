@@ -163,6 +163,36 @@ test.describe('Perform CRUD operations on components', () => {
     ).toBeVisible();
   });
 
+  test('Shows prop descriptions, but omits link field help', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    await drupal.createCanvasPage('Hero', '/hero');
+    await page.goto('/hero');
+    await canvasEditor.goToEditor();
+    await expect(page.locator('#block-stark-page-title h1')).toHaveCount(0);
+    await canvasEditor.openLibraryPanel();
+    await canvasEditor.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+
+    // Heading.
+    await expect(
+      (await canvasEditor.getActivePreviewFrame()).locator(
+        '[data-component-id="canvas_test_sdc:my-hero"] h1',
+      ),
+    ).toContainText('There goes my hero');
+    await expect(
+      await page.getByText('The main heading of the hero').count(),
+    ).toEqual(1);
+    await expect(
+      await page
+        .getByText('Start typing the title of a piece of content', {
+          exact: false,
+        })
+        .count(),
+    ).toEqual(0);
+  });
+
   test('Can handle empty heading prop in hero component', async ({
     page,
     drupal,

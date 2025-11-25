@@ -1,8 +1,9 @@
 import clsx from 'clsx';
 import { Cross2Icon, TextIcon } from '@radix-ui/react-icons';
-import { Flex, Text } from '@radix-ui/themes';
+import { Box, Flex, Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
+import InputDescription from '@/components/form/components/drupal/InputDescription';
 import {
   isEvaluatedComponentModel,
   selectLayout,
@@ -31,9 +32,13 @@ import styles from './LinkedFieldBox.module.css';
 const LinkedFieldBox = ({
   title,
   propName,
+  description,
+  descriptionDisplay,
 }: {
   title: string;
   propName: string;
+  description: string;
+  descriptionDisplay?: 'before' | 'after' | 'invisible';
 }) => {
   const { data: components } = useGetComponentsQuery();
   const model = useAppSelector(selectModel);
@@ -85,18 +90,25 @@ const LinkedFieldBox = ({
   };
 
   return (
-    <Flex className={styles.wrapper} mb="4">
-      <Text className={clsx(styles.linkIcon, styles.iconBox)}>
-        <TextIcon />
-      </Text>
-      <Text className={styles.text}>{title}</Text>
-      <button
-        className={clsx(styles.iconBox, styles.closeIcon)}
-        onClick={unlinkField}
+    <Box mb="4">
+      <InputDescription
+        description={description}
+        descriptionDisplay={descriptionDisplay}
       >
-        <Cross2Icon />
-      </button>
-    </Flex>
+        <Flex className={styles.wrapper} mb="2">
+          <Text className={clsx(styles.linkIcon, styles.iconBox)}>
+            <TextIcon />
+          </Text>
+          <Text className={styles.text}>{title}</Text>
+          <button
+            className={clsx(styles.iconBox, styles.closeIcon)}
+            onClick={unlinkField}
+          >
+            <Cross2Icon />
+          </button>
+        </Flex>
+      </InputDescription>
+    </Box>
   );
 };
 

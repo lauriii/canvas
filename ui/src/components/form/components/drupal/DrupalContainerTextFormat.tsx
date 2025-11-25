@@ -5,6 +5,8 @@ import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
+import styles from './DrupalContainerTextFormat.module.css';
+
 interface DrupalContainerTextFormatFilterProps {
   attributes?: Attributes;
   renderChildren?: JSX.Element | null;
@@ -23,7 +25,10 @@ const DrupalContainerTextFormatFilterGuidelines = ({
   return (
     <Box
       {...a2p(attributes, {
-        class: clsx(hasParent && ['js-form-wrapper', 'form-wrapper']),
+        class: clsx(
+          styles.help,
+          hasParent && ['js-form-wrapper', 'form-wrapper'],
+        ),
       })}
     >
       {renderChildren}
@@ -43,7 +48,10 @@ const DrupalContainerTextFormatFilterHelp = ({
   return (
     <Box
       {...a2p(attributes, {
-        class: clsx(hasParent && ['js-form-wrapper', 'form-wrapper']),
+        class: clsx(
+          styles.help,
+          hasParent && ['js-form-wrapper', 'form-wrapper'],
+        ),
       })}
       mb="2"
     >

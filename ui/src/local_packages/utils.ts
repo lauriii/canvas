@@ -11,7 +11,7 @@ import type { Attributes } from '@/types/DrupalAttribute';
  * @returns
  */
 export function a2p(
-  attributesFromDrupal: Attributes,
+  attributesFromDrupal: Attributes = {},
   attributesFromComponent: Attributes = {},
   { skipAttributes = [] }: { skipAttributes?: string[] } = {},
 ) {

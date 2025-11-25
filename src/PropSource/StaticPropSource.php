@@ -440,7 +440,7 @@ final class StaticPropSource extends PropSourceBase {
     };
   }
 
-  public function getWidget(string $component_config_entity_id, ?string $component_config_entity_version, string $prop_name, string $sdc_prop_label, ?string $field_widget_plugin_id): WidgetInterface {
+  public function getWidget(string $component_config_entity_id, ?string $component_config_entity_version, string $prop_name, string $sdc_prop_label, ?string $field_widget_plugin_id, ?string $sdc_prop_description = NULL): WidgetInterface {
     // @phpstan-ignore-next-line
     $field_widget_plugin_manager = \Drupal::service('plugin.manager.field.widget');
     assert($field_widget_plugin_manager instanceof WidgetPluginManager);
@@ -470,7 +470,8 @@ final class StaticPropSource extends PropSourceBase {
             ],
           ],
         ])
-        ->setLabel($sdc_prop_label),
+        ->setLabel($sdc_prop_label)
+        ->setDescription($sdc_prop_description ?? ''),
       'configuration' => $configuration,
       'prepare' => TRUE,
     ]);

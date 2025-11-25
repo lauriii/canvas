@@ -7,6 +7,7 @@ describe('Prop types editing', () => {
       typeThis: ' Goodbye shack',
       iframeSelector: '#test-required-string',
       labelText: 'String (required)',
+      description: 'This is the description of String (required)',
     },
     'String — single line': {
       valuePre: 'Hello, world!',
@@ -14,6 +15,7 @@ describe('Prop types editing', () => {
       typeThis: ' My name is Ronk',
       iframeSelector: '#test-string',
       labelText: 'String — single line',
+      description: 'This is the description of String — single line',
     },
     'String: Multiline': {
       valuePre: 'Hello,\nmultiline\nworld!',
@@ -21,14 +23,15 @@ describe('Prop types editing', () => {
       typeThis: ' yay',
       iframeSelector: '#test-string-multiline',
       labelText: 'String — multi-line',
+      description: 'This is the description of String — multi-line',
     },
-
     'String: Format email': {
       valuePre: 'hello@example.com',
       valuePost: 'hello@example.commander',
       typeThis: 'mander',
       iframeSelector: '#test-string-format-email',
       labelText: 'String, format=email',
+      description: 'This is the description of String, format=email',
     },
     'String: Format idn email': {
       valuePre: 'hello@idn.example.com',
@@ -36,6 +39,7 @@ describe('Prop types editing', () => {
       typeThis: 'mando',
       iframeSelector: '#test-string-format-idn-email',
       labelText: 'String, format=idn-email',
+      description: 'This is the description of String, format=idn-email',
     },
     'String: Format uri': {
       valuePre: 'https://uri.example.com',
@@ -43,6 +47,7 @@ describe('Prop types editing', () => {
       typeThis: 'bination',
       iframeSelector: '#test-string-format-uri',
       labelText: 'String, format=uri',
+      description: 'This is the description of String, format=uri',
     },
     'String: Format iri': {
       valuePre: 'https://iri.example.com',
@@ -50,6 +55,7 @@ describe('Prop types editing', () => {
       typeThis: 'mentary',
       iframeSelector: '#test-string-format-iri',
       labelText: 'String, format=iri',
+      description: 'This is the description of String, format=iri',
     },
   };
 
@@ -132,6 +138,7 @@ describe('Prop types editing', () => {
           'have.value',
           testData.valuePre,
         );
+        cy.findByText(testData.description).should('exist');
         cy.waitForElementContentInIframe(
           testData.iframeSelector,
           testData.valuePre,
@@ -163,6 +170,7 @@ describe('Prop types editing', () => {
       .find('select')
       .as('select')
       .should('have.value', 'foo');
+    cy.findByText('This is the description of String - Enum').should('exist');
     cy.waitForElementContentInIframe('#test-string-enum', 'foo');
     cy.get('@select').within(() => {
       cy.get('option:selected').should('have.text', 'Foo');
@@ -209,6 +217,9 @@ describe('Prop types editing', () => {
         .find('select')
         .as('select')
         .should('have.value', '1');
+      cy.findByText('This is the description of Integer - Enum').should(
+        'exist',
+      );
       cy.waitForElementContentInIframe('#test-integer-enum', '1');
       cy.get('@select').within(() => {
         cy.get('option:selected').should('have.text', '1');
@@ -241,6 +252,10 @@ describe('Prop types editing', () => {
       '[name$="[test_string_format_date_time][0][value][date]"]';
     const timeSelector =
       '[name$="[test_string_format_date_time][0][value][time]"]';
+
+    cy.findByText('This is the description of String, format=date-time').should(
+      'exist',
+    );
 
     cy.get(dateSelector).should('have.value', '2016-09-17');
 
@@ -295,6 +310,7 @@ describe('Prop types editing', () => {
 
   it('Integer', { retries: { openMode: 0, runMode: 3 } }, () => {
     cy.findByLabelText('Integer').should('have.value', -42);
+    cy.findByText('This is the description of Integer').should('exist');
     cy.waitForElementContentInIframe('#test-integer', '-42');
     cy.findByLabelText('Integer').clear();
     cy.findByLabelText('Integer').type(12);
@@ -361,6 +377,10 @@ describe('Prop types editing', () => {
     cy.findByLabelText('String, format=uri')
       .as('theInput')
       .should('have.value', 'https://uri.example.com');
+    cy.findByText('This is the description of String, format=uri').should(
+      'exist',
+    );
+
     cy.get('@theInput').clear({ force: true });
     // Autocomplete fields that did not select an autocomplete suggestion
     // must be blurred before the store is updated.
@@ -404,6 +424,10 @@ describe('Prop types editing', () => {
     cy.findByLabelText('String, format=idn-email')
       .as('theInput')
       .should('have.value', initialValue);
+    cy.findByText('This is the description of String, format=idn-email').should(
+      'exist',
+    );
+
     cy.get('@theInput').clear();
     cy.get('@theInput')
       .should('have.value', '')
@@ -438,6 +462,9 @@ describe('Prop types editing', () => {
     cy.findByLabelText('String, format=email')
       .as('theInput')
       .should('have.value', initialValue);
+    cy.findByText('This is the description of String, format=email').should(
+      'exist',
+    );
     cy.get('@theInput').clear();
     cy.get('@theInput')
       .should('have.value', '')
@@ -475,6 +502,9 @@ describe('Prop types editing', () => {
       cy.findByLabelText('String, format=uri-reference')
         .as('theInput')
         .should('have.value', initialValue);
+      cy.findByText(
+        'This is the description of String, format=uri-reference',
+      ).should('exist');
       cy.get('@theInput').clear({ force: true });
       // Autocomplete fields that did not select an autocomplete suggestion
       // must be blurred before the store is updated.
@@ -527,6 +557,9 @@ describe('Prop types editing', () => {
       cy.findByLabelText('String, format=iri-reference')
         .as('theInput')
         .should('have.value', initialValue);
+      cy.findByText(
+        'This is the description of String, format=iri-reference',
+      ).should('exist');
       cy.findByLabelText('String, format=iri-reference').clear({ force: true });
       // Autocomplete fields that did not select an autocomplete suggestion
       // must be blurred before the store is updated.
@@ -576,6 +609,9 @@ describe('Prop types editing', () => {
       const labelText = 'String — single line';
       const valuePre = 'Hello, world!';
       const valuePost = '1999';
+      cy.findByText('This is the description of String — single line').should(
+        'exist',
+      );
       cy.waitForElementContentInIframe(iframeSelector, valuePre);
       cy.findByLabelText(labelText).should('have.value', valuePre);
       cy.findByLabelText(labelText).clear({ force: true });
@@ -626,6 +662,9 @@ describe('Prop types editing', () => {
       cy.openLibraryPanel();
       cy.insertComponent({ name: 'All props' });
       cy.findByLabelText('String with HTML formatting (block)').should('exist');
+      cy.findByText(
+        'This is the description of String with HTML formatting (block)',
+      ).should('exist');
 
       const selector = '#test-string-html-block';
       const initialHtml =

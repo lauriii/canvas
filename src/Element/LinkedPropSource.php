@@ -89,6 +89,8 @@ class LinkedPropSource extends RenderElementBase {
       '#theme' => 'linked_field_box',
       '#title' => $linked_prop_source->label(),
       '#prop_name' => $sdc_prop_name,
+      '#description' => $element['#description'],
+      '#description_display' => $element['#description_display'],
     ];
 
     return $element;

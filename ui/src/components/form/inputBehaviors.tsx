@@ -9,6 +9,7 @@ import './InputBehaviors.css';
 
 import Ajv from 'ajv';
 
+import InputDescription from '@/components/form/components/drupal/InputDescription';
 import { InputBehaviorsComponentPropsForm } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { InputBehaviorsEntityForm } from '@/components/form/InputBehaviorsEntityForm';
 import { FORM_TYPES } from '@/features/form/constants';
@@ -69,6 +70,11 @@ export const InputBehaviorsCommon = ({
       onChange: (e: React.ChangeEvent) => void;
       onBlur: (e: React.FocusEvent) => void;
     };
+    description?: {
+      content: string;
+      attributes: Attributes;
+    };
+    descriptionDisplay?: 'before' | 'after' | 'invisible';
   };
   callbacks: {
     commitFormState: (newFormState: PropsValues) => void;
@@ -76,7 +82,14 @@ export const InputBehaviorsCommon = ({
     validateNewValue: (e: React.ChangeEvent, newValue: any) => ValidationResult;
   };
 }) => {
-  const { attributes, options, value, ...passProps } = props;
+  const {
+    attributes,
+    options,
+    value,
+    descriptionDisplay = 'before',
+    description = false,
+    ...passProps
+  } = props;
   const { commitFormState, parseNewValue, validateNewValue } = callbacks;
   const dispatch = useAppDispatch();
   const defaultValue = getDefaultValue(options, attributes, value);
@@ -279,12 +292,21 @@ export const InputBehaviorsCommon = ({
 
   return (
     <>
-      <OriginalInput {...passProps} attributes={attributes} options={options} />
-      {fieldError && (
-        <span data-prop-message>
-          {`${fieldError.type === 'error' ? '❌ ' : ''}${fieldError.message}`}
-        </span>
-      )}
+      <InputDescription
+        description={description}
+        descriptionDisplay={descriptionDisplay}
+      >
+        <OriginalInput
+          {...passProps}
+          attributes={attributes}
+          options={options}
+        />
+        {fieldError && (
+          <span data-prop-message>
+            {`${fieldError.type === 'error' ? '❌ ' : ''}${fieldError.message}`}
+          </span>
+        )}
+      </InputDescription>
     </>
   );
 };

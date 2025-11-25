@@ -8,6 +8,8 @@ import { a2p } from '@/local_packages/utils.js';
 import type { ReactNode } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
+import descriptionStyles from './InputDescription.module.css';
+
 const DrupalDetails = ({
   attributes = {},
   errors = null,
@@ -29,6 +31,7 @@ const DrupalDetails = ({
   required: boolean;
   element: { [key: string]: any };
 }) => {
+  const descriptionClasses = clsx('description', descriptionStyles.description);
   if (element?.['#accordion_items']) {
     return (
       <AccordionDetails
@@ -39,7 +42,7 @@ const DrupalDetails = ({
         })}
       >
         {errors && <Box>{errors}</Box>}
-        {description && <Box>{description}</Box>}
+        {description && <Box className={descriptionClasses}>{description}</Box>}
         <Box>{renderChildren}</Box>
         {value && <Box>{value}</Box>}
       </AccordionDetails>

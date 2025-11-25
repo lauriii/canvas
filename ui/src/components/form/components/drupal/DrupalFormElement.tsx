@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 
+import InputDescription from '@/components/form/components/drupal/InputDescription';
 import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -23,8 +24,8 @@ interface FormElementProps {
   name: string | null;
   label: string | null;
   labelDisplay: string;
-  description: Description;
-  descriptionDisplay: string;
+  description?: Description | string | false;
+  descriptionDisplay?: 'before' | 'after' | 'invisible';
   disabled: string | null;
   titleDisplay: string;
   children: string | null;
@@ -41,8 +42,8 @@ const DrupalFormElement = ({
   name,
   label = '',
   labelDisplay = '',
-  description = {},
-  descriptionDisplay = '',
+  description = '',
+  descriptionDisplay = 'after',
   disabled = '',
   titleDisplay = '',
   children = '',
@@ -65,11 +66,6 @@ const DrupalFormElement = ({
     type === 'radio' && styles.radio,
   );
 
-  const descriptionClasses = clsx(
-    'description',
-    descriptionDisplay === 'invisible' ? 'visually-hidden' : '',
-  );
-
   return (
     // @todo Extract to a standalone <FormElement> component.
     // https://www.drupal.org/i/3491293
@@ -78,44 +74,21 @@ const DrupalFormElement = ({
       {prefix && prefix.length > 0 && (
         <span className="field-prefix">{prefix}</span>
       )}
-      {descriptionDisplay === 'before' &&
-        description.content &&
-        description.content && (
-          // @todo Extract to a standalone <FormElementDescription> component.
-          // @todo Pass as a prop to the <FormElement> component.
-          // https://www.drupal.org/i/3491293
-          <div
-            {...a2p(description.attributes || {}, {
-              class: descriptionClasses,
-            })}
-          >
-            {description.content}
+      <InputDescription
+        description={description}
+        descriptionDisplay={descriptionDisplay}
+      >
+        {renderChildren}
+        {suffix && suffix.length > 0 && (
+          <span className="field-suffix">{suffix}</span>
+        )}
+        {['after'].includes(labelDisplay) && label}
+        {errors && (
+          <div className="form-item--error-message form-item-errors">
+            {errors}
           </div>
         )}
-      {renderChildren}
-      {suffix && suffix.length > 0 && (
-        <span className="field-suffix">{suffix}</span>
-      )}
-      {['after'].includes(labelDisplay) && label}
-      {errors && (
-        <div className="form-item--error-message form-item-errors">
-          {errors}
-        </div>
-      )}
-      {['after', 'invisible'].includes(descriptionDisplay) &&
-        description.content &&
-        description.content && (
-          // @todo Extract to a standalone <FormElementDescription> component.
-          // @todo Pass as a prop to the <FormElement> component.
-          // https://www.drupal.org/i/3491293
-          <div
-            {...a2p(description.attributes || {}, {
-              class: descriptionClasses,
-            })}
-          >
-            {description.content || ''}
-          </div>
-        )}
+      </InputDescription>
     </div>
   );
 };

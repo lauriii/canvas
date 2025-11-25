@@ -15,6 +15,7 @@ import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
 import DrupalTextArea from '@/components/form/components/drupal/DrupalTextArea';
 import DrupalToggle from '@/components/form/components/drupal/DrupalToggle';
 import DrupalVerticalTabs from '@/components/form/components/drupal/DrupalVerticalTabs';
+import InputDescription from '@/components/form/components/drupal/InputDescription.js';
 import LinkedFieldBox from '@/components/form/components/drupal/LinkedFieldBox.js';
 import PropLinker from '@/components/form/components/drupal/PropLinker.js';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
@@ -45,6 +46,7 @@ const twigToJSXComponentMap = {
   'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
   'canvas-text': CanvasText,
   'canvas-box': CanvasBox,
+  'canvas-description': InputDescription,
   'canvas-drupal-label': DrupalFormElementLabel,
   'drupal-linked-field-box': LinkedFieldBox,
   'drupal-prop-linker': PropLinker,
