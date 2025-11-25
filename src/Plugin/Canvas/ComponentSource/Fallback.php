@@ -124,6 +124,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
       $this->configuration['fallback_reason'] ??
       $this->t('Component has been deleted. Copy values to new component.'),
     ];
+    ksort($inputValues);
     $form['input'] = [
       '#type' => 'textarea',
       '#value' => \json_encode($inputValues, \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),

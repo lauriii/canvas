@@ -404,7 +404,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   #[TestWith([
     'canvas_test_block_input_validatable',
     'Name Enter a name to display in the block.',
-    'Previously stored input {"id":"canvas_test_block_input_validatable","label":"Test Block with settings","label_display":"0","provider":"canvas_test_block","name":"Canvas"}',
+    'Previously stored input {"id":"canvas_test_block_input_validatable","label":"Test Block with settings","label_display":"0","name":"Canvas","provider":"canvas_test_block"}',
   ])]
   public function testBlockComponentThatHasGoneAway(string $block_plugin_id, string $expected_form_when_not_broken, string $fyi): void {
     $page = Page::create(['title' => $this->randomMachineName()]);
