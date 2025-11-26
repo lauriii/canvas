@@ -7,6 +7,7 @@ import {
   setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
 import { baseQuery } from '@/services/baseQuery';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 
 interface Owner {
   name: string;
@@ -96,6 +97,15 @@ export const pendingChangesApi = createApi({
                 return draft;
               },
             ),
+          );
+
+          // Invalidate the layout query cache of the current entity to ensure that the autoSaves hash is updated
+          // ALSO, For example Drupal has hook_entity_presave which allows altering an entity before it is saved.
+          // Canvas will not be aware of any changes made in custom code here, therefore if Canvas doesn't re-request
+          // after publishing, the auto-save request could wipe out any changes that were made in
+          // any hook_entity_presave code
+          dispatch(
+            componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
           );
           dispatch(setPreviousPendingChanges());
           dispatch(setErrors());
