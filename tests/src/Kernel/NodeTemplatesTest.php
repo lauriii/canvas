@@ -168,10 +168,10 @@ HTML;
         'format' => 'basic_html',
       ],
       'status' => $node_is_published,
+      'uid' => 1,
     ]);
     self::assertSame($node_is_published, $node->isPublished());
     self::assertFalse($node->isNew());
-    $this->setUpCurrentUser(permissions: ['access content']);
     $viewBuilder = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node');
     self::assertInstanceOf(ContentTemplateAwareViewBuilder::class, $viewBuilder);
     $build = $viewBuilder->view($node);
@@ -183,7 +183,7 @@ HTML;
     self::assertCount(0, $crawler->filter('script'));
     self::assertEqualsCanonicalizing([
       'config:filter.format.basic_html',
-      'user:2',
+      'user:1',
       'user_view',
       // TRICKY: this cache tag is present because the config entity does exist,
       // but is disabled. It was assessed whether it should be used, hence its
