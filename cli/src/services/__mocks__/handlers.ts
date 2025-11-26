@@ -32,6 +32,16 @@ export const handlers = [
       });
     }
 
+    if (params.get('client_id') === 'always-fail-refresh') {
+      return HttpResponse.json(
+        {
+          error: 'invalid_grant',
+          error_description: 'Token refresh failed',
+        },
+        { status: 401 },
+      );
+    }
+
     return HttpResponse.json({ access_token: 'test-access-token' });
   }),
 
@@ -41,6 +51,13 @@ export const handlers = [
       'Bearer test-access-token-no-permission'
     ) {
       return HttpResponse.json({}, { status: 403 });
+    }
+
+    if (
+      request.headers.get('Authorization') === 'Bearer initial-token' ||
+      request.headers.get('Authorization') === 'Bearer expired-token'
+    ) {
+      return HttpResponse.json({}, { status: 401 });
     }
 
     return HttpResponse.json({});

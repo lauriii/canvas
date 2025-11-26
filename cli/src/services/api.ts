@@ -21,6 +21,7 @@ export class ApiService {
   private readonly scope: string;
   private readonly userAgent: string;
   private accessToken: string | null = null;
+  private refreshPromise: Promise<string> | null = null;
 
   private constructor(options: ApiOptions) {
     this.clientId = options.clientId;
@@ -64,38 +65,113 @@ export class ApiService {
         },
       ],
     });
+
+    // Add response interceptor for automatic token refresh
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Check if this is a 401 error and we haven't already retried this request
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !originalRequest.url?.includes('/oauth/token')
+        ) {
+          originalRequest._retry = true;
+
+          try {
+            // Refresh the access token
+            const newToken = await this.refreshAccessToken();
+
+            // Update the authorization header for the retry
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+            // Retry the original request
+            return this.client(originalRequest);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (refreshError) {
+            // Token refresh failed, reject with original error
+            return Promise.reject(error);
+          }
+        }
+
+        return Promise.reject(error);
+      },
+    );
+
+    // Add request interceptor for lazy token loading
+    this.client.interceptors.request.use(
+      async (config) => {
+        // If we don't have a token and this isn't the token endpoint, get one
+        if (!this.accessToken && !config.url?.includes('/oauth/token')) {
+          try {
+            const token = await this.refreshAccessToken();
+            config.headers.Authorization = `Bearer ${token}`;
+          } catch (error) {
+            return Promise.reject(error);
+          }
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      },
+    );
+  }
+
+  /**
+   * Refresh the access token using client credentials.
+   * Handles concurrent refresh attempts by reusing the same promise.
+   */
+  private async refreshAccessToken(): Promise<string> {
+    // If a refresh is already in progress, wait for it
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    // Start a new refresh - create the promise immediately so concurrent calls share it
+    this.refreshPromise = (async (): Promise<string> => {
+      try {
+        const response = await this.client.post(
+          '/oauth/token',
+          new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: this.clientId,
+            client_secret: this.clientSecret,
+            scope: this.scope,
+          }).toString(),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
+        );
+
+        this.accessToken = response.data.access_token;
+
+        // Update the default authorization header
+        this.client.defaults.headers.common['Authorization'] =
+          `Bearer ${this.accessToken}`;
+
+        return this.accessToken!;
+      } catch (error) {
+        // Use the existing error handling to maintain consistency with original behavior
+        this.handleApiError(error);
+        // This line should never be reached because handleApiError always throws
+        throw new Error('Failed to refresh access token');
+      }
+    })();
+
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
   }
 
   public static async create(options: ApiOptions): Promise<ApiService> {
-    const instance = new ApiService(options);
-    try {
-      const response = await instance.client.post(
-        '/oauth/token',
-        new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: instance.clientId,
-          client_secret: instance.clientSecret,
-          scope: instance.scope,
-        }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
-      );
-
-      instance.accessToken = response.data.access_token;
-
-      // Update the default headers to include the access token
-      instance.client.defaults.headers.common['Authorization'] =
-        `Bearer ${instance.accessToken}`;
-    } catch (error) {
-      instance.handleApiError(error);
-      throw new Error(
-        'Failed to initialize API service: Could not obtain access token',
-      );
-    }
-    return instance;
+    return new ApiService(options);
   }
 
   getAccessToken(): string | null {

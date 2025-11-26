@@ -17,6 +17,7 @@ import {
   processComponentFiles,
 } from '../utils/process-component-files.js';
 import { reportResults } from '../utils/report-results';
+import { createProgressCallback, processInPool } from '../utils/request-pool';
 import { selectLocalComponents } from '../utils/select-local-components.js';
 import { fileExists } from '../utils/utils';
 
@@ -24,6 +25,153 @@ import type { DataDependencies } from '@drupal-canvas/ui/types/CodeComponent';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
 import type { Result } from '../types/Result.js';
+
+/**
+ * Result type for component existence checks.
+ */
+interface ComponentExistsResult {
+  machineName: string;
+  exists: boolean;
+  error?: Error;
+}
+
+/**
+ * Result type for component upload operations.
+ */
+interface ComponentUploadResult {
+  machineName: string;
+  success: boolean;
+  operation: 'create' | 'update';
+  error?: Error;
+}
+
+/**
+ * Check if components exist.
+ *
+ * @param machineNames - Array of component machine names to check
+ * @param apiService - API service instance
+ * @param onProgress - Progress callback function
+ * @returns Promise resolving to existence results for each component
+ */
+async function checkComponentsExist(
+  machineNames: string[],
+  apiService: { listComponents: () => Promise<Record<string, unknown>> },
+  onProgress: () => void,
+): Promise<ComponentExistsResult[]> {
+  try {
+    // Get all existing components in a single API call
+    const existingComponents = await apiService.listComponents();
+    const existingMachineNames = new Set(Object.keys(existingComponents));
+
+    // Check each requested machine name against the existing components
+    return machineNames.map((machineName) => {
+      onProgress();
+      return {
+        machineName,
+        exists: existingMachineNames.has(machineName),
+      };
+    });
+  } catch (error) {
+    // If listComponents fails, return all as non-existent with error
+    return machineNames.map((machineName) => {
+      onProgress();
+      return {
+        machineName,
+        exists: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    });
+  }
+}
+
+/**
+ * Upload (create or update) multiple components concurrently.
+ *
+ * @param uploadTasks - Array of upload task objects
+ * @param apiService - API service instance
+ * @param onProgress - Optional progress callback
+ * @returns Promise resolving to upload results for each component
+ */
+async function uploadComponents<T>(
+  uploadTasks: Array<{
+    machineName: string;
+    componentPayload: T;
+    shouldUpdate: boolean;
+  }>,
+  apiService: {
+    createComponent: (payload: T, raw?: boolean) => Promise<unknown>;
+    updateComponent: (name: string, payload: T) => Promise<unknown>;
+  },
+  onProgress?: () => void,
+): Promise<ComponentUploadResult[]> {
+  const results = await processInPool(uploadTasks, async (task) => {
+    try {
+      if (task.shouldUpdate) {
+        await apiService.updateComponent(
+          task.machineName,
+          task.componentPayload,
+        );
+      } else {
+        await apiService.createComponent(task.componentPayload, true);
+      }
+      onProgress?.();
+      return {
+        machineName: task.machineName,
+        success: true,
+        operation: task.shouldUpdate
+          ? ('update' as const)
+          : ('create' as const),
+      };
+    } catch {
+      // Make another attempt to create/update without the 2nd argument so
+      // the error is in the format expected by the catch statement that
+      // summarizes the success (or lack thereof) of this operation
+      try {
+        if (task.shouldUpdate) {
+          await apiService.updateComponent(
+            task.machineName,
+            task.componentPayload,
+          );
+        } else {
+          await apiService.createComponent(task.componentPayload);
+        }
+        onProgress?.();
+        return {
+          machineName: task.machineName,
+          success: true,
+          operation: task.shouldUpdate
+            ? ('update' as const)
+            : ('create' as const),
+        };
+      } catch (fallbackError) {
+        onProgress?.();
+        return {
+          machineName: task.machineName,
+          success: false,
+          operation: task.shouldUpdate
+            ? ('update' as const)
+            : ('create' as const),
+          error:
+            fallbackError instanceof Error
+              ? fallbackError
+              : new Error(String(fallbackError)),
+        };
+      }
+    }
+  });
+
+  return results.map((result) => {
+    if (result.success && result.result) {
+      return result.result;
+    }
+    return {
+      machineName: uploadTasks[result.index]?.machineName || 'unknown',
+      success: false,
+      operation: 'create' as const,
+      error: result.error || new Error('Unknown error during upload'),
+    };
+  });
+}
 
 interface UploadOptions {
   clientId?: string;
@@ -143,32 +291,21 @@ export function uploadCommand(program: Command): void {
     });
 }
 
-// Get the build and upload results.
-async function getBuildAndUploadResults(
+interface PreparedComponent {
+  machineName: string;
+  componentName: string;
+  componentPayload: ReturnType<typeof createComponentPayload>;
+  dir: string;
+  buildResult: Result;
+}
+
+async function prepareComponentsForUpload(
+  successfulBuilds: Result[],
   componentsToUpload: string[],
-  apiService: ApiService,
-): Promise<Result[]> {
-  const results: Result[] = [];
+): Promise<{ prepared: PreparedComponent[]; failed: Result[] }> {
+  const prepared: PreparedComponent[] = [];
+  const failed: Result[] = [];
 
-  // Build components
-  const buildResults = await buildSelectedComponents(componentsToUpload);
-
-  // Filter successful builds
-  const successfulBuilds = buildResults.filter((build) => build.success);
-  const failedBuilds = buildResults.filter((build) => !build.success);
-
-  if (successfulBuilds.length === 0) {
-    const message = 'All component builds failed.';
-    p.note(chalk.red(message));
-  }
-  const spinner: {
-    start: (msg?: string) => void;
-    stop: (msg?: string, code?: number) => void;
-    message: (msg?: string) => void;
-  } = p.spinner();
-  spinner.start('Uploading components');
-
-  // Only upload the successfully built components.
   for (const buildResult of successfulBuilds) {
     const dir = buildResult.itemName
       ? (componentsToUpload.find(
@@ -221,47 +358,17 @@ async function getBuildAndUploadResults(
       };
       const componentPayload = createComponentPayload(componentPayloadArg);
 
-      // Check if component exists already
-      let componentExists = false;
-
-      try {
-        await apiService.getComponent(machineName);
-        componentExists = true;
-      } catch {
-        // Component does not exist, will create new.
-      }
-
-      try {
-        // Create or update the component
-        if (componentExists) {
-          await apiService.updateComponent(machineName, componentPayload);
-        } else {
-          await apiService.createComponent(componentPayload, true);
-        }
-      } catch {
-        // Make another attempt to create/update without the 2nd argument so
-        // the error is in the format expected by the catch statement that
-        // summarizes the success (or lack thereof) of this operation.
-        if (componentExists) {
-          await apiService.updateComponent(machineName, componentPayload);
-        } else {
-          await apiService.createComponent(componentPayload);
-        }
-      }
-
-      results.push({
-        itemName: componentName,
-        success: true,
-        details: [
-          {
-            content: componentExists ? 'Updated' : 'Created',
-          },
-        ],
+      prepared.push({
+        machineName,
+        componentName,
+        componentPayload,
+        dir,
+        buildResult,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      results.push({
+      failed.push({
         itemName: buildResult.itemName,
         success: false,
         details: [
@@ -272,7 +379,101 @@ async function getBuildAndUploadResults(
       });
     }
   }
-  // Add the failed builds to the upload results to get the correct count.
+
+  return { prepared, failed };
+}
+
+async function getBuildAndUploadResults(
+  componentsToUpload: string[],
+  apiService: ApiService,
+): Promise<Result[]> {
+  const results: Result[] = [];
+  const spinner = p.spinner();
+
+  spinner.start('Building components');
+  const buildResults = await buildSelectedComponents(componentsToUpload);
+
+  const successfulBuilds = buildResults.filter((build) => build.success);
+  const failedBuilds = buildResults.filter((build) => !build.success);
+
+  if (successfulBuilds.length === 0) {
+    const message = 'All component builds failed.';
+    spinner.stop(chalk.red(message));
+    return failedBuilds;
+  }
+
+  spinner.message('Preparing components for upload');
+  const { prepared: preparedComponents, failed: preparationFailures } =
+    await prepareComponentsForUpload(successfulBuilds, componentsToUpload);
+
+  results.push(...preparationFailures);
+
+  if (preparedComponents.length === 0) {
+    spinner.stop(chalk.red('All component preparations failed'));
+    return [...results, ...failedBuilds];
+  }
+
+  const machineNames = preparedComponents.map((c) => c.machineName);
+  const existenceProgress = createProgressCallback(
+    spinner,
+    'Checking component existence',
+    machineNames.length,
+  );
+
+  spinner.message('Checking component existence');
+  const existenceResults = await checkComponentsExist(
+    machineNames,
+    apiService,
+    existenceProgress,
+  );
+
+  const uploadTasks = preparedComponents.map((component, index) => ({
+    machineName: component.machineName,
+    componentPayload: component.componentPayload,
+    shouldUpdate: existenceResults[index]?.exists || false,
+  }));
+
+  const uploadProgress = createProgressCallback(
+    spinner,
+    'Uploading components',
+    uploadTasks.length,
+  );
+
+  spinner.message('Uploading components');
+  const uploadResults = await uploadComponents(
+    uploadTasks,
+    apiService,
+    uploadProgress,
+  );
+
+  for (let i = 0; i < preparedComponents.length; i++) {
+    const component = preparedComponents[i];
+    const uploadResult = uploadResults[i];
+
+    if (uploadResult.success) {
+      results.push({
+        itemName: component.componentName,
+        success: true,
+        details: [
+          {
+            content:
+              uploadResult.operation === 'update' ? 'Updated' : 'Created',
+          },
+        ],
+      });
+    } else {
+      results.push({
+        itemName: component.componentName,
+        success: false,
+        details: [
+          {
+            content: uploadResult.error?.message || 'Unknown upload error',
+          },
+        ],
+      });
+    }
+  }
+
   results.push(...failedBuilds);
   const componentLabelPluralized =
     results.length === 1 ? 'component' : 'components';
