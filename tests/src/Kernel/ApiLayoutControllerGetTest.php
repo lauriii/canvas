@@ -18,6 +18,7 @@ use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
@@ -475,8 +476,18 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
         ],
         'cta1href' => [
-          'sourceType' => 'static:field_item:uri',
-          'expression' => 'ℹ︎uri␟value',
+          'sourceType' => 'static:field_item:link',
+          'value' => [
+            'uri' => 'https://drupal.org',
+            'options' => [],
+          ],
+          'expression' => 'ℹ︎link␟url',
+          'sourceTypeSettings' => [
+            'instance' => [
+              'title' => \DRUPAL_DISABLED,
+              'link_type' => LinkItemInterface::LINK_GENERIC,
+            ],
+          ],
         ],
       ],
     ], $json['model'][CanvasTestSetup::UUID_STATIC_CARD2]);

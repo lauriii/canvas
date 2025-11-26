@@ -221,39 +221,13 @@ class CanvasTestSetup implements TestSetupInterface {
     // Rely on `StaticPropSource::toArray()` (just like at runtime!) to ensure
     // consistent key order, enabling deterministic auto-save hashing.
     $static_image_prop_source = StaticPropSource::parse($static_image_prop_source)->toArray();
-    $cta1href = [
-      'sourceType' => 'static:field_item:uri',
-      'value' => 'https://drupal.org',
-      'expression' => 'ℹ︎uri␟value',
-    ];
     $use_uri = \Drupal::moduleHandler()->moduleExists('canvas_test_storage_prop_shape_alter');
-    if (!$use_uri) {
-      $cta1href = [
-        'sourceType' => 'static:field_item:link',
-        'sourceTypeSettings' => [
-          'instance' => [
-            'title' => \DRUPAL_DISABLED,
-          ],
-        ],
-        'value' => ['uri' => 'https://drupal.org'],
-        'expression' => 'ℹ︎link␟url',
-      ];
-    }
     $items = [
       [
         'component_id' => 'sdc.canvas_test_sdc.two_column',
         'uuid' => self::UUID_TWO_COLUMN_UUID,
         'inputs' => [
-          'width' => [
-            'sourceType' => 'static:field_item:list_integer',
-            'value' => 50,
-            'expression' => 'ℹ︎list_integer␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-              ],
-            ],
-          ],
+          'width' => 50,
         ],
       ],
       [
@@ -262,7 +236,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'component_id' => 'sdc.canvas_test_sdc.image',
         'uuid' => self::UUID_STATIC_IMAGE,
         'inputs' => [
-          'image' => $static_image_prop_source,
+          'image' => ['target_id' => 3],
         ],
       ],
       [
@@ -271,12 +245,10 @@ class CanvasTestSetup implements TestSetupInterface {
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
         'uuid' => self::UUID_STATIC_CARD1,
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'hello, world!',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'cta1href' => $cta1href,
+          'heading' => 'hello, world!',
+          'cta1href' => $use_uri
+            ? 'https://drupal.org'
+            : ['uri' => 'https://drupal.org', 'options' => []],
         ],
       ],
       [
@@ -285,16 +257,8 @@ class CanvasTestSetup implements TestSetupInterface {
         'component_id' => 'js.test-code-component',
         'uuid' => self::UUID_CODE_COMPONENT,
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'Test Code Component Heading',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'content' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'This is a test code component for testing the Edit component action',
-            'expression' => 'ℹ︎string␟value',
-          ],
+          'heading' => 'Test Code Component Heading',
+          'content' => 'This is a test code component for testing the Edit component action',
         ],
       ],
       // Test edge cases in representations:
@@ -308,16 +272,7 @@ class CanvasTestSetup implements TestSetupInterface {
         'uuid' => self::UUID_ALL_SLOTS_EMPTY,
         'component_id' => 'sdc.canvas_test_sdc.one_column',
         'inputs' => [
-          'width' => [
-            'sourceType' => 'static:field_item:list_string',
-            'value' => 'full',
-            'expression' => 'ℹ︎list_string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-              ],
-            ],
-          ],
+          'width' => 'full',
         ],
       ],
       [
@@ -326,12 +281,10 @@ class CanvasTestSetup implements TestSetupInterface {
         'uuid' => self::UUID_STATIC_CARD2,
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'Canvas Needs This For The Time Being',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'cta1href' => $cta1href,
+          'heading' => 'Canvas Needs This For The Time Being',
+          'cta1href' => $use_uri
+            ? 'https://drupal.org'
+            : ['uri' => 'https://drupal.org', 'options' => []],
         ],
       ],
       [
@@ -340,14 +293,10 @@ class CanvasTestSetup implements TestSetupInterface {
         'uuid' => self::UUID_STATIC_CARD3,
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'Canvas Needs This For The Time Being',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'cta1href' => [
-            'value' => $use_uri ? $fileUrl : ['uri' => $fileUrl],
-          ] + $cta1href,
+          'heading' => 'Canvas Needs This For The Time Being',
+          'cta1href' => $use_uri
+            ? $fileUrl
+            : ['uri' => $fileUrl, 'options' => []],
         ],
       ],
       [
@@ -472,11 +421,7 @@ class CanvasTestSetup implements TestSetupInterface {
           'uuid' => self::UUID_COMPONENT_SDC,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Welcome to the site!',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'Welcome to the site!',
           ],
         ],
         [

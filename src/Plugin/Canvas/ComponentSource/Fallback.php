@@ -115,7 +115,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
     ];
   }
 
-  public function buildComponentInstanceForm(array $form, FormStateInterface $form_state, ?Component $component = NULL, string $component_instance_uuid = '', array $inputValues = [], ?EntityInterface $entity = NULL, array $settings = []): array {
+  public function buildComponentInstanceForm(array $form, FormStateInterface $form_state, Component $component, string $component_instance_uuid = '', array $inputValues = [], ?EntityInterface $entity = NULL, array $settings = []): array {
     // @todo Improve this in https://drupal.org/i/3524299.
     $form['warning'] = [
       '#type' => 'html_tag',

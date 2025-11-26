@@ -78,6 +78,7 @@ const LinkedFieldBox = ({
             [propName]: {
               expression: propData.expression,
               sourceType: propData.sourceType,
+              sourceTypeSettings: propData.sourceTypeSettings,
             },
           },
           resolved: {

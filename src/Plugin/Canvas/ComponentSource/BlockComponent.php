@@ -376,7 +376,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   public function buildComponentInstanceForm(
     array $form,
     FormStateInterface $form_state,
-    ?ComponentEntity $component = NULL,
+    ComponentEntity $component,
     string $component_instance_uuid = '',
     array $inputValues = [],
     ?EntityInterface $entity = NULL,

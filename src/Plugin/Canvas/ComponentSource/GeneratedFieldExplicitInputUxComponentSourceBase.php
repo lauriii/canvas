@@ -49,6 +49,7 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -611,7 +612,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function buildComponentInstanceForm(
     array $form,
     FormStateInterface $form_state,
-    ?Component $component = NULL,
+    Component $component,
     string $component_instance_uuid = '',
     array $inputValues = [],
     ?EntityInterface $entity = NULL,
@@ -667,6 +668,19 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see https://www.drupal.org/i/3529788
       assert(array_key_exists($sdc_prop_name, $inputValues) || !in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
       $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
+      // Any component instance with props populated with a StaticPropSource
+      // MUST use the StaticPropSource shape stored in the Component version. If
+      // it does not, it is corrupt. Rather than building a potentially broken
+      // form, abort and inform the user.
+      $default_static_source = $this->getDefaultStaticPropSource($sdc_prop_name, FALSE);
+      if ($source instanceof StaticPropSource && !$source->hasSameShapeAs($default_static_source)) {
+        throw new NotAcceptableHttpException(sprintf(
+          "Corrupted component instance detected: an instance of the %s Component (version %s) is being populated using a deviating storage shape for the %s prop. Manually recreate this component in the UI to resolve this.",
+          $component->id(),
+          $component->getActiveVersion(),
+          $sdc_prop_name,
+        ));
+      }
       $disabled = FALSE;
       $linked_prop_source = ($source instanceof DynamicPropSource || $source instanceof HostEntityUrlPropSource) ? $source : NULL;
       if (!$source instanceof StaticPropSource) {
@@ -675,7 +689,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // Fall back to the static version, disabled for now where the design is
         // undefined.
         $disabled = !$source instanceof DefaultRelativeUrlPropSource;
-        $source = $this->getDefaultStaticPropSource($sdc_prop_name, FALSE);
+        $source = $default_static_source;
       }
 
       // 1. If the given static prop source matches the *current* field type
@@ -689,7 +703,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
-      assert($component instanceof Component);
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
       $is_required = $prop_field_definition['required'];
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);

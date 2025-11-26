@@ -202,7 +202,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   An associative array containing the initial structure of the plugin form.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
-   * @param \Drupal\canvas\Entity\Component|null $component
+   * @param \Drupal\canvas\Entity\Component $component
    *   The component configuration entity.
    * @param string $component_instance_uuid
    *   The component instance UUID.
@@ -224,7 +224,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   public function buildComponentInstanceForm(
     array $form,
     FormStateInterface $form_state,
-    ?Component $component = NULL,
+    Component $component,
     string $component_instance_uuid = '',
     array $inputValues = [],
     ?EntityInterface $entity = NULL,
