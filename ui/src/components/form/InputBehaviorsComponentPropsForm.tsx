@@ -275,7 +275,7 @@ export const InputBehaviorsComponentPropsForm = (
     if (
       props.options.some((option: PropsValues) => option.value === '_none') &&
       !inputAndUiData?.model?.[currentComponent as keyof ComponentModels]
-        .resolved[propName]
+        ?.resolved?.[propName]
     ) {
       propsOverrides.options = props.options.map((option: PropsValues) =>
         option.value === '_none'
