@@ -94,12 +94,13 @@ class ComponentTreeItemListTest extends KernelTestBase {
     // Some test cases may contain StaticPropSources referencing Users.
     $this->setUpCurrentUser(permissions: ['access user profiles']);
 
-    // Create a User to be referenced by the test cases.
-    $referenceable_user = User::create()
+    // Create a User to be referenced by the test cases. Set the ID explicitly
+    // so that it is reliable regardless of database backend.
+    $referenceable_user = User::create(['uid' => 1103448])
       ->setUsername('Clurichaun')
       ->activate();
     $referenceable_user->save();
-    \assert($referenceable_user->id() == 3);
+    \assert($referenceable_user->id() == 1103448);
 
     // We need to force the cache busting query to ensure we use it correctly.
     $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
@@ -759,7 +760,7 @@ HTML,
               'sourceType' => PropSource::Static->value . PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR . 'field_item:entity_reference',
               'value' => [
                 // @see ::testHydrationAndRendering()
-                'target_id' => 3,
+                'target_id' => 1103448,
               ],
               'expression' => 'ℹ︎entity_reference␟entity␜␜entity:user␝name␞␟value',
               'sourceTypeSettings' => [
@@ -838,7 +839,7 @@ HTML,
                                   'Clurichaun',
                                   (new CacheableMetadata())
                                     ->setCacheContexts(['user.permissions'])
-                                    ->setCacheTags(['user:3'])
+                                    ->setCacheTags(['user:1103448'])
                                 ),
                               ],
                             ],
@@ -1165,7 +1166,7 @@ HTML,
                                       '#type' => 'component',
                                       '#cache' => [
                                         'tags' => [
-                                          'user:3',
+                                          'user:1103448',
                                           'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
                                         ],
                                         'contexts' => [
@@ -1305,7 +1306,7 @@ HTML,
 HTML,
       'expected_cache_tags' => [
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
-        'user:3',
+        'user:1103448',
         'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
         'config:canvas.js_component.my-cta-with-auto-save',
         'config:canvas.component.js.my-cta-with-auto-save',
@@ -1451,7 +1452,7 @@ HTML,
       'isPreview' => TRUE,
       'expected_cache_tags' => [
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
-        'user:3',
+        'user:1103448',
         'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
         AutoSaveManager::CACHE_TAG,
         'config:canvas.js_component.my-cta-with-auto-save',
