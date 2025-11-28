@@ -172,6 +172,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.my-cta',
+        'sdc.canvas_test_sdc.component-mismatch-meta-enum',
         'sdc.canvas_test_sdc.component-no-meta-enum',
         'sdc.canvas_test_sdc.banner',
         'sdc.canvas_test_sdc.card',
@@ -193,6 +194,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_test_sdc.card-with-remote-image',
         'sdc.canvas_test_sdc.image-gallery',
         'sdc.canvas_test_sdc.druplicon',
+        'sdc.canvas_test_sdc.image-without-ref',
       ],
     ],
     'd0ba87b2-79b4-4622-98e1-cf82dc3655a0' => [

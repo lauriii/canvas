@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
@@ -197,21 +198,11 @@ final class JsonSchemaFieldInstanceMatcher {
   }
 
   /**
-   * @todo Make *recursive* references work in justinrainbow/schema, see https://git.drupalcode.org/project/ui_patterns/-/blob/28cf60dd776fb349d9520377afa510b0d85f3334/src/SchemaManager/ReferencesResolver.php
-   *
    * @param JsonSchema $schema
    * @return JsonSchema
-   *
-   * @see \Drupal\canvas\Plugin\Adapter\AdapterBase::resolveSchemaReferences
    */
   private static function resolveSchemaReferences(array $schema): array {
-    // @todo Refactor in https://www.drupal.org/i/3515074
-    if (isset($schema['$ref']) && str_starts_with($schema['$ref'], 'json-schema-definitions://')) {
-      // Perform the same schema resolving as `justinrainbow/json-schema`.
-      // @todo Delete this method, actually use `justinrainbow/json-schema`.
-      $schema = json_decode(file_get_contents($schema['$ref']) ?: '{}', TRUE);
-    }
-    return $schema;
+    return self::componentPluginManager()->resolveJsonSchemaReferences($schema);
   }
 
   /**
@@ -1170,6 +1161,10 @@ final class JsonSchemaFieldInstanceMatcher {
     // time.
     assert(!$leaf_expr->isMultiBundle() && is_string($field_name));
     return $field_name;
+  }
+
+  private static function componentPluginManager(): ComponentPluginManager {
+    return \Drupal::service(ComponentPluginManager::class);
   }
 
 }

@@ -23,7 +23,6 @@ use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use JsonSchema\Constraints\BaseConstraint;
-use JsonSchema\Exception\RuntimeException;
 use JsonSchema\SchemaStorage;
 
 /**
@@ -35,6 +34,9 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
 
   use CategorizingPluginManagerTrait;
 
+  /**
+   * @todo Remove this once Canvas relies on a Drupal core version that includes https://www.drupal.org/i/3352063.
+   */
   const MAXIMUM_RECURSION_LEVEL = 10;
 
   protected static bool $isRecursing = FALSE;
@@ -182,32 +184,25 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
    *
    * @return array
    *   JSON schema of a component, with references resolved.
+   *
+   * @todo Remove this once Canvas relies on a Drupal core version that includes https://www.drupal.org/i/3352063.
    */
-  protected function resolveJsonSchemaReferences(array $schema, int $depth = 0): array {
+  public function resolveJsonSchemaReferences(array $schema, int $depth = 0): array {
     if ($depth > self::MAXIMUM_RECURSION_LEVEL) {
       return $schema;
     }
 
     $depth++;
 
-    try {
-      if (isset($schema['$ref']) && str_starts_with($schema['$ref'], 'json-schema-definitions://')) {
-        // @todo Remove in https://www.drupal.org/i/3515074
-        throw new RuntimeException('Canvas references are not supported yet');
-      }
+    $schema = BaseConstraint::arrayToObjectRecursive($schema);
+    $refSchema = (array) $this->schemaStorage->resolveRefSchema($schema);
+    $schema = (array) $schema;
+    unset($schema['$ref']);
+    // @todo Remove this line once https://www.drupal.org/project/drupal/issues/3352063#comment-16363119 is fixed, or justinrainbow/json-schema's UriValidator has been fixed upstream.
+    unset($refSchema['id']);
 
-      $schema = BaseConstraint::arrayToObjectRecursive($schema);
-      $refSchema = (array) $this->schemaStorage->resolveRefSchema($schema);
-      $schema = (array) $schema;
-      unset($schema['$ref']);
-
-      // Merge referenced schema into the current schema.
-      $schema += $refSchema;
-    }
-    catch (RuntimeException) {
-      // @todo Remove this catch statement in https://www.drupal.org/i/3515074
-      $schema = (array) $schema;
-    }
+    // Merge referenced schema into the current schema.
+    $schema += $refSchema;
 
     // Recursively resolve nested objects.
     foreach ($schema as $key => $value) {

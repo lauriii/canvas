@@ -271,7 +271,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $prop_shapes = [];
     foreach (ComponentMetadataHelper::getNonAttributeComponentProperties($metadata) as $prop_name => $prop_schema) {
       $component_prop_expression = new ComponentPropExpression($plugin_id, $prop_name);
-      $prop_shapes[(string) $component_prop_expression] = PropShape::normalize($prop_schema);
+      $prop_shapes[(string) $component_prop_expression] = PropShape::standardize($prop_schema);
     }
     return $prop_shapes;
   }

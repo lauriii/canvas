@@ -1,0 +1,34 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC with missing image $ref schema
+description: Demonstrates structural matching without $ref
+props:
+  type: object
+  required:
+    - image
+  properties:
+    image:
+      title: Image
+      description: Image defined with inline schema instead of $ref
+      type: object
+      required:
+        - src
+      properties:
+        src:
+          type: string
+          format: uri-reference
+          contentMediaType: image/*
+          x-allowed-schemes:
+            - http
+            - https
+        width:
+          type: integer
+        height:
+          type: integer
+        alt:
+          title: "Last here, but first in Canvas' /schema.json! And obviously this title does not match."
+          type: string
+      examples:
+        - src: https://example.com/image.png
+          alt: Alternative text
+          width: 800
+          height: 600

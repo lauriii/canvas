@@ -286,9 +286,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     $props['target']['examples'][] = '_blank';
     // @todo Consider supporting this in https://www.drupal.org/i/3514672
     unset($props['target']['default']);
-    // @todo Remove these 2 in https://www.drupal.org/i/3516602
-    unset($props['target']['meta:enum']);
-    unset($props['target']['x-translation-context']);
     JavaScriptComponent::create([
       'machineName' => 'my-cta',
       'name' => $this->getRandomGenerator()->sentences(5),
@@ -633,24 +630,51 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+   * @covers \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
    */
   public function testUnmatchedEnumAndMetaEnum(): void {
-    $component = Component::load('sdc.canvas_test_sdc:component-mismatch-meta-enum');
-    $this->assertNull($component);
-    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('canvas_test_sdc:component-mismatch-meta-enum'));
-    $component->setStatus(FALSE);
-    $this->assertEquals(SAVED_NEW, $component->save());
-    $component->setStatus(TRUE);
+    // In an SDC, periods are valid `meta:enum` keys.
+    $component = Component::load('sdc.canvas_test_sdc.component-mismatch-meta-enum');
+    self::assertNotNull($component);
     $this->entity = $component;
-    $this->assertValidationErrors([
-      'status' => [
-        'The component \'<em class="placeholder">sdc.canvas_test_sdc.component-mismatch-meta-enum</em>\' cannot be enabled because it does not meet the requirements of Drupal Canvas.',
-        'The "meta:enum" keys for the "style" prop enum cannot contain a dot. Offending key: "contains.dots"',
-        'The "meta:enum" keys for the "numbers" prop enum cannot contain a dot. Offending key: "3.14"',
-        'The values for the "numbers" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
-      ],
+    $this->assertValidationErrors([]);
+
+    // Create a code component" that has the same schema, where this is NOT
+    // allowed, due to config (schema) limitations.
+    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/component-mismatch-meta-enum/component-mismatch-meta-enum.component.yml');
+    $component = Component::load('js.component-mismatch-meta-enum');
+    self::assertNull($component);
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'component-mismatch-meta-enum',
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => $sdc_yaml['props']['properties'],
+      'required' => $sdc_yaml['props']['required'] ?? [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
     ]);
+    $this->entity = $code_component;
+    try {
+      $this->assertValidationErrors([
+        '' => [
+          'The "meta:enum" keys for the "style" prop enum cannot contain a dot. Offending key: "contains.dots"',
+          'The values for the "style" prop enum must be defined in "meta:enum". Missing keys: "contains_dots"',
+          'The "meta:enum" keys for the "numbers" prop enum cannot contain a dot. Offending key: "3.14"',
+          'The values for the "numbers" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
+        ],
+      ]);
+    }
+    catch (\InvalidArgumentException $e) {
+      // The ::assertValidationErrors() call above did in fact confirm that the
+      // listed validation errors occurred. However, it then checks whether the
+      // config schema checker finds additional problems. And in this case, it
+      // does, precisely because it is using dots in keys, which is not allowed
+      // by the config (schema) system.
+      // In other words: this demonstrates exactly why we need to special-case
+      // code components' metadata!
+      self::assertSame("The configuration property contains doesn't exist.", $e->getMessage());
+    }
   }
 
   public function testInvalidWidgetSettings(): void {

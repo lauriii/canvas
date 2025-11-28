@@ -295,7 +295,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     catch (InvalidComponentException $e) {
       throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
-    ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
+    ComponentMetadataRequirementsChecker::check(
+      (string) $js_component->id(),
+      $ephemeral_sdc_component->metadata,
+      $js_component->getRequiredProps(),
+      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
+      forbidden_key_characters: ['.' => '_'],
+    );
     $props = self::getPropsForComponentPlugin($ephemeral_sdc_component);
     $settings = [
       'prop_field_definitions' => $props,
@@ -350,7 +356,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     catch (InvalidComponentException $e) {
       throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
-    ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
+    ComponentMetadataRequirementsChecker::check(
+      (string) $js_component->id(),
+      $ephemeral_sdc_component->metadata,
+      $js_component->getRequiredProps(),
+      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
+      forbidden_key_characters: ['.' => '_'],
+    );
     $settings = [
       'prop_field_definitions' => self::getPropsForComponentPlugin($ephemeral_sdc_component),
     ];
@@ -393,7 +405,13 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     catch (InvalidComponentException $e) {
       throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
     }
-    ComponentMetadataRequirementsChecker::check((string) $js_component->id(), $ephemeral_sdc_component->metadata, $js_component->getRequiredProps());
+    ComponentMetadataRequirementsChecker::check(
+      (string) $js_component->id(),
+      $ephemeral_sdc_component->metadata,
+      $js_component->getRequiredProps(),
+      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
+      forbidden_key_characters: ['.' => '_'],
+    );
   }
 
   /**

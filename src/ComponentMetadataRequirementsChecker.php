@@ -27,11 +27,15 @@ final class ComponentMetadataRequirementsChecker {
    *   Component metadata.
    * @param string[] $required_props
    *   Array of required prop names.
+   * @param array<string, string> $forbidden_key_characters
+   *   Array of forbidden key characters as keys and replacements as values.
+   *   For example, component metadata stored as Configuration entities does not
+   *   allow dots.
    *
    * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
    *   When the component does not meet requirements.
    */
-  public static function check(string $component_id, ComponentMetadata $metadata, array $required_props): void {
+  public static function check(string $component_id, ComponentMetadata $metadata, array $required_props, array $forbidden_key_characters): void {
     $messages = [];
 
     if ($metadata->group == 'Elements') {
@@ -55,12 +59,6 @@ final class ComponentMetadataRequirementsChecker {
       // Enums must not have empty values.
       if (array_key_exists('enum', $prop) && in_array('', $prop['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value.', $prop_name);
-        continue;
-      }
-
-      // A prop may not be of type "object" unless it has a $ref defined.
-      if ($prop['type'][0] === 'object' && !isset($prop['$ref'])) {
-        $messages[] = \sprintf('Prop "%s" is of type "object" without a $ref, which is not supported', $prop_name);
         continue;
       }
 
@@ -101,22 +99,24 @@ final class ComponentMetadataRequirementsChecker {
       if (!isset($prop['title'])) {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
       }
-      if (isset($prop['enum'], $prop['meta:enum'])) {
+      if (isset($prop['enum'], $prop['meta:enum']) && !empty($forbidden_key_characters)) {
         foreach ($prop['meta:enum'] as $meta_key => $meta_value) {
-          if (str_contains((string) $meta_key, ".")) {
+          $meta_key_with_replacements = str_replace(
+            array_keys($forbidden_key_characters),
+            array_values($forbidden_key_characters),
+            (string) $meta_key,
+          );
+          if ((string) $meta_key !== $meta_key_with_replacements) {
             $messages[] = \sprintf('The "meta:enum" keys for the "%s" prop enum cannot contain a dot. Offending key: "%s"', $prop_name, $meta_key);
           }
         }
 
         // Ensure we replace dots with underscores when checking meta:enums.
-        $meta_enum_valid_keys = array_map(function ($key) {
-          if (is_numeric($key) && !is_int($key)) {
-            // Dots are not valid for config schema, so we need to replace any
-            // dot in the key with an underscore.
-            return (string) str_replace('.', '_', (string) $key);
-          }
-          return $key;
-        }, $prop['enum']);
+        $meta_enum_valid_keys = array_map(fn ($key) => str_replace(
+          array_keys($forbidden_key_characters),
+          array_values($forbidden_key_characters),
+          (string) $key,
+        ), $prop['enum']);
         $enum_keys_diff = \array_diff($meta_enum_valid_keys, \array_keys($prop['meta:enum']));
         if (!empty($enum_keys_diff)) {
           $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $enum_keys_diff));

@@ -318,7 +318,7 @@ props:
     test_object_drupal_date_range:
       title: 'Object, $ref=json-schema-definitions://sdc_test_all_props.module/date-range'
       description: 'This is the description of Object, $ref=json-schema-definitions://sdc_test_all_props.module/date-range'
-      $ref: json-schema-definitions://sdc_test_all_props.module/date-range
+      $ref: json-schema-definitions://canvas.module/date-range
       # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
       type: object
 

@@ -1,0 +1,27 @@
+{
+  "$defs": {
+    "organization-logo-url": {
+      "title": "An official (Drupal) organization logo URL per https://www.drupal.org/about/media-kit/logos",
+      "type": "string",
+      "format": "uri-reference",
+      "contentMediaType": "image/*",
+      "x-allowed-schemes": ["https"],
+      "enum": [
+        "https://example.com/drop.svg",
+        "https://example.com/drop-greater.svg",
+        "https://example.com/drop-community.svg",
+        "https://example.com/drop-individual.svg",
+        "https://example.com/drop-stacked.svg",
+        "https://example.com/drop-horizontal.svg"
+      ],
+      "meta:enum": {
+        "https://example.com/drop.svg": "The Drop",
+        "https://example.com/drop-greater.svg": "The Drop — Greater Drop",
+        "https://example.com/drop-community.svg": "The Drop — Community Drop",
+        "https://example.com/drop-individual.svg": "The Drop — Individual Drop",
+        "https://example.com/drop-stacked.svg": "The Drop — Stacked",
+        "https://example.com/drop-horizontal.svg": "The Drop — Horizontal"
+      }
+    }
+  }
+}

@@ -309,7 +309,12 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     }
 
     $required = $definition['props']['required'] ?? [];
-    ComponentMetadataRequirementsChecker::check($definition['id'], $component_plugin->metadata, $required);
+    ComponentMetadataRequirementsChecker::check(
+      $definition['id'],
+      $component_plugin->metadata,
+      $required,
+      forbidden_key_characters: [],
+    );
   }
 
   /**

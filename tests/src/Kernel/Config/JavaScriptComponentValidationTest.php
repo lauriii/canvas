@@ -805,7 +805,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'dataDependencies' => [],
         ],
         [
-          '' => 'Prop "image" is of type "object" without a $ref, which is not supported',
+          '' => 'Drupal Canvas does not know of a field type/widget to allow populating the <code>image</code> prop, with the shape <code>{"type":"object"}</code>.',
           'props.image' => '\'$ref\' is a required key because props.image.type is object (see config schema type canvas.json_schema.prop.object).',
           'props.image.examples.0.alt' => "'alt' is not a supported key.",
           'props.image.examples.0.height' => "'height' is not a supported key.",

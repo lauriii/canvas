@@ -75,7 +75,15 @@ class PropShapeRepositoryTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('theme_installer')->install(['stark']);
+    $this->container->get('theme_installer')->install([
+      // Needed by Canvas.
+      'stark',
+      // To test $ref handling in themes.
+      // @see \Drupal\canvas\JsonSchemaDefinitionsStreamwrapper
+      'test_theme_base',
+      'test_theme_child',
+      'test_theme_without_ref',
+    ]);
     // @see core/modules/system/config/install/core.date_format.html_date.yml
     // @see core/modules/system/config/install/core.date_format.html_datetime.yml
     // @see \Drupal\datetime\Plugin\Field\FieldWidget\DateTimeDefaultWidget::formElement()
@@ -142,15 +150,15 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'integer', 'minimum' => 0]),
       new PropShape(['type' => 'integer', 'minimum' => 1]),
       new PropShape(['type' => 'number']),
+      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/video']),
-      new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
-      new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://test_theme_base.theme/organization-logo-url']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
@@ -257,13 +265,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('string', 'value'),
         fieldWidget: 'string_textfield',
       ),
-      // ⚠️Identical to the below, because its `$ref` resolves to this.
-      'type=string&contentMediaType=image/*&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => new StorablePropShape(
-        shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
-        fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
-        fieldWidget: 'image_image',
-      ),
-      // ⚠️Identical to the above, because `$ref` resolves to the above.
       'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
@@ -276,6 +277,27 @@ class PropShapeRepositoryTest extends KernelTestBase {
           referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
         ),
         fieldWidget: 'image_image',
+      ),
+      'type=string&$ref=json-schema-definitions://test_theme_base.theme/organization-logo-url' => new StorablePropShape(
+        shape: new PropShape([
+          'type' => 'string',
+          'contentMediaType' => 'image/*',
+          'enum' => [
+            "https://example.com/drop.svg",
+            "https://example.com/drop-greater.svg",
+            "https://example.com/drop-community.svg",
+            "https://example.com/drop-individual.svg",
+            "https://example.com/drop-stacked.svg",
+            "https://example.com/drop-horizontal.svg",
+          ],
+          'format' => 'uri-reference',
+          'x-allowed-schemes' => ['https'],
+        ]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldStorageSettings: [
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+        ],
+        fieldWidget: 'options_select',
       ),
       'type=object&$ref=json-schema-definitions://canvas.module/image' => new StorablePropShape(
         shape: new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
@@ -695,7 +717,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=array&items[type]=integer&maxItems=20&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'maxItems' => 20, 'minItems' => 1]),
       'type=array&items[type]=integer&minItems=1' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
-      'type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range']),
+      'type=object&$ref=json-schema-definitions://canvas.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
       'type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Duration->value]),
       'type=string&format=hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Hostname->value]),

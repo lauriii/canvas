@@ -54,6 +54,7 @@ to one of us! 😊 🙏
   - TBD: `remote prop source`: a `prop source` powered by a remote source ("external data"), i.e. data stored outside Drupal
 - `structured data`: the data model defined by a Site Builder in a `content type`, and whose smallest units are `field props` — queryable by Views
 - `unstructured data`: the ad-hoc data used to populate `component input`s that are not populated using `unstructured data` — NOT queryable by Views, this should be minimized/discouraged
+- `well-known prop shape`: a `prop shape` that is _named_: one that is defined in a module's or theme's `/schema.json` file and is then referenced (`$ref`) from the JSON schema for that `component input`.
 
 ## 2. Product requirements
 
@@ -149,6 +150,7 @@ choose one.
 See:
 - `\Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()`
 - `\Drupal\canvas\PropShape\StorablePropShape`
+- `\Drupal\canvas\PropShape\PropShape::standardize()`
 - `hook_storage_prop_shape_alter()`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
@@ -157,6 +159,11 @@ available in Drupal core. Unlike for `structured data`, no additional complexity
 optional `component input`s.
 
 Contributed modules can implement `hook_storage_prop_shape_alter()` to make different choices.
+
+Any `component input` whose `prop shape` corresponds to a `well-known prop shape` may cause _two_ invocations of that
+alter hook:
+1. once for the `well-known prop shape` (so: `"type": "string|object|…", "$ref": "json-schema-definitions://…"`), if any
+2. once for the resolved equivalent (with `$ref` resolved) — unless the above already found a result
 
 The computed `\Drupal\canvas\PropShape\StorablePropShape` can be used to create a `static prop source`
 (which contains all information for the `conjured field` that powers it), that can be _evaluated_ to retrieve the stored

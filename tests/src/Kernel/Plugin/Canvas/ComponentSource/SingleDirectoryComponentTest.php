@@ -142,11 +142,6 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
     $this->generateComponentConfig();
 
     self::assertSame([
-      'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
-        'The "meta:enum" keys for the "style" prop enum cannot contain a dot. Offending key: "contains.dots"',
-        'The "meta:enum" keys for the "numbers" prop enum cannot contain a dot. Offending key: "3.14"',
-        'The values for the "numbers" prop enum must be defined in "meta:enum". Missing keys: "3_14"',
-      ],
       'sdc.canvas_test_sdc.empty-enum' => [
         'Prop "pets" has an empty enum value.',
       ],
@@ -172,7 +167,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
         'Component has "obsolete" status',
       ],
       'sdc.canvas_test_sdc.props-invalid-shapes' => [
-        'Prop "invalid_shape" is of type "object" without a $ref, which is not supported',
+        'Drupal Canvas does not know of a field type/widget to allow populating the <code>invalid_shape</code> prop, with the shape <code>{"type":"object"}</code>.',
       ],
       'sdc.canvas_test_sdc.props-no-examples' => [
         'Prop "heading" is required, but does not have example value',
@@ -217,6 +212,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.card-with-remote-image',
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
       'sdc.canvas_test_sdc.columns',
+      'sdc.canvas_test_sdc.component-mismatch-meta-enum',
       'sdc.canvas_test_sdc.component-no-meta-enum',
       'sdc.canvas_test_sdc.crash',
       'sdc.canvas_test_sdc.deprecated',
@@ -230,6 +226,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
       'sdc.canvas_test_sdc.image-optional-without-example',
       'sdc.canvas_test_sdc.image-required-with-example',
+      'sdc.canvas_test_sdc.image-without-ref',
       'sdc.canvas_test_sdc.my-cta',
       'sdc.canvas_test_sdc.my-hero',
       'sdc.canvas_test_sdc.my-section',
@@ -717,6 +714,17 @@ HTML,
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
+        'cacheability' => $default_cacheability,
+        'html' => 'small!
+',
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--component-mismatch-meta-enum',
+            'core/components.canvas_test_sdc--component-mismatch-meta-enum',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.component-no-meta-enum' => [
         'cacheability' => $default_cacheability,
         'html' => '<span  data-component-id="canvas_test_sdc:component-no-meta-enum">
@@ -989,6 +997,23 @@ HTML
           'library' => [
             'core/components.sdc_theme_test_base--my-card-no-schema',
             'core/components.sdc_theme_test_base--my-card-no-schema',
+          ],
+        ],
+      ],
+
+      'sdc.canvas_test_sdc.image-without-ref' => [
+        'html' => '<div class="inline-image-test">
+  <img src="https://example.com/image.png"
+       alt="Alternative text"
+       width="800"
+       height="600">
+</div>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--image-without-ref',
+            'core/components.canvas_test_sdc--image-without-ref',
           ],
         ],
       ],
@@ -1750,6 +1775,32 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
+        'prop_field_definitions' => [
+          'style' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [0 => ['value' => 'small']],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+          'numbers' => [
+            'required' => FALSE,
+            'field_type' => 'list_string',
+            'field_storage_settings' => [
+              'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'options_select',
+            'default_value' => [0 => ['value' => '3.14']],
+            'expression' => 'ℹ︎list_string␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.component-no-meta-enum' => [
         'prop_field_definitions' => [
           'style' => [
@@ -1971,6 +2022,19 @@ HTML
             'field_widget' => 'image_image',
             // ⚠️ Empty default value.
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.image-without-ref' => [
+        'prop_field_definitions' => [
+          'image' => [
+            'required' => TRUE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
             'default_value' => [],
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           ],
@@ -2532,6 +2596,13 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
+        'module' => [
+          'core',
+          'options',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.component-no-meta-enum' => [
         'module' => [
           'core',
@@ -2629,6 +2700,16 @@ HTML
         ],
       ],
       'sdc.canvas_test_sdc.image-required-with-example' => [
+        'config' => [
+          'image.style.canvas_parametrized_width',
+        ],
+        'module' => [
+          'file',
+          'image',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.image-without-ref' => [
         'config' => [
           'image.style.canvas_parametrized_width',
         ],
@@ -2829,8 +2910,8 @@ HTML
           'image' => [
             'required' => FALSE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 0 => 'src',
               ],
@@ -2930,8 +3011,8 @@ HTML
           'image' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 0 => 'src',
               ],
@@ -3072,8 +3153,8 @@ HTML
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'Image URL',
               'type' => 'string',
+              'title' => 'Image URL',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
@@ -3188,8 +3269,8 @@ HTML
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'Image URL',
               'type' => 'string',
+              'title' => 'Image URL',
               'format' => 'uri-reference',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['http', 'https'],
@@ -3336,8 +3417,8 @@ HTML
           'src' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'Stream wrapper image URI',
               'type' => 'string',
+              'title' => 'Stream wrapper image URI',
               'format' => 'uri',
               'contentMediaType' => 'image/*',
               'x-allowed-schemes' => ['public'],
@@ -3453,6 +3534,65 @@ HTML
                 0 => ['value' => 2],
               ],
               'resolved' => 2,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.component-mismatch-meta-enum' => [
+        'expected_output_selectors' => [
+          ':contains("small")',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'style' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                'small',
+                'big',
+                'huge',
+                // @see \Drupal\Tests\canvas\Kernel\Config\ComponentValidationTest::testUnmatchedEnumAndMetaEnum()
+                'contains.dots',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'small'],
+              ],
+              'resolved' => 'small',
+            ],
+          ],
+          'numbers' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'enum' => [
+                '7',
+                '3.14',
+              ],
+            ],
+            'sourceType' => 'static:field_item:list_string',
+            'expression' => 'ℹ︎list_string␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+              ],
+            ],
+            'default_values' => [
+              'source' => [
+                0 => ['value' => '3.14'],
+              ],
+              'resolved' => '3.14',
             ],
           ],
         ],
@@ -3671,8 +3811,8 @@ HTML
           'element' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'Heading element',
               'type' => 'string',
+              'title' => 'Heading element',
               'enum' => [
                 0 => 'div',
                 1 => 'h1',
@@ -3714,8 +3854,8 @@ HTML
           'image' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 0 => 'src',
               ],
@@ -3778,8 +3918,8 @@ HTML
             'jsonSchema' => [
               'type' => 'array',
               'items' => [
-                'title' => 'image',
                 'type' => 'object',
+                'title' => 'image',
                 'required' => [
                   'src',
                 ],
@@ -3848,8 +3988,8 @@ HTML
           'image' => [
             'required' => FALSE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 'src',
               ],
@@ -3908,8 +4048,8 @@ HTML
           'image' => [
             'required' => FALSE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 'src',
               ],
@@ -3958,8 +4098,8 @@ HTML
           'image' => [
             'required' => FALSE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 'src',
               ],
@@ -4001,8 +4141,8 @@ HTML
           'image' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 'src',
               ],
@@ -4037,6 +4177,58 @@ HTML
                 'alt' => 'Boring placeholder',
                 'width' => 600,
                 'height' => 400,
+              ],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.image-without-ref' => [
+        'expected_output_selectors' => [
+          'div.inline-image-test',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'image' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'image',
+              'required' => [
+                'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'image/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                ],
+                'alt' => [
+                  'title' => 'Alternative text',
+                  'type' => 'string',
+                ],
+                'width' => [
+                  'title' => 'Image width',
+                  'type' => 'integer',
+                ],
+                'height' => [
+                  'title' => 'Image height',
+                  'type' => 'integer',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/image.png',
+                'alt' => 'Alternative text',
+                'width' => 800,
+                'height' => 600,
               ],
             ],
           ],
@@ -4752,8 +4944,8 @@ HTML
           'width' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'Column Width',
               'type' => 'integer',
+              'title' => 'Column Width',
               'enum' => [
                 0 => 25,
                 1 => 33,
@@ -4794,8 +4986,8 @@ HTML
           'video' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'video',
               'type' => 'object',
+              'title' => 'video',
               'required' => [
                 0 => 'src',
               ],
@@ -4808,7 +5000,7 @@ HTML
                   'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'poster' => [
-                  'title' => 'Image URL',
+                  'title' => 'Poster image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',

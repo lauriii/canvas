@@ -500,6 +500,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲canvas_test_sdc:card␟image',
             '⿲canvas_test_sdc:image␟image',
             '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image',
+            '⿲canvas_test_sdc:image-without-ref␟image',
           ],
           'static prop source' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           'instances' => [
@@ -591,20 +592,13 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'adapter_matches_field_type' => [
             'image_extract_url' => [
-              'imageUri' => NULL,
+              'imageUri' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
-                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:press_releases␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],
@@ -1249,6 +1243,17 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'optional, type=object&$ref=json-schema-definitions://canvas.module/date-range' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range',
+          ],
+          'static prop source' => 'ℹ︎daterange␟{from↠end_value,to↠value}',
+          'instances' => [
+            'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
+          ],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'optional, type=object&$ref=json-schema-definitions://canvas.module/image' => [
           'SDC props' => [
             '⿲canvas_test_sdc:banner␟image',
@@ -1355,17 +1360,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        'optional, type=object&$ref=json-schema-definitions://sdc_test_all_props.module/date-range' => [
-          'SDC props' => [
-            '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range',
-          ],
-          'static prop source' => 'ℹ︎daterange␟{from↠end_value,to↠value}',
-          'instances' => [
-            'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
-          ],
-          'adapter_matches_field_type' => [],
-          'adapter_matches_instance' => [],
-        ],
         'optional, type=string' => [
           'SDC props' => [
             '⿲canvas_test_sdc:card␟heading',
@@ -1441,10 +1435,9 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
-        // 💡 The matches here are identical to those for
-        // `optional, type=string&contentMediaType=image/*&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https`
         'optional, type=string&$ref=json-schema-definitions://canvas.module/image-uri' => [
           'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Uri->value . '_image',
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Uri->value . '_image_using_ref',
           ],
           'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
@@ -1468,63 +1461,13 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           ],
           'adapter_matches_field_type' => [
             'image_extract_url' => [
-              'imageUri' => NULL,
+              'imageUri' => 'ℹ︎image␟entity␜␜entity:file␝uri␞␟value',
             ],
           ],
           'adapter_matches_instance' => [
             'image_extract_url' => [
               'imageUri' => [
-                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:press_releases␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
                 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-              ],
-            ],
-          ],
-        ],
-        'optional, type=string&contentMediaType=image/*&format=uri-reference&x-allowed-schemes[0]=http&x-allowed-schemes[1]=https' => [
-          'SDC props' => [
-            '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Uri->value . '_image',
-          ],
-          'static prop source' => 'ℹ︎image␟src_with_alternate_widths',
-          'instances' => [
-            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:media:press_releases␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:media:press_releases␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟url',
-            'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟src_with_alternate_widths',
-          ],
-          'adapter_matches_field_type' => [
-            'image_extract_url' => [
-              'imageUri' => NULL,
-            ],
-          ],
-          'adapter_matches_instance' => [
-            'image_extract_url' => [
-              'imageUri' => [
-                'ℹ︎␜entity:canvas_page␝image␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:baby_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:press_releases␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:media:vacation_videos␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
-                'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝thumbnail␞␟entity␜␜entity:file␝uri␞␟value',
               ],
             ],
           ],

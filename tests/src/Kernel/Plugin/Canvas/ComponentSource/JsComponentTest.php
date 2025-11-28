@@ -1259,8 +1259,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           'video' => [
             'required' => TRUE,
             'jsonSchema' => [
-              'title' => 'video',
               'type' => 'object',
+              'title' => 'video',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -1271,7 +1271,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                   'x-allowed-schemes' => ['http', 'https'],
                 ],
                 'poster' => [
-                  'title' => 'Image URL',
+                  'title' => 'Poster image URL',
                   'type' => 'string',
                   'format' => 'uri-reference',
                   'contentMediaType' => 'image/*',
@@ -1402,8 +1402,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           'image' => [
             'required' => FALSE,
             'jsonSchema' => [
-              'title' => 'image',
               'type' => 'object',
+              'title' => 'image',
               'required' => [
                 0 => 'src',
               ],

@@ -1,5 +1,5 @@
 $schema: https://git.drupalcode.org/project/sdc/-/raw/1.x/src/metadata.schema.json
-name: Component mismatch meta:enum
+name: Component mismatch meta:enum, but still operational thanks to https://www.drupal.org/i/3528998
 props:
   type: object
   properties:

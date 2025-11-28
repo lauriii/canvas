@@ -282,6 +282,8 @@ enum JsonSchemaType: string {
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
+        // Require $ref to be resolved, because that might add some of the other
+        // keywords.
         array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => match(in_array('', $schema['enum'], TRUE)) {
           // The empty string is not a sensible enum value. To indicate
@@ -318,8 +320,9 @@ enum JsonSchemaType: string {
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       // phpcs:enable
       JsonSchemaType::Integer => match (TRUE) {
-        // @todo Refactor in https://www.drupal.org/i/3515074
-        array_key_exists('$ref', $schema) && str_starts_with($schema['$ref'], 'json-schema-definitions://') => NULL,
+        // Require $ref to be resolved, because that might add some of the other
+        // keywords.
+        array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
@@ -340,8 +343,9 @@ enum JsonSchemaType: string {
       // - `minimum`, `exclusiveMinimum`, `maximum` and `exclusiveMaximum`: https://json-schema.org/understanding-json-schema/reference/numeric#range
       // phpcs:enable
       JsonSchemaType::Number => match (TRUE) {
-        // @todo Refactor in https://www.drupal.org/i/3515074
-        array_key_exists('$ref', $schema) && str_starts_with($schema['$ref'], 'json-schema-definitions://') => NULL,
+        // Require $ref to be resolved, because that might add some of the other
+        // keywords.
+        array_key_exists('$ref', $schema) => NULL,
         array_key_exists('enum', $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_float', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
@@ -356,6 +360,8 @@ enum JsonSchemaType: string {
       },
 
       JsonSchemaType::Object => match (TRUE) {
+        // For object shapes, it's far simpler to match on the `$ref` than on
+        // minutiae.
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
           // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()

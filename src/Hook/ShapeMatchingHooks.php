@@ -321,7 +321,7 @@ class ShapeMatchingHooks {
   public function datetimeRangeStoragePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
     if ($storable_prop_shape->shape->schema == [
       'type' => 'object',
-      '$ref' => 'json-schema-definitions://sdc_test_all_props.module/date-range',
+      '$ref' => 'json-schema-definitions://canvas.module/date-range',
     ]) {
       $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('daterange', [
         'from' => new FieldTypePropExpression('daterange', 'end_value'),
