@@ -130,7 +130,6 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ->setDisplayConfigurable('form', TRUE);
     $fields['description'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Meta description'))
-      ->setDescription(t('The meta description of the page.'))
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
       ->setDisplayOptions('form', [
