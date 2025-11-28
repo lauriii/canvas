@@ -323,6 +323,9 @@ enum JsonSchemaType: string {
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         array_key_exists('$ref', $schema) => NULL,
+        // `multipleOf` has no equivalent field type in Drupal core, so leave it
+        // to contrib.
+        array_key_exists('multipleOf', $schema) => NULL,
         array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
@@ -332,7 +335,6 @@ enum JsonSchemaType: string {
           'max' => $schema['maximum'] ?? (array_key_exists('exclusiveMaximum', $schema) ? $schema['exclusiveMaximum'] - 1 : NULL),
         ]),
         // Otherwise, it's an unrestricted integer.
-        // @todo `multipleOf` ⚠️
         TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('integer', 'value'), fieldWidget: 'number'),
       },
 

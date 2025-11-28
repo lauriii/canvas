@@ -30,6 +30,16 @@ class CanvasTestStoragePropShapeAlterHooks {
       // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
       $storable_prop_shape->fieldWidget = 'uri';
     }
+
+    // Show that a contrib module can add support for a new prop shape, even
+    // using a new field type.
+    if ($storable_prop_shape->shape->schema == ['type' => 'integer', 'multipleOf' => 12]) {
+      // Use an imaginary `multiple_of` field type, provided by this module.
+      // @phpstan-ignore-next-line
+      $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎multiple_of␟value');
+      $storable_prop_shape->fieldStorageSettings = ['must_be_divisible_by' => 12];
+      $storable_prop_shape->fieldWidget = 'number';
+    }
   }
 
   /**

@@ -261,6 +261,14 @@ props:
       maximum: 2147483648
       examples:
         - 1730718000
+    test_integer_by_the_dozen:
+      title: 'Integer, multipleOf=12'
+      description: 'This is the description of Integer, multipleOf=12'
+      type: integer
+      multipleOf: 12
+      examples:
+        - 24
+        - 144
 
     test_number:
       title: 'Number'

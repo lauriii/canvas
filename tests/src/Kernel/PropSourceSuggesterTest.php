@@ -722,6 +722,12 @@ class PropSourceSuggesterTest extends KernelTestBase {
           'adapters' => [],
           'host_entity_urls' => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_integer_by_the_dozen' => [
+          'required' => FALSE,
+          'instances' => [],
+          'adapters' => [],
+          'host_entity_urls' => [],
+        ],
         // @todo This blindly matches any number and even integer, regardless of its semantics: UNIX timestamp, file size, dimension with some unit, et cetera. Fix this overwhelming and confusing list of suggestions in https://www.drupal.org/project/canvas/issues/3533675.
         '⿲sdc_test_all_props:all-props␟test_number' => [
           'required' => FALSE,

@@ -324,8 +324,8 @@ class ShapeMatchingHooks {
       '$ref' => 'json-schema-definitions://canvas.module/date-range',
     ]) {
       $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('daterange', [
-        'from' => new FieldTypePropExpression('daterange', 'end_value'),
-        'to' => new FieldTypePropExpression('daterange', 'value'),
+        'from' => new FieldTypePropExpression('daterange', 'value'),
+        'to' => new FieldTypePropExpression('daterange', 'end_value'),
       ]);
       $storable_prop_shape->fieldStorageSettings = ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATE];
       // @todo Make this actually work in component instance forms in https://www.drupal.org/project/canvas/issues/3523379

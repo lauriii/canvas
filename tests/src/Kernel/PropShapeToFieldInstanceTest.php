@@ -1131,6 +1131,15 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_field_type' => [],
           'adapter_matches_instance' => [],
         ],
+        'optional, type=integer&multipleOf=12' => [
+          'SDC props' => [
+            '⿲sdc_test_all_props:all-props␟test_integer_by_the_dozen',
+          ],
+          'static prop source' => NULL,
+          'instances' => [],
+          'adapter_matches_field_type' => [],
+          'adapter_matches_instance' => [],
+        ],
         'optional, type=number' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_number',
@@ -1247,7 +1256,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range',
           ],
-          'static prop source' => 'ℹ︎daterange␟{from↠end_value,to↠value}',
+          'static prop source' => 'ℹ︎daterange␟{from↠value,to↠end_value}',
           'instances' => [
             'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
           ],
