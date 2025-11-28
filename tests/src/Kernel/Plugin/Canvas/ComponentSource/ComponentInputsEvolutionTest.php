@@ -403,6 +403,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     $build = $component_tree_entity->getComponentTree()->toRenderable($component_tree_entity);
     $rendered_block_components = $this->crawlerForRenderArray($build)->filter('[data-component-uuid], [id^=block-]');
     return array_combine(
+      // @phpstan-ignore argument.type
       $rendered_block_components->each(fn ($node, $i) => $node->attr('data-component-uuid') ?? substr($node->attr('id'), strlen('block-'))),
       $rendered_block_components->each(fn ($node, $i) => $node->text()),
     );
