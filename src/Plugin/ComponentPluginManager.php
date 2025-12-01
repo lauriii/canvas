@@ -198,8 +198,6 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     $refSchema = (array) $this->schemaStorage->resolveRefSchema($schema);
     $schema = (array) $schema;
     unset($schema['$ref']);
-    // @todo Remove this line once https://www.drupal.org/project/drupal/issues/3352063#comment-16363119 is fixed, or justinrainbow/json-schema's UriValidator has been fixed upstream.
-    unset($refSchema['id']);
 
     // Merge referenced schema into the current schema.
     $schema += $refSchema;
