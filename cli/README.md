@@ -126,3 +126,23 @@ Builds and uploads the selected (or all) local components to your site. Also
 builds and uploads global Tailwind CSS assets unless `--no-tailwind` is
 specified. Existing components on the site will be updated if they already
 exist.
+
+---
+
+### `validate`
+
+Validate local components.
+
+```bash
+npx canvas validate [options]
+```
+
+**Options:**
+
+- `--all`: Validate all components in the directory
+- `--fix`: Apply available automatic fixes for linting issues
+
+Validates local components using ESLint with `required` configuration from
+[@drupal-canvas/eslint-config](https://www.npmjs.com/package/@drupal-canvas/eslint-config).
+With `--fix` option specified, also applies automatic fixes available for some
+validation rules.
