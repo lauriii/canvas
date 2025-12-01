@@ -7,6 +7,7 @@ import { buildCommand } from './commands/build';
 import { downloadCommand } from './commands/download';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
+import { validateCommand } from './commands/validate';
 
 const version = (packageJson as { version?: string }).version;
 
@@ -21,6 +22,7 @@ downloadCommand(program);
 scaffoldCommand(program);
 uploadCommand(program);
 buildCommand(program);
+validateCommand(program);
 
 // Handle errors
 program.showHelpAfterError();

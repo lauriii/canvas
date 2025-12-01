@@ -17,7 +17,8 @@
     "inlineSources": false,
     "paths": {
       "@drupal-canvas/ui/*": ["../ui/src/*"],
-      "@/*": ["../ui/src/*"]
-    }
-  }
+      "@/*": ["../ui/src/*"],
+      "@drupal-canvas/eslint-config": ["../packages/eslint-config/src/index.ts"],
+    },
+  },
 }

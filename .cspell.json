@@ -26,6 +26,7 @@
       "node_modules",
       "node_modules/**",
       "package.json",
+      "packages/**/dist/**",
       "phpstan*",
       "playwright-report/**",
       "scripts/tag-release.sh",

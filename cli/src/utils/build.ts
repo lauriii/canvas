@@ -6,6 +6,7 @@ import { compileJS } from '../lib/compile-js';
 import { transformCss } from '../lib/transform-css';
 import { createApiService } from '../services/api';
 import { fileExists } from './utils';
+import { validateComponent } from './validate';
 
 import type { Result } from '../types/Result';
 
@@ -16,6 +17,14 @@ export async function buildComponent(componentDir: string): Promise<Result> {
     success: true,
     details: [],
   };
+
+  // Validate component before building.
+  const validationResult = await validateComponent(componentDir);
+  if (!validationResult.success) {
+    result.success = false;
+    result.details = validationResult.details;
+    return result;
+  }
 
   // Create `dist` directory
   const distDir = path.join(componentDir, 'dist');

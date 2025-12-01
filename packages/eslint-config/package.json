@@ -1,0 +1,52 @@
+{
+  "name": "@drupal-canvas/eslint-config",
+  "version": "0.0.1",
+  "description": "ESLint config for validating Drupal Canvas Code Components",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/eslint-config"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "main": "dist/index.js",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "canvas",
+    "drupal",
+    "eslint",
+    "eslintconfig",
+    "eslint-config"
+  ],
+  "engines": {
+    "node": ">=18.20.0"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-yml": "^1.19.0",
+    "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/eslint-plugin-jsx-a11y": "^6.5.6",
+    "@types/lodash-es": "^4.17.12",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.3"
+  },
+  "peerDependencies": {
+    "eslint": "^9.26.0"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production tsup",
+    "dev": "NODE_ENV=development tsup --watch",
+    "type-check": "tsc --noEmit --pretty",
+    "test": "vitest run"
+  }
+}

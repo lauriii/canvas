@@ -74,6 +74,10 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
 
   // @see JsComponent.php
+  // Whenever updating this import map, also update the list of supported imports
+  // in packages/eslint-config/src/rules/component-imports.ts.
+  // @see https://drupal.org/i/3552914
+  // @see https://drupal.org/i/3560197
   const importMap = useMemo(
     () => ({
       imports: {

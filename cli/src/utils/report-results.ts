@@ -67,6 +67,10 @@ export function reportResults(
             alignment: hasDetails ? 'right' : 'left',
           },
         ],
+        columns: {
+          // Limit the width of the details column for improved readability of long details.
+          2: { width: 100, wrapWord: true },
+        },
       }),
     );
   }

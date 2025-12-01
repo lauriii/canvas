@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+  },
+  "exclude": [
+    "test/**/*",
+    "dist/**/*",
+    "node_modules/**/*"
+  ]
+}

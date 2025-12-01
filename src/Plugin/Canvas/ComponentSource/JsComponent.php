@@ -162,7 +162,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $build['#attached']['library'][] = $component->getAssetLibrary($isPreview);
 
     $canvas_path = $this->extensionPathResolver->getPath('module', 'canvas');
-    // Build base import map
+    // Build base import map.
+    // Whenever updating this import map, also update src/features/code-editor/Preview.tsx,
+    // as well as the list of supported imports in packages/eslint-config/src/rules/component-imports.ts.
+    // @see https://drupal.org/i/3552914
+    // @see https://drupal.org/i/3560197
     $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = [
       'preact' => \sprintf('%s%s/ui/lib/astro-hydration/dist/preact.module.js', $base_path, $canvas_path),
       'preact/hooks' => \sprintf('%s%s/ui/lib/astro-hydration/dist/hooks.module.js', $base_path, $canvas_path),
