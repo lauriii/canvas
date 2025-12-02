@@ -32,7 +32,7 @@ import {
   useCreateCodeComponentMutation,
   useGetComponentsQuery,
 } from '@/services/componentAndLayout';
-import { getDrupalSettings } from '@/utils/drupal-globals';
+import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
 
@@ -583,7 +583,8 @@ const AiWizard = () => {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const response = await fetch('/admin/api/canvas/token', {
+        const baseUrl = getBaseUrl();
+        const response = await fetch(`${baseUrl}admin/api/canvas/token`, {
           credentials: 'same-origin',
         });
         if (!response.ok) {
