@@ -1,11 +1,16 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 
-import { ensureConfig, setConfig } from '../config.js';
+import { ensureConfig } from '../config.js';
 import { buildTailwindForComponents } from '../utils/build-tailwind';
 import { buildComponent } from '../utils/build.js';
+import {
+  pluralizeComponent,
+  updateConfigFromOptions,
+  validateComponentOptions,
+} from '../utils/command-helpers';
+import { selectLocalComponents } from '../utils/component-selector.js';
 import { reportResults } from '../utils/report-results';
-import { selectLocalComponents } from '../utils/select-local-components.js';
 
 import type { Command } from 'commander';
 import type { Result } from '../types/Result.js';
@@ -13,11 +18,13 @@ import type { Result } from '../types/Result.js';
 interface BuildOptions {
   dir?: string;
   all?: boolean;
+  components?: string;
   tailwind?: boolean;
   clientId?: string;
   clientSecret?: string;
   siteUrl?: string;
   verbose?: boolean;
+  yes?: boolean;
 }
 
 /**
@@ -32,82 +39,97 @@ export function buildCommand(program: Command): void {
       'Component directory to build the components in',
     )
     .option('--all', 'Build all components')
+    .option(
+      '-c, --components <names>',
+      'Specific component(s) to build (comma-separated)',
+    )
     .option('--no-tailwind', 'Skip Tailwind CSS building')
+    .option('-y, --yes', 'Skip confirmation prompts')
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
     .option('--verbose', 'Enable verbose output')
     .action(async (options: BuildOptions) => {
-      p.intro(chalk.bold('Drupal Canvas CLI: build'));
+      try {
+        p.intro(chalk.bold('Drupal Canvas CLI: build'));
 
-      const allFlag = options.all || false;
-      const skipTailwind = !options.tailwind;
+        // Validate options
+        validateComponentOptions(options);
 
-      if (options.dir) setConfig({ componentDir: options.dir });
-      if (options.clientId) setConfig({ clientId: options.clientId });
-      if (options.clientSecret)
-        setConfig({ clientSecret: options.clientSecret });
-      if (options.siteUrl) setConfig({ siteUrl: options.siteUrl });
-      if (options.verbose) setConfig({ verbose: true });
-      if (!skipTailwind) {
-        await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
-      }
+        // Default to --all when --yes is used without --components
+        const allFlag =
+          options.all || (options.yes && !options.components) || false;
+        const skipTailwind = !options.tailwind;
 
-      // Select components to build
-      const selectedComponents = await selectLocalComponents(
-        allFlag,
-        'Select components to build',
-      );
+        // Update config with CLI options
+        updateConfigFromOptions(options);
 
-      if (!selectedComponents || selectedComponents.length === 0) {
-        return;
-      }
+        if (!skipTailwind) {
+          await ensureConfig(['siteUrl', 'clientId', 'clientSecret']);
+        }
 
-      const componentLabelPluralized =
-        selectedComponents.length === 1 ? 'component' : 'components';
+        // Select components to build
+        const { directories: componentsToBuild } = await selectLocalComponents({
+          all: allFlag,
+          components: options.components,
+          skipConfirmation: options.yes,
+          selectMessage: 'Select components to build',
+        });
 
-      // Step 1: Build individual components
-      const s1 = p.spinner();
-      s1.start(`Building ${componentLabelPluralized}`);
-      const results: Result[] = [];
-      for (const componentDir of selectedComponents) {
-        results.push(await buildComponent(componentDir));
-      }
-
-      s1.stop(
-        chalk.green(
-          `Processed ${selectedComponents.length} ${componentLabelPluralized}`,
-        ),
-      );
-      // Report component build results
-      reportResults(results, 'Built components', 'Component');
-      if (results.map((result) => result.success).includes(false)) {
-        process.exit(1);
-      }
-
-      if (skipTailwind) {
-        p.log.info('Skipping Tailwind CSS build');
-      } else {
-        // Step 2: Build Tailwind CSS
-        const s2 = p.spinner();
-        s2.start('Building Tailwind CSS');
-        const tailwindResult = await buildTailwindForComponents(
-          selectedComponents as string[],
+        const componentLabelPluralized = pluralizeComponent(
+          componentsToBuild.length,
         );
-        s2.stop(
+
+        // Step 1: Build individual components
+        const s1 = p.spinner();
+        s1.start(`Building ${componentLabelPluralized}`);
+        const results: Result[] = [];
+        for (const componentDir of componentsToBuild) {
+          results.push(await buildComponent(componentDir));
+        }
+
+        s1.stop(
           chalk.green(
-            `Processed Tailwind CSS classes from ${selectedComponents.length} selected local ${componentLabelPluralized} and all online components`,
+            `Processed ${componentsToBuild.length} ${componentLabelPluralized}`,
           ),
         );
-
-        // Report Tailwind CSS results in separate table
-        reportResults([tailwindResult], 'Built assets', 'Asset');
-
-        if (!tailwindResult.success) {
-          return process.exit(1);
+        // Report component build results
+        reportResults(results, 'Built components', 'Component');
+        if (results.map((result) => result.success).includes(false)) {
+          process.exit(1);
         }
-      }
 
-      p.outro(`📦 Build completed`);
+        if (skipTailwind) {
+          p.log.info('Skipping Tailwind CSS build');
+        } else {
+          // Step 2: Build Tailwind CSS
+          const s2 = p.spinner();
+          s2.start('Building Tailwind CSS');
+          const tailwindResult = await buildTailwindForComponents(
+            componentsToBuild as string[],
+          );
+          s2.stop(
+            chalk.green(
+              `Processed Tailwind CSS classes from ${componentsToBuild.length} selected local ${componentLabelPluralized} and all online components`,
+            ),
+          );
+
+          // Report Tailwind CSS results in separate table
+          reportResults([tailwindResult], 'Built assets', 'Asset');
+
+          if (!tailwindResult.success) {
+            return process.exit(1);
+          }
+        }
+
+        p.outro(`📦 Build completed`);
+      } catch (error) {
+        if (error instanceof Error) {
+          p.note(chalk.red(`Error: ${error.message}`));
+        } else {
+          p.note(chalk.red(`Unknown error: ${String(error)}`));
+        }
+        process.exit(1);
+      }
     });
 }

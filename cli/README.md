@@ -61,13 +61,69 @@ npx canvas download [options]
 
 **Options:**
 
-- `-c, --component <name>`: Download a specific component by machine name
+- `-c, --components <names>`: Download specific component(s) by machine name
+  (comma-separated for multiple)
 - `--all`: Download all components
+- `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
+- `--skip-overwrite`: Skip downloading components that already exist locally
 
-Downloads one or more components from your site. You can select components to
-download, or use `--all` to download everything. Existing component directories
-will be overwritten after confirmation. Also downloads global CSS assets if
-available.
+**Note:** `--components` and `--all` cannot be used together.
+
+**About prompts:**
+
+- Without flags: Interactive mode with all prompts (component selection,
+  download confirmation, overwrite confirmation)
+- With `--yes`: Fully non-interactive - skips all prompts and overwrites
+  existing components (suitable for CI/CD)
+- With `--skip-overwrite`: Downloads only new components; skips existing ones
+  without overwriting
+- With both `--yes --skip-overwrite`: Fully non-interactive and only downloads
+  new components
+
+**Examples:**
+
+Interactive mode - select components from a list:
+
+```bash
+npx canvas download
+```
+
+Download specific components:
+
+```bash
+npx canvas download --components button,card,hero
+```
+
+Download all components:
+
+```bash
+npx canvas download --all
+```
+
+Fully non-interactive mode for CI/CD (overwrites existing):
+
+```bash
+npx canvas download --all --yes
+```
+
+Download only new components (skip existing):
+
+```bash
+npx canvas download --all --skip-overwrite
+```
+
+Fully non-interactive, only download new components:
+
+```bash
+npx canvas download --all --yes --skip-overwrite
+```
+
+Downloads one or more components from your site. You can select components
+interactively, specify them with `--components`, or use `--all` to download
+everything. By default, existing component directories will be overwritten after
+confirmation. Use `--yes` for non-interactive mode (suitable for CI/CD), or
+`--skip-overwrite` to preserve existing components. Also downloads global CSS
+assets if available.
 
 ---
 
@@ -92,14 +148,59 @@ Creates a new component directory with example files (`component.yml`,
 
 Build local components and Tailwind CSS assets.
 
+**Usage:**
+
 ```bash
 npx canvas build [options]
 ```
 
 **Options:**
 
+- `-c, --components <names>`: Build specific component(s) by machine name
+  (comma-separated for multiple)
 - `--all`: Build all components
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 - `--no-tailwind`: Skip Tailwind CSS build
+
+**Note:** `--components` and `--all` cannot be used together.
+
+**Examples:**
+
+Interactive mode - select components from a list:
+
+```bash
+npx canvas build
+```
+
+Build specific components:
+
+```bash
+npx canvas build --components button,card,hero
+```
+
+Build all components:
+
+```bash
+npx canvas build --all
+```
+
+Build without Tailwind CSS:
+
+```bash
+npx canvas build --components button --no-tailwind
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas build --all --yes
+```
+
+CI/CD without Tailwind:
+
+```bash
+npx canvas build --all --yes --no-tailwind
+```
 
 Builds the selected (or all) local components, compiling their source files.
 Also builds Tailwind CSS assets for all components (can be skipped with
@@ -113,14 +214,59 @@ be created, which will be used for the generated Tailwind CSS assets.
 
 Build and upload local components and global CSS assets.
 
+**Usage:**
+
 ```bash
 npx canvas upload [options]
 ```
 
 **Options:**
 
+- `-c, --components <names>`: Upload specific component(s) by machine name
+  (comma-separated for multiple)
 - `--all`: Upload all components in the directory
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 - `--no-tailwind`: Skip Tailwind CSS build and global asset upload
+
+**Note:** `--components` and `--all` cannot be used together.
+
+**Examples:**
+
+Interactive mode - select components from a list:
+
+```bash
+npx canvas upload
+```
+
+Upload specific components:
+
+```bash
+npx canvas upload --components button,card,hero
+```
+
+Upload all components:
+
+```bash
+npx canvas upload --all
+```
+
+Upload without Tailwind CSS build:
+
+```bash
+npx canvas upload --components button,card --no-tailwind
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas upload --all --yes
+```
+
+CI/CD without Tailwind:
+
+```bash
+npx canvas upload --all --yes --no-tailwind
+```
 
 Builds and uploads the selected (or all) local components to your site. Also
 builds and uploads global Tailwind CSS assets unless `--no-tailwind` is
@@ -131,7 +277,9 @@ exist.
 
 ### `validate`
 
-Validate local components.
+Validate local components using ESLint.
+
+**Usage:**
 
 ```bash
 npx canvas validate [options]
@@ -139,8 +287,51 @@ npx canvas validate [options]
 
 **Options:**
 
-- `--all`: Validate all components in the directory
+- `-c, --components <names>`: Validate specific component(s) by machine name
+  (comma-separated for multiple)
+- `--all`: Validate all components
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 - `--fix`: Apply available automatic fixes for linting issues
+
+**Note:** `--components` and `--all` cannot be used together.
+
+**Examples:**
+
+Interactive mode - select components from a list:
+
+```bash
+npx canvas validate
+```
+
+Validate specific components:
+
+```bash
+npx canvas validate --components button,card,hero
+```
+
+Validate all components:
+
+```bash
+npx canvas validate --all
+```
+
+Validate and auto-fix issues:
+
+```bash
+npx canvas validate --components button --fix
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas validate --all --yes
+```
+
+CI/CD with auto-fix:
+
+```bash
+npx canvas validate --all --yes --fix
+```
 
 Validates local components using ESLint with `required` configuration from
 [@drupal-canvas/eslint-config](https://www.npmjs.com/package/@drupal-canvas/eslint-config).

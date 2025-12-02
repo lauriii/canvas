@@ -42,7 +42,7 @@ export function reportResults(
                     ? `${chalk.underline(d.heading)}:\n${d.content}`
                     : d.content,
                 )
-                .join('\n\n'),
+                .join('\n\n') ?? '',
             ]
           : [
               r.itemName,

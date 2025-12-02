@@ -3,8 +3,8 @@
  */
 const HelloWorld = ({
   greeting = 'Hello world!',
-  cta = 'Click me!',
-  ctaRef = 'https://example.com',
+  ctaDisplayText = 'Click me!',
+  ctaLink = 'https://example.com',
   content,
 }) => {
   return (
@@ -12,7 +12,7 @@ const HelloWorld = ({
       <h2 className="greeting">{greeting}</h2>
       <div className="content">{content}</div>
       <button type="button" className="cta">
-        <a href={ctaRef}>{cta}</a>
+        <a href={ctaLink}>{ctaDisplayText}</a>
       </button>
     </div>
   );

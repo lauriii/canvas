@@ -8,17 +8,22 @@ import {
   getImportsFromAst,
 } from '@drupal-canvas/ui/features/code-editor/utils/ast-utils';
 
-import { ensureConfig, getConfig, setConfig } from '../config.js';
+import { ensureConfig, getConfig } from '../config.js';
 import { createApiService } from '../services/api.js';
 import { buildComponent } from '../utils/build';
 import { buildTailwindForComponents } from '../utils/build-tailwind.js';
+import {
+  pluralizeComponent,
+  updateConfigFromOptions,
+  validateComponentOptions,
+} from '../utils/command-helpers';
+import { selectLocalComponents } from '../utils/component-selector.js';
 import {
   createComponentPayload,
   processComponentFiles,
 } from '../utils/process-component-files.js';
 import { reportResults } from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
-import { selectLocalComponents } from '../utils/select-local-components.js';
 import { fileExists } from '../utils/utils';
 
 import type { DataDependencies } from '@drupal-canvas/ui/types/CodeComponent';
@@ -181,7 +186,9 @@ interface UploadOptions {
   dir?: string;
   verbose?: boolean;
   all?: boolean;
+  components?: string;
   tailwind?: boolean;
+  yes?: boolean;
 }
 
 /**
@@ -196,25 +203,29 @@ export function uploadCommand(program: Command): void {
     .option('--site-url <url>', 'Site URL')
     .option('--scope <scope>', 'Scope')
     .option('-d, --dir <directory>', 'Component directory')
+    .option(
+      '-c, --components <names>',
+      'Specific component(s) to upload (comma-separated)',
+    )
     .option('--all', 'Upload all components')
+    .option('-y, --yes', 'Skip confirmation prompts')
     .option('--verbose', 'Verbose output')
     .option('--no-tailwind', 'Skip Tailwind CSS building')
     .action(async (options: UploadOptions) => {
-      const allFlag = options.all || false;
+      // Default to --all when --yes is used without --components
+      const allFlag =
+        options.all || (options.yes && !options.components) || false;
       const skipTailwind = !options.tailwind;
 
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: upload'));
 
+        // Validate options
+        validateComponentOptions(options);
+
         // Update config with CLI options
-        if (options.clientId) setConfig({ clientId: options.clientId });
-        if (options.clientSecret)
-          setConfig({ clientSecret: options.clientSecret });
-        if (options.siteUrl) setConfig({ siteUrl: options.siteUrl });
-        if (options.dir) setConfig({ componentDir: options.dir });
-        if (options.scope) setConfig({ scope: options.scope });
-        if (options.all) setConfig({ all: options.all });
-        if (options.verbose) setConfig({ verbose: options.verbose });
+        updateConfigFromOptions(options);
+
         // Ensure all required config is present
         await ensureConfig([
           'siteUrl',
@@ -226,13 +237,14 @@ export function uploadCommand(program: Command): void {
         const config = getConfig();
 
         // Select components to upload
-        const componentsToUpload = await selectLocalComponents(
-          allFlag,
-          'Select components to upload',
+        const { directories: componentsToUpload } = await selectLocalComponents(
+          {
+            all: allFlag,
+            components: options.components,
+            skipConfirmation: options.yes,
+            selectMessage: 'Select components to upload',
+          },
         );
-        if (!componentsToUpload || componentsToUpload.length === 0) {
-          return;
-        }
 
         // Create API service
         const apiService = await createApiService();
@@ -246,6 +258,11 @@ export function uploadCommand(program: Command): void {
         // Display component upload results
         reportResults(componentResults, 'Uploaded components', 'Component');
 
+        // Exit with error if any component failed
+        if (componentResults.some((result) => !result.success)) {
+          process.exit(1);
+        }
+
         if (skipTailwind) {
           p.log.info('Skipping Tailwind CSS build');
         } else {
@@ -255,8 +272,9 @@ export function uploadCommand(program: Command): void {
           const tailwindResult = await buildTailwindForComponents(
             componentsToUpload as string[],
           );
-          const componentLabelPluralized =
-            componentsToUpload.length === 1 ? 'component' : 'components';
+          const componentLabelPluralized = pluralizeComponent(
+            componentsToUpload.length,
+          );
           s2.stop(
             chalk.green(
               `Processed Tailwind CSS classes from ${componentsToUpload.length} selected local ${componentLabelPluralized} and all online components`,
