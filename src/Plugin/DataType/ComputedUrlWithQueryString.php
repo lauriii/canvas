@@ -117,7 +117,6 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
     // calculating the dependencies of all structured data prop expressions this
     // (see ::getValue()) uses.
     $url_prop_expression = StructuredDataPropExpression::fromString($instructions['url']);
-    assert($url_prop_expression instanceof ReferenceFieldTypePropExpression);
     $dependencies = $url_prop_expression->calculateDependencies($field_item_list);
     foreach ($instructions['query_parameters'] as $query_parameter_instruction) {
       $dependencies = NestedArray::mergeDeep($dependencies, StructuredDataPropExpression::fromString($query_parameter_instruction)->calculateDependencies($field_item_list));
@@ -129,7 +128,7 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
     // For example, otherwise the `image` module would become an explicit
     // dependency, instead of just relying on the config dependency on
     // `field.field.media.image.field_media_image`.
-    if ($field_item_list->getParent() !== NULL) {
+    if ($field_item_list->getParent() !== NULL && $url_prop_expression instanceof ReferenceFieldTypePropExpression) {
       $referencer_dependencies = $url_prop_expression->referencer->calculateDependencies();
       $module_dependencies_to_omit = $referencer_dependencies['module'] ?? [];
       $dependencies['module'] = array_values(array_diff($dependencies['module'] ?? [], $module_dependencies_to_omit));
