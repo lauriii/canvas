@@ -19,6 +19,7 @@ import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
 } from '@/features/code-editor/codeEditorSlice';
+import { deserializeProps } from '@/features/code-editor/utils/utils';
 import {
   selectModel,
   setUpdatePreview,
@@ -150,7 +151,9 @@ const propsMetadataHandler = {
   canHandle: (msg: any) => 'props_metadata' in msg && msg.props_metadata,
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
     const parsedProps = JSON.parse(message.props_metadata);
-    dispatch(setCodeComponentProperty(['props', parsedProps]));
+    // Deserialize from Record format to Array format.
+    const deserializedProps = deserializeProps(parsedProps);
+    dispatch(setCodeComponentProperty(['props', deserializedProps]));
   },
 };
 

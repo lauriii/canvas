@@ -148,7 +148,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
     }
     $this->setStructuredOutput([
       'js_structure' => $js,
-      'props_metadata' => $props,
+      'props_metadata' => Json::encode($transformed_props),
     ]);
   }
 

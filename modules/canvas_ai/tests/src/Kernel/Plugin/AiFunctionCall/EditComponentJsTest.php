@@ -97,7 +97,21 @@ final class EditComponentJsTest extends KernelTestBase {
     $this->assertArrayHasKey('js_structure', $result);
     $this->assertArrayHasKey('props_metadata', $result);
     $this->assertEquals($js_content, $result['js_structure']);
-    $this->assertEquals($props_metadata, $result['props_metadata']);
+
+    // Verify props_metadata is transformed to Record format.
+    $props_metadata = [
+      'title' => [
+        'title' => 'Title',
+        'type' => 'string',
+        'examples' => ['Sample Title'],
+      ],
+      'count' => [
+        'title' => 'Count',
+        'type' => 'number',
+        'examples' => [5],
+      ],
+    ];
+    $this->assertEquals($props_metadata, Json::decode($result['props_metadata']));
   }
 
   public function testComponentValidation(): void {
