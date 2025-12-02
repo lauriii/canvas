@@ -63,6 +63,7 @@ final class CreateComponentTest extends KernelTestBase {
         'name' => 'Title',
         'type' => 'string',
         'example' => 'Sample Title',
+        'required' => TRUE,
       ],
       [
         'id' => 'count',
@@ -104,6 +105,7 @@ final class CreateComponentTest extends KernelTestBase {
       ],
     ];
     $this->assertEquals($expected_props, $component_structure['props']);
+    $this->assertEquals(['title'], $component_structure['required']);
   }
 
   /**

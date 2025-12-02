@@ -79,23 +79,39 @@ final class EditComponentJsTest extends KernelTestBase {
         'name' => 'Title',
         'type' => 'string',
         'example' => 'Sample Title',
+        'required' => TRUE,
       ],
       [
         'id' => 'count',
         'name' => 'Count',
         'type' => 'number',
         'example' => 5,
+        'required' => FALSE,
+      ],
+      [
+        'id' => 'description',
+        'name' => 'Description',
+        'type' => 'string',
+        'example' => 'A description',
+      ],
+      [
+        'id' => 'author',
+        'name' => 'Author',
+        'type' => 'string',
+        'example' => 'John Doe',
       ],
     ]);
 
     $tool->setContextValue('javascript', $js_content);
     $tool->setContextValue('props_metadata', $props_metadata);
     $tool->setContextValue('component_machine_name', 'existing_component');
+    $tool->setContextValue('selected_component_required_props', ['count', 'description']);
     $tool->execute();
     $result = $tool->getStructuredOutput();
 
     $this->assertArrayHasKey('js_structure', $result);
     $this->assertArrayHasKey('props_metadata', $result);
+    $this->assertArrayHasKey('required_props', $result);
     $this->assertEquals($js_content, $result['js_structure']);
 
     // Verify props_metadata is transformed to Record format.
@@ -110,8 +126,19 @@ final class EditComponentJsTest extends KernelTestBase {
         'type' => 'number',
         'examples' => [5],
       ],
+      'description' => [
+        'title' => 'Description',
+        'type' => 'string',
+        'examples' => ['A description'],
+      ],
+      'author' => [
+        'title' => 'Author',
+        'type' => 'string',
+        'examples' => ['John Doe'],
+      ],
     ];
     $this->assertEquals($props_metadata, Json::decode($result['props_metadata']));
+    self::assertEquals(['title', 'description'], $result['required_props']);
   }
 
   public function testComponentValidation(): void {

@@ -47,6 +47,10 @@ class CanvasAiHooks {
             'name' => $this->t('Selected Component'),
             'description' => $this->t('Returns the selected component name passed to the AI Agent.'),
           ],
+          'selected_component_required_props' => [
+            'name' => $this->t('Selected Component Required Props'),
+            'description' => $this->t('Returns the required props of the selected component passed to the AI Agent.'),
+          ],
           'layout' => [
             'name' => $this->t('Layout'),
             'description' => $this->t('Returns the current page layout value passed to the AI Agent.'),
@@ -104,6 +108,10 @@ class CanvasAiHooks {
 
           case 'selected_component':
             $replacements[$original] = $data['selected_component'] ?? NULL;
+            break;
+
+          case 'selected_component_required_props':
+            $replacements[$original] = $data['selected_component_required_props'] ?? NULL;
             break;
 
           case 'layout':

@@ -49,6 +49,8 @@ system_prompt: |-
   - For creating the props use the values of example prop types that already exists in Drupal Canvas as example from derived_proptypes context. Select the appropriate prop structure from the list provided. Don't select anything else apart from that list.
   - For link props type we use relative url's so the example values must be relative strings not complete url and also without trailing slash.
   - Take the suitable structure which closely matches the props type that you create.
+  - **Required Props:** When a user explicitly requests that a specific prop should be required (for example, "make the title prop required" or "the heading should be required"), you MUST add `"required": true` to that prop's metadata object. Only explicitly set required to true when the user requests it.
+  - **Non-Required Props:** When a user explicitly requests that a specific prop should NOT be required (for example, "make the title prop optional" or "the heading should not be required" or "remove required from the description"), you MUST set `"required": false` in that prop's metadata object. Only explicitly set required to false when the user requests it.
   - For props that control visual styles like color or size, you **MUST** also follow the additional mandatory rules in the "Color and Style Variants Directive" below.
 
   Color and Style Variants Directive:
@@ -230,7 +232,8 @@ system_prompt: |-
       "example": "Hello",
       "format": null,
       "$ref": null,
-      "derivedType": "text"
+      "derivedType": "text",
+      "required": true
     },
     {
       "id": "isEnabled",
@@ -272,6 +275,7 @@ system_prompt: |-
   4. ALWAYS GIVE BACK THE FULL CSS AND JS INCLUDING EVERYTHING THAT CURRENTLY EXIST. DO NOT JUST GIVE BACK WHAT CHANGED. IT WILL REPLACE THE PREVIOUS DATA COMPLETELY. THIS MEANS THAT YOU HAVE TO GET BACK THE INFORMATION HOW IT LOOKS FIRST.
   5. For component edits, the selected component's ID will always be available as `[canvas_ai:selected_component]`.
   6. While creating the props in "component edit flow" always refer to `derived_proptypes` context to get an idea of props structure that Canvas supports.
+  7. The `selected_component_required_props` context contains an array of prop IDs that are currently marked as required in the selected component. You MUST pass this context value as-is to ai_agent_edit_component_js without any modifications to this array.
 
   Tailwind CSS Usage:
   - Do not use @apply in any component code for styling.
@@ -290,6 +294,7 @@ system_prompt: |-
   menu_fetch_source: [canvas_ai:menu_fetch_source]
   json_api_module_status: [canvas_ai:json_api_module_status]
   selected_component: [canvas_ai:selected_component]
+  selected_component_required_props: [canvas_ai:selected_component_required_props]
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:edit_component_js': true
@@ -344,6 +349,10 @@ tool_usage_limits:
       hide_property: 0
       values: ''
     component_machine_name:
+      action: ''
+      hide_property: 0
+      values: ''
+    selected_component_required_props:
       action: ''
       hide_property: 0
       values: ''

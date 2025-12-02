@@ -157,6 +157,14 @@ const propsMetadataHandler = {
   },
 };
 
+const requiredPropsHandler = {
+  canHandle: (msg: any) =>
+    'required_props' in msg && Array.isArray(msg.required_props),
+  handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
+    dispatch(setCodeComponentProperty(['required', message.required_props]));
+  },
+};
+
 const createdContentHandler = {
   canHandle: (msg: any) => 'created_content' in msg && msg.created_content,
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
@@ -276,6 +284,7 @@ const messageHandlers = [
   jsStructureHandler,
   componentStructureHandler,
   propsMetadataHandler,
+  requiredPropsHandler,
   metadataHandler,
   operationsHandler,
 ];
@@ -446,6 +455,9 @@ const AiWizard = () => {
   const codeComponentName = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
+  const codeComponentRequiredProps = useAppSelector(
+    selectCodeComponentProperty('required'),
+  );
   const model = useAppSelector(selectModel);
   const textPropsMap = Object.fromEntries(
     Object.entries(model).map(([uuid, comp]) => [uuid, comp.resolved]),
@@ -476,6 +488,7 @@ const AiWizard = () => {
     params,
     theLayoutModel,
     selectedComponent,
+    codeComponentRequiredProps,
   });
 
   // Update the ref whenever tracked values change.
@@ -487,6 +500,7 @@ const AiWizard = () => {
       params,
       theLayoutModel,
       selectedComponent,
+      codeComponentRequiredProps,
     };
   }, [
     codeComponentName,
@@ -495,6 +509,7 @@ const AiWizard = () => {
     params,
     selectedComponent,
     theLayoutModel,
+    codeComponentRequiredProps,
   ]);
   // Access layoutUtils and componentSelectionUtils from drupalSettings.canvas
   const layoutUtils = drupalSettings.canvas?.layoutUtils as any;
@@ -791,6 +806,12 @@ const AiWizard = () => {
                     currentValuesRef.current.codeComponentName,
                   );
                   requestBody.append(
+                    'selected_component_required_props',
+                    JSON.stringify(
+                      currentValuesRef.current.codeComponentRequiredProps || [],
+                    ),
+                  );
+                  requestBody.append(
                     'layout',
                     currentValuesRef.current.textPropsMapString,
                   );
@@ -805,6 +826,8 @@ const AiWizard = () => {
                     entity_id: currentValuesRef.current.params.entityId,
                     selected_component:
                       currentValuesRef.current.codeComponentName,
+                    selected_component_required_props:
+                      currentValuesRef.current.codeComponentRequiredProps || [],
                     layout: currentValuesRef.current.textPropsMapString,
                     active_component_uuid:
                       currentValuesRef.current.selectedComponent ?? '',
