@@ -469,6 +469,9 @@ const AiWizard = () => {
   );
   let isComponentRendered = false;
   const welcomeTextRef = useRef<HTMLSpanElement>(null);
+  // AbortController to cancel ongoing requests when component unmounts
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const pollingStopSignalRef = useRef<{ stopped: boolean }>({ stopped: false });
   // Get the current layout, selected component, and available components from Redux state
   const theLayoutModel = useAppSelector(
     (state) => state?.layoutModel?.present as LayoutModelSliceState,
@@ -578,6 +581,20 @@ const AiWizard = () => {
       return transformedComponent;
     });
   };
+
+  // Cleanup effect to abort requests when component unmounts
+  useEffect(() => {
+    return () => {
+      // Abort any ongoing requests.
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      // Stop polling also if request is aborted.
+      if (pollingStopSignalRef.current) {
+        pollingStopSignalRef.current.stopped = true;
+      }
+    };
+  }, []);
 
   // Fetch CSRF token on mount.
   useEffect(() => {
@@ -853,6 +870,10 @@ const AiWizard = () => {
                   requestBody = JSON.stringify(parsedBody);
                 }
 
+                // Create a new AbortController for this request.
+                const abortController = new AbortController();
+                abortControllerRef.current = abortController;
+                pollingStopSignalRef.current = stopPolling;
                 // Start polling first
                 const chatEl = chatElementRef.current;
                 if (chatEl) {
@@ -878,6 +899,7 @@ const AiWizard = () => {
                   method: 'POST',
                   headers,
                   body: requestBody,
+                  signal: abortController.signal,
                 })
                   .then(async (response) => {
                     if (!response.ok) {
@@ -895,6 +917,11 @@ const AiWizard = () => {
                     pendingResponse = data;
                   })
                   .catch((error) => {
+                    // Don't show error if request was aborted intentionally
+                    if (error.name === 'AbortError') {
+                      console.log('AI request was aborted');
+                      return;
+                    }
                     console.error('AI request failed:', error);
                     stopPolling.stopped = true;
                     signals.onResponse({
@@ -907,7 +934,12 @@ const AiWizard = () => {
                       chatElementRef.current?.disableSubmitButton();
                     }, 0);
                   });
-              } catch (error) {
+              } catch (error: any) {
+                // Don't show error if request was aborted intentionally
+                if (error.name === 'AbortError') {
+                  console.log('AI request was aborted');
+                  return;
+                }
                 console.error('AI request failed:', error);
                 stopPolling.stopped = true;
                 await signals.onResponse({
