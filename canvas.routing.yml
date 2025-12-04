@@ -559,7 +559,16 @@ canvas.component.status:
     _title: 'Components status'
   requirements:
     _permission: 'administer themes'
-
+entity.canvas_page.add_page:
+  path: '/admin/content/pages/add'
+  defaults:
+    _controller: Drupal\canvas\Controller\AddPageController
+    _title: 'Add Page'
+  requirements:
+    _entity_create_access: 'canvas_page'
+    _csrf_token: 'TRUE'
+  options:
+    _admin_route: TRUE
 entity.component.audit:
   path: '/admin/appearance/component/{component}/audit'
   defaults:

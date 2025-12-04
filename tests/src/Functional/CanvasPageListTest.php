@@ -22,12 +22,20 @@ class CanvasPageListTest extends FunctionalTestBase {
   protected static $modules = [
     'canvas',
     'system',
+    // Ensures local tasks display.
+    'node',
   ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
+
+  protected function setUp(): void {
+    parent::setUp();
+    $this->drupalPlaceBlock('local_tasks_block');
+    $this->drupalPlaceBlock('local_actions_block');
+  }
 
   /**
    * Tests the admin page.
@@ -40,12 +48,24 @@ class CanvasPageListTest extends FunctionalTestBase {
     ]);
     $page->save();
 
-    $account = $this->drupalCreateUser(['edit canvas_page', 'delete canvas_page']);
+    $account = $this->drupalCreateUser([
+      Page::CREATE_PERMISSION,
+      Page::EDIT_PERMISSION,
+      Page::DELETE_PERMISSION,
+      // For other collections to ensure local tasks show.
+      'access content overview',
+    ]);
     $this->assertInstanceOf(AccountInterface::class, $account);
     $this->drupalLogin($account);
-    $this->drupalGet(Url::fromRoute('view.canvas_pages.page_1'));
+    $this->drupalGet(Url::fromRoute('entity.canvas_page.collection'));
 
-    $assert = self::assertSession();
+    $assert = $this->assertSession();
+
+    $assert->linkByHrefExists(Url::fromRoute('system.admin_content')->toString());
+    $assert->linkByHrefExists(Url::fromRoute('entity.canvas_page.collection')->toString());
+
+    $assert->linkByHrefExists('/admin/content/pages/add?token=');
+
     $assert->linkByHrefExists($page->toUrl('canonical')->toString());
     $assert->linkByHrefExists($page->toUrl('edit-form')->toString());
     $assert->linkByHrefExists($page->toUrl('delete-form')->toString());

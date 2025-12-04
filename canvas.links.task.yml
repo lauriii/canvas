@@ -14,6 +14,11 @@ canvas.component.status.disabled:
   route_name: canvas.component.status
   parent_id: entity.component.collection
 
+entity.canvas_page.collection:
+  title: Pages
+  route_name: entity.canvas_page.collection
+  base_route: system.admin_content
+
 entity.canvas_page.canonical:
   title: 'View'
   route_name: entity.canvas_page.canonical
