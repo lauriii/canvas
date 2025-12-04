@@ -6,6 +6,9 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
+/**
+ * @internal
+ */
 abstract class SequenceDependentConstraintBase extends SymfonyConstraint {
 
   /**

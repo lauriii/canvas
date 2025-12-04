@@ -7,6 +7,8 @@ namespace Drupal\canvas\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
+ * @internal
+ *
  * @phpstan-type ConfigDependenciesArray array{content?: array<int, string>, config?: array<int, string>, module?: array<int, string>}
  */
 interface VersionedConfigEntityInterface extends ConfigEntityInterface {

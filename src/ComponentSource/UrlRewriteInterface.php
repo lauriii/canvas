@@ -7,6 +7,8 @@ namespace Drupal\canvas\ComponentSource;
 use Drupal\Core\GeneratedUrl;
 
 /**
+ * @internal
+ *
  * Defines an interface for component source plugins that support URL rewrites.
  */
 interface UrlRewriteInterface extends ComponentSourceInterface {

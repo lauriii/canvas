@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+/**
+ * @internal
+ */
 trait CompoundExpressionTrait {
 
   /**

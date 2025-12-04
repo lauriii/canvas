@@ -15,6 +15,8 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 
 /**
+ * @internal
+ *
  * Adds properties to entity reference field implementations.
  *
  * It adds:

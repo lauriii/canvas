@@ -12,6 +12,8 @@ use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
 
 /**
+ * @internal
+ *
  * Defines a base class for component source plugins.
  *
  * @see \Drupal\canvas\Attribute\ComponentSource

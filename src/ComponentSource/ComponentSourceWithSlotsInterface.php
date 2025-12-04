@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\ComponentSource;
 
 /**
+ * @internal
+ *
  * Defines an interface for component sources that support slots.
  */
 interface ComponentSourceWithSlotsInterface extends ComponentSourceInterface {

@@ -16,6 +16,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintValidator;
 
 /**
+ * @internal
+ *
  * Validates a SequenceDependentConstraintBase-subclassing constraint.
  */
 abstract class SequenceDependentConstraintValidatorBase extends ConstraintValidator implements ContainerInjectionInterface {

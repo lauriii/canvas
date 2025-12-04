@@ -15,6 +15,8 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 
 /**
+ * @internal
+ *
  * Defines a trait containing common methods for entity form controllers.
  */
 trait EntityFormTrait {

@@ -18,6 +18,8 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
+ * @internal
+ *
  * Defines an interface for component source plugins.
  *
  * A Component is a config entity created by a site builder that allows

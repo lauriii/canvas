@@ -7,6 +7,8 @@ namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 use Drupal\Core\Field\FieldDefinitionInterface;
 
 /**
+ * @internal
+ *
  * @todo Fix upstream in core; \Drupal\text\Plugin\Field\FieldType\TextItemBase::applyDefaultValue() is broken due to its unsolved @todo!
  */
 trait CoreBugFixTextItemBaseGenerateSampleValueTrait {

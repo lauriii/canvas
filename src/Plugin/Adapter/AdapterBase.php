@@ -8,6 +8,8 @@ use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
 
 /**
+ * @internal
+ *
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 abstract class AdapterBase extends PluginBase implements AdapterInterface {

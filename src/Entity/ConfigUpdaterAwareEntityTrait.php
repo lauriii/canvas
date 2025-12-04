@@ -6,6 +6,9 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\CanvasConfigUpdater;
 
+/**
+ * @internal
+ */
 trait ConfigUpdaterAwareEntityTrait {
 
   protected static function getConfigUpdater(): CanvasConfigUpdater {

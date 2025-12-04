@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Field\FieldTypeOverride;
 
 /**
+ * @internal
+ *
  * @todo Fix upstream in core; \Drupal\text\Plugin\Field\FieldType\TextItemBase::applyDefaultValue() is broken due to its unsolved @todo!
  * @todo Consider moving this logic into \Drupal\filter\Plugin\DataType\FilterFormat::applyDefaultValue(), possible thanks to \Drupal\text\Plugin\Field\FieldType\TextItemBase::propertyDefinitions() passing it on
  */

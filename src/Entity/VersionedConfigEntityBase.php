@@ -13,6 +13,8 @@ use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 
 /**
+ * @internal
+ *
  * @property ?\Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter $typedData
  * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  */

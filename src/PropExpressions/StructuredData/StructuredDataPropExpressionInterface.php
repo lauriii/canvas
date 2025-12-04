@@ -10,6 +10,9 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\PropSource\ContentAwareDependentInterface;
 
+/**
+ * @internal
+ */
 interface StructuredDataPropExpressionInterface extends PropExpressionInterface, ContentAwareDependentInterface {
 
   // Structured data contains information, hence a prefix that conveys that..

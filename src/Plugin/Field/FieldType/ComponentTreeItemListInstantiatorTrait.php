@@ -12,6 +12,8 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\TypedData\TypedDataTrait;
 
 /**
+ * @internal
+ *
  * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  * @phpstan-import-type ComponentTreeItemArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs

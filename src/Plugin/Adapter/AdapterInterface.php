@@ -8,6 +8,8 @@ use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 
 /**
+ * @internal
+ *
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
  */
 interface AdapterInterface extends PluginInspectionInterface {

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Extension;
 
 /**
+ * @internal
+ *
  * Interface for canvas_extension plugins.
  */
 interface CanvasExtensionInterface {

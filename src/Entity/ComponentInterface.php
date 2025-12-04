@@ -9,6 +9,8 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 
 /**
+ * @internal
+ *
  * Defines an interface for Component config entities.
  */
 interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithPluginCollectionInterface {

@@ -8,6 +8,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 /**
+ * @internal
+ *
  * Defines an interface for entities that store a component tree.
  *
  * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList

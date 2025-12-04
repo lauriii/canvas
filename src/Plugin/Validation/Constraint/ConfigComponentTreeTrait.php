@@ -7,6 +7,9 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Utility\TypedDataHelper;
 
+/**
+ * @internal
+ */
 trait ConfigComponentTreeTrait {
 
   /**
