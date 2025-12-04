@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
@@ -76,8 +75,7 @@ final class NodeTemplatesTest extends KernelTestBase {
     $this->installEntitySchema('node');
     $this->installConfig(['node', 'system', 'filter']);
     $this->createContentType(['type' => 'article']);
-    // Create config entities for components.
-    $this->container->get(ComponentPluginManager::class)->getDefinitions();
+    $this->generateComponentConfig();
     FilterFormat::create([
       'format' => 'basic_html',
       'name' => 'Basic HTML',
@@ -276,7 +274,6 @@ HTML;
    */
   public function testExposedSlotsAreFilledByEntity(): void {
     $this->createComponentTreeField('node', 'article', 'field_component_tree');
-    $this->generateComponentConfig();
 
     ContentTemplate::create([
       'content_entity_type_id' => 'node',

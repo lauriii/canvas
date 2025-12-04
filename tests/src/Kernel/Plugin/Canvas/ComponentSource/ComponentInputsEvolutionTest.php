@@ -38,6 +38,7 @@ use Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block\Simulated
  * Test explicit inputs can evolve as input schema & shape matching change.
  *
  * @group canvas
+ * @group canvas_component_sources
  */
 final class ComponentInputsEvolutionTest extends KernelTestBase {
 

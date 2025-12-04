@@ -7,11 +7,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Plugin\Component;
+use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -49,6 +51,13 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
   use MediaTypeCreationTrait;
+
+  protected static $configSchemaCheckerExclusions = [
+    // The "all-props" test-only SDC is used to assess also prop shapes that are
+    // not yet storable, and hence do not meet the requirements.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
+    'canvas.' . ComponentEntity::ENTITY_TYPE_ID . '.' . SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.sdc_test_all_props.all-props',
+  ];
 
   /**
    * {@inheritdoc}
@@ -806,7 +815,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
         'optional, type=array&items[type]=integer&maxItems=20&minItems=1' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minMaxItems',
@@ -817,7 +826,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements
         'optional, type=array&items[type]=integer&minItems=1' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minItems',
@@ -828,7 +837,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'adapter_matches_instance' => [],
         ],
         // ⚠️ This (unsupported!) SDC prop appears here because it's in the `all-props` test-only SDC.
-        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::componentMeetsRequirements()
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
         'optional, type=array&items[type]=integer&minItems=2' => [
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_array_integer_minItemsMultiple',

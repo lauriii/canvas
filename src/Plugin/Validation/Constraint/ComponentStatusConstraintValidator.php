@@ -27,11 +27,17 @@ final class ComponentStatusConstraintValidator extends ConstraintValidator {
     }
     $component = $this->createComponentConfigEntityFromContext();
 
-    // Get the component definition.
+    // Requirements can only be checked if the source for the Component exists…
     try {
-      $component->getComponentSource()->getPluginDefinition();
+      $source = $component->getComponentSource();
     }
     catch (PluginNotFoundException) {
+      // A validation error will be triggered for this by the `PluginExists`
+      // constraint on the `source` key-value pair of the Component.
+      return;
+    }
+    // … and if the underlying component is not broken.
+    if ($source->isBroken()) {
       // A validation error will be triggered for this by the `PluginExists`
       // constraint on the `component` key-value pair.
       // @todo Remove this early return in

@@ -49,12 +49,6 @@ parameters:
       count: 1
       path: src/PropSource/StaticPropSource.php
     -
-      messages:
-        - "#^Missing cache backend declaration for performance\\.$#"
-      paths:
-        - src/Plugin/BlockManager.php
-        - src/Plugin/ComponentPluginManager.php
-    -
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php

@@ -245,4 +245,11 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
     return $dependencies;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function isVersionedProperty(string $property_name): bool {
+    return array_key_exists($property_name, $this->versioned_properties);
+  }
+
 }

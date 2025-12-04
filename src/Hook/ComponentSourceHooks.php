@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
-use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
@@ -28,9 +25,10 @@ use Symfony\Component\Routing\Route;
  * @see https://www.drupal.org/project/issues/canvas?component=Component+sources
  * @see docs/components.md
  */
-readonly final class ComponentSourceHooks implements ContainerInjectionInterface {
+readonly final class ComponentSourceHooks {
 
   public function __construct(
+    private ComponentSourceManager $componentSourceManager,
     private RouteMatchInterface $routeMatch,
     private CodeComponentDataProvider $codeComponentDataProvider,
     private LibraryDependencyResolverInterface $libraryDependencyResolver,
@@ -38,17 +36,6 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
     private ConfigFactoryInterface $configFactory,
     private RequestStack $requestStack,
   ) {}
-
-  public static function create(ContainerInterface $container): self {
-    return new static(
-      $container->get('current_route_match'),
-      $container->get(CodeComponentDataProvider::class),
-      $container->get(LibraryDependencyResolverInterface::class),
-      $container->get(ThemeManagerInterface::class),
-      $container->get(ConfigFactoryInterface::class),
-      $container->get(RequestStack::class),
-    );
-  }
 
   const ASSET_LIBRARY_METHOD_MAPPING = [
     'canvas/canvasData.v0.baseUrl' => 'getCanvasDataBaseUrlV0',
@@ -63,14 +50,7 @@ readonly final class ComponentSourceHooks implements ContainerInjectionInterface
    */
   #[Hook('rebuild')]
   public function rebuild(): void {
-    // The module installer cleared all plugin caches. Create/update Component
-    // config entities for all Canvas Component source plugins.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
-    // @phpstan-ignore-next-line
-    \Drupal::service(BlockManagerInterface::class)->getDefinitions();
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
-    // @phpstan-ignore-next-line
-    \Drupal::service(ComponentPluginManager::class)->getDefinitions();
+    $this->componentSourceManager->generateComponents();
   }
 
   /**

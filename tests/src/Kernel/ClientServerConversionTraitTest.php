@@ -9,9 +9,9 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Exception\ConstraintViolationException;
-use Drupal\canvas\Plugin\BlockManager;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -284,7 +284,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
 
     // Now render both of these broken and assert we can still convert.
     $this->container->get(StateInterface::class)->set('canvas_test_block.remove_definitions', ['canvas_test_block_input_none']);
-    $this->container->get(BlockManager::class)->clearCachedDefinitions();
+    $this->container->get(BlockManagerInterface::class)->clearCachedDefinitions();
     // Delete the code component through the config factory to avoid normal
     // dependency cleanup that would also remove the Component entity.
     $this->container->get(ConfigFactoryInterface::class)

@@ -14,13 +14,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Theme\ExtensionType;
 use Drupal\canvas\Attribute\ComponentSource;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
-use Drupal\canvas\ComponentMetadataRequirementsChecker;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
-use Drupal\canvas\Entity\Component as ComponentEntity;
-use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Path;
@@ -32,6 +26,7 @@ use Symfony\Component\Filesystem\Path;
   id: self::SOURCE_PLUGIN_ID,
   label: new TranslatableMarkup('Single-Directory Components'),
   supportsImplicitInputs: FALSE,
+  discovery: SingleDirectoryComponentDiscovery::class,
   // @see \Drupal\Core\Theme\ComponentPluginManager::__construct()
   discoveryCacheTags: ['component_plugins'],
 )]
@@ -167,107 +162,10 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
   }
 
   /**
-   * Converts an SDC plugin machine name into a config entity ID.
-   *
-   * The naming convention for SDC plugin components is
-   * [module/theme]:[component machine name]. Colon is invalid config entity
-   * name, so we replace it with '.'.
-   *
-   * @param string $machine_name
-   *   The SDC plugin.
-   *
-   * @return string
-   *   The config entity ID.
-   *
-   * @see \Drupal\Core\Plugin\Component::$machineName
-   * @see https://www.drupal.org/docs/develop/theming-drupal/using-single-directory-components/api-for-single-directory-components
+   * @todo Remove in clean-up follow-up; minimize non-essential changes.
    */
   public static function convertMachineNameToId(string $machine_name): string {
-    assert(str_contains($machine_name, ':'));
-    return 'sdc.' . str_replace(':', '.', $machine_name);
-  }
-
-  /**
-   * Create a Component config entity for a Single Directory Component plugin.
-   *
-   * @param \Drupal\Core\Plugin\Component $component_plugin
-   *   The SDC plugin.
-   *
-   * @return \Drupal\canvas\Entity\Component
-   *   The component config entity.
-   */
-  public static function createConfigEntity(ComponentPlugin $component_plugin): ComponentEntity {
-    assert(is_null($component_plugin->metadata->schema) || is_array($component_plugin->metadata->schema));
-    $props = self::getPropsForComponentPlugin($component_plugin);
-    assert(is_array($component_plugin->getPluginDefinition()));
-    // Disabled if obsolete or flagged with noUi.
-    $status = !(
-      (isset($component_plugin->metadata->noUi) && $component_plugin->metadata->noUi === TRUE)
-      // The above only works on Drupal core >=11.3.
-      // @todo Remove in https://www.drupal.org/i/3537695
-      || ($component_plugin->getPluginDefinition()['noUi'] ?? FALSE)
-      || (isset($component_plugin->metadata->status) && $component_plugin->metadata->status === 'obsolete')
-    );
-
-    $settings = [
-      'prop_field_definitions' => $props,
-    ];
-    $sdc_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
-      'local_source_id' => $component_plugin->getPluginId(),
-      ...$settings,
-    ]);
-    assert($sdc_source instanceof self);
-    $version = $sdc_source->generateVersionHash();
-    return ComponentEntity::create([
-      'id' => self::convertMachineNameToId($component_plugin->getPluginId()),
-      'label' => $component_plugin->getPluginDefinition()['name'] ?? $component_plugin->getPluginId(),
-      'category' => $component_plugin->getPluginDefinition()['category'],
-      'source' => self::SOURCE_PLUGIN_ID,
-      'provider' => $component_plugin->getPluginDefinition()['provider'],
-      'source_local_id' => $component_plugin->getPluginId(),
-      'active_version' => $version,
-      'versioned_properties' => [
-        VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings],
-      ],
-      'status' => $status,
-    ]);
-  }
-
-  /**
-   * Update the Component config entity for a Single Directory Component plugin.
-   *
-   * @param \Drupal\Core\Plugin\Component $component_plugin
-   *   The SDC plugin.
-   *
-   * @return \Drupal\canvas\Entity\Component
-   *   The component config entity.
-   */
-  public static function updateConfigEntity(ComponentPlugin $component_plugin): ComponentEntity {
-    assert(is_null($component_plugin->metadata->schema) || is_array($component_plugin->metadata->schema));
-    $component = ComponentEntity::load(self::convertMachineNameToId($component_plugin->getPluginId()));
-    assert($component instanceof ComponentEntity);
-
-    $settings = [
-      'prop_field_definitions' => self::getPropsForComponentPlugin($component_plugin),
-    ];
-    $sdc_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
-      'local_source_id' => $component_plugin->getPluginId(),
-      ...$settings,
-    ]);
-    assert($sdc_source instanceof self);
-    $version = $sdc_source->generateVersionHash();
-    $definition = $component_plugin->getPluginDefinition();
-    \assert(\is_array($definition));
-    $component
-      // These 3 can change over time:
-      // - label and category (unversioned)
-      // - settings (versioned)
-      ->set('label', $definition['name'] ?? $component_plugin->getPluginId())
-      ->set('category', $definition['category'])
-      ->createVersion($version)
-      ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION)
-      ->setSettings($settings);
-    return $component;
+    return SingleDirectoryComponentDiscovery::getComponentConfigEntityId($machine_name);
   }
 
   /**
@@ -285,36 +183,6 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
       ExtensionType::Module => $this->t('Module component'),
       ExtensionType::Theme => $this->t('Theme component'),
     };
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function checkRequirements(): void {
-    self::componentMeetsRequirements($this->getComponentPlugin());
-  }
-
-  public static function componentMeetsRequirements(ComponentPlugin $component_plugin): void {
-    $definition = $component_plugin->getPluginDefinition();
-    \assert(\is_array($definition));
-
-    if (isset($definition['status']) && $definition['status'] === 'obsolete') {
-      throw new ComponentDoesNotMeetRequirementsException(['Component has "obsolete" status']);
-    }
-
-    // Special case exception for 'all-props' SDC.
-    // (This is used to develop support for more prop shapes.)
-    if ($definition['id'] === 'sdc_test_all_props:all-props') {
-      return;
-    }
-
-    $required = $definition['props']['required'] ?? [];
-    ComponentMetadataRequirementsChecker::check(
-      $definition['id'],
-      $component_plugin->metadata,
-      $required,
-      forbidden_key_characters: [],
-    );
   }
 
   /**

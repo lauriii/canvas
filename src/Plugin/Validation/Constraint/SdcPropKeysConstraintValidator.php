@@ -76,7 +76,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
       if (!array_key_exists($expected_key, $mapping)) {
         $this->context->buildViolation($constraint->message)
           // `title` is guaranteed to exist.
-          // @see \Drupal\canvas\Plugin\ComponentPluginManager::componentMeetsRequirements()
+          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
           // @phpstan-ignore-next-line
           ->setParameter('%prop_title', $sdc->metadata->schema['properties'][$expected_key]['title'])
           ->setParameter('%prop_machine_name', $expected_key)

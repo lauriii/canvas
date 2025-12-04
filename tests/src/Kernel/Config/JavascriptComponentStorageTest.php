@@ -19,8 +19,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * Tests JavascriptComponentStorage.
  *
  * @covers \Drupal\canvas\EntityHandlers\JavascriptComponentStorage
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::createConfigEntity
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::updateConfigEntity
+ * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery
  * @group JavaScriptComponents
  * @group canvas
  */
@@ -195,7 +194,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::updateConfigEntity()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery::computeCurrentComponentMetadata()
    * @depends testComponentEntityCreation
    */
   public function testComponentEntityUpdate(array $js_component_values): void {

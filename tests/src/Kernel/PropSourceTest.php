@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
@@ -28,7 +30,6 @@ use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -61,6 +62,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 /**
  * @coversDefaultClass \Drupal\canvas\PropSource\PropSource
  * @group canvas
+ * @group canvas_component_sources
  */
 class PropSourceTest extends KernelTestBase {
 
@@ -1241,11 +1243,10 @@ class PropSourceTest extends KernelTestBase {
    */
   public function testDefaultRelativeUrlPropSource(): void {
     $this->enableModules(['canvas_test_sdc', 'link', 'image', 'options', 'text']);
-    // Force rebuilding of the definitions which will create the required
-    // component.
-    $plugin_manager = $this->container->get(ComponentPluginManager::class);
-    $plugin_manager->clearCachedDefinitions();
-    $plugin_manager->getDefinitions();
+    self::assertNull(Component::load('sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop'));
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
+    self::assertNotNull(Component::load('sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop'));
+
     $source = new DefaultRelativeUrlPropSource(
       value: [
         'src' => 'gracie.jpg',

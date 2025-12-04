@@ -33,20 +33,13 @@ services:
     tags:
       - { name: render.main_content_renderer, format: canvas_template }
   Drupal\canvas\Render\MainContent\CanvasPreviewRenderer: { }
-  Drupal\canvas\Plugin\ComponentPluginManager:
-    decorates: plugin.manager.sdc
-    parent: Drupal\Core\Theme\ComponentPluginManager
-    arguments: ['@entity_type.manager', '@Drupal\canvas\ComponentIncompatibilityReasonRepository']
-    tags:
-      - { name: canvas.component_source }
-  Drupal\canvas\Plugin\BlockManager:
-    decorates: plugin.manager.block
-    parent: Drupal\Core\Block\BlockManagerInterface
-    arguments: ['@config.typed', '@Drupal\canvas\ComponentIncompatibilityReasonRepository', '@Drupal\canvas\ComponentSource\ComponentSourceManager']
-    tags:
-      - { name: canvas.component_source }
   Drupal\canvas\ComponentSource\ComponentSourceManager:
     parent: default_plugin_manager
+    arguments:
+      $reasonRepository: '@Drupal\canvas\ComponentIncompatibilityReasonRepository'
+      $classResolver: '@Drupal\Core\DependencyInjection\ClassResolverInterface'
+      $configInstaller: '@Drupal\Core\Config\ConfigInstallerInterface'
+      $kernel: '@kernel'
     public: true
   Drupal\canvas\Extension\CanvasExtensionPluginManager:
     arguments:
@@ -112,8 +105,6 @@ services:
       - { name: path_processor_inbound, priority: 200 }
   Drupal\canvas\Controller\CanvasBlockListController: ~
   Drupal\canvas\EventSubscriber\RecipeSubscriber:
-    tags:
-      - { name: service_collector, call: addComponentSource, tag: canvas.component_source }
 
   # Routing.
   Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer:

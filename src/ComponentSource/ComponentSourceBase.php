@@ -181,4 +181,16 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     return $values;
   }
 
+  /**
+   * @todo Remove in clean-up follow-up; minimize non-essential changes.
+   */
+  public function checkRequirements(): void {
+    $discovery_class = $this->getPluginDefinition()['discovery'];
+    // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+    $discovery = \Drupal::classResolver($discovery_class);
+    \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
+
+    $discovery->checkRequirements($this->getSourceSpecificComponentId());
+  }
+
 }

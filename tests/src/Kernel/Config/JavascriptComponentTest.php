@@ -17,6 +17,7 @@ class JavascriptComponentTest extends KernelTestBase {
 
   protected static $modules = [
     'canvas',
+    'system',
   ];
 
   /**

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\TestSite;
 
+use Drupal\canvas\Entity\Component as ComponentEntity;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -29,6 +32,7 @@ use Drupal\Tests\TestFileCreationTrait;
 use Drupal\TestSite\TestSetupInterface;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use Symfony\Component\Yaml\Yaml as SymfonyYaml;
 
 if (!\class_exists(TestSetupInterface::class)) {
   // We're running test-discovery inside run-tests.sh which is before
@@ -73,12 +77,63 @@ class CanvasTestSetup implements TestSetupInterface {
 
   protected string $root;
 
+  protected static array $configSchemaCheckerExclusions = [
+    // The "all-props" test-only SDC is used to assess also prop shapes that are
+    // not yet storable, and hence do not meet the requirements.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
+    // @see /ui/tests/e2e/prop-types.cy.js
+    'canvas.' . ComponentEntity::ENTITY_TYPE_ID . '.' . SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.sdc_test_all_props.all-props',
+  ];
+
   public function setup(bool $createContentTemplate = FALSE): void {
     // CreateTestJsComponentTrait requires having the $root set.
     $container = \Drupal::getContainer();
     $root = $container && $container->hasParameter('app.root') ? $container->getParameter('app.root') : DRUPAL_ROOT;
     assert(is_string($root));
     $this->root = $root;
+
+    // TRICKY: this runs in TestSiteInstallCommand, which has no way for either
+    // disabling strict config schema checking OR for adding config schema
+    // exclusions.
+    // We cannot do that by implementing \Drupal\TestSite\TestPreinstallInterface
+    // because that's too early.
+    // So we are in a difficult spot: we already installed Drupal, and we can
+    // use its services, but we cannot alter them.
+    // So time for hacking the services.yml file, which we can ensure it exists
+    // because of \Drupal\TestSite\Commands\TestSiteInstallCommand::installDrupal
+    // using \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings.
+    // This works around that Drupal core limitation.
+    // But... we are reusing this in some Kernel/Functional tests, which we
+    // should stop doing. In the meantime, we need to verify to only alter this
+    // file if it exists. For the use cases where it doesn't, we don't care as
+    // those will pick up the proper $configSchemaCheckerExclusions from the
+    // test itself.
+    $site_path = $container->getParameter('site.path');
+    assert(is_string($site_path));
+    $services_yml = $site_path . '/services.yml';
+    if (file_exists($services_yml)) {
+      $yaml = new SymfonyYaml();
+      $content = file_get_contents($services_yml);
+      assert(is_string($content));
+      $services = $yaml->parse($content);
+      // @see \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings
+      // for the`testing.config_schema_checker` service definition.
+      array_push(
+        $services['services']['testing.config_schema_checker']['arguments'][1],
+        ...self::$configSchemaCheckerExclusions,
+      );
+      file_put_contents($services_yml, $yaml->dump($services));
+
+      // Container service files like the one we just changed are cached. We
+      // need to invalidate it so the container is rebuilt reliably.
+      // @see \Drupal\Core\Test\FunctionalTestSetupTrait::setContainerParameter()
+      FileCacheFactory::get('container_yaml_loader')->delete($services_yml);
+
+      // Rebuild the container before the test continues with the installation.
+      $kernel = \Drupal::service('kernel');
+      $kernel->invalidateContainer();
+      $kernel->rebuildContainer();
+    }
 
     $module_installer = \Drupal::service('module_installer');
     $module_installer->install(['system', 'user']);

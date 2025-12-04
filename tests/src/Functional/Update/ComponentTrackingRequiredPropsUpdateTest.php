@@ -91,6 +91,9 @@ final class ComponentTrackingRequiredPropsUpdateTest extends CanvasUpdatePathTes
           '7929b726e293a593' => FALSE,
         ],
         'after' => [
+          // New active version.
+          '5bd4cdd8dea16da1' => TRUE,
+          // Same as before.
           '3832b735acd1c5ad' => TRUE,
           '7929b726e293a593' => TRUE,
         ],
@@ -100,6 +103,9 @@ final class ComponentTrackingRequiredPropsUpdateTest extends CanvasUpdatePathTes
           '7929b726e293a593' => TRUE,
         ],
         'after' => [
+          // New active version.
+          'fd6e432ac8bda84e' => TRUE,
+          // Same as before.
           '7929b726e293a593' => TRUE,
         ],
       ],
@@ -109,6 +115,9 @@ final class ComponentTrackingRequiredPropsUpdateTest extends CanvasUpdatePathTes
           '7929b726e293a593' => TRUE,
         ],
         'after' => [
+          // New active version.
+          '5bd4cdd8dea16da1' => TRUE,
+          // Same as before.
           '3832b735acd1c5ad' => TRUE,
           '7929b726e293a593' => TRUE,
         ],

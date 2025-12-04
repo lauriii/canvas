@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
-use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
@@ -14,10 +15,10 @@ use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -29,6 +30,7 @@ use Symfony\Component\Yaml\Yaml;
  * Tests validation of component entities.
  *
  * @group canvas
+ * @group canvas_component_sources
  */
 class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -37,8 +39,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
-
-  protected CoreComponentPluginManager $componentPluginManager;
 
   /**
    * {@inheritdoc}
@@ -167,7 +167,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'label' => 'Test',
     ]);
     $this->entity->save();
-    $this->componentPluginManager = $this->container->get(ComponentPluginManager::class);
   }
 
   /**
@@ -289,7 +288,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     JavaScriptComponent::create([
       'machineName' => 'my-cta',
       'name' => $this->getRandomGenerator()->sentences(5),
-      'status' => FALSE,
+      'status' => TRUE,
       'props' => $props,
       'required' => $sdc_yaml['props']['required'],
       'js' => ['original' => '', 'compiled' => ''],
@@ -463,10 +462,38 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     yield 'null' => [NULL, []];
   }
 
+  /**
+   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentStatusConstraintValidator
+   * @todo Consider moving this (and its sibling ::testStatusWithBlock()) to
+   *   \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase in https://www.drupal.org/project/canvas/issues/3561271.
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceManager::generateComponentsForSource())
+   */
   public function testStatusWithSdc(): void {
-    $component = Component::load('sdc.canvas_test_sdc.image-required-without-example');
-    $this->assertNull($component);
-    $component = SingleDirectoryComponent::createConfigEntity($this->componentPluginManager->find('canvas_test_sdc:image-required-without-example'));
+    $source_specific_component_id = 'canvas_test_sdc:image-required-without-example';
+    // Manually create a Component config entity that this source's discovery
+    // would not have created because it does not meet requirements. This is
+    // considered valid as long as the Component is disabled (`status=FALSE`).
+    $discovery = new SingleDirectoryComponentDiscovery($this->container->get(ComponentPluginManager::class));
+    try {
+      $discovery->checkRequirements($source_specific_component_id);
+      $this->fail("$source_specific_component_id should not meet requirements for the purposes of this test.");
+    }
+    catch (ComponentDoesNotMeetRequirementsException) {
+      // No-op.
+    }
+    $component = Component::create([
+      'id' => SingleDirectoryComponentDiscovery::getComponentConfigEntityId($source_specific_component_id),
+      'label' => 'Test',
+      'category' => 'test',
+      'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
+      'source_local_id' => $source_specific_component_id,
+      'active_version' => 'f4d1c916802ab8db',
+      'versioned_properties' => [
+        VersionedConfigEntityBase::ACTIVE_VERSION => [
+          'settings' => $discovery->computeComponentSettings($source_specific_component_id),
+        ],
+      ],
+    ]);
     $component->setStatus(FALSE);
     $this->assertEquals(SAVED_NEW, $component->save());
     $component->setStatus(TRUE);
@@ -479,10 +506,15 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     ]);
   }
 
+  /**
+   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentStatusConstraintValidator
+   */
   public function testStatusWithBlock(): void {
     $this->enableModules(['node', 'block']);
-    $this->generateComponentConfig();
 
+    // Manually create a Component config entity that this source's discovery
+    // would not have created because it does not meet requirements. This is
+    // considered valid as long as the Component is disabled (`status=FALSE`).
     $component = Component::create([
       'id' => 'block.node_syndicate_block',
       'status' => FALSE,

@@ -20,6 +20,12 @@ final class ComponentSource extends Plugin {
   /**
    * @param string $id
    * @param \Drupal\Core\StringTranslation\TranslatableMarkup $label
+   * @param class-string|false $discovery
+   *   FQCN to a ComponentCandidatesDiscoveryInterface implementation, or FALSE
+   *   if no discovery.
+   *   Some ComponentSource plugins provide a fixed set of components (then the
+   *   module must provide the necessary Component config entities in its
+   *   `config/install` directory).
    * @param class-string|null $deriver
    * @param list<string> $discoveryCacheTags
    *   The cache tags associated with this ComponentSource plugin's discovery.
@@ -36,9 +42,13 @@ final class ComponentSource extends Plugin {
     public readonly string $id,
     public readonly TranslatableMarkup $label,
     public readonly bool $supportsImplicitInputs,
+    public readonly string|false $discovery,
     public readonly ?string $deriver = NULL,
     public readonly array $discoveryCacheTags = [],
   ) {
+    if (is_string($discovery)) {
+      assert(class_exists($discovery));
+    }
   }
 
 }

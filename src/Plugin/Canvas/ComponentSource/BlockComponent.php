@@ -10,7 +10,6 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
-use Drupal\Core\Block\MainContentBlockPluginInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\Plugin\Block\Broken;
 use Drupal\Core\Block\TitleBlockPluginInterface;
@@ -27,7 +26,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
 use Drupal\Core\Link;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
 use Drupal\Core\Plugin\PluginDependencyTrait;
 use Drupal\Core\Plugin\PluginFormFactoryInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -39,10 +37,8 @@ use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Validation\Plugin\Validation\Constraint\FullyValidatableConstraint;
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Form\ClientFormSubmissionHelper;
@@ -66,6 +62,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   // While Canvas does not support context mappings yet, Block plugins also can
   // contain logic and perform e.g. database queries that fetch data to present.
   supportsImplicitInputs: TRUE,
+  discovery: BlockComponentDiscovery::class,
   // @see \Drupal\Core\Block\BlockManager::__construct()
   discoveryCacheTags: [],
 )]
@@ -131,16 +128,10 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   }
 
   /**
-   * Generate a component ID given a block plugin ID.
-   *
-   * @param string $pluginId
-   *   Block plugin ID.
-   *
-   * @return string
-   *   Generated component ID.
+   * @todo Remove in https://www.drupal.org/project/canvas/issues/3561267.
    */
   public static function componentIdFromBlockPluginId(string $pluginId): string {
-    return 'block.' . \str_replace(':', '.', $pluginId);
+    return BlockComponentDiscovery::getComponentConfigEntityId($pluginId);
   }
 
   /**
@@ -485,48 +476,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     $violations = $typed_data->validate();
     $violations->addAll($form_violations);
     return $this->translateConstraintPropertyPathsAndRoot(['' => \sprintf('inputs.%s.', $component_instance_uuid)], $violations);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function checkRequirements(): void {
-    $block = $this->getBlockPlugin();
-    // The main content is rendered in a fixed position.
-    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
-    if ($block instanceof MainContentBlockPluginInterface) {
-      return;
-    }
-    $settings = $block->defaultConfiguration();
-    $data_definition = $this->typedConfigManager->createFromNameAndData('block.settings.' . $block->getPluginId(), $settings);
-    // We currently support only block plugins with no settings, or if they do
-    // have settings, they must be fully validatable.
-    $fullyValidatable = FALSE;
-    foreach ($data_definition->getConstraints() as $constraint) {
-      if ($constraint instanceof FullyValidatableConstraint) {
-        $fullyValidatable = TRUE;
-        break;
-      }
-    }
-
-    $reasons = [];
-    if (!empty($settings) && !$fullyValidatable) {
-      $reasons[] = 'Block plugin settings must opt into strict validation. Use the FullyValidatable constraint. See https://www.drupal.org/node/3404425';
-    }
-
-    $plugin_definition = $block->getPluginDefinition();
-    assert(is_array($plugin_definition));
-    $required_contexts = array_filter(
-      $plugin_definition['context_definitions'],
-      fn (ContextDefinitionInterface $definition): bool => $definition->isRequired(),
-    );
-    if ($required_contexts) {
-      $reasons[] = 'Block plugins that require context values are not supported.';
-    }
-
-    if ($reasons) {
-      throw new ComponentDoesNotMeetRequirementsException($reasons);
-    }
   }
 
   protected function submitBlockConfigurationForm(

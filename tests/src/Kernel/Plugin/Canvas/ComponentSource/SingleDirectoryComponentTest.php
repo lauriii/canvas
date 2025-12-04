@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -18,7 +18,6 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\Core\Plugin\Component as SdcPlugin;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
@@ -51,7 +50,9 @@ use Twig\Error\SyntaxError;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
+ * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
  * @group canvas
+ * @group canvas_component_sources
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
@@ -126,8 +127,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   /**
    * All test module SDCs must either have a Component or a reason why not.
    *
-   * @covers ::checkRequirements()
-   * @covers \Drupal\canvas\Plugin\ComponentPluginManager::setCachedDefinitions()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::discover()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
    */
   public function testDiscovery(): array {
     // Nothing discovered initially.
@@ -1024,8 +1025,9 @@ HTML
    * Tests that relative file URLs are rewritten to reference the correct file path.
    */
   public function testRewriteExampleUrl(): void {
-    $plugin = \Drupal::service(ComponentPluginManager::class)->createInstance('canvas_test_sdc:image');
-    $component = SingleDirectoryComponent::createConfigEntity($plugin);
+    $this->generateComponentConfig();
+    $component = Component::load(SingleDirectoryComponentDiscovery::getComponentConfigEntityId('canvas_test_sdc:image'));
+    self::assertNotNull($component);
     $source = $component->getComponentSource();
     self::assertInstanceOf(SingleDirectoryComponent::class, $source);
     // Assert that existing files are rewritten to include the module path.
@@ -5386,8 +5388,40 @@ HTML
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('media');
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
+
+    // @todo Simplify this in https://www.drupal.org/project/canvas/issues/3547579 — that issue should make that happen automatically? If not that, then it should probably expand the below test assertions at the very least.
     /** @var \Drupal\canvas\Entity\ComponentInterface */
-    return Component::load('sdc.canvas_test_sdc.image');
+    $component = Component::load('sdc.canvas_test_sdc.image');
+    self::assertSame([
+      'config' => [
+        'image.style.canvas_parametrized_width',
+      ],
+      'module' => [
+        'canvas_test_sdc',
+        'file',
+        'image',
+      ],
+    ], $component->getDependencies());
+    self::assertCount(1, $component->getVersions());
+    $this->generateComponentConfig();
+    $component = Component::load('sdc.canvas_test_sdc.image');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    self::assertSame([
+      'config' => [
+        'field.field.media.image.field_media_image',
+        'image.style.canvas_parametrized_width',
+        'media.type.image',
+      ],
+      'module' => [
+        'canvas_test_sdc',
+        'file',
+        'image',
+        'media',
+        'media_library',
+      ],
+    ], $component->getDependencies());
+    self::assertCount(2, $component->getVersions());
+    return $component;
   }
 
   protected function createAndSaveUnusedComponentForFallbackTesting(): ComponentInterface {
@@ -5471,14 +5505,14 @@ HTML
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
     /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
-    return \Drupal::service(CanvasComponentPluginManager::class);
+    return \Drupal::service('plugin.manager.sdc');
   }
 
   public function alter(ContainerBuilder $container): void {
     // Swap in the broken version of this class.
     // @see ::triggerBrokenComponent()
     // @see ::testIsBroken()
-    $container->getDefinition(CanvasComponentPluginManager::class)->setClass(BrokenComponentManager::class);
+    $container->getDefinition('plugin.manager.sdc')->setClass(BrokenComponentManager::class);
   }
 
   protected function getExpectedVerboseErrorMessage(): string {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\Core\DefaultContent\Exporter;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
@@ -55,6 +56,13 @@ class CanvasServiceProvider extends ServiceProviderBase {
       'setValidator',
       [new Reference(Validator::class)]
     );
+
+    // @todo Remove this once Canvas relies on a Drupal core version that includes https://www.drupal.org/i/3352063.
+    $container->getDefinition('plugin.manager.sdc')
+      ->setClass(ComponentPluginManager::class);
+    // @todo Remove in clean-up follow-up; minimize non-essential changes.
+    $container->setAlias(ComponentPluginManager::class, 'plugin.manager.sdc');
+
     parent::alter($container);
   }
 

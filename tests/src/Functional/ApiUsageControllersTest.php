@@ -143,6 +143,11 @@ class ApiUsageControllersTest extends HttpApiTestBase {
       'dataDependencies' => [],
     ])->save();
 
+    // This has triggered re-discovery, so the components we deleted are back,
+    // as they are probably SDC components. We need to delete the same
+    // components again.
+    array_map(fn (Component $c) => $c->delete(), array_slice($components, ApiUsageControllers::MAX_PER_PAGE));
+
     $body = $this->assertExpectedResponse('GET', $listing_url, [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     assert(is_array($body));
     $this->assertNull($body['links']['prev']);

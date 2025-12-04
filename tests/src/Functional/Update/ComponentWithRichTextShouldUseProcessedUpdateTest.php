@@ -31,10 +31,10 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
     }
   }
 
-  private function assertExpectedVersionsCount(string $component_id, int $versions_count): void {
+  private function assertExpectedVersions(string $component_id, array $versions): void {
     $component = Component::load($component_id);
     self::assertInstanceOf(Component::class, $component);
-    self::assertCount($versions_count, $component->getVersions(), $component_id);
+    self::assertSame($versions, $component->getVersions(), $component_id);
   }
 
   /**
@@ -49,13 +49,18 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
             'after' => 'ℹ︎text_long␟processed',
           ],
         ],
-        'expected_versions' => [
-          'before' => 1,
-          // There will be 3 versions after the update, because the update runs
-          // canvas_post_update_0004_use_processed_for_text_props_in_components
-          // but also the one post_update affecting components before that one,
-          // canvas_post_update_0001_track_props_have_required_flag_in_components.
-          'after' => 3,
+        'versions' => [
+          'before' => [
+            '467583e3f9bdfa95',
+          ],
+          'after' => [
+            // New versions: one for each upgrade path that runs.
+            '9c51b17efe5e61b6',
+            '1b5d1287a2acc173',
+            '4757f4fd316da603',
+            // Same as before.
+            '467583e3f9bdfa95',
+          ],
         ],
       ],
       'sdc.canvas_test_sdc.banner' => [
@@ -65,15 +70,24 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
             'after' => 'ℹ︎text_long␟processed',
           ],
         ],
-        'expected_versions' => [
-          'before' => 1,
-          'after' => 2,
+        'versions' => [
+          'before' => [
+            'fbe4167cd14f85a1',
+          ],
+          'after' => [
+            // New versions: one for each upgrade path that runs.
+            'a67a545f44684571',
+            '44ce4837d1471050',
+            'aab57a17fac1fac6',
+            // Same as before.
+            'fbe4167cd14f85a1',
+          ],
         ],
       ],
     ];
 
     foreach ($component_ids as $component_id => $component_data) {
-      self::assertExpectedVersionsCount($component_id, $component_data['expected_versions']['before']);
+      self::assertExpectedVersions($component_id, $component_data['versions']['before']);
       foreach ($component_data['props'] as $prop_name => $expressions) {
         self::assertExpectedVersionsExpression($component_id, $prop_name, $expressions['before']);
       }
@@ -82,7 +96,7 @@ final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpda
     $this->runUpdates();
 
     foreach ($component_ids as $component_id => $component_data) {
-      self::assertExpectedVersionsCount($component_id, $component_data['expected_versions']['after']);
+      self::assertExpectedVersions($component_id, $component_data['versions']['after']);
       foreach ($component_data['props'] as $prop_name => $expressions) {
         self::assertExpectedVersionsExpression($component_id, $prop_name, $expressions['after']);
       }

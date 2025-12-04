@@ -285,6 +285,8 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *
    * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
    *   When the component does not meet requirements.
+   *
+   * @todo 🚨 Remove in https://www.drupal.org/project/canvas/issues/3561265.
    */
   public function checkRequirements(): void;
 

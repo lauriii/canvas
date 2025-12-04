@@ -46,6 +46,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   id: self::SOURCE_PLUGIN_ID,
   label: new TranslatableMarkup('Personalization'),
   supportsImplicitInputs: FALSE,
+  discovery: FALSE,
 )]
 final class Personalization extends ComponentSourceBase implements
   ComponentSourceWithSlotsInterface,

@@ -5,7 +5,6 @@ namespace Drupal\canvas\Controller;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Url;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
@@ -13,10 +12,10 @@ use Drupal\canvas\Entity\Component;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * @see \Drupal\canvas\Plugin\ComponentPluginManager::setCachedDefinitions()
+ * Lists incompatible and disabled components.
  *
- * Not every unavailable/disabled SDC will have Component entity, so we're using
- * a controller instead of EntityListBuilder for this.
+ * Because incompatible components do NOT have a Component config entity, but
+ * disabled ones do, this cannot use EntityListBuilder.
  *
  * @todo Ensure reasons are translated.
  */
@@ -24,21 +23,12 @@ final class ComponentStatusController {
 
   use StringTranslationTrait;
 
-  /**
-   * @param \Drupal\canvas\Plugin\ComponentPluginManager $componentPluginManager
-   */
   public function __construct(
-    private readonly ComponentPluginManager $componentPluginManager,
     private readonly ComponentIncompatibilityReasonRepository $reasonRepository,
     private readonly MessengerInterface $messenger,
   ) {}
 
   public function __invoke(): array {
-    // @todo State API is not guaranteed to stay in sync with SDC discovery cache and we should revisit this and choose more reliable, but still performant storage.
-    // @see https://www.drupal.org/node/3177901
-    $this->componentPluginManager->clearCachedDefinitions();
-    $this->componentPluginManager->getDefinitions();
-
     $reasons = $this->reasonRepository->getReasons();
     $rows = [];
     $header = [

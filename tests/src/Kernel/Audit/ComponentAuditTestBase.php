@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Audit;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
@@ -38,7 +38,7 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     $this->installEntitySchema('media');
     $this->installEntitySchema('user');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
-    $this->container->get(ComponentPluginManager::class)->getDefinitions();
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
     $this->tree = [
       [
         'uuid' => 'my-component',

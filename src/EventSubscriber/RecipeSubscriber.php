@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
-use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\DefaultContent\PreImportEvent;
 use Drupal\Core\Recipe\RecipeAppliedEvent;
@@ -16,19 +16,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 final class RecipeSubscriber implements EventSubscriberInterface {
 
-  /**
-   * @var \Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface[]
-   */
-  private array $componentSources = [];
-
   public function __construct(
     #[Autowire(service: 'plugin.manager.config_action')]
     private readonly ConfigActionManager $configActionManager,
+    private readonly ComponentSourceManager $componentSourceManager,
   ) {}
-
-  public function addComponentSource(CachedDiscoveryInterface $discovery): void {
-    $this->componentSources[] = $discovery;
-  }
 
   /**
    * {@inheritdoc}
@@ -41,17 +33,10 @@ final class RecipeSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Creates component entities as needed, during and after recipe application.
+   * Generates Component config entities, during and after recipe application.
    */
   public function ensureComponentsExist(): void {
-    foreach ($this->componentSources as $source) {
-      // Ensure that all component information is fully up-to-date before
-      // we import content that might be using them, and after the recipe has
-      // finished applying (since it may have run config actions which affected
-      // extant components).
-      $source->clearCachedDefinitions();
-      $source->getDefinitions();
-    }
+    $this->componentSourceManager->generateComponents();
   }
 
   /**

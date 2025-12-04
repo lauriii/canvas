@@ -47,6 +47,7 @@ use Drupal\canvas_test_code_components\Hook\IslandCastaway;
  *
  * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
  * @group canvas
+ * @group canvas_component_sources
  * @group JavaScriptComponents
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component

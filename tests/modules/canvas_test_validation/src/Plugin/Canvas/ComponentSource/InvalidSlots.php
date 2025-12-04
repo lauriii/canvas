@@ -20,6 +20,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   id: self:: PLUGIN_ID,
   label: new TranslatableMarkup('Component source with invalid slots'),
   supportsImplicitInputs: TRUE,
+  discovery: FALSE,
 )]
 final class InvalidSlots extends ComponentSourceBase implements ComponentSourceWithSlotsInterface {
 

@@ -6,12 +6,15 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\ComponentPluginManager;
 
+/**
+ * @phpstan-ignore classExtendsInternalClass.classExtendsInternalClass
+ */
 final class BrokenComponentManager extends ComponentPluginManager implements BrokenPluginManagerInterface {
 
   use BrokenPluginManagerTrait;
 
-  protected function setCachedDefinitions($definitions): array {
-    return parent::setCachedDefinitions($this->removeBrokenPlugins($definitions));
+  public function findDefinitions(): array {
+    return $this->removeBrokenPlugins(parent::findDefinitions());
   }
 
 }

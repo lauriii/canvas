@@ -10,6 +10,7 @@ trait BrokenPluginManagerTrait {
 
   public function markPluginAsMissing(string $pluginId): void {
     $this->missingPlugins[$pluginId] = $pluginId;
+    $this->clearCachedDefinitions();
   }
 
   protected function removeBrokenPlugins(array $definitions): array {

@@ -757,8 +757,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
   public function alter(ContainerBuilder $container): void {
     // Swap in the broken versions of the Component source plugin manager, e.g.
-    // \Drupal\canvas\Plugin\ComponentPluginManager or
-    // \Drupal\canvas\Plugin\BlockManager.
+    // \Drupal\Tests\canvas\Kernel\BrokenComponentManager or
+    // \Drupal\Tests\canvas\Kernel\BrokenBlockManager.
     // We provide an empty implementation so those that don't need this aren't
     // forced to implement it.
     // @see ::testIsBroken()

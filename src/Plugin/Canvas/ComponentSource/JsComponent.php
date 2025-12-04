@@ -12,21 +12,14 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
-use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
-use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
-use Drupal\canvas\ComponentMetadataRequirementsChecker;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\AssetLibrary;
-use Drupal\canvas\Entity\Component as ComponentEntity;
-use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
-use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\Version;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -38,6 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: self::SOURCE_PLUGIN_ID,
   label: new TranslatableMarkup('Code Components'),
   supportsImplicitInputs: FALSE,
+  discovery: JsComponentDiscovery::class,
   // @see \Drupal\canvas\EntityHandlers\JavascriptComponentStorage::doPostSave()
   discoveryCacheTags: ['config:js_component_list'],
 )]
@@ -84,7 +78,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   protected function getComponentPlugin(): ComponentPlugin {
     if ($this->componentPlugin === NULL) {
       // Statically cache the loaded plugin.
-      $this->componentPlugin = self::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
+      $this->componentPlugin = JsComponentDiscovery::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
     }
     return $this->componentPlugin;
   }
@@ -281,164 +275,10 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   }
 
   /**
-   * Creates the Component config entity for a "code component" config entity.
-   *
-   * @param \Drupal\canvas\Entity\JavaScriptComponent $js_component
-   *   A Canvas "code component" config entity.
-   *
-   * @return \Drupal\canvas\Entity\ComponentInterface
-   *   The component config entity.
-   *
-   * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
-   *    When the component does not meet requirements.
-   */
-  public static function createConfigEntity(JavaScriptComponent $js_component): ComponentInterface {
-    try {
-      // Create a new instance and bypass the statically cached componentPlugin
-      // property.
-      $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
-    }
-    catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
-    }
-    ComponentMetadataRequirementsChecker::check(
-      (string) $js_component->id(),
-      $ephemeral_sdc_component->metadata,
-      $js_component->getRequiredProps(),
-      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
-      forbidden_key_characters: ['.' => '_'],
-    );
-    $props = self::getPropsForComponentPlugin($ephemeral_sdc_component);
-    $settings = [
-      'prop_field_definitions' => $props,
-    ];
-    $js_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
-      'local_source_id' => (string) $js_component->id(),
-      ...$settings,
-    ]);
-    assert($js_source instanceof self);
-    // The JS Component config entity may not be saved yet. Set it on the source
-    // plugin so that it doesn't try to load it.
-    $js_source->setJavaScriptComponent($js_component);
-    $version = $js_source->generateVersionHash();
-    return ComponentEntity::create([
-      'id' => self::SOURCE_PLUGIN_ID . '.' . $js_component->id(),
-      'label' => $js_component->label(),
-      // @todo Update in https://www.drupal.org/project/canvas/issues/3541364.
-      'category' => NULL,
-      'provider' => NULL,
-      'source' => self::SOURCE_PLUGIN_ID,
-      'source_local_id' => $js_component->id(),
-      'active_version' => $version,
-      'versioned_properties' => [
-        VersionedConfigEntityBase::ACTIVE_VERSION => ['settings' => $settings],
-      ],
-      'status' => $js_component->status(),
-    ]);
-  }
-
-  /**
-   * Updates the Component config entity for a "code component" config entity.
-   *
-   * @param \Drupal\canvas\Entity\JavaScriptComponent $js_component
-   *   A Canvas "code component" config entity.
-   *
-   * @return \Drupal\canvas\Entity\ComponentInterface
-   *   The component config entity.
-   *
-   * @throws \Drupal\canvas\ComponentDoesNotMeetRequirementsException
-   *    When the component does not meet requirements.
-   */
-  public static function updateConfigEntity(JavaScriptComponent $js_component, ComponentInterface $component): ComponentInterface {
-    $label_key = $component->getEntityType()->getKey('label');
-    assert(is_string($label_key));
-    $component->set($label_key, $js_component->label());
-    $component->setStatus($js_component->status());
-    try {
-      // Create a new instance and bypass the statically cached componentPlugin
-      // property.
-      $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
-    }
-    catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
-    }
-    ComponentMetadataRequirementsChecker::check(
-      (string) $js_component->id(),
-      $ephemeral_sdc_component->metadata,
-      $js_component->getRequiredProps(),
-      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
-      forbidden_key_characters: ['.' => '_'],
-    );
-    $settings = [
-      'prop_field_definitions' => self::getPropsForComponentPlugin($ephemeral_sdc_component),
-    ];
-    $js_source = \Drupal::service(ComponentSourceManager::class)->createInstance(self::SOURCE_PLUGIN_ID, [
-      'local_source_id' => (string) $js_component->id(),
-      ...$settings,
-    ]);
-    assert($js_source instanceof self);
-    $version = $js_source->generateVersionHash();
-    $component
-      ->createVersion($version)
-      ->deleteVersionIfExists(ComponentInterface::FALLBACK_VERSION)
-      ->setSettings($settings);
-    return $component;
-  }
-
-  /**
-   * Generate a component ID given a Javascript Component ID.
-   *
-   * @param string $javaScriptComponentId
-   *   Component ID.
-   *
-   * @return string
-   *   Generated component ID.
+   * @todo Remove in clean-up follow-up; minimize non-essential changes.
    */
   public static function componentIdFromJavascriptComponentId(string $javaScriptComponentId): string {
-    return \sprintf('%s.%s', self::SOURCE_PLUGIN_ID, $javaScriptComponentId);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function checkRequirements(): void {
-    $js_component = $this->getJavaScriptComponent();
-    try {
-      // Create a new instance and bypass the statically cached componentPlugin
-      // property.
-      $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
-    }
-    catch (InvalidComponentException $e) {
-      throw new ComponentDoesNotMeetRequirementsException([$e->getMessage()]);
-    }
-    ComponentMetadataRequirementsChecker::check(
-      (string) $js_component->id(),
-      $ephemeral_sdc_component->metadata,
-      $js_component->getRequiredProps(),
-      // @see \Drupal\Core\Config\ConfigBase::validateKeys()
-      forbidden_key_characters: ['.' => '_'],
-    );
-  }
-
-  /**
-   * Any valid JavaScript Component config entity can be mapped to SDC metadata.
-   *
-   * Bypasses the statically cached componentPlugin property. Should be called
-   * during config entity creation and updating to ensure a fresh version is
-   * generated. For run-time code, use ::getComponentPlugin instead.
-   *
-   * @see \Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator::validate
-   */
-  private static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component): ComponentPlugin {
-    $definition = $component->toSdcDefinition();
-    return new ComponentPlugin(
-      [
-        'app_root' => '',
-        'enforce_schemas' => TRUE,
-      ],
-      $definition['id'],
-      $definition,
-    );
+    return JsComponentDiscovery::getComponentConfigEntityId($javaScriptComponentId);
   }
 
   /**

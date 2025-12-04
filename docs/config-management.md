@@ -100,7 +100,7 @@ applications, too. The Canvas OAuth module, an optional submodule of Canvas, pro
 
 See:
 - `\Drupal\canvas\Entity\Component`
-- `\Drupal\canvas\Plugin\ComponentPluginManager`
+- `\Drupal\canvas\ComponentSource\ComponentSourceDiscoveryInterface`
 - `\Drupal\canvas\ComponentSource\ComponentSourceInterface`
 
 One `Component config entity` is [automatically created (and updated](https://www.drupal.org/project/canvas/issues/3463999)

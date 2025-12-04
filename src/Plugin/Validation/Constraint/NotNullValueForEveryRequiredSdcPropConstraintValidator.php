@@ -72,7 +72,7 @@ final class NotNullValueForEveryRequiredSdcPropConstraintValidator extends Const
       if (!array_key_exists($required_key, $mapping) || $mapping[$required_key]['default_value'] === NULL) {
         $this->context->buildViolation($constraint->message)
           // `title` is guaranteed to exist.
-          // @see \Drupal\canvas\Plugin\ComponentPluginManager::componentMeetsRequirements()
+          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
           ->setParameter('%prop_title', $component_schema['properties'][$required_key]['title'])
           ->setParameter('%prop_machine_name', $required_key)
           ->addViolation();

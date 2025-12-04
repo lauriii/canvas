@@ -1618,6 +1618,17 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
   public function testComponent(): void {
     $this->container->get('theme_installer')->install(['stark', 'test_theme_child']);
+    // TRICKY: On an actual site, the theme installer would trigger
+    // `hook_rebuild()`, but we cannot do that in `hook_themes_installed()`, as
+    // Stark is installed early in tests, which results in Components being
+    // created that rely on non-existent config (image styles, etc).
+    // Alternatively, if Canvas' default config is first installed, installing
+    // its Editor config entities triggers Ckeditor5Hooks::libraryInfoAlter(),
+    // which calls \_ckeditor5_theme_css() and then complains the default theme
+    // (`stark`) is not installed.
+    // @see \_ckeditor5_theme_css()
+    // @see \Drupal\Core\Recipe\RecipeConfigInstaller::installRecipeConfig()
+    $this->generateComponentConfig();
 
     // Ensure we have an interesting set of Component config entities: the ones
     // provided by the modules & themes, including:

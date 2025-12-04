@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Url;
@@ -11,7 +12,6 @@ use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -30,6 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback
  * @group canvas
+ * @group canvas_component_sources
  */
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
@@ -99,8 +100,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       'access content',
     ]);
 
-    // Force generation of component config entities.
-    $this->container->get(ComponentPluginManager::class)->getDefinitions();
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
   }
 
   /**
@@ -276,10 +276,8 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // fallback.
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
 
-    // Rebuild component entities.
-    $component_plugin_manager = $this->container->get(ComponentPluginManager::class);
-    $component_plugin_manager->clearCachedDefinitions();
-    $component_plugin_manager->getDefinitions();
+    // Rebuild Component entities.
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
     /** @var \Drupal\canvas\Entity\ComponentInterface $component_to_recover */
     $component_to_recover = Component::load($component_to_recover->id());
     self::assertFalse($component_to_recover->status());
