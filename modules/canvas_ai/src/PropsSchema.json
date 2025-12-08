@@ -83,9 +83,9 @@
     "type": "object",
     "$ref": "json-schema-definitions://canvas.module/image",
     "example": {
-      "src": "public://2024-07/framer.png",
-      "width": 400,
-      "height": 600,
+      "src": "https://placehold.co/1200x900@2x.png",
+      "width": 1200,
+      "height": 900,
       "alt": "Example image placeholder"
     },
     "id": "4ea2a14d-7828-467c-a505-063f006f1ebf",
