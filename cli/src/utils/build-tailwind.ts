@@ -12,9 +12,38 @@ import {
   copyLocalJsSource,
   downloadJsSourceFromCanvas,
 } from './process-cache-dir';
+import { fileExists } from './utils';
 
 import type { Component } from '../types/Component';
 import type { Result } from '../types/Result';
+
+/**
+ * Downloads global CSS from Canvas without updating local files
+ * Used for building with remote CSS when local file shouldn't be used
+ */
+export async function downloadGlobalCssInBackground(): Promise<string> {
+  const apiService = await createApiService();
+  const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
+  return globalAssetLibrary.css.original;
+}
+
+/**
+ * Gets global CSS with local-first approach
+ * @param useLocal - Whether to prefer local file over remote
+ * @returns Promise resolving to global CSS content
+ */
+export async function getGlobalCss(useLocal: boolean = true): Promise<string> {
+  const config = getConfig();
+  const localGlobalCssPath = path.join(config.componentDir, 'global.css');
+
+  // If local-first and file exists, use local file
+  if (useLocal && (await fileExists(localGlobalCssPath))) {
+    return await fs.readFile(localGlobalCssPath, 'utf-8');
+  }
+
+  // Otherwise, download from Canvas (background download)
+  return await downloadGlobalCssInBackground();
+}
 
 export async function getAllClassNameCandidatesFromCacheDir(
   componentsToDownload: Record<string, Component>,
@@ -108,6 +137,7 @@ export async function getClassNameCandidatesForComponent(
  */
 export async function buildTailwindForComponents(
   selectedComponents: string[],
+  useLocalGlobalCss: boolean = true,
 ): Promise<Result> {
   try {
     const config = getConfig();
@@ -115,9 +145,13 @@ export async function buildTailwindForComponents(
 
     // Fetch all components from the API to prepare for the Tailwind CSS build.
     const onlineComponents = await apiService.listComponents();
+
+    // Get global CSS using local-first approach
+    const globalSourceCodeCss = await getGlobalCss(useLocalGlobalCss);
+
+    // Always get JS from remote for now (this contains class name candidates)
     const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
     const globalSourceCodeJs = globalAssetLibrary.js.original;
-    const globalSourceCodeCss = globalAssetLibrary.css.original;
 
     // Write the existing global JS source code to the components' dist directory.
     const distDir = path.join(config.componentDir, 'dist');

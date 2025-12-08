@@ -147,6 +147,7 @@ describe('component-selector', () => {
           { value: '/components/card', label: 'card' },
           { value: '/components/hero', label: 'hero' },
         ],
+        initialValues: [],
         required: true,
       });
       expect(result.directories).toEqual(['/components/button']);
@@ -266,6 +267,7 @@ describe('component-selector', () => {
           { value: 'card', label: 'Card (card)' },
           { value: 'hero', label: 'Hero (hero)' },
         ],
+        initialValues: [],
         required: true,
       });
       expect(result.components).toEqual({ button: mockComponents.button });

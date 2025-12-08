@@ -66,8 +66,13 @@ npx canvas download [options]
 - `--all`: Download all components
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip downloading components that already exist locally
+- `--skip-css`: Skip global CSS download
+- `--css-only`: Download only global CSS (skip components)
 
-**Note:** `--components` and `--all` cannot be used together.
+**Notes:**
+
+- `--components` and `--all` cannot be used together
+- `--skip-css` and `--css-only` cannot be used together
 
 **About prompts:**
 
@@ -118,12 +123,25 @@ Fully non-interactive, only download new components:
 npx canvas download --all --yes --skip-overwrite
 ```
 
+Download components without global CSS:
+
+```bash
+npx canvas download --all --skip-css
+```
+
+Download only global CSS (skip components):
+
+```bash
+npx canvas download --css-only
+```
+
 Downloads one or more components from your site. You can select components
 interactively, specify them with `--components`, or use `--all` to download
 everything. By default, existing component directories will be overwritten after
 confirmation. Use `--yes` for non-interactive mode (suitable for CI/CD), or
-`--skip-overwrite` to preserve existing components. Also downloads global CSS
-assets if available.
+`--skip-overwrite` to preserve existing components. Global CSS assets are
+downloaded by default and can be controlled with `--skip-css` to exclude them or
+`--css-only` to download only CSS without components.
 
 ---
 
@@ -227,8 +245,13 @@ npx canvas upload [options]
 - `--all`: Upload all components in the directory
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 - `--no-tailwind`: Skip Tailwind CSS build and global asset upload
+- `--skip-css`: Skip global CSS upload
+- `--css-only`: Upload only global CSS (skip components)
 
-**Note:** `--components` and `--all` cannot be used together.
+**Notes:**
+
+- `--components` and `--all` cannot be used together
+- `--skip-css` and `--css-only` cannot be used together
 
 **Examples:**
 
@@ -268,10 +291,23 @@ CI/CD without Tailwind:
 npx canvas upload --all --yes --no-tailwind
 ```
 
+Upload components without global CSS:
+
+```bash
+npx canvas upload --all --skip-css
+```
+
+Upload only global CSS (skip components):
+
+```bash
+npx canvas upload --css-only
+```
+
 Builds and uploads the selected (or all) local components to your site. Also
 builds and uploads global Tailwind CSS assets unless `--no-tailwind` is
-specified. Existing components on the site will be updated if they already
-exist.
+specified. Global CSS upload can be controlled with `--skip-css` to exclude it
+or `--css-only` to upload only CSS without components. Existing components on
+the site will be updated if they already exist.
 
 ---
 

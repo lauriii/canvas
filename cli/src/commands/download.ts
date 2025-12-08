@@ -16,6 +16,7 @@ import { reportResults } from '../utils/report-results';
 import { directoryExists } from '../utils/utils';
 
 import type { Command } from 'commander';
+import type { Component } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 import type { Result } from '../types/Result';
 
@@ -29,6 +30,8 @@ interface DownloadOptions {
   all?: boolean; // Download all components
   yes?: boolean; // Skip all confirmation prompts
   skipOverwrite?: boolean; // Skip downloading components that already exist locally
+  skipCss?: boolean;
+  cssOnly?: boolean;
   verbose?: boolean;
 }
 
@@ -51,6 +54,8 @@ export function downloadCommand(program: Command): void {
       '--skip-overwrite',
       'Skip downloading components that already exist locally',
     )
+    .option('--skip-css', 'Skip downloading global CSS')
+    .option('--css-only', 'Download only global CSS (skip components)')
     .option('--verbose', 'Enable verbose output')
     .action(async (options: DownloadOptions) => {
       p.intro(chalk.bold('Drupal Canvas CLI: download'));
@@ -58,6 +63,13 @@ export function downloadCommand(program: Command): void {
       try {
         // Validate options
         validateComponentOptions(options);
+
+        // Validate CSS-related options
+        if (options.skipCss && options.cssOnly) {
+          throw new Error(
+            'Cannot use both --skip-css and --css-only flags together',
+          );
+        }
 
         // Update config with CLI options
         updateConfigFromOptions(options);
@@ -74,46 +86,73 @@ export function downloadCommand(program: Command): void {
         const config = getConfig();
         const apiService = await createApiService();
 
-        // Get components
+        let components: Record<string, Component> = {};
+        let globalCss: string;
+
         const s = p.spinner();
-        s.start('Fetching components');
 
-        const components = await apiService.listComponents();
-        const {
-          css: { original: globalCss },
-        } = await apiService.getGlobalAssetLibrary();
+        // Handle --css-only case differently to skip component fetching
+        if (options.cssOnly) {
+          s.start('Fetching global CSS');
+          const {
+            css: { original },
+          } = await apiService.getGlobalAssetLibrary();
+          globalCss = original;
+          s.stop('Global CSS fetched');
+        } else {
+          // Regular flow: fetch both components and global CSS
+          s.start('Fetching components and global CSS');
 
-        if (Object.keys(components).length === 0) {
-          s.stop('No components found');
-          p.outro('Download cancelled - no components were found');
-          return;
+          const [fetchedComponents, globalAssetLibrary] = await Promise.all([
+            apiService.listComponents(),
+            apiService.getGlobalAssetLibrary(),
+          ]);
+
+          components = fetchedComponents;
+          globalCss = globalAssetLibrary.css.original;
+
+          if (Object.keys(components).length === 0) {
+            s.stop('No components found');
+            p.outro('Download cancelled - no components were found');
+            return;
+          }
+
+          s.stop(`Found ${Object.keys(components).length} components`);
         }
-
-        s.stop(`Found ${Object.keys(components).length} components`);
 
         // Default to --all when --yes is used without --components
         const allFlag =
           options.all || (options.yes && !options.components) || false;
 
         // Select components to download
-        const { components: componentsToDownload } =
+        const { components: componentsToDownload, includeGlobalCss } =
           await selectRemoteComponents(components, {
             all: allFlag,
             components: options.components,
             skipConfirmation: options.yes,
-            selectMessage: 'Select components to download',
+            skipCss: options.skipCss,
+            cssOnly: options.cssOnly,
+            includeGlobalCss: !options.skipCss,
+            globalCssDefault: true,
+            selectMessage: 'Select items to download',
             confirmMessage: `Download to ${config.componentDir}?`,
           });
 
         // Handle singular/plural cases for console messages.
-        const componentPluralized = pluralizeComponent(
-          Object.keys(componentsToDownload).length,
-        );
+        const componentCount = Object.keys(componentsToDownload).length;
+        const componentPluralized = pluralizeComponent(componentCount);
 
         // Download components
         const results: Result[] = [];
 
-        s.start(`Downloading ${componentPluralized}`);
+        // Update spinner message based on what's being downloaded
+        const downloadMessage = options.cssOnly
+          ? 'Downloading global CSS'
+          : componentCount > 0
+            ? `Downloading ${componentPluralized}`
+            : 'Processing request';
+
+        s.start(downloadMessage);
 
         for (const key in componentsToDownload) {
           const component = componentsToDownload[key];
@@ -212,16 +251,19 @@ export function downloadCommand(program: Command): void {
             });
           }
         }
-        s.stop(
-          chalk.green(
-            `Processed ${Object.keys(componentsToDownload).length} ${componentPluralized}`,
-          ),
-        );
+        const successMessage =
+          options.cssOnly && componentCount === 0
+            ? 'Global CSS download completed'
+            : `Processed ${componentCount} ${componentPluralized}`;
 
-        reportResults(results, 'Downloaded components', 'Component');
+        s.stop(chalk.green(successMessage));
 
-        // Create global.css file if it exists.
-        if (globalCss) {
+        if (componentCount > 0) {
+          reportResults(results, 'Downloaded components', 'Component');
+        }
+
+        // Create global.css file if selected for download (even if empty).
+        if (includeGlobalCss && typeof globalCss === 'string') {
           let globalCssResult: Result;
           try {
             const globalCssPath = path.join(config.componentDir, 'global.css');
@@ -246,7 +288,17 @@ export function downloadCommand(program: Command): void {
           reportResults([globalCssResult], 'Downloaded assets', 'Asset');
         }
 
-        p.outro(`⬇️ Download command completed`);
+        // Display appropriate outro message
+        const outroMessage =
+          options.cssOnly && componentCount === 0
+            ? '⬇️ Global CSS downloaded successfully'
+            : includeGlobalCss && componentCount > 0
+              ? '⬇️ Components and global CSS downloaded successfully'
+              : componentCount > 0
+                ? '⬇️ Components downloaded successfully'
+                : '⬇️ Download command completed';
+
+        p.outro(outroMessage);
       } catch (error) {
         if (error instanceof Error) {
           p.note(chalk.red(`Error: ${error.message}`));

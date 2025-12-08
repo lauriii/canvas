@@ -7,16 +7,48 @@ import { findComponentDirectories } from './find-component-directories';
 
 import type { Component } from '../types/Component';
 
+// Constants for special selectors
+export const GLOBAL_CSS_SELECTOR = '__GLOBAL_CSS__';
+
+/**
+ * Helper to determine global CSS selection based on flags
+ */
+function determineGlobalCssSelection(
+  options: ComponentSelectorOptions,
+): boolean | undefined {
+  // If --css-only is specified, only global CSS should be included
+  if (options.cssOnly) {
+    return true;
+  }
+
+  // If --skip-css is specified, global CSS should be excluded
+  if (options.skipCss) {
+    return false;
+  }
+
+  // If includeGlobalCss is not set, return undefined (no global CSS handling)
+  if (!options.includeGlobalCss) {
+    return undefined;
+  }
+
+  // Use default value or true if not specified
+  return options.globalCssDefault !== false;
+}
+
 export interface ComponentSelectorOptions {
   // Selection criteria
   all?: boolean;
   components?: string; // comma-separated
   skipConfirmation?: boolean; // --yes flag
+  skipCss?: boolean; // Skip global CSS
+  cssOnly?: boolean; // Only global CSS
 
   // Customization
   selectMessage?: string;
   confirmMessage?: string;
   notFoundMessage?: string;
+  includeGlobalCss?: boolean; // Include global CSS in selection
+  globalCssDefault?: boolean; // Default global CSS selection state
 
   // Context
   componentDir?: string; // for local selection
@@ -24,10 +56,12 @@ export interface ComponentSelectorOptions {
 
 export interface LocalSelectorResult {
   directories: string[];
+  includeGlobalCss?: boolean;
 }
 
 export interface RemoteSelectorResult {
   components: Record<string, Component>;
+  includeGlobalCss?: boolean;
 }
 
 /**
@@ -38,6 +72,17 @@ export async function selectLocalComponents(
 ): Promise<LocalSelectorResult> {
   const config = getConfig();
   const componentDir = options.componentDir || config.componentDir;
+
+  // Determine global CSS selection
+  const globalCssSelection = determineGlobalCssSelection(options);
+
+  // Handle --css-only flag (skip component discovery)
+  if (options.cssOnly) {
+    return {
+      directories: [],
+      includeGlobalCss: true,
+    };
+  }
 
   // Find all local component directories
   const allLocalDirs = await findComponentDirectories(componentDir);
@@ -52,6 +97,7 @@ export async function selectLocalComponents(
       options.components,
       allLocalDirs,
       options,
+      globalCssSelection,
     );
   }
 
@@ -67,11 +113,18 @@ export async function selectLocalComponents(
       }
     }
     p.log.info(`Selected all components`);
-    return { directories: allLocalDirs };
+    return {
+      directories: allLocalDirs,
+      includeGlobalCss: globalCssSelection,
+    };
   }
 
   // Mode 3: Interactive selection
-  return selectLocalComponentsInteractive(allLocalDirs, options);
+  return selectLocalComponentsInteractive(
+    allLocalDirs,
+    options,
+    globalCssSelection,
+  );
 }
 
 /**
@@ -81,6 +134,7 @@ async function selectSpecificLocalComponents(
   componentsInput: string,
   allLocalDirs: string[],
   options: ComponentSelectorOptions,
+  globalCssSelection?: boolean,
 ): Promise<LocalSelectorResult> {
   // Parse comma-separated names
   const requestedNames = componentsInput
@@ -119,7 +173,10 @@ async function selectSpecificLocalComponents(
     }
   }
 
-  return { directories: foundDirs };
+  return {
+    directories: foundDirs,
+    includeGlobalCss: globalCssSelection,
+  };
 }
 
 /**
@@ -128,30 +185,59 @@ async function selectSpecificLocalComponents(
 async function selectLocalComponentsInteractive(
   allLocalDirs: string[],
   options: ComponentSelectorOptions,
+  globalCssSelection?: boolean,
 ): Promise<LocalSelectorResult> {
-  const selectedDirs = await p.multiselect({
-    message: options.selectMessage || 'Select components',
-    options: [
-      {
-        value: ALL_COMPONENTS_SELECTOR,
-        label: 'All components',
-      },
-      ...allLocalDirs.map((dir) => ({
-        value: dir,
-        label: path.basename(dir),
-      })),
-    ],
+  const multiSelectOptions = [
+    {
+      value: ALL_COMPONENTS_SELECTOR,
+      label: 'All components',
+    },
+  ];
+
+  // Add global CSS option right after "All components" if enabled
+  if (options.includeGlobalCss) {
+    multiSelectOptions.push({
+      value: GLOBAL_CSS_SELECTOR,
+      label: 'Global CSS',
+    });
+  }
+
+  // Add individual components
+  multiSelectOptions.push(
+    ...allLocalDirs.map((dir) => ({
+      value: dir,
+      label: path.basename(dir),
+    })),
+  );
+
+  const selectedItems = await p.multiselect({
+    message: options.selectMessage || 'Select items',
+    options: multiSelectOptions,
+    initialValues:
+      options.includeGlobalCss && options.globalCssDefault !== false
+        ? [GLOBAL_CSS_SELECTOR]
+        : [],
     required: true,
   });
 
-  if (p.isCancel(selectedDirs)) {
+  if (p.isCancel(selectedItems)) {
     throw new Error('Operation cancelled by user');
   }
 
-  // Determine final selection
-  const finalDirs = selectedDirs.includes(ALL_COMPONENTS_SELECTOR)
+  // Determine final selections
+  const includesAllComponents = (selectedItems as string[]).includes(
+    ALL_COMPONENTS_SELECTOR,
+  );
+  const includesGlobalCss = (selectedItems as string[]).includes(
+    GLOBAL_CSS_SELECTOR,
+  );
+
+  const finalDirs = includesAllComponents
     ? allLocalDirs
-    : (selectedDirs as string[]);
+    : (selectedItems as string[]).filter(
+        (item) =>
+          item !== ALL_COMPONENTS_SELECTOR && item !== GLOBAL_CSS_SELECTOR,
+      );
 
   // Confirm selection
   if (!options.skipConfirmation) {
@@ -164,7 +250,15 @@ async function selectLocalComponentsInteractive(
     }
   }
 
-  return { directories: finalDirs };
+  // Use interactive selection result or fallback to parameter
+  const finalGlobalCss = options.includeGlobalCss
+    ? includesGlobalCss
+    : globalCssSelection;
+
+  return {
+    directories: finalDirs,
+    includeGlobalCss: finalGlobalCss,
+  };
 }
 
 /**
@@ -175,6 +269,17 @@ export async function selectRemoteComponents(
   options: ComponentSelectorOptions,
 ): Promise<RemoteSelectorResult> {
   const componentCount = Object.keys(allComponents).length;
+
+  // Determine global CSS selection
+  const globalCssSelection = determineGlobalCssSelection(options);
+
+  // Handle --css-only flag (skip component discovery)
+  if (options.cssOnly) {
+    return {
+      components: {},
+      includeGlobalCss: true,
+    };
+  }
 
   if (componentCount === 0) {
     throw new Error('No components found');
@@ -191,7 +296,10 @@ export async function selectRemoteComponents(
         throw new Error('Operation cancelled by user');
       }
     }
-    return { components: allComponents };
+    return {
+      components: allComponents,
+      includeGlobalCss: globalCssSelection,
+    };
   }
 
   // Mode 2: --components flag
@@ -200,11 +308,16 @@ export async function selectRemoteComponents(
       options.components,
       allComponents,
       options,
+      globalCssSelection,
     );
   }
 
   // Mode 3: Interactive selection
-  return selectRemoteComponentsInteractive(allComponents, options);
+  return selectRemoteComponentsInteractive(
+    allComponents,
+    options,
+    globalCssSelection,
+  );
 }
 
 /**
@@ -214,6 +327,7 @@ async function selectSpecificRemoteComponents(
   componentsInput: string,
   allComponents: Record<string, Component>,
   options: ComponentSelectorOptions,
+  globalCssSelection?: boolean,
 ): Promise<RemoteSelectorResult> {
   // Parse comma-separated names
   const requestedNames = componentsInput
@@ -252,7 +366,10 @@ async function selectSpecificRemoteComponents(
     }
   }
 
-  return { components: selected };
+  return {
+    components: selected,
+    includeGlobalCss: globalCssSelection,
+  };
 }
 
 /**
@@ -261,34 +378,58 @@ async function selectSpecificRemoteComponents(
 async function selectRemoteComponentsInteractive(
   allComponents: Record<string, Component>,
   options: ComponentSelectorOptions,
+  globalCssSelection?: boolean,
 ): Promise<RemoteSelectorResult> {
-  const selectedMachineNames = await p.multiselect({
-    message: options.selectMessage || 'Select components to download',
-    options: [
-      {
-        value: ALL_COMPONENTS_SELECTOR,
-        label: 'All components',
-      },
-      ...Object.keys(allComponents).map((key) => ({
-        value: allComponents[key].machineName,
-        label: `${allComponents[key].name} (${allComponents[key].machineName})`,
-      })),
-    ],
+  const multiSelectOptions = [
+    {
+      value: ALL_COMPONENTS_SELECTOR,
+      label: 'All components',
+    },
+  ];
+
+  // Add global CSS option right after "All components" if enabled
+  if (options.includeGlobalCss) {
+    multiSelectOptions.push({
+      value: GLOBAL_CSS_SELECTOR,
+      label: 'Global CSS',
+    });
+  }
+
+  // Add individual components
+  multiSelectOptions.push(
+    ...Object.keys(allComponents).map((key) => ({
+      value: allComponents[key].machineName,
+      label: `${allComponents[key].name} (${allComponents[key].machineName})`,
+    })),
+  );
+
+  const selectedItems = await p.multiselect({
+    message: options.selectMessage || 'Select items to download',
+    options: multiSelectOptions,
+    initialValues:
+      options.includeGlobalCss && options.globalCssDefault !== false
+        ? [GLOBAL_CSS_SELECTOR]
+        : [],
     required: true,
   });
 
-  if (p.isCancel(selectedMachineNames)) {
+  if (p.isCancel(selectedItems)) {
     throw new Error('Operation cancelled by user');
   }
 
-  // Determine final selection
-  const selected = (selectedMachineNames as string[]).includes(
+  // Determine final selections
+  const includesAllComponents = (selectedItems as string[]).includes(
     ALL_COMPONENTS_SELECTOR,
-  )
+  );
+  const includesGlobalCss = (selectedItems as string[]).includes(
+    GLOBAL_CSS_SELECTOR,
+  );
+
+  const selected = includesAllComponents
     ? allComponents
     : Object.fromEntries(
         Object.entries(allComponents).filter(([, component]) =>
-          (selectedMachineNames as string[]).includes(component.machineName),
+          (selectedItems as string[]).includes(component.machineName),
         ),
       );
 
@@ -303,7 +444,15 @@ async function selectRemoteComponentsInteractive(
     }
   }
 
-  return { components: selected };
+  // Use interactive selection result or fallback to parameter
+  const finalGlobalCss = options.includeGlobalCss
+    ? includesGlobalCss
+    : globalCssSelection;
+
+  return {
+    components: selected,
+    includeGlobalCss: finalGlobalCss,
+  };
 }
 
 /**

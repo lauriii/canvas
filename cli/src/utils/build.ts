@@ -4,13 +4,16 @@ import { compilePartialCss } from 'tailwindcss-in-browser';
 
 import { compileJS } from '../lib/compile-js';
 import { transformCss } from '../lib/transform-css';
-import { createApiService } from '../services/api';
+import { getGlobalCss } from './build-tailwind';
 import { fileExists } from './utils';
 import { validateComponent } from './validate';
 
 import type { Result } from '../types/Result';
 
-export async function buildComponent(componentDir: string): Promise<Result> {
+export async function buildComponent(
+  componentDir: string,
+  useLocalGlobalCss: boolean = true,
+): Promise<Result> {
   const componentName = path.basename(componentDir);
   const result: Result = {
     itemName: componentName,
@@ -55,10 +58,8 @@ export async function buildComponent(componentDir: string): Promise<Result> {
     });
   }
 
-  // Fetch global CSS from the API to prepare for the component CSS build.
-  const apiService = await createApiService();
-  const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
-  const globalSourceCodeCss = globalAssetLibrary.css.original;
+  // Get global CSS for component CSS build.
+  const globalSourceCodeCss = await getGlobalCss(useLocalGlobalCss);
 
   // Read the CSS source and transpile it.
   try {
