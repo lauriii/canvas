@@ -25,14 +25,4 @@ final class ValidSlotNameConstraint extends SymfonyConstraint {
    */
   public const string VALID_NAME = '/^[a-zA-Z0-9]+([a-zA-Z0-9_-]+)[a-zA-Z0-9]+$/';
 
-  /**
-   * A list of names that the regex above considers valid, but are banned.
-   *
-   * @var string[]
-   */
-  public const array BAN_LIST = [
-    // @see https://react.dev/reference/react/Children
-    'children',
-  ];
-
 }

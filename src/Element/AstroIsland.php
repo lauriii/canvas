@@ -189,7 +189,7 @@ final class AstroIsland extends RenderElementBase {
     foreach ($slot_names as $slot_name) {
       // Prevent XSS via malicious render array.
       $escaped_slot_name = Html::escape((string) $slot_name);
-      if ($slot_name === 'default') {
+      if ($slot_name === 'default' || $slot_name === 'children') {
         $template .= \sprintf('<template data-astro-template>{{ %s }}</template>', $escaped_slot_name);
         continue;
       }

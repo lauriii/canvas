@@ -1,0 +1,6 @@
+name: Canvas Children Slot Component
+description: 'Test component with children slot.'
+package: Testing
+type: module
+dependencies:
+  - canvas:canvas

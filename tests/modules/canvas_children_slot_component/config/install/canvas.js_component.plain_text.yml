@@ -1,0 +1,38 @@
+uuid: 2dae978f-be6b-4374-a411-7364db6a8e21
+langcode: en
+status: true
+dependencies: {  }
+machineName: plain_text
+name: 'Plain text'
+required: {  }
+props:
+  text:
+    title: Text
+    type: string
+    examples:
+      - 'Some plain text'
+slots: {  }
+js:
+  original: |
+    const Component = ({
+      text = "Plain text",
+    }) => {
+      return (
+        <p>{text}</p>
+      );
+    };
+
+    export default Component;
+  compiled: |
+    import { jsx as _jsx } from "react/jsx-runtime";
+    const Component = ({ text = "Plain text" })=>{
+        return /*#__PURE__*/ _jsx("p", {
+            children: text
+        });
+    };
+    export default Component;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies: {  }

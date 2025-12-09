@@ -34,15 +34,6 @@ final class ValidSlotNameConstraintValidator extends RegexValidator {
     }
     assert(is_string($value));
 
-    if (in_array($value, $constraint::BAN_LIST, TRUE)) {
-      $this->context->buildViolation('%value is not a valid slot name.')
-        // TRICKY: match the weird formatting that RegexValidator uses 🤷‍♂️
-        // @see \Symfony\Component\Validator\ConstraintValidator::formatValue()
-        ->setParameter('%value', $this->formatValue($value))
-        ->addViolation();
-      return;
-    }
-
     parent::validate($value, new Regex($constraint::VALID_NAME, '%value is not a valid slot name.'));
   }
 

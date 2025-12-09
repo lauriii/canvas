@@ -1,0 +1,33 @@
+uuid: e0a88f39-c49f-428a-b1da-72eb00a1b3c9
+langcode: en
+status: true
+dependencies: {  }
+machineName: container
+name: Container
+required: {  }
+props: {  }
+slots:
+  children:
+    title: children
+    examples:
+      - '<p>Hey!</p>'
+js:
+  original: |
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+
+    const Component = ({ children }) => <div className="m-4">{children}</div>
+
+    export default Component;
+  compiled: |
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+    import { jsx as _jsx } from "react/jsx-runtime";
+    const Component = ({ children })=>/*#__PURE__*/ _jsx("div", {
+            className: "m-4",
+            children: children
+        });
+    export default Component;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies: {  }

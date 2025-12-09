@@ -1,0 +1,74 @@
+uuid: 3e5bd0b5-a8f2-4e58-b664-ccd8078ddb14
+langcode: en
+status: true
+dependencies:
+  enforced:
+    config:
+      - canvas.js_component.container
+machineName: hero
+name: Hero
+required:
+  - title
+  - description
+props:
+  title:
+    title: title
+    type: string
+    examples:
+      - 'A normal text title'
+    contentMediaType: text/html
+    x-formatting-context: block
+  description:
+    title: description
+    type: string
+    examples:
+      - 'A normal text description'
+    contentMediaType: text/html
+    x-formatting-context: block
+slots: {  }
+js:
+  original: |-
+    import Container from '@/components/container'
+    import FormattedText from '@/lib/FormattedText'
+
+    const Hero = ({ title, description }) => (
+      <Container>
+        <div className="bg-blue-500 p-4">
+          <h1 className="text-2xl font-bold"><FormattedText>{title}</FormattedText></h1>
+          <p className="text-gray-500">
+            <FormattedText>{description}</FormattedText>
+          </p>
+        </div>
+      </Container>
+    );
+
+    export default Hero
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    import Container from '@/components/container';
+    import FormattedText from '@/lib/FormattedText';
+    const Hero = ({ title, description })=>/*#__PURE__*/ _jsx(Container, {
+            children: /*#__PURE__*/ _jsxs("div", {
+                className: "bg-blue-500 p-4",
+                children: [
+                    /*#__PURE__*/ _jsx("h1", {
+                        className: "text-2xl font-bold",
+                        children: /*#__PURE__*/ _jsx(FormattedText, {
+                            children: title
+                        })
+                    }),
+                    /*#__PURE__*/ _jsx("p", {
+                        className: "text-gray-500",
+                        children: /*#__PURE__*/ _jsx(FormattedText, {
+                            children: description
+                        })
+                    })
+                ]
+            })
+        });
+    export default Hero;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies: {  }
