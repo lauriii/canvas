@@ -9,7 +9,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -233,7 +233,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
 
     $regions = [];
     foreach ($blocks as $block) {
-      $component_id = BlockComponent::componentIdFromBlockPluginId($block->getPluginId());
+      $component_id = BlockComponentDiscovery::getComponentConfigEntityId($block->getPluginId());
       if (!Component::load($component_id)) {
         // This block isn't supported by Canvas.
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::checkRequirements()

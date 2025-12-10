@@ -128,13 +128,6 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   }
 
   /**
-   * @todo Remove in https://www.drupal.org/project/canvas/issues/3561267.
-   */
-  public static function componentIdFromBlockPluginId(string $pluginId): string {
-    return BlockComponentDiscovery::getComponentConfigEntityId($pluginId);
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getReferencedPluginClass(): ?string {

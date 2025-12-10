@@ -198,12 +198,12 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   }
 
   /**
-   * @covers ::componentIdFromBlockPluginId()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::getComponentConfigEntityId
    * @testWith ["foo", "block.foo"]
    *           ["system_menu_block:footer", "block.system_menu_block.footer"]
    */
   public function testComponentIdFromBlockPluginId(string $input, string $expected_output): void {
-    self::assertSame($expected_output, BlockComponent::componentIdFromBlockPluginId($input));
+    self::assertSame($expected_output, BlockComponentDiscovery::getComponentConfigEntityId($input));
   }
 
   /**
