@@ -25,6 +25,7 @@ import type {
   CanvasComponent,
   DefaultValues,
   FieldDataItem,
+  PropSourceComponent,
 } from '@/types/Component';
 
 import styles from './LinkedFieldBox.module.css';
@@ -61,8 +62,9 @@ const LinkedFieldBox = ({
       return;
     }
 
-    const propData: FieldDataItem | undefined =
-      component.propSources?.[propName];
+    const propData: FieldDataItem | undefined = (
+      component as PropSourceComponent
+    ).propSources?.[propName];
     if (!propData) {
       return;
     }

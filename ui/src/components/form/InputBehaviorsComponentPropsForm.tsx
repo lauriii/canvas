@@ -32,7 +32,7 @@ import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice'
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { useUpdateComponentMutation } from '@/services/preview';
-import { componentHasFieldData } from '@/types/Component';
+import { isPropSourceComponent } from '@/types/Component';
 import { flaggedForRemoval, parseValue } from '@/utils/function-utils';
 
 import type {
@@ -40,7 +40,7 @@ import type {
   ResolvedValues,
   Sources,
 } from '@/features/layout/layoutModelSlice';
-import type { CanvasComponent } from '@/types/Component';
+import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
 import type { InputUIData, PropsValues } from '@/types/Form';
 
 export const InputBehaviorsComponentPropsForm = (
@@ -76,7 +76,7 @@ export const InputBehaviorsComponentPropsForm = (
     version,
     model,
   };
-  const component = components?.[selectedComponentType];
+  const component = components?.[selectedComponentType] as PropSourceComponent;
 
   const [patchComponent] = useUpdateComponentMutation({
     fixedCacheKey: selectedComponent,
@@ -320,7 +320,7 @@ export const syncPropSourcesToResolvedValues = (
   component: CanvasComponent,
   resolvedValues: ResolvedValues,
 ): Sources => {
-  if (!componentHasFieldData(component)) {
+  if (!isPropSourceComponent(component)) {
     return sources;
   }
   const fieldData = component.propSources;

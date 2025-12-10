@@ -3,7 +3,7 @@ import addFormats from 'ajv-formats';
 import addDraft2019 from 'ajv-formats-draft2019';
 import qs from 'qs';
 
-import { componentHasFieldData } from '@/types/Component';
+import { isPropSourceComponent } from '@/types/Component';
 import { getDrupal } from '@/utils/drupal-globals';
 import transforms from '@/utils/transforms';
 
@@ -14,7 +14,7 @@ import type {
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
-import type { FieldDataItem } from '@/types/Component';
+import type { FieldDataItem, PropSourceComponent } from '@/types/Component';
 import type { InputUIData, PropsValues } from '@/types/Form';
 import type { TransformConfig, Transforms } from '@/utils/transforms';
 
@@ -87,7 +87,7 @@ export function getPropSchemas(inputAndUiData: InputUIData) {
   const { components, selectedComponentType } = inputAndUiData;
   const propSchemas: PropsValues = {};
   const component = components?.[selectedComponentType];
-  if (componentHasFieldData(component)) {
+  if (isPropSourceComponent(component)) {
     Object.entries(component.propSources).forEach(
       ([propName, fieldData]: [string, FieldDataItem]) => {
         propSchemas[propName] = fieldData.jsonSchema;
@@ -257,7 +257,7 @@ export function propInputData(
   // OpenAPI already ensures this exists, but the condition check is here
   // to soothe Typescript.
   const component = components?.[selectedComponentType];
-  if (componentHasFieldData(component)) {
+  if (isPropSourceComponent(component)) {
     Object.entries(component.propSources).forEach(
       // @ts-ignore
       ([field_name, field]: [string, FieldDataItem]) => {
@@ -362,7 +362,7 @@ export function getPropsValues(
     ? { ...model[selectedComponent] }
     : ({} as ComponentModel);
   const component = components?.[selectedComponentType];
-  const fieldData = componentHasFieldData(component)
+  const fieldData = isPropSourceComponent(component)
     ? component.propSources
     : {};
   // Iterate through every item in form state that corresponds to
@@ -420,7 +420,7 @@ export function getPropsValues(
 
   Object.entries(propsValues).forEach(([fieldName, value]) => {
     const propFieldData: FieldDataItem | undefined =
-      (componentHasFieldData(component)
+      (isPropSourceComponent(component)
         ? component.propSources[fieldName]
         : undefined) || undefined;
 
@@ -461,10 +461,9 @@ export function getPropsValues(
     ) {
       // '' is an empty value, but we require a valid object here, so we
       // fall back to the default value.
-      propsValues[fieldName as keyof PropsValues] =
-        component.propSources[
-          fieldName as keyof PropsValues
-        ].default_values.resolved;
+      propsValues[fieldName as keyof PropsValues] = (
+        component as PropSourceComponent
+      ).propSources[fieldName as keyof PropsValues].default_values.resolved;
     }
   });
 

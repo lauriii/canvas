@@ -155,7 +155,6 @@ describe('Prop types editing', () => {
           // must be blurred before the store is updated.
           cy.findByLabelText(testData.labelText, { exact: true }).blur();
         }
-        cy.wait('@patch', { timeout: 10000 });
         cy.waitForElementContentInIframe(
           testData.iframeSelector,
           testData.valuePost,

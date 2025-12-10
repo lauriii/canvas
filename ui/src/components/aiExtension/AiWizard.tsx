@@ -41,7 +41,7 @@ import type {
   LayoutModelSliceState,
 } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
-import type { CanvasComponent } from '@/types/Component';
+import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
 
 import styles from './AiWizard.module.css';
 
@@ -203,7 +203,7 @@ function removeMediaFields(componentDef: CanvasComponent, componentInst: any) {
   const newFieldValues = {} as any;
   const fieldValues = componentInst.fieldValues || {};
   for (const [key, value] of Object.entries(fieldValues)) {
-    const prop = (componentDef.propSources as any)[key];
+    const prop = (componentDef as PropSourceComponent).propSources[key];
     const isMedia =
       (prop?.sourceTypeSettings?.storage as any)?.target_type === 'media';
     if (!isMedia) {
