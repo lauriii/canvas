@@ -18,13 +18,13 @@ const Library = () => {
         <Tabs.List justify="start" mt="-2" size="1">
           <Tabs.Trigger
             value="components"
-            data-testid="canvas-manage-library-components-tab-select"
+            data-testid="canvas-library-components-tab-select"
           >
             Components
           </Tabs.Trigger>
           <Tabs.Trigger
             value="patterns"
-            data-testid="canvas-manage-library-patterns-tab-select"
+            data-testid="canvas-library-patterns-tab-select"
           >
             Patterns
           </Tabs.Trigger>
@@ -33,13 +33,14 @@ const Library = () => {
           <Tabs.Content
             value={'components'}
             className={styles.tabContent}
-            data-testid="canvas-manage-library-components-tab-content"
+            data-testid="canvas-library-components-tab-content"
           >
             <ErrorBoundary title="An unexpected error has occurred while fetching components.">
               <LibraryToolbar
                 type={'component'}
                 searchTerm={searchTerm}
                 onSearch={setSearchTerm}
+                showNewMenu={true}
               />
               <ComponentList searchTerm={debouncedSearchTerm} />
             </ErrorBoundary>
@@ -47,13 +48,14 @@ const Library = () => {
           <Tabs.Content
             value={'patterns'}
             className={styles.tabContent}
-            data-testid="canvas-manage-library-patterns-tab-content"
+            data-testid="canvas-library-patterns-tab-content"
           >
             <ErrorBoundary title="An unexpected error has occurred while fetching patterns.">
               <LibraryToolbar
                 type={'pattern'}
                 searchTerm={searchTerm}
                 onSearch={setSearchTerm}
+                showNewMenu={true}
               />
               <PatternList searchTerm={debouncedSearchTerm} />
             </ErrorBoundary>

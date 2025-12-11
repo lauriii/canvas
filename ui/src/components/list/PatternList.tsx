@@ -21,7 +21,7 @@ const PatternList = ({ searchTerm }: PatternListProps) => {
     data: folders,
     error: foldersError,
     isLoading: foldersLoading,
-  } = useGetFoldersQuery({ status: false });
+  } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {

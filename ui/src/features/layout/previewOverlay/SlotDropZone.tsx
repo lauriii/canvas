@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
 
@@ -23,6 +24,8 @@ export interface SlotDropZoneProps {
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   const { slot, position, parentRegion, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
+  const [activeOrigin, setActiveOrigin] = useState('');
+  const accepts = ['overlay', 'library'];
 
   const slotPath = findNodePathByUuid(layout, slot.id);
   if (!slotPath) {
@@ -31,16 +34,30 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   // We want to drop into the first (0th) space in the empty slot.
   slotPath.push(0);
 
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
+  const {
+    setNodeRef: setDropRef,
+    isOver,
+    active,
+  } = useDroppable({
     id: `${slot.id}_${position}`,
+    disabled: !accepts.includes(activeOrigin),
     data: {
       slot: slot,
       component: parentComponent,
       position: position,
       parentRegion: parentRegion,
       path: slotPath,
+      accepts,
     },
   });
+
+  useEffect(() => {
+    if (active) {
+      setActiveOrigin(active.data?.current?.origin);
+    } else {
+      setActiveOrigin('');
+    }
+  }, [active]);
 
   const dropzoneStyle = styles[position];
 

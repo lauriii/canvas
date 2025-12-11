@@ -108,6 +108,7 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
 
   return (
     <SidebarFolder
+      id={bundle.label}
       name={bundle.label}
       menuItems={menuItems.length ? menuItems : undefined}
       isOpen={isOpen}

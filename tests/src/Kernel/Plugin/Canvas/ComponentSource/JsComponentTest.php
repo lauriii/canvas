@@ -1128,6 +1128,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'dataDependencies' => [],
     ]);
+    $js_component->save();
+
     // Add the dependency through client API.
     $js_component_data = $js_component->normalizeForClientSide()->values;
     $js_component_data['importedJsComponents'] = ['dependency_component', 'dependency_component_no_css'];

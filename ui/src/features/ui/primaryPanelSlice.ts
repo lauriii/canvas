@@ -77,11 +77,9 @@ export const primaryPanelSlice = createAppSlice({
     setAiPanelClosed: create.reducer((state) => {
       state.aiPanelOpen = false;
     }),
-    setManageLibraryTab: create.reducer(
-      (state, action: PayloadAction<string>) => {
-        state.manageLibraryTab = action.payload;
-      },
-    ),
+    setLibraryTab: create.reducer((state, action: PayloadAction<string>) => {
+      state.manageLibraryTab = action.payload;
+    }),
   }),
   selectors: {
     selectActivePanel: (primaryPanel): string => {
@@ -90,7 +88,7 @@ export const primaryPanelSlice = createAppSlice({
     selectAiPanelOpen: (primaryPanel): boolean => {
       return primaryPanel.aiPanelOpen;
     },
-    selectManageLibraryTab: (primaryPanel): string | null => {
+    selectLibraryTab: (primaryPanel): string | null => {
       return primaryPanel.manageLibraryTab;
     },
   },
@@ -102,9 +100,9 @@ export const {
   unsetActivePanel,
   setAiPanelOpen,
   setAiPanelClosed,
-  setManageLibraryTab,
+  setLibraryTab,
 } = primaryPanelSlice.actions;
 
 // Selectors returned by `slice.selectors` take the root state as their first argument.
-export const { selectActivePanel, selectAiPanelOpen, selectManageLibraryTab } =
+export const { selectActivePanel, selectAiPanelOpen, selectLibraryTab } =
   primaryPanelSlice.selectors;

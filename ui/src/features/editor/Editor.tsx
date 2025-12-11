@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,11 +23,14 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 
+import styles from '@/features/editor/Editor.module.css';
+
 interface EditorProps {
   context: EditorFrameContext;
+  disable?: boolean;
 }
 
-const Editor: React.FC<EditorProps> = ({ context }) => {
+const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   const dispatch = useAppDispatch();
   useReturnableLocation();
   const { isUndoable, dispatchUndo } = useUndoRedo();
@@ -100,6 +104,11 @@ const Editor: React.FC<EditorProps> = ({ context }) => {
       {renderContextContent()}
       <EditorFrame />
       <ContextualPanel />
+      <div
+        className={clsx(styles.editorInactive, {
+          [styles.visible]: disable,
+        })}
+      ></div>
     </>
   );
 };

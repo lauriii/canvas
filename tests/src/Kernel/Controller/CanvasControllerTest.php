@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\canvas\Entity\Folder;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
@@ -219,6 +220,7 @@ final class CanvasControllerTest extends KernelTestBase {
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
+          'folders' => FALSE,
         ],
       ],
       [
@@ -233,6 +235,7 @@ final class CanvasControllerTest extends KernelTestBase {
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => TRUE,
+          'folders' => FALSE,
         ],
       ],
       [
@@ -247,6 +250,7 @@ final class CanvasControllerTest extends KernelTestBase {
           'codeComponents' => FALSE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
+          'folders' => FALSE,
         ],
       ],
       [
@@ -262,6 +266,7 @@ final class CanvasControllerTest extends KernelTestBase {
           'codeComponents' => TRUE,
           'contentTemplates' => FALSE,
           'publishChanges' => FALSE,
+          'folders' => FALSE,
         ],
       ],
       [
@@ -272,6 +277,7 @@ final class CanvasControllerTest extends KernelTestBase {
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
           AutoSaveManager::PUBLISH_PERMISSION,
+          Folder::ADMIN_PERMISSION,
         ],
         [
           'globalRegions' => TRUE,
@@ -279,6 +285,7 @@ final class CanvasControllerTest extends KernelTestBase {
           'codeComponents' => TRUE,
           'contentTemplates' => TRUE,
           'publishChanges' => TRUE,
+          'folders' => TRUE,
         ],
       ],
     ];

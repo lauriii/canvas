@@ -34,7 +34,7 @@ const FolderList = ({
   };
 
   return (
-    <SidebarFolder name={folder.name} count={getItemsLength()}>
+    <SidebarFolder id={folder.id} name={folder.name} count={getItemsLength()}>
       {children}
     </SidebarFolder>
   );

@@ -28,6 +28,8 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
   const componentName = useGetComponentName(component);
+  const [activeOrigin, setActiveOrigin] = useState('');
+  const accepts = ['overlay', 'library'];
 
   function getPositionRelation(position: ComponentDropZoneProps['position']) {
     return position === 'top' || position === 'left' ? 'before' : 'after';
@@ -51,14 +53,23 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${component.uuid}_${position}`,
-    disabled: draggedItem === `${component.uuid}`,
+    disabled: draggedItem === component.uuid || !accepts.includes(activeOrigin),
     data: {
       component: component,
       parentSlot: parentSlot,
       parentRegion: parentRegion,
       path: dropPath,
+      accepts,
     },
   });
+
+  useEffect(() => {
+    if (active) {
+      setActiveOrigin(active.data?.current?.origin);
+    } else {
+      setActiveOrigin('');
+    }
+  }, [active]);
 
   useEffect(() => {
     // use the id of the dragged to disable it's dropzone so you can't drop it inside itself.

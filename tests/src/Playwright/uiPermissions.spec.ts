@@ -72,7 +72,7 @@ test.describe('Canvas UI Permissions', () => {
     await page.locator('body').click(); // Dismiss the context menu
     await expect(contextMenu).not.toBeAttached();
 
-    await canvasEditor.openManageLibraryPanel();
+    await canvasEditor.openLibraryPanel();
     // Open the "New" dropdown
     await page.getByTestId('canvas-page-list-new-button').click();
 
@@ -87,7 +87,6 @@ test.describe('Canvas UI Permissions', () => {
       .click({ force: true });
 
     // Make a change to the page
-    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
 
     await expect(page.getByLabel('Sub-heading')).toBeAttached();
@@ -170,20 +169,12 @@ test.describe('Canvas UI Permissions', () => {
     await expect(contextMenu).not.toBeAttached();
 
     // Open the library panel
-    await canvasEditor.openManageLibraryPanel();
+    await canvasEditor.openLibraryPanel();
 
-    // Open the "New" dropdown
-    await page.getByTestId('canvas-page-list-new-button').click();
-
-    // The add new code component button should not be visible
+    // The "New" dropdown should not be visible
     await expect(
-      page.getByTestId('canvas-library-new-code-component-button'),
+      page.getByTestId('canvas-page-list-new-button'),
     ).not.toBeAttached();
-
-    // Close the dropdown
-    await page
-      .getByTestId('canvas-page-list-new-button')
-      .click({ force: true });
 
     const primaryPanel = page.getByTestId('canvas-primary-panel');
     await expect(
@@ -192,10 +183,9 @@ test.describe('Canvas UI Permissions', () => {
 
     // Ensure the "Patterns" button is visible - users with no permissions should still be able to use patterns.
     await expect(
-      primaryPanel.getByTestId('canvas-manage-library-patterns-tab-select'),
+      primaryPanel.getByTestId('canvas-library-patterns-tab-select'),
     ).toBeAttached();
 
-    await canvasEditor.openLibraryPanel();
     await canvasEditor.addComponent({ name: 'Hero' });
     await page.getByTestId('canvas-publish-review').click();
     await page
@@ -207,7 +197,7 @@ test.describe('Canvas UI Permissions', () => {
     await expect(page.getByText('Publish 1 selected')).not.toBeAttached();
 
     // User without "administer components" should not be able to access the code editor.
-    await page.goto('/canvas/code-editor/code/foobar');
+    await page.goto('/canvas/code-editor/component/foobar');
     await expect(
       page.getByText('You do not have permission to access the code editor.'),
     ).toBeVisible();

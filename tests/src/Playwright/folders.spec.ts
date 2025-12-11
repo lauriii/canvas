@@ -34,7 +34,7 @@ test.describe('Folder Management', () => {
   }) => {
     await drupal.loginAsAdmin();
     await canvasEditor.goToCanvasRoot();
-    await page.click('[aria-label="Manage library"]');
+    await canvasEditor.openLibraryPanel();
 
     await page.getByTestId('canvas-page-list-new-button').click();
 
@@ -50,64 +50,50 @@ test.describe('Folder Management', () => {
     // We begin on the Components tab.
     await expect(
       page.locator(
-        '[data-testid="canvas-manage-library-components-tab-select"][aria-selected="true"]',
+        '[data-testid="canvas-library-components-tab-select"][aria-selected="true"]',
       ),
     ).toBeVisible();
     await expect(
-      page.locator(
-        '[data-testid="canvas-manage-library-components-tab-content"]',
-      ),
+      page.locator('[data-testid="canvas-library-components-tab-content"]'),
     ).toBeVisible();
 
     // Confirm the Components tab contents.
     await expect(
-      page.locator(
-        '[data-testid="canvas-manage-library-components-tab-content"]',
-      ),
+      page.locator('[data-testid="canvas-library-components-tab-content"]'),
     ).toMatchAriaSnapshot({
       name: 'Folder-Management-Folder-display-and-creation-1.aria.yml',
     });
     await page
-      .locator('[data-testid="canvas-manage-library-patterns-tab-select"]')
+      .locator('[data-testid="canvas-library-patterns-tab-select"]')
       .click();
 
     // Move to the Patterns tab.
     await expect(
       page.locator(
-        '[data-testid="canvas-manage-library-patterns-tab-select"][aria-selected="true"]',
+        '[data-testid="canvas-library-patterns-tab-select"][aria-selected="true"]',
       ),
     ).toBeVisible();
     await expect(
-      page.locator(
-        '[data-testid="canvas-manage-library-patterns-tab-content"]',
-      ),
+      page.locator('[data-testid="canvas-library-patterns-tab-content"]'),
     ).toBeVisible();
 
     // Confirm the Patterns tab contents.
     await expect(
-      page.locator(
-        '[data-testid="canvas-manage-library-patterns-tab-content"]',
-      ),
+      page.locator('[data-testid="canvas-library-patterns-tab-content"]'),
     ).toMatchAriaSnapshot({
       name: 'Folder-Management-Folder-display-and-creation-2.aria.yml',
     });
 
-    // Move to the Code tab.
-    await page
-      .locator('[data-testid="canvas-manage-library-code-tab-select"]')
-      .click();
+    // Move to the Code panel.
+    await canvasEditor.openCodePanel();
+
     await expect(
-      page.locator(
-        '[data-testid="canvas-manage-library-code-tab-select"][aria-selected="true"]',
-      ),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="canvas-manage-library-code-tab-content"]'),
+      page.locator('[data-testid="canvas-code-panel-content"]'),
     ).toBeVisible();
 
     // Confirm the Code tab contents.
     await expect(
-      page.locator('[data-testid="canvas-manage-library-code-tab-content"]'),
+      page.locator('[data-testid="canvas-code-panel-content"]'),
     ).toMatchAriaSnapshot({
       name: 'Folder-Management-Folder-display-and-creation-3.aria.yml',
     });
@@ -156,7 +142,7 @@ test.describe('Folder Management', () => {
       expect(actualFolderNames).toEqual(allExpectedFolders);
     };
 
-    // Test adding a folder to the Code tab.
+    // Test adding a folder to the Code panel.
     await testAddFolder(
       ['Awesome New Folder', 'Is a Code Folder', 'Very Nice New Folder'],
       [
@@ -170,12 +156,13 @@ test.describe('Folder Management', () => {
     );
 
     // Test adding a folder to the Patterns tab.
+    await canvasEditor.openLibraryPanel();
     await page
-      .locator('[data-testid="canvas-manage-library-patterns-tab-select"]')
+      .locator('[data-testid="canvas-library-patterns-tab-select"]')
       .click();
     await expect(
       page.locator(
-        '[data-testid="canvas-manage-library-patterns-tab-select"][aria-selected="true"]',
+        '[data-testid="canvas-library-patterns-tab-select"][aria-selected="true"]',
       ),
     ).toBeVisible();
     await testAddFolder(
@@ -191,13 +178,12 @@ test.describe('Folder Management', () => {
     );
 
     // Test adding a folder to the Components tab.
-
     await page
-      .locator('[data-testid="canvas-manage-library-components-tab-select"]')
+      .locator('[data-testid="canvas-library-components-tab-select"]')
       .click();
     await expect(
       page.locator(
-        '[data-testid="canvas-manage-library-components-tab-select"][aria-selected="true"]',
+        '[data-testid="canvas-library-components-tab-select"][aria-selected="true"]',
       ),
     ).toBeVisible();
     await testAddFolder(

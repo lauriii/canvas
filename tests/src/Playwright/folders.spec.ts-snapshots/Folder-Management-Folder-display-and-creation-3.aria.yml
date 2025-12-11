@@ -1,46 +1,64 @@
-- tabpanel "Code":
-  - textbox "Search content"
+- textbox "Search content"
+- img
+- button "New":
   - img
-  - button "New":
-    - img
-    - img
   - img
-  - button "Active Users of Using"
-  - button "Collapse Active Users of Using folder" [expanded]:
-    - img
-  - list:
-    - img
-    - text: Component using imports (Internal)
-    - button "Open contextual menu"
-    - img
-    - text: Using drupalSettings getSiteData (Internal)
-    - button "Open contextual menu"
+- img
+- button "Active Users of Using"
+- text: "2"
+- button "Collapse Active Users of Using folder" [expanded]:
   - img
-  - button "Empty Code"
-  - button "Collapse Empty Code folder" [expanded]:
+- list:
+  - listitem:
     - img
-  - list
+    - text: Component using imports
+    - button "Open contextual menu"
+  - listitem:
+    - img
+    - text: Using drupalSettings getSiteData
+    - button "Open contextual menu"
+- img
+- button "Empty Code"
+- text: "0"
+- button "Collapse Empty Code folder" [expanded]:
   - img
-  - button "Proclaimers of With"
-  - button "Collapse Proclaimers of With folder" [expanded]:
+- list
+- img
+- button "Proclaimers of With"
+- text: "2"
+- button "Collapse Proclaimers of With folder" [expanded]:
+  - img
+- list:
+  - listitem:
     - img
-  - list:
-    - img
-    - text: My Code Component Link (Internal)
+    - text: My Code Component Link
     - button "Open contextual menu"
+  - listitem:
     - img
-    - text: With no props (Internal)
+    - text: With no props
     - button "Open contextual menu"
-  - list:
+- list:
+  - listitem:
     - img
-    - text: Captioned video (Internal)
+    - text: Captioned video
     - button "Open contextual menu"
+  - listitem:
     - img
-    - text: Vanilla Image (Internal)
+    - text: Interactive
     - button "Open contextual menu"
+  - listitem:
     - img
-    - text: With enums (Internal)
+    - text: Vanilla Image
     - button "Open contextual menu"
+  - listitem:
     - img
-    - text: With props (Internal)
+    - text: With enums
+    - button "Open contextual menu"
+  - listitem:
+    - img
+    - text: With props
+    - button "Open contextual menu"
+  - listitem:
+    - img
+    - text: With slot
     - button "Open contextual menu"

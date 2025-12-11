@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
-import CodeComponentItem from '@/components/list/CodeComponentItem';
 import LibraryItemList from '@/components/list/LibraryItemList';
-import UnifiedMenu from '@/components/UnifiedMenu';
+import ListItem from '@/components/list/ListItem';
 import { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import {
   useGetCodeComponentsQuery,
@@ -18,12 +17,12 @@ const CodeComponentList = ({ searchTerm }: { searchTerm: string }) => {
     data: codeComponents,
     error,
     isLoading,
-  } = useGetCodeComponentsQuery({ status: false });
+  } = useGetCodeComponentsQuery();
   const {
     data: folders,
     error: foldersError,
     isLoading: foldersLoading,
-  } = useGetFoldersQuery({ status: false });
+  } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {
@@ -32,22 +31,9 @@ const CodeComponentList = ({ searchTerm }: { searchTerm: string }) => {
     }
   }, [error, showBoundary, foldersError]);
 
-  const menuTitleItems = (component: CodeComponentSerialized) => (
-    <>
-      <UnifiedMenu.Label>{component.name}</UnifiedMenu.Label>
-      <UnifiedMenu.Separator />
-    </>
-  );
-
   const renderItem = (component: CodeComponentSerialized & { id: string }) => (
-    // @Todo: Can this return a <ListItem /> instead so it doesn't need to duplicate menuTitleItems prop and gets the thumbnail preview on hover?
-    <CodeComponentItem
-      component={component}
-      exposed={false}
-      menuTitleItems={menuTitleItems(component)}
-    />
+    <ListItem item={component} type={LayoutItemType.CODE} />
   );
-
   // Map machineName to id for compatibility with LibraryItemList's generic
   const codeComponentsWithId = codeComponents
     ? Object.fromEntries(

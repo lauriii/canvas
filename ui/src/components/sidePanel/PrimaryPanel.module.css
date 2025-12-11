@@ -24,10 +24,6 @@
 .header {
   margin: 0;
   vertical-align: middle;
-  > button {
-    width: 100%;
-    cursor: pointer;
-  }
 }
 
 .chevron {

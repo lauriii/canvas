@@ -102,33 +102,37 @@ const LibraryToolbar = ({
         </TextField.Root>
       </form>
       {showNewMenu && (
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            <Button
-              variant="soft"
-              data-testid="canvas-page-list-new-button"
-              size="1"
-            >
-              <PlusIcon />
-              New
-              <ChevronDownIcon />
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            <PermissionCheck hasPermission="codeComponents">
-              <AddCodeComponentButton />
-            </PermissionCheck>
-            {canvasSettings.devMode && (
-              <DropdownMenu.Item
-                onClick={() => setIsOpen(true)}
-                data-testid="canvas-library-new-folder-button"
+        <PermissionCheck hasPermissions={['codeComponents', 'folders']}>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <Button
+                variant="soft"
+                data-testid="canvas-page-list-new-button"
+                size="1"
               >
-                <FolderIcon />
-                Folder
-              </DropdownMenu.Item>
-            )}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
+                <PlusIcon />
+                New
+                <ChevronDownIcon />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <PermissionCheck hasPermission="codeComponents">
+                <AddCodeComponentButton />
+              </PermissionCheck>
+              {canvasSettings.devMode && (
+                <PermissionCheck hasPermission="folders">
+                  <DropdownMenu.Item
+                    onClick={() => setIsOpen(true)}
+                    data-testid="canvas-library-new-folder-button"
+                  >
+                    <FolderIcon />
+                    Folder
+                  </DropdownMenu.Item>
+                </PermissionCheck>
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </PermissionCheck>
       )}
       {isOpen && canvasSettings.devMode && (
         <Dialog

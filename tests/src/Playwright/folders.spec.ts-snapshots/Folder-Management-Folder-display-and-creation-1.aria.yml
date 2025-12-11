@@ -41,6 +41,9 @@
   - list:
     - listitem:
       - img
+      - text: Columns
+    - listitem:
+      - img
       - text: Grid Container
     - listitem:
       - img
@@ -79,6 +82,9 @@
   - list:
     - listitem:
       - img
+      - text: Banner
+    - listitem:
+      - img
       - text: Call to Absolute Action
     - listitem:
       - img
@@ -86,6 +92,9 @@
     - listitem:
       - img
       - text: /Canvas test SDC for sparkline \(>1 integers between -\d+ and \d+\)/
+    - listitem:
+      - img
+      - text: Canvas test SDC for tags
     - listitem:
       - img
       - text: "Canvas test SDC for testing type: `Drupal\\Core\\Template\\Attribute` special casing"
@@ -193,10 +202,6 @@
     - listitem:
       - img
       - text: With enums
-      - button "Open contextual menu"
-    - listitem:
-      - img
-      - text: With no props
       - button "Open contextual menu"
     - listitem:
       - img

@@ -30,6 +30,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     'file',
     'filter',
     'image',
+    'media',
     'link',
     'options',
     'text',

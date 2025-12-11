@@ -86,6 +86,10 @@ class AutoSaveManagerTest extends KernelTestBase {
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
     $this->installConfig('canvas');
+    // URLs are generated during some of these kernel tests. Canvas depends on
+    // the `path` module, so the PathAlias entity type must be installed. URL
+    // generation fails without this.
+    $this->installEntitySchema('path_alias');
     $this->generateComponentConfig();
   }
 

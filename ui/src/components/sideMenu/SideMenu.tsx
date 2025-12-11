@@ -1,10 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import clsx from 'clsx';
 import { useParams } from 'react-router';
 import { useLocation } from 'react-router-dom';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
-  Component1Icon,
+  CodeIcon,
   FileTextIcon,
   LayersIcon,
   PlusIcon,
@@ -47,26 +48,33 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
   }
   const hasExtensions =
     drupalSettings.canvas.extensionsAvailable || hasLegacyExtensions;
+  const dispatch = useAppDispatch();
+
   const { pathname } = useLocation();
   const params = useParams();
   const segments = pathname.split('/').filter(Boolean); // removes empty strings
-
   const hasActiveEditorFrame =
     (segments.includes('editor') && params.entityId !== undefined) ||
     (segments.includes('template') && params.previewEntityId !== undefined);
 
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    // This use effect is a safeguard to ensure that the layers and library panels won't be shown when the editorFrame isn't loaded.
-    // If there is nothing being edited then the layers and library panels are not available so close the panel.
-    if (
-      !hasActiveEditorFrame &&
-      (activePanel === 'layers' || activePanel === 'library')
-    ) {
-      dispatch(unsetActivePanel());
-    }
-  }, [activePanel, dispatch, hasActiveEditorFrame]);
+  /**
+   * Navigate to previously edited item when opening layers or library panel
+   */
+  // const previouslyEdited = useAppSelector(selectPreviouslyEdited);
+  // const navigate = useNavigate();
+  // useEffect(() => {
+  //   // This useEffect can immediately navigate to the previously edited item when the user clicks on the layers or library panel buttons.
+  //   // however this currently causes a page reload which is a bit disruptive.
+  //   if (
+  //     !hasActiveEditorFrame &&
+  //     (activePanel === 'layers' || activePanel === 'library') &&
+  //     previouslyEdited?.path
+  //   ) {
+  //     console.log('navigate to editor');
+  //     navigate(previouslyEdited.path);
+  //   }
+  // }, [activePanel, previouslyEdited, hasActiveEditorFrame, navigate]);
+  /** Re-add this block once we allow navigating between entities without a page load  */
 
   const handleMenuClick = useCallback(
     (panelId: string) => {
@@ -84,26 +92,27 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'library',
       icon: <PlusIcon />,
-      label: 'Add',
+      label: 'Library',
       enabled: true,
-      hidden: !hasActiveEditorFrame,
+      hidden: false,
     },
     {
       type: 'button',
       id: 'layers',
       icon: <LayersIcon />,
       label: 'Layers',
-      enabled: true,
-      hidden: !hasActiveEditorFrame,
+      enabled: hasActiveEditorFrame,
+      hidden: false,
     },
-    { type: 'separator', hidden: !hasActiveEditorFrame },
+    { type: 'separator', hidden: false },
+
     {
       type: 'button',
-      id: 'manageLibrary',
-      icon: <Component1Icon />,
-      label: 'Manage library',
+      id: 'code',
+      icon: <CodeIcon />,
+      label: 'Code',
       enabled: true,
-      hidden: false,
+      hidden: !hasPermission('codeComponents'),
     },
     {
       type: 'button',
@@ -144,8 +153,13 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
               <Button
                 variant="ghost"
                 color="gray"
+                highContrast={true}
                 disabled={!item.enabled}
-                className={`${styles.menuItem} ${item.enabled ? '' : styles.disabled} ${activePanel === item.id ? styles.active : ''}`}
+                className={clsx(
+                  styles.menuItem,
+                  !item.enabled && styles.disabled,
+                  activePanel === item.id && styles.active,
+                )}
                 onClick={
                   item.enabled ? () => handleMenuClick(item.id) : undefined
                 }

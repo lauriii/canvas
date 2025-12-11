@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ContextMenu, HoverCard, Text } from '@radix-ui/themes';
 
@@ -16,7 +14,6 @@ import {
   openRenameDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
-import { useGetCodeComponentQuery } from '@/services/componentAndLayout';
 
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { JSComponent } from '@/types/Component';
@@ -56,19 +53,11 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
   const dispatch = useAppDispatch();
   const componentId = getComponentId(component);
   const machineName = removeJsPrefix(componentId);
-  const { data: jsComponent, error } = useGetCodeComponentQuery(machineName);
   const layout = useAppSelector(selectLayout);
   const isComponentInLayout = componentExistsInLayout(layout, componentId);
-  const { showBoundary } = useErrorBoundary();
   const navigate = useNavigate();
   const { codeComponentId: selectedComponent } = useParams();
   const activePanel = useAppSelector(selectActivePanel);
-
-  useEffect(() => {
-    if (error) {
-      showBoundary(error);
-    }
-  }, [error, showBoundary]);
 
   // Menu item handlers
   const handleRemoveFromComponentsClick = (
@@ -79,20 +68,20 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
       dispatch(openInLayoutDialog());
     } else {
       dispatch(
-        openRemoveFromComponentsDialog(jsComponent as CodeComponentSerialized),
+        openRemoveFromComponentsDialog(component as CodeComponentSerialized),
       );
     }
   };
   const handleRenameClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    dispatch(openRenameDialog(jsComponent as CodeComponentSerialized));
+    dispatch(openRenameDialog(component as CodeComponentSerialized));
   };
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     if (isComponentInLayout) {
       dispatch(openInLayoutDialog());
     } else {
-      dispatch(openDeleteDialog(jsComponent as CodeComponentSerialized));
+      dispatch(openDeleteDialog(component as CodeComponentSerialized));
     }
   };
   const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -142,7 +131,7 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
       {/*</UnifiedMenu.Item>*/}
       <UnifiedMenu.Separator />
       {/* If the delete form is present, the component is safe to delete. */}
-      {jsComponent?.links?.['delete-form'] ? (
+      {'links' in component && component?.links?.['delete-form'] ? (
         <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
           Delete
         </UnifiedMenu.Item>
@@ -180,9 +169,9 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
           }
           selected={machineName === selectedComponent}
           onMenuOpenChange={onMenuOpenChange}
-          draggable={activePanel !== 'manageLibrary'}
+          draggable={true}
           onClick={() => {
-            activePanel === 'manageLibrary' &&
+            activePanel === 'code' &&
               navigate(`/code-editor/component/${machineName}`);
           }}
         />

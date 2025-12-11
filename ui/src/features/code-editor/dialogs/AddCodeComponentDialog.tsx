@@ -13,10 +13,7 @@ import {
   closeAllDialogs,
   selectDialogStates,
 } from '@/features/ui/codeComponentDialogSlice';
-import {
-  setActivePanel,
-  setManageLibraryTab,
-} from '@/features/ui/primaryPanelSlice';
+import { setActivePanel } from '@/features/ui/primaryPanelSlice';
 import { validateCodeMachineNameClientSide } from '@/features/validation/validation';
 import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
 
@@ -50,8 +47,7 @@ const AddCodeComponentDialog = () => {
       importedJsComponents: [],
       dataDependencies: {},
     });
-    dispatch(setManageLibraryTab('code'));
-    dispatch(setActivePanel('manageLibrary'));
+    dispatch(setActivePanel('code'));
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -69,7 +65,7 @@ const AddCodeComponentDialog = () => {
       setComponentName('');
       setValidationError('');
       dispatch(closeAllDialogs());
-      navigate(`/code-editor/code/${data.machineName}`);
+      navigate(`/code-editor/component/${data.machineName}`);
       reset();
     }
   }, [

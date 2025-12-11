@@ -13,10 +13,7 @@ import {
   selectDialogStates,
   selectSelectedCodeComponent,
 } from '@/features/ui/codeComponentDialogSlice';
-import {
-  setActivePanel,
-  setManageLibraryTab,
-} from '@/features/ui/primaryPanelSlice';
+import { setActivePanel } from '@/features/ui/primaryPanelSlice';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
 // This handles the dialog for removing a JS component from components. This changes
@@ -57,7 +54,7 @@ const RemoveFromComponentsDialog = () => {
       // data, the code editor won't refetch while it's open.
       dispatch(setCodeComponentProperty(['status', false]));
       // Navigate to the code editor route that handles internal code components.
-      setNavigateTo(`/code-editor/code/${selectedComponent.machineName}`);
+      setNavigateTo(`/code-editor/component/${selectedComponent.machineName}`);
     }
   };
 
@@ -72,8 +69,7 @@ const RemoveFromComponentsDialog = () => {
     if (navigateTo) {
       navigate(navigateTo);
       setNavigateTo(null);
-      dispatch(setActivePanel('manageLibrary'));
-      dispatch(setManageLibraryTab('code'));
+      dispatch(setActivePanel('code'));
     }
   }, [navigateTo, navigate, dispatch]);
 

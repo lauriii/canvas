@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import FolderIcon from '@assets/icons/folder.svg?react';
+import { useDroppable } from '@dnd-kit/core';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
+import { useAppSelector } from '@/app/hooks';
 import UnifiedMenu from '@/components/UnifiedMenu';
+import { selectDragging } from '@/features/ui/uiSlice';
+import { usePermissionCheck } from '@/hooks/usePermissionCheck';
 
 import type React from 'react';
 
@@ -22,6 +26,7 @@ interface SidebarFolderProps {
   onOpenChange?: (open: boolean) => void;
   children?: React.ReactNode;
   contextualMenuType?: 'dropdown' | 'context' | 'both';
+  id: string;
 }
 
 const SidebarFolder: React.FC<SidebarFolderProps> = ({
@@ -33,13 +38,27 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   onOpenChange,
   children,
   contextualMenuType = 'both',
+  id,
 }) => {
   const [isOpen, setIsOpen] = useState(isOpenProp ?? true);
+  const { previewDragging } = useAppSelector(selectDragging);
+  const administerFolders = usePermissionCheck({
+    hasPermission: 'folders',
+  });
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id,
+    data: {
+      destination: 'folder',
+      accepts: ['library', 'code'],
+    },
+    // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.
+    disabled: !administerFolders || previewDragging,
+  });
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     onOpenChange?.(open);
   };
-
   const folderRow = (
     <Flex
       data-canvas-folder-name={name}
@@ -122,7 +141,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     );
   }
 
-  return (
+  const collapsibleFolder = (
     <Collapsible.Root open={isOpen} onOpenChange={handleOpenChange}>
       {rowWithContextMenu}
       <Collapsible.Content
@@ -131,6 +150,12 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
         <Flex direction="column">{children}</Flex>
       </Collapsible.Content>
     </Collapsible.Root>
+  );
+
+  return (
+    <div ref={setDropRef} className={clsx({ [listStyles.isOver]: isOver })}>
+      {collapsibleFolder}
+    </div>
   );
 };
 

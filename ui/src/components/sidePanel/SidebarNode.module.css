@@ -80,8 +80,9 @@
     backdrop-filter: grayscale(100%) opacity(50%);
   }
   &.draggable {
-    .icon, .title {
-      cursor: grab;
+    cursor: grab;
+    button {
+      cursor: pointer;
     }
   }
 }

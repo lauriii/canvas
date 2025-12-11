@@ -42,7 +42,7 @@ import type React from 'react';
 
 import styles from './EditorFrame.module.css';
 
-const EditorFrame = () => {
+const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
   useLayoutWatcher();

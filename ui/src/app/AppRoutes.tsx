@@ -3,6 +3,7 @@ import {
   Navigate,
   Outlet,
   RouterProvider,
+  useParams,
 } from 'react-router-dom';
 import { Flex } from '@radix-ui/themes';
 
@@ -35,7 +36,9 @@ const UiShell = ({ children }: { children: React.ReactNode }) => (
   <>
     <SideMenu />
     <PrimaryPanel />
-    {children}
+    <Flex flexGrow="1" style={{ overflow: 'hidden', position: 'relative' }}>
+      {children}
+    </Flex>
     <Dialogs />
   </>
 );
@@ -65,6 +68,11 @@ const Dialogs = () => (
     <ExtensionDialog />
   </div>
 );
+
+const LegacyCodeEditorRedirect: React.FC = () => {
+  const { codeComponentId } = useParams<{ codeComponentId: string }>();
+  return <Navigate to={`/code-editor/component/${codeComponentId}`} replace />;
+};
 
 const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
   const router = createBrowserRouter(
@@ -154,9 +162,18 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: <PagePreview />,
           },
           {
-            // Opens the code editor for an item under 'Code'.
-            path: '/code-editor/code/:codeComponentId',
+            // belt and braces to catch navigation to /code-editor without component id rather than showing a 404
+            path: '/code-editor/',
             element: CodeEditorUi,
+          },
+          {
+            path: '/code-editor/component',
+            element: CodeEditorUi,
+          },
+          {
+            // Legacy route for backward compatibility.
+            path: '/code-editor/code/:codeComponentId',
+            element: <LegacyCodeEditorRedirect />,
           },
           {
             // Opens the code editor for an item under 'Components'.

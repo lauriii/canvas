@@ -232,31 +232,6 @@ export const componentAndLayoutApi = createApi({
     >({
       query: () => 'canvas/api/v0/config/js_component',
       providesTags: () => [{ type: 'CodeComponents', id: 'LIST' }],
-      transformResponse: (
-        response: Record<string, CodeComponentSerialized>,
-        meta,
-        arg,
-      ) => {
-        if (!arg || typeof arg !== 'object') {
-          // If no filter is provided or arg is undefined, return all components.
-          return response;
-        }
-
-        const { status } = arg;
-
-        return Object.entries(response).reduce(
-          (filtered, [key, component]) => {
-            // Only filter by status if it's provided (internal=false, exposed=true)
-            const statusMatch =
-              status === undefined ? true : component.status === status;
-            if (statusMatch) {
-              filtered[key] = component;
-            }
-            return filtered;
-          },
-          {} as Record<string, CodeComponentSerialized>,
-        );
-      },
     }),
     getCodeComponent: builder.query<CodeComponentSerialized, string>({
       query: (id) => `canvas/api/v0/config/js_component/${id}`,
@@ -336,7 +311,24 @@ export const componentAndLayoutApi = createApi({
       }),
       invalidatesTags: [{ type: 'Folders', id: 'LIST' }],
     }),
-    getFolders: builder.query<any, any>({
+    updateFolder: builder.mutation<any, any>({
+      query: ({ id, changes }) => ({
+        url: `canvas/api/v0/config/folder/${id}`,
+        method: 'PATCH',
+        body: changes,
+      }),
+      invalidatesTags: () => [
+        { type: 'Folders', id: 'LIST' },
+        { type: 'Layout' },
+      ],
+    }),
+    getFolders: builder.query<
+      {
+        folders: Record<string, any>;
+        componentIndexedFolders: Record<string, string>;
+      },
+      void
+    >({
       query: () => 'canvas/api/v0/config/folder',
       providesTags: () => [{ type: 'Folders', id: 'LIST' }],
       transformResponse: (response: any) => {
@@ -454,6 +446,7 @@ export const {
   useUpdateCodeComponentMutation,
   useDeleteCodeComponentMutation,
   useCreateFolderMutation,
+  useUpdateFolderMutation,
   useGetFoldersQuery,
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,

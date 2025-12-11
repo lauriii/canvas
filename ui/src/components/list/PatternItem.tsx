@@ -41,18 +41,16 @@ const PatternItem: React.FC<{
     <>
       {menuTitleItems}
       {activePanel === 'library' && insertMenuItem}
-      {activePanel === 'manageLibrary' && (
-        <PermissionCheck
-          hasPermission="patterns"
-          denied={
-            <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
-          }
-        >
-          <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-            Delete pattern
-          </UnifiedMenu.Item>
-        </PermissionCheck>
-      )}
+      <PermissionCheck
+        hasPermission="patterns"
+        denied={
+          <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+        }
+      >
+        <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
+          Delete pattern
+        </UnifiedMenu.Item>
+      </PermissionCheck>
     </>
   );
 
@@ -69,7 +67,7 @@ const PatternItem: React.FC<{
             </UnifiedMenu.Content>
           }
           onMenuOpenChange={onMenuOpenChange}
-          draggable={activePanel !== 'manageLibrary'}
+          draggable={true}
         />
       </ContextMenu.Trigger>
       <UnifiedMenu.Content menuType="context" align="start" side="right">

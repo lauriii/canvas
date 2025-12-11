@@ -23,11 +23,13 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   const { region } = props;
   const layout = useAppSelector(selectLayout);
   const [activeName, setActiveName] = useState('');
+  const [activeOrigin, setActiveOrigin] = useState('');
   const isTemplateRoute =
     useAppSelector(selectEditorFrameContext) === 'template';
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex, 0];
+  const accepts = ['overlay', 'library'];
 
   const {
     setNodeRef: setDropRef,
@@ -35,10 +37,12 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: region.id,
+    disabled: !accepts.includes(activeOrigin),
     data: {
       region: region,
       parentRegion: region,
       path: regionPath,
+      accepts,
     },
   });
 
@@ -51,6 +55,14 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
       setActiveName('');
     }
   }, [active, isOver]);
+
+  useEffect(() => {
+    if (active) {
+      setActiveOrigin(active.data?.current?.origin);
+    } else {
+      setActiveOrigin('');
+    }
+  }, [active]);
 
   return (
     <div className={styles.emptyPageContainer}>

@@ -23,7 +23,7 @@ import useRouteSync from '@/hooks/useRouteSync';
 import type React from 'react';
 import type { CollisionDetection } from '@dnd-kit/core';
 
-import styles from '@/features/editor/Editor.module.css';
+import styles from '@/features/editor/App.module.css';
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback

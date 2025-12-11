@@ -643,7 +643,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('openLibraryPanel', () => {
-  cy.findByTestId('canvas-side-menu').findByLabelText('Add').click();
+  cy.findByTestId('canvas-side-menu').findByLabelText('Library').click();
 
   cy.findByText('Library', { selector: 'h4' }).should(($el) => {
     expect(

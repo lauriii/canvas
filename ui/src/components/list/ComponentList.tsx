@@ -23,7 +23,7 @@ const ComponentList = ({ searchTerm }: ComponentListProps) => {
     data: folders,
     error: foldersError,
     isLoading: foldersLoading,
-  } = useGetFoldersQuery({ status: false });
+  } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
 
   useEffect(() => {

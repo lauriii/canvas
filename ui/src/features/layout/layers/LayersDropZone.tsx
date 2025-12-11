@@ -64,6 +64,7 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
       parentRegion: parentRegion,
       path: dropPath,
       destination: 'layers',
+      accepts: ['layers'],
     },
   });
 

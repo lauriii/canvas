@@ -37,7 +37,7 @@ const ComponentItem: React.FC<{
       disabled={disabled}
       broken={component.broken}
       onMenuOpenChange={onMenuOpenChange}
-      draggable={activePanel !== 'manageLibrary'}
+      draggable={true}
       {...(menuItems && {
         dropdownMenuContent: (
           <UnifiedMenu.Content menuType="dropdown">

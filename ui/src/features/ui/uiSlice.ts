@@ -9,6 +9,7 @@ export interface DraggingStatus {
   treeDragging: boolean;
   listDragging: boolean;
   previewDragging: boolean;
+  codeDragging: boolean;
 }
 
 export interface EditorViewPort {
@@ -91,6 +92,7 @@ export const initialState: uiSliceState = {
     treeDragging: false,
     listDragging: false,
     previewDragging: false,
+    codeDragging: false,
   },
   panning: false,
   hoveredComponent: undefined,
@@ -232,6 +234,10 @@ export const uiSlice = createAppSlice({
     setListDragging: create.reducer((state, action: PayloadAction<boolean>) => {
       state.dragging.isDragging = action.payload;
       state.dragging.listDragging = action.payload;
+    }),
+    setCodeDragging: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.dragging.isDragging = action.payload;
+      state.dragging.codeDragging = action.payload;
     }),
     setIsPanning: create.reducer((state, action: PayloadAction<boolean>) => {
       state.panning = action.payload;
@@ -451,6 +457,7 @@ export const {
   setTreeDragging,
   setPreviewDragging,
   setListDragging,
+  setCodeDragging,
   setIsPanning,
   setIsZooming,
   setHoveredComponent,

@@ -86,14 +86,7 @@ export interface LayoutModelSliceState extends RootLayoutModel {
 }
 
 export const initialState: LayoutModelSliceState = {
-  layout: [
-    {
-      nodeType: NodeType.Region,
-      name: 'content',
-      components: [],
-      id: 'content',
-    },
-  ],
+  layout: [],
   model: {},
   updatePreview: false,
   isInitialized: false,

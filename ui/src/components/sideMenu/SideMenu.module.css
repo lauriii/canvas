@@ -14,17 +14,24 @@
 }
 
 .menuItem.menuItem {
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   margin: 0;
   padding: 0;
   cursor: pointer;
 }
 
+.menuItem:hover {
+  color: var(--blue-9);
+  background: none;
+}
+
 .menuItem.active {
   color: var(--blue-9);
-  background-color: var(--gray-3);
+  outline: 1px solid var(--blue-8);
 }
+
+
 .separator {
   width: 24px;
   margin: 1px 0;
@@ -34,4 +41,5 @@
 }
 .menuItem.disabled {
   cursor: default;
+  pointer-events: none;
 }

@@ -68,14 +68,16 @@ describe('Primary panel', () => {
       '.primaryPanelContent [data-canvas-component-id="js.my-cta"]';
 
     // Hover over "Image" and a preview should appear.
-    cy.get(`${imageSelect}`).should('exist').realHover();
+    cy.get(`${imageSelect}`).scrollIntoView();
+    cy.get(`${imageSelect}`).should('be.visible').realHover();
     cy.waitForElementInIframe(
       'img[alt="Boring placeholder"]',
       'iframe[data-preview-component-id="sdc.canvas_test_sdc.image"]',
     );
 
     // Hover over "My Hero" and a preview should appear and load correct CSS
-    cy.get(`${heroSelect}`).should('exist').realHover();
+    cy.get(`${heroSelect}`).scrollIntoView();
+    cy.get(`${heroSelect}`).should('be.visible').realHover();
     cy.waitForElementInIframe(
       'div.my-hero__container > .my-hero__actions > .my-hero__cta--primary',
       'iframe[data-preview-component-id="sdc.canvas_test_sdc.my-hero"]',

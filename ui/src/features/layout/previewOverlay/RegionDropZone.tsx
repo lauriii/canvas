@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
@@ -17,6 +18,8 @@ export interface RegionDropZoneProps {
 const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   const { region, position } = props;
   const layout = useAppSelector(selectLayout);
+  const [activeOrigin, setActiveOrigin] = useState('');
+  const accepts = ['overlay', 'library'];
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex];
@@ -28,14 +31,29 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   }
 
   const positionLabel = position === 'before' ? 'start' : 'end';
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
+  const {
+    setNodeRef: setDropRef,
+    isOver,
+    active,
+  } = useDroppable({
     id: `${region.id}_${position}`,
+    disabled: !accepts.includes(activeOrigin),
     data: {
       region: region,
       parentRegion: region,
       path: regionPath,
+      accepts,
     },
   });
+
+  useEffect(() => {
+    if (active) {
+      setActiveOrigin(active.data?.current?.origin);
+    } else {
+      setActiveOrigin('');
+    }
+  }, [active]);
+
   const dropzoneStyle = styles[position];
 
   return (

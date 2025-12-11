@@ -16,9 +16,6 @@ function canvas_test_folders_install(): void {
     'items' => [
       'canvas_test_code_components_using_drupalsettings_get_site_data',
       'canvas_test_code_components_using_imports',
-      // @todo Remove these in https://www.drupal.org/project/canvas/issues/3543533
-      'canvas_internal_code_components_using_drupalsettings_get_site_data',
-      'canvas_internal_code_components_using_imports',
     ],
     'configEntityTypeId' => JavaScriptComponent::ENTITY_TYPE_ID,
   ])->save();
@@ -30,9 +27,6 @@ function canvas_test_folders_install(): void {
     'items' => [
       'canvas_test_code_components_with_link_prop',
       'canvas_test_code_components_with_no_props',
-      // @todo Remove these in https://www.drupal.org/project/canvas/issues/3543533
-      'canvas_internal_code_components_with_link_prop',
-      'canvas_internal_code_components_with_no_props',
     ],
     'configEntityTypeId' => JavaScriptComponent::ENTITY_TYPE_ID,
   ])->save();

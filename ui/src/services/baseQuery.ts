@@ -176,7 +176,9 @@ export const withAutoSavesInjection: (
         api.type === 'mutation' &&
         // Skip autoSaves injection for mutations that do not impact data that
         // is autosaved, such as creating folders.
-        !['createFolder', 'createContentTemplate'].includes(api.endpoint)
+        !['createFolder', 'createContentTemplate', 'updateFolder'].includes(
+          api.endpoint,
+        )
       ) {
         const state = api.getState() as RootState;
         const { publishReview } = state;

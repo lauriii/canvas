@@ -5,6 +5,4 @@ dependencies:
   - canvas:canvas_test_code_components
   - canvas:canvas_test_sdc
   - canvas:canvas_test_patterns
-  # @todo Remove these in https://www.drupal.org/project/canvas/issues/3543533
-  - canvas:canvas_internal_code_components
 package: Testing
