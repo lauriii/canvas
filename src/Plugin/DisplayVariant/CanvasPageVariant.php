@@ -177,8 +177,9 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
             $messages_block_displayed = TRUE;
             return $fiber->resume();
           })(),
-          // No other page-level information exists in Drupal at this time.
-          default => new \LogicException(),
+          // If fiber was suspended in some other context (e.g. while loading
+          // entities) resume it to continue component tree rendering.
+          default => $fiber->resume(),
         };
       }
       assert($fiber->isTerminated());
