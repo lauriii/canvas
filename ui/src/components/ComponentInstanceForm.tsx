@@ -29,6 +29,7 @@ import {
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import useInputUIData from '@/hooks/useInputUIData';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
@@ -70,7 +71,8 @@ const ComponentInstanceFormRenderer: React.FC<
   );
   const { queryString } = props;
   const { showBoundary } = useErrorBoundary();
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const inputAndUiData: InputUIData = useInputUIData();
+  const { selectedComponentType, version, selectedComponent } = inputAndUiData;
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
 
   const [jsxFormContent, setJsxFormContent] =
@@ -90,22 +92,8 @@ const ComponentInstanceFormRenderer: React.FC<
         skip,
       },
     );
-  const model = useAppSelector(selectModel);
   const { data: components } = useGetComponentsQuery();
-  const layout = useAppSelector(selectLayout);
-  const node = findComponentByUuid(layout, selectedComponentId);
-  const [selectedComponentType, version] = (
-    node ? (node.type as string) : 'noop'
-  ).split('@');
-  const inputAndUiData: InputUIData = {
-    selectedComponent: selectedComponentId,
-    components,
-    selectedComponentType,
-    layout,
-    node,
-    model,
-    version,
-  };
+
   const [patchComponent] = useUpdateComponentMutation({
     fixedCacheKey: selectedComponentId,
   });
