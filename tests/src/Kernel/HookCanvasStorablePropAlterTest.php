@@ -10,24 +10,24 @@ use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
 /**
- * @covers \Drupal\canvas\PropShape\PropShape::getStorage()
+ * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository
  * @group canvas
  */
-class HookStoragePropAlterTest extends PropShapeRepositoryTest {
+class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
     // 1. Test CHANGING a Canvas decision about a prop shape.
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::fieldWidgetInfoAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::fieldWidgetInfoAlter()
     // 2. Test ADDING support for an arbitrary prop shape.
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem
-    'canvas_test_storage_prop_shape_alter',
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem
+    'canvas_test_storable_prop_shape_alter',
     // 3. Test ADDING support for a well-known prop shape.
-    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::datetimeRangeStoragePropShapeAlter()
+    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::datetimeRangeStorablePropShapeAlter()
     'datetime_range',
   ];
 

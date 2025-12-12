@@ -67,4 +67,10 @@ final class StorablePropShape {
     return StaticPropSource::generate($this->fieldTypeProp, $this->cardinality, $this->fieldStorageSettings, $this->fieldInstanceSettings);
   }
 
+  public function getFieldType(): string {
+    return $this->fieldTypeProp instanceof ReferenceFieldTypePropExpression
+      ? $this->fieldTypeProp->referencer->fieldType
+      : $this->fieldTypeProp->fieldType;
+  }
+
 }

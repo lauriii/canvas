@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
@@ -22,7 +23,7 @@ use Drupal\canvas\TypedData\BetterEntityDataDefinition;
  * Is able to bridge the gap from JSON schema to:
  * - Drupal field types thanks to hardcoded knowledge (with facilities for
  *   altering default choices): `::computeStorablePropShape()` and
- *   `hook_storage_prop_shape_alter()`
+ *   `hook_canvas_storable_prop_shape_alter()`
  * - Drupal field instances' props thanks to hardcoded knowledge about Drupal
  *   validation constraint equivalents: `::toDataTypeShapeRequirements()`, used
  *   by \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
@@ -206,6 +207,10 @@ enum JsonSchemaType: string {
    *
    * @param \Drupal\canvas\PropShape\PropShape $shape
    *   The prop shape to find the recommended UX (storage + widget) for.
+   * @param \Drupal\canvas\PropShape\PropShapeRepositoryInterface $shape_repository
+   *   The prop shape repository, to be able to reuse the StorablePropShape for
+   *   a single-cardinality prop shape for its multiple-cardinality equivalent
+   *   (i.e. `type: array`).
    *
    * @return \Drupal\canvas\PropShape\StorablePropShape|null
    *   NULL is returned to indicate that Drupal Canvas + Drupal core do not
@@ -214,7 +219,7 @@ enum JsonSchemaType: string {
    *
    * @see \Drupal\canvas\PropSource\StaticPropSource
    */
-  public function computeStorablePropShape(PropShape $shape): ?StorablePropShape {
+  public function computeStorablePropShape(PropShape $shape, PropShapeRepositoryInterface $shape_repository): ?StorablePropShape {
     $schema = $shape->schema;
 
     // Arrays containing items of a particular shape map beautifully onto multi-
@@ -242,7 +247,7 @@ enum JsonSchemaType: string {
       }
       $array_item_prop_shape = PropShape::normalize($schema['items']);
 
-      $item_storable_prop_shape = $array_item_prop_shape->getStorage();
+      $item_storable_prop_shape = $shape_repository->getStorablePropShape($array_item_prop_shape);
       if ($item_storable_prop_shape === NULL) {
         return NULL;
       }
@@ -366,7 +371,7 @@ enum JsonSchemaType: string {
         // minutiae.
         array_key_exists('$ref', $schema) => match ($schema['$ref']) {
           // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
-          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
           // @todo Try decorating with adapter in https://www.drupal.org/project/canvas/issues/3536115.
           'json-schema-definitions://canvas.module/image' => new StorablePropShape(shape: $shape, fieldWidget: 'image_image', fieldTypeProp: new FieldTypeObjectPropsExpression('image', [
             // TRICKY: Additional computed property on image fields added by
@@ -387,7 +392,7 @@ enum JsonSchemaType: string {
             'height' => new FieldTypePropExpression('image', 'height'),
           ])),
           // @see \Drupal\file\Plugin\Field\FieldType\FileItem
-          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
           'json-schema-definitions://canvas.module/video' => new StorablePropShape(
             shape: $shape,
             fieldWidget: 'file_generic',

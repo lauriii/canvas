@@ -46,11 +46,11 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $page->set('components', [])->save();
     $page->save();
 
-    // Now enable the 'canvas_test_storage_prop_shape_alter' module to change the
+    // Now enable the 'canvas_test_storable_prop_shape_alter' module to change the
     // field type used for populating the href prop.
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
-      ->install(['canvas_test_storage_prop_shape_alter']);
+      ->install(['canvas_test_storable_prop_shape_alter']);
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(2, $component->getVersions());
@@ -130,11 +130,11 @@ class ComponentAuditTest extends ComponentAuditTestBase {
       default => throw new \InvalidArgumentException()
     };
 
-    // Now enable the 'canvas_test_storage_prop_shape_alter' module to change the
+    // Now enable the 'canvas_test_storable_prop_shape_alter' module to change the
     // field type used for populating the href prop.
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
-      ->install(['canvas_test_storage_prop_shape_alter']);
+      ->install(['canvas_test_storable_prop_shape_alter']);
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(2, $component->getVersions());

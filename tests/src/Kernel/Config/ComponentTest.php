@@ -92,7 +92,7 @@ class ComponentTest extends KernelTestBase {
   }
 
   /**
-   * @see media_library_storage_prop_shape_alter()
+   * @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
    * @see \Drupal\Tests\canvas\Kernel\MediaLibraryHookStoragePropAlterTest
    */
   public function testComponentAutoUpdate(): void {

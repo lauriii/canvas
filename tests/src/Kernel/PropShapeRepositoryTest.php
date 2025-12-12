@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component as ComponentEntity;
+use Drupal\canvas\PropShape\PersistentPropShapeRepository;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
 use Drupal\canvas\Validation\JsonSchema\CustomConstraintError;
+use Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks;
+use Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem;
+use Drupal\Core\Cache\CacheCollectorInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
-use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
-use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -22,7 +29,6 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpressio
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\PropSource\StaticPropSource;
-use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
@@ -32,8 +38,11 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
+ * @coversDefaultClass \Drupal\canvas\PropShape\PersistentPropShapeRepository
+ * @covers \Drupal\canvas\PropShape\EphemeralPropShapeRepository
  * @group canvas
  */
 class PropShapeRepositoryTest extends KernelTestBase {
@@ -70,6 +79,14 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'text',
   ];
 
+  protected static $configSchemaCheckerExclusions = [
+    // The "all-props" test-only SDC is used to assess also prop shapes that are
+    // not yet storable, and hence do not meet the requirements.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
+    // @see /ui/tests/e2e/prop-types.cy.js
+    'canvas.' . ComponentEntity::ENTITY_TYPE_ID . '.' . SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.sdc_test_all_props.all-props',
+  ];
+
   /**
    * {@inheritdoc}
    */
@@ -94,42 +111,60 @@ class PropShapeRepositoryTest extends KernelTestBase {
     $this->installEntitySchema('file');
   }
 
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+    $container->register(PropShapeRepositoryInterface::class, PersistentPropShapeRepositoryTestHelper::class)
+      ->addArgument(new Reference(EphemeralPropShapeRepository::class))
+      ->addArgument(new Reference('cache.discovery'))
+      ->addArgument(new Reference('lock'))
+      ->addArgument(new Reference(ComponentSourceManager::class))
+      ->addArgument(new Reference('kernel'));
+  }
+
   /**
-   * Tests finding all unique prop schemas.
+   * Tests finding all unique prop shapes.
    */
-  public function testUniquePropSchemaDiscovery(): array {
-    $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
-    assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
+  public function testUniquePropShapeDiscovery(): array {
+    // The ephemeral prop shape repository will contain all prop shapes, because
+    // it is called by \Drupal\canvas\ComponentMetadataRequirementsChecker.
+    $ephemeral_prop_shape_repository = $this->container->get(EphemeralPropShapeRepository::class);
 
-    $components = $sdc_manager->getAllComponents();
-    // Shape matching is only ever relevant to SDCs that may appear in the UI,
-    // and hence also in Canvas. Omit SDCs with `noUi: true`.
-    $components = array_filter(
-      $components,
-      fn (ComponentPlugin $c) => (property_exists($c->metadata, 'noUi') && $c->metadata->noUi === FALSE)
-        // The above only works on Drupal core >=11.3.
-        // @todo Remove in https://www.drupal.org/i/3537695
-        // @phpstan-ignore-next-line offsetAccess.nonOffsetAccessible
-        || ($c->getPluginDefinition()['noUi'] ?? FALSE) === FALSE,
+    // The persistent prop shape repository will contain all prop shapes for
+    // components that are eligible.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
+    $persistent_prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
+    self::assertInstanceOf(PersistentPropShapeRepository::class, $persistent_prop_shape_repository);
+
+    // Empty prop shape repositories at the start. And no Components.
+    self::assertEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
+    self::assertEmpty($persistent_prop_shape_repository->getUniquePropShapes());
+    self::assertEmpty(Component::loadMultiple());
+
+    // Discover all Components, which will cause the prop shape repositories to
+    // get populated.
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
+    // @todo Remove this when https://github.com/phpstan/phpstan/issues/13566#issuecomment-3645405380 is fixed.
+    // @phpstan-ignore staticMethod.impossibleType
+    self::assertNotEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
+    // @todo Remove this when https://github.com/phpstan/phpstan/issues/13566#issuecomment-3645405380 is fixed.
+    // @phpstan-ignore staticMethod.impossibleType
+    self::assertNotEmpty($persistent_prop_shape_repository->getUniquePropShapes());
+    // @todo Remove this when https://github.com/phpstan/phpstan/issues/13566#issuecomment-3645405380 is fixed.
+    // @phpstan-ignore staticMethod.impossibleType
+    self::assertNotEmpty(Component::loadMultiple());
+
+    // EphemeralPropShapeRepository must contain a superset, because the
+    // persistent prop shape repository contains only the shapes that actually
+    // qualified to be used to turn into actual Components.
+    self::assertTrue(
+      count($ephemeral_prop_shape_repository->getUniquePropShapes())
+      >
+      count($persistent_prop_shape_repository->getUniquePropShapes())
     );
-    $unique_prop_shapes = [];
-    foreach ($components as $component) {
-      foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->getPluginId(), $component->metadata) as $prop_shape) {
-        // A `type: object` without `properties` and without `$ref` does not
-        // make sense.
-        if ($prop_shape->schema['type'] === 'object' && !array_key_exists('$ref', $prop_shape->schema) && empty($prop_shape->schema['properties'] ?? [])) {
-          // @see core/modules/system/tests/modules/sdc_test/components/array-to-object/array-to-object.component.yml
-          // @see tests/modules/canvas_test_sdc/components/props-invalid-shapes/props-invalid-shapes.component.yml
-          assert($component->getPluginId() === 'sdc_test:array-to-object' || $component->getPluginId() === 'canvas_test_sdc:props-invalid-shapes');
-          continue;
-        }
+    self::assertEmpty(array_diff_key($persistent_prop_shape_repository->getUniquePropShapes(), $ephemeral_prop_shape_repository->getUniquePropShapes()));
+    self::assertNotEmpty(array_diff_key($ephemeral_prop_shape_repository->getUniquePropShapes(), $persistent_prop_shape_repository->getUniquePropShapes()));
 
-        $unique_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape;
-      }
-    }
-    ksort($unique_prop_shapes);
-    $unique_prop_shapes = array_values($unique_prop_shapes);
+    $unique_prop_shapes = array_values($ephemeral_prop_shape_repository->getUniquePropShapes());
     $this->assertEquals([
       new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'], 'maxItems' => 2]),
@@ -146,11 +181,13 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
       new PropShape(['type' => 'integer', 'enum' => [1, 2]]),
       new PropShape(['type' => 'integer', 'enum' => [1, 2, 3, 4, 5, 6]]),
+      new PropShape(['type' => 'integer', 'maximum' => 100, 'minimum' => -100]),
       new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
       new PropShape(['type' => 'integer', 'minimum' => 0]),
       new PropShape(['type' => 'integer', 'minimum' => 1]),
       new PropShape(['type' => 'integer', 'multipleOf' => 12]),
       new PropShape(['type' => 'number']),
+      new PropShape(['type' => 'object']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
@@ -163,11 +200,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'inline']),
-      new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'invalid']),
-      new PropShape(['type' => 'string', 'enum' => ['', '_blank']]),
-      new PropShape(['type' => 'string', 'enum' => ['', 'base', 'l', 's', 'xs', 'xxs']]),
-      new PropShape(['type' => 'string', 'enum' => ['', 'dog', 'cat', 'fish', 'rabbit']]),
-      new PropShape(['type' => 'string', 'enum' => ['', 'gray', 'primary', 'neutral-soft', 'neutral-medium', 'neutral-loud', 'primary-medium', 'primary-loud', 'black', 'white', 'red', 'gold', 'green']]),
       new PropShape(['type' => 'string', 'enum' => ['7', '3.14']]),
       new PropShape(['type' => 'string', 'enum' => ['_blank', '_parent', '_self', '_top']]),
       new PropShape(['type' => 'string', 'enum' => ['_self', '_blank']]),
@@ -177,11 +209,9 @@ class PropShapeRepositoryTest extends KernelTestBase {
       new PropShape(['type' => 'string', 'enum' => ['full', 'wide', 'normal', 'narrow']]),
       new PropShape(['type' => 'string', 'enum' => ['horizontal', 'vertical']]),
       new PropShape(['type' => 'string', 'enum' => ['lazy', 'eager']]),
-      new PropShape(['type' => 'string', 'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket']]),
       new PropShape(['type' => 'string', 'enum' => ['power', 'like', 'external']]),
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
-      new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary', 'tertiary']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'success', 'neutral', 'warning', 'danger']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge', 'contains.dots']]),
@@ -237,6 +267,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
         fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
+      ),
+      'type=integer&maximum=100&minimum=-100' => new StorablePropShape(
+        shape: new PropShape(['type' => 'integer', 'maximum' => 100, 'minimum' => -100]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        fieldWidget: 'number',
+        fieldInstanceSettings: ['min' => -100, 'max' => 100],
       ),
       'type=integer&maximum=2147483648&minimum=-2147483648' => new StorablePropShape(
         shape: new PropShape(['type' => 'integer', 'maximum' => 2147483648, 'minimum' => -2147483648]),
@@ -395,17 +431,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
-      'type=string&enum[0]=moon-stars-fill&enum[1]=moon-stars&enum[2]=star-fill&enum[3]=star&enum[4]=stars&enum[5]=rocket-fill&enum[6]=rocket-takeoff-fill&enum[7]=rocket-takeoff&enum[8]=rocket' => new StorablePropShape(
-        shape: new PropShape([
-          'type' => 'string',
-          'enum' => ['moon-stars-fill', 'moon-stars', 'star-fill', 'star', 'stars', 'rocket-fill', 'rocket-takeoff-fill', 'rocket-takeoff', 'rocket'],
-        ]),
-        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
-        fieldWidget: 'options_select',
-        fieldStorageSettings: [
-          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-        ],
-      ),
       'type=string&enum[0]=prefix&enum[1]=suffix' => new StorablePropShape(
         shape: new PropShape([
           'type' => 'string',
@@ -432,17 +457,6 @@ class PropShapeRepositoryTest extends KernelTestBase {
         shape: new PropShape([
           'type' => 'string',
           'enum' => ['primary', 'success', 'neutral', 'warning', 'danger'],
-        ]),
-        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
-        fieldWidget: 'options_select',
-        fieldStorageSettings: [
-          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-        ],
-      ),
-      'type=string&enum[0]=primary&enum[1]=secondary&enum[2]=tertiary' => new StorablePropShape(
-        shape: new PropShape([
-          'type' => 'string',
-          'enum' => ['primary', 'secondary', 'tertiary'],
         ]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
         fieldWidget: 'options_select',
@@ -732,68 +746,37 @@ class PropShapeRepositoryTest extends KernelTestBase {
       'type=string&format=time' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Time->value]),
       'type=string&format=uri-template' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::UriTemplate->value]),
       'type=string&format=uuid' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Uuid->value]),
-      // These can't be stored as they have empty values as enum values.
-      'type=string&enum[0]=&enum[1]=_blank' => new PropShape([
-        'type' => 'string',
-        'enum' => ['', '_blank'],
-      ]),
-      'type=string&enum[0]=&enum[1]=base&enum[2]=l&enum[3]=s&enum[4]=xs&enum[5]=xxs' => new PropShape([
-        'type' => 'string',
-        'enum' => ['', 'base', 'l', 's', 'xs', 'xxs'],
-      ]),
-      'type=string&enum[0]=&enum[1]=gray&enum[2]=primary&enum[3]=neutral-soft&enum[4]=neutral-medium&enum[5]=neutral-loud&enum[6]=primary-medium&enum[7]=primary-loud&enum[8]=black&enum[9]=white&enum[10]=red&enum[11]=gold&enum[12]=green' => new PropShape([
-        'type' => 'string',
-        'enum' => [
-          '',
-          'gray',
-          'primary',
-          'neutral-soft',
-          'neutral-medium',
-          'neutral-loud',
-          'primary-medium',
-          'primary-loud',
-          'black',
-          'white',
-          'red',
-          'gold',
-          'green',
-        ],
-      ]),
       'type=array&items[type]=integer&items[minimum]=-100&items[maximum]=100&maxItems=100&minItems=2' => new PropShape([
         'type' => 'array',
         'items' => ['type' => 'integer', 'maximum' => 100, 'minimum' => -100],
         'maxItems' => 100,
         'minItems' => 2,
       ]),
-      'type=string&contentMediaType=text/html&x-formatting-context=invalid' => new PropShape([
-        'type' => 'string',
-        'contentMediaType' => 'text/html',
-        'x-formatting-context' => 'invalid',
-      ]),
-      'type=string&enum[0]=&enum[1]=dog&enum[2]=cat&enum[3]=fish&enum[4]=rabbit' => new PropShape([
-        'type' => 'string',
-        'enum' => ['', 'dog', 'cat', 'fish', 'rabbit'],
-      ]),
       'type=string&format=uri-template&x-required-variables[0]=width' => new PropShape([
         'type' => 'string',
         'format' => JsonSchemaStringFormat::UriTemplate->value,
         'x-required-variables' => ['width'],
       ]),
+      'type=object' => new PropShape([
+        'type' => 'object',
+      ]),
     ];
   }
 
   /**
-   * @depends testUniquePropSchemaDiscovery
+   * @depends testUniquePropShapeDiscovery
    */
   public function testStorablePropShapes(array $unique_prop_shapes): array {
     $this->assertNotEmpty($unique_prop_shapes);
 
+    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
+    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
     $unique_storable_prop_shapes = [];
     foreach ($unique_prop_shapes as $prop_shape) {
       assert($prop_shape instanceof PropShape);
       // If this prop shape is not storable, then fall back to the PropShape
       // object, to make it easy to assert which shapes are storable vs not.
-      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape->getStorage() ?? $prop_shape;
+      $unique_storable_prop_shapes[$prop_shape->uniquePropSchemaKey()] = $prop_shape_repository->getStorablePropShape($prop_shape) ?? $prop_shape;
     }
 
     $unstorable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof PropShape);
@@ -820,40 +803,12 @@ class PropShapeRepositoryTest extends KernelTestBase {
     }
 
     $this->assertNotEmpty($storable_prop_shapes);
-
-    // A StaticPropSource is never rendered in an abstract context; it's always
-    // rendered for a concrete component's prop. So, this test should do the
-    // same.
-    // @see \Drupal\canvas\Form\ComponentInstanceForm
-    $sdc_manager = \Drupal::service('plugin.manager.sdc');
-    $components = $sdc_manager->getAllComponents();
-    $some_sdc_prop_for_unique_prop_shape = [];
-    foreach ($components as $component) {
-      foreach (GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->getPluginId(), $component->metadata) as $component_prop_expression => $prop_shape) {
-        // First SDC prop with this unique shape wins — doesn't really matter.
-        if (!array_key_exists($prop_shape->uniquePropSchemaKey(), $some_sdc_prop_for_unique_prop_shape)) {
-          $sdc_prop = ComponentPropExpression::fromString($component_prop_expression);
-          $component_id = SingleDirectoryComponent::convertMachineNameToId($sdc_prop->sourceSpecificComponentId);
-          $some_sdc_prop_for_unique_prop_shape[$prop_shape->uniquePropSchemaKey()] = [
-            $component_id,
-            // Note: on the live site, an older version than the active version
-            // may be used in the ComponentInstanceForm, because the Content
-            // Author may be editing an ancient component instance. For the
-            // purpose of this test, the active version is fine.
-            Component::load($component_id)?->getActiveVersion(),
-            $sdc_prop->propName,
-          ];
-        }
-      }
-    }
-
     foreach ($storable_prop_shapes as $key => $storable_prop_shape) {
       // A static prop source can be generated.
       $prop_source = $storable_prop_shape->toStaticPropSource();
 
       // A widget can be generated.
-      [$component_id, $component_version, $prop_name] = $some_sdc_prop_for_unique_prop_shape[$key];
-      $widget = $prop_source->getWidget($component_id, $component_version, $prop_name, $this->randomString(), $storable_prop_shape->fieldWidget);
+      $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', $key, $this->randomString(), $storable_prop_shape->fieldWidget);
       $this->assertSame($storable_prop_shape->fieldWidget, $widget->getPluginId());
 
       // A widget form can be generated.
@@ -935,6 +890,79 @@ class PropShapeRepositoryTest extends KernelTestBase {
       self::assertArrayHasKey('canvas', $definition, \sprintf('Found transform for %s', $widget_plugin_id));
       self::assertArrayHasKey('transforms', $definition['canvas']);
     }
+  }
+
+  /**
+   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveCacheMiss()
+   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::invalidateTags()
+   *
+   * @see ::getExpectedUnstorablePropShapes()
+   * @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
+   * @see \Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem
+   *
+   * This using Component config entities too, but only to help prove the alter
+   * hooks are invoked when necessary.
+   */
+  public function testStorablePropShapeAlter(): void {
+    // If the module is already installed during ::setUp(), then this test is
+    // still worth running, but only needs to test the "not resolving" part.
+    $module_to_install = 'canvas_test_storable_prop_shape_alter';
+    $module_is_already_installed = in_array($module_to_install, static::$modules, TRUE);
+
+    \Drupal::service(ComponentSourceManager::class)->generateComponents();
+
+    $component_id = SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.sdc_test_all_props.all-props';
+    $prop_name = 'test_integer_by_the_dozen';
+
+    $component = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged($component_id);
+    assert($component instanceof Component);
+    self::assertCount(1, $component->getVersions());
+    $settings = $component->getSettings();
+    if ($module_is_already_installed) {
+      self::assertArrayHasKey($prop_name, $settings['prop_field_definitions']);
+    }
+    else {
+      self::assertArrayNotHasKey($prop_name, $settings['prop_field_definitions']);
+
+      // Now enable the 'canvas_test_storable_prop_shape_alter' module.
+      // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
+      \Drupal::service(ModuleInstallerInterface::class)
+        ->install([$module_to_install]);
+      // Note that we don't need to call destruct() here. The
+      // invalidation is triggering that as expected!
+
+      $component = \Drupal::entityTypeManager()
+        ->getStorage(Component::ENTITY_TYPE_ID)
+        ->loadUnchanged($component_id);
+      assert($component instanceof Component);
+      self::assertCount(2, $component->getVersions());
+      $settings = $component->getSettings();
+    }
+    self::assertArrayHasKey($prop_name, $settings['prop_field_definitions']);
+    self::assertSame(MultipleOfItem::PLUGIN_ID, $settings['prop_field_definitions'][$prop_name]['field_type']);
+    self::assertSame('number', $settings['prop_field_definitions'][$prop_name]['field_widget']);
+
+    \Drupal::state()->set(CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG, TRUE);
+    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
+    \assert($prop_shape_repository instanceof CacheCollectorInterface);
+    \assert($prop_shape_repository instanceof PersistentPropShapeRepositoryTestHelper);
+    $prop_shape_repository->invalidateTags([CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG]);
+    // The invalidation would happen immediately, but we are preventing any
+    // unneeded calls to regenerate Components in the same request.
+    // So we need a helper class that can simulate that, and call destruct()
+    // manually.
+    // Sadly, even without the fix for supporting disappearing prop shapes, this
+    // test would still pass, as that flag work-around is actually forcing some
+    // extra updates.
+    // Being honest, the asserts below are here mostly for documenting purposes.
+    $prop_shape_repository->setCacheCreated(\time());
+    $prop_shape_repository->destruct();
+
+    $component = \Drupal::entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadUnchanged($component_id);
+    assert($component instanceof Component);
+    self::assertCount($module_is_already_installed ? 2 : 3, $component->getVersions());
+    $settings = $component->getSettings();
+    self::assertArrayNotHasKey($prop_name, $settings['prop_field_definitions']);
   }
 
 }

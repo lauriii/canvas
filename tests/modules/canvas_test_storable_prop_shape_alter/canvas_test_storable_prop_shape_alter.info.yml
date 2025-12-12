@@ -1,4 +1,4 @@
-name: 'Test hook_storage_prop_shape_alter()'
+name: 'Test hook_canvas_storable_prop_shape_alter()'
 type: module
 dependencies:
   - canvas:canvas

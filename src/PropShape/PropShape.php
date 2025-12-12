@@ -97,6 +97,9 @@ final class PropShape {
     return self::componentPluginManager()->resolveJsonSchemaReferences($schema);
   }
 
+  /**
+   * @todo Rename to key()
+   */
   public function uniquePropSchemaKey(): string {
     // A reliable key thanks to ::normalizePropSchema().
     return urldecode(http_build_query($this->schema));
@@ -212,40 +215,6 @@ final class PropShape {
       ));
     }
     return $known_normalized;
-  }
-
-  public function getStorage(): ?StorablePropShape {
-    // The default storable prop shape, if any. Prefer the original prop shape,
-    // which may contain `$ref`, and allows hook_storage_prop_shape_alter()
-    // implementations to suggest a field type based on the
-    // definition name.
-    // If that finds no field type storage, resolve `$ref`, which removes `$ref`
-    // altogether. Try to find a field type storage again, but then the decision
-    // relies solely on the final (fully resolved) JSON schema.
-    $json_schema_type = JsonSchemaType::from($this->schema['type']);
-    $storable_prop_shape = JsonSchemaType::from($this->schema['type'])->computeStorablePropShape($this);
-    if ($storable_prop_shape === NULL) {
-      $resolved_prop_shape = PropShape::normalize($this->resolvedSchema);
-      $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape);
-    }
-
-    $alterable = $storable_prop_shape
-      ? CandidateStorablePropShape::fromStorablePropShape($storable_prop_shape)
-      // If no default storable prop shape exists, generate an empty candidate.
-      : new CandidateStorablePropShape($this);
-
-    // Allow modules to alter the default.
-    self::moduleHandler()->alter(
-      'storage_prop_shape',
-      // The value that other modules can alter.
-      $alterable,
-    );
-
-    // @todo DX: validate that the field type exists.
-    // @todo DX: validate that the field prop exists.
-    // @todo DX: validate that the field widget exists.
-
-    return $alterable->toStorablePropShape();
   }
 
   private static function moduleHandler(): ModuleHandlerInterface {

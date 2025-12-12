@@ -2,19 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas_test_storage_prop_shape_alter\Hook;
+namespace Drupal\canvas_test_storable_prop_shape_alter\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\CandidateStorablePropShape;
+use Drupal\Core\State\StateInterface;
 
-class CanvasTestStoragePropShapeAlterHooks {
+class CanvasTestStorablePropShapeAlterHooks {
+
+  public const STATE_KEY_AND_CACHE_TAG = 'canvas_storable_prop_shape_alter.prevent_dozens';
+
+  public function __construct(
+    protected StateInterface $state,
+  ) {}
 
   /**
-   * Implements hook_storage_prop_shape_alter().
+   * Implements hook_canvas_storable_prop_shape_alter().
    */
-  #[Hook('storage_prop_shape_alter')]
-  public function storagePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
+  #[Hook('canvas_storable_prop_shape_alter')]
+  public function storablePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
     // TRICKY: the `uri` field type (and data type) only support absolute URLs,
     // so this MUST NOT be used for `type: string, format: uri-reference`.
     // @see \Drupal\Tests\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidatorTest::testValidate()
@@ -33,6 +40,12 @@ class CanvasTestStoragePropShapeAlterHooks {
 
     // Show that a contrib module can add support for a new prop shape, even
     // using a new field type.
+    // That can be dynamic based on some other state, so it would need to add
+    // the required cache tags in that case.
+    $storable_prop_shape->addCacheTags([self::STATE_KEY_AND_CACHE_TAG]);
+    if ($this->state->get(self::STATE_KEY_AND_CACHE_TAG, FALSE)) {
+      return;
+    }
     if ($storable_prop_shape->shape->schema == ['type' => 'integer', 'multipleOf' => 12]) {
       // Use an imaginary `multiple_of` field type, provided by this module.
       // @phpstan-ignore-next-line

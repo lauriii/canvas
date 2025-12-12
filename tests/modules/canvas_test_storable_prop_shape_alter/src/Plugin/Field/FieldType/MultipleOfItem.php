@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas_test_storage_prop_shape_alter\Plugin\Field\FieldType;
+namespace Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -12,7 +12,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 
 #[FieldType(
-  id: "multiple_of",
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup("Multiple (integer)"),
   category: "number",
   weight: -50,
@@ -20,6 +20,8 @@ use Drupal\Core\TypedData\DataDefinition;
   default_formatter: "number_integer"
 )]
 final class MultipleOfItem extends NumericItemBase {
+
+  public const PLUGIN_ID = 'multiple_of';
 
   /**
    * {@inheritdoc}

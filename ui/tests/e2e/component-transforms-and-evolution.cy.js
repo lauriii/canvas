@@ -1,11 +1,11 @@
 describe('Component transforms', () => {
   before(() => {
-    // Enable canvas_test_storage_prop_shape_alter after nodes have been created in
+    // Enable canvas_test_storable_prop_shape_alter after nodes have been created in
     // CanvasTestSetup. The stored nodes make use of a link item, but by enabling
     // this module, the my-hero component will now make use of an uri item.
     // We should still be able to edit existing data where the source type is
     // link rather than uri.
-    cy.drupalCanvasInstall(['canvas_test_storage_prop_shape_alter']);
+    cy.drupalCanvasInstall(['canvas_test_storable_prop_shape_alter']);
   });
 
   beforeEach(() => {

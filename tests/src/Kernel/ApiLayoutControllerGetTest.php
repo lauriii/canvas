@@ -41,7 +41,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   protected static $modules = [
     // Allows format=uri to be stored using URI field type.
-    'canvas_test_storage_prop_shape_alter',
+    'canvas_test_storable_prop_shape_alter',
     'sdc_test',
   ];
 

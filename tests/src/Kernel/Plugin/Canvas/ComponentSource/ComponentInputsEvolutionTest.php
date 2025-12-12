@@ -91,7 +91,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
   }
 
   /**
-   * @see hook_storage_prop_shape_alter()
+   * @see hook_canvas_storable_prop_shape_alter()
    * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::updateConfigEntity()
    * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
    */
@@ -176,11 +176,11 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     ];
     self::assertEquals($expected_original_client_model, $client_model);
 
-    // Now enable the 'canvas_test_storage_prop_shape_alter' module to change the
+    // Now enable the 'canvas_test_storable_prop_shape_alter' module to change the
     // field type used for populating the cta1href (`format: uri`) prop.
-    // @see \Drupal\canvas_test_storage_prop_shape_alter\Hook\CanvasTestStoragePropShapeAlterHooks::storagePropShapeAlter()
+    // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
     \Drupal::service(ModuleInstallerInterface::class)
-      ->install(['canvas_test_storage_prop_shape_alter']);
+      ->install(['canvas_test_storable_prop_shape_alter']);
     $this->generateComponentConfig();
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
@@ -261,7 +261,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
 
     // If we uninstall the module, the Component should again point to the
     // original field type.
-    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['canvas_test_storage_prop_shape_alter']);
+    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['canvas_test_storable_prop_shape_alter']);
     $this->generateComponentConfig();
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);

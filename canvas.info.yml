@@ -27,9 +27,10 @@ dependencies:
   # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
   - drupal:image
   # Needed for overrides that provide a widget that supports relative URIs.
-  # @see canvas_test_storage_prop_shape_alter_storage_prop_shape_alter
+  # @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
   - drupal:link
   # … for the same prop shape, but to ensure a better widget experience is available.
+  # @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
   # @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
   - drupal:media_library
   # To support prop shapes using `enum`.

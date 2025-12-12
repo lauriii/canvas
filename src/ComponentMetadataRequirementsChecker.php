@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\Component\ComponentMetadata;
-use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\StorablePropShape;
 use JsonSchema\Validator;
 
@@ -49,7 +50,7 @@ final class ComponentMetadataRequirementsChecker {
       }
     }
 
-    $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
+    // Check fundamentals.
     $validator = new Validator();
     foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
       if (in_array(Attribute::class, $prop['type'], TRUE)) {
@@ -112,7 +113,7 @@ final class ComponentMetadataRequirementsChecker {
         }
 
         // Ensure we replace dots with underscores when checking meta:enums.
-        $meta_enum_valid_keys = array_map(fn ($key) => str_replace(
+        $meta_enum_valid_keys = array_map(fn($key) => str_replace(
           array_keys($forbidden_key_characters),
           array_values($forbidden_key_characters),
           (string) $key,
@@ -122,21 +123,24 @@ final class ComponentMetadataRequirementsChecker {
           $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $enum_keys_diff));
         }
       }
+    }
 
-      // If messages is not empty, we should stop checking,
-      // because $prop_shape->getStorage() could trigger warnings.
-      if (!empty($messages)) {
-        continue;
-      }
+    // Do not try computing any StorablePropShape if one or more fundamentals
+    // are not right.
+    if (!empty($messages)) {
+      throw new ComponentDoesNotMeetRequirementsException($messages);
+    }
 
-      // Every prop must have a StorablePropShape.
-      $component_prop_expression = new ComponentPropExpression($component_id, $prop_name);
-      $prop_shape = $props_for_metadata[(string) $component_prop_expression];
-      $storable_prop_shape = $prop_shape->getStorage();
+    // Every prop must have a StorablePropShape.
+    $props_for_metadata = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component_id, $metadata);
+    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
+    $prop_shape_repository = \Drupal::service(EphemeralPropShapeRepository::class);
+    foreach ($props_for_metadata as $cpe => $prop_shape) {
+      $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
       if ($storable_prop_shape instanceof StorablePropShape) {
         continue;
       }
-      $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', $prop_name, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
+      $messages[] = \sprintf('Drupal Canvas does not know of a field type/widget to allow populating the <code>%s</code> prop, with the shape <code>%s</code>.', ComponentPropExpression::fromString($cpe)->propName, json_encode($prop_shape->schema, JSON_UNESCAPED_SLASHES));
     }
     if (!empty($messages)) {
       throw new ComponentDoesNotMeetRequirementsException($messages);

@@ -181,9 +181,9 @@ class CanvasTestSetup implements TestSetupInterface {
     ]);
 
     // The `image` media type must be installed before
-    // media_library_storage_prop_shape_alter() is invoked, which it is after
-    // installing new modules.
-    // @see media_library_storage_prop_shape_alter()
+    // \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+    // is invoked, which it is after installing new modules.
+    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $test_image_files = $this->getTestFiles('image');
     $first_image_file = $test_image_files[0];
@@ -276,7 +276,7 @@ class CanvasTestSetup implements TestSetupInterface {
     // Rely on `StaticPropSource::toArray()` (just like at runtime!) to ensure
     // consistent key order, enabling deterministic auto-save hashing.
     $static_image_prop_source = StaticPropSource::parse($static_image_prop_source)->toArray();
-    $use_uri = \Drupal::moduleHandler()->moduleExists('canvas_test_storage_prop_shape_alter');
+    $use_uri = \Drupal::moduleHandler()->moduleExists('canvas_test_storable_prop_shape_alter');
     $items = [
       [
         'component_id' => 'sdc.canvas_test_sdc.two_column',

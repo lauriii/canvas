@@ -150,15 +150,20 @@ choose one.
 See:
 - `\Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()`
 - `\Drupal\canvas\PropShape\StorablePropShape`
+- `\Drupal\canvas\PropShape\CandidateStorablePropShape`
 - `\Drupal\canvas\PropShape\PropShape::standardize()`
-- `hook_storage_prop_shape_alter()`
+- `hook_canvas_storable_prop_shape_alter()`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
 generated. `JsonSchemaType::computeStorablePropShape()` contains logic to that relies only on `field type`s
 available in Drupal core. Unlike for `structured data`, no additional complexity is necessary for required versus
 optional `component input`s.
 
-Contributed modules can implement `hook_storage_prop_shape_alter()` to make different choices.
+Contributed modules can implement `hook_canvas_storable_prop_shape_alter()` to make different choices. Such hooks
+receive a `\Drupal\canvas\PropShape\CandidateStorablePropShape` value object, which contains:
+- the precise storage decision: field type, storage settings, instance settings and cardinality
+- the corresponding UX decision: field widget
+- the cacheability that led to this decision — e.g. the presence of certain config
 
 Any `component input` whose `prop shape` corresponds to a `well-known prop shape` may cause _two_ invocations of that
 alter hook:
@@ -170,6 +175,10 @@ The computed `\Drupal\canvas\PropShape\StorablePropShape` can be used to create 
 value that fits in the `prop shape`.
 
 See `\Drupal\canvas\PropSource\StaticPropSource`.
+
+💡 Whenever the cacheability that led to a decision is invalidated (e.g. some config was saved), these hooks are executed
+again, to ensure an up-to-date decision for how to store props of the given `prop shape`.
+Note: if the result is  different, a [new version is added to the `Component config entity`](config-management.md#3.1).
 
 ⚠️ When choosing to use `unstructured data` to populate a `component input`, Canvas decides
 using the aforementioned logic what `field type`, `field widget` et cetera to use. Only when using `structured data`,

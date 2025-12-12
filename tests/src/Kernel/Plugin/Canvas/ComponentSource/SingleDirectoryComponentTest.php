@@ -181,6 +181,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       ],
       'sdc.canvas_test_sdc.shoe_details' => [
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>expand_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://canvas.module/shoe-icon"}</code>.',
+        'Drupal Canvas does not know of a field type/widget to allow populating the <code>collapse_icon</code> prop, with the shape <code>{"type":"object","$ref":"json-schema-definitions://canvas.module/shoe-icon"}</code>.',
       ],
       'sdc.canvas_test_sdc.shoe_icon' => [
         'Prop "size" has an empty enum value.',

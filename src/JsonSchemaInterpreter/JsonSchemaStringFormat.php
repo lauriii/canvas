@@ -239,7 +239,7 @@ enum JsonSchemaStringFormat: string {
           ),
 
           // Canvas only supports either of the two above out of the box. For more
-          // complicated needs, use hook_storage_prop_shape_alter().
+          // complicated needs, use hook_canvas_storable_prop_shape_alter().
           default => NULL,
         },
         default => new StorablePropShape(

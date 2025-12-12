@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\DynamicPropSource;
@@ -33,7 +34,6 @@ use Drupal\Core\Theme\Component\ComponentValidator;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -108,6 +108,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly PropSourceSuggester $propSourceSuggester,
     private readonly LoggerChannelInterface $logger,
+    protected readonly PropShapeRepositoryInterface $propShapeRepository,
   ) {
     assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -127,6 +128,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $container->get(EntityTypeManagerInterface::class),
       $container->get(PropSourceSuggester::class),
       $container->get('logger.channel.canvas'),
+      $container->get(PropShapeRepositoryInterface::class),
     );
   }
 
@@ -642,22 +644,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     assert(isset($settings['prop_field_definitions']));
     $prop_field_definitions = $settings['prop_field_definitions'];
 
-    // Create a list of storable prop shapes.
-    $storable_prop_shapes = [];
-    foreach (self::getComponentInputsForMetadata($this->getSourceSpecificComponentId(), $this->getMetadata()) as $component_prop_expression => $prop_shape) {
-      if (!is_null($prop_shape->getStorage())) {
-        $storable_prop_shapes[] = ComponentPropExpression::fromString($component_prop_expression)->propName;
-      }
-    }
-
-    foreach ($prop_field_definitions as $sdc_prop_name => $prop_field_definition) {
-      // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
-      // @todo Create a status report that lists which SDC prop shapes are not storable.
-      // Exclude props that aren't storable.
-      if (!in_array($sdc_prop_name, $storable_prop_shapes, TRUE)) {
-        continue;
-      }
-
+    // The Component config entity's prop_field_definitions:
+    // - contains all the metadata needed to construct a static prop source
+    // - tracks for each whether it is required
+    // Hence this method (in the critical path for Canvas' UI) is relying only
+    // on a config load.
+    // (⚠️And for the very special, test-only "all-props" Component, it already
+    // does not include props that Canvas does not yet know to store. For any
+    // other component, not knowing how to store >=1 prop would result in no
+    // Component config entity being created!)
+    foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
       // Uncollapse if set; otherwise fall back to the default static prop
       // source, but *made empty* instead of the default value.
       // Note that ::clientModelToInput() guarantees $inputValues contains a
@@ -697,14 +693,14 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // 2. Worst case: fall back to the default widget for this field type.
       // @todo Implement 2. in https://www.drupal.org/project/canvas/issues/3463996
       $field_widget_plugin_id = NULL;
-      if ($source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
-        $field_widget_plugin_id = $prop_field_definition['field_widget'];
+      if ($source->getSourceType() === 'static:field_item:' . $static_prop_source_field_definition['field_type']) {
+        $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
       }
       assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
       $label = $component_schema['properties'][$sdc_prop_name]['title'];
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
-      $is_required = $prop_field_definition['required'];
+      $is_required = $static_prop_source_field_definition['required'];
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
@@ -799,23 +795,25 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function getClientSideInfo(ComponentEntity $component): array {
+  public function getClientSideInfo(Component $component): array {
     $prop_field_definitions = $component->getSettings()['prop_field_definitions'];
+    // The client needs the actual JSON Schema for client-side validation. Hence
+    // it needs richer information than what "prop field definitions" can offer.
+    // Note: the results of this method end up being cached in Dynamic Page
+    // Cache, for the `/canvas/api/v0/config/component` route; this expense is
+    // incurred only when Components change.
+    // @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testComponent()
+    $prop_shapes = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($component->id(), $this->getMetadata());
 
     $field_data = [];
     $default_props_for_default_markup = [];
     $unpopulated_props_for_default_markup = [];
     $transforms = [];
-    foreach (self::getComponentInputsForMetadata($this->getSourceSpecificComponentId(), $this->getMetadata()) as $component_prop_expression => $prop_shape) {
-      $storable_prop_shape = $prop_shape->getStorage();
-      // @todo Remove this once every SDC prop shape can be stored. See PropShapeRepositoryTest::getExpectedUnstorablePropShapes()
-      // @todo Create a status report that lists which SDC prop shapes are not storable.
-      if (!$storable_prop_shape) {
-        continue;
-      }
-
-      $component_prop = ComponentPropExpression::fromString($component_prop_expression);
-      $prop_name = $component_prop->propName;
+    foreach ($prop_field_definitions as $prop_name => $static_prop_source_field_definition) {
+      $component_prop_expression = new ComponentPropExpression($component->id(), $prop_name);
+      $prop_shape = $prop_shapes[(string) $component_prop_expression];
+      $storable_prop_shape = $this->propShapeRepository->getStorablePropShape($prop_shape);
+      \assert($storable_prop_shape instanceof StorablePropShape);
 
       // Determine the default:
       // - resolved value (used for the preview of the component)
@@ -838,7 +836,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // stored as the default in the Component config entity is NULL.
       // @see \Drupal\canvas\ComponentMetadataRequirementsChecker
       assert(self::exampleValueRequiresEntity($storable_prop_shape) === ($this->configuration['prop_field_definitions'][$prop_name]['default_value'] === []));
-      $default_source_value = $this->configuration['prop_field_definitions'][$prop_name]['default_value'];
+      $default_source_value = $static_prop_source_field_definition['default_value'];
       $has_default_source_value = match ($default_source_value) {
         // NULL is stored to signal this is an optional SDC prop without an
         // example value.
@@ -929,9 +927,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         throw new \LogicException(sprintf(
           "Drupal Canvas determined the `%s` field widget plugin must be used to populate the `%s` prop on the `%s` component. However, no `canvas.transforms` metadata is defined on the field widget plugin definition. This makes it impossible for this widget to work. Please define the missing metadata. See %s for guidance.",
           $field_widget_plugin_id,
-          $component_prop->sourceSpecificComponentId,
-          $component_prop->propName,
-          'https://git.drupalcode.org/project/canvas/-/raw/0.x/canvas.api.php?ref_type=heads',
+          $component->getComponentSource()->getSourceSpecificComponentId(),
+          $prop_name,
+          'https://git.drupalcode.org/project/canvas/-/raw/1.x/canvas.api.php?ref_type=heads',
         ));
       }
     }
@@ -971,10 +969,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public static function getPropsForComponentPlugin(ComponentPlugin $component_plugin): array {
     $props = [];
+    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
+    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
     foreach (self::getComponentInputsForMetadata($component_plugin->pluginId, $component_plugin->metadata) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);
 
-      $storable_prop_shape = $prop_shape->getStorage();
+      $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
       if (is_null($storable_prop_shape)) {
         continue;
       }
@@ -982,9 +982,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $schema = $component_plugin->metadata->schema ?? [];
       $props[$cpe->propName] = [
         'required' => isset($schema['required']) && in_array($cpe->propName, $schema['required'], TRUE),
-        'field_type' => $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression
-          ? $storable_prop_shape->fieldTypeProp->referencer->fieldType
-          : $storable_prop_shape->fieldTypeProp->fieldType,
+        'field_type' => $storable_prop_shape->getFieldType(),
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
         'default_value' => self::computeDefaultFieldValue($storable_prop_shape, $component_plugin->metadata, $cpe->propName),
@@ -1120,7 +1118,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function clientModelToInput(string $component_instance_uuid, ComponentEntity $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
+  public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
     $props = [];
 
     $required_props = $this->getExplicitInputDefinitions()['required'];

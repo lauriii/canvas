@@ -7,6 +7,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropShape\PersistentPropShapeRepository;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -264,6 +266,12 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
       ])->save();
     }
 
+    $propShapeRepository = $this->container->get(PropShapeRepositoryInterface::class);
+    self::assertInstanceOf(PersistentPropShapeRepository::class, $propShapeRepository);
+    // Trigger a cache write in PropShapeRepository — this happens on kernel
+    // shutdown normally, but in a test we need to call it manually.
+    $propShapeRepository->destruct();
+
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
     assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
@@ -312,6 +320,8 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
       }
     }
 
+    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $prop_shape_repository */
+    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
     foreach ($components as $component) {
       // Do not find a match for every unique SDC prop, but only for unique prop
       // shapes. This avoids a lot of meaningless test expectations.
@@ -349,7 +359,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         // 1. compute viable field type + storage settings + instance settings
         // @see \Drupal\canvas\PropShape\StorablePropShape::toStaticPropSource()
         // @see \Drupal\canvas\PropSource\StaticPropSource()
-        $storable_prop_shape = $prop_shape->getStorage();
+        $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
         $primitive_type = JsonSchemaType::from($schema['type']);
         // 2. find matching field instances
         // @see \Drupal\canvas\PropSource\DynamicPropSource
@@ -367,7 +377,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         $adapter_matches_instance = [];
         foreach ($adapter_output_matches as $match) {
           foreach ($match->getInputs() as $input_name => $input_schema_ref) {
-            $storable_prop_shape_for_adapter_input = PropShape::normalize($input_schema_ref)->getStorage();
+            $storable_prop_shape_for_adapter_input = $prop_shape_repository->getStorablePropShape(PropShape::normalize($input_schema_ref));
 
             $input_schema = $match->getInputSchema($input_name);
             $input_primitive_type = JsonSchemaType::from(
@@ -452,7 +462,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         // Media Types are installed, hence the matching field instances for
         // `$ref: json-schema-definitions://canvas.module/image` are
         // image fields, not media reference fields!
-        // @see media_library_storage_prop_shape_alter()
+        // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
         // @see \Drupal\canvas\PropShape\PropShape::getStorage()
         // @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
         'media_library',

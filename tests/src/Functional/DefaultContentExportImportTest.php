@@ -7,6 +7,8 @@ namespace Drupal\Tests\canvas\Functional;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropShape\PersistentPropShapeRepository;
+use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\DefaultContent\Exporter;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
@@ -91,10 +93,16 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     ]);
     $original_media->save();
 
-    // Re-generate component config now that media types have been created.
-    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
-    // @todo This should not be necessary anymore after https://www.drupal.org/i/3547579
-    $this->generateComponentConfig();
+    /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $propShapeRepository */
+    $propShapeRepository = \Drupal::service(PropShapeRepositoryInterface::class);
+    self::assertInstanceOf(PersistentPropShapeRepository::class, $propShapeRepository);
+    // Trigger a cache-write in PropShapeRepository - this happens on kernel
+    // shutdown normally, but in a test we need to call it manually. This is
+    // necessary to update all cached prop shapes, along with Components that
+    // are affected by any changes to the prop shapes (which in turn can affect
+    // what information the default content subscriber can get from the
+    // components it exports, including information about dependencies).
+    $propShapeRepository->destruct();
 
     $saved_component_values = [
       'machineName' => 'hey_there',
