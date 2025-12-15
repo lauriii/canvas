@@ -29,7 +29,6 @@ export function updateConfigFromOptions(options: {
   dir?: string;
   scope?: string;
   all?: boolean;
-  verbose?: boolean;
 }): void {
   if (options.clientId) setConfig({ clientId: options.clientId });
   if (options.clientSecret) setConfig({ clientSecret: options.clientSecret });
@@ -37,7 +36,6 @@ export function updateConfigFromOptions(options: {
   if (options.dir) setConfig({ componentDir: options.dir });
   if (options.scope) setConfig({ scope: options.scope });
   if (options.all) setConfig({ all: options.all });
-  if (options.verbose) setConfig({ verbose: true });
 }
 
 /**

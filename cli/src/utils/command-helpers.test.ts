@@ -17,7 +17,6 @@ describe('command-helpers', () => {
       clientSecret: '',
       scope: '',
       componentDir: './components',
-      verbose: false,
       userAgent: '',
     });
   });
@@ -89,25 +88,16 @@ describe('command-helpers', () => {
       expect(config.all).toBe(true);
     });
 
-    it('should update verbose flag when provided', () => {
-      updateConfigFromOptions({ verbose: true });
-
-      const config = getConfig();
-      expect(config.verbose).toBe(true);
-    });
-
     it('should update multiple options at once', () => {
       updateConfigFromOptions({
         clientId: 'test-id',
         siteUrl: 'https://example.com',
-        verbose: true,
         all: true,
       });
 
       const config = getConfig();
       expect(config.clientId).toBe('test-id');
       expect(config.siteUrl).toBe('https://example.com');
-      expect(config.verbose).toBe(true);
       expect(config.all).toBe(true);
     });
 

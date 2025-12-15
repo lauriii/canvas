@@ -23,7 +23,6 @@ interface BuildOptions {
   clientId?: string;
   clientSecret?: string;
   siteUrl?: string;
-  verbose?: boolean;
   yes?: boolean;
 }
 
@@ -48,7 +47,6 @@ export function buildCommand(program: Command): void {
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
     .option('--site-url <url>', 'Site URL')
-    .option('--verbose', 'Enable verbose output')
     .action(async (options: BuildOptions) => {
       try {
         p.intro(chalk.bold('Drupal Canvas CLI: build'));

@@ -10,7 +10,6 @@ import type { Command } from 'commander';
 interface ScaffoldOptions {
   name?: string;
   dir?: string;
-  verbose?: boolean;
 }
 
 // @todo: Support non-interactive scaffold if user passes all necessary args in.
@@ -29,14 +28,12 @@ export function scaffoldCommand(program: Command): void {
       '-d, --dir <directory>',
       'Component directory to create component in',
     )
-    .option('--verbose', 'Enable verbose output')
     .action(async (options: ScaffoldOptions) => {
       p.intro(chalk.bold('Drupal Canvas CLI: scaffold'));
 
       try {
         // Update config with CLI options
         if (options.dir) setConfig({ componentDir: options.dir });
-        if (options.verbose) setConfig({ verbose: options.verbose });
         const config = getConfig();
         const baseDir = config.componentDir;
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 import { getConfig } from '../config.js';
 
-import type { AxiosInstance } from 'axios';
+import type { AxiosError, AxiosInstance } from 'axios';
 import type { AssetLibrary, Component } from '../types/Component';
 
 export interface ApiOptions {
@@ -283,125 +283,212 @@ export class ApiService {
     }
   }
 
-  private handleApiError(error: unknown): void {
-    const config = getConfig();
-    const verbose = config.verbose;
-
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
-
-        // Do not output verbose logs for 404 responses. They are expected when
-        // uploading newly created components.
-        if (verbose && status !== 404) {
-          console.error('API Error Details:');
-          console.error(`- Status: ${status}`);
-          console.error(`- URL: ${error.config?.url || 'unknown'}`);
-          console.error(
-            `- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`,
-          );
-          console.error('- Response data:', JSON.stringify(data, null, 2));
-
-          // Hide auth token in logs
-          const safeHeaders = { ...error.config?.headers };
-          if (safeHeaders && safeHeaders.Authorization) {
-            safeHeaders.Authorization = 'Bearer ********';
+  /**
+   * Parse Canvas API error responses into user-friendly messages.
+   * Handles both structured validation errors and simple string errors.
+   */
+  private parseCanvasErrors(data: unknown): string[] {
+    if (
+      data &&
+      typeof data === 'object' &&
+      'errors' in data &&
+      Array.isArray(data.errors)
+    ) {
+      return data.errors
+        .map((err: unknown) => {
+          // Handle simple string errors (e.g., 409 conflicts)
+          if (typeof err === 'string') {
+            return err.trim();
           }
-          console.error(
-            '- Request headers:',
-            JSON.stringify(safeHeaders, null, 2),
-          );
-        }
 
-        if (status === 401) {
-          throw new Error(
-            'Authentication failed. Please check your client ID and secret.',
-          );
-        } else if (status === 403) {
-          throw new Error(
-            'You do not have permission to perform this action. Check your configured scope.',
-          );
-        } else if (
-          data &&
-          (data.error || data.error_description || data.hint)
-        ) {
-          throw new Error(
-            `API Error (${status}): ${[
-              data.error,
-              data.error_description,
-              data.hint,
-            ]
-              .filter(Boolean)
-              .join(' | ')}`,
-          );
-        } else {
-          throw new Error(`API Error (${status}): ${error.message}`);
-        }
-      } else if (error.request) {
-        // Request was made but no response received
-        if (verbose) {
-          console.error('Network Error Details:');
-          console.error(`- No response received from server`);
-          console.error(`- URL: ${error.config?.url || 'unknown'}`);
-          console.error(
-            `- Method: ${error.config?.method?.toUpperCase() || 'unknown'}`,
-          );
+          // Handle structured errors with detail field
+          if (err && typeof err === 'object' && 'detail' in err) {
+            let message =
+              typeof err.detail === 'string' ? err.detail : String(err.detail);
 
-          // Hide auth token in logs
-          const safeHeaders = { ...error.config?.headers };
-          if (safeHeaders && safeHeaders.Authorization) {
-            safeHeaders.Authorization = 'Bearer ********';
+            // Strip HTML tags and decode HTML entities
+            message = message
+              .replace(/<[^>]*>/g, '')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'")
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&amp;/g, '&')
+              .trim();
+
+            // Skip empty messages
+            if (!message) {
+              return '';
+            }
+
+            // Add source pointer context if available and meaningful
+            if (
+              'source' in err &&
+              err.source &&
+              typeof err.source === 'object' &&
+              'pointer' in err.source &&
+              typeof err.source.pointer === 'string' &&
+              err.source.pointer !== ''
+            ) {
+              message = `[${err.source.pointer}] ${message}`;
+            }
+
+            return message;
           }
-          console.error(
-            '- Request headers:',
-            JSON.stringify(safeHeaders, null, 2),
-          );
 
-          // Check if this is a local development site
-          if (this.siteUrl.includes('ddev.site')) {
-            console.error('\nDDEV Local Development Troubleshooting Tips:');
-            console.error('1. Make sure DDEV is running: try "ddev status"');
-            console.error(
-              '2. Try using HTTP instead of HTTPS: use "http://drupal-dev.ddev.site" as URL',
-            );
-            console.error('3. Check if the site is accessible in your browser');
-            console.error(
-              '4. For HTTPS issues: Try "ddev auth ssl" to set up local SSL certificates',
-            );
-          }
-        }
+          return '';
+        })
+        .filter((msg: string) => msg !== '');
+    }
+    return [];
+  }
 
-        if (this.siteUrl.includes('ddev.site')) {
-          throw new Error(
-            `Network error: No response from DDEV site. Is DDEV running? Try using HTTP instead of HTTPS.`,
-          );
-        } else {
-          throw new Error(
-            `Network error: No response from server. Check your site URL and internet connection.`,
-          );
-        }
+  /**
+   * Throws an appropriate error based on the API response.
+   */
+  private throwApiError(
+    status: number,
+    data: unknown,
+    error: AxiosError,
+    canvasErrors: string[],
+  ): never {
+    // Canvas API structured errors (validation, conflicts, etc.)
+    if (canvasErrors.length > 0) {
+      const errorList = canvasErrors.join('\n\n').trim();
+      if (errorList) {
+        throw new Error(errorList);
+      }
+    }
+
+    // 401 Authentication errors
+    if (status === 401) {
+      let message =
+        'Authentication failed. Please check your client ID and secret.';
+
+      // Include error_description if available
+      if (
+        data &&
+        typeof data === 'object' &&
+        'error_description' in data &&
+        typeof data.error_description === 'string'
+      ) {
+        message = `Authentication Error: ${data.error_description}\n\n${message}`;
+      }
+
+      throw new Error(message);
+    }
+
+    // 403 Forbidden errors
+    if (status === 403) {
+      throw new Error(
+        'You do not have permission to perform this action. Check your configured scope.',
+      );
+    }
+
+    // 404 Not Found errors with troubleshooting tips
+    if (status === 404) {
+      const url = error.config?.url || 'unknown';
+      let message = `API endpoint not found: ${url}\n\n`;
+
+      if (this.siteUrl.includes('ddev.site')) {
+        message += 'Possible causes:\n';
+        message += '  • DDEV is not running (run: ddev start)\n';
+        message +=
+          '  • Canvas module is not enabled (run: ddev drush en canvas -y)\n';
+        message += '  • Site URL is incorrect';
       } else {
-        if (verbose) {
-          console.error('Request Setup Error:');
-          console.error(`- Error: ${error.message}`);
-          console.error('- Stack:', error.stack);
-        }
-        throw new Error(`Request setup error: ${error.message}`);
+        message += 'Possible causes:\n';
+        message += '  • Canvas module is not enabled\n';
+        message += '  • Site URL is incorrect\n';
+        message += '  • Server is not responding correctly';
       }
-    } else if (error instanceof Error) {
-      if (verbose) {
-        console.error('General Error:');
-        console.error(`- Message: ${error.message}`);
-        console.error('- Stack:', error.stack);
+
+      throw new Error(message);
+    }
+
+    // Simple message format (e.g., 500 errors)
+    if (
+      data &&
+      typeof data === 'object' &&
+      'message' in data &&
+      typeof data.message === 'string'
+    ) {
+      throw new Error(data.message);
+    }
+
+    // OAuth-style errors
+    if (data && typeof data === 'object') {
+      const errorParts: string[] = [];
+      if ('error' in data && typeof data.error === 'string') {
+        errorParts.push(data.error);
       }
-      throw new Error(`Network error: ${error.message}`);
+      if (
+        'error_description' in data &&
+        typeof data.error_description === 'string'
+      ) {
+        errorParts.push(data.error_description);
+      }
+      if ('hint' in data && typeof data.hint === 'string') {
+        errorParts.push(data.hint);
+      }
+      if (errorParts.length > 0) {
+        throw new Error(`API Error (${status}): ${errorParts.join(' | ')}`);
+      }
+    }
+
+    // Fallback generic error with details
+    const url = error.config?.url || 'unknown';
+    const method = error.config?.method?.toUpperCase() || 'unknown';
+    throw new Error(
+      `API Error (${status}): ${error.message}\n\nURL: ${url}\nMethod: ${method}`,
+    );
+  }
+
+  /**
+   * Handles network errors (no response from server).
+   */
+  private handleNetworkError(): never {
+    let message = `No response from: ${this.siteUrl}\n\n`;
+
+    if (this.siteUrl.includes('ddev.site')) {
+      message += 'Troubleshooting tips:\n';
+      message += '  • Check if DDEV is running: ddev status\n';
+      message += '  • Try HTTP instead of HTTPS\n';
+      message += '  • Verify site is accessible in browser\n';
+      message += '  • For HTTPS issues, try: ddev auth ssl';
     } else {
-      if (verbose) {
-        console.error('Unknown Error:', error);
+      message += 'Check your site URL and internet connection.';
+    }
+
+    throw new Error(message);
+  }
+
+  /**
+   * Main error handler for API requests.
+   */
+  private handleApiError(error: unknown): void {
+    if (!axios.isAxiosError(error)) {
+      if (error instanceof Error) {
+        throw error;
       }
       throw new Error('Unknown API error occurred');
     }
+
+    // Handle response errors
+    if (error.response) {
+      const { status, data } = error.response;
+      const canvasErrors = this.parseCanvasErrors(data);
+
+      this.throwApiError(status, data, error, canvasErrors);
+    }
+
+    // Handle network errors (no response)
+    if (error.request) {
+      this.handleNetworkError();
+    }
+
+    // Handle request setup errors
+    throw new Error(`Request setup error: ${error.message}`);
   }
 }
 

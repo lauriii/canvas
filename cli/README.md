@@ -40,7 +40,6 @@ to get started.
 | `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID.                                              |
 | `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret.                                          |
 | `--dir`           | `CANVAS_COMPONENT_DIR` | Directory where code components are stored in the filesystem. |
-| `--verbose`       | `CANVAS_VERBOSE`       | Verbose CLI output for troubleshooting. Defaults to `false`.  |
 | `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request.   |
 
 **Note:** The `--scope` parameter defaults to

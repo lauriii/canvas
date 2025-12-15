@@ -106,7 +106,10 @@ describe('api service', () => {
       expect(client).toBeDefined();
 
       await expect(client.listComponents()).rejects.toThrow(
-        'Network error: No response from server. Check your site URL and internet connection.',
+        'No response from: https://canvas-mock',
+      );
+      await expect(client.listComponents()).rejects.toThrow(
+        'Check your site URL and internet connection.',
       );
 
       const ddevClient = await ApiService.create({
@@ -116,7 +119,10 @@ describe('api service', () => {
       expect(ddevClient).toBeDefined();
 
       await expect(ddevClient.listComponents()).rejects.toThrow(
-        'Network error: No response from DDEV site. Is DDEV running? Try using HTTP instead of HTTPS.',
+        'No response from: http://ddev.site--not-working',
+      );
+      await expect(ddevClient.listComponents()).rejects.toThrow(
+        'Troubleshooting tips:',
       );
     });
 

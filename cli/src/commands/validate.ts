@@ -17,7 +17,6 @@ interface ValidateOptions {
   all?: boolean;
   components?: string;
   yes?: boolean;
-  verbose?: boolean;
   fix?: boolean;
 }
 
@@ -38,7 +37,6 @@ export function validateCommand(program: Command): void {
     )
     .option('--all', 'Validate all components')
     .option('-y, --yes', 'Skip confirmation prompts')
-    .option('--verbose', 'Enable verbose output')
     .option(
       '--fix',
       'Apply available automatic fixes for linting issues',

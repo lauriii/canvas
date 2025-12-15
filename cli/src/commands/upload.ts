@@ -187,7 +187,6 @@ interface UploadOptions {
   siteUrl?: string;
   scope?: string;
   dir?: string;
-  verbose?: boolean;
   all?: boolean;
   components?: string;
   tailwind?: boolean;
@@ -214,7 +213,6 @@ export function uploadCommand(program: Command): void {
     )
     .option('--all', 'Upload all components')
     .option('-y, --yes', 'Skip confirmation prompts')
-    .option('--verbose', 'Verbose output')
     .option('--no-tailwind', 'Skip Tailwind CSS building')
     .option('--skip-css', 'Skip global CSS upload')
     .option('--css-only', 'Upload only global CSS (skip components)')
@@ -265,6 +263,10 @@ export function uploadCommand(program: Command): void {
 
         // Create API service
         const apiService = await createApiService();
+
+        // Verify API connection and authentication before proceeding
+        // This will throw auth/network errors early before processing components
+        await apiService.listComponents();
 
         let componentResults: Result[] = [];
 
@@ -523,12 +525,14 @@ async function getBuildAndUploadResults(
         ],
       });
     } else {
+      const errorMessage =
+        uploadResult.error?.message || 'Unknown upload error';
       results.push({
         itemName: component.componentName,
         success: false,
         details: [
           {
-            content: uploadResult.error?.message || 'Unknown upload error',
+            content: errorMessage.trim() || 'Unknown upload error',
           },
         ],
       });

@@ -22,7 +22,6 @@ describe.runIf(isConfigured)('api service integration', () => {
         clientId: process.env.TEST_CANVAS_CLIENT_ID || '',
         clientSecret: process.env.TEST_CANVAS_CLIENT_SECRET || '',
         userAgent: installData.user_agent,
-        verbose: true,
       });
     },
     60 * 60 * 1000,

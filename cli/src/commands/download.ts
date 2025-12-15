@@ -32,7 +32,6 @@ interface DownloadOptions {
   skipOverwrite?: boolean; // Skip downloading components that already exist locally
   skipCss?: boolean;
   cssOnly?: boolean;
-  verbose?: boolean;
 }
 
 export function downloadCommand(program: Command): void {
@@ -56,7 +55,6 @@ export function downloadCommand(program: Command): void {
     )
     .option('--skip-css', 'Skip downloading global CSS')
     .option('--css-only', 'Download only global CSS (skip components)')
-    .option('--verbose', 'Enable verbose output')
     .action(async (options: DownloadOptions) => {
       p.intro(chalk.bold('Drupal Canvas CLI: download'));
 
