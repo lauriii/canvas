@@ -8,10 +8,11 @@
     "test": "tests"
   },
   "workspaces": [
+    "packages/*",
     "cli",
     "docs/user",
-    "packages/*",
-    "tests/modules/canvas_test_extension"
+    "tests/modules/canvas_test_extension",
+    "ui/lib/astro-hydration"
   ],
   "scripts": {
     "test:playwright": "playwright install && playwright test",

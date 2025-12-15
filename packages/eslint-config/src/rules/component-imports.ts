@@ -31,17 +31,124 @@ function checkImportSource(
       'clsx',
       'class-variance-authority',
       'tailwind-merge',
-      '@/lib/FormattedText',
-      'next-image-standalone',
-      '@/lib/utils',
       '@/components/',
-      '@drupal-api-client/json-api-client',
       'drupal-jsonapi-params',
-      '@/lib/jsonapi-utils',
-      '@/lib/drupal-utils',
       'swr',
+      'drupal-canvas',
     ].includes(source)
   ) {
+    return;
+  }
+
+  if (source === '@/lib/drupal-utils') {
+    context.report({
+      node,
+      message: 'Drupal utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        // 'sortMenu' exported from drupal-canvas is named 'sortLinksetMenu'
+        // to avoid conflict with sortMenu from jsonapi-utils,
+        // so automatic fix should not apply if sortMenu is imported.
+        const importsSortMenu =
+          node.type === 'ImportDeclaration' &&
+          node.specifiers.some(
+            (specifier) =>
+              specifier.local.name === 'sortMenu' ||
+              (specifier.type === 'ImportSpecifier' &&
+                specifier.imported.type === 'Identifier' &&
+                specifier.imported.name === 'sortMenu'),
+          );
+        if (!importsSortMenu) {
+          return fixer.replaceText(node.source, "'drupal-canvas'");
+        }
+        return null;
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/utils') {
+    context.report({
+      node,
+      message: 'Utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
+    });
+    return;
+  }
+
+  if (source === '@/lib/jsonapi-utils') {
+    context.report({
+      node,
+      message:
+        'JSON:API utilities were moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        return fixer.replaceText(node.source, "'drupal-canvas'");
+      },
+    });
+    return;
+  }
+
+  if (source === 'next-image-standalone') {
+    context.report({
+      node,
+      message:
+        'Using `next-image-standalone` directly is deprecated. Use the `Image` component from the `drupal-canvas` package instead.',
+      fix(fixer) {
+        if (
+          node.type === 'ImportDeclaration' &&
+          node.specifiers.length === 1 &&
+          node.specifiers[0].local.name === 'Image'
+        ) {
+          return fixer.replaceText(
+            node,
+            "import { Image } from 'drupal-canvas';",
+          );
+        }
+        return null;
+      },
+    });
+    return;
+  }
+
+  if (source === '@drupal-api-client/json-api-client') {
+    if (node.type === 'ImportDeclaration') {
+      for (const specifier of node.specifiers) {
+        if (specifier.local.name === 'JsonApiClient') {
+          context.report({
+            node: specifier.local,
+            message:
+              'The preconfigured `JsonApiClient` was moved into the `drupal-canvas` package.',
+            fix(fixer) {
+              return fixer.replaceText(node.source, "'drupal-canvas'");
+            },
+          });
+          return;
+        }
+      }
+    }
+    return;
+  }
+
+  if (source === '@/lib/FormattedText') {
+    context.report({
+      node,
+      message:
+        'The `FormattedText` component was moved into the `drupal-canvas` package.',
+      fix(fixer) {
+        if (
+          node.type === 'ImportDeclaration' &&
+          node.specifiers.length === 1 &&
+          node.specifiers[0].local.name === 'FormattedText'
+        ) {
+          return fixer.replaceText(
+            node,
+            "import { FormattedText } from 'drupal-canvas';",
+          );
+        }
+        return null;
+      },
+    });
     return;
   }
 
@@ -82,6 +189,7 @@ const rule: EslintRule.RuleModule = {
       description:
         'Validates that component imports only from supported import sources and patterns',
     },
+    fixable: 'code',
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isInComponentDir(context)) {

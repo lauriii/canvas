@@ -10,7 +10,7 @@ Although a number of useful built-in and bundled packages are provided, you can 
 any npm package through the web.
 
 ```js
-import { motion } from 'https://esm.sh/motion/react?external=react,react-dom';
+import { motion } from 'https://esm.sh/motion@12.23.26/react?external=react,react-dom';
 ```
 
 [esm.sh](https://esm.sh) unwraps all dependencies of the package you import as
@@ -21,10 +21,15 @@ important to avoid running multiple versions of React.
 
 ## Built-in custom packages
 
-### FormattedText
+### drupal-canvas 
+
+The [drupal-canvas](https://www.npmjs.com/package/drupal-canvas) package
+provides utilities and base components for building code components.
+
+#### FormattedText
 
 <LinkButton
-  href="https://git.drupalcode.org/project/canvas/-/blob/0.x/ui/lib/astro-hydration/src/lib/FormattedText.tsx"
+  href="https://git.drupalcode.org/project/canvas/-/blob/1.x/packages/drupal-canvas/src/FormattedText.tsx"
   variant="minimal"
   icon="external"
 >
@@ -37,7 +42,7 @@ The content is safe when processed through Drupal's filter system that is
 [correctly configured](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security).
 
 ```jsx
-import FormattedText from '@/lib/FormattedText';
+import { FormattedText } from 'drupal-canvas';
 
 export default function Example() {
   return (
@@ -48,10 +53,10 @@ export default function Example() {
 }
 ```
 
-### cn
+#### cn
 
 <LinkButton
-  href="https://git.drupalcode.org/project/canvas/-/blob/1.x/ui/lib/astro-hydration/src/lib/utils.ts"
+  href="https://git.drupalcode.org/project/canvas/-/blob/1.x/packages/drupal-canvas/src/utils.ts"
   variant="minimal"
   icon="external"
 >
@@ -61,7 +66,7 @@ export default function Example() {
 Utility for combining Tailwind CSS classes.
 
 ```jsx
-import { cn } from '@/lib/utils';
+import { cn } from 'drupal-canvas';
 
 export default function Example() {
   return <ControlDots className="top-4 left-4 stroke-white absolute" />;
@@ -82,17 +87,7 @@ const ControlDots = ({ className }) => (
 );
 ```
 
-### drupal-utils
-
-<LinkButton
-  href={`${import.meta.env.BASE_URL}code-components/data-fetching`}
-  variant="secondary"
-  icon="right-arrow"
->
-  See data fetching
-</LinkButton>
-
-### jsonapi-utils
+#### Utilities for working with JSON:API
 
 <LinkButton
   href={`${import.meta.env.BASE_URL}code-components/data-fetching`}

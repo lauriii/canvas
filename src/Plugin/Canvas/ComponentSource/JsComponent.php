@@ -173,14 +173,18 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       'clsx' => \sprintf('%s%s/ui/lib/astro-hydration/dist/clsx.js', $base_path, $canvas_path),
       'class-variance-authority' => \sprintf('%s%s/ui/lib/astro-hydration/dist/class-variance-authority.js', $base_path, $canvas_path),
       'tailwind-merge' => \sprintf('%s%s/ui/lib/astro-hydration/dist/tailwind-merge.js', $base_path, $canvas_path),
+      'drupal-jsonapi-params' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $base_path, $canvas_path),
+      'swr' => \sprintf('%s%s/ui/lib/astro-hydration/dist/swr.js', $base_path, $canvas_path),
+
+      'drupal-canvas' => \sprintf('%s%s/ui/lib/astro-hydration/dist/drupal-canvas.js', $base_path, $canvas_path),
+      // Backward compatibility entries for elements that were moved
+      // into drupal-canvas package.
       '@/lib/FormattedText' => \sprintf('%s%s/ui/lib/astro-hydration/dist/FormattedText.js', $base_path, $canvas_path),
       'next-image-standalone' => \sprintf('%s%s/ui/lib/astro-hydration/dist/next-image-standalone.js', $base_path, $canvas_path),
       '@/lib/utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/utils.js', $base_path, $canvas_path),
       '@drupal-api-client/json-api-client' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-client.js', $base_path, $canvas_path),
-      'drupal-jsonapi-params' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-params.js', $base_path, $canvas_path),
       '@/lib/jsonapi-utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/jsonapi-utils.js', $base_path, $canvas_path),
       '@/lib/drupal-utils' => \sprintf('%s%s/ui/lib/astro-hydration/dist/drupal-utils.js', $base_path, $canvas_path),
-      'swr' => \sprintf('%s%s/ui/lib/astro-hydration/dist/swr.js', $base_path, $canvas_path),
     ];
     // We need a cache-busting query string for the browser to not use cached
     // files after installing an update.

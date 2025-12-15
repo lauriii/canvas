@@ -2,6 +2,8 @@
 title: Code components - Data fetching
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 ## SWR
 
 [SWR](https://swr.vercel.app/) is provided as a native package and can be
@@ -35,14 +37,16 @@ utility. Results can be viewed in the Data Fetch pane below the component
 preview.
 
 ```js
-import { getPageData } from '@/lib/drupal-utils';
+import { getPageData } from 'drupal-canvas';
+
 const { pageTitle, breadcrumbs } = getPageData();
 ```
 
 You can also access site information with the `getSiteData` utility
 
 ```js
-import { getSiteData } from '@/lib/drupal-utils';
+import { getSiteData } from 'drupal-canvas';
+
 const { siteName } = getSiteData().branding;
 ```
 
@@ -51,18 +55,23 @@ and site data](../../../assets/images/data-fetch-2.webp)
 
 ### JSON:API
 
-[`@drupal-api-client/json-api-client`](https://project.pages.drupalcode.org/api_client/) and the
-associated [parameter helper package](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/parameters/#generating-query-strings-with-drupal-jsonapi-params)
-are also provided as native packages. [JSON:API module](https://www.drupal.org/docs/core-modules-and-themes/core-modules/jsonapi-module)
-must be enabled to interface with this client.
+[drupal-canvas](https://www.npmjs.com/package/drupal-canvas) provides the
+[JSON:API client](https://www.npmjs.com/package/@drupal-api-client/json-api-client)
+automatically configured with a `baseUrl` as well as
+[Jsona](https://www.npmjs.com/package/jsona) for
+[deserialization](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/deserializing-data/).
+[Drupal core's JSON:API module](https://www.drupal.org/docs/core-modules-and-themes/core-modules/jsonapi-module)
+must be enabled to use this client.
 
-You do not need to provide a baseUrl for the client, it will be
-configured automatically, as well as [deserialization](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/deserializing-data/).
+The associated
+[parameter helper package](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/parameters/#generating-query-strings-with-drupal-jsonapi-params)
+is also included as a native package.
 
 ```jsx
-import useSWR from 'swr';
-import { JsonApiClient } from '@drupal-api-client/json-api-client';
+import { JsonApiClient } from 'drupal-canvas';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
+import useSWR from 'swr';
+
 const client = new JsonApiClient();
 
 export default function List() {
@@ -99,39 +108,132 @@ const client = new JsonApiClient('https://drupal-api-demo.party', {
 });
 ```
 
+<Aside type="tip">
+  For development outside of Drupal Canvas, use
+  [`@drupal-canvas/vite-plugin`](https://www.npmjs.com/package/@drupal-canvas/vite-plugin)
+  to automatically provide the necessary configuration based on environment
+  variables.
+</Aside>
+
+<Aside>
+  When working with Code Components outside of Drupal Canvas, you may need to
+  configure CORS headers on your Drupal site to allow JSON:API requests from
+  your development environment.
+</Aside>
+
 ### Helper utilities
 
-Utility functions for working with JSON:API and core APIs are also provided in
-the `@/lib/jsonapi-utils` and `@/lib/drupal-utils` packages respectively.
+Utility functions for working with JSON:API and core APIs are provided in the
+[`drupal-canvas`](https://www.npmjs.com/package/drupal-canvas) package.
 
 ### Examples
 
-Given a node returned from `JSON:API`, return either the path alias or fall back
-to /node/x path:
+#### Fetching nodes with JSON:API
+
+The following example fetches nodes using a preconfigured version of the
+[JSON:API client from the Drupal API Client](https://project.pages.drupalcode.org/api_client),
+and outputs links to each of them using the `getNodePath` utility from the
+`drupal-canvas` package, which will return the path alias if exists, or fall
+back to the `/node/[nid]` path.
 
 ```jsx
-import { getNodePath } from '@/lib/jsonapi-utils';
-const articles = data.map((article) => ({
-  ...article,
-  _path: getNodePath(article),
-}));
+import { getNodePath, JsonApiClient } from 'drupal-canvas';
+import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
+import useSWR from 'swr';
 
-// Sort menu items from jsonapi_menu_items module into a tree with additional
-// _children and _hasSubmenu properties.
-import { sortMenu } from '@/lib/jsonapi-utils';
-const { data } = useSWR(['menu_items', 'main'], ([type, resourceId]) =>
-  client.getResource(type, resourceId),
-);
-const menu = sortMenu(data);
+const Articles = () => {
+  const client = new JsonApiClient();
+  const { data, error, isLoading } = useSWR(
+    [
+      'node--article',
+      {
+        queryString: new DrupalJsonApiParams()
+          .addSort('created', 'DESC')
+          .getQueryString(),
+      },
+    ],
+    ([type, options]) => client.getCollection(type, options),
+  );
+
+  if (error) return 'An error has occurred.';
+  if (isLoading) return 'Loading...';
+  return (
+    <ul>
+      {data.map((article) => (
+        <li key={article.id}>
+          <a href={getNodePath(article)}>{article.title}</a>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export default Articles;
 ```
 
-Using the [core linkset endpoint](https://www.drupal.org/docs/develop/decoupled-drupal/decoupled-menus/decoupled-menus-overview):
+#### Using the JSON:API Menu Items module
+
+This example builds a navigation menu using the
+[JSON:API Menu Items module](https://www.drupal.org/project/jsonapi_menu_items):
 
 ```jsx
-import { sortMenu } from '@/lib/drupal-utils';
-const { data } = useSWR('/system/menu/main/linkset', async (url) => {
-  const response = await fetch(url);
-  return response.json();
-});
-const menu = sortMenu(data);
+import { JsonApiClient, sortMenu } from 'drupal-canvas';
+import useSWR from 'swr';
+
+const client = new JsonApiClient();
+
+const Navigation = () => {
+  const { data, isLoading, error } = useSWR(
+    ['menu_items', 'main'],
+    ([type, resourceId]) => client.getResource(type, resourceId),
+  );
+  if (error) return 'An error has occurred.';
+  if (isLoading) return 'Loading...';
+
+  const menu = sortMenu(data);
+
+  return (
+    <ul>
+      {menu.map((item) => (
+        <li key={item.id}>{item.title}</li>
+      ))}
+    </ul>
+  );
+};
+
+export default Navigation;
+```
+
+#### Using Drupal core's linkset endpoint
+
+You can also build a navigation menu using
+[Drupal core's linkset endpoint](https://www.drupal.org/docs/develop/decoupled-drupal/decoupled-menus/decoupled-menus-overview).
+
+```jsx
+import { sortLinksetMenu } from 'drupal-canvas';
+import useSWR from 'swr';
+
+const Navigation = () => {
+  const { data, isLoading, error } = useSWR(
+    '/system/menu/main/linkset',
+    async (url) => {
+      const response = await fetch(url);
+      return response.json();
+    },
+  );
+  if (error) return 'An error has occurred.';
+  if (isLoading) return 'Loading...';
+
+  const menu = sortLinksetMenu(data);
+
+  return (
+    <ul>
+      {menu.map((item) => (
+        <li key={item.id}>{item.title}</li>
+      ))}
+    </ul>
+  );
+};
+
+export default Navigation;
 ```

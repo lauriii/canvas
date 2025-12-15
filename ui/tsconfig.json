@@ -26,5 +26,5 @@
     "inlineSources": false
   },
   "references": [{ "path": "./tsconfig.node.json" }],
-  "exclude": ["vite.config.ts"]
+  "exclude": ["vite.config.ts", "lib/astro-hydration"]
 }

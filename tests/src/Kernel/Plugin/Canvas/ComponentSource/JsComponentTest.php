@@ -435,6 +435,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $module_path),
         '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $module_path),
         'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $module_path),
+        'drupal-canvas' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $module_path),
       ],
     ];
 

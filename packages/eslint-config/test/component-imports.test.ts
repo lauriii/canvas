@@ -138,5 +138,99 @@ testRunner.run('component-imports rule', rule, {
         },
       ],
     },
+    {
+      name: 'should fail for component importing deprecated packages',
+      code: `
+        import FormattedText from '@/lib/FormattedText';
+        import Text from '@/lib/FormattedText';
+        import { JsonApiClient } from '@drupal-api-client/json-api-client';
+        import Image from 'next-image-standalone';
+        import NextImage from 'next-image-standalone';
+        import { getNodePath, sortMenu } from '@/lib/jsonapi-utils';
+        import { cn } from '@/lib/utils';
+        import { getPageData, getSiteData } from '@/lib/drupal-utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'The `FormattedText` component was moved into the `drupal-canvas` package.',
+          line: 2,
+        },
+        {
+          message:
+            'The `FormattedText` component was moved into the `drupal-canvas` package.',
+          line: 3,
+        },
+        {
+          message:
+            'The preconfigured `JsonApiClient` was moved into the `drupal-canvas` package.',
+          line: 4,
+        },
+        {
+          message:
+            'Using `next-image-standalone` directly is deprecated. Use the `Image` component from the `drupal-canvas` package instead.',
+          line: 5,
+        },
+        {
+          message:
+            'Using `next-image-standalone` directly is deprecated. Use the `Image` component from the `drupal-canvas` package instead.',
+          line: 6,
+        },
+        {
+          message:
+            'JSON:API utilities were moved into the `drupal-canvas` package.',
+          line: 7,
+        },
+        {
+          message: 'Utilities were moved into the `drupal-canvas` package.',
+          line: 8,
+        },
+        {
+          message:
+            'Drupal utilities were moved into the `drupal-canvas` package.',
+          line: 9,
+        },
+      ],
+      output: `
+        import { FormattedText } from 'drupal-canvas';
+        import Text from '@/lib/FormattedText';
+        import { JsonApiClient } from 'drupal-canvas';
+        import { Image } from 'drupal-canvas';
+        import NextImage from 'next-image-standalone';
+        import { getNodePath, sortMenu } from 'drupal-canvas';
+        import { cn } from 'drupal-canvas';
+        import { getPageData, getSiteData } from 'drupal-canvas';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+    },
+    {
+      name: 'should not automatically change @/lib/drupal-utils to drupal-canvas if sortMenu is imported',
+      code: `
+        import { getPageData, getSiteData, sortMenu } from '@/lib/drupal-utils';
+        import { sortMenu as sortLinksetMenu } from '@/lib/drupal-utils';
+        export default ({ title }) => {
+          return <button>{title}</button>;
+        };
+      `,
+      filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message:
+            'Drupal utilities were moved into the `drupal-canvas` package.',
+          line: 2,
+        },
+        {
+          message:
+            'Drupal utilities were moved into the `drupal-canvas` package.',
+          line: 3,
+        },
+      ],
+    },
   ],
 });

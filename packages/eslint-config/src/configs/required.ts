@@ -1,6 +1,6 @@
 import eslintPluginYml from 'eslint-plugin-yml';
 import { defineConfig, globalIgnores } from 'eslint/config';
-import { browser } from 'globals';
+import globals from 'globals';
 
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
@@ -17,7 +17,7 @@ const required: Config[] = defineConfig([
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: browser,
+      globals: globals.browser,
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },

@@ -1,0 +1,70 @@
+{
+  "name": "drupal-canvas",
+  "version": "0.1.0",
+  "description": "Utilities and base components for building Drupal Canvas Code Components",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/drupal-canvas"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./FormattedText": {
+      "import": "./dist/FormattedText.js",
+      "types": "./dist/FormattedText.d.ts"
+    },
+    "./drupal-utils": {
+      "import": "./dist/drupal-utils.js",
+      "types": "./dist/drupal-utils.d.ts"
+    },
+    "./jsonapi-client": {
+      "import": "./dist/jsonapi-client.js",
+      "types": "./dist/jsonapi-client.d.ts"
+    },
+    "./jsonapi-utils": {
+      "import": "./dist/jsonapi-utils.js",
+      "types": "./dist/jsonapi-utils.d.ts"
+    },
+    "./next-image-standalone": {
+      "import": "./dist/next-image-standalone.js",
+      "types": "./dist/next-image-standalone.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils.js",
+      "types": "./dist/utils.d.ts"
+    }
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "canvas",
+    "drupal"
+  ],
+  "dependencies": {
+    "@drupal-api-client/json-api-client": "^1.3.0",
+    "clsx": "^2.1.1",
+    "jsona": "^1.12.1",
+    "next-image-standalone": "^0.1.3",
+    "tailwind-merge": "^3.0.2"
+  },
+  "devDependencies": {
+    "tsdown": "^0.17.0-beta.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.3"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production tsdown",
+    "dev": "NODE_ENV=development tsdown --watch",
+    "type-check": "tsc --noEmit --pretty",
+    "test": "vitest run"
+  }
+}

@@ -29,14 +29,9 @@ export default defineConfig({
               clsx: 'clsx.js',
               'class-variance-authority': 'class-variance-authority.js',
               'tailwind-merge': 'tailwind-merge.js',
-              'lib/astro-hydration/src/lib/FormattedText.tsx': 'FormattedText.js',
-              'lib/astro-hydration/src/lib/next-image-standalone.tsx': 'next-image-standalone.js',
-              'lib/astro-hydration/src/lib/utils.ts': 'util.js',
-              'lib/astro-hydration/src/lib/jsonapi-client.ts': 'jsonapi-client.js',
               'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
-              'lib/astro-hydration/src/lib/jsonapi-utils.ts': 'jsonapi-utils.js',
-              'lib/astro-hydration/src/lib/drupal-utils.ts': 'drupal-utils.js',
-              'lib/astro-hydration/src/lib/swr.ts': 'swr.js'
+              'lib/astro-hydration/src/lib/swr.ts': 'swr.js',
+              'drupal-canvas': 'drupal-canvas.js',
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {
               if (chunkInfo.facadeModuleId?.includes(`node_modules/${key}`)) {

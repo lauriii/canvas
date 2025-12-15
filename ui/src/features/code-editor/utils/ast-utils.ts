@@ -31,7 +31,8 @@ export const getDataDependenciesFromAst = (ast: File): DataDependencies =>
       if (
         // Only consider imports from these two modules.
         source !== '@/lib/drupal-utils' &&
-        source !== '@drupal-api-client/json-api-client'
+        source !== '@drupal-api-client/json-api-client' &&
+        source !== 'drupal-canvas'
       ) {
         return carry;
       }

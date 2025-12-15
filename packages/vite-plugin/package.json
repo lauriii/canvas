@@ -1,0 +1,41 @@
+{
+  "name": "@drupal-canvas/vite-plugin",
+  "version": "0.1.0",
+  "description": "Vite plugin for developing Drupal Canvas Code Components",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/vite-plugin"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "canvas",
+    "drupal",
+    "vite-plugin"
+  ],
+  "peerDependencies": {
+    "vite": "^6 || ^7"
+  },
+  "devDependencies": {
+    "tsdown": "^0.17.0-beta.5",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production tsdown",
+    "dev": "NODE_ENV=development tsdown --watch",
+    "type-check": "tsc --noEmit --pretty"
+  }
+}

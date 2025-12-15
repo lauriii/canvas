@@ -2,12 +2,19 @@
 title: Code components - Responsive images
 ---
 
-The [next-image-standalone](https://www.npmjs.com/package/next-image-standalone) library provides automatic image optimization, responsive behavior, and modern loading techniques for code components.
+The [drupal-canvas](https://www.npmjs.com/package/drupal-canvas) package
+provides an `Image` component for automatic image optimization, responsive
+behavior, and modern loading techniques for code components.
+
+The `Image` component is a wrapper around the
+[next-image-standalone](https://www.npmjs.com/package/next-image-standalone)
+library, preconfigured with a loader to work with the zero-config dynamic image
+style in Drupal Canvas.
 
 ## Usage
 
 ```jsx
-import Image from 'next-image-standalone';
+import { Image } from 'drupal-canvas';
 
 const MyComponent = ({ photo }) => {
   return (
@@ -48,16 +55,23 @@ Image can also be used with static values but this is not recommended as it will
 not result in responsive image variants being generated.
 
 ```jsx
-<Image src="/profile.png" alt="Picture of the author" width={500} height={500} />
+<Image
+  src="/profile.png"
+  alt="Picture of the author"
+  width={500}
+  height={500}
+/>
 ```
 
 ### Optional Props
 
 #### `fill`
 
-A boolean that causes the image to fill the parent element, which is useful when the width and height are unknown.
+A boolean that causes the image to fill the parent element, which is useful when
+the width and height are unknown.
 
-The parent element must assign `position: relative`, `position: fixed`, or `position: absolute` style.
+The parent element must assign `position: relative`, `position: fixed`, or
+`position: absolute` style.
 
 ```jsx
 <div style={{ position: 'relative', width: '300px', height: '500px' }}>
@@ -76,7 +90,9 @@ The parent element must assign `position: relative`, `position: fixed`, or `posi
 
 #### `sizes`
 
-Defines which image sizes to download at different breakpoints. The value of sizes will affect performance for images using `fill` or those which are styled to have a responsive size.
+Defines which image sizes to download at different breakpoints. The value of
+sizes will affect performance for images using `fill` or those which are styled
+to have a responsive size.
 
 ```jsx
 <Image
@@ -122,7 +138,8 @@ Allows passing CSS styles to the underlying image element.
 
 #### `onLoad`
 
-A callback function that is invoked once the image is completely loaded and the placeholder is removed.
+A callback function that is invoked once the image is completely loaded and the
+placeholder is removed.
 
 ```jsx
 <Image
@@ -152,7 +169,8 @@ A callback function that is invoked if the image fails to load.
 
 The loading behavior of the image. Defaults to `lazy`.
 
-When `lazy`, defer loading the image until it reaches a calculated distance from the viewport.
+When `lazy`, defer loading the image until it reaches a calculated distance from
+the viewport.
 
 When `eager`, load the image immediately.
 
