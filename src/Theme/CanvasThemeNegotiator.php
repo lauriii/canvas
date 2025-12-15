@@ -49,7 +49,7 @@ final class CanvasThemeNegotiator implements ThemeNegotiatorInterface {
    * {@inheritdoc}
    */
   public function determineActiveTheme(RouteMatchInterface $route_match) {
-    $triggering_element_value = $this->requestStack->getCurrentRequest()?->get('_triggering_element_value');
+    $triggering_element_value = $this->requestStack->getCurrentRequest()?->request->get('_triggering_element_value');
     $still_in_media_library = $triggering_element_value !== (string) $this->t('Insert selected');
 
     if ($this->requestStack->getCurrentRequest()?->query->has('use_admin_theme') && $still_in_media_library) {

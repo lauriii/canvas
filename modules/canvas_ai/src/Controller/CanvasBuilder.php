@@ -327,7 +327,7 @@ final class CanvasBuilder extends ControllerBase {
       throw new AccessDeniedHttpException('Invalid CSRF token');
     }
 
-    $progress = $this->poller->getLatestStatusUpdates($request->get('request_id'));
+    $progress = $this->poller->getLatestStatusUpdates($request->query->getString('request_id'));
     $items = [];
     $agent_runner_to_agent_id = [];
     $is_finished = FALSE;

@@ -82,7 +82,7 @@ final class ComponentInstanceForm extends FormBase {
     $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
 
     $request = $this->getRequest();
-    $tree = $request->get('form_canvas_tree');
+    $tree = $request->request->getString('form_canvas_tree');
     [$component_id, $version] = \explode('@', \json_decode($tree, TRUE)['type']);
     if (empty($version)) {
       throw new \UnexpectedValueException('No component version specified.');
@@ -94,9 +94,14 @@ final class ComponentInstanceForm extends FormBase {
     // component-source specific settings, such as the field type/widget for a
     // particular SDC or code component prop.
     $component->loadVersion($version);
-    $component_instance_uuid = $request->get('form_canvas_selected');
+    if ($request->query->has('form_canvas_selected')) {
+      $component_instance_uuid = $request->query->getString('form_canvas_selected');
+    }
+    else {
+      $component_instance_uuid = $request->request->getString('form_canvas_selected');
+    }
 
-    $props = $request->get('form_canvas_props');
+    $props = $request->request->getString('form_canvas_props');
     $client_model = json_decode($props, TRUE);
 
     // Make sure these get sent in subsequent AJAX requests.
@@ -150,7 +155,8 @@ final class ComponentInstanceForm extends FormBase {
 
     $form['canvas_component_props'][$component_instance_uuid] = $instance_form;
     $form['#pre_render'][] = [FormIdPreRender::class, 'addFormId'];
-    if ($request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) !== NULL) {
+    $is_ajax = $request->request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) ?? $request->query->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER);
+    if ($is_ajax !== NULL) {
       // Add the data-ajax flag and manually add the form ID as pre render
       // callbacks aren't fired during AJAX rendering because the whole form is
       // not rendered, just the returned elements.

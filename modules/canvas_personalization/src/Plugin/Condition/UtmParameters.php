@@ -147,7 +147,7 @@ final class UtmParameters extends ConditionPluginBase {
     $request = \Drupal::request();
     $result = TRUE;
     foreach ($this->configuration['parameters'] as $parameter) {
-      $requestParamValue = $request->get($parameter['key'], NULL);
+      $requestParamValue = $request->query->getString($parameter['key']);
       $result &= match($parameter['matching']) {
         'exact' => $parameter['value'] === $requestParamValue,
         'starts_with' => str_starts_with($requestParamValue, $parameter['value']),
