@@ -12,6 +12,8 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Core\TypedData\TypedDataTrait;
 
 /**
+ * An internal utility trait that can instantiate component trees.
+ *
  * @internal
  *
  * @phpstan-import-type ComponentTreeItemListArray from \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
@@ -31,6 +33,20 @@ trait ComponentTreeItemListInstantiatorTrait {
 
   /**
    * Instantiates a (dangling) Canvas component tree.
+   *
+   * "Dangling", in this case, means the component tree might not be attached to
+   * any specific entity, unless $parent is passed.
+   *
+   * The component tree returned by this method uses the default validation
+   * constraints at the "component tree" and "components instance" levels,
+   * unless overridden.
+   *
+   * The default validation constraints are defined in:
+   * - \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getConstraints()
+   * - The FieldType attribute on
+   *   \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
+   *
+   * @see \Drupal\Core\TypedData\Validation\RecursiveContextualValidator::validateNode())
    */
   protected static function staticallyCreateDanglingComponentTreeItemList(TypedDataManagerInterface $typed_data_manager, ?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
     $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');

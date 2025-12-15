@@ -172,7 +172,10 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return \array_unique(\array_column($this->getValue(), 'component_id'));
   }
 
-  public function getConstraints() {
+  /**
+   * {@inheritdoc}
+   */
+  public function getConstraints(): array {
     $constraints = parent::getConstraints();
     $constraint_manger = $this->getTypedDataManager()
       ->getValidationConstraintManager();
