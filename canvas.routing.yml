@@ -414,6 +414,7 @@ canvas.api.layout.post: &layout_post_route
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
+    _format: 'json'
   options:
     _canvas_use_template_draft: TRUE
     parameters:
