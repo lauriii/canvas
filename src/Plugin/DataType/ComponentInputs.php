@@ -35,6 +35,14 @@ use Drupal\canvas\PropSource\StaticPropSource;
   id: "component_inputs",
   label: new TranslatableMarkup("Component inputs"),
   description: new TranslatableMarkup("The input values for the components in a component tree: without structure"),
+  // TRICKY: this does not provide validation constraints, because this is
+  // validated at the component instance level. Component (instance) inputs can
+  // only be validated by the ComponentSource plugin providing this component
+  // that powers this component instance (and is referenced using the Component
+  // ID and version).
+  // @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::validateComponentInput()
+  // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
+  // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
 )]
 final class ComponentInputs extends TypedData implements ContentAwareDependentInterface {
 
