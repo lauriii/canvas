@@ -76,6 +76,13 @@ system_prompt: |-
 
     3.  **Implement the Styling with CVA:** You **MUST** use the `class-variance-authority` (CVA) library to apply the styles in the code based on the prop's value. This includes importing `cva` and using the function to generate the `className`.
 
+  Library Reuse Directive:
+  - Read through the JSON object named `custom_libraries` providing code snippets and metadata about available libraries in the system.
+  - When building or editing a component, reuse imports, utilities, and code from these libraries whenever relevant instead of creating duplicate code.
+  - Include appropriate import statements from these libraries.
+  - If a requested functionality matches any existing library snippet (e.g. utility functions, formatting components), reuse or wrap the existing library component.
+  - The `custom_libraries` JSON provides library names and their JSX/JS/CSS code — use this as a knowledge base.
+
   Data fetching:
     Only include data-fetching logic if the user’s request explicitly requires the component to display dynamic or external data (such as lists of content, menus, or non-static information), or if the component cannot function as described without data fetching. If the user’s request can be fulfilled with static data, example values, or presentational logic, do NOT include any data-fetching logic or related code
     1. Content fetching:
@@ -295,6 +302,7 @@ system_prompt: |-
   json_api_module_status: [canvas_ai:json_api_module_status]
   selected_component: [canvas_ai:selected_component]
   selected_component_required_props: [canvas_ai:selected_component_required_props]
+  custom_libraries: [canvas_ai:custom_libraries]
 secured_system_prompt: '[ai_agent:agent_instructions]'
 tools:
   'ai_agent:edit_component_js': true

@@ -83,6 +83,7 @@ final class CanvasBuilder extends ControllerBase {
       $files = $request->files->all();
       $prompt['derived_proptypes'] = Json::decode($prompt['derived_proptypes']);
       $prompt['selected_component_required_props'] = Json::decode($prompt['selected_component_required_props']);
+      $prompt['custom_libraries'] = Json::decode($prompt['custom_libraries']);
     }
     // If $prompt['messages'] is missing or invalid, this code reconstructs it
     // by scanning for keys named 'message <number>', and
@@ -228,6 +229,7 @@ final class CanvasBuilder extends ControllerBase {
       'menu_fetch_source' => $this->getMenuFetchSource(),
       'json_api_module_status' => $this->moduleHandler()->moduleExists('jsonapi') ? 'enabled' : 'disabled',
       'verbose_context_for_orchestrator' => $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt),
+      'custom_libraries' => $this->getSupportedLibraries(),
     ]);
     try {
       $solvability = $agent->determineSolvability();
@@ -417,6 +419,59 @@ final class CanvasBuilder extends ControllerBase {
       'canvas_page_builder_agent' => $this->t('Building the page'),
     ];
     return $descriptions[$agent_id] ?? $this->t('@agentName working', ['@agentName' => $agent_name]);
+  }
+
+  /**
+   * Gets the libraries supported by Canvas.
+   *
+   * @return array
+   *   The array of supported libraries.
+   */
+  protected function getSupportedLibraries(): array {
+    return [
+      [
+        "name" => "importing_packages",
+        "type" => "External npm package",
+        "description" => "Although a number of useful built-in and bundled packages are provided, you can also import any npm package through the web.",
+        "code" => "```js\nimport { motion } from 'https://esm.sh/motion@12.23.26/react?external=react,react-dom'\n```",
+      ],
+      [
+        "name" => "formatted_text",
+        "type" => "Built-in custom package",
+        "description" => "A built-in component to render text with trusted HTML using [`dangerouslySetInnerHTML`](https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html). The content is safe when processed through Drupal's filter system that is [correctly configured](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security).",
+        "code" => "``jsx\nimport FormattedText from 'drupal-canvas';\n\nexport default function Example() {\n  return (\n    <FormattedText>\n      <em>Hello, world!</em>\n    </FormattedText>\n  );\n}\n```",
+      ],
+      [
+        "name" => "cn",
+        "type" => "Built-in custom package",
+        "description" => "Utility for combining Tailwind CSS classes.",
+        "code" => "```jsx\nimport { cn } from 'drupal-canvas';\n\nexport default function Example() {\n  return <ControlDots className=\"top-4 left-4 stroke-white absolute\" />;\n}\n\nconst ControlDots = ({ className }) => (\n  <svg\n    xmlns=\"http://www.w3.org/2000/svg\"\n    viewBox=\"0 0 31 9\"\n    fill=\"none\"\n    strokeWidth=\"2\"\n    className={cn('w-12', className)}\n  >\n    <ellipse cx=\"4.13\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n    <ellipse cx=\"15.16\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n    <ellipse cx=\"26.19\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n  </svg>\n);\n```",
+      ],
+      [
+        "name" => "tailwind",
+        "type" => "Bundled npm package",
+        "description" => "Tailwind 4 is available to all components by default. The global CSS is added to all pages with the `@import \"tailwindcss\"` directive included. You can use the [`@theme` directive to customize theme variables](https://tailwindcss.com/docs/theme). For example, you can add a new color to your project by defining a theme variable like `--color-drupal-blue`: Now you can use utility classes like `bg-drupal-blue`, `text-drupal-blue`, or `fill-drupal-blue` in your component markup:",
+        "code" => "```css\n@theme {\n  --color-drupal-blue: #009cde;\n}\n``` \n```jsx\nexport default function Example() {\nreturn <div className=\"bg-drupal-blue\">Drupal Blue</div>;\n}\n```",
+      ],
+      [
+        "name" => "clsx",
+        "type" => "Bundled npm package",
+        "description" => "A tiny utility for constructing `className` strings conditionally. Also serves as a faster & smaller drop-in replacement for the `classnames` module.",
+        "code" => "```jsx\nimport { clsx } from 'clsx'\n\nexport default function Example() {\n  return (\n    <div className={clsx('foo', true && 'bar', 'baz');} />\n    // => 'foo bar baz'\n  );\n};\n```",
+      ],
+      [
+        "name" => "class_variance_authority",
+        "type" => "Bundled npm package",
+        "description" => "CVA helps you define components with multiple visual variants (like size, color, state) in a clean, type-safe way. Instead of manually concatenating CSS classes or writing complex conditional logic, you define variants upfront and let CVA handle the class composition.",
+        "code" => "```js\nimport { cva } from 'class-variance-authority';\n\nconst button = cva(\n  'font-semibold border rounded', // base classes\n  {\n    variants: {\n      intent: {\n        primary: 'bg-blue-500 text-white border-blue-500',\n        secondary: 'bg-gray-200 text-gray-900 border-gray-200',\n      },\n      size: {\n        small: 'text-sm py-1 px-2',\n        medium: 'text-base py-2 px-4',\n      },\n    },\n    defaultVariants: {\n      intent: 'primary',\n      size: 'medium',\n    },\n  },\n);\n\n// Usage\nbutton({ intent: 'secondary', size: 'small' });\n// Returns: \"font-semibold border rounded bg-gray-200 text-gray-900 border-gray-200 text-sm py-1 px-2\"\n```",
+      ],
+      [
+        "name" => "tailwind_merge",
+        "type" => "Bundled npm package",
+        "description" => "A utility function to efficiently merge Tailwind CSS classes in JS without style conflicts.",
+        "code" => "```js\nimport { twMerge } from 'tailwind-merge';\n\ntwMerge('px-2 py-1 bg-red hover:bg-dark-red', 'p-3 bg-[#B91C1C]');\n// → 'hover:bg-dark-red p-3 bg-[#B91C1C]'\n```",
+      ],
+    ];
   }
 
 }

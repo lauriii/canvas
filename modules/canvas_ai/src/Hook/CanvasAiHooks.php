@@ -83,6 +83,10 @@ class CanvasAiHooks {
             'name' => $this->t('Verbose Context for Orchestrator'),
             'description' => $this->t('Returns a detailed context summary for the AI Orchestrator.'),
           ],
+          'custom_libraries' => [
+            'name' => $this->t('Custom libraries in Canvas.'),
+            'description' => $this->t('Returns the custom libraries in Canvas.'),
+          ],
         ],
       ],
     ];
@@ -144,6 +148,10 @@ class CanvasAiHooks {
 
           case 'verbose_context_for_orchestrator':
             $replacements[$original] = !empty($data['verbose_context_for_orchestrator']) ? $data['verbose_context_for_orchestrator'] : NULL;
+            break;
+
+          case 'custom_libraries':
+            $replacements[$original] = $data['custom_libraries'];
             break;
         }
       }
