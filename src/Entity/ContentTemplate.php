@@ -510,12 +510,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       assert(is_string($bundle_key));
       $entity_query->condition($bundle_key, $bundle);
     }
-    // @todo Remove conditionality in https://www.drupal.org/i/3498525
-    if ($entity_definition->hasKey('published')) {
-      $published_key = $entity_definition->getKey('published');
-      assert(is_string($published_key));
-      $entity_query->condition($published_key, TRUE);
-    }
+
     // @todo Remove conditionality in https://www.drupal.org/i/3498525
     if ($entity_definition->entityClassImplements(EntityChangedInterface::class)) {
       $entity_query->sort('changed', 'DESC');

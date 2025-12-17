@@ -110,6 +110,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $account = $this->createUser([
       ContentTemplate::ADMIN_PERMISSION,
       'edit any article content',
+      'view own unpublished content',
     ]);
     \assert($account instanceof UserInterface);
     $this->drupalLogin($account);
@@ -813,6 +814,155 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       2 => ['id' => '2', 'label' => 'Entity 2'],
       4 => ['id' => '4', 'label' => 'Entity 4'],
       5 => ['id' => '5', 'label' => 'Entity 5'],
+    ];
+    $this->assertSame($expected, $json);
+
+    // Test with unpublished content entities - they should also appear in the list.
+    $entity_storage->create([
+      'title' => 'Unpublished Entity 1',
+      'type' => $bundle,
+      'status' => 0,
+      'changed' => \time() + 5000,
+    ])->save();
+    $entity_storage->create([
+      'title' => 'Unpublished Entity 2',
+      'type' => $bundle,
+      'status' => 0,
+      'changed' => \time() + 10000,
+    ])->save();
+    // Test the 10-entity limit: create additional entities to exceed the limit.
+    // The oldest entities (by changed time) should be excluded from the response.
+    $entity_storage->create([
+      'title' => 'New Entity 9',
+      'type' => $bundle,
+      'status' => 1,
+      'changed' => \time() + 15000,
+    ])->save();
+    $entity_storage->create([
+      'title' => 'New Entity 10',
+      'type' => $bundle,
+      'status' => 1,
+      'changed' => \time() + 20000,
+    ])->save();
+    $entity_storage->create([
+      'title' => 'New Entity 11',
+      'type' => $bundle,
+      'status' => 1,
+      'changed' => \time() + 25000,
+    ])->save();
+
+    // Unpublished entities should be included in the response.
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':10',
+        $content_entity_type_id . ':11',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . ':4',
+        $content_entity_type_id . ':6',
+        $content_entity_type_id . ':7',
+        $content_entity_type_id . ':8',
+        $content_entity_type_id . ':9',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
+    );
+    // Expected should now include the unpublished nodes and exclude
+    // the oldest ones to maintain the 10-entity limit.
+    $expected = [
+      11 => ['id' => '11', 'label' => 'New Entity 11'],
+      10 => ['id' => '10', 'label' => 'New Entity 10'],
+      9 => ['id' => '9', 'label' => 'New Entity 9'],
+      8 => ['id' => '8', 'label' => 'Unpublished Entity 2'],
+      7 => ['id' => '7', 'label' => 'Unpublished Entity 1'],
+      3 => ['id' => '3', 'label' => 'Updated article'],
+      6 => ['id' => '6', 'label' => 'Entity LAST'],
+      1 => ['id' => '1', 'label' => 'Entity 1'],
+      2 => ['id' => '2', 'label' => 'Entity 2'],
+      4 => ['id' => '4', 'label' => 'Entity 4'],
+    ];
+    $this->assertSame($expected, $json);
+  }
+
+  /**
+   * Tests that users without 'view own unpublished content' permission cannot see unpublished content.
+   */
+  public function testSuggestPreviewWithoutUnpublishedPermission(): void {
+    $content_entity_type_id = 'node';
+    $bundle = 'article';
+
+    // Create a user WITHOUT 'view own unpublished content' permission.
+    $user_without_permission = $this->createUser([
+      ContentTemplate::ADMIN_PERMISSION,
+      'edit any article content',
+    ]);
+    \assert($user_without_permission instanceof UserInterface);
+
+    // Create published and unpublished content entities.
+    $entity_storage = $this->container->get('entity_type.manager')->getStorage($content_entity_type_id);
+
+    // Create published entities.
+    for ($i = 1; $i <= 3; ++$i) {
+      $entity_storage->create([
+        'title' => 'Published Entity ' . $i,
+        'type' => $bundle,
+        'status' => 1,
+        'uid' => $user_without_permission->id(),
+        'changed' => \time() - $i * 1000,
+      ])->save();
+    }
+
+    // Create unpublished entities owned by the user.
+    for ($i = 1; $i <= 2; ++$i) {
+      $entity_storage->create([
+        'title' => 'Unpublished Entity ' . $i,
+        'type' => $bundle,
+        'status' => 0,
+        'uid' => $user_without_permission->id(),
+        'changed' => \time() + $i * 1000,
+      ])->save();
+    }
+
+    // Login as the user without 'view own unpublished content' permission.
+    $this->drupalLogin($user_without_permission);
+
+    // Request the preview suggestions.
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.node_grants:view',
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+
+    // Only published entities should be returned,
+    // unpublished entities 4 and 5 should NOT be included.
+    $expected = [
+      1 => ['id' => '1', 'label' => 'Published Entity 1'],
+      2 => ['id' => '2', 'label' => 'Published Entity 2'],
+      3 => ['id' => '3', 'label' => 'Published Entity 3'],
     ];
     $this->assertSame($expected, $json);
   }
