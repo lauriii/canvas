@@ -178,3 +178,14 @@ function canvas_post_update_0007_respect_prop_ordering(array &$sandbox): void {
 function canvas_post_update_0008_rediscover_sdcs(): void {
   // Empty update to trigger cache wipe, which will re-trigger SDC discovery.
 }
+
+/**
+ * Remove "category" property from existing instances of Component entities.
+ */
+function canvas_post_update_0009_unset_category_property_on_components(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->unsetComponentCategoryProperty($component));
+}

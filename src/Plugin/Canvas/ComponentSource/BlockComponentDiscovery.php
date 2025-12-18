@@ -201,7 +201,6 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     $definition = $this->blockManager->getDefinition($source_specific_id);
     return [
       'label' => (string) $definition['admin_label'],
-      'category' => (string) $definition['category'],
     ];
   }
 

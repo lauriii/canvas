@@ -25,6 +25,10 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   use ContextAwarePluginAssignmentTrait;
   use ContextAwarePluginTrait;
 
+  public function determineDefaultFolder(): string {
+    return 'Other';
+  }
+
   public function getSourceSpecificComponentId(): string {
     return $this->getConfiguration()['local_source_id'];
   }

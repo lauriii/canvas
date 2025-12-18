@@ -147,7 +147,6 @@ final class ComponentSourceManager extends DefaultPluginManager {
       // Compute more trivial Component config entity metadata that may change,
       // but typically changes rarely:
       // - label
-      // - category
       // - (optional) status
       $current_metadata = $discovery->computeCurrentComponentMetadata($source_specific_component_id);
 

@@ -9,7 +9,6 @@ id: js.canvas_test_code_components_with_props
 provider: null
 source: js
 source_local_id: canvas_test_code_components_with_props
-category: '@todo'
 active_version: 35f5dc23af5896ac
 versioned_properties:
   active:

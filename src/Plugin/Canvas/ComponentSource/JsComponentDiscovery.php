@@ -124,8 +124,6 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
     $js_component = $this->discover()[$source_specific_id];
     return [
       'label' => (string) $js_component->label(),
-      // @todo Update in https://www.drupal.org/project/canvas/issues/3541364.
-      'category' => NULL,
       'status' => $js_component->status(),
     ];
   }

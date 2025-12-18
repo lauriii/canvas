@@ -9,7 +9,6 @@ id: js.canvas_test_code_components_with_slots
 provider: null
 source: js
 source_local_id: canvas_test_code_components_with_slots
-category: '@todo'
 active_version: 6b80a3f7f6e4907f
 versioned_properties:
   active:

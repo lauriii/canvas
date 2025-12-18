@@ -61,6 +61,8 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    */
   public function isBroken(): bool;
 
+  public function determineDefaultFolder(): string;
+
   /**
    * Gets referenced plugin classes for this instance.
    *

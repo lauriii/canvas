@@ -125,7 +125,6 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
     $definition = $this->componentPluginManager->getDefinition($source_specific_id);
     return [
       'label' => (string) ($definition['name'] ?? $definition['machineName']),
-      'category' => (string) $definition['category'],
     ];
   }
 

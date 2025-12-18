@@ -93,19 +93,17 @@ interface ComponentCandidatesDiscoveryInterface extends ContainerInjectionInterf
   public function computeInitialComponentStatus(string $source_specific_id): bool;
 
   /**
-   * Computes Component metadata that can change over time: label, category.
+   * Computes Component metadata that can change over time: label.
    *
    * @param ComponentSourceSpecificId $source_specific_id
    *
-   * @return array{'label': string, 'category': ?string, 'status'?: bool}
+   * @return array{'label': string, 'status'?: bool}
    *   Returns:
    *   - `label`: string
-   *   - `category`: string or NULL if no category
    *   - (optional) `status`: boolean — for ComponentSource plugins that need to
    *     be able to automatically disable components
    *
    * @see \Drupal\canvas\Entity\ComponentInterface::label()
-   * @see \Drupal\canvas\Entity\ComponentInterface::getCategory()
    * @see \Drupal\canvas\Entity\ComponentInterface::status()
    */
   public function computeCurrentComponentMetadata(string $source_specific_id): array;

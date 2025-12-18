@@ -226,6 +226,20 @@ class CanvasConfigUpdater {
     return $needs_updating;
   }
 
+  public function unsetComponentCategoryProperty(Component $component): bool {
+    if (!is_null($component->get('category'))) {
+      $component->set('category', NULL);
+      $deprecations_triggered = &$this->triggeredDeprecations['3549726'][$component->id()];
+      if ($this->deprecationsEnabled && !$deprecations_triggered) {
+        $deprecations_triggered = TRUE;
+        // phpcs:ignore
+        @trigger_error(\sprintf('%s with ID %s provides a category that will be ignored, this is deprecated in canvas:1.0.2 and will be removed in canvas:2.0.0. See https://www.drupal.org/node/3557215', $component->getEntityType()->getLabel(), $component->id()), E_USER_DEPRECATED);
+      }
+      return TRUE;
+    }
+    return FALSE;
+  }
+
   public function updatePropFieldDefinitionsWithRequiredFlag(Component $component) : bool {
     if (!$this->needsTrackingPropsRequiredFlag($component)) {
       return FALSE;

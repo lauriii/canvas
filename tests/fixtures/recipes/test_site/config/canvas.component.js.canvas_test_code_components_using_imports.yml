@@ -9,7 +9,6 @@ id: js.canvas_test_code_components_using_imports
 provider: null
 source: js
 source_local_id: canvas_test_code_components_using_imports
-category: '@todo'
 active_version: 8fe3be948e0194e1
 versioned_properties:
   active:

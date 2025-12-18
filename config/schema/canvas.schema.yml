@@ -77,17 +77,6 @@ canvas.component.*:
           - block
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
-    # Determines which Folder this Component will be placed in.
-    # @see \Drupal\canvas\Entity\Component::postSave()
-    # @todo Remove in https://www.drupal.org/i/3549726
-    category:
-      type: required_label
-      label: 'Category'
-      nullable: true
-      constraints:
-        # `""` is not allowed, but `null` is.
-        NotBlank:
-          allowNull: true
     versioned_properties:
       sequence:
         # There are 3 possible shapes for each sequence element:

@@ -64,7 +64,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    * {@inheritdoc}
    */
   protected static array $propertiesWithOptionalValues = [
-    'category',
     'provider',
   ];
 
@@ -103,7 +102,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     $this->entity = Component::create([
       'id' => 'sdc.canvas_test_sdc.my-cta',
-      'category' => 'Test',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'canvas_test_sdc:my-cta',
       'active_version' => '5c4a2f6c852fec27',
@@ -298,7 +296,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     assert($this->entity instanceof Component);
     $this->entity = Component::create([
       'id' => 'js.my-cta',
-      'category' => 'Test',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'my-cta',
       'active_version' => '7ff5230cdcc4e404',
@@ -328,7 +325,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     $this->entity = Component::create([
       'id' => 'block.system_branding_block',
-      'category' => 'Test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'system_branding_block',
       'active_version' => '7a2bdba02d8b7911',
@@ -449,20 +445,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @dataProvider providerTestCategory
-   */
-  public function testCategory(?string $category, array $errors): void {
-    $this->entity->set('category', $category);
-    $this->assertValidationErrors($errors);
-  }
-
-  public static function providerTestCategory(): \Generator {
-    yield 'valid string' => ['foo', []];
-    yield 'empty string' => ['', ['category' => 'This value should not be blank.']];
-    yield 'null' => [NULL, []];
-  }
-
-  /**
    * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentStatusConstraintValidator
    * @todo Consider moving this (and its sibling ::testStatusWithBlock()) to
    *   \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase in https://www.drupal.org/project/canvas/issues/3561271.
@@ -519,7 +501,6 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'block.node_syndicate_block',
       'status' => FALSE,
       'label' => 'Test',
-      'category' => 'test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'node_syndicate_block',
       'active_version' => '8d6f197567cc882e',

@@ -675,7 +675,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'label' => 'Component with an invalid source-defined slot',
       'source' => InvalidSlots::PLUGIN_ID,
       'source_local_id' => InvalidSlots::PLUGIN_ID,
-      'category' => 'Test',
       'active_version' => 'ccab0b28617f1f56',
     ])->save();
 

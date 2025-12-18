@@ -205,23 +205,6 @@ Nothing yet, this will change when we [support other `component type`s later](ht
 
 ### 3.6 Categorization
 
-Each `component` can be categorized in order to group them in the UI. Some `component type`s have shared categories, as follows:
-
-```mermaid
-stateDiagram-v2
-classdef source color:white,fill:purple
-
-state "JavaScript component" as JavaScript
-state "Theme component" as Theme
-state "Theme component categories" as ThemeCat
-state "Module component" as Module
-state "Module component categories" as ModuleCat
-state "Element categories" as ElementCat
-state "Block categories" as BlockCat
-
-JavaScript:::source --> ThemeCat
-Theme:::source --> ThemeCat
-Module:::source --> ModuleCat
-Element:::source --> ElementCat
-Block:::source --> BlockCat
-```
+Each `component` can be placed in a folder to group them in the UI. The initial folder is determined by each `Component Source Plugin`.
+E.g. `SDC` `component`s are using the `group` property in their metadata.
+See `\Drupal\canvas\ComponentSource\ComponentSourceInterface::determineDefaultFolder()`

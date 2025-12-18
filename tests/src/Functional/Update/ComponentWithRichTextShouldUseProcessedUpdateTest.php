@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\canvas\Entity\Component;
 
 /**
- * @covers canvas_post_update_0004_use_processed_for_text_props_in_components()
+ * @covers canvas_post_update_0005_use_processed_for_text_props_in_components()
  * @group canvas
  */
 final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpdatePathTestBase {

@@ -67,6 +67,16 @@ final class SingleDirectoryComponent extends GeneratedFieldExplicitInputUxCompon
     return FALSE;
   }
 
+  public function determineDefaultFolder(): string {
+    $plugin_definition = $this->getComponentPlugin()->getPluginDefinition();
+    assert(is_array($plugin_definition));
+    // TRICKY: SDCs metadata specifies `group`, but gets exposed as `category`.
+    // @see \Drupal\Core\Theme\ComponentPluginManager::processDefinitionCategory()
+    assert(!empty($plugin_definition['category']));
+
+    return (string) $plugin_definition['category'];
+  }
+
   /**
    * {@inheritdoc}
    */

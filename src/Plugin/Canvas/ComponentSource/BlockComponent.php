@@ -127,6 +127,14 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     return $this->getBlockPlugin() instanceof Broken;
   }
 
+  public function determineDefaultFolder(): string {
+    $plugin_definition = $this->getBlockPlugin()->getPluginDefinition();
+    assert(is_array($plugin_definition));
+    assert(!empty($plugin_definition['category']));
+
+    return (string) $plugin_definition['category'];
+  }
+
   /**
    * {@inheritdoc}
    */
