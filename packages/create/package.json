@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/create",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "CLI to scaffold a codebase for working with Drupal Canvas Code Components",
   "license": "GPL-2.0-or-later",
   "repository": {
