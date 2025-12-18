@@ -16,6 +16,7 @@ process.on('SIGTERM', () => process.exit(0));
 
 interface CreateOptions {
   template?: string;
+  ref?: string;
 }
 
 const program = new Command();
@@ -23,10 +24,14 @@ program
   .name(getName())
   .description(getDescription())
   .version(getVersion())
-  .argument('[app-name]', 'Name of the app to create')
+  .argument('[app-name]', 'name of the app to create')
   .option(
     '-t, --template <template>',
-    'Template to use when scaffolding the app',
+    'use template when scaffolding (predefined name or custom Git repository URL)',
+  )
+  .option(
+    '-r, --ref <ref>',
+    'use Git ref when cloning template repository (for example, branch name or tag)',
   )
   .action(async (appNameArg: string | undefined, options: CreateOptions) => {
     p.intro(chalk.bold('Drupal Canvas Create'));
@@ -37,7 +42,26 @@ program
         const template = (templates as Template[]).find(
           (t) => t.id === options.template,
         );
-        if (!template) {
+        const isCustomRepositoryUrl = [
+          // Remote repositories.
+          'https://',
+          'http://',
+          'git@',
+          // Local repositories.
+          '../',
+          './',
+          '/',
+        ].some((prefix) => options.template?.startsWith(prefix));
+        if (!template && isCustomRepositoryUrl) {
+          templates.push({
+            id: options.template,
+            label: options.template,
+            repository: {
+              url: options.template,
+              ref: 'HEAD',
+            },
+          });
+        } else if (!template) {
           p.log.error(`Template "${options.template}" not found`);
           process.exit(1);
         }
@@ -102,6 +126,11 @@ program
       const template = (templates as Template[]).find(
         (t) => t.id === templateId,
       ) as Template;
+
+      // Set the ref if provided via flag.
+      if (options.ref) {
+        template.repository.ref = options.ref;
+      }
 
       // Display the template and app name.
       p.note(`Template: ${template.label}\nApp name: ${appName}`);

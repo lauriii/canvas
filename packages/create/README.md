@@ -30,9 +30,10 @@ npx @drupal-canvas/create@latest my-app
 
 ### Options
 
-| Option          | Description                                                               |
-| --------------- | ------------------------------------------------------------------------- |
-| `--template -t` | Template to use when scaffolding the app. Available: `canvas-cc-starter`. |
+| Option          | Description                                                                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--template -t` | Template to use when scaffolding the app. One of the predefined templates (currently available: `canvas-cc-starter`) or URL to custom template's Git repository. |
+| `--ref <ref>`   | Custom Git ref to use when cloning the template repository. For example, a branch name or a tag.                                                                 |
 
 ### Example
 
