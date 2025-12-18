@@ -25,6 +25,8 @@ use Drupal\Core\Update\UpdateKernel;
  * @see \Drupal\canvas\Attribute\ComponentSource
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface
  * @see \Drupal\canvas\ComponentSource\ComponentSourceBase
+ *
+ * @phpstan-import-type ComponentSourceSpecificId from \Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface
  */
 final class ComponentSourceManager extends DefaultPluginManager {
 
@@ -64,9 +66,17 @@ final class ComponentSourceManager extends DefaultPluginManager {
   /**
    * Generates Component config entities for all eligible discovered components.
    *
+   * @param string|null $source_id
+   *   (optional) A ComponentSource plugin ID. If omitted, will (re)generate
+   *   Component config entities for all ComponentSource plugins.
+   * @param list<string>|null $source_specific_ids
+   *   (optional) A list of source-specific IDs in the given $source_id. If
+   *   omitted, will (re)generate Component config entities for all components.
+   *
    * @return $this
    */
-  public function generateComponents(): self {
+  public function generateComponents(?string $source_id = NULL, ?array $source_specific_ids = NULL): self {
+    \assert($source_specific_ids === NULL || \array_is_list($source_specific_ids));
     if ($this->isUpdateKernel) {
       return $this;
     }
@@ -78,23 +88,50 @@ final class ComponentSourceManager extends DefaultPluginManager {
       return $this;
     }
 
+    $source_definitions = $this->getDefinitions();
+    if ($source_id !== NULL) {
+      // Filter the set of definitions down to just the one that was asked for,
+      // if any.
+      $source_definitions = array_filter($source_definitions, fn($key) => $key === $source_id, ARRAY_FILTER_USE_KEY);
+    }
+
     $existing_components = Component::loadMultiple();
     \assert(Inspector::assertAllObjects($existing_components, Component::class));
-    foreach ($this->getDefinitions() as $source_id => $definition) {
+    foreach ($source_definitions as $source_definition_id => $definition) {
       if ($definition['discovery'] === FALSE) {
         continue;
       }
       // @todo use static cache
       $discovery = $this->classResolver->getInstanceFromDefinition($definition['discovery']);
       \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
-      $this->generateComponentsForSource($source_id, $discovery, $existing_components);
+      $this->generateComponentsForSource($source_definition_id, $discovery, $existing_components, $source_specific_ids);
     }
     return $this;
   }
 
-  private function generateComponentsForSource(string $source_id, ComponentCandidatesDiscoveryInterface $discovery, array $existing_components): void {
+  /**
+   * Generates a new Component entity or new version on it if it already exists.
+   *
+   * @param string $source_id
+   *   A ComponentSource plugin ID.
+   * @param \Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface $discovery
+   *   The discovery object for this component source plugin.
+   * @param array<Component> $existing_components
+   *   The already existing Component entities, keyed by ID, so we know when we
+   *   create a new one or a new version for an existing one.
+   * @param list<ComponentSourceSpecificId>|null $source_specific_ids
+   *   (optional) A list of source-specific IDs in the given $source_id. If
+   *   omitted, will (re)generate Component config entities for all components.
+   */
+  private function generateComponentsForSource(string $source_id, ComponentCandidatesDiscoveryInterface $discovery, array $existing_components, ?array $source_specific_ids = NULL): void {
+    \assert($source_specific_ids === NULL || \array_is_list($source_specific_ids));
     // Discover and check requirements.
     $component_ids = array_keys($discovery->discover());
+    if ($source_specific_ids !== NULL) {
+      // Filter the discovered component IDs down to just those that were asked
+      // for, if any.
+      $component_ids = array_intersect($component_ids, $source_specific_ids);
+    }
     $eligible_component_ids = [];
     foreach ($component_ids as $source_specific_component_id) {
       try {
@@ -175,6 +212,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
       }
 
       $component = $existing_components[$component_id];
+      // @phpstan-ignore-next-line booleanNot.alwaysTrue, function.alreadyNarrowedType
       \assert($component instanceof ComponentInterface);
       $needs_update = FALSE;
 

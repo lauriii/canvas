@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -48,7 +49,7 @@ final class JavascriptComponentStorage extends CanvasAssetStorage {
     if ($this->configInstaller->isSyncing()) {
       return;
     }
-    $this->componentSourceManager->generateComponents();
+    $this->componentSourceManager->generateComponents(JsComponent::SOURCE_PLUGIN_ID, [$entity->id()]);
   }
 
 }

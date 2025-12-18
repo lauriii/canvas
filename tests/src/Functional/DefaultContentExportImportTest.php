@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -98,11 +99,18 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     self::assertInstanceOf(PersistentPropShapeRepository::class, $propShapeRepository);
     // Trigger a cache-write in PropShapeRepository - this happens on kernel
     // shutdown normally, but in a test we need to call it manually. This is
-    // necessary to update all cached prop shapes, along with Components that
-    // are affected by any changes to the prop shapes (which in turn can affect
-    // what information the default content subscriber can get from the
-    // components it exports, including information about dependencies).
+    // necessary to update all cached prop shapes.
     $propShapeRepository->destruct();
+    // But that would trigger an update to Component entities that are affected
+    // by any changes to the prop shapes, which in turn can affect what
+    // information the default content subscriber can get from the component
+    // instances it exports, including information about dependencies.
+
+    // That's not happening here because we don't have separate requests, so we
+    // force it manually. We also know that only the Component entity for the SDC
+    // `canvas_test_sdc:image` is affected, amongst the component entities we
+    // care about.
+    $this->container->get(ComponentSourceManager::class)->generateComponents('sdc', ['canvas_test_sdc:image']);
 
     $saved_component_values = [
       'machineName' => 'hey_there',
@@ -320,10 +328,14 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
 
     // Ensure all the entities were exported.
     $all_uuids = array_column($exported_entity_info, 'uuid');
+    // While doing that, generate debug strings, as this has been hard to debug
+    // when failing. So we can check (UUID, entity type) pairs on test output.
+    $all_uuids_debug_string = var_export(array_combine($all_uuids, array_column($exported_entity_info, 'entity_type')), TRUE);
     sort($all_uuids);
     $actual_export_uuids = array_keys($finder->data);
+    $actual_export_uuids_debug_string = var_export(array_combine(array_keys($finder->data), array_map(fn($data) => $data['_meta']['entity_type'], $finder->data)), TRUE);
     sort($actual_export_uuids);
-    self::assertEquals($all_uuids, $actual_export_uuids);
+    self::assertEquals($all_uuids, $actual_export_uuids, $all_uuids_debug_string . ' vs ' . $actual_export_uuids_debug_string);
 
     // Re-import the content we just deleted.
     $this->container->get(Importer::class)->importContent($finder);
