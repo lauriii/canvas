@@ -213,6 +213,27 @@ trait SingleDirectoryComponentTreeTestTrait {
           ],
         ],
       ],
+      'inputs invalid, using only static inputs with a StaticPropSource deviating from that defined in the referenced Component entity version' => [
+        [
+          [
+            'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'b1e991f726a2a266',
+            'inputs' => [
+              'heading' => [
+                // Prop `heading` expects a `static:field_item:string` instead.
+                'sourceType' => 'static:field_item:link',
+                'value' => [
+                  'uri' => 'https://drupal.org',
+                  'title' => NULL,
+                  'options' => [],
+                ],
+                'expression' => 'ℹ︎link␟url',
+              ],
+            ],
+          ],
+        ],
+      ],
       'missing inputs key' => [
         [
           [

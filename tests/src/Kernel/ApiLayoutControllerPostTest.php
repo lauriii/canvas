@@ -445,7 +445,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   /**
    * @dataProvider providerEntityTypes
    */
-  public function testWithDraftCodeComponent(string $entity_type): void {
+  public function testWithCodeComponent(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
 
@@ -487,10 +487,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ];
     $code_component->set('props', $props);
     $code_component->set('name', 'Here comes the');
-    // But store an overridden version in auto-save (draft).
-    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    $autoSave->saveEntity($code_component);
+    $code_component->save();
 
     // Load the test data from the layout controller.
     $url = $this->getLayoutUrl($entity)->toString();

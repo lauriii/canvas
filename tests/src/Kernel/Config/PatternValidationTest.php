@@ -73,11 +73,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_version' => '8c01a2bdb897a810',
           'inputs' => [
             'text' => $generate_static_prop_source('heading level three'),
-            'element' => [
-              'sourceType' => 'static:field_item:list_string',
-              'value' => 'h3',
-              'expression' => 'ℹ︎list_string␟value',
-            ],
+            'element' => 'h3',
           ],
         ],
         [

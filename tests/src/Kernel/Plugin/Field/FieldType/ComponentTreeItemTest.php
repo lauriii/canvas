@@ -513,8 +513,15 @@ class ComponentTreeItemTest extends KernelTestBase {
       'field_canvas_test.2' => "The 'dynamic' prop source type must be absent.",
     ];
     $test_cases['inputs invalid, using dynamic inputs'][] = ['access content'];
-    $test_cases['inputs invalid, using only static inputs'][] = [
-      \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
+
+    // If inputs are invalid, we get an OutOfRangeException thrown.
+    $test_cases['inputs invalid, using only static inputs'][] = [];
+    $test_cases['inputs invalid, using only static inputs'][] = [];
+    $test_cases['inputs invalid, using only static inputs'][] = \OutOfRangeException::class;
+    $test_cases['inputs invalid, using only static inputs'][] = "'heading-x' is not a prop on this version of the Component 'Single-directory component: <em class=\"placeholder\">Canvas test SDC with props but no slots</em>'.";
+
+    $test_cases['inputs invalid, using only static inputs with a StaticPropSource deviating from that defined in the referenced Component entity version'][] = [
+      \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-no-slots</em> at version <em class="placeholder">b1e991f726a2a266</em>.',
     ];
     $test_cases['missing inputs key'][] = [
       \sprintf('field_canvas_test.0.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The required properties are missing.',
@@ -537,10 +544,13 @@ class ComponentTreeItemTest extends KernelTestBase {
    * @coversClass \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
    * @param array $field_values
    * @param array $expected_violations
+   * @param list<string> $permissions
+   * @param ?class-string<\Throwable> $expected_exception
+   * @param ?string $exception_message
    *
    * @dataProvider providerInvalidField
    */
-  public function testInvalidField(array $field_values, array $expected_violations, array $permissions = []): void {
+  public function testInvalidField(array $field_values, array $expected_violations, array $permissions = [], ?string $expected_exception = NULL, ?string $exception_message = NULL): void {
     $this->setUpCurrentUser(permissions: $permissions);
     $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
     $node = Node::create([
@@ -548,6 +558,11 @@ class ComponentTreeItemTest extends KernelTestBase {
       'type' => 'article',
       'field_canvas_test' => $field_values,
     ]);
+    if ($expected_exception !== NULL) {
+      $this->expectException($expected_exception);
+      assert(is_string($exception_message));
+      $this->expectExceptionMessage($exception_message);
+    }
     $violations = $node->validate();
     $this->assertSame($expected_violations, self::violationsToArray($violations));
   }

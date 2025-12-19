@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
+use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\canvas\MissingComponentInputsException;
@@ -87,15 +88,6 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     // @see https://en.wikipedia.org/wiki/Robustness_principle
     try {
       $stored_explicit_input = $value->get('inputs')->getValues();
-      // We don't allow uncollapsed inputs.
-      $before_optimize = \hash('xxh64', \json_encode($stored_explicit_input, \JSON_THROW_ON_ERROR));
-      $value->optimizeInputs();
-      $after_optimize = \hash('xxh64', \json_encode($value->getInputs(), \JSON_THROW_ON_ERROR));
-      if ($after_optimize !== $before_optimize) {
-        $this->context->buildViolation('When using the default static prop source for a component input, you must use the collapsed input syntax.')
-          ->atPath(sprintf('inputs.%s', $value->getUuid()))
-          ->addViolation();
-      }
     }
     catch (MissingComponentInputsException $e) {
       if ($component_source->requiresExplicitInput()) {
@@ -108,6 +100,31 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
         // Fall back to empty input.
         $stored_explicit_input = [];
       }
+    }
+
+    // Also add a violation error if the inputs contain static prop sources that
+    // deviate from those for the Component entity at the referenced version.
+    try {
+      $value->optimizeInputs();
+    }
+    catch (InvalidComponentInputsPropSourceException) {
+      $this->context->buildViolation(
+        'Using a static prop source that deviates from the configuration for Component %component_id at version %component_version.',
+        [
+          '%component_id' => $value->getComponentId(),
+          '%component_version' => $value->getComponentVersion(),
+        ])
+        ->atPath(sprintf('inputs.%s', $value->getUuid()))
+        ->addViolation();
+    }
+    // Don't allow uncollapsed inputs for StaticPropSources.
+    $before_optimize = \hash('xxh64', \json_encode($stored_explicit_input, \JSON_THROW_ON_ERROR));
+    $after_optimize = \hash('xxh64', \json_encode($value->getInputs(), \JSON_THROW_ON_ERROR));
+    if ($after_optimize !== $before_optimize) {
+      // @todo Document this at https://www.drupal.org/i/3564135
+      $this->context->buildViolation('When using the default static prop source for a component input, you must use the collapsed input syntax.')
+        ->atPath(sprintf('inputs.%s', $value->getUuid()))
+        ->addViolation();
     }
 
     assert(is_array($stored_explicit_input));

@@ -6,7 +6,10 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
 
+use Drupal\canvas\ComponentSource\ComponentSourceBase;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
@@ -36,7 +39,6 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\media\Entity\MediaType;
@@ -970,6 +972,30 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     ], $this->callSourceMethodForEach('calculateDependencies', $component_ids));
   }
 
+  protected function alterEnvironmentForCrashTestDummyComponentTree(string $component_id, array $inputs): void {
+    // The test case that tries to pass a string where an integer is needed.
+    if (\array_key_exists('age', $inputs) && $inputs['age'] === "It's rude to ask") {
+      $component = Component::load($component_id);
+      self::assertInstanceOf(Component::class, $component);
+      self::assertCount(1, $component->getVersions());
+      $new_settings = $component->getSettings();
+      self::assertSame('integer', $new_settings['prop_field_definitions']['age']['field_type']);
+      $new_settings['prop_field_definitions']['age']['field_type'] = 'string';
+      $new_settings['prop_field_definitions']['age']['default_value'][0] = ['value' => 'Oh hi'];
+      $new_settings['prop_field_definitions']['age']['expression'] = 'ℹ︎string␟value';
+      $new_settings['prop_field_definitions']['age']['field_widget'] = 'string_textfield';
+      $source = $this->container->get(ComponentSourceManager::class)->createInstance(JsComponent::SOURCE_PLUGIN_ID, [
+        'local_source_id' => JsComponentDiscovery::getSourceSpecificComponentId($component_id),
+        ...$new_settings,
+      ]);
+      \assert($source instanceof ComponentSourceBase);
+      $component->createVersion($source->generateVersionHash())
+        ->setSettings($new_settings)
+        ->save();
+      self::assertCount(2, $component->getVersions());
+    }
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -1000,14 +1026,10 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'expected_output_selector' => NULL,
     ];
 
-    yield "JS Component with invalid props, validation error" => [
+    yield "JS Component with invalid props (wrong shape: string instead of integer!), validation error" => [
       'component_id' => $component_id,
       'inputs' => [
-        'age' => [
-          'sourceType' => "static:field_item:string",
-          'value' => "It's rude to ask",
-          'expression' => (string) new FieldTypePropExpression('string', 'value'),
-        ],
+        'age' => "It's rude to ask",
         'name' => 'Tilly',
       ],
       'expected_validation_errors' => [
@@ -1015,7 +1037,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'expected_exception' => NULL,
       // JsComponents can recover from invalid inputs.
-      'expected_output_selector' => \sprintf('canvas-island[uid="%s"]', self::UUID_CRASH_TEST_DUMMY),
+      'expected_output_selector' => \sprintf('canvas-island[uid="%s"][props*="Tilly"]', self::UUID_CRASH_TEST_DUMMY),
     ];
 
     yield "JS Component with missing props, validation error" => [

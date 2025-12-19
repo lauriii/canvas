@@ -219,7 +219,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    */
   public static function getSourceSpecificComponentId(string $component_id): string {
     $prefix = BlockComponent::SOURCE_PLUGIN_ID . '.';
-    \assert(str_starts_with($prefix, $component_id));
+    \assert(str_starts_with($component_id, $prefix));
     return str_replace('.', PluginBase::DERIVATIVE_SEPARATOR, substr($component_id, strlen($prefix)));
   }
 

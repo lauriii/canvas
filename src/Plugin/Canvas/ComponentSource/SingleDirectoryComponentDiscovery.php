@@ -151,7 +151,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    */
   public static function getSourceSpecificComponentId(string $component_id): string {
     $prefix = SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.';
-    \assert(str_starts_with($prefix, $component_id));
+    \assert(str_starts_with($component_id, $prefix));
     return str_replace('.', ':', substr($component_id, strlen($prefix)));
   }
 

@@ -132,8 +132,9 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     $item_list = $this->createDanglingComponentTreeItemList();
 
     // Create test data.
+    $uuid_of_component_instance_with_invalid_static_prop_source = $uuid->generate();
     $item_list->appendItem([
-      'uuid' => $uuid->generate(),
+      'uuid' => $uuid_of_component_instance_with_invalid_static_prop_source,
       'component_id' => 'sdc.canvas_test_sdc.heading',
       'inputs' => [
         'text' => 'Test Title',
@@ -183,6 +184,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     // these validation errors.
     // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::staticallyCreateDanglingComponentTreeItemList()
     self::assertSame([
+      "0.inputs.$uuid_of_component_instance_with_invalid_static_prop_source" => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.heading</em> at version <em class="placeholder">8c01a2bdb897a810</em>.',
       2 => "The 'dynamic' prop source type must be absent.",
       3 => "The 'dynamic' prop source type must be absent.",
     ], self::violationsToArray($item_list->validate()));

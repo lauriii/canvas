@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+/**
+ * @see \Drupal\canvas\InvalidComponentInputsPropSourceException
+ */
 class MissingComponentInputsException extends \OutOfRangeException {
 
   public function __construct(

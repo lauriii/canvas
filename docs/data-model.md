@@ -223,6 +223,51 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 ],
 ```
 
+The above is the _runtime_ representation.
+
+The _stored_ representation is optimized for compactness, and each `ComponentSource` is the authority for how to
+optimize the stored data. For example:
+- `ComponentSource`s whose explicit inputs are populated by `StaticPropSource`s can decide that all instances of some
+  `component version` must use the exact same `StaticPropSource`. That enables them to store only the value inside the
+  `StaticPropSource`, and load the metadata when needed. Result: see below.
+- The `Block` `ComponentSource` _could_ (but does not yet at the time of writing) choose to omit `label` and
+  `label_display` settings (which exist for _every_ block plugin), because it's forcing it to not have a label anyway.
+
+```php
+[
+  'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+  'component_id' => 'sdc.canvas_test_sdc.props-slots',
+  'component_version' => '85a5c0c7dd53e0bb',
+  'inputs' => [
+    // Note how much simpler this is compared to the runtime representation above.
+    'heading' => "Hello, world!",
+  ],
+],
+[
+  'uuid' => '3b305d86-86a7-4684-8664-7ef1fc2be070',
+  'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+  'component_version' => 'b1e991f726a2a266',
+  'parent_uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+  'slot' => 'the_body',
+  'inputs' => [
+    // Note how much simpler this is compared to the runtime representation above.
+    'heading' => "It's me!",
+  ],
+  [
+    'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
+    'component_id' => 'block.system_branding_block',
+    'component_version' => '247a23298360adb2',
+    'inputs' => [
+      'label' => '',
+      'label_display' => FALSE,
+      'use_site_logo' => TRUE,
+      'use_site_name' => TRUE,
+      'use_site_slogan' => TRUE,
+    ],
+  ],
+],
+```
+
 #### 3.2.3 Validation
 
 Assuming the _tree_ column groups (`uuid`, `component_id`, `parent_uuid` and `slot`) has already been validated, a `component tree` described in an `Canvas field` then is valid

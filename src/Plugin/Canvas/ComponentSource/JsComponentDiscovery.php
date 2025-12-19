@@ -140,7 +140,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
    */
   public static function getSourceSpecificComponentId(string $component_id): string {
     $prefix = JsComponent::SOURCE_PLUGIN_ID . '.';
-    \assert(str_starts_with($prefix, $component_id));
+    \assert(str_starts_with($component_id, $prefix));
     return substr($component_id, strlen($prefix));
   }
 

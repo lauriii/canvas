@@ -99,21 +99,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'component_id' => 'sdc.canvas_test_sdc.my-hero',
         'component_version' => 'a681ae184a8f6b7f',
         'inputs' => [
-          'heading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'hello, world!',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'subheading' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => 'this is a subheading',
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'cta1href' => [
-            'sourceType' => 'static:field_item:uri',
-            'value' => 'https://drupal.org',
-            'expression' => 'ℹ︎uri␟value',
-          ],
+          'heading' => 'hello, world!',
+          'subheading' => 'this is a subheading',
+          'cta1href' => ['uri' => 'https://drupal.org'],
         ],
       ],
       // Add a component with a pre-existing dynamic property source to ensure

@@ -381,6 +381,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       $this->assertCount($this->expectedDefaultComponentInstallCount, $this->componentStorage->loadMultiple());
       $this->generateComponentConfig();
     }
+    $this->alterEnvironmentForCrashTestDummyComponentTree($component_id, $inputs);
 
     $field_item = $this->createDanglingComponentTreeItemList();
     $field_item->setValue([
@@ -425,10 +426,16 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     return $field_item;
   }
 
+  protected function alterEnvironmentForCrashTestDummyComponentTree(string $component_id, array $inputs): void {
+    // No-op by default. For some test, environment alterations may be needed.
+  }
+
   /**
    * @dataProvider providerRenderComponentFailure
    *
    * @phpstan-param array{'class': string, 'message': string}|NULL $expected_exception
+   *
+   * @see ::alterEnvironmentForCrashTestDummyComponentTree()
    */
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
     $this->setUpCurrentUser(permissions: ['view media']);
@@ -699,16 +706,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
         'inputs' => [
           // Give it some inputs we can assert still exist when the fallback
           // conditions are triggered.
-          'text' => [
-            'sourceType' => 'static:field_item:string',
-            'value' => \sprintf('This is %s', $slot),
-            'expression' => 'ℹ︎string␟value',
-          ],
-          'element' => [
-            'sourceType' => 'static:field_item:list_string',
-            'value' => 'h1',
-            'expression' => 'ℹ︎list_string␟value',
-          ],
+          'text' => \sprintf('This is %s', $slot),
+          'element' => 'h1',
         ],
       ];
     }

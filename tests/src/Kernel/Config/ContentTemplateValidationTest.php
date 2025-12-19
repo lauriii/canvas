@@ -105,16 +105,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_id' => 'sdc.canvas_test_sdc.my-cta',
           'component_version' => '89881c04a0fde367',
           'inputs' => [
-            'text' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'This is really tricky for a first-timer',
-              'expression' => 'ℹ︎string␟value',
-            ],
-            'href' => [
-              'sourceType' => 'static:field_item:uri',
-              'value' => 'https://drupal.org',
-              'expression' => 'ℹ︎uri␟value',
-            ],
+            'text' => 'This is really tricky for a first-timer',
+            'href' => 'https://drupal.org',
           ],
           'label' => Random::string(255),
         ],
@@ -148,11 +140,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_id' => 'sdc.canvas_test_sdc.my-cta',
           'component_version' => '89881c04a0fde367',
           'inputs' => [
-            'text' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Behold this node in all its glory',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'text' => 'Behold this node in all its glory',
             'href' => [
               'sourceType' => 'host-entity-url',
             ],
@@ -177,11 +165,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'There be a slot here',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'There be a slot here',
           ],
         ],
       ],
@@ -210,9 +194,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'field.field.node.alpha.field_test',
           'node.type.alpha',
         ],
-        'module' => [
-          'node',
-        ],
+        'module' => ['link', 'node'],
       ],
       $this->entity->getDependencies()
     );
@@ -230,10 +212,10 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'field.storage.node.field_test',
       ],
       'module' => [
+        'link',
         'node',
         'canvas',
         'system',
-        'link',
         'options',
         'canvas_test_sdc',
         'core',

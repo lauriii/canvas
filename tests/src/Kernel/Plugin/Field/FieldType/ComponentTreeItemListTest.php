@@ -5,17 +5,6 @@ declare(strict_types=1);
 // cspell:ignore vlaquxuup
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
-use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
-use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\PropSource\PropSourceBase;
-use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Access\AccessResultAllowed;
-use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -25,7 +14,16 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Exception\SubtreeInjectionException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Access\AccessResultAllowed;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -69,6 +67,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
     'system',
     'user',
     'serialization',
+    'canvas_test_entity_reference_shape_alter',
   ];
 
   /**
@@ -153,6 +152,9 @@ class ComponentTreeItemListTest extends KernelTestBase {
     // Make it easier to write expectations containing root-relative URLs
     // pointing somewhere into the site-specific directory.
     $html = str_replace($vfs_site_base_url, '::SITE_DIR_BASE_URL::', $html);
+    // Strip trailing whitespace to make heredocs easier to write.
+    $html = preg_replace('/^\s+/m', '', $html);
+    $expected_html = preg_replace('/^\s+/m', '', $expected_html);
     $this->assertSame($expected_html, $html);
     $this->assertSame($expected_cache_tags, array_values(CacheableMetadata::createFromRenderArray($renderable)->getCacheTags()));
   }
@@ -752,22 +754,13 @@ HTML,
         ],
         [
           'uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
-          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_id' => 'sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
           'parent_uuid' => 'e0b92f23-c177-4196-8fa4-3e837f99a357',
           'slot' => 'the_body',
           'inputs' => [
             'heading' => [
-              'sourceType' => PropSource::Static->value . PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR . 'field_item:entity_reference',
-              'value' => [
                 // @see ::testHydrationAndRendering()
-                'target_id' => 1103448,
-              ],
-              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:user␝name␞␟value',
-              'sourceTypeSettings' => [
-                'storage' => [
-                  'target_type' => 'user',
-                ],
-              ],
+              'target_id' => 1103448,
             ],
           ],
         ],
@@ -833,7 +826,7 @@ HTML,
                               ],
                             ],
                             '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97' => [
-                              'component' => 'sdc.canvas_test_sdc.props-no-slots',
+                              'component' => 'sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
                               'props' => [
                                 'heading' => new EvaluationResult(
                                   'Clurichaun',
@@ -1169,14 +1162,14 @@ HTML,
                                       '#cache' => [
                                         'tags' => [
                                           'user:1103448',
-                                          'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
+                                          'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
                                         ],
                                         'contexts' => [
                                           'user.permissions',
                                         ],
                                         'max-age' => Cache::PERMANENT,
                                       ],
-                                      '#component' => 'canvas_test_sdc:props-no-slots',
+                                      '#component' => 'canvas_test_entity_reference_shape_alter:props-no-slots',
                                       '#props' => [
                                         'heading' => 'Clurichaun',
                                         'canvas_uuid' => '9f09ecd8-ec65-408c-b5c8-ef036e6aeb97',
@@ -1187,7 +1180,7 @@ HTML,
                                       '#suffix' => Markup::create('<!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 -->'),
                                       '#attached' => [
                                         'library' => [
-                                          'core/components.canvas_test_sdc--props-no-slots',
+                                          'core/components.canvas_test_entity_reference_shape_alter--props-no-slots',
                                         ],
                                       ],
                                     ],
@@ -1274,7 +1267,7 @@ HTML,
       renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
       props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
       ssr="" client="only"
-      opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
 </div>
 <!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
@@ -1309,13 +1302,14 @@ HTML,
       'expected_cache_tags' => [
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'user:1103448',
-        'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
+        'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
         'config:canvas.js_component.my-cta-with-auto-save',
         'config:canvas.component.js.my-cta-with-auto-save',
         'config:canvas.js_component.my-cta',
         'config:canvas.component.js.my-cta',
         'config:system.site',
         'config:canvas.component.block.system_branding_block',
+        'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       ],
     ];
 
@@ -1342,7 +1336,10 @@ HTML,
       '#component',
     ];
 
-    yield 'component tree with complex nesting' => [...self::removePrefixSuffix($component_tree_with_complex_nesting), 'isPreview' => FALSE];
+    yield 'component tree with complex nesting' => [
+      ...self::removePrefixSuffix($component_tree_with_complex_nesting),
+      'isPreview' => FALSE,
+    ];
     yield 'component tree with complex nesting in preview' => [
       ...self::overwriteRenderableExpectations(
         self::modifyExpectationFromLiveToPreview($component_tree_with_complex_nesting, TRUE),
@@ -1352,7 +1349,10 @@ HTML,
             'value' => 'My Code Component with Auto-Save - Draft',
           ],
           [
-            'parents' => [...$path_to_auto_saved_js_component, '#component_url'],
+            'parents' => [
+              ...$path_to_auto_saved_js_component,
+              '#component_url',
+            ],
             'value' => '/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save',
           ],
           [
@@ -1389,73 +1389,73 @@ HTML,
         ],
       ),
       'expected_html' => <<<HTML
-<!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- canvas-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
-  <div class="component--props-slots--body">
-        <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- canvas-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading -->Hello, from slot level 1!<!-- canvas-prop-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading --></h1>
-  <div class="component--props-slots--body">
-        <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body --><!-- canvas-start-e0b92f23-c177-4196-8fa4-3e837f99a357 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-e0b92f23-c177-4196-8fa4-3e837f99a357/heading -->Hello, from slot level 2!<!-- canvas-prop-end-e0b92f23-c177-4196-8fa4-3e837f99a357/heading --></h1>
-  <div class="component--props-slots--body">
-        <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body --><!-- canvas-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><div  data-component-id="canvas_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading -->Hello, from slot level 3!<!-- canvas-prop-end-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading --></h1>
-</div>
-<!-- canvas-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><!-- canvas-start-68167e4a-9245-41be-b564-f1e1dcad1dec --><div id="block-68167e4a-9245-41be-b564-f1e1dcad1dec">
+     <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-41595148-e5c1-4873-b373-be3ae6e21340/heading -->Hello, world!<!-- canvas-prop-end-41595148-e5c1-4873-b373-be3ae6e21340/heading --></h1>
+      <div class="component--props-slots--body">
+            <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_body --><!-- canvas-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading -->Hello, from slot level 1!<!-- canvas-prop-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/heading --></h1>
+      <div class="component--props-slots--body">
+            <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body --><!-- canvas-start-e0b92f23-c177-4196-8fa4-3e837f99a357 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-e0b92f23-c177-4196-8fa4-3e837f99a357/heading -->Hello, from slot level 2!<!-- canvas-prop-end-e0b92f23-c177-4196-8fa4-3e837f99a357/heading --></h1>
+      <div class="component--props-slots--body">
+            <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body --><!-- canvas-start-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><div  data-component-id="canvas_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading -->Hello, from slot level 3!<!-- canvas-prop-end-81c63cac-187d-4f05-8acc-1c38fb2489d3/heading --></h1>
+     </div>
+     <!-- canvas-end-81c63cac-187d-4f05-8acc-1c38fb2489d3 --><!-- canvas-start-68167e4a-9245-41be-b564-f1e1dcad1dec --><div id="block-68167e4a-9245-41be-b564-f1e1dcad1dec">
 
 
-          <a href="/" rel="home">Canvas Test Site</a>
-    Drupal Canvas Test Site
-</div>
-<!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
-      component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta"
-      component-export="default"
-      renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-      props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
-      ssr="" client="only"
-      opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
-      component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
-      component-export="default"
-      renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
-      props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
-      ssr="" client="only"
-      opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
-  <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
-</div>
-<!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
-    </div>
-  <div class="component--props-slots--footer">
-        <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
-    </div>
-  <div class="component--props-slots--colophon">
-        <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
-    </div>
-</div>
-<!-- canvas-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
-    </div>
-  <div class="component--props-slots--footer">
-        <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
-    </div>
-  <div class="component--props-slots--colophon">
-        <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
-    </div>
-</div>
-<!-- canvas-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
-    </div>
-  <div class="component--props-slots--footer">
-        <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
-    </div>
-  <div class="component--props-slots--colophon">
-        <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
-    </div>
-</div>
-<!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
-HTML,
+              <a href="/" rel="home">Canvas Test Site</a>
+        Drupal Canvas Test Site
+     </div>
+     <!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
+          component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta"
+          component-export="default"
+          renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+          props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
+          ssr="" client="only"
+          opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+          component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
+          component-export="default"
+          renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+          props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
+          ssr="" client="only"
+          opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
+     </div>
+     <!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
+        </div>
+      <div class="component--props-slots--footer">
+            <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_footer -->
+        </div>
+      <div class="component--props-slots--colophon">
+            <!-- canvas-slot-start-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_colophon -->
+        </div>
+     </div>
+     <!-- canvas-end-e0b92f23-c177-4196-8fa4-3e837f99a357 --><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_body -->
+        </div>
+      <div class="component--props-slots--footer">
+            <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_footer -->
+        </div>
+      <div class="component--props-slots--colophon">
+            <!-- canvas-slot-start-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd/the_colophon -->
+        </div>
+     </div>
+     <!-- canvas-end-dfd2e899-6d88-46f8-b6aa-98929d1586dd --><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_body -->
+        </div>
+      <div class="component--props-slots--footer">
+            <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_footer --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_footer -->
+        </div>
+      <div class="component--props-slots--colophon">
+            <!-- canvas-slot-start-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon --><div class="canvas--slot-empty-placeholder"></div><!-- canvas-slot-end-41595148-e5c1-4873-b373-be3ae6e21340/the_colophon -->
+        </div>
+     </div>
+     <!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
+     HTML,
       'isPreview' => TRUE,
       'expected_cache_tags' => [
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'user:1103448',
-        'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
+        'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
         AutoSaveManager::CACHE_TAG,
         'config:canvas.js_component.my-cta-with-auto-save',
         'config:canvas.component.js.my-cta-with-auto-save',
@@ -1463,6 +1463,7 @@ HTML,
         'config:canvas.component.js.my-cta',
         'config:system.site',
         'config:canvas.component.block.system_branding_block',
+        'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       ],
     ];
   }

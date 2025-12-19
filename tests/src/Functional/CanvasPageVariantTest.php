@@ -8,6 +8,9 @@ use Behat\Mink\Element\NodeElement;
 use Behat\Mink\Session;
 use Drupal\block\Entity\Block;
 use Drupal\block\Plugin\DisplayVariant\BlockPageVariant;
+use Drupal\canvas\ComponentSource\ComponentSourceBase;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\Component\Serialization\Json;
@@ -31,6 +34,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\Entity\Role;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @group canvas
@@ -142,13 +146,6 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // created for the default theme, Canvas's CanvasPageVariant is used instead.
     $slogan = 'JavaScript is the future!';
     $this->config('system.site')->set('slogan', $slogan)->save();
-    $generate_static_prop_source = function (string $label): array {
-      return [
-        'sourceType' => 'static:field_item:string',
-        'value' => "Hello, $label!",
-        'expression' => 'ℹ︎string␟value',
-      ];
-    };
     $pageRegion = PageRegion::create([
       'theme' => $this->defaultTheme,
       'region' => 'sidebar_first',
@@ -158,7 +155,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
           'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
-            'heading' => $generate_static_prop_source('world'),
+            'heading' => "Hello, world!",
           ],
         ],
         [
@@ -231,7 +228,59 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         ],
       ],
     ]);
+
+    // The UUID_IN_ROOT_ANOTHER component instance is doing something funky to
+    // test bubbling of cacheability: it populates a "string" prop shape with
+    // the name of a referenced User entity. Canvas allows for this, but only if
+    // the Component config entity is configured to do exactly this: component
+    // instances must comply with the referenced Component version.
+    self::assertSame([
+      'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em> at version <em class="placeholder">85a5c0c7dd53e0bb</em>.',
+    ], array_map(
+      fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
+      iterator_to_array($pageRegion->getTypedData()->validate()),
+    ));
+    // Create a new version on the Component that shows the name of a User.
+    $component = Component::load('sdc.canvas_test_sdc.props-slots');
+    self::assertInstanceOf(Component::class, $component);
+    self::assertCount(1, $component->getVersions());
+    $new_settings = $component->getSettings();
+    $new_settings['prop_field_definitions']['heading']['field_type'] = 'entity_reference';
+    $new_settings['prop_field_definitions']['heading']['field_storage_settings'] = ['target_type' => 'user'];
+    $new_settings['prop_field_definitions']['heading']['default_value'][0] = ['target_id' => '0'];
+    $new_settings['prop_field_definitions']['heading']['expression'] = 'ℹ︎entity_reference␟entity␜␜entity:user␝name␞␟value';
+    $new_settings['prop_field_definitions']['heading']['field_widget'] = 'entity_reference_autocomplete';
+    $source = $this->container->get(ComponentSourceManager::class)->createInstance(SingleDirectoryComponent::SOURCE_PLUGIN_ID, [
+      'local_source_id' => 'canvas_test_sdc:props-slots',
+      ...$new_settings,
+    ]);
+    \assert($source instanceof ComponentSourceBase);
+    $component->createVersion($source->generateVersionHash())
+      ->setSettings($new_settings)
+      ->save();
+    self::assertCount(2, $component->getVersions());
+    // Update the component instance.
+    $tree = $pageRegion->getComponentTree();
+    $index = $tree->getComponentTreeDeltaByUuid(self::UUID_IN_ROOT_ANOTHER);
+    \assert($index !== NULL);
+    $tree->removeItem($index);
+    $tree->appendItem([
+      'uuid' => self::UUID_IN_ROOT_ANOTHER,
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      // New Component version.
+      'component_version' => $component->getActiveVersion(),
+      // Collapsed inputs.
+      'inputs' => [
+        'heading' => ['target_id' => 2],
+      ],
+    ]);
+    $pageRegion->setComponentTree($tree->getValue());
+    self::assertSame([], array_map(
+      fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
+      iterator_to_array($pageRegion->getTypedData()->validate()),
+    ));
     $pageRegion->save();
+
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely
     // solely on the Canvas PageRegion config entity's list cache tag. That would
     // require intersecting every Canvas Component config entity cache tag

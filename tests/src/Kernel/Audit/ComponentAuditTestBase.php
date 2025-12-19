@@ -6,8 +6,6 @@ namespace Drupal\Tests\canvas\Kernel\Audit;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -44,14 +42,11 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
         'uuid' => 'my-component',
         'component_id' => 'sdc.canvas_test_sdc.my-cta',
         'inputs' => [
-          'text' => StaticPropSource::generate(
-            expression: new FieldTypePropExpression('string', 'value'),
-            cardinality: 1,
-          )->withValue('Hey there')->toArray(),
-          'href' => StaticPropSource::generate(
-            expression: new FieldTypePropExpression('uri', 'value'),
-            cardinality: 1,
-          )->withValue('https://drupal.org/')->toArray(),
+          'text' => 'Hey there',
+          'href' => [
+            'uri' => 'https://drupal.org/',
+            'options' => [],
+          ],
         ],
       ],
     ];

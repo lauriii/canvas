@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -1263,10 +1264,26 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // phpcs:ignore
       /** @var PropSourceArray $input */
       $source = PropSource::parse($input);
-      $collapsed_input = $this->collapse($source, $prop);
-      if ($input !== $collapsed_input) {
-        $values[$prop] = $collapsed_input;
+
+      // For static prop sources, the requirements are more strict: to ensure it
+      // is technically viable to provide update paths for component instances
+      // that are populated by StaticPropSources, require every
+      // instance to comply with the default static prop source for the version
+      // of the Component entity that this component instance uses.
+      // @see https://www.drupal.org/i/3463996
+      if ($source instanceof StaticPropSource) {
+        $default_source = $this->getDefaultStaticPropSource($prop, FALSE);
+        if (!$source->hasSameShapeAs($default_source)) {
+          throw new InvalidComponentInputsPropSourceException(sprintf(
+            "The shape of prop %s of component %s has the following shape: '%s', but must match the default, which is '%s'.",
+            $prop,
+            $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+            json_encode(array_diff_key($source->toArray(), array_flip(['value']))),
+            json_encode(array_diff_key($default_source->toArray(), array_flip(['value']))),
+          ));
+        }
       }
+      $values[$prop] = $this->collapse($source, $prop);
     }
     return $values;
   }
@@ -1278,10 +1295,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * metadata to be known: field type, storage settings, instance settings and
    * expression.
    * When a StaticPropSource is being stored (to populate some component prop),
-   * check if it matches that metadata in the `prop_field_definitions` for this
-   * component instance's referenced version of the Component config entity. If
-   * it does match, all metadata can be omitted, which significantly reduces the
-   * amount of data stored.
+   * it MUST match the metadata in the `prop_field_definitions` for this
+   * component instance's referenced version of the Component config entity.
+   * This significantly reduces the amount of data stored, and increases
+   * consistency, simplifying update paths.
    *
    * @param \Drupal\canvas\PropSource\PropSourceBase $source
    *
@@ -1291,6 +1308,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    *     scalar or an array without a `sourceType` key
    *   - the uncollapsed prop source storage representation, which means this
    *     will be an array with a `sourceType` key.
+   *   Note that EVERY `StaticPropSource` must be collapsed, only other types of
+   *   prop sources (such as `DynamicPropSource` and `HostEntityUrlPropSource`)
+   *   are allowed to be the latter.
    *
    * @see ::uncollapse()
    */
@@ -1299,9 +1319,17 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     if ($source instanceof StaticPropSource) {
       try {
         $default_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
-        return $source->hasSameShapeAs($default_source)
-          ? $source->getValue()
-          : $source->toArray();
+        if (!$source->hasSameShapeAs($default_source)) {
+          throw new \LogicException(sprintf(
+            "The prop %s of component %s has the following static prop source: '%s', but must match the default, which is '%s'. This prop source should be just: '%s'.",
+            $prop_name,
+            $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+            json_encode(array_diff_key($source->toArray(), array_flip(['value']))),
+            json_encode(array_diff_key($default_source->toArray(), array_flip(['value']))),
+            json_encode($source->getValue()),
+          ));
+        }
+        return $source->getValue();
       }
       catch (\OutOfRangeException) {
         // TRICKY: https://www.drupal.org/node/3500386 and its test coverage

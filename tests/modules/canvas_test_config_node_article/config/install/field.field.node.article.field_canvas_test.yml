@@ -33,9 +33,7 @@ default_value:
     inputs:
       heading: 'hello, world!'
       cta1href:
-        sourceType: 'static:field_item:uri'
-        value: 'https://drupal.org'
-        expression: ℹ︎uri␟value
+        uri: 'https://drupal.org'
     label: 'Starring … Drupal as the hero! 🤩'
   - uuid: 4d866c38-7261-45c6-9b1e-0b94096d51e8
     component_id: sdc.canvas_test_sdc.my-hero
@@ -45,9 +43,7 @@ default_value:
     inputs:
       heading: 'Static by default'
       cta1href:
-        sourceType: 'static:field_item:uri'
-        value: 'https://drupal.org'
-        expression: ℹ︎uri␟value
+        uri: 'https://drupal.org'
   - uuid: 5944ef12-4a3d-4f3a-8e67-086661be9ffc
     component_id: sdc.canvas_test_sdc.my-hero
     component_version: a681ae184a8f6b7f

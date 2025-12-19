@@ -1,0 +1,6 @@
+name: Entity reference test shape alter
+description: 'Provides a canvas_storable_prop_shape_alter hook for tests'
+package: Testing
+type: module
+dependencies:
+  - canvas:canvas

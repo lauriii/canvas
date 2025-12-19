@@ -52,7 +52,14 @@ default:
       uuid: bfdae82e-3366-4c2c-99e6-c259aee145b4
       component_id: sdc.canvas_test_sdc.my-hero
       component_version: a681ae184a8f6b7f
-      inputs: '{"heading":"Halloween season is here","subheading":"Best candy in the market","cta1":"Buy now","cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/example.com","options":[]},"expression":"\u2139\ufe0elink\u241furi","sourceTypeSettings":{"instance":{"title":"0"}}},"cta2":"boo!"}'
+      inputs:
+        heading: 'Halloween season is here'
+        subheading: "Best candy in the market"
+        cta1: 'Buy now'
+        cta1href:
+          uri: 'https://example.com'
+          options: []
+        cta2: boo!
     # ℹ️ This is the `default` variant (a `case` component instance of the Personalization `ComponentSource`) being tested here — note it stores:
     # - its `variant_id` — which MUST correspond to one of the `variants` in the `switch` component instance
     # - the `segments` it applies to (`Segment` config entity IDs)
@@ -77,7 +84,14 @@ default:
       uuid: 2b169e45-1910-49e3-8923-f19e4e1f2832
       component_id: sdc.canvas_test_sdc.my-hero
       component_version: a681ae184a8f6b7f
-      inputs: '{"heading":"Best bikes in the market","subheading":"last deals!","cta1":"Buy now","cta1href":{"sourceType":"static:field_item:link","value":{"uri":"https:\/\/example.com","options":[]},"expression":"\u2139\ufe0elink\u241furi","sourceTypeSettings":{"instance":{"title":"0"}}},"cta2":"See specs"}'
+      inputs:
+        heading: Best bikes in the market
+        subheading: last deals!
+        cta1: Buy now
+        cta1href:
+          uri: 'https://example.com'
+          options: []
+        cta2: See specs
     -
       uuid: 59451905-1edc-4f11-bf10-ef8b0d774b1c
       component_id: sdc.canvas_test_sdc.heading
