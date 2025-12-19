@@ -1,7 +1,7 @@
 services:
   php:
     # Specify the version of Drupal you wish to use for Tugboat below.
-    image: tugboatqa/drupal:11
+    image: tugboatqa/drupal:11.2
     default: true
     http: false
     depends: mysql
@@ -25,7 +25,7 @@ services:
           composer config repositories.tugboat path $TUGBOAT_ROOT
           composer require \
             drupal/canvas \
-            drupal/demo_design_system \
+            drupal/demo_design_system:1.0.x-dev \
             drupal/components \
             drupal/default_content
 
@@ -59,10 +59,6 @@ services:
           # Enable starshot_demo theme.
           vendor/bin/drush --yes theme:enable starshot_demo
           vendor/bin/drush --yes config:set system.theme default starshot_demo
-
-          # Create node/1
-          vendor/bin/drush scr $TUGBOAT_ROOT/.tugboat/create-article-node.php
-
       build:
         # Install node packages and build the UI.
         - npm --prefix $TUGBOAT_ROOT/ui ci
@@ -83,7 +79,7 @@ services:
           vendor/bin/drush --yes updb
           vendor/bin/drush cache:rebuild
 
-        # Update DDS components and fix permissions.
+        # Update SDDS components and fix permissions.
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system ci
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system run build
         - npm --prefix $DRUPAL_COMPOSER_ROOT/web/themes/contrib/demo_design_system/starshot_demo ci
