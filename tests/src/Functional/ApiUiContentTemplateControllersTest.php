@@ -717,7 +717,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       $entity_storage->create([
         'title' => 'Entity ' . $i,
         'type' => $bundle,
-        'changed' => \time() - $i * 1000,
+        'changed' => \time() - ($i * 15000),
       ])->save();
     }
 
@@ -755,6 +755,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $entity_storage->create([
       'title' => 'Entity LAST',
       'type' => $bundle,
+      'changed' => \time() - 5000,
     ])->save();
     $json = $this->assertExpectedResponse(
       method: 'GET',

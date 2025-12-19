@@ -104,7 +104,6 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
       AccessResult::allowed()->addCacheContexts(['user.permissions']),
       $js_component->access('delete', $code_component_maintainer, TRUE),
     );
-
     // Ensure >=1 component instance exists in a *content* entity.
     // @see \Drupal\canvas\Audit\ComponentAudit
     $page = Page::create([
@@ -126,6 +125,8 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
     $page->save();
     // Create some identical revisions.
     for ($i = 0; $i < 2; $i++) {
+      // Ensure the timestamps are never identical for testing purposes.
+      $page->setChangedTime($page->getChangedTime() + (1000 * $i));
       $page->setNewRevision(TRUE);
       $page->save();
     }
