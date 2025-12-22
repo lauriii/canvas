@@ -39,6 +39,9 @@ parameters:
     # Ignore invalid phpunit methods/covers
     # @todo Remove in https://drupal.org/i/3533845
     - identifier: phpunit.coversMethod
+    -
+      identifier: deadCode.unreachable
+      path: tests/src/Kernel/Plugin/Canvas/ComponentSource/JsComponentEvolutionTest.php
     - identifier: phpunit.covers
     -
       message: "#^Class .* extends @internal class#"

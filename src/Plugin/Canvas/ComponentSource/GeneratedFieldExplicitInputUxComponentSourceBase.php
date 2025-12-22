@@ -16,6 +16,7 @@ use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -697,8 +698,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       if ($source->getSourceType() === 'static:field_item:' . $static_prop_source_field_definition['field_type']) {
         $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
       }
-      assert(isset($component_schema['properties'][$sdc_prop_name]['title']));
-      $label = $component_schema['properties'][$sdc_prop_name]['title'];
+      $label = $component_schema['properties'][$sdc_prop_name]['title'] ?? Unicode::ucfirst($sdc_prop_name);
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
       $is_required = $static_prop_source_field_definition['required'];
