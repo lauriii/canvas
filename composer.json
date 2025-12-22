@@ -23,7 +23,7 @@
     },
     "scripts": {
         "composer-root": "d=.; i=0; while [ $i -lt 10 ]; do if [ -f \"$d/composer.json\" ] && cat \"$d/composer.json\" | grep -q '\"type\"' && cat \"$d/composer.json\" | grep -q '\"project\"'; then readlink -f \"$d\"; break; fi; d=\"../$d\"; i=$((i+1)); done",
-        "install-dev-deps": "PACKAGES=$(cat composer.json | jq -r '.[\"require-dev\"] // {} | to_entries[] | \"\\(.key):\\(.value)\"' | tr '\\n' ' ') && composer --working-dir=$(composer run composer-root) require ${PACKAGES} --dev",
+        "install-dev-deps": "PACKAGES=$(cat composer.json | jq -r '.[\"require-dev\"] // {} | to_entries[] | \"\\(.key):\\(.value)\"' | tr '\\n' ' ') && composer --working-dir=$(composer run composer-root) require ${PACKAGES} --dev -W",
         "phpcs": "mkdir -p test-results && composer --working-dir=$(composer run composer-root) exec phpcs -- --standard=$(pwd)/phpcs.xml --report-width=auto --colors -s --report-junit=$(pwd)/test-results/phpcs.xml --report-full --report-summary $(pwd)",
         "phpcbf": "composer --working-dir=$(composer run composer-root) exec phpcbf -- --standard=$(pwd)/phpcs.xml --colors $(pwd)",
         "phpstan": "mkdir -p test-results && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --error-format=junit analyze $(pwd) > test-results/phpstan.xml || true && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon analyze $(pwd)"
