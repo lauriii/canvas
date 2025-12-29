@@ -906,3 +906,18 @@ canvas.folder.*:
             configEntityTypeId: '%parent.%parent.configEntityTypeId'
       constraints:
         Unique: ~
+
+# Search API processor configuration
+plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
+  type: search_api.default_processor_configuration
+  label: 'Component Tree Hydrated processor configuration'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    ignored_prop_names:
+      type: sequence
+      label: 'Prop names to ignore during extraction'
+      orderby: value
+      sequence:
+        type: string
+        label: 'Prop name'

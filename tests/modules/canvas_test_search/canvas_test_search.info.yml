@@ -1,0 +1,6 @@
+name: Canvas test module for search indexing
+description: 'Provides test components for testing search indexing with Canvas.'
+package: Testing
+type: module
+dependencies:
+  - canvas:canvas

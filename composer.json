@@ -15,6 +15,7 @@
         "drupal/jsonapi_menu_items": "^1.2.8",
         "drupal/metatag": "^2.1",
         "drupal/pathauto": "^1.13",
+        "drupal/search_api": "^1",
         "drupal/simple_oauth": "^6",
         "drush/drush": "^13",
         "jangregor/phpstan-prophecy": "~1|~2",

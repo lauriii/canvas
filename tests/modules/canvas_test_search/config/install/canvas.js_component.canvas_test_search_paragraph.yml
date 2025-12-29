@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_search_paragraph
+name: 'Paragraph'
+block_override: null
+required: {  }
+props:
+  text:
+    title: text
+    type: string
+    examples:
+      - 'This is some reusable text, it will not always be the default because the UI copies it in and forks it away!'
+slots: {  }
+js:
+  original: "const Paragraph = ({\n  text,\n}) => {\n  return (\n    <p>{text}</p>\n  );\n};\n\nexport default Paragraph;"
+  compiled: "import { jsx as _jsx } from \"react/jsx-runtime\";\nconst Paragraph = ({ text })=>{\n    return /*#__PURE__*/ _jsx(\"p\", {\n        children: text\n    });\n};\nexport default Paragraph;\n"
+css:
+  original: ''
+  compiled: ''

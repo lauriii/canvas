@@ -1,0 +1,26 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Has All Ignored Props
+description: Component with all props ignored.
+props:
+  type: object
+  required:
+    - id
+  properties:
+    id:
+      type: string
+      title: ID
+      description: An ID that should be ignored.
+      examples:
+        - ignored-id-1
+        - ignored-id-2
+    class:
+      type: string
+      title: Class
+      description: A class that should be ignored.
+      examples:
+        - ignored-class-1
+        - ignored-class-2
+    cssClasses:
+      type: string
+      title: CSS Classes
+      description: A CSS class that should be ignored.

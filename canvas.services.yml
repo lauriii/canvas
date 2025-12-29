@@ -71,6 +71,7 @@ services:
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}
   Drupal\canvas\CanvasConfigUpdater: ~
+  Drupal\canvas\ComponentTreeInputExtractor: {}
 
   # Event subscribers.
   canvas.openapi.http_request_validator.subscriber:
