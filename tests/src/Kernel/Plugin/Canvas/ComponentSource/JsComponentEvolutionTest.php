@@ -399,7 +399,6 @@ final class JsComponentEvolutionTest extends KernelTestBase {
 
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanAddOptionalProp(bool $usingHttpApi = FALSE): void {
-    $this->markTestSkipped('To be fixed in https://www.drupal.org/project/canvas/issues/3556337');
     $this->addOrUpdateAgeProp($usingHttpApi);
     $this->assertOptionalPropNewVersion();
   }
