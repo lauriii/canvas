@@ -38,7 +38,9 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
     'link',
     'media',
     'options',
+    'path',
     'text',
+    'user',
   ];
 
   protected function setUp(): void {

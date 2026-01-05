@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormStateInterface;
@@ -12,6 +14,7 @@ use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Hook\Order\OrderAfter;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\canvas\Form\FormIdPreRender;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -29,6 +32,8 @@ class ModuleHooks {
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
+    private readonly AccountInterface $currentUser,
+    private readonly CanvasUiAccessCheck $canvasUiAccessCheck,
     TranslationInterface $string_translation,
   ) {
     $this->setStringTranslation($string_translation);
@@ -84,9 +89,16 @@ class ModuleHooks {
    */
   #[Hook('page_attachments')]
   public function pageAttachments(array &$page): void {
-    // Adds `track_navigation` library to all pages, to allow Canvas's "Back"
-    // link to know which URL to go back to.
-    $page['#attached']['library'][] = 'canvas/track_navigation';
+    $can_access_canvas_ui = $this->canvasUiAccessCheck->access($this->currentUser);
+
+    $access_cacheability = CacheableMetadata::createFromObject($can_access_canvas_ui);
+    $access_cacheability->applyTo($page);
+
+    if ($can_access_canvas_ui->isAllowed()) {
+      // Adds `track_navigation` library to all pages, to allow Canvas's "Back"
+      // link to know which URL to go back to.
+      $page['#attached']['library'][] = 'canvas/track_navigation';
+    }
   }
 
   /**
