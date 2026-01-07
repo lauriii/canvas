@@ -58,6 +58,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
   ];
 
   /**

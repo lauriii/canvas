@@ -77,6 +77,7 @@ class PropShapeRepositoryTest extends KernelTestBase {
     'media',
     'options',
     'text',
+    'datetime',
   ];
 
   protected static $configSchemaCheckerExclusions = [

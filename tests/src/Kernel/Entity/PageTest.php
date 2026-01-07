@@ -29,6 +29,7 @@ final class PageTest extends KernelTestBase {
     'block',
     'sdc',
     'sdc_test',
+    'datetime',
     'canvas_test_sdc',
     // Modules providing field types + widgets for the SDC Components'
     // `prop_field_definitions`.

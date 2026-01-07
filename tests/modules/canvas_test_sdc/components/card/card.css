@@ -23,10 +23,11 @@
 
   .content {
     padding: 0.5rem;
-  }
 
-  p {
-    background: #ccc;
+    p {
+      background: #ccc;
+    }
+
   }
 
   footer {

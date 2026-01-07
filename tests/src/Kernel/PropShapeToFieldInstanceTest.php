@@ -78,6 +78,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
     'canvas_test_sdc',
   ];
 
@@ -1616,6 +1617,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         ],
         'optional, type=string&format=date' => [
           'SDC props' => [
+            '⿲canvas_test_sdc:card␟' . JsonSchemaStringFormat::Date->value,
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Date->value,
           ],
           'static prop source' => 'ℹ︎datetime␟value',

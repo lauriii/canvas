@@ -43,3 +43,9 @@ describe('Transforms - link', () => {
     ).to.deep.equal({ uri: 'entity:node/3', title: 'Click me' });
   });
 });
+
+describe('Transforms - dateTime', () => {
+  it('should return null when propSource is undefined', () => {
+    expect(transforms.dateTime({ date: '' }, {}, undefined)).to.equal(null);
+  });
+});

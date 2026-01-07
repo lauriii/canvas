@@ -1,6 +1,11 @@
 <article class="{{ class ?? 'card' }}">
   <header>
     <h2>{{ heading }}</h2>
+    {% if date %}
+      <div class="date">
+        <p>{{ date }}</p>
+      </div>
+    {% endif %}
   </header>
 
   {% include 'canvas:image' with image|merge({

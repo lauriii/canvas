@@ -47,6 +47,7 @@ class ComponentTest extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
   ];
 
   /**

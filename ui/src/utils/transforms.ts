@@ -147,6 +147,9 @@ const dateTime: Transformer<
   PropsValuesOrArrayOfPropsValues,
   DateFieldPropSource
 > = (value, options, propSource) => {
+  if (propSource === null || propSource === undefined) {
+    return null;
+  }
   const type = propSource.sourceTypeSettings.storage.datetime_type;
   // @see \Drupal\Component\Datetime\DateTimePlus::setDefaultDateTime
   let timeString = '12:00:00';

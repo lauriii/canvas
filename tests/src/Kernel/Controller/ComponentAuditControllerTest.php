@@ -42,6 +42,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     'canvas',
     'system',
     'node',
+    'datetime',
     'canvas_test_sdc',
     ...self::PAGE_TEST_MODULES,
     // Canvas's dependencies (modules providing field types + widgets).

@@ -59,6 +59,7 @@ final class NodeTemplatesTest extends KernelTestBase {
     'file',
     'user',
     'node',
+    'datetime',
     'canvas_test_rendering',
     'canvas_test_sdc',
     'media',

@@ -59,6 +59,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     'canvas',
     'link',
     'options',
+    'datetime',
     'canvas_test_sdc',
   ];
 

@@ -25,6 +25,10 @@ props:
       description: The footer text.
       examples:
         - 'I have a footer!'
+    date:
+      title: 'Date'
+      type: string
+      format: date
     image:
       $ref: json-schema-definitions://canvas.module/image
       type: object

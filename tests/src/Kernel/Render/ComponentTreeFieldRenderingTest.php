@@ -48,6 +48,7 @@ final class ComponentTreeFieldRenderingTest extends KernelTestBase {
     'text',
     'user',
     'system',
+    'datetime',
     'canvas_test_sdc',
   ];
 

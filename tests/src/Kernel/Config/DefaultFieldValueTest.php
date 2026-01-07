@@ -48,6 +48,7 @@ class DefaultFieldValueTest extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
   ];
 
   /**

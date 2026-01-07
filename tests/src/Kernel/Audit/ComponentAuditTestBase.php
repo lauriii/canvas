@@ -23,6 +23,7 @@ abstract class ComponentAuditTestBase extends KernelTestBase {
     'media',
     'path',
     'user',
+    'datetime',
     'canvas_test_sdc',
     'text',
     'filter',

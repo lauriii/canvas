@@ -63,6 +63,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     'field',
     'editor',
     'ckeditor5',
+    'datetime',
   ];
 
   private static function recursiveReverseSort(array $data): array {

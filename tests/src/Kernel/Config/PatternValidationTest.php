@@ -35,6 +35,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     'link',
     'text',
     'filter',
+    'datetime',
   ];
 
   /**

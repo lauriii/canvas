@@ -53,6 +53,7 @@ class ConfigWithComponentTreeTestBase extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
   ];
 
   /**

@@ -50,6 +50,7 @@ final class ContentTemplateTest extends KernelTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'datetime',
   ];
 
   /**

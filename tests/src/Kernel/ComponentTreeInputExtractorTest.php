@@ -26,6 +26,7 @@ final class ComponentTreeInputExtractorTest extends KernelTestBase {
     'canvas',
     'canvas_test_sdc',
     'canvas_test_search',
+    'datetime',
     'link',
     'media',
     'filter',

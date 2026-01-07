@@ -66,6 +66,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
     // Our module!
     'canvas',
     // Test components we can force fallback and recovery on.
+    'datetime',
     'canvas_test_sdc',
   ];
 

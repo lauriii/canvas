@@ -380,7 +380,7 @@ HTML,
 <article class="card">
   <header>
     <h2>Card</h2>
-  </header>
+      </header>
 
   <img
    class="card--image"
@@ -413,7 +413,7 @@ HTML,
 <article class="card--with-local-image">
   <header>
     <h2>Card with local image</h2>
-  </header>
+      </header>
 
   <img
    class="card--image"
@@ -447,7 +447,7 @@ HTML,
 <article class="card--with-remote-image">
   <header>
     <h2>Card with remote image</h2>
-  </header>
+      </header>
 
   <img
    class="card--image"
@@ -1471,6 +1471,17 @@ HTML
               ],
             ],
             'expression' => 'ℹ︎string␟value',
+          ],
+          'date' => [
+            'required' => FALSE,
+            'field_type' => 'datetime',
+            'field_storage_settings' => [
+              'datetime_type' => 'date',
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'datetime_default',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎datetime␟value',
           ],
           'image' => [
             'required' => TRUE,
@@ -2563,6 +2574,7 @@ HTML
         ],
         'module' => [
           'core',
+          'datetime',
           'file',
           'image',
           'options',
@@ -3025,6 +3037,20 @@ HTML
                 ],
               ],
               'resolved' => 'I have a footer!',
+            ],
+          ],
+          'date' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'format' => 'date',
+            ],
+            'sourceType' => 'static:field_item:datetime',
+            'expression' => 'ℹ︎datetime␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'datetime_type' => 'date',
+              ],
             ],
           ],
           'image' => [
