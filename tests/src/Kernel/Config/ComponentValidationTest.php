@@ -537,28 +537,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     ]);
   }
 
-  // cspell:ignore eird
-
   /**
    * @testWith ["valid", false, "102d161a6069b0bf"]
-   *   ["even_more-valid", false, "b89b9f874769d01e"]
-   *   ["-", true, "cd4019731175e414"]
-   *   ["--", true, "e6507bfbf8ab4de5"]
-   *   ["_", true, "d424855d70852377"]
-   *   ["__", true, "823c8d2eb2d05352"]
-   *   ["-not_valid", true, "67baf46859e91b91"]
-   *   ["_not_valid", true, "3972480bc11893e9"]
-   *   ["not_valid-", true, "2af87d83152ee878"]
-   *   ["not_valid_", true, "31cc78f610f8147a"]
-   *   ["a", true, "86e65a63d5c64c96"]
-   *   ["aa", true, "06841b5c562fd150"]
-   *   ["aaa", false, "45d801ed93ec2876"]
-   *   ["n😈t_valid", true, "95bb0e4d0d0c208b"]
-   *   ["spaces aren't okay", true, "b911692027992e7a"]
-   *   ["newline\nnot_allowed", true, "c413270ad235c44c"]
-   *   ["rm -rf /", true, "d4b25a8c7fa2617c"]
-   *   ["slot_\u03E2eird", true, "c33062b3a4641476"]
-   *   ["children", false, "1cea66d0113298ef"]
+   *           ["rm -rf /", true, "d4b25a8c7fa2617c"]
+   *
+   * @see \Drupal\Tests\canvas\Unit\Plugin\Validation\Constraint\ValidSlotNameConstraintValidatorTest
    */
   public function testSlotNameValidation(string $slot_name, bool $is_invalid, string $expected_version): void {
     // For every "code component" (JavaScriptComponent) with `status: true`, a
