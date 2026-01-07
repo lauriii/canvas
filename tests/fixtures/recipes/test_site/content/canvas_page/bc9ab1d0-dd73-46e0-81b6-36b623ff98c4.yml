@@ -22,7 +22,7 @@ default:
       slot: null
       uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       component_id: js.canvas_test_code_components_with_slots
-      component_version: 6b80a3f7f6e4907f
+      component_version: d5c6ab208aeca9cf
       inputs: '{"name":"Sir Gablethorp"}'
     -
       parent_uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620

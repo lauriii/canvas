@@ -9,13 +9,13 @@ id: js.canvas_test_code_components_with_slots
 provider: null
 source: js
 source_local_id: canvas_test_code_components_with_slots
-active_version: 6b80a3f7f6e4907f
+active_version: d5c6ab208aeca9cf
 versioned_properties:
   active:
     settings:
       prop_field_definitions:
         name:
-          required: false
+          required: true
           field_type: string
           field_storage_settings: {  }
           field_instance_settings: {  }

@@ -413,7 +413,6 @@ canvas.component_source_settings.sdc:
     prop_field_definitions:
       constraints:
         KeyForEverySdcProp: "%parent.%parent.%parent.%parent.source_local_id"
-        NotNullValueForEveryRequiredSdcProp: '%parent.%parent.%parent.%parent.source_local_id'
 
 # Every ComponentSource plugin MUST define two config schema types:
 # 1. One for the ComponentSource-specific per-Component config entity local/intra-source ID: typically a plugin ID or a
@@ -466,6 +465,8 @@ canvas.generated_field_explicit_input_ux:
           required:
             type: boolean
             label: 'Required prop'
+            constraints:
+              MatchesComponentPropRequiredness: ~
           field_type:
             type: string
             label: 'Default field type'
@@ -518,8 +519,10 @@ canvas.generated_field_explicit_input_ux:
             label: 'Default values'
             sequence:
               type: field.value.[%parent.%parent.field_type]
-            # @todo Add validation constraint because this is only *conditionally* nullable: if the SDC prop is optional
+            # TRICKY: this is *conditionally* nullable: if the component prop itself is optional.
             nullable: true
+            constraints:
+              NotNullIfRequiredComponentProp: ~
           # The default value must be retrievable
           expression:
             type: string

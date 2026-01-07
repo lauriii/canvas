@@ -9,7 +9,7 @@ id: js.canvas_test_code_components_with_props
 provider: null
 source: js
 source_local_id: canvas_test_code_components_with_props
-active_version: 35f5dc23af5896ac
+active_version: aad3da04e9cf4211
 versioned_properties:
   active:
     settings:
@@ -24,7 +24,7 @@ versioned_properties:
             - value: 40
           expression: ℹ︎integer␟value
         name:
-          required: false
+          required: true
           field_type: string
           field_storage_settings: {  }
           field_instance_settings: {  }

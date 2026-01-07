@@ -104,7 +104,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'sdc.canvas_test_sdc.my-cta',
       'source' => SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'canvas_test_sdc:my-cta',
-      'active_version' => '5c4a2f6c852fec27',
+      'active_version' => 'c3aed5021bdabae0',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -119,7 +119,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
                 'expression' => 'ℹ︎string␟value',
               ],
               'href' => [
-                'required' => FALSE,
+                'required' => TRUE,
                 // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem
                 'field_type' => 'uri',
                 // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
@@ -242,7 +242,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 0e61ac44183cad1c., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
+      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected c81cc60fb82d7011., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration present for a non-existent SDC prop: &lt;em class=&quot;placeholder&quot;&gt;image&lt;/em&gt;.', $e->getMessage());
     }
 
     // Too little.
@@ -257,13 +257,13 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     catch (SchemaIncompleteException $e) {
       // We can't use ::assertValidationErrors here because we need to make use
       // of ::save to set fallback metadata.
-      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected 7ff5230cdcc4e404., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
+      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [active_version] The version abcdef12343fa3dc does not match the hash of the settings for this version, expected c6f70e26b5325b9c., 1 [versioned_properties.active.settings.prop_field_definitions] Configuration for the SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Target&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;target&lt;/em&gt;) is missing.', $e->getMessage());
     }
     // But an invalid version hash doesn't matter for old versions.
     $invalid_settings_due_to_missing_prop_field_definition['prop_field_definitions']['target'] = $target;
     \assert($this->entity instanceof ComponentInterface);
     $this->entity->createVersion(
-      '5c4a2f6c852fec27'
+      'c3aed5021bdabae0'
     )->setSettings($invalid_settings_due_to_missing_prop_field_definition)->save();
     // No validation errors even though the old 'abcdef12343fa3dc'
     // version is invalid.
@@ -298,7 +298,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'id' => 'js.my-cta',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'my-cta',
-      'active_version' => '7ff5230cdcc4e404',
+      'active_version' => 'c6f70e26b5325b9c',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -673,11 +673,13 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     }
   }
 
-  public function testInvalidWidgetSettings(): void {
+  public function testInvalidPropFieldDefinition(): void {
     assert($this->entity instanceof Component);
     $settings = $this->entity->getSettings();
     assert($settings['prop_field_definitions']['text']['default_value'] !== NULL);
+    assert($settings['prop_field_definitions']['href']['required'] === TRUE);
     $settings['prop_field_definitions']['text']['default_value'] = NULL;
+    $settings['prop_field_definitions']['href']['required'] = FALSE;
 
     try {
       $this->entity->createVersion(
@@ -686,7 +688,10 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     }
     catch (SchemaIncompleteException $e) {
-      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [versioned_properties.active.settings.prop_field_definitions] The required SDC prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Title&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;text&lt;/em&gt;) must not be null.', $e->getMessage());
+      // Assert the validation errors we forced:
+      // 1. text is required, so default_value cannot be null.
+      // 2. href is not required in the Component version, but it is on the actual SDC metadata.
+      self::assertEquals('Schema errors for canvas.component.sdc.canvas_test_sdc.my-cta with the following errors: 0 [versioned_properties.active.settings.prop_field_definitions.text.default_value] The required component prop &quot;&lt;em class=&quot;placeholder&quot;&gt;Title&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;text&lt;/em&gt;) must not be null., 1 [versioned_properties.active.settings.prop_field_definitions.href.required] The requiredness of the prop &quot;&lt;em class=&quot;placeholder&quot;&gt;URL&lt;/em&gt;&quot; (&lt;em class=&quot;placeholder&quot;&gt;href&lt;/em&gt;) must match its implementation.', $e->getMessage());
     }
   }
 
