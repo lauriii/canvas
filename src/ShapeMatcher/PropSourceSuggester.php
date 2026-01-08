@@ -14,6 +14,7 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
@@ -239,6 +240,17 @@ final class PropSourceSuggester {
       $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema, $host_entity_type, $host_entity_bundle);
       $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);
       $raw_matches[(string) $cpe]['instances'] = array_map(fn ($expr): DynamicPropSource => new DynamicPropSource($expr), $instance_candidates);
+      // @todo Remove these hard-coded bits with generic logic in https://www.drupal.org/project/canvas/issues/3563960
+      if ($schema === ['type' => 'string', 'format' => 'date'] && $host_entity_type === 'node') {
+        $created_as_date_string = (new DynamicPropSource(
+          new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'created', NULL, 'value'),
+        ))->withAdapter('unix_to_date');
+        $changed_as_date_string = (new DynamicPropSource(
+          expression: new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'changed', NULL, 'value'),
+        ))->withAdapter('unix_to_date');
+        $raw_matches[(string) $cpe]['instances'][] = $created_as_date_string;
+        $raw_matches[(string) $cpe]['instances'][] = $changed_as_date_string;
+      }
       $raw_matches[(string) $cpe]['adapters'] = $adapter_candidates;
       $raw_matches[(string) $cpe]['host_entity_urls'] = self::matchHostEntityUrlPropSources($prop_shape) ?? [];
     }

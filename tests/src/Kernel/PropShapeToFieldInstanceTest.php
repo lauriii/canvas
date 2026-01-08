@@ -1289,6 +1289,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             '⿲canvas_test_sdc:card-with-stream-wrapper-image␟heading',
             '⿲canvas_test_sdc:card-with-stream-wrapper-image␟content',
             '⿲canvas_test_sdc:card-with-stream-wrapper-image␟footer',
+            '⿲canvas_test_sdc:date␟caption',
             '⿲canvas_test_sdc:my-hero␟subheading',
             '⿲canvas_test_sdc:my-hero␟cta1',
             '⿲canvas_test_sdc:my-hero␟cta2',
@@ -1503,6 +1504,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'optional, type=string&format=date' => [
           'SDC props' => [
             '⿲canvas_test_sdc:card␟' . JsonSchemaStringFormat::Date->value,
+            '⿲canvas_test_sdc:date␟date',
             '⿲sdc_test_all_props:all-props␟test_string_format_' . JsonSchemaStringFormat::Date->value,
           ],
           'static prop source' => 'ℹ︎datetime␟value',

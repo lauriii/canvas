@@ -235,7 +235,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
         $expected[$prop_name],
         [
           'required' => $suggestions[$prop_name]['required'],
-          'instances' => array_map(fn (DynamicPropSource $s): string => (string) $s->expression, $suggestions[$prop_name]['instances']),
+          'instances' => array_map(fn (DynamicPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['instances']),
           'adapters' => array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name]['adapters']),
           'host_entity_urls' => array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['host_entity_urls']),
         ],
@@ -255,7 +255,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image␟image' => [
           'required' => TRUE,
           'instances' => [
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -273,10 +276,22 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-optional-with-example␟image' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            'Silly image 🤡' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            'Primary topic → Taxonomy term → Revision user' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝user_picture␞␟width,height↝entity␜␜entity:user␝user_picture␞␟height}',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+            'Silly image 🤡' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+            'Primary topic → Taxonomy term → Revision user' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝user_picture␞␟width,height↝entity␜␜entity:user␝user_picture␞␟height}',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -298,7 +313,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image' => [
           'required' => TRUE,
           'instances' => [
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -309,9 +327,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟srcSetCandidateTemplate' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → srcset template' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
-            'Silly image 🤡 → srcset template' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
-            'Revision user → User → Picture → srcset template' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
+            'Authored by → User → Picture → srcset template' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
+            ],
+            'Silly image 🤡 → srcset template' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟srcset_candidate_uri_template',
+            ],
+            'Revision user → User → Picture → srcset template' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟srcset_candidate_uri_template',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -326,9 +353,103 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲canvas_test_sdc:tags␟tags' => [
           'required' => FALSE,
           'instances' => [
-            'field_screenshots → Alternative text' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
-            'field_screenshots → Title' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟title',
-            'Tags → Taxonomy term → Name' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            'field_screenshots → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟alt',
+            ],
+            'field_screenshots → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟title',
+            ],
+            'Tags → Taxonomy term → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            ],
+          ],
+          'adapters' => [],
+          'host_entity_urls' => [],
+        ],
+      ],
+    ];
+
+    yield 'a component with a `type: string, format: date`-shaped prop' => [
+      'canvas_test_sdc:date',
+      'entity:node:foo',
+      [
+        '⿲canvas_test_sdc:date␟date' => [
+          'required' => FALSE,
+          'instances' => [
+            'Authored on' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node␝created␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
+            'field_event_duration → End date value' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            ],
+            'field_event_duration' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            ],
+            'Changed' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node␝changed␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
+          ],
+          'adapters' => [
+            'UNIX timestamp to date' => 'unix_to_date',
+          ],
+          'host_entity_urls' => [],
+        ],
+        '⿲canvas_test_sdc:date␟caption' => [
+          'required' => FALSE,
+          'instances' => [
+            'Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            ],
+            'Authored by → User → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
+            ],
+            'Authored by → User → Picture → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            ],
+            'Authored by → User → Picture → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+            ],
+            'Check it out! → Link text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
+            ],
+            'Silly image 🤡 → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            ],
+            'Silly image 🤡 → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            ],
+            'Primary topic → Taxonomy term → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            ],
+            'Revision user → User → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
+            ],
+            'Revision user → User → Picture → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            ],
+            'Revision user → User → Picture → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -343,11 +464,26 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_false' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
-            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            'Primary topic → Taxonomy term → Published' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
-            "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Authored by → User → User status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            ],
+            "Published" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            ],
+            "Silly image 🤡 → Status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            ],
+            'Primary topic → Taxonomy term → Published' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
+            ],
+            "Revision user → User → User status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -355,11 +491,26 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_bool_default_true' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → User status" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
-            "Published" => 'ℹ︎␜entity:node:foo␝status␞␟value',
-            "Silly image 🤡 → Status" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
-            'Primary topic → Taxonomy term → Published' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
-            "Revision user → User → User status" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            "Authored by → User → User status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝status␞␟value',
+            ],
+            "Published" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝status␞␟value',
+            ],
+            "Silly image 🤡 → Status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value',
+            ],
+            'Primary topic → Taxonomy term → Published' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝status␞␟value',
+            ],
+            "Revision user → User → User status" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝status␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -367,17 +518,50 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string' => [
           'required' => FALSE,
           'instances' => [
-            "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
-            'Authored by → User → Name' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
-            'Authored by → User → Picture → Alternative text' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
-            'Authored by → User → Picture → Title' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟title',
-            'Check it out! → Link text' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
-            "Silly image 🤡 → Alternative text" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
-            "Silly image 🤡 → Title" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
-            'Primary topic → Taxonomy term → Name' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
-            'Revision user → User → Name' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
-            'Revision user → User → Picture → Alternative text' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
-            'Revision user → User → Picture → Title' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+            "Title" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            ],
+            'Authored by → User → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝name␞␟value',
+            ],
+            'Authored by → User → Picture → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            ],
+            'Authored by → User → Picture → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+            ],
+            'Check it out! → Link text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟title',
+            ],
+            "Silly image 🤡 → Alternative text" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟alt',
+            ],
+            "Silly image 🤡 → Title" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟title',
+            ],
+            'Primary topic → Taxonomy term → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝name␞␟value',
+            ],
+            'Revision user → User → Name' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
+            ],
+            'Revision user → User → Picture → Alternative text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+            ],
+            'Revision user → User → Picture → Title' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟title',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -391,7 +575,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string' => [
           'required' => TRUE,
           'instances' => [
-            "Title" => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            "Title" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -411,8 +598,14 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_date_time' => [
           'required' => FALSE,
           'instances' => [
-            "field_event_duration → End date value" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
-            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            "field_event_duration → End date value" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            ],
+            "field_event_duration" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -420,8 +613,24 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_date' => [
           'required' => FALSE,
           'instances' => [
-            "field_event_duration → End date value" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
-            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            'Authored on' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node␝created␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
+            "field_event_duration → End date value" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟end_value',
+            ],
+            "field_event_duration" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟value',
+            ],
+            'Changed' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node␝changed␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
           ],
           'adapters' => [
             'UNIX timestamp to date' => 'unix_to_date',
@@ -443,10 +652,22 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_email' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → Initial email" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
-            "Authored by → User → Email" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
-            "Revision user → User → Initial email" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
-            "Revision user → User → Email" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Authored by → User → Initial email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            ],
+            "Authored by → User → Email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            ],
+            "Revision user → User → Initial email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            ],
+            "Revision user → User → Email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -454,10 +675,22 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_idn_email' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → Initial email" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
-            "Authored by → User → Email" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
-            "Revision user → User → Initial email" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
-            "Revision user → User → Email" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            "Authored by → User → Initial email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝init␞␟value',
+            ],
+            "Authored by → User → Email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝mail␞␟value',
+            ],
+            "Revision user → User → Initial email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝init␞␟value',
+            ],
+            "Revision user → User → Email" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝mail␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -489,15 +722,42 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uuid' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
-            "Authored by → Target UUID" => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
-            "Silly image 🤡 → UUID" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
-            'Primary topic → Taxonomy term → Revision user → Target UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟target_uuid',
-            'Primary topic → Taxonomy term → UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝uuid␞␟value',
-            'Primary topic → Target UUID' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟target_uuid',
-            "Revision user → User → UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
-            "Revision user → Target UUID" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
-            "UUID" => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
+            "Authored by → User → UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝uuid␞␟value',
+            ],
+            "Authored by → Target UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟target_uuid',
+            ],
+            "Silly image 🤡 → UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uuid␞␟value',
+            ],
+            'Primary topic → Taxonomy term → Revision user → Target UUID' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟target_uuid',
+            ],
+            'Primary topic → Taxonomy term → UUID' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝uuid␞␟value',
+            ],
+            'Primary topic → Target UUID' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟target_uuid',
+            ],
+            "Revision user → User → UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝uuid␞␟value',
+            ],
+            "Revision user → Target UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟target_uuid',
+            ],
+            "UUID" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uuid␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -505,7 +765,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri' => [
           'required' => TRUE,
           'instances' => [
-            "Silly image 🤡 → URI" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            "Silly image 🤡 → URI" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -518,9 +781,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_format_uri_reference_web_links' => [
           'required' => TRUE,
           'instances' => [
-            'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
-            "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            'Check it out! → Resolved URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            ],
+            "Silly image 🤡 → URI → Root-relative file URL" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -533,9 +805,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            "Silly image 🤡 → URI" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            "Silly image 🤡 → URI" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -548,13 +829,34 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            'Authored by → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            "Silly image 🤡 → URI → Root-relative file URL" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Revision user → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -564,13 +866,34 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_image_using_ref' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            "Silly image 🤡 → URI → Root-relative file URL" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            'Authored by → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            "Silly image 🤡 → URI → Root-relative file URL" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Revision user → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
           ],
           'adapters' => [
             'Extract image URL' => 'image_extract_url',
@@ -580,22 +903,70 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
-            'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
-            'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
-            'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
-            'Primary topic → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
-            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
+            'Authored by → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Authored by → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
+            ],
+            'Check it out!' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
+            ],
+            'Check it out! → Resolved URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            ],
+            'Silly image 🤡 → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Silly image 🤡 → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
+            ],
+            'Primary topic → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
+            ],
+            'Revision user → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Revision user → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -608,9 +979,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Silly image 🤡 → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -623,22 +1003,70 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_format_iri_reference' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Authored by → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Authored by → URL' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
-            'Check it out!' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
-            'Check it out! → Resolved URL' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
-            'Silly image 🤡 → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
-            'Silly image 🤡 → URI' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Primary topic → Taxonomy term → Revision user → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
-            'Primary topic → URL' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
-            'Revision user → User → Picture → URI → Root-relative file URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
-            'Revision user → User → Picture → URI' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
-            'Revision user → URL' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
+            'Authored by → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Authored by → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟url',
+            ],
+            'Check it out!' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟uri',
+            ],
+            'Check it out! → Resolved URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_check_it_out␞␟url',
+            ],
+            'Silly image 🤡 → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Silly image 🤡 → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Primary topic → Taxonomy term → Revision user → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟url',
+            ],
+            'Primary topic → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟url',
+            ],
+            'Revision user → User → Picture → URI → Root-relative file URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths',
+            ],
+            'Revision user → URL' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟url',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [
@@ -675,14 +1103,38 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_integer' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
-            'Authored by → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
-            "Silly image 🤡 → File size" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Silly image 🤡 → Height" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
-            "Silly image 🤡 → Width" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
-            'Primary topic → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
-            'Revision user → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
-            'Revision user → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            'Authored by → User → Picture → Height' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            ],
+            'Authored by → User → Picture → Width' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            ],
+            "Silly image 🤡 → File size" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "Silly image 🤡 → Height" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
+            ],
+            "Silly image 🤡 → Width" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            ],
+            'Primary topic → Taxonomy term → Weight' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
+            'Revision user → User → Picture → Height' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            ],
+            'Revision user → User → Picture → Width' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            ],
           ],
           'adapters' => [
             'Count days' => 'day_count',
@@ -698,21 +1150,66 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_integer_range_minimum_maximum_timestamps' => [
           'required' => FALSE,
           'instances' => [
-            "Authored by → User → Last access" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
-            'Authored by → User → Changed' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
-            'Authored by → User → Created' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
-            "Authored by → User → Last login" => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
-            'Authored on' => 'ℹ︎␜entity:node:foo␝created␞␟value',
-            'Changed' => 'ℹ︎␜entity:node:foo␝changed␞␟value',
-            'Silly image 🤡 → Changed' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
-            'Silly image 🤡 → Created' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝created␞␟value',
-            'Primary topic → Taxonomy term → Changed' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝changed␞␟value',
-            'Primary topic → Taxonomy term → Revision create time' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_created␞␟value',
-            'Revision create time' => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
-            "Revision user → User → Last access" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
-            'Revision user → User → Changed' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
-            'Revision user → User → Created' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
-            "Revision user → User → Last login" => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            "Authored by → User → Last access" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝access␞␟value',
+            ],
+            "Authored by → User → Changed" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝changed␞␟value',
+            ],
+            "Authored by → User → Created" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝created␞␟value',
+            ],
+            "Authored by → User → Last login" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝login␞␟value',
+            ],
+            'Authored on' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝created␞␟value',
+            ],
+            'Changed' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝changed␞␟value',
+            ],
+            "Silly image 🤡 → Changed" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝changed␞␟value',
+            ],
+            "Silly image 🤡 → Created" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝created␞␟value',
+            ],
+            'Primary topic → Taxonomy term → Changed' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝changed␞␟value',
+            ],
+            'Primary topic → Taxonomy term → Revision create time' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_created␞␟value',
+            ],
+            "Revision create time" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_timestamp␞␟value',
+            ],
+            "Revision user → User → Last access" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝access␞␟value',
+            ],
+            "Revision user → User → Changed" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝changed␞␟value',
+            ],
+            "Revision user → User → Created" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝created␞␟value',
+            ],
+            "Revision user → User → Last login" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝login␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -726,14 +1223,38 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_number' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
-            'Authored by → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
-            "Silly image 🤡 → File size" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
-            "Silly image 🤡 → Height" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
-            "Silly image 🤡 → Width" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
-            'Primary topic → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
-            'Revision user → User → Picture → Height' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
-            'Revision user → User → Picture → Width' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            'Authored by → User → Picture → Height' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            ],
+            'Authored by → User → Picture → Width' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            ],
+            "Silly image 🤡 → File size" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "Silly image 🤡 → Height" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟height',
+            ],
+            "Silly image 🤡 → Width" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width',
+            ],
+            'Primary topic → Taxonomy term → Weight' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
+            'Revision user → User → Picture → Height' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟height',
+            ],
+            'Revision user → User → Picture → Width' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟width',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -741,10 +1262,22 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image' => [
           'required' => FALSE,
           'instances' => [
-            'Authored by → User → Picture' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            "Silly image 🤡" => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            'Primary topic → Taxonomy term → Revision user' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝user_picture␞␟width,height↝entity␜␜entity:user␝user_picture␞␟height}',
-            'Revision user → User → Picture' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'Authored by → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+            "Silly image 🤡" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+            'Primary topic → Taxonomy term → Revision user' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝revision_user␞␟{src↝entity␜␜entity:user␝user_picture␞␟src_with_alternate_widths,alt↝entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:user␝user_picture␞␟width,height↝entity␜␜entity:user␝user_picture␞␟height}',
+            ],
+            'Revision user → User → Picture' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
           ],
           'adapters' => [
             'Apply image style' => 'image_apply_style',
@@ -755,7 +1288,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_image_ARRAY' => [
           'required' => FALSE,
           'instances' => [
-            "field_before_and_after" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            "field_before_and_after" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -769,7 +1305,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_date_range' => [
           'required' => FALSE,
           'instances' => [
-            "field_event_duration" => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
+            "field_event_duration" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -783,9 +1322,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_html_block' => [
           'required' => FALSE,
           'instances' => [
-            "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
-            'Primary topic → Taxonomy term → Some text field → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
-            'Primary topic → Taxonomy term → Description → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+            "field_wall_of_text → Processed text" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            ],
+            'Primary topic → Taxonomy term → Some text field → Processed text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
+            ],
+            'Primary topic → Taxonomy term → Description → Processed text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -793,9 +1341,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_html' => [
           'required' => FALSE,
           'instances' => [
-            "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
-            'Primary topic → Taxonomy term → Some text field → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
-            'Primary topic → Taxonomy term → Description → Processed text' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+            "field_wall_of_text → Processed text" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            ],
+            'Primary topic → Taxonomy term → Some text field → Processed text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
+            ],
+            'Primary topic → Taxonomy term → Description → Processed text' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -809,7 +1366,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block' => [
           'required' => TRUE,
           'instances' => [
-            "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text → Processed text" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -817,7 +1377,10 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html' => [
           'required' => TRUE,
           'instances' => [
-            "field_wall_of_text → Processed text" => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            "field_wall_of_text → Processed text" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -825,10 +1388,22 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_integer' => [
           'required' => FALSE,
           'instances' => [
-            "field_screenshots → File size" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
-            "field_screenshots → Height" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
-            "field_screenshots → Width" => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
-            'Tags → Taxonomy term → Weight' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            "field_screenshots → File size" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "field_screenshots → Height" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟height',
+            ],
+            "field_screenshots → Width" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_screenshots␞␟width',
+            ],
+            'Tags → Taxonomy term → Weight' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_tags␞␟entity␜␜entity:taxonomy_term␝weight␞␟value',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],
@@ -842,9 +1417,18 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_array_integer_maxItems' => [
           'required' => FALSE,
           'instances' => [
-            "field_before_and_after → File size" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
-            "field_before_and_after → Height" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
-            "field_before_and_after → Width" => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            "field_before_and_after → File size" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟entity␜␜entity:file␝filesize␞␟value',
+            ],
+            "field_before_and_after → Height" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟height',
+            ],
+            "field_before_and_after → Width" => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:foo␝field_before_and_after␞␟width',
+            ],
           ],
           'adapters' => [],
           'host_entity_urls' => [],

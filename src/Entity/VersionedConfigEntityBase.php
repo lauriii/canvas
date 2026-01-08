@@ -58,7 +58,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
           (string) $version,
           implode(', ', array_map(
             fn (string $v): string => sprintf('`%s`', (string) $v),
-            array_keys($this->versioned_properties),
+            $this->getVersions(),
           )),
         ));
       }

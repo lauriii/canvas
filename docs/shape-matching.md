@@ -135,6 +135,10 @@ versus required occurrences of a `prop shape`:
 
 The found `field instance` can then be used in a `dynamic prop source`, that can be _evaluated_ to retrieve the stored
 value that fits in the `prop shape`.
+ℹ️ A `dynamic prop source` may specify a single "adapter" plugin (which must take a single input), which allows
+Canvas to suggest field properties that _conceptually_ fit perfectly, but don't _technically_ fit, a particular `prop shape`.
+For example: "timestamp" fields (which contain UNIX timestamps) can be made available to props that have the
+`type: string, format: date` shape, by using the `unix_to_date` adapter plugin.
 
 See `\Drupal\canvas\PropSource\DynamicPropSource`.
 

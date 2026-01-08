@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
@@ -41,6 +42,8 @@ use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
@@ -545,6 +548,7 @@ class PropSourceTest extends KernelTestBase {
   public function testDynamicPropSource(
     array $permissions,
     string $expression,
+    ?string $adapter_plugin_id,
     bool $is_required,
     string $expected_json_representation,
     string $expected_expression_class,
@@ -564,6 +568,8 @@ class PropSourceTest extends KernelTestBase {
       'uuid' => '881261cd-c9e2-4dcd-b0a8-1efa2e319a13',
       'name' => 'John Doe',
       'status' => 1,
+      'created' => 694695600,
+      'access' => 1720602713,
     ]);
     $user->save();
 
@@ -571,6 +577,23 @@ class PropSourceTest extends KernelTestBase {
     $this->installEntitySchema('node');
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
     $this->createImageField('field_image', 'node', 'page');
+    FieldStorageConfig::create([
+      'field_name' => 'a_timestamp_maybe',
+      'entity_type' => 'node',
+      'type' => 'timestamp',
+      'settings' => [],
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'a_timestamp_maybe',
+      'label' => 'A timestamp, maybe',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      // Optional, to be able to test how DynamicPropSource' adapter support
+      // handles missing optional values (i.e. NULL).
+      'required' => FALSE,
+      'settings' => [],
+    ])->save();
     $node = $this->createNode(['uid' => $user->id(), 'field_image' => ['target_id' => 1]]);
 
     // For testing expressions relying on multiple bundles of the `node` entity
@@ -579,10 +602,10 @@ class PropSourceTest extends KernelTestBase {
     $this->createImageField('field_photo', 'node', 'bio');
     $node2 = $this->createNode(['uid' => $user->id(), 'type' => 'bio', 'field_photo' => ['target_id' => 2]]);
 
-    $original = DynamicPropSource::parse([
-      'sourceType' => 'dynamic',
-      'expression' => $expression,
-    ]);
+    $original = DynamicPropSource::parse(match ($adapter_plugin_id) {
+      NULL => ['sourceType' => 'dynamic', 'expression' => $expression],
+      default => ['sourceType' => 'dynamic', 'expression' => $expression, 'adapter' => $adapter_plugin_id],
+    });
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $original;
@@ -722,6 +745,7 @@ class PropSourceTest extends KernelTestBase {
     yield "simple: FieldPropExpression" => [
       'permissions' => ['access user profiles'],
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
+      'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
       'expected_expression_class' => FieldPropExpression::class,
@@ -743,6 +767,84 @@ class PropSourceTest extends KernelTestBase {
       'expected_dependencies_with_host_entity' => ['module' => ['user']],
     ];
 
+    yield "simple, with adapter: FieldPropExpression" => [
+      'permissions' => ['access user profiles'],
+      'expression' => 'ℹ︎␜entity:user␝created␞␟value',
+      'adapter_plugin_id' => 'unix_to_date',
+      'is_required' => TRUE,
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝created␞␟value","adapter":"unix_to_date"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => new EvaluationResult(
+        '1992-01-06',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'user:1',
+          ])
+          // Cache contexts added by host entity access checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
+      'expected_user_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:user␝created␞␟value, reason: The 'access user profiles' permission is required."],
+      'expected_evaluation_with_node_host_entity' => NULL,
+      'expected_node_access_denied_message' => NULL,
+      'expected_dependencies_expression_only' => [
+        'module' => [
+          'user',
+          'canvas',
+        ],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => [
+          'user',
+          'canvas',
+        ],
+      ],
+    ];
+
+    yield "simple, with adapter for optional (NULL) value: FieldPropExpression" => [
+      'permissions' => ['access content'],
+      'expression' => 'ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value',
+      'adapter_plugin_id' => 'unix_to_date',
+      'is_required' => FALSE,
+      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value","adapter":"unix_to_date"}',
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
+      'expected_user_access_denied_message' => NULL,
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        NULL,
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+          ])
+          // Cache contexts added by host entity access checking.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+          ->setCacheContexts(['user.permissions']),
+      ),
+      'expected_node_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value, reason: The 'access content' permission is required."],
+      'expected_dependencies_expression_only' => [
+        'module' => [
+          'node',
+          'canvas',
+        ],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.a_timestamp_maybe',
+        ],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => [
+          'node',
+          'canvas',
+        ],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.a_timestamp_maybe',
+        ],
+      ],
+    ];
+
     yield "entity reference: FieldPropExpression using the `url` property, for a REQUIRED component prop" => [
       'permissions' => [
         // Grant access to the host entity.
@@ -751,6 +853,7 @@ class PropSourceTest extends KernelTestBase {
         'access user profiles',
       ],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
       'expected_expression_class' => FieldPropExpression::class,
@@ -801,6 +904,7 @@ class PropSourceTest extends KernelTestBase {
         'access content',
       ],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      'adapter_plugin_id' => NULL,
       'is_required' => FALSE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
       'expected_expression_class' => FieldPropExpression::class,
@@ -847,6 +951,7 @@ class PropSourceTest extends KernelTestBase {
     yield "entity reference: ReferenceFieldPropExpression following the `entity` property" => [
       'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
       'expected_expression_class' => ReferenceFieldPropExpression::class,
@@ -886,6 +991,7 @@ class PropSourceTest extends KernelTestBase {
     yield "complex object: FieldObjectPropsExpression containing a ReferenceFieldPropExpression" => [
       'permissions' => ['access content', 'access user profiles'],
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+      'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
       'expected_expression_class' => FieldObjectPropsExpression::class,
@@ -951,6 +1057,7 @@ class PropSourceTest extends KernelTestBase {
     yield "Contrived multi-bundle example, with per-bundle field names *and* per-field property names" => [
       'permissions' => ['access content'],
       'expression' => 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
+      'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
       'expected_expression_class' => FieldPropExpression::class,
@@ -1071,7 +1178,21 @@ class PropSourceTest extends KernelTestBase {
     self::assertSame($expected_cacheability->getCacheTags(), $evaluation_result->getCacheTags());
     self::assertSame($expected_cacheability->getCacheContexts(), $evaluation_result->getCacheContexts());
     self::assertSame($expected_cacheability->getCacheMaxAge(), $evaluation_result->getCacheMaxAge());
+  }
 
+  /**
+   * @covers \Drupal\canvas\PropSource\DynamicPropSource::withAdapter()
+   * @covers \Drupal\canvas\PropSource\DynamicPropSource::parse())
+   */
+  public function testInvalidDynamicPropSourceDueToMissingAdapter(): void {
+    $this->expectException(PluginNotFoundException::class);
+    $this->expectExceptionMessage('The "unix_to_date_oops_I_have_been_renamed" plugin does not exist.');
+
+    DynamicPropSource::parse([
+      'sourceType' => PropSource::Dynamic->value,
+      'expression' => 'ℹ︎␜entity:user␝created␞␟value',
+      'adapter' => 'unix_to_date_oops_I_have_been_renamed',
+    ]);
   }
 
   /**

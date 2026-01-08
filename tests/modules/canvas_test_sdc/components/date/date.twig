@@ -1,0 +1,14 @@
+{#
+  Uses the <time> element to represent a machine-readable date.
+  - MDN: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/time
+  - HTML Spec: https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-time-element
+  - The datetime attribute is set to an ISO 8601 date string (YYYY-MM-DD), as required by the HTML spec and RFC 3339: https://www.rfc-editor.org/rfc/rfc3339
+  - This matches the JSON Schema "date" format: https://json-schema.org/understanding-json-schema/reference/string.html#dates-and-times
+#}
+<figure class="date">
+  {# @todo Remove `default` filter in https://www.drupal.org/i/3530808 when we make this a required prop. #}
+  <time datetime="{{ date|default('') }}"></time>
+  {% if caption %}
+    <figcaption>{{ caption }}</figcaption>
+  {% endif %}
+</figure>

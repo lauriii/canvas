@@ -27,6 +27,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Entity\File;
 use Drupal\link\LinkItemInterface;
 use Drupal\media\Entity\Media;
@@ -218,6 +219,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.component-mismatch-meta-enum',
       'sdc.canvas_test_sdc.component-no-meta-enum',
       'sdc.canvas_test_sdc.crash',
+      'sdc.canvas_test_sdc.date',
       'sdc.canvas_test_sdc.deprecated',
       'sdc.canvas_test_sdc.druplicon',
       'sdc.canvas_test_sdc.experimental',
@@ -655,6 +657,20 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--crash',
             'core/components.canvas_test_sdc--crash',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.date' => [
+        'html' => '<figure class="date">
+    <time datetime=""></time>
+      <figcaption>Birthday</figcaption>
+  </figure>
+',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--date',
+            'core/components.canvas_test_sdc--date',
           ],
         ],
       ],
@@ -1857,6 +1873,30 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.date' => [
+        'prop_field_definitions' => [
+          'date' => [
+            'required' => FALSE,
+            'field_type' => 'datetime',
+            'field_storage_settings' => [
+              'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+            ],
+            'field_instance_settings' => [],
+            'field_widget' => 'datetime_default',
+            'default_value' => NULL,
+            'expression' => 'ℹ︎datetime␟value',
+          ],
+          'caption' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [0 => ['value' => 'Birthday']],
+            'expression' => 'ℹ︎string␟value',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.deprecated' => [
         'prop_field_definitions' => [
           'text' => [
@@ -2642,6 +2682,13 @@ HTML
       'sdc.canvas_test_sdc.crash' => [
         'module' => [
           'core',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.date' => [
+        'module' => [
+          'core',
+          'datetime',
           'canvas_test_sdc',
         ],
       ],
@@ -3701,6 +3748,42 @@ HTML
                 0 => ['value' => FALSE],
               ],
               'resolved' => FALSE,
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.date' => [
+        'expected_output_selectors' => [
+          'figure.date',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'date' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'format' => 'date',
+            ],
+            'sourceType' => 'static:field_item:datetime',
+            'expression' => 'ℹ︎datetime␟value',
+            'sourceTypeSettings' => [
+              'storage' => [
+                'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+              ],
+            ],
+          ],
+          'caption' => [
+            'required' => FALSE,
+            'jsonSchema' => ['type' => 'string'],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'Birthday'],
+              ],
+              'resolved' => 'Birthday',
             ],
           ],
         ],

@@ -14,6 +14,18 @@ use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 
 /**
+ * Adapted prop sources allow combining multiple prop sources, and chaining.
+ *
+ * Computes a single evaluation result from:
+ * - Multiple prop sources, of any kind (see the PropSource enum)
+ * - Potentially even chained AdaptedPropSources
+ *
+ * This comes with incredible potential, but also with significant risks:
+ * - UX could easily be overwhelmingly complex
+ * - ensuring sufficient guardrails to guarantee validity is extremely difficult
+ *
+ * @see \Drupal\canvas\PropSource\PropSource
+ *
  * @phpstan-import-type AdaptedPropSourceArray from PropSource
  * @internal
  */

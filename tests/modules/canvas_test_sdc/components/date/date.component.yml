@@ -1,0 +1,17 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Date
+status: stable
+group: Atom/Text
+props:
+  type: object
+  properties:
+    date:
+      type: string
+      format: date
+      title: Date
+      # @todo Add example in https://www.drupal.org/project/canvas/issues/3530808, right now this causes a config schema validation error.
+      examples: []
+    caption:
+      type: string
+      title: Caption
+      examples: ["Birthday"]

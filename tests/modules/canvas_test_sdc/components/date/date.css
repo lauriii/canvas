@@ -1,0 +1,13 @@
+figure.date {
+  background: transparent;
+}
+figure.date > time {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2d6cdf;
+  background: #f8fafc;
+  border-radius: 0.5em;
+  padding: 0.5em 1em;
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}

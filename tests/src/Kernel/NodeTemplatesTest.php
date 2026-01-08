@@ -14,6 +14,7 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
@@ -28,6 +29,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  */
 final class NodeTemplatesTest extends KernelTestBase {
 
+  use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
   use GenerateComponentConfigTrait;
   use ContentTypeCreationTrait;
@@ -51,6 +53,8 @@ final class NodeTemplatesTest extends KernelTestBase {
   protected static $modules = [
     'canvas',
     'system',
+    'ckeditor5',
+    'editor',
     'filter',
     'options',
     'text',
@@ -71,10 +75,12 @@ final class NodeTemplatesTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->container->get('theme_installer')->install(['stark']);
     $this->installEntitySchema('user');
     $this->installEntitySchema('media');
     $this->installEntitySchema('node');
     $this->installConfig(['node', 'system', 'filter']);
+    $this->installConfig(['canvas']);
     $this->createContentType(['type' => 'article']);
     $this->generateComponentConfig();
     FilterFormat::create([
@@ -99,7 +105,7 @@ final class NodeTemplatesTest extends KernelTestBase {
     TRUE,
     [
       // Components in the component tree.
-      'config:canvas.component.sdc.canvas_test_sdc.my-cta',
+      'config:canvas.component.sdc.canvas_test_sdc.my-hero',
       'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       // Cacheability of resolved props.
       'node:1',
@@ -113,14 +119,14 @@ final class NodeTemplatesTest extends KernelTestBase {
       // Components in the component tree — minus the ones whose props failed to
       // resolve because they were inaccessible: DynamicPropSources populated by
       // the host entity.
-      'config:canvas.component.sdc.canvas_test_sdc.my-cta',
+      'config:canvas.component.sdc.canvas_test_sdc.my-hero',
       // @todo Stop expecting this cache tag in https://www.drupal.org/i/3559820
       'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       // @see \Drupal\node\NodeAccessControlHandler::checkViewAccess()
       'node:1',
     ],
   ])]
-  public function testOptContentTypeIntoCanvas(bool $node_is_published, bool $expect_body_field_visible, array $expected_node_component_tree_cache_tags): void {
+  public function testOptContentTypeIntoCanvas(bool $node_is_published, bool $expected_entity_data_is_accessible, array $expected_node_component_tree_cache_tags): void {
     ContentTemplate::create([
       'id' => 'node.article.full',
       'content_entity_type_id' => 'node',
@@ -128,14 +134,32 @@ final class NodeTemplatesTest extends KernelTestBase {
       'content_entity_type_view_mode' => 'full',
       'component_tree' => [
         // A static marker so we can easily tell if we're rendering with Canvas,
-        // but simultaneously with a dynamically generated URL.
+        // but simultaneously tests all currently supported dynamic ways of
+        // populating props.
         [
           'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
-          'component_id' => 'sdc.canvas_test_sdc.my-cta',
-          'component_version' => '89881c04a0fde367',
+          'component_id' => 'sdc.canvas_test_sdc.my-hero',
+          'component_version' => 'a681ae184a8f6b7f',
           'inputs' => [
-            'text' => 'Canvas is large and in charge!',
-            'href' => [
+            // Tests static prop source end-to-end.
+            // @see \Drupal\canvas\PropSource\StaticPropSource
+            'heading' => 'Canvas is large and in charge!',
+            // Tests adapted dynamic prop source end-to-end.
+            // @see \Drupal\canvas\PropSource\DynamicPropSource::__construct(adapter)
+            'subheading' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝created␞␟value',
+              'adapter' => 'unix_to_date',
+            ],
+            // Tests dynamic prop source end-to-end.
+            // @see \Drupal\canvas\PropSource\DynamicPropSource
+            'cta1' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+            ],
+            // Tests host entity URL prop source end-to-end.
+            // @see \Drupal\canvas\PropSource\HostEntityUrlPropSource
+            'cta1href' => [
               'sourceType' => 'host-entity-url',
             ],
           ],
@@ -162,6 +186,8 @@ HTML;
 
     $node = $this->createNode([
       'type' => 'article',
+      'title' => 'This is a node whose structured data is rendered using a Canvas content template!',
+      'created' => 1764872657,
       'body' => [
         'value' => $body,
         'format' => 'basic_html',
@@ -177,7 +203,9 @@ HTML;
     $crawler = $this->crawlerForRenderArray($build);
     // The content type has not been opted into Canvas, so it should not be using
     // Canvas for rendering.
-    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
+    self::assertCount(0, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
+    self::assertCount(0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
+    self::assertCount(0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
     self::assertEqualsCanonicalizing([
@@ -207,7 +235,9 @@ HTML;
     $template = ContentTemplate::load('node.article.full');
     assert($template instanceof ContentTemplate);
     self::assertFalse($template->status());
-    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
+    self::assertCount(0, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
+    self::assertCount(0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
+    self::assertCount(0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
 
@@ -230,8 +260,10 @@ HTML;
 
     self::assertTrue($template->status());
     self::assertStringContainsString('Canvas is large and in charge!', $html);
-    self::assertCount(1, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
-    self::assertCount($expect_body_field_visible ? 1 : 0, $crawler->filter('p:contains("Hey this is allowed")'));
+    self::assertCount(1, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
+    self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
+    self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
+    self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
     self::assertEqualsCanonicalizing([
       'config:canvas.content_template.node.article.full',
@@ -286,6 +318,7 @@ HTML;
         [
           'uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
               'sourceType' => 'dynamic',

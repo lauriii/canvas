@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropSource;
 
+use Drupal\canvas\Plugin\Adapter\AdapterInterface;
+use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\MissingHostEntityException;
@@ -31,9 +34,36 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  */
 final class DynamicPropSource extends PropSourceBase {
 
+  /**
+   * @param \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression $expression
+   * @param \Drupal\canvas\Plugin\Adapter\AdapterInterface|null $adapter
+   *   Optionally, a single adapter plugin instance can be specified, with a
+   *   single input.
+   */
   public function __construct(
     public readonly FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expression,
-  ) {}
+    private readonly ?AdapterInterface $adapter = NULL,
+  ) {
+    // If the (optional) adapter plugin instance is provided, perform extra
+    // validation: only *some* adapter plugins are acceptable.
+    if ($adapter instanceof AdapterInterface) {
+      if (count($adapter->getInputs()) > 1) {
+        throw new \LogicException('Only adapter plugins with a single input are accepted.');
+      }
+    }
+  }
+
+  public function withAdapter(string $adapter_plugin_id): static {
+    // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+    $adapter_manager = \Drupal::service(AdapterManager::class);
+    assert($adapter_manager instanceof AdapterManager);
+    $adapter_instance = $adapter_manager->createInstance($adapter_plugin_id);
+    assert($adapter_instance instanceof AdapterInterface);
+    return new static(
+      expression: $this->expression,
+      adapter: $adapter_instance,
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -41,10 +71,14 @@ final class DynamicPropSource extends PropSourceBase {
    * @return PropSourceArray
    */
   public function toArray(): array {
-    return [
+    $array_representation = [
       'sourceType' => $this->getSourceType(),
       'expression' => (string) $this->expression,
     ];
+    if ($this->adapter) {
+      $array_representation['adapter'] = $this->adapter->getPluginId();
+    }
+    return $array_representation;
   }
 
   /**
@@ -59,7 +93,15 @@ final class DynamicPropSource extends PropSourceBase {
     assert(array_key_exists('expression', $sdc_prop_source));
 
     // @phpstan-ignore-next-line argument.type
-    return new DynamicPropSource(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
+    $instance = new DynamicPropSource(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
+
+    // Optionally, a single adapter plugin ID can be specified.
+    $has_adapter = array_key_exists('adapter', $sdc_prop_source);
+    if (!$has_adapter) {
+      return $instance;
+    }
+    \assert(\is_string($sdc_prop_source['adapter']));
+    return $instance->withAdapter($sdc_prop_source['adapter']);
   }
 
   /**
@@ -69,7 +111,21 @@ final class DynamicPropSource extends PropSourceBase {
     if ($host_entity === NULL) {
       throw new MissingHostEntityException();
     }
-    return Evaluator::evaluate($host_entity, $this->expression, $is_required);
+    $raw_result = Evaluator::evaluate($host_entity, $this->expression, $is_required);
+
+    // Only adapt non-empty results.
+    if ($this->adapter && $raw_result->value !== NULL) {
+      // Only adapter plugins with a single input are accepted, which is how
+      // this is able to remain much simpler than AdaptedPropSource
+      // @see ::__construct()
+      // @see \Drupal\canvas\PropSource\AdaptedPropSource
+      $sole_input_name = array_keys($this->adapter->getInputs())[0];
+      $this->adapter->addInput($sole_input_name, $raw_result->value);
+      $adapted_result = new EvaluationResult($this->adapter->adapt(), $raw_result);
+      return $adapted_result;
+    }
+
+    return $raw_result;
   }
 
   public function asChoice(): string {
@@ -86,7 +142,18 @@ final class DynamicPropSource extends PropSourceBase {
     // calculated dependencies will be limited to the entity types, bundle (if
     // any) and fields (if any) that this expression depends on.
     // @see \Drupal\Tests\canvas\Kernel\PropExpressionDependenciesTest
-    return $this->expression->calculateDependencies($host_entity);
+    $deps = $this->expression->calculateDependencies($host_entity);
+
+    if ($this->adapter) {
+      $plugin_definition = $this->adapter->getPluginDefinition();
+      $deps['module'][] = match (TRUE) {
+        $plugin_definition instanceof PluginDefinitionInterface => $plugin_definition->getProvider(),
+        is_array($plugin_definition) => $plugin_definition['provider'],
+        default => NULL,
+      };
+    }
+
+    return $deps;
   }
 
   public function label(): TranslatableMarkup|string {
