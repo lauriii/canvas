@@ -120,6 +120,9 @@ class ShapeMatchingHooks {
         $info[$plugin_id]['class'] = $class;
       }
     }
+
+    // @todo Remove this forward port of https://www.drupal.org/project/drupal/issues/3521088 once Canvas requires Drupal >=11.3
+    $info['changed']['constraints'] = $info['created']['constraints'] = $info['timestamp']['constraints'];
   }
 
   /**

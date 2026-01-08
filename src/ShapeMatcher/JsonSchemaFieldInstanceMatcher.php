@@ -1005,7 +1005,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // 2. Optionally: the interface.
     $interface_found = $required_shape->interface === NULL
       || is_a($property_data_definition->getClass(), $required_shape->interface, TRUE);
-    return $constraint_found && $interface_found;
+    return ($constraint_found && $interface_found) xor $required_shape->negate;
   }
 
   /**

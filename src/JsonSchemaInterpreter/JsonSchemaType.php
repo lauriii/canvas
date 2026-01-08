@@ -190,7 +190,20 @@ enum JsonSchemaType: string {
         array_key_exists('maximum', $schema) => new DataTypeShapeRequirement('Range', ['max' => $schema['maximum']], NULL),
         !empty(array_intersect(['multipleOf', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'], array_keys($schema))) => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
         // Otherwise, it's an unrestricted integer or number.
-        TRUE => FALSE,
+        // TRICKY: exclude UNIX timestamps, even though the JSON schema defined
+        // no restrictions. Because UNIX timestamps never make sense to present
+        // in a component. Note a component can still choose to explicitly want
+        // UNIX timestamps by specifying the correct `min` and `max`.
+        // @see \Drupal\Core\Field\Plugin\Field\FieldType\TimestampItem
+        TRUE => new DataTypeShapeRequirement(
+          negate: TRUE,
+          constraint: 'Range',
+          constraintOptions: [
+            // TRICKY: this passes min/max as strings to match TimestampItem! 🤪
+            'min' => '-2147483648',
+            'max' => '2147483648',
+          ],
+        ),
       },
 
       JsonSchemaType::Object, JsonSchemaType::Array => (function () {

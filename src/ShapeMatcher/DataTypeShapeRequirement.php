@@ -20,6 +20,8 @@ final class DataTypeShapeRequirement implements \IteratorAggregate {
     public readonly array $constraintOptions,
     // Restricting by interface makes sense in combination with \Drupal\Core\Validation\Plugin\Validation\Constraint\PrimitiveTypeConstraintValidator.
     public readonly ?string $interface = NULL,
+    // Whether this requirement should be negated.
+    public readonly bool $negate = FALSE,
   ) {
     if ($this->constraint === 'PrimitiveType' && $interface === NULL) {
       throw new \DomainException('The `PrimitiveType` constraint is meaningless without an interface restriction.');
