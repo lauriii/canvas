@@ -69,9 +69,10 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     // We need to ensure that as soon as a content template is added, we are
     // using it.
     else {
-      (new CacheableMetadata())->addCacheTags(
-        $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getEntityType()->getListCacheTags()
-      )->applyTo($defaults);
+      CacheableMetadata::createFromRenderArray($defaults)
+        ->addCacheTags(
+          $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getEntityType()->getListCacheTags()
+        )->applyTo($defaults);
     }
 
     $keys = NestedArray::getValue($defaults, ['#cache', 'keys']);

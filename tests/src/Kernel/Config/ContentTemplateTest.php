@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -249,6 +250,29 @@ final class ContentTemplateTest extends KernelTestBase {
     // Sanity-check that the test template is valid.
     $violations = $template->getTypedData()->validate();
     self::assertCount(0, $violations, \implode(', ', \array_map(static fn (ConstraintViolationInterface $violation) => $violation->getMessage(), \iterator_to_array($violations))));
+  }
+
+  public function testAbsentContentTemplateKeepsCacheMetadata(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('node');
+
+    $node = Node::create([
+      'title' => 'Some node',
+      'type' => 'helpful',
+    ]);
+    $node->save();
+    $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
+    // Canvas' view builder is not used because there is no ContentTemplate yet.
+    $this->assertSame(ContentTemplateAwareViewBuilder::class, $view_builder::class);
+    $build = $view_builder->view($node);
+
+    // Assert the right cacheability.
+    $this->assertContains('without-canvas', $build['#cache']['keys']);
+    $this->assertEqualsCanonicalizing([
+      'node_view',
+      'node:1',
+      'config:content_template_list',
+    ], $build['#cache']['tags']);
   }
 
 }
