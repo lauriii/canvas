@@ -6,7 +6,7 @@ Issue: <https://www.drupal.org/project/canvas/issues/3566465>
 
 ## Status
 
-Accepted
+Superseded by [ADR-0008](0008-astro-hydration-bundled-dependencies-as-external.md)
 
 ## Context
 

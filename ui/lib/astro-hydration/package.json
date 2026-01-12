@@ -6,13 +6,19 @@
   "scripts": {
     "build": "npm run build -w drupal-canvas && astro build && node extract-hydration-script.js"
   },
+  "canvas": {
+    "//": "@see docs/adr/0008-astro-hydration-bundled-dependencies-as-external.md",
+    "buildOnly": ["astro", "@astrojs/preact"]
+  },
   "dependencies": {
     "@astrojs/preact": "^4.0.3",
     "astro": "^5.2.2",
     "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "drupal-canvas": "^0.1.0",
     "drupal-jsonapi-params": "^2.3.2",
     "preact": "^10.25.4",
-    "swr": "^2.3.7"
+    "swr": "^2.3.7",
+    "tailwind-merge": "^3.0.2"
   }
 }
