@@ -91,6 +91,11 @@ export default defineConfig({
             if (parent?.includes(`/node_modules/${matchedLibrary}/`)) {
               return false;
             }
+            // Bundle if imported from a build-only package (e.g., @astrojs/preact
+            // importing preact).
+            if (buildOnly.some(pkg => parent?.includes(`/node_modules/${pkg}/`))) {
+              return false;
+            }
             // Bundle if parent is a Vite/Rollup wrapper (e.g., ?commonjs-es-import).
             if (parent?.includes('?')) {
               return false;

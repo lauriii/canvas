@@ -44,6 +44,8 @@ is for a library exposed via the import map. When a match is found:
 - **Bundle** if imported directly from `astro-hydration/src/`
 - **Bundle** if it's an internal import within the same package (e.g.,
   `swr/dist/_internal` imported by `swr/dist/index`)
+- **Bundle** if imported from a build-only package (e.g., `@astrojs/preact`
+  importing `preact`)
 - **Bundle** if the parent is a Vite/Rollup wrapper (e.g., `?commonjs-es-import`)
 - **Mark external** otherwise (imports from nested dependencies)
 
