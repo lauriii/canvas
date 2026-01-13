@@ -9,7 +9,7 @@
         const timeEl = context.querySelector('time[datetime]');
         const isoDate = timeEl.getAttribute('datetime');
         // @todo The date can be omitted for now, but remove this in https://www.drupal.org/i/3530808.
-        if (isoDate == '') {
+        if (isoDate === '') {
           timeEl.textContent = '🗓️';
           return;
         }
