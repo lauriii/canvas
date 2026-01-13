@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -188,4 +189,43 @@ function canvas_post_update_0009_unset_category_property_on_components(array &$s
   $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->unsetComponentCategoryProperty($component));
+}
+
+/**
+ * Migrate auto-save data from tempstore to key-value store.
+ */
+function canvas_post_update_0010_migrate_auto_save(): void {
+  $keyvalue_factory = \Drupal::service('keyvalue');
+  $tempstore_factory = \Drupal::service('tempstore.shared');
+
+  $collections = [
+    AutoSaveManager::AUTO_SAVE_STORE,
+    AutoSaveManager::FORM_VIOLATIONS_STORE,
+    AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE,
+  ];
+
+  foreach ($collections as $collection) {
+    $tempstore = $tempstore_factory->get($collection);
+    $keyvalue_store = $keyvalue_factory->get($collection);
+
+    // SharedTempStore doesn't expose getAll() publicly. Use reflection to
+    // access the protected $storage property which has the getAll() method.
+    // The underlying key-value expirable storage has getAll() but it's not
+    // part of the SharedTempStore public API.
+    $reflection = new \ReflectionObject($tempstore);
+    $storage_property = $reflection->getProperty('storage');
+    $storage_property->setAccessible(TRUE);
+    $tempstore_storage = $storage_property->getValue($tempstore);
+
+    foreach ($tempstore_storage->getAll() as $key => $value) {
+      if (is_object($value) && isset($value->data)) {
+        $data = $value->data;
+        if ($collection === AutoSaveManager::AUTO_SAVE_STORE && isset($value->owner, $value->updated)) {
+          $data['owner'] = (int) ($value->owner ?? 0);
+          $data['updated'] = (int) ($value->updated ?? 0);
+        }
+        $keyvalue_store->set($key, $data);
+      }
+    }
+  }
 }

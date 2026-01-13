@@ -65,8 +65,6 @@ services:
     arguments: ['@asset.resolver.canvas.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
   Drupal\canvas\ClientDataToEntityConverter: {}
   Drupal\canvas\AutoSave\AutoSaveManager: {}
-  Drupal\canvas\AutoSave\AutoSaveTempStoreFactory:
-    parent: tempstore.shared
   Drupal\canvas\Storage\ComponentTreeLoader: {}
   Drupal\canvas\CodeComponentDataProvider: {}
   Drupal\canvas\Version: {}

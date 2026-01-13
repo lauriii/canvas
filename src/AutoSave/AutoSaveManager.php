@@ -19,8 +19,12 @@ use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -34,49 +38,52 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Defines a class for storing and retrieving auto-save data.
+ *
+ * Auto-save data is stored forever in the key-value store. So in principle, it
+ * can grow forever.
+ * However, auto-save entries for a (content or config) entity are deleted when:
+ * - publishing an entity's auto-save entry
+ * - deleting an entity
+ *
+ * @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
+ * @see \Drupal\canvas\Hook\AutoSaveHooks::entityDelete()
  */
 class AutoSaveManager implements EventSubscriberInterface {
 
   public const CACHE_TAG = 'canvas__auto_save';
   public const string PUBLISH_PERMISSION = 'publish auto-saves';
+  public const string AUTO_SAVE_STORE = 'canvas.auto_save';
+  public const string FORM_VIOLATIONS_STORE = 'canvas.form_violations';
+  public const string COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE = 'canvas.component_instance_form_violations';
 
   const ENTITY_DUPLICATE_SUFFIX = ' (Copy)';
 
+  private KeyValueStoreInterface $autoSaveStore;
+
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018.
+   */
+  private KeyValueStoreInterface $formViolationsStore;
+
+  /**
+   * @todo Remove this in https://drupal.org/i/3505018.
+   */
+  private KeyValueStoreInterface $componentInstanceFormViolationsStore;
+
   public function __construct(
-    private readonly AutoSaveTempStoreFactory $tempStoreFactory,
     private readonly ConfigManagerInterface $configManager,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     #[Autowire(service: 'cache.static')]
     private readonly CacheBackendInterface $cache,
+    #[Autowire(service: 'keyvalue')]
+    KeyValueFactoryInterface $keyValueFactory,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly TimeInterface $time,
   ) {
-  }
-
-  protected function getTempStoreByCollection(string $collection): AutoSaveTempStore {
-    // Store for 30 days.
-    $expire = 86400 * 30;
-    // We need to fetch a new shared temp store from the factory for each
-    // usage because the current user can change in the lifetime of a request.
-    return $this->tempStoreFactory->get($collection, expire: $expire);
-  }
-
-  protected function getTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('canvas.auto_save');
-  }
-
-  /**
-   * @todo Remove this in https://drupal.org/i/3505018.
-   */
-  protected function getFormViolationTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('canvas.auto_save.form_violations');
-  }
-
-  /**
-   * @todo Remove this in https://drupal.org/i/3505018 and
-   *   https://drupal.org/i/3500795.
-   */
-  protected function getComponentInstanceFormViolationTempStore(): AutoSaveTempStore {
-    return $this->getTempStoreByCollection('canvas.auto_save.component_form_violations');
+    $this->autoSaveStore = $keyValueFactory->get(self::AUTO_SAVE_STORE);
+    $this->formViolationsStore = $keyValueFactory->get(self::FORM_VIOLATIONS_STORE);
+    $this->componentInstanceFormViolationsStore = $keyValueFactory->get(self::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE);
   }
 
   public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
@@ -113,31 +120,35 @@ class AutoSaveManager implements EventSubscriberInterface {
       'label' => $entity->label(),
       'data_hash' => $data_hash,
       'client_id' => $clientId,
+      'owner' => (int) $this->currentUser->id(),
+      'updated' => $this->time->getRequestTime(),
     ];
-    $this->getTempStore()->set($key, $auto_save_data);
+    $this->autoSaveStore->set($key, $auto_save_data);
     $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
   }
 
   /**
-   * @todo Remove this in https://drupal.org/i/3505018.
+   * @todo Remove this in https://drupal.org/i/3505018 and
+   *   https://drupal.org/i/3500795.
    */
   public function saveEntityFormViolations(FieldableEntityInterface $entity, ?ConstraintViolationListInterface $violations = NULL): self {
     $key = self::getAutoSaveKey($entity);
     if ($violations === NULL) {
-      $this->getFormViolationTempStore()->delete($key);
+      $this->formViolationsStore->delete($key);
       return $this;
     }
-    $this->getFormViolationTempStore()->set($key, $violations);
+    $this->formViolationsStore->set($key, $violations);
     $this->cache->delete($key);
     return $this;
   }
 
   /**
-   * @todo Remove this in https://drupal.org/i/3505018.
+   * @todo Remove this in https://drupal.org/i/3505018 and
+   *   https://drupal.org/i/3500795.
    */
   public function getEntityFormViolations(FieldableEntityInterface $entity): ConstraintViolationListInterface {
-    return $this->getFormViolationTempStore()->get(self::getAutoSaveKey($entity)) ?? new ConstraintViolationList();
+    return $this->formViolationsStore->get(self::getAutoSaveKey($entity)) ?? new ConstraintViolationList();
   }
 
   /**
@@ -158,10 +169,10 @@ class AutoSaveManager implements EventSubscriberInterface {
    */
   public function saveComponentInstanceFormViolations(string $component_uuid, ?ConstraintViolationListInterface $violations = NULL): self {
     if ($violations === NULL) {
-      $this->getComponentInstanceFormViolationTempStore()->delete($component_uuid);
+      $this->componentInstanceFormViolationsStore->delete($component_uuid);
       return $this;
     }
-    $this->getComponentInstanceFormViolationTempStore()->set($component_uuid, $violations);
+    $this->componentInstanceFormViolationsStore->set($component_uuid, $violations);
     return $this;
   }
 
@@ -170,7 +181,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    *    https://drupal.org/i/3500795.
    */
   public function getComponentInstanceFormViolations(string $component_uuid): ConstraintViolationListInterface {
-    return $this->getComponentInstanceFormViolationTempStore()->get($component_uuid) ?? new ConstraintViolationList();
+    return $this->componentInstanceFormViolationsStore->get($component_uuid) ?? new ConstraintViolationList();
   }
 
   private static function normalizeEntity(EntityInterface $entity): array {
@@ -283,7 +294,7 @@ class AutoSaveManager implements EventSubscriberInterface {
       \assert($cached->data instanceof AutoSaveEntity);
       return $cached->data;
     }
-    $auto_save_data = $this->getTempStore()->get($key);
+    $auto_save_data = $this->autoSaveStore->get($key);
     if (\is_null($auto_save_data)) {
       return AutoSaveEntity::empty();
     }
@@ -310,15 +321,19 @@ class AutoSaveManager implements EventSubscriberInterface {
    *   All auto-save data entries.
    */
   public function getAllAutoSaveList(bool $with_entities = FALSE): array {
-    return \array_map(fn (object $entry) => $entry->data +
+    $entries = $this->autoSaveStore->getAll();
+    // Sort by key to ensure consistent ordering.
+    \ksort($entries);
+    /** @var array<string, array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, data_hash: string, client_id: ?string, langcode: ?string, entity: ?EntityInterface}> $result */
+    $result = \array_map(fn (array $entry) => $entry +
     // Append the owner and updated data into each entry, and an entity object
     // upon request.
     [
       // Remove the unique session key for anonymous users.
-      'owner' => \is_numeric($entry->owner) ? (int) $entry->owner : 0,
-      'updated' => $entry->updated,
-      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry->data['entity_type'])->create($entry->data['data']) : NULL,
-    ], $this->getTempStore()->getAll());
+      'owner' => \is_numeric($entry['owner']) ? (int) $entry['owner'] : 0,
+      'entity' => $with_entities ? $this->entityTypeManager->getStorage($entry['entity_type'])->create($entry['data']) : NULL,
+    ], $entries);
+    return $result;
   }
 
   /**
@@ -327,8 +342,8 @@ class AutoSaveManager implements EventSubscriberInterface {
   public function delete(EntityInterface $entity): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
     $key = $this->getAutoSaveKey($entity);
-    $this->getTempStore()->delete($key);
-    $this->getFormViolationTempStore()->delete($key);
+    $this->autoSaveStore->delete($key);
+    $this->formViolationsStore->delete($key);
     if ($entity instanceof ContentEntityInterface) {
       $canvas_fields = \array_keys(
         \array_filter(
@@ -342,14 +357,15 @@ class AutoSaveManager implements EventSubscriberInterface {
         ...$carry,
         ...\array_column($entity->get($field_name)->getValue(), 'uuid'),
       ], []);
-      $this->getComponentInstanceFormViolationTempStore()->deleteMultiple(\array_unique($component_uuids));
+      $this->componentInstanceFormViolationsStore->deleteMultiple(\array_unique($component_uuids));
     }
   }
 
   public function deleteAll(): void {
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
-    $this->getTempStore()->deleteAll();
-    $this->getFormViolationTempStore()->deleteAll();
+    $this->autoSaveStore->deleteAll();
+    $this->formViolationsStore->deleteAll();
+    $this->componentInstanceFormViolationsStore->deleteAll();
   }
 
   private static function generateHash(array $data): string {
