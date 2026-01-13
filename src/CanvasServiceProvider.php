@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Access\ViewModeAccessCheck;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\Core\DefaultContent\Exporter;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -63,6 +64,15 @@ class CanvasServiceProvider extends ServiceProviderBase {
     // @todo Remove in clean-up follow-up; minimize non-essential changes.
     $container->setAlias(ComponentPluginManager::class, 'plugin.manager.sdc');
 
+    // Decorate the Field UI view mode access check to add content template
+    // access logic, ensuring safe handling when the Field UI module is not
+    // enabled.
+    if ($container->hasDefinition('access_check.field_ui.view_mode')) {
+      $definition = (new Definition(ViewModeAccessCheck::class))
+        ->setAutowired(TRUE)
+        ->setDecoratedService('access_check.field_ui.view_mode');
+      $container->setDefinition('canvas.access_check.field_ui.view_mode', $definition);
+    }
     parent::alter($container);
   }
 

@@ -120,6 +120,11 @@ preview:
   dependencies:
     - core/once
 
+menu-icons:
+  css:
+    theme:
+      css/menu-icons.css: {}
+
 shoelace:
   css:
     theme:

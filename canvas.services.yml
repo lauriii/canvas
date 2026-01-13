@@ -98,6 +98,9 @@ services:
     class: Drupal\canvas\EventSubscriber\ImageStyleRoutesEventSubscriber
     tags:
       - { name: event_subscriber }
+  Drupal\canvas\Routing\ViewModeRouteSubscriber:
+    tags:
+      - { name: event_subscriber }
   Drupal\canvas\EventSubscriber\PreviewEnvelopeViewSubscriber: {}
   canvas.theme_negotiator.canvas:
     class: Drupal\canvas\Theme\CanvasThemeNegotiator
@@ -164,6 +167,7 @@ services:
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}
   Drupal\canvas\Controller\AddPageController: {}
+  Drupal\canvas\Controller\ViewModeDisplayController: {}
 
   # Decorators.
   Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor:
