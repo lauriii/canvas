@@ -331,9 +331,6 @@ eslint:
     - ln -sf $CI_PROJECT_DIR/$_WEB_ROOT/core/.prettierrc.json .
   rules:
     - *is-push-rule
-    - changes:
-        - ".gitlab-ci.yml"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .prettier*
