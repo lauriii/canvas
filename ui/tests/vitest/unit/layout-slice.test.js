@@ -17,7 +17,7 @@ import {
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
-import layoutFixture from '../fixtures/layout-default.json';
+import layoutFixture from '../../fixtures/layout-default.json';
 
 let layout;
 

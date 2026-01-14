@@ -10,8 +10,8 @@ import {
   replaceUUIDsAndUpdateModel,
 } from '@/features/layout/layoutUtils';
 
-import layoutFixture from '../fixtures/layout-default.json';
-import regionsLayoutFixture from '../fixtures/layout-regions.json';
+import layoutFixture from '../../fixtures/layout-default.json';
+import regionsLayoutFixture from '../../fixtures/layout-regions.json';
 
 let layout, regionsLayout;
 

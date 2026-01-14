@@ -5,7 +5,7 @@ import {
   isConsecutive,
   mapComponents,
   mapSlots,
-} from '@/utils/function-utils.ts';
+} from '@/utils/function-utils';
 
 const pageHTML = `<!DOCTYPE html>
 <html lang="">
