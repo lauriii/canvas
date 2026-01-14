@@ -17,9 +17,12 @@ export const validateCodeMachineNameClientSide = (name: string) => {
 };
 
 export const validateFolderNameClientSide = (name: string) => {
-  const cleanedName = name.toLowerCase().replace(/\s+/g, '_');
-  if (/^[-_\s]|[-_\s]$/.test(cleanedName)) {
-    return 'Name cannot start or end with a hyphen, underscore, or whitespace.';
+  // Trim leading/trailing spaces before validation to allow typing spaces
+  // at the end while user is still typing. The final trim happens on submit.
+  const trimmedName = name.trim();
+  const cleanedName = trimmedName.toLowerCase().replace(/\s+/g, '_');
+  if (/^[-_]|[-_]$/.test(cleanedName)) {
+    return 'Name cannot start or end with a hyphen or underscore.';
   }
   if (/[^a-zA-Z0-9_-]/.test(cleanedName)) {
     return 'Special characters are not allowed.';

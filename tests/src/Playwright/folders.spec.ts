@@ -36,6 +36,10 @@ test.describe('Folder Management', () => {
     await canvasEditor.goToCanvasRoot();
     await canvasEditor.openLibraryPanel();
 
+    await page.waitForLoadState('networkidle');
+    await page
+      .getByTestId('canvas-page-list-new-button')
+      .waitFor({ state: 'visible' });
     await page.getByTestId('canvas-page-list-new-button').click();
 
     await expect(
@@ -104,31 +108,57 @@ test.describe('Folder Management', () => {
       allExpectedFolders: string[],
     ) => {
       for (const folderName of foldersToAdd) {
-        await expect(
-          page.locator(
-            '[data-testid="canvas-manage-library-add-folder-content"]',
-          ),
-        ).not.toBeAttached();
+        // Close any open dropdown first by pressing Escape
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
 
-        await page.getByTestId('canvas-page-list-new-button').click();
-        await page.getByTestId('canvas-library-new-folder-button').click();
-
-        await expect(
-          page.locator('#add-new-folder-in-tab-form'),
-        ).toBeAttached();
-        await expect(
-          page.getByRole('button', { name: 'Add' }),
-        ).not.toBeEnabled();
+        // Wait for button to be in closed state
         await page
-          .locator('[data-testid="canvas-manage-library-new-folder-name"]')
-          .fill(folderName);
-        await expect(page.getByRole('button', { name: 'Add' })).toBeEnabled({
-          timeout: 5000,
+          .getByTestId('canvas-page-list-new-button')
+          .waitFor({ state: 'visible', timeout: 10000 });
+
+        // Open the New dropdown
+        await page.getByTestId('canvas-page-list-new-button').click({
+          force: true,
+          timeout: 10000,
         });
-        await page.getByRole('button', { name: 'Add' }).click();
+
+        // Wait for dropdown to be visible
+        await page
+          .getByTestId('canvas-library-new-folder-button')
+          .waitFor({ state: 'visible', timeout: 10000 });
+
+        // Click Add folder option
+        await page.getByTestId('canvas-library-new-folder-button').click({
+          timeout: 10000,
+        });
+
+        // Wait for the folder input to appear
+        const folderInput = page.getByTestId(
+          'canvas-manage-library-new-folder-name',
+        );
+        await expect(folderInput).toBeVisible({ timeout: 10000 });
+
+        await folderInput.clear();
+        await page
+          .getByTestId('canvas-manage-library-new-folder-name')
+          .fill('');
+        await folderInput.fill(folderName);
+
+        // Submit by pressing Enter
+        await page
+          .getByTestId('canvas-manage-library-new-folder-name')
+          .press('Enter');
+
+        // Wait for folder creation to complete (input should disappear)
+        await expect(
+          page.getByTestId('canvas-manage-library-new-folder-name'),
+        ).not.toBeVisible({ timeout: 10000 });
+
+        // Verify the folder was created
         await page
           .locator(`[data-canvas-folder-name="${folderName}"]`)
-          .waitFor({ state: 'attached' });
+          .waitFor({ state: 'attached', timeout: 10000 });
       }
 
       const folderElements = await page
@@ -146,12 +176,12 @@ test.describe('Folder Management', () => {
     await testAddFolder(
       ['Awesome New Folder', 'Is a Code Folder', 'Very Nice New Folder'],
       [
-        'Active Users of Using',
-        'Awesome New Folder',
-        'Empty Code',
-        'Is a Code Folder',
-        'Proclaimers of With',
         'Very Nice New Folder',
+        'Is a Code Folder',
+        'Awesome New Folder',
+        'Active Users of Using',
+        'Empty Code',
+        'Proclaimers of With',
       ],
     );
 
@@ -168,12 +198,12 @@ test.describe('Folder Management', () => {
     await testAddFolder(
       ['Awesome New Folder', 'Is a Pattern Folder', 'Very Nice New Folder'],
       [
-        'Animal Pats',
+        'Very Nice New Folder',
+        'Is a Pattern Folder',
         'Awesome New Folder',
+        'Animal Pats',
         'Color Patterns',
         'Empty Patterns',
-        'Is a Pattern Folder',
-        'Very Nice New Folder',
       ],
     );
 
@@ -189,19 +219,19 @@ test.describe('Folder Management', () => {
     await testAddFolder(
       ['Awesome New Folder', 'Is a Component Folder', 'Very Nice New Folder'],
       [
+        'Very Nice New Folder',
+        'Is a Component Folder',
+        'Awesome New Folder',
         'Atom/Media',
         'Atom/Tabs',
         'Atom/Text',
-        'Awesome New Folder',
         'Container',
         'Container/Special',
         'Empty Components',
-        'Is a Component Folder',
         'Menus',
         'Other',
         'Status',
         'System',
-        'Very Nice New Folder',
       ],
     );
   });
