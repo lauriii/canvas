@@ -216,11 +216,22 @@ stylelint:
     - *is-push-rule
     - *css-files-change-rule
     - *manual-rule
-  before_script:
-    # This job runs Prettier checks using what's installed in Drupal core.
-    # Delete our custom .prettierrc.json, and use the one from Drupal core instead. This avoids problems with Prettier
-    # plugins that are not installed in Drupal core, e.g., @ianvs/prettier-plugin-sort-imports.
-    - rm -rf .prettierrc.json
+  # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3492697 lands.
+  script:
+    - cd $_WEB_ROOT/core && corepack enable && yarn add @gitlab-formatters/stylelint-formatter-gitlab
+    - cd $CI_PROJECT_DIR/$_WEB_ROOT/modules/custom/$CI_PROJECT_NAME
+    # Install packages in the Canvas module's root directory.
+    # When stylelint runs Prettier, plugins are resolved relative to .prettierrc.json location, not the Prettier binary
+    # (which is in the Drupal core folder).
+    - npm ci
+    - echo "Stylelint version $(${CI_PROJECT_DIR}/${_WEB_ROOT}/core/node_modules/.bin/stylelint --version)"
+    - $CI_PROJECT_DIR/$_WEB_ROOT/core/node_modules/.bin/stylelint --ignore-path ./.stylelintignore --config $CI_PROJECT_DIR/$_WEB_ROOT/core/.stylelintrc.json ./**/*.css --formatter verbose --color $_STYLELINT_EXTRA || true
+    - $CI_PROJECT_DIR/$_WEB_ROOT/core/node_modules/.bin/stylelint --ignore-path ./.stylelintignore --config $CI_PROJECT_DIR/$_WEB_ROOT/core/.stylelintrc.json ./**/*.css --custom-formatter=@gitlab-formatters/stylelint-formatter-gitlab --output-file=$CI_PROJECT_DIR/gl-codequality.json $_STYLELINT_EXTRA
+  artifacts:
+    paths:
+      - gl-codequality.json
+    reports:
+      codequality: gl-codequality.json
 
 phpunit:
   variables:
