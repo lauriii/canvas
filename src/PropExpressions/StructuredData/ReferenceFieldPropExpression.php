@@ -33,10 +33,10 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   }
 
   public function __toString(): string {
-    return static::PREFIX
-      . self::withoutPrefix((string) $this->referencer)
+    return static::PREFIX_EXPRESSION_TYPE
+      . self::withoutExpressionTypePrefix((string) $this->referencer)
       . self::PREFIX_ENTITY_LEVEL
-      . self::withoutPrefix((string) $this->referenced);
+      . self::withoutExpressionTypePrefix((string) $this->referenced);
   }
 
   /**
@@ -75,7 +75,7 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     if ($this->referenced instanceof ReferenceFieldPropExpression) {
       // @see ::__toString()
       $additional = array_map(
-        fn (string $recursion_result): string => $chain . self::withoutPrefix($recursion_result),
+        fn (string $recursion_result): string => $chain . self::withoutExpressionTypePrefix($recursion_result),
         $this->referenced->getReferenceChainPrefixes()
       );
     }
@@ -143,7 +143,7 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
   public static function fromString(string $representation): static {
     [$referencer_part, $remainder] = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation, 2);
     $referencer = FieldPropExpression::fromString($referencer_part);
-    $referenced = StructuredDataPropExpression::fromString(static::PREFIX . self::PREFIX_ENTITY_LEVEL . $remainder);
+    $referenced = StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . self::PREFIX_ENTITY_LEVEL . $remainder);
     \assert($referenced instanceof FieldPropExpression || $referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
     return new static($referencer, $referenced);
   }

@@ -27,6 +27,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Unit\PropExpressionTest;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
@@ -45,6 +46,7 @@ use Drupal\user\Entity\User;
  */
 class PropExpressionKernelTest extends KernelTestBase {
 
+  use ContribStrictConfigSchemaTestTrait;
   use EntityReferenceFieldCreationTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
@@ -60,6 +62,8 @@ class PropExpressionKernelTest extends KernelTestBase {
     'node',
     'system',
     'taxonomy',
+    'editor',
+    'ckeditor5',
     'text',
     'filter',
     'user',
@@ -91,6 +95,8 @@ class PropExpressionKernelTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('media');
+
+    $this->installConfig('canvas');
 
     $this->createMediaType('image', ['id' => 'image']);
     $this->createMediaType('image', ['id' => 'baby_photos']);
@@ -308,6 +314,12 @@ class PropExpressionKernelTest extends KernelTestBase {
           self::assertSame(get_class($expected_expression_label), get_class($e));
           if ($expected_expression_label instanceof \Exception) {
             self::assertSame($expected_expression_label->getMessage(), $e->getMessage(), $test_case_precise_label);
+          }
+          elseif ($expected_expression_label instanceof \TypeError) {
+            // TypeError thrown by Labeler contains line number and file path
+            // making this very fragile to test, so we have to check the error
+            // message partially.
+            self::assertStringContainsString($expected_expression_label->getMessage(), $e->getMessage(), $test_case_precise_label);
           }
           continue;
         }

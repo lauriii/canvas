@@ -48,7 +48,7 @@ final class SegmentationRulesHooks {
     // be FullyValidatable.
     // @todo Fix this in core in https://www.drupal.org/i/3525391
     if (isset($definitions[self::CONDITION_PLUGIN])) {
-      $definitions[self::CONDITION_PLUGIN]['constraints']['FullyValidatable'] = \NULL;
+      $definitions[self::CONDITION_PLUGIN]['constraints']['FullyValidatable'] = NULL;
       $definitions[self::CONDITION_PLUGIN]['mapping']['context_mapping']['requiredKey'] = FALSE;
       unset($definitions[self::CONDITION_PLUGIN]['mapping']['uuid']);
       // @todo Missing `context_mapping`: https://www.drupal.org/i/3526758
@@ -61,7 +61,7 @@ final class SegmentationRulesHooks {
        * ExtensionExists: theme
        */
       // @todo Fix this in core in https://www.drupal.org/i/3527385
-      $definitions[self::CONDITION_CURRENT_THEME]['constraints']['FullyValidatable'] = \NULL;
+      $definitions[self::CONDITION_CURRENT_THEME]['constraints']['FullyValidatable'] = NULL;
       $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['NotBlank'] = [];
       $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['ExtensionName'] = [];
       $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['ExtensionExists'] = 'theme';
@@ -72,7 +72,7 @@ final class SegmentationRulesHooks {
        *  prefix: user.role.
        */
       // @todo Fix this in core in https://www.drupal.org/i/3527382
-      $definitions[self::CONDITION_USER_ROLE]['constraints']['FullyValidatable'] = \NULL;
+      $definitions[self::CONDITION_USER_ROLE]['constraints']['FullyValidatable'] = NULL;
       $definitions[self::CONDITION_USER_ROLE]['mapping']['roles']['sequence']['constraints']['ConfigExists'] = ['prefix' => 'user.role.'];
     }
   }

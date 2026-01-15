@@ -35,6 +35,8 @@ use Prophecy\Prophet;
  */
 class PropExpressionTest extends UnitTestCase {
 
+  const string LABELER_TYPE_ERROR_MESSAGE_FORMAT = 'Drupal\canvas\PropExpressions\StructuredData\Labeler::label(): Argument #1 ($expr) must be of type Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression, %s given';
+
   /**
    * {@inheritdoc}
    */
@@ -352,7 +354,12 @@ class PropExpressionTest extends UnitTestCase {
 
     return [
       // 1. References that point to a FieldPropExpression.
-      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_null,
+          referenced: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')
+        ),
         'Authored by␜User␝Name',
         [
           'module' => ['node', 'user'],
@@ -361,7 +368,17 @@ class PropExpressionTest extends UnitTestCase {
         NULL,
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞0␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_null,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            0,
+            'value'
+          ),
+        ),
         'Authored by␜User␝Name␞1st item',
         [
           'module' => ['node', 'user'],
@@ -370,7 +387,17 @@ class PropExpressionTest extends UnitTestCase {
         NULL,
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_null, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝name␞99␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_null,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            99,
+            'value'
+          ),
+        ),
         'Authored by␜User␝Name␞100th item',
         [
           'module' => ['node', 'user'],
@@ -380,7 +407,17 @@ class PropExpressionTest extends UnitTestCase {
         ['ℹ︎␜entity:node␝uid␞␟entity␜'],
       ],
 
-      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_zero,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            NULL,
+            'value'
+          ),
+        ),
         'Authored by␞1st item␜User␝Name',
         [
           'module' => ['node', 'user'],
@@ -389,7 +426,17 @@ class PropExpressionTest extends UnitTestCase {
         NULL,
         ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞0␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_zero,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            0,
+            'value'
+          ),
+        ),
         'Authored by␞1st item␜User␝Name␞1st item',
         [
           'module' => ['node', 'user'],
@@ -398,7 +445,17 @@ class PropExpressionTest extends UnitTestCase {
         NULL,
         ['ℹ︎␜entity:node␝uid␞0␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_zero, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞0␟entity␜␜entity:user␝name␞99␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_zero,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            99,
+            'value',
+          ),
+        ),
         'Authored by␞1st item␜User␝Name␞100th item',
         [
           'module' => ['node', 'user'],
@@ -412,10 +469,10 @@ class PropExpressionTest extends UnitTestCase {
       [
         'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟url',
         new ReferenceFieldPropExpression(
-          $referencer_delta_null,
-          new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          referencer: $referencer_delta_null,
+          referenced: new ReferenceFieldPropExpression(
+            referencer: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
         ),
         'Authored by␜User␝Picture␝URI␟Root-relative file URL',
@@ -439,11 +496,11 @@ class PropExpressionTest extends UnitTestCase {
       [
         'ℹ︎␜entity:node␝uid␞␟entity␜␜entity:user␝user_picture␞␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt,width↠width,height↠height}',
         new ReferenceFieldPropExpression(
-          $referencer_delta_null,
-          new FieldObjectPropsExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, [
+          referencer: $referencer_delta_null,
+          referenced: new FieldObjectPropsExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, [
             'src' => new ReferenceFieldPropExpression(
-              new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
-              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+              referencer: new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'entity'),
+              referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
             ),
             'alt' => new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'alt'),
             'width' => new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'user_picture', NULL, 'width'),
@@ -479,19 +536,48 @@ class PropExpressionTest extends UnitTestCase {
 
       // Intentional nonsense: labels MUST work if at all possible (invalid
       // deltas do not make this impossible), even when evaluation fails.
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', NULL, 'value')),
+      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_high,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            NULL,
+            'value',
+          ),
+        ),
         'Authored by␞124th item␜User␝Name',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
         NULL,
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 0, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞0␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_high,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            0,
+            'value',
+          ),
+        ),
         'Authored by␞124th item␜User␝Name␞1st item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
         NULL,
         ['ℹ︎␜entity:node␝uid␞123␟entity␜'],
       ],
-      ['ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value', new ReferenceFieldPropExpression($referencer_delta_high, new FieldPropExpression(BetterEntityDataDefinition::create('user'), 'name', 99, 'value')),
+      [
+        'ℹ︎␜entity:node␝uid␞123␟entity␜␜entity:user␝name␞99␟value',
+        new ReferenceFieldPropExpression(
+          referencer: $referencer_delta_high,
+          referenced: new FieldPropExpression(
+            BetterEntityDataDefinition::create('user'),
+            'name',
+            99,
+            'value',
+          ),
+        ),
         'Authored by␞124th item␜User␝Name␞100th item',
         new \LogicException('Requested delta 123 for single-cardinality field, must be either zero or omitted.'),
         NULL,
@@ -536,8 +622,8 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
           // 1. one (non-leaf) field property that follows an entity reference
           'src' => new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+            referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'entity'),
+            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
@@ -600,15 +686,15 @@ class PropExpressionTest extends UnitTestCase {
         'ℹ︎␜entity:node:article␝yo_ho␞␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟url,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt}',
         new FieldObjectPropsExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, [
           'src' => new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
-            new ReferenceFieldPropExpression(
-              new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'entity'),
-              new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+            referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
+            referenced: new ReferenceFieldPropExpression(
+              referencer: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'entity'),
+              referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
             ),
           ),
           'alt' => new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'alt'),
+            referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'yo_ho', NULL, 'entity'),
+            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('media', 'image'), 'field_media_image', NULL, 'alt'),
           ),
         ]),
         'Yo Ho',
@@ -652,30 +738,34 @@ class PropExpressionTest extends UnitTestCase {
    * @return array<array{0: string, 1: FieldTypePropExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypePropExpression(): array {
+    // Labeler does not allow FieldTypePropExpression and will throw
+    // TypeError. This is expected and intentional.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Labeler::label()
+    $type_error_message = sprintf(self::LABELER_TYPE_ERROR_MESSAGE_FORMAT, FieldTypePropExpression::class);
     return [
       // Field type with single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
       ['ℹ︎string␟value', new FieldTypePropExpression('string', 'value'),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [],
       ],
 
       // Field type with >1 properties.
       // @see \Drupal\image\Plugin\Field\FieldType\ImageItem
       ['ℹ︎image␟width', new FieldTypePropExpression('image', 'width'),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => ['image'],
         ],
       ],
       ['ℹ︎image␟src', new FieldTypePropExpression('image', 'src'),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => ['image'],
         ],
       ],
       ['ℹ︎image␟src_with_alternate_widths', new FieldTypePropExpression('image', 'src_with_alternate_widths'),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => [
             'image',
@@ -698,7 +788,7 @@ class PropExpressionTest extends UnitTestCase {
       // just stand-alone expressions with a string representation and a PHP
       // object representation. Hence nonsensical values are accepted:
       'invalid prop name' => ['ℹ︎string␟non_existent', new FieldTypePropExpression('string', 'non_existent'),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [],
       ],
     ];
@@ -708,21 +798,25 @@ class PropExpressionTest extends UnitTestCase {
    * @return array<array{0: string, 1: ReferenceFieldTypePropExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerReferenceFieldTypePropExpression(): array {
+    // Labeler does not allow ReferenceFieldTypePropExpression and will throw
+    // TypeError. This is expected and intentional.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Labeler::label()
+    $type_error_message = sprintf(self::LABELER_TYPE_ERROR_MESSAGE_FORMAT, ReferenceFieldTypePropExpression::class);
     return [
       // Reference field type for a single property.
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\StringItem
       [
         'ℹ︎image␟entity␜␜entity:file␝uri␞0␟value',
         new ReferenceFieldTypePropExpression(
-          new FieldTypePropExpression('image', 'entity'),
-          new FieldPropExpression(
+          referencer: new FieldTypePropExpression('image', 'entity',),
+          referenced: new FieldPropExpression(
             BetterEntityDataDefinition::create('file'),
-          'uri',
-          0,
-          'value'
+            'uri',
+            0,
+            'value',
           )
         ),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => ['image', 'file'],
           'content' => ['file:file:some-image-uuid'],
@@ -734,8 +828,8 @@ class PropExpressionTest extends UnitTestCase {
       [
         'ℹ︎image␟entity␜␜entity:file␝uri␞0␟{stream_wrapper_uri↠value,public_url↠url}',
         new ReferenceFieldTypePropExpression(
-          new FieldTypePropExpression('image', 'entity'),
-          new FieldObjectPropsExpression(
+          referencer: new FieldTypePropExpression('image', 'entity'),
+          referenced: new FieldObjectPropsExpression(
             BetterEntityDataDefinition::create('file'),
             'uri',
             0,
@@ -755,7 +849,7 @@ class PropExpressionTest extends UnitTestCase {
             ]
           ),
         ),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => ['image', 'file', 'file'],
           'content' => ['file:file:some-image-uuid'],
@@ -771,13 +865,13 @@ class PropExpressionTest extends UnitTestCase {
       [
         'ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image_1|field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value',
         new ReferenceFieldTypePropExpression(
-          new FieldTypePropExpression('entity_reference', 'entity'),
-          new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('media', ['baby_photos', 'vacation_photos']), ['baby_photos' => 'field_media_image_1', 'vacation_photos' => 'field_media_image_2'], \NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+          referencer: new FieldTypePropExpression('entity_reference', 'entity'),
+          referenced: new ReferenceFieldPropExpression(
+            referencer: new FieldPropExpression(BetterEntityDataDefinition::create('media', ['baby_photos', 'vacation_photos']), ['baby_photos' => 'field_media_image_1', 'vacation_photos' => 'field_media_image_2'], NULL, 'entity'),
+            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
           ),
         ),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'content' => [
             'media:baby_photos:baby-photos-media-uuid',
@@ -806,6 +900,10 @@ class PropExpressionTest extends UnitTestCase {
    * @return array<array{0: string, 1: FieldTypeObjectPropsExpression, 2: \Error, 3: ConfigDependenciesArray|\Exception}>
    */
   public static function providerFieldTypeObjectPropsExpression(): array {
+    // Labeler does not allow FieldTypeObjectPropsExpression and will throw
+    // TypeError. This is expected and intentional.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Labeler::label()
+    $type_error_message = sprintf(self::LABELER_TYPE_ERROR_MESSAGE_FORMAT, FieldTypeObjectPropsExpression::class);
     return [
       // Context: entity type, base field.
       [
@@ -814,7 +912,7 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with a single mapped key-value pair.
           'label' => new FieldTypePropExpression('string', 'value'),
         ]),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [],
       ],
 
@@ -825,13 +923,13 @@ class PropExpressionTest extends UnitTestCase {
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
           // 1. one (non-leaf) field property that follows an entity reference
           'src' => new ReferenceFieldTypePropExpression(
-            new FieldTypePropExpression('image', 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+            referencer: new FieldTypePropExpression('image', 'entity'),
+            referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
           ),
           // 2. one (leaf) field property
           'width' => new FieldTypePropExpression('image', 'width'),
         ]),
-        new \TypeError(),
+        new \TypeError($type_error_message),
         [
           'module' => ['image', 'file', 'image'],
           'content' => ['file:file:some-image-uuid'],
@@ -982,8 +1080,8 @@ class PropExpressionTest extends UnitTestCase {
 
     // @phpstan-ignore-next-line new.resultUnused
     new ReferenceFieldTypePropExpression(
-      new FieldTypePropExpression('image', 'entity'),
-      new FieldObjectPropsExpression(
+      referencer: new FieldTypePropExpression('image', 'entity'),
+      referenced: new FieldObjectPropsExpression(
         BetterEntityDataDefinition::create('file'),
         'uri',
         0,

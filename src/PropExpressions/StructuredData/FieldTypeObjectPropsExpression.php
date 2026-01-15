@@ -37,7 +37,7 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
   }
 
   public function __toString(): string {
-    return static::PREFIX
+    return static::PREFIX_EXPRESSION_TYPE
       . $this->fieldType
       . static::PREFIX_PROPERTY_LEVEL . static::PREFIX_OBJECT
       . implode(',', array_map(
@@ -47,7 +47,7 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
             ? self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE
             : self::SYMBOL_OBJECT_MAPPED_USE_PROP,
           $expr instanceof ReferenceFieldTypePropExpression
-            ? $expr->referencer->propName . self::PREFIX_ENTITY_LEVEL . self::withoutPrefix((string) $expr->referenced)
+            ? $expr->referencer->propName . self::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced)
             : $expr->propName,
         ),
         array_keys($this->objectPropsToFieldTypeProps),
@@ -82,7 +82,7 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
       else {
         [$sdc_obj_prop_name, $remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping);
         [$field_type_prop_name, $remainder] = explode(self::PREFIX_ENTITY_LEVEL, $remainder, 2);
-        $referenced = StructuredDataPropExpression::fromString(static::PREFIX . $remainder);
+        $referenced = StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . $remainder);
         assert($referenced instanceof FieldPropExpression || $referenced instanceof ReferenceFieldPropExpression);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression($field_type, $field_type_prop_name),

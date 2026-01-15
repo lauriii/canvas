@@ -15,8 +15,13 @@ use Drupal\canvas\PropSource\ContentAwareDependentInterface;
  */
 interface StructuredDataPropExpressionInterface extends PropExpressionInterface, ContentAwareDependentInterface {
 
-  // Structured data contains information, hence a prefix that conveys that..
-  const PREFIX = 'ℹ︎';
+  /**
+   * {@inheritdoc}
+   *
+   * Structured data contains information, hence a prop expression type prefix
+   * that conveys that: the Unicode information source symbol.
+   */
+  public const string PREFIX_EXPRESSION_TYPE = 'ℹ︎';
 
   // All prefixes for denoting the pieces inside structured data expressions.
   // @see https://github.com/SixArm/usv

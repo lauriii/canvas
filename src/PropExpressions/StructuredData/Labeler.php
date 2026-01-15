@@ -86,10 +86,9 @@ final class Labeler {
 
     // When an expression targets a specific field item, generate an ordinal
     // suffix for the label.
-    $delta = match (get_class($expr)) {
+    $delta = match ($expr::class) {
       FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->delta,
       ReferenceFieldPropExpression::class => $expr->referencer->delta,
-      default => NULL,
     };
     if ($delta !== NULL) {
       $human_delta = $delta + 1;
@@ -230,7 +229,7 @@ final class Labeler {
    * @internal
    */
   public static function getFieldName(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): string {
-    $expr_field_name = match (get_class($expr)) {
+    $expr_field_name = match ($expr::class) {
       ReferenceFieldPropExpression::class => $expr->referencer->fieldName,
       FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
     };
@@ -252,7 +251,7 @@ final class Labeler {
    * @internal
    */
   public static function getUsedFieldProps(FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): string|array {
-    $props = match (get_class($expr)) {
+    $props = match ($expr::class) {
       FieldPropExpression::class => $expr->propName,
       ReferenceFieldPropExpression::class => $expr->referencer->propName,
       FieldObjectPropsExpression::class => array_map(

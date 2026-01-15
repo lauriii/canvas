@@ -9,6 +9,18 @@ final class StructuredDataPropExpression {
   use CompoundExpressionTrait;
 
   /**
+   * Whether the given string is a structured data prop expression.
+   *
+   * @param string $representation
+   *   The string representation to assess.
+   *
+   * @return bool
+   */
+  public static function isA(string $representation): bool {
+    return str_starts_with($representation, StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE);
+  }
+
+  /**
    * Maps a string representation back to a structured data expression object.
    *
    * @param string $representation
@@ -25,7 +37,7 @@ final class StructuredDataPropExpression {
     // - The last either is a `}` or not. If it is, this is an expression for a
     //   prop, that using JSON Schema terminology, is of `type: object`, i.e. is
     //   not for a scalar SDC prop, but an object SDC prop.
-    $root_expr_symbol_first = mb_substr(self::withoutPrefix($root_expr), 0, 1);
+    $root_expr_symbol_first = mb_substr(self::withoutExpressionTypePrefix($root_expr), 0, 1);
     $root_expr_symbol_last = mb_substr($root_expr, -1, 1);
 
     // If (and only if) the root expression is not the full representation, then
@@ -44,7 +56,7 @@ final class StructuredDataPropExpression {
     $root_expr_symbol_next = mb_substr($representation, mb_strlen($root_expr), 1);
     assert((mb_strlen($root_expr) < mb_strlen($representation) && !empty($root_expr_symbol_next)) || empty($root_expr_symbol_next), 'If the top-level expression is not the full string representation of the expression, then $tle_after MUST be not empty.');
 
-    // Decision tree:
+    // Parsing decision tree:
     // 1. Context: the first symbol determines the *context* for the expression.
     // 2. Kind:
     //    - The last symbol determines whether it is an *ObjectProps expression.

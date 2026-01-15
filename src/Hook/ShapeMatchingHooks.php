@@ -284,7 +284,7 @@ class ShapeMatchingHooks {
         $storable_prop_shape->fieldTypeProp = new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression('entity_reference', 'entity'),
           new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'entity'),
             new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
           ),
         );
@@ -387,21 +387,21 @@ class ShapeMatchingHooks {
       Image::class => [
         'src' => new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression('entity_reference', 'entity'),
-          // TRICKY: Additional computed property on image fields added by
-          // Drupal Canvas.
+          // TRICKY: `src_with_alternate_widths` is a computed property added to
+          // image fields by Canvas.
           // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
-          new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'src_with_alternate_widths'),
+          new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'src_with_alternate_widths'),
         ),
-        'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'alt')),
-        'width' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'width')),
-        'height' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'height')),
+        'alt' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'alt')),
+        'width' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'width')),
+        'height' => new ReferenceFieldTypePropExpression(new FieldTypePropExpression('entity_reference', 'entity'), new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'height')),
       ],
       VideoFile::class => [
         'src' => new ReferenceFieldTypePropExpression(
           new FieldTypePropExpression('entity_reference', 'entity'),
           new ReferenceFieldPropExpression(
-            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, \NULL, 'entity'),
-            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', \NULL, 'url')
+            new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_ids), $source_field_names, NULL, 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url')
           )
         ),
       ],
@@ -419,7 +419,7 @@ class ShapeMatchingHooks {
   protected function getMediaSourceFieldName(MediaTypeInterface $media_type): string {
     $source_field_definition = $media_type->getSource()
       ->getSourceFieldDefinition($media_type);
-    \assert($source_field_definition !== \NULL);
+    \assert($source_field_definition !== NULL);
 
     return $source_field_definition->getName();
   }

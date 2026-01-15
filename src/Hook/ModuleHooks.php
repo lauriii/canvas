@@ -120,7 +120,7 @@ class ModuleHooks {
       $form['#attributes']['data-form-id'] = self::PAGE_DATA_FORM_ID;
       $request = $this->requestStack->getCurrentRequest();
       $is_ajax = $request?->request->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) ?? $request?->query->get(AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER);
-      if ($is_ajax !== \NULL) {
+      if ($is_ajax !== NULL) {
         // Add the data-ajax flag and manually add the form ID as pre render
         // callbacks aren't fired during AJAX rendering because the whole form
         // is not rendered, just the returned elements.

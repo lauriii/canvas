@@ -48,6 +48,7 @@ extralight
 fieldtext
 folderfy
 gerbeaud
+greppable
 heredocs
 herobanner
 herobannersecond

@@ -90,7 +90,7 @@ final class FieldPropExpression implements StructuredDataPropExpressionInterface
   }
 
   public function __toString(): string {
-    return static::PREFIX
+    return static::PREFIX_EXPRESSION_TYPE
       . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
       // Note that BetterEntityDataDefinition sorts bundles alphabetically (to
       // ensure a predictable data type ID). Hence an array of field names must

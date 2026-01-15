@@ -24,7 +24,7 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
   ) {}
 
   public function __toString(): string {
-    return static::PREFIX
+    return static::PREFIX_EXPRESSION_TYPE
       . $this->fieldType
       . static::PREFIX_PROPERTY_LEVEL . $this->propName;
   }

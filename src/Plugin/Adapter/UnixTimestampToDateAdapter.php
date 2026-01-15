@@ -8,7 +8,7 @@ use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 #[Adapter(
-  id: 'unix_to_date',
+  id: self::PLUGIN_ID,
   label: new TranslatableMarkup('UNIX timestamp to date'),
   inputs: [
     'unix' => ['type' => 'integer'],
@@ -17,6 +17,8 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   output: ['type' => 'string', 'format' => 'date'],
 )]
 final class UnixTimestampToDateAdapter extends AdapterBase {
+
+  public const string PLUGIN_ID = 'unix_to_date';
 
   protected string $unix;
 

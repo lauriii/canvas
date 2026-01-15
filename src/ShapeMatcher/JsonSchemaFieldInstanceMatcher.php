@@ -50,7 +50,6 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
@@ -1133,7 +1132,7 @@ final class JsonSchemaFieldInstanceMatcher {
     $settings = $data_definition->getSettings();
     $found_expressions = [];
     array_walk_recursive($settings, function ($current) use (&$found_expressions) {
-      if (is_string($current) && str_starts_with($current, StructuredDataPropExpressionInterface::PREFIX)) {
+      if (is_string($current) && StructuredDataPropExpression::isA($current)) {
         $found_expressions[] = $current;
       }
     });

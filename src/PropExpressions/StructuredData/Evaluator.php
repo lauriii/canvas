@@ -118,7 +118,7 @@ final class Evaluator {
     // @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
     elseif ($entity_or_field instanceof FieldItemInterface) {
       $field = $entity_or_field;
-      $result = match (get_class($expr)) {
+      $result = match ($expr::class) {
         FieldTypePropExpression::class => (function () use ($field, $expr) {
           $prop = $field->get($expr->propName);
           $prop_value = $prop instanceof PrimitiveInterface
@@ -167,7 +167,7 @@ final class Evaluator {
       // @todo support non-fieldable entities?
       assert($entity instanceof FieldableEntityInterface);
       $entity_access = self::validateAccess($entity, $expr);
-      $field_name = match (get_class($expr)) {
+      $field_name = match ($expr::class) {
         FieldPropExpression::class => match (TRUE) {
           is_string($expr->fieldName) => $expr->fieldName,
           is_array($expr->fieldName) => $expr->fieldName[$entity->bundle()],
@@ -177,13 +177,13 @@ final class Evaluator {
           is_string($expr->referencer->fieldName) => $expr->referencer->fieldName,
           is_array($expr->referencer->fieldName) => $expr->referencer->fieldName[$entity->bundle()],
         },
-        default => throw new \LogicException('Unhandled expression type: ' . get_class($expr)),
+        default => throw new \LogicException('Unhandled expression type: ' . $expr::class),
       };
       $field_item_list = $entity->get($field_name);
       assert($field_item_list instanceof FieldItemListInterface);
       $field_access = self::validateAccess($field_item_list, $expr);
 
-      $result = match (get_class($expr)) {
+      $result = match ($expr::class) {
         FieldPropExpression::class => (function () use ($entity, $expr, $field_item_list, $is_required) {
           $field_definition = $field_item_list->getFieldDefinition();
           $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();

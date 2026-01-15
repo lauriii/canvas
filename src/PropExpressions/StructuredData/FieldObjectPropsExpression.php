@@ -54,7 +54,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
   }
 
   public function __toString(): string {
-    return static::PREFIX
+    return static::PREFIX_EXPRESSION_TYPE
       . static::PREFIX_ENTITY_LEVEL . $this->entityType->getDataType()
       . static::PREFIX_FIELD_LEVEL . $this->fieldName
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
@@ -73,10 +73,10 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
           // @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
           // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
           assert(($expr instanceof ReferenceFieldPropExpression && is_string($expr->referencer->propName)) || ($expr instanceof FieldPropExpression && is_string($expr->propName)));
-          $tail = match (get_class($expr)) {
+          $tail = match ($expr::class) {
             ReferenceFieldPropExpression::class => (function () use ($expr) {
               assert(is_string($expr->referencer->propName));
-              return $expr->referencer->propName . static::PREFIX_ENTITY_LEVEL . self::withoutPrefix((string) $expr->referenced);
+              return $expr->referencer->propName . static::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced);
             })(),
             FieldPropExpression::class => (function () use ($expr) {
               assert(is_string($expr->propName));
@@ -141,7 +141,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
       else {
         [$sdc_obj_prop_name, $obj_prop_mapping_remainder] = explode(self::SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE, $obj_prop_mapping);
         [$field_instance_prop_name, $field_prop_ref_expr] = explode(self::PREFIX_ENTITY_LEVEL, $obj_prop_mapping_remainder, 2);
-        $referenced = StructuredDataPropExpression::fromString(self::PREFIX . $field_prop_ref_expr);
+        $referenced = StructuredDataPropExpression::fromString(self::PREFIX_EXPRESSION_TYPE . $field_prop_ref_expr);
         assert($referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
         $objectPropsToFieldTypeProps[$sdc_obj_prop_name] = new ReferenceFieldPropExpression(
           new FieldPropExpression($entity_data_definition, $field_name, NULL, $field_instance_prop_name),

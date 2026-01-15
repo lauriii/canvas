@@ -28,7 +28,7 @@ final class ComponentPropExpression implements ComponentPropExpressionInterface 
   ) {}
 
   public function __toString(): string {
-    return sprintf(static::PREFIX . "%s␟%s", $this->sourceSpecificComponentId, $this->propName);
+    return sprintf(static::PREFIX_EXPRESSION_TYPE . "%s␟%s", $this->sourceSpecificComponentId, $this->propName);
   }
 
   public static function fromString(string $representation): static {

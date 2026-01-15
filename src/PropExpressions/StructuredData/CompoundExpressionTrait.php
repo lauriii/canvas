@@ -10,17 +10,19 @@ namespace Drupal\canvas\PropExpressions\StructuredData;
 trait CompoundExpressionTrait {
 
   /**
-   * Gets the representation without the structured data prefix `ℹ`.
+   * Strips the structured data prop expression type prefix `ℹ`.
    *
    * @param string $representation
    *   A string.
    *
    * @return string
    *   The same string without the `ℹ` prefix.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE
    */
-  private static function withoutPrefix(string $representation): string {
-    assert(mb_substr($representation, 0, 2) === StructuredDataPropExpressionInterface::PREFIX);
-    return mb_substr($representation, mb_strlen(StructuredDataPropExpressionInterface::PREFIX));
+  private static function withoutExpressionTypePrefix(string $representation): string {
+    assert(mb_substr($representation, 0, 2) === StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE);
+    return mb_substr($representation, mb_strlen(StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE));
   }
 
   /**

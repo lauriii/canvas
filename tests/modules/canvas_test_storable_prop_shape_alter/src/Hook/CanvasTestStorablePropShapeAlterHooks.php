@@ -33,7 +33,7 @@ class CanvasTestStorablePropShapeAlterHooks {
       // @phpstan-ignore-next-line
       $storable_prop_shape->fieldTypeProp = StructuredDataPropExpression::fromString('ℹ︎uri␟value');
       // @see \Drupal\Core\Field\Plugin\Field\FieldType\UriItem::defaultFieldSettings()
-      $storable_prop_shape->fieldInstanceSettings = \NULL;
+      $storable_prop_shape->fieldInstanceSettings = NULL;
       // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget
       $storable_prop_shape->fieldWidget = 'uri';
     }

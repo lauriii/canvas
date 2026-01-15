@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\Plugin\Adapter\UnixTimestampToDateAdapter;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
@@ -204,7 +205,7 @@ class PropSourceTest extends KernelTestBase {
     array|null $sourceTypeSettings,
     mixed $value,
     string $expression,
-    string $expected_json_representation,
+    array $expected_array_representation,
     array|null $field_widgets,
     mixed $expected_user_value,
     CacheableMetadata $expected_cacheability,
@@ -222,8 +223,9 @@ class PropSourceTest extends KernelTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $prop_source_example;
-    $this->assertSame($expected_json_representation, $json_representation);
     $decoded_representation = json_decode($json_representation, TRUE);
+    $this->assertSame($expected_array_representation, $decoded_representation);
+    // @phpstan-ignore argument.type
     $prop_source_example = PropSource::parse($decoded_representation);
     $this->assertInstanceOf(StaticPropSource::class, $prop_source_example);
     // The contained information read back out.
@@ -249,6 +251,7 @@ class PropSourceTest extends KernelTestBase {
     }
 
     try {
+      // @phpstan-ignore argument.type
       StaticPropSource::isMinimalRepresentation($decoded_representation);
     }
     catch (\LogicException) {
@@ -289,7 +292,11 @@ class PropSourceTest extends KernelTestBase {
       'sourceTypeSettings' => NULL,
       'value' => 'Hello, world!',
       'expression' => 'ℹ︎string␟value',
-      'expected_json_representation' => '{"sourceType":"static:field_item:string","value":"Hello, world!","expression":"ℹ︎string␟value"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:string',
+        'value' => 'Hello, world!',
+        'expression' => 'ℹ︎string␟value',
+      ],
       'field_widgets' => [
         NULL => StringTextfieldWidget::class,
         'string_textfield' => StringTextfieldWidget::class,
@@ -305,7 +312,11 @@ class PropSourceTest extends KernelTestBase {
       'sourceTypeSettings' => NULL,
       'value' => 'https://drupal.org',
       'expression' => 'ℹ︎uri␟value',
-      'expected_json_representation' => '{"sourceType":"static:field_item:uri","value":"https:\/\/drupal.org","expression":"ℹ︎uri␟value"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:uri',
+        'value' => 'https://drupal.org',
+        'expression' => 'ℹ︎uri␟value',
+      ],
       'field_widgets' => [
         NULL => UriWidget::class,
         'uri' => UriWidget::class,
@@ -320,7 +331,11 @@ class PropSourceTest extends KernelTestBase {
       'sourceTypeSettings' => NULL,
       'value' => TRUE,
       'expression' => 'ℹ︎boolean␟value',
-      'expected_json_representation' => '{"sourceType":"static:field_item:boolean","value":true,"expression":"ℹ︎boolean␟value"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:boolean',
+        'value' => TRUE,
+        'expression' => 'ℹ︎boolean␟value',
+      ],
       'field_widgets' => [
         NULL => BooleanCheckboxWidget::class,
         'boolean_checkbox' => BooleanCheckboxWidget::class,
@@ -345,7 +360,12 @@ class PropSourceTest extends KernelTestBase {
         92,
       ],
       'expression' => 'ℹ︎integer␟value',
-      'expected_json_representation' => '{"sourceType":"static:field_item:integer","value":[20,6,1,88,92],"expression":"ℹ︎integer␟value","sourceTypeSettings":{"cardinality":5}}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:integer',
+        'value' => [20, 6, 1, 88, 92],
+        'expression' => 'ℹ︎integer␟value',
+        'sourceTypeSettings' => ['cardinality' => 5],
+      ],
       'field_widgets' => [
         NULL => NumberWidget::class,
         'number' => NumberWidget::class,
@@ -369,7 +389,14 @@ class PropSourceTest extends KernelTestBase {
         'end_value' => '2024-07-10T10:24',
       ],
       'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:daterange","value":{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:daterange',
+        'value' => [
+          'value' => '2020-04-16T00:00',
+          'end_value' => '2024-07-10T10:24',
+        ],
+        'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
+      ],
       'field_widgets' => [
         NULL => DateRangeDefaultWidget::class,
         'daterange_default' => DateRangeDefaultWidget::class,
@@ -405,7 +432,23 @@ class PropSourceTest extends KernelTestBase {
         ],
       ],
       'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:daterange","value":[{"value":"2020-04-16T00:00","end_value":"2024-07-10T10:24"},{"value":"2020-04-16T00:00","end_value":"2024-09-26T11:31"}],"expression":"ℹ︎daterange␟{start↠value,stop↠end_value}","sourceTypeSettings":{"cardinality":-1}}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:daterange',
+        'value' => [
+          [
+            'value' => '2020-04-16T00:00',
+            'end_value' => '2024-07-10T10:24',
+          ],
+          [
+            'value' => '2020-04-16T00:00',
+            'end_value' => '2024-09-26T11:31',
+          ],
+        ],
+        'expression' => 'ℹ︎daterange␟{start↠value,stop↠end_value}',
+        'sourceTypeSettings' => [
+          'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        ],
+      ],
       'field_widgets' => [
         NULL => DateRangeDefaultWidget::class,
         'daterange_default' => DateRangeDefaultWidget::class,
@@ -442,7 +485,20 @@ class PropSourceTest extends KernelTestBase {
       ],
       'value' => NULL,
       'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":null,"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image"}}}}}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:entity_reference',
+        'value' => NULL,
+        'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+        'sourceTypeSettings' => [
+          'storage' => ['target_type' => 'media'],
+          'instance' => [
+            'handler' => 'default:media',
+            'handler_settings' => [
+              'target_bundles' => ['image' => 'image'],
+            ],
+          ],
+        ],
+      ],
       'field_widgets' => [
         NULL => EntityReferenceAutocompleteWidget::class,
         'media_library_widget' => MediaLibraryWidget::class,
@@ -483,7 +539,29 @@ class PropSourceTest extends KernelTestBase {
       ],
       'value' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
       'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟src_with_alternate_widths|src_with_alternate_widths|value,alt↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟alt|alt|␀,width↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟width|width|␀,height↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟height|height|␀}',
-      'expected_json_representation' => '{"sourceType":"static:field_item:entity_reference","value":[{"target_id":2},{"target_id":1},{"target_id":3}],"expression":"ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟src_with_alternate_widths|src_with_alternate_widths|value,alt↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟alt|alt|␀,width↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟width|width|␀,height↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟height|height|␀}","sourceTypeSettings":{"storage":{"target_type":"media"},"instance":{"handler":"default:media","handler_settings":{"target_bundles":{"image":"image","anything_is_possible":"anything_is_possible","image_but_not_image_media_source":"image_but_not_image_media_source"}}},"cardinality":5}}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Static->value . ':field_item:entity_reference',
+        'value' => [
+          ['target_id' => 2],
+          ['target_id' => 1],
+          ['target_id' => 3],
+        ],
+        'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟src_with_alternate_widths|src_with_alternate_widths|value,alt↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟alt|alt|␀,width↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟width|width|␀,height↝entity␜␜entity:media:anything_is_possible|image|image_but_not_image_media_source␝field_media_image_1|field_media_image|field_media_test␞␟height|height|␀}',
+        'sourceTypeSettings' => [
+          'storage' => ['target_type' => 'media'],
+          'instance' => [
+            'handler' => 'default:media',
+            'handler_settings' => [
+              'target_bundles' => [
+                'image' => 'image',
+                'anything_is_possible' => 'anything_is_possible',
+                'image_but_not_image_media_source' => 'image_but_not_image_media_source',
+              ],
+            ],
+          ],
+          'cardinality' => 5,
+        ],
+      ],
       'field_widgets' => [
         NULL => EntityReferenceAutocompleteWidget::class,
         'media_library_widget' => MediaLibraryWidget::class,
@@ -550,7 +628,7 @@ class PropSourceTest extends KernelTestBase {
     string $expression,
     ?string $adapter_plugin_id,
     bool $is_required,
-    string $expected_json_representation,
+    array $expected_array_representation,
     string $expected_expression_class,
     ?EvaluationResult $expected_evaluation_with_user_host_entity,
     ?array $expected_user_access_denied_message,
@@ -609,8 +687,10 @@ class PropSourceTest extends KernelTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $original;
-    $this->assertSame($expected_json_representation, $json_representation);
-    $parsed = PropSource::parse(json_decode($json_representation, TRUE));
+    $decoded_representation = json_decode($json_representation, TRUE);
+    $this->assertSame($expected_array_representation, $decoded_representation);
+    // @phpstan-ignore argument.type
+    $parsed = PropSource::parse($decoded_representation);
     $this->assertInstanceOf(DynamicPropSource::class, $parsed);
     // The contained information read back out.
     $this->assertSame('dynamic', $parsed->getSourceType());
@@ -747,7 +827,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝name␞␟value"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:user␝name␞␟value',
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => new EvaluationResult(
         'John Doe',
@@ -772,7 +855,11 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:user␝created␞␟value',
       'adapter_plugin_id' => 'unix_to_date',
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝created␞␟value","adapter":"unix_to_date"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:user␝created␞␟value',
+        'adapter' => UnixTimestampToDateAdapter::PLUGIN_ID,
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => new EvaluationResult(
         '1992-01-06',
@@ -807,7 +894,11 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value',
       'adapter_plugin_id' => 'unix_to_date',
       'is_required' => FALSE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value","adapter":"unix_to_date"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value',
+        'adapter' => UnixTimestampToDateAdapter::PLUGIN_ID,
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
@@ -855,7 +946,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
@@ -906,7 +1000,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
       'adapter_plugin_id' => NULL,
       'is_required' => FALSE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟url"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
@@ -953,7 +1050,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
+      ],
       'expected_expression_class' => ReferenceFieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
@@ -993,7 +1093,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
+      ],
       'expected_expression_class' => FieldObjectPropsExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
@@ -1059,7 +1162,10 @@ class PropSourceTest extends KernelTestBase {
       'expression' => 'ℹ︎␜entity:node:page|bio␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
-      'expected_json_representation' => '{"sourceType":"dynamic","expression":"ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths"}',
+      'expected_array_representation' => [
+        'sourceType' => PropSource::Dynamic->value,
+        'expression' => 'ℹ︎␜entity:node:bio|page␝field_photo|field_image␞␟srcset_candidate_uri_template|src_with_alternate_widths',
+      ],
       'expected_expression_class' => FieldPropExpression::class,
       'expected_evaluation_with_user_host_entity' => NULL,
       'expected_user_access_denied_message' => NULL,
