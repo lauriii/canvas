@@ -74,9 +74,11 @@ final class CanvasPageForm extends ContentEntityForm {
       $form['metatags']['widget'][0]['advanced']['#access'] = FALSE;
     }
 
-    // Move the SEO title field only into the custom SEO settings group.
     if (isset($form['metatags']['widget'][0]['basic']['title'])) {
+      // Move the SEO title field only into the custom SEO settings group.
       $form['metatags']['widget'][0]['basic']['title']['#group'] = $group;
+      // Hide the description to avoid showing the unnecessary help text.
+      unset($form['metatags']['widget'][0]['basic']['title']['#description']);
     }
 
     $this->addTransliterationSettings($form);
