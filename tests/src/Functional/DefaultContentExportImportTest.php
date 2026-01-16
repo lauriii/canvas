@@ -343,7 +343,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     $imported_entities = [];
     foreach ($exported_entity_info as $entity_info) {
       $entity = $entityRepository->loadEntityByUuid($entity_info['entity_type'], $entity_info['uuid']);
-      self::assertNotNull($entity, "Entity $entity_type, $uuid should exist after import.");
+      self::assertNotNull($entity, \sprintf("Entity %s, %s should exist after import.", $entity_info['entity_type'], $entity_info['uuid']));
       self::assertNotEquals((string) $entity_info['id'], $entity->id());
       $imported_entities[$entity->uuid()] = $entity;
     }

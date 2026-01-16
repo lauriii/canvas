@@ -101,6 +101,7 @@ final class ParentComponentReference extends DataReferenceBase {
   /**
    * {@inheritdoc}
    */
+  // @phpstan-ignore-next-line method.childReturnType
   public function getString(): ?string {
     return $this->parentUuid;
   }

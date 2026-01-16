@@ -606,7 +606,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       }
       // If a version was created and immediately deleted, it doesn't need any
       // fallback metadata.
-      if (!in_array($new_version, $this->getVersions())) {
+      if (!in_array($new_version, $this->getVersions(), TRUE)) {
         continue;
       }
       $this->versioned_properties[$new_version]['fallback_metadata'] = $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata'];

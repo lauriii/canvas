@@ -18,7 +18,7 @@ class PreRender implements TrustedCallbackInterface {
       $group_key = implode('][', $element['#parents']);
       // Only check siblings against groups because we are only looking for
       // group elements.
-      if (in_array($group_key, $group_keys)) {
+      if (in_array($group_key, $group_keys, TRUE)) {
         $children_keys = Element::children($element['group']['#groups'][$group_key], TRUE);
 
         foreach ($children_keys as $child_key) {

@@ -1534,7 +1534,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   private function assertAuthenticationAndAuthorization(string $entity_type_id, bool $delete_allowed = TRUE, array $initial_items = [], array $initial_cache_tags = ['http_response']): void {
-    if (!in_array("config:{$entity_type_id}_list", $initial_cache_tags)) {
+    if (!in_array("config:{$entity_type_id}_list", $initial_cache_tags, TRUE)) {
       $initial_cache_tags[] = "config:{$entity_type_id}_list";
     }
     $list_url = Url::fromUri("base:/canvas/api/v0/config/$entity_type_id");

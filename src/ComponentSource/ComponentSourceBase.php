@@ -153,7 +153,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
         // Config and content entities have the dependency names as keys while
         // module and theme dependencies are indexed arrays of dependency names.
         // @see \Drupal\Core\Config\ConfigManager::callOnDependencyRemoval()
-        if (in_array($type, ['config', 'content'])) {
+        if (in_array($type, ['config', 'content'], TRUE)) {
           $removed = array_intersect_key($removed_dependencies[$type], array_flip($dependencies));
         }
         else {

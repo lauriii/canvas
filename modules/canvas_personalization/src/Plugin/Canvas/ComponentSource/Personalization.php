@@ -163,9 +163,9 @@ final class Personalization extends ComponentSourceBase implements
     // @todo Evaluate this `case` component instance's `segments` explicit input against the given contexts (aka from the Drupal context system), and remove this hardcoded logic in https://www.drupal.org/project/canvas/issues/3525797
     // @phpstan-ignore-next-line globalDrupalDependencyInjection.useDependencyInjection
     if (str_contains(\Drupal::request()->getRequestUri(), 'HALLOWEEN')) {
-      return in_array('halloween', $inputs['segments']);
+      return in_array('halloween', $inputs['segments'], TRUE);
     }
-    return in_array(Segment::DEFAULT_ID, $inputs['segments']);
+    return in_array(Segment::DEFAULT_ID, $inputs['segments'], TRUE);
   }
 
   public function requiresExplicitInput(): bool {

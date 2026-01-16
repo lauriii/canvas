@@ -35,6 +35,7 @@ final class StagedConfigUpdateStorage extends ConfigEntityStorage {
    *
    * @return array<string, \Drupal\canvas\Entity\StagedConfigUpdate|null>
    */
+  // @phpstan-ignore-next-line method.childParameterType
   public function loadMultiple(?array $ids = NULL): array {
     if ($ids === NULL) {
       return [];

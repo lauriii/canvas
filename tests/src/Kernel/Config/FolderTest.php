@@ -142,7 +142,7 @@ class FolderTest extends KernelTestBase {
     $default_folder_id = Folder::loadByItemAndConfigEntityTypeId('sdc.canvas_test_sdc.attributes', Component::ENTITY_TYPE_ID);
     assert($default_folder_id instanceof Folder);
     Component::load('sdc.canvas_test_sdc.attributes')?->delete();
-    $this->assertFalse(\in_array('sdc.canvas_test_sdc.attributes', Folder::load($default_folder_id->id())?->get('items')));
+    $this->assertNotContains('sdc.canvas_test_sdc.attributes', Folder::load($default_folder_id->id())?->get('items'));
   }
 
 }

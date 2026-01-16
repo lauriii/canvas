@@ -71,6 +71,7 @@ final class AdaptedPropSource extends PropSourceBase {
   /**
    * @param AdaptedPropSourceArray $sdc_prop_source
    */
+  // @phpstan-ignore-next-line method.childParameterType
   public static function parse(array $sdc_prop_source): static {
     $adapter_manager = \Drupal::service(AdapterManager::class);
     assert($adapter_manager instanceof AdapterManager);

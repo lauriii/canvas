@@ -172,7 +172,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       JsonSchemaStringFormat::UriReference->value,
       JsonSchemaStringFormat::Iri->value,
       JsonSchemaStringFormat::IriReference->value,
-    ]);
+    ], TRUE);
   }
 
   public function asChoice(): string {

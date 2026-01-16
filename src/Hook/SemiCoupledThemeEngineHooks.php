@@ -47,7 +47,7 @@ class SemiCoupledThemeEngineHooks {
       'container',
       'field_multiple_value_form',
       'fieldset',
-    ]) && !empty($variables["element"]["#widget-type"])) {
+    ], TRUE) && !empty($variables["element"]["#widget-type"])) {
       if ($variables["theme_hook_original"] === 'fieldset') {
         $suggestions[] = $variables["theme_hook_original"] . '__widget_' . \str_replace('-', '_', $variables["element"]["#widget-type"]);
       }

@@ -169,7 +169,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
       if ($prop_source instanceof AdaptedPropSource) {
         throw new \LogicException('@todo as soon as adapted prop sources are actually used');
       }
-      if (isset($prop_source->expression) && is_a($prop_source->expression, $expression_class)) {
+      if (property_exists($prop_source, 'expression') && is_a($prop_source->expression, $expression_class)) {
         yield $key => $prop_source;
       }
     }

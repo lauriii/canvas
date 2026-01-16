@@ -77,7 +77,7 @@ final class ComponentStatusController {
    *   A redirect back to the listing page.
    */
   public function performOperation(Component $component, string $op) {
-    assert(in_array($op, ['enable', 'disable']));
+    assert(in_array($op, ['enable', 'disable'], TRUE));
 
     $component_id = $component->id();
     $source = $component->getComponentSource();

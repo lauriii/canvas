@@ -126,7 +126,7 @@ class TranslationTest extends FunctionalTestBase {
     if ($field_is_translatable) {
       $page->checkField('settings[node][article][fields][field_canvas_test]');
       foreach (['tree', 'inputs'] as $field_property) {
-        in_array($field_property, $translatable_properties)
+        in_array($field_property, $translatable_properties, TRUE)
           ? $page->checkField("settings[node][article][columns][field_canvas_test][$field_property]")
           : $page->uncheckField("settings[node][article][columns][field_canvas_test][$field_property]");
       }

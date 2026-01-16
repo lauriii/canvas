@@ -158,11 +158,13 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   abstract public function testDiscovery(): array;
 
   /**
+   * @param array<ComponentConfigEntityId> $component_ids
    * @see ::renderComponentsLive()
    */
   abstract public function testRenderComponentLive(array $component_ids): void;
 
   /**
+   * @param array<ComponentConfigEntityId> $component_ids
    * @see ::getReferencedPluginClasses()
    * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
    */

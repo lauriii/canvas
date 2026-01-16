@@ -51,7 +51,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       AssetLibrary::ENTITY_TYPE_ID,
     ];
 
-    if ($entity_type_id === NULL || !in_array($entity_type_id, $protected_entity_types)) {
+    if ($entity_type_id === NULL || !in_array($entity_type_id, $protected_entity_types, TRUE)) {
       return FALSE;
     }
 

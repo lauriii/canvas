@@ -597,7 +597,7 @@ class CanvasAiPageBuilderHelper {
 
     foreach ($component_context as $source_info) {
       if (isset($source_info['components'][$component_id]['slots'][$slot_name])) {
-        $index = array_search($slot_name, array_keys($source_info['components'][$component_id]['slots']));
+        $index = array_search($slot_name, array_keys($source_info['components'][$component_id]['slots']), TRUE);
         return ($index === FALSE) ? 0 : (int) $index;
       }
     }
@@ -1010,7 +1010,7 @@ class CanvasAiPageBuilderHelper {
     // Get the position of the reference component.
     $reference_key = end($path);
     $keys = array_keys($reference);
-    $reference_position = array_search($reference_key, $keys);
+    $reference_position = array_search($reference_key, $keys, TRUE);
 
     if ($reference_position !== FALSE) {
       // Split the array at the reference position.

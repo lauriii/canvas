@@ -63,7 +63,7 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
    *   Array of all dependencies, including nested ones.
    */
   private function resolveLibraryDependencies(string $library, array &$collected_dependencies = []): array {
-    if (in_array($library, $collected_dependencies)) {
+    if (in_array($library, $collected_dependencies, TRUE)) {
       return [];
     }
 
@@ -79,7 +79,7 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
 
     $dependencies = [];
     foreach ($library_info['dependencies'] as $dependency) {
-      if (!in_array($dependency, $collected_dependencies)) {
+      if (!in_array($dependency, $collected_dependencies, TRUE)) {
         $collected_dependencies[] = $dependency;
         $dependencies[] = $dependency;
         $nested_dependencies = $this->resolveLibraryDependencies($dependency, $collected_dependencies);
@@ -128,7 +128,7 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
       'core/drupal.dialog.ajax' => 'canvas/canvas.drupal.dialog.ajax',
     ];
     foreach ($libraries_replace as $original => $replacement) {
-      if ($index = array_search($original, $assets->libraries)) {
+      if ($index = array_search($original, $assets->libraries, TRUE)) {
         $assets->libraries[$index] = $replacement;
       }
     }

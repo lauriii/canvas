@@ -46,6 +46,7 @@ final class ConfigEntityVersionReference extends EntityReference {
    * The entity ID.
    *
    * @var string
+   * @phpstan-ignore property.phpDocType
    */
   protected $id;
 

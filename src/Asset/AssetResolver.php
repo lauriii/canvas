@@ -74,7 +74,7 @@ final class AssetResolver extends CoreAssetResolver {
     // added via other libraries.
     foreach ($default_result as $location => $some_assets) {
       if (!empty($some_assets)) {
-        $new_js_assets = array_filter($some_assets, fn($file) => !in_array($file, $already_loaded_js), ARRAY_FILTER_USE_KEY);
+        $new_js_assets = array_filter($some_assets, fn($file) => !in_array($file, $already_loaded_js, TRUE), ARRAY_FILTER_USE_KEY);
         $default_result[$location] = $new_js_assets;
       }
     }

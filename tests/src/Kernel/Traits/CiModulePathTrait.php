@@ -20,7 +20,7 @@ trait CiModulePathTrait {
   public static function getCiModulePath(): string {
     $module_dir = dirname(__DIR__, 4);
     $parts = explode(\DIRECTORY_SEPARATOR, $module_dir);
-    $modules_index = \array_search('modules', $parts);
+    $modules_index = \array_search('modules', $parts, TRUE);
     if ($modules_index === FALSE) {
       // On CI, the project folder is installed outside the webroot and
       // symlinked inside it. In that case __DIR__ does not include modules in
@@ -34,7 +34,7 @@ trait CiModulePathTrait {
         throw new \Exception('Cannot detect the modules directory.');
       }
       $parts = explode(\DIRECTORY_SEPARATOR, $module_dir);
-      $modules_index = \array_search('modules', $parts);
+      $modules_index = \array_search('modules', $parts, TRUE);
     }
     \assert($modules_index !== FALSE);
     // This should now be 'modules/custom/canvas',

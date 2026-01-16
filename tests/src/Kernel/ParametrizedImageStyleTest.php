@@ -114,6 +114,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     $uris = [];
     \assert(\is_string($new_uri));
     self::assertFileExists($new_uri);
+    $style = NULL;
     foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $width) {
       $style = ParametrizedImageStyle::loadWithParameters('canvas_parametrized_width', ['width' => $width]);
       \assert($style instanceof ParametrizedImageStyle);

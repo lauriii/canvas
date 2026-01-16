@@ -125,6 +125,7 @@ class ComponentTreeItem extends FieldItemBase {
    * @return ($name is 'parent_item' ? \Drupal\canvas\Plugin\DataType\ParentComponentReference : ($name is 'inputs' ? \Drupal\canvas\Plugin\DataType\ComponentInputs : ($name is 'component' ? \Drupal\Core\Entity\Plugin\DataType\EntityReference : \Drupal\Core\TypedData\Plugin\DataType\StringData)))
    */
   // phpcs:enable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace
+  // @phpstan-ignore-next-line method.childParameterType
   public function get($name) {
     // @phpstan-ignore-next-line
     return parent::get($name);
@@ -426,6 +427,7 @@ class ComponentTreeItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
+  // @phpstan-ignore-next-line method.childParameterType
   public function setValue($values, $notify = TRUE): void {
     if (is_array($values)) {
       parent::setValue($values, FALSE);

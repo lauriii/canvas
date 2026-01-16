@@ -55,7 +55,11 @@ final class PropShape {
     // Resolving alone is not enough, also normalize: otherwise no match may be
     // found due to frivolities such as `title` being present.
     $resolved_normalized = self::normalizePropSchema(self::resolveSchemaReferences($raw_sdc_prop_schema));
-    $well_known_prop_shape = array_search($resolved_normalized, self::getWellKnownPropShapes());
+    // TRICKY: specifically do NOT use strict comparisons here, because the
+    // props of an object-shaped prop may be ordered differently.
+    // @see tests/modules/canvas_test_sdc/components/image-without-ref/image-without-ref.component.yml
+    // @phpstan-ignore function.strict
+    $well_known_prop_shape = array_search($resolved_normalized, self::getWellKnownPropShapes(), FALSE);
 
     if ($well_known_prop_shape !== FALSE) {
       return PropShape::normalize([
@@ -68,7 +72,11 @@ final class PropShape {
     // shape. But make sure to keep `minItems`, `maxItems` etc!
     if (JsonSchemaType::fromSdcPropJsonSchema($raw_sdc_prop_schema) === JsonSchemaType::Array && array_key_exists('items', $raw_sdc_prop_schema)) {
       $resolved_normalized_array_items = self::normalizePropSchema(self::resolveSchemaReferences($raw_sdc_prop_schema['items']));
-      $well_known_prop_shape = array_search($resolved_normalized_array_items, self::getWellKnownPropShapes());
+      // TRICKY: specifically do NOT use strict comparisons here, because the
+      // props of an object-shaped prop may be ordered differently.
+      // @see tests/modules/canvas_test_sdc/components/image-without-ref/image-without-ref.component.yml
+      // @phpstan-ignore function.strict
+      $well_known_prop_shape = array_search($resolved_normalized_array_items, self::getWellKnownPropShapes(), FALSE);
       if ($well_known_prop_shape !== FALSE) {
         $other_key_value_pairs = array_diff_key($resolved_normalized, array_flip(['type', 'items']));
         return PropShape::normalize([
