@@ -51,6 +51,15 @@ class ModuleHooks {
       'field__component_tree' => [
         'base hook' => 'field',
       ],
+      'canvas_cta' => [
+        'variables' => [
+          'icon' => NULL,
+          'title' => NULL,
+          'description' => NULL,
+          'url' => NULL,
+          'link_title' => NULL,
+        ],
+      ],
     ];
   }
 

@@ -1,0 +1,28 @@
+{#
+  Canvas CTA banner.
+
+  Variables:
+  - title: CTA title text.
+  - description: CTA description text.
+  - url: Absolute or relative URL for the button.
+  - link_title: Button label.
+  @see \Drupal\canvas\Hook\FieldUiHooks::formEntityViewDisplayEditFormAlter()
+#}
+
+{{ attach_library('canvas/canvas_cta') }}
+<div class="canvas-cta">
+  <div class="canvas-cta__inner">
+    {{ icon }}
+    <div class="canvas-cta__content">
+      <h2 class="canvas-cta__title">{{ title }}</h2>
+      <p class="canvas-cta__description">
+        {{ description }}
+      </p>
+    </div>
+    <div class="canvas-cta__actions">
+      <a href="{{ url }}" class="button button--primary canvas-cta__button">
+        {{ link_title }}
+      </a>
+    </div>
+  </div>
+</div>

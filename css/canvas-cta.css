@@ -1,0 +1,133 @@
+/**
+ * @file
+ * Styles for the Canvas CTA banner component.
+ *
+ * @see \Drupal\canvas\Hook\FieldUiHooks::formEntityViewDisplayEditFormAlter()
+ */
+
+/* Override default message styling for Canvas CTA */
+.messages--canvas_cta:has(.canvas-cta) {
+  margin-block-end: 1.5rem;
+  padding: 0;
+  transition: box-shadow 0.2s ease;
+  color: #fff;
+  border: none !important;
+  border-left: none !important;
+  background: linear-gradient(135deg, #0d6efd 0%, #0b63ce 100%) !important;
+  box-shadow: 0 2px 8px rgb(11, 99, 206, 0.15);
+}
+
+.messages--canvas_cta:has(.canvas-cta):hover {
+  box-shadow: 0 4px 12px rgb(11, 99, 206, 0.2);
+}
+
+.messages--canvas_cta:has(.canvas-cta)::before {
+  display: none;
+}
+
+.messages--canvas_cta:has(.canvas-cta) .messages__header {
+  display: none;
+}
+
+.messages--canvas_cta:has(.canvas-cta) .messages__content {
+  margin-inline: 0;
+  padding: 0;
+}
+
+.canvas-cta {
+  width: 100%;
+}
+
+.canvas-cta__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1.25rem 2rem;
+  transition: transform 0.2s ease;
+  border-radius: 0.625rem;
+  gap: 1.25rem;
+}
+
+.canvas-cta__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border-radius: 0.5rem;
+  background-color: rgb(255, 255, 255, 0.2);
+}
+
+.canvas-cta:hover .canvas-cta__icon {
+  transform: scale(1.05);
+  background-color: rgb(255, 255, 255, 0.25);
+}
+
+.canvas-cta__icon::before {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  content: '';
+  opacity: 0.95;
+  /* Inline SVG data URI; suppresses stylelint \"unknown word\" from encoded tags. */
+  /* stylelint-disable-next-line */
+  /* cspell:disable-next-line */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'%3E%3C/rect%3E%3Cpath d='M3 9h18'%3E%3C/path%3E%3Cpath d='M9 21V9'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.canvas-cta__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #fff;
+}
+
+.canvas-cta__title {
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.canvas-cta__description {
+  max-width: 52rem;
+  margin: 0.25rem 0 0;
+  color: rgb(255, 255, 255, 0.95);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.canvas-cta__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.canvas-cta__button {
+  text-decoration: none !important;
+  color: #0b63ce !important;
+  background-color: #fff !important;
+}
+
+.canvas-cta__button:hover,
+.canvas-cta__button:focus {
+  text-decoration: none !important;
+  color: #0b63ce !important;
+  background-color: #f8f9fa !important;
+}
+
+.canvas-cta__button:visited {
+  text-decoration: none !important;
+  color: #0b63ce !important;
+}
+
+@media (max-width: 64rem) {
+  .messages--canvas_cta:has(.canvas-cta) {
+    display: none;
+  }
+}

@@ -147,6 +147,11 @@ navigation.canvas.override:
     theme:
       css/navigation-override.css: {}
 
+canvas_cta:
+  css:
+    theme:
+      css/canvas-cta.css: {}
+
 jquery.overrides:
   js:
     js/jquery.overrides.js: {}
