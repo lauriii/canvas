@@ -83,6 +83,7 @@ const DeleteCodeComponentDialog = () => {
   useEffect(() => {
     if (isSuccess) {
       dispatch(closeAllDialogs());
+      reset();
       if (
         codeComponentId &&
         codeComponentId === selectedComponent?.machineName
@@ -97,6 +98,7 @@ const DeleteCodeComponentDialog = () => {
     codeComponentId,
     selectedComponent?.machineName,
     previouslyEdited.path,
+    reset,
   ]);
 
   useEffect(() => {
