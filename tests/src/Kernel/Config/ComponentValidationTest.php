@@ -683,7 +683,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
     try {
       $this->entity->createVersion(
-        'f6cfaf1b3cf58a77'
+        '9a4bf4b2813868dd'
       )->setSettings($settings)->save();
 
     }

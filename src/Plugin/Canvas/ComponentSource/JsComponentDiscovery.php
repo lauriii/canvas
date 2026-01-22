@@ -147,13 +147,37 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
   /**
    * Any valid JavaScript Component config entity can be mapped to SDC metadata.
    *
+   * @param \Drupal\canvas\Entity\JavaScriptComponent $component
+   *   The JavaScript Component config entity.
+   * @param array{required: bool, field_type: string, cardinality?: int, field_storage_settings?: array, field_instance_settings?: array, field_widget: string, default_value: array|null, expression: string}|null $prop_field_definitions
+   *   (optional) Prop field definitions, when constructing an ephemeral SDC
+   *   plugin instance for an existing Component version. Must match the
+   *   `type: canvas.generated_field_explicit_input_ux` config schema type.
+   *
    * @throws \Drupal\Core\Render\Component\Exception\InvalidComponentException
    *   Thrown if invalid.
    *
    * @see \Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator
    */
-  public static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component): ComponentPlugin {
+  public static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component, ?array $prop_field_definitions = NULL): ComponentPlugin {
     $definition = $component->toSdcDefinition();
+    // Existing instances of this code component may use a prior Component
+    // config entity version, at which point this code component may have had a
+    // different set of required props. Ensure the set of required props at the
+    // time of code component instantiation continues to be respected.
+    if ($prop_field_definitions !== NULL) {
+      // @phpstan-ignore argument.type
+      $required = \array_keys(\array_filter($prop_field_definitions, static fn(array $prop_field_definition) => $prop_field_definition['required'] ?? FALSE));
+
+      // Respect the requiredness of props in the component instance's Component
+      // config entity version, but only for props that still exist in the
+      // current code component implementation (aka the "active" version).
+      // Otherwise, a non-existent prop would be marked as required, which would
+      // result in the component instance not being editable.
+      if (!empty($required)) {
+        $definition['props']['required'] = array_intersect($required, $definition['props']['required'] ?? []);
+      }
+    }
     return new ComponentPlugin(
       [
         'app_root' => '',

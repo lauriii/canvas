@@ -405,9 +405,88 @@ final class JsComponentEvolutionTest extends KernelTestBase {
 
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanAddRequiredProp(bool $usingHttpApi = FALSE): void {
-    $this->markTestSkipped('To be fixed in https://www.drupal.org/project/canvas/issues/3556338');
     $this->addOrUpdateAgeProp($usingHttpApi, TRUE);
     $this->assertRequiredPropNewVersion();
+  }
+
+  #[DataProvider('providerTrueFalse')]
+  public function testCodeComponentCanRemoveRequiredPropThenAddAnotherRequiredProp(bool $usingHttpApi = FALSE): void {
+    $this->removeNamePropAndAddAgeProp($usingHttpApi, TRUE);
+
+    $inputs = [
+      // Populate the new prop.
+      'age' => 27,
+    ];
+    // We removed a required prop, so we can only test with the latest version.
+    $this->assertNewVersion([
+      'age' => 'integer',
+    ], $inputs, fn(string $version) => [
+      'layout' => [
+        [
+          'uuid' => self::COMPONENT_INSTANCE_UUID,
+          'nodeType' => 'component',
+          'type' => \sprintf('%s@%s', self::COMPONENT_ID, $version),
+          'slots' => [
+            [
+              'id' => \sprintf('%s/description', self::COMPONENT_INSTANCE_UUID),
+              'name' => 'description',
+              'nodeType' => 'slot',
+              'components' => [
+                [
+                  'uuid' => self::CHILD_COMPONENT_INSTANCE_ID,
+                  'nodeType' => 'component',
+                  'type' => $this->childType,
+                  'slots' => [],
+                  'name' => NULL,
+                ],
+              ],
+            ],
+          ],
+          'name' => NULL,
+        ],
+      ],
+      'model' => [
+        self::COMPONENT_INSTANCE_UUID => [
+          'source' => [
+            'age' => [
+              'sourceType' => 'static:field_item:integer',
+              'expression' => 'ℹ︎integer␟value',
+            ],
+          ],
+          'resolved' => $inputs,
+        ],
+      ],
+    ]);
+  }
+
+  protected function removeNamePropAndAddAgeProp(bool $usingHttpRequest = FALSE, bool $required = FALSE): void {
+    $js_component = $this->reloadJavascriptComponent();
+    $props = $js_component->getProps();
+    \assert(\is_array($props));
+    self::assertArrayHasKey('name', $props);
+    unset($props['name']);
+    $props['age'] = [
+      'title' => 'Age',
+      'type' => 'integer',
+      'examples' => [],
+    ];
+
+    $requiredProps = \array_diff($js_component->getRequiredProps(), ['name']);
+    if ($required) {
+      $props['age']['examples'][] = 27;
+      $requiredProps[] = 'age';
+    }
+    if (!$usingHttpRequest) {
+      $js_component->set('required', $requiredProps);
+      $js_component->setProps($props);
+      self::assertCount(0, $js_component->getTypedData()->validate());
+      $js_component->save();
+      return;
+    }
+    $data = $js_component->normalizeForClientSide()->values;
+    $data['props'] = $props;
+    $data['required'] = $requiredProps;
+    $this->patchComponent($data);
   }
 
   protected function assertRequiredPropNewVersion(): void {
@@ -612,7 +691,6 @@ final class JsComponentEvolutionTest extends KernelTestBase {
 
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanMakeAnOptionalPropRequired(bool $usingHttpApi = FALSE): void {
-    $this->markTestSkipped('To be fixed in https://www.drupal.org/project/canvas/issues/3556339');
     $this->addOrUpdateAgeProp($usingHttpApi);
     $this->makeAgePropRequired($usingHttpApi);
     $this->assertRequiredPropNewVersion();
@@ -629,7 +707,6 @@ final class JsComponentEvolutionTest extends KernelTestBase {
 
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanMakeARequiredPropOptional(bool $usingHttpApi = FALSE): void {
-    $this->markTestSkipped('To be fixed in https://www.drupal.org/project/canvas/issues/3556339');
     $this->addOrUpdateAgeProp($usingHttpApi, TRUE);
     $this->makeAgePropOptional($usingHttpApi);
     $this->assertOptionalPropNewVersion();

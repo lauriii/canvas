@@ -78,7 +78,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   protected function getComponentPlugin(): ComponentPlugin {
     if ($this->componentPlugin === NULL) {
       // Statically cache the loaded plugin.
-      $this->componentPlugin = JsComponentDiscovery::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent());
+      $this->componentPlugin = JsComponentDiscovery::buildEphemeralSdcPluginInstance($this->getJavaScriptComponent(), $this->configuration['prop_field_definitions']);
     }
     return $this->componentPlugin;
   }
