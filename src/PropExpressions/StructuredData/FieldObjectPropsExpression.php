@@ -13,13 +13,15 @@ use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
-final class FieldObjectPropsExpression implements StructuredDataPropExpressionInterface {
+final class FieldObjectPropsExpression implements EntityFieldBasedPropExpressionInterface, ObjectPropExpressionInterface {
 
   use CompoundExpressionTrait;
+  use EntityFieldBasedExpressionTrait;
 
   /**
-   * @param array<string, FieldPropExpression|ReferenceFieldPropExpression> $objectPropsToFieldProps
-   *   A mapping of SDC prop names to Field Type prop expressions.
+   * @param non-empty-array<string, (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface)> $objectPropsToFieldProps
+   *   A mapping of prop names to entity field-based expressions that yield
+   *   scalar values or references.
    */
   public function __construct(
     // @todo will this break down once we support config entities? It must, because top-level config entity props ~= content entity fields, but deeper than that it is different.
@@ -30,17 +32,13 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     public readonly int|null $delta,
     public readonly array $objectPropsToFieldProps,
   ) {
+    \assert(!empty($this->objectPropsToFieldProps));
     assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldProps)));
     assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;
     }, $this->objectPropsToFieldProps));
-    array_walk($objectPropsToFieldProps, function (StructuredDataPropExpressionInterface $expr) {
-      // Each of the expressions in $objectPropsToFieldProps MUST target the
-      // same field item; otherwise it'd be nonsense. IOW: the following MUST
-      // match `entityType`, `fieldName` and `delta`.
-      $targets_same_field_item = $expr instanceof ReferenceFieldPropExpression
-        ? $expr->referencer->entityType == $this->entityType && $expr->referencer->fieldName === $this->fieldName && $expr->referencer->delta === $this->delta
-        : $expr->entityType == $this->entityType && $expr->fieldName === $this->fieldName && $expr->delta === $this->delta;
+    array_walk($objectPropsToFieldProps, function (EntityFieldBasedPropExpressionInterface $expr) {
+      $targets_same_field_item = $this->hasSameStartingPointAs($expr);
       if (!$targets_same_field_item) {
         throw new \InvalidArgumentException(sprintf(
           '`%s` is not a valid expression, because it does not map the same field item (entity type `%s`, field name `%s`, delta `%s`).',
@@ -62,7 +60,7 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
       . implode(',', array_map(
         function (
           string $obj_prop_name,
-          FieldPropExpression|ReferenceFieldPropExpression $expr,
+          (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $expr,
         ) {
           // It is guaranteed that every referencer's fieldName matches exactly
           // and is hence guaranteed to be a string. Which automatically means
@@ -172,12 +170,34 @@ final class FieldObjectPropsExpression implements StructuredDataPropExpressionIn
     // @todo validate that the field exists?
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getHostEntityDataDefinition(): EntityDataDefinitionInterface {
     return $this->entityType;
   }
 
-  public function isMultiBundle(): bool {
-    return FALSE;
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldName(): string {
+    return $this->fieldName;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDelta(): ?int {
+    return $this->delta;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @return non-empty-array<string, (\Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface&\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface)|(\Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface&\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface)>
+   */
+  public function getObjectExpressions(): array {
+    return $this->objectPropsToFieldProps;
   }
 
 }

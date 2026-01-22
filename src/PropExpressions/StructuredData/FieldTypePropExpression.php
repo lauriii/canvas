@@ -16,7 +16,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 /**
  * For pointing to a prop in a field type (not considering any delta).
  */
-final class FieldTypePropExpression implements StructuredDataPropExpressionInterface {
+final class FieldTypePropExpression implements FieldTypeBasedPropExpressionInterface, ScalarPropExpressionInterface {
 
   public function __construct(
     public readonly string $fieldType,
@@ -79,6 +79,20 @@ final class FieldTypePropExpression implements StructuredDataPropExpressionInter
     if ($actual_field_type !== $this->fieldType) {
       throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldType(): string {
+    return $this->fieldType;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldPropertyName(): string {
+    return $this->propName;
   }
 
 }

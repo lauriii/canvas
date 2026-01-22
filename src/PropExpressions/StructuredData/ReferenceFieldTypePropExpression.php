@@ -15,14 +15,16 @@ use Drupal\Core\Field\FieldItemListInterface;
 /**
  * For pointing to a prop in a field type (not considering any delta).
  */
-final class ReferenceFieldTypePropExpression implements StructuredDataPropExpressionInterface {
+final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpressionInterface, ReferencePropExpressionInterface {
 
   use CompoundExpressionTrait;
 
   public function __construct(
     public readonly FieldTypePropExpression $referencer,
-    public readonly FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $referenced,
-  ) {}
+    public readonly EntityFieldBasedPropExpressionInterface $referenced,
+  ) {
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750. Update the logic here to detect that $referenced is a FieldPropExpression with multiple bundles, and if so, automatically convert it at runtime to the new (superior) representation: use ReferencedBundleSpecificBranches
+  }
 
   public function __toString(): string {
     return static::PREFIX_EXPRESSION_TYPE
@@ -77,7 +79,7 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
     $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation, 2);
     $referencer = FieldTypePropExpression::fromString($parts[0]);
     $referenced = StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . static::PREFIX_ENTITY_LEVEL . $parts[1]);
-    assert($referenced instanceof FieldPropExpression || $referenced instanceof ReferenceFieldPropExpression || $referenced instanceof FieldObjectPropsExpression);
+    assert($referenced instanceof EntityFieldBasedPropExpressionInterface);
     return new static($referencer, $referenced);
   }
 
@@ -100,6 +102,52 @@ final class ReferenceFieldTypePropExpression implements StructuredDataPropExpres
     return $this->referenced->entityType
       // @phpstan-ignore-next-line
       ->getPropertyDefinition($this->referenced->fieldName);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldType(): string {
+    return $this->referencer->fieldType;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldPropertyName(): string {
+    return $this->referencer->propName;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTargetExpression() : EntityFieldBasedPropExpressionInterface {
+    return $this->referenced;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFinalTargetExpression(): (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ObjectPropExpressionInterface&EntityFieldBasedPropExpressionInterface) {
+    if ($this->referenced instanceof ReferencePropExpressionInterface) {
+      return $this->referenced->getFinalTargetExpression();
+    }
+
+    \assert($this->referenced instanceof ScalarPropExpressionInterface || $this->referenced instanceof ObjectPropExpressionInterface);
+    return $this->referenced;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function targetsMultipleBundles(): bool {
+    if (!$this->referenced instanceof FieldPropExpression) {
+      return FALSE;
+    }
+
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    $target_bundles = $this->referenced->getHostEntityDataDefinition()->getBundles() ?? [];
+    return count($target_bundles) > 1;
   }
 
 }

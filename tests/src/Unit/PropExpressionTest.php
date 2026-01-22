@@ -35,7 +35,7 @@ use Prophecy\Prophet;
  */
 class PropExpressionTest extends UnitTestCase {
 
-  const string LABELER_TYPE_ERROR_MESSAGE_FORMAT = 'Drupal\canvas\PropExpressions\StructuredData\Labeler::label(): Argument #1 ($expr) must be of type Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression|Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression, %s given';
+  const string LABELER_TYPE_ERROR_MESSAGE_FORMAT = 'Drupal\canvas\PropExpressions\StructuredData\Labeler::label(): Argument #1 ($expr) must be of type Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface, %s given';
 
   /**
    * {@inheritdoc}

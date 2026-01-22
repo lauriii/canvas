@@ -6,10 +6,11 @@ namespace Drupal\canvas\ShapeMatcher;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
-use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
@@ -73,14 +74,17 @@ final class PropSourceSuggester {
    *
    * @todo Refactor after https://www.drupal.org/project/drupal/issues/3557353
    */
-  private function isConsideredIrrelevant(FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $expression): bool {
+  private function isConsideredIrrelevant(EntityFieldBasedPropExpressionInterface $expression): bool {
     $entity_type_id = $expression->getHostEntityDataDefinition()->getEntityTypeId();
     $expression_field_name = Labeler::getFieldName($expression, $expression->getHostEntityDataDefinition());
-    $referenced_entity_type_id = $expression instanceof ReferenceFieldPropExpression
-      ? $expression->referenced->getHostEntityDataDefinition()->getEntityTypeId()
+    $referenced_entity_type_id = $expression instanceof ReferencePropExpressionInterface
+      ? $expression->getTargetExpression()->getHostEntityDataDefinition()->getEntityTypeId()
       : NULL;
-    $referenced_expression_field_name = $expression instanceof ReferenceFieldPropExpression
-      ? Labeler::getFieldName($expression->referenced, $expression->referenced->getHostEntityDataDefinition())
+    $referenced_expression_field_name = $expression instanceof ReferencePropExpressionInterface
+      ? Labeler::getFieldName(
+        $expression->getTargetExpression(),
+        $expression->getTargetExpression()->getHostEntityDataDefinition(),
+      )
       : NULL;
 
     // Node-specific heuristics:
@@ -92,7 +96,7 @@ final class PropSourceSuggester {
 
     // File-specific heuristics:
     // 1. do not suggest `uid` base field if the File entity was referenced
-    if ($referenced_entity_type_id === 'file' && $expression instanceof ReferenceFieldPropExpression && $referenced_expression_field_name === 'uid') {
+    if ($referenced_entity_type_id === 'file' && $expression instanceof ReferencePropExpressionInterface && $referenced_expression_field_name === 'uid') {
       return TRUE;
     }
 
@@ -112,13 +116,16 @@ final class PropSourceSuggester {
     }
 
     // Recurse, if needed.
-    return match ($expression::class) {
-      FieldPropExpression::class => FALSE,
-      ReferenceFieldPropExpression::class => $this->isConsideredIrrelevant($expression->referenced),
-      FieldObjectPropsExpression::class => array_any(
-        $expression->objectPropsToFieldProps,
-        fn(FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => $this->isConsideredIrrelevant($sub_expr),
+    return match (TRUE) {
+      $expression instanceof ReferencePropExpressionInterface => $this->isConsideredIrrelevant($expression->getTargetExpression()),
+      $expression instanceof ObjectPropExpressionInterface => array_any(
+        $expression->getObjectExpressions(),
+        // PHPStan incorrectly flags this error. It fails to conclude that the
+        // function argument already is of the correct type.
+        // @phpstan-ignore argument.type
+        $this->isConsideredIrrelevant(...),
       ),
+      default => FALSE,
     };
   }
 

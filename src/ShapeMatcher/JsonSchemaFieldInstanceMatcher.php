@@ -7,6 +7,8 @@ namespace Drupal\canvas\ShapeMatcher;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
@@ -69,14 +71,13 @@ use Symfony\Component\Validator\Constraint;
  * @see \Drupal\canvas\ShapeMatcher\DataTypeShapeRequirements
  * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()
  *
- * Then traverses all (base, bundle, configurable) field instances on all entity
- * types (and bundles), to find a match. Matches are described using structured
- * data prop expressions.
+ * Then traverses all entity fields to find a match:
+ * - all content entity types (and bundles)
+ * - all (base, bundle, configurable) field instances on those
  *
- * @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface
- * @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression
- * @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
- * @see \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression
+ * Matches are described using structured data prop expressions.
+ *
+ * @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface
  *
  * These are then used in "dynamic prop sources".
  *
@@ -206,7 +207,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
-   * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression> : array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
+   * @return ($levels_to_recurse is positive-int ? array<int, \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface> : array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression>)
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     if ($primitive_type === JsonSchemaType::Array) {
@@ -284,10 +285,10 @@ final class JsonSchemaFieldInstanceMatcher {
           // cross-referencing. This works because scalar matches are performed
           // against the given $entity_data_definition, and hence the fields on
           // that entity type + bundle.
-          $referenced_leaf = $reference_match->getLeaf();
-          $leaf_field_name = self::getFieldNameForSingleBundleExpression($referenced_leaf);
-          $reference_key = $reference_match->getFullReferenceChain() . ':' . $leaf_field_name;
-          $matches_references[self::getFieldNameForSingleBundleExpression($reference_match)][$reference_key] = $reference_match;
+          $referenced_final_expression = $reference_match->getFinalTargetExpression();
+          $final_field_name = $referenced_final_expression->getFieldName();
+          $reference_key = $reference_match->getFullReferenceChain() . ':' . $final_field_name;
+          $matches_references[$reference_match->getFieldName()][$reference_key] = $reference_match;
           // Ensure that when the naïve scalar matches are processed, all that
           // contain a prefix of the reference matches are skipped.
           $scalar_match_prefixes_to_avoid = [
@@ -304,7 +305,7 @@ final class JsonSchemaFieldInstanceMatcher {
     $inverted = [];
     foreach (array_keys($per_object_prop_scalar_matches) as $object_prop_name) {
       foreach ($per_object_prop_scalar_matches[$object_prop_name] as $field_prop_expr) {
-        $field_name = self::getFieldNameForSingleBundleExpression($field_prop_expr);
+        $field_name = $field_prop_expr->getFieldName();
         // The same field name prop should never be used multiple times; best
         // match is selected in object prop order.
         // TRICKY: cannot use strict comparison here, because the prop
@@ -365,9 +366,9 @@ final class JsonSchemaFieldInstanceMatcher {
 
       // How many object props do the possibly superior object matches populate?
       foreach ($matches_references[$field_name] as $reference_match) {
-        $reference_leaf = $reference_match->getLeaf();
-        \assert($reference_leaf instanceof FieldObjectPropsExpression);
-        $reference_match_object_props_populated = count(array_keys($reference_leaf->objectPropsToFieldProps));
+        $reference_leaf = $reference_match->getFinalTargetExpression();
+        \assert($reference_leaf instanceof ObjectPropExpressionInterface);
+        $reference_match_object_props_populated = count(array_keys($reference_leaf->getObjectExpressions()));
 
         // If the reference match is superior, omit the scalar match.
         if ($scalar_match_object_props_populated <= $reference_match_object_props_populated) {
@@ -401,11 +402,10 @@ final class JsonSchemaFieldInstanceMatcher {
     foreach ($matches_complete + $matches_minimal as $field_name => $mapping) {
       // @todo Support nested/recursive/chained FieldObjectPropsExpression?
       // @see https://www.drupal.org/project/canvas/issues/3467890#comment-16036211
-      /** @var array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression> $mapping */
       $matches[] = new FieldObjectPropsExpression($entity_data_definition, $field_name, NULL, $mapping);
     }
-    \assert(Inspector::assertAll(fn ($expr) => $expr instanceof FieldObjectPropsExpression, $matches));
-    \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ReferenceFieldPropExpression, $matches_references));
+    \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ObjectPropExpressionInterface, $matches));
+    \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ReferencePropExpressionInterface, $matches_references));
     return [...$matches_references, ...$matches];
   }
 
@@ -637,7 +637,7 @@ final class JsonSchemaFieldInstanceMatcher {
                 // Ignore base field matches; those are already handled by the
                 // logic just before this ">1 target bundles" conditional.
                 foreach ($referenced_matches as $referenced_match) {
-                  $field_name = self::getFieldNameForSingleBundleExpression($referenced_match);
+                  $field_name = $referenced_match->getFieldName();
                   if (!in_array($field_name, $base_field_names, TRUE)) {
                     $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
                   }
@@ -778,7 +778,7 @@ final class JsonSchemaFieldInstanceMatcher {
 
   /**
    * @param JsonSchema $schema
-   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression>
+   * @return array<int, \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface>
    */
   public function findFieldInstanceFormatMatches(
     JsonSchemaType $primitive_type,
@@ -814,7 +814,7 @@ final class JsonSchemaFieldInstanceMatcher {
     };
     $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
     $matches = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
-    /** @var array<\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression|\Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression> */
+    /** @var array<\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface> */
     $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
     $instances = array_values($keyed_by_string);
@@ -1153,20 +1153,6 @@ final class JsonSchemaFieldInstanceMatcher {
     }
 
     return NULL;
-  }
-
-  private static function getFieldNameForSingleBundleExpression(FieldPropExpression|FieldObjectPropsExpression|ReferenceFieldPropExpression $leaf_expr): string {
-    $field_name = match (get_class($leaf_expr)) {
-      FieldPropExpression::class, FieldObjectPropsExpression::class => $leaf_expr->fieldName,
-      ReferenceFieldPropExpression::class => $leaf_expr->referencer->fieldName,
-      default => throw new \LogicException('Unhandled.'),
-    };
-    // Even though FieldPropExpression's `fieldName` can be an array at the
-    // data structure level, it can only be a string here: because the logic
-    // in ::matchEntityPropsForScalar() asses one entity type + bundle at a
-    // time.
-    assert(!$leaf_expr->isMultiBundle() && is_string($field_name));
-    return $field_name;
   }
 
   private static function componentPluginManager(): ComponentPluginManager {

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropShape;
 
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyTrait;
 
@@ -29,7 +27,7 @@ final class CandidateStorablePropShape implements RefinableCacheableDependencyIn
 
   public function __construct(
     public readonly PropShape $shape,
-    public FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression|null $fieldTypeProp = NULL,
+    public ?FieldTypeBasedPropExpressionInterface $fieldTypeProp = NULL,
     public string|null $fieldWidget = NULL,
     public int|null $cardinality = NULL,
     public array|null $fieldStorageSettings = NULL,

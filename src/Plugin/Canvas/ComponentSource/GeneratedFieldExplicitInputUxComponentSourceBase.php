@@ -6,6 +6,8 @@ namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -39,9 +41,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
@@ -62,7 +62,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * Canvas ComponentSource plugins that do not have their own (native) explicit
  * input UX only need to map their explicit information to SDC metadata and can
  * then get an automatically generated field widget explicit UX, whose values
- * are stored in dangling field instances, by mapping schema to field types.
+ * are stored in conjured fields, by mapping schema to field types.
  *
  * @see \Drupal\Core\Theme\Component\ComponentMetadata
  * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
@@ -386,8 +386,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // pairs evaluated to NULL (which is only possible/allowed because the
       // entire object is optional).
       $prop_expression = StructuredDataPropExpression::fromString($prop_field_definitions[$prop]['expression']);
-      $is_object_prop_shape = $prop_expression instanceof FieldTypeObjectPropsExpression;
-      if (!$is_required && $is_object_prop_shape && empty(array_filter($resolved_value->value))) {
+      if (!$is_required && $prop_expression instanceof ObjectPropExpressionInterface && empty(array_filter($resolved_value->value))) {
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
       }
     }
@@ -983,7 +982,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $schema = $component_plugin->metadata->schema ?? [];
       $props[$cpe->propName] = [
         'required' => isset($schema['required']) && in_array($cpe->propName, $schema['required'], TRUE),
-        'field_type' => $storable_prop_shape->getFieldType(),
+        'field_type' => $storable_prop_shape->fieldTypeProp->getFieldType(),
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
         'default_value' => self::computeDefaultFieldValue($storable_prop_shape, $component_plugin->metadata, $cpe->propName),
@@ -1071,7 +1070,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    * @see \Drupal\canvas\ComponentSource\UrlRewriteInterface
    */
   public static function exampleValueRequiresEntity(StorablePropShape $storable_prop_shape): bool {
-    if ($storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression) {
+    if ($storable_prop_shape->fieldTypeProp instanceof ReferencePropExpressionInterface) {
       return TRUE;
     }
 
@@ -1079,28 +1078,24 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       return self::fieldTypePropExpressionExampleRequiresEntity($storable_prop_shape->fieldTypeProp) ?? FALSE;
     }
 
-    // @phpstan-ignore-next-line instanceof.alwaysTrue
-    if ($storable_prop_shape->fieldTypeProp instanceof FieldTypeObjectPropsExpression) {
-      if ($storable_prop_shape->fieldTypeProp->fieldType === 'entity_reference') {
+    \assert($storable_prop_shape->fieldTypeProp instanceof ObjectPropExpressionInterface);
+    foreach ($storable_prop_shape->fieldTypeProp->getObjectExpressions() as $sub_expr) {
+      if ($sub_expr instanceof ReferencePropExpressionInterface) {
         return TRUE;
       }
-      else {
-        foreach ($storable_prop_shape->fieldTypeProp->objectPropsToFieldTypeProps as $field_type_prop) {
-          if ($field_type_prop instanceof ReferenceFieldTypePropExpression) {
-            return TRUE;
-          }
 
-          // If this is a field property that computes the combination of
-          // multiple other field properties, then this property may actually
-          // also be relying on a (referenced) entity.
-          // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
-          // @todo Consider dropping this in favor of adding adapter support in https://www.drupal.org/project/canvas/issues/3464003
-          $indirectly_uses_entity = self::fieldTypePropExpressionExampleRequiresEntity($field_type_prop);
-          if ($indirectly_uses_entity === NULL) {
-            continue;
-          }
-          return $indirectly_uses_entity;
-        }
+      // If this is a field property that computes the combination of
+      // multiple other field properties, then this property may actually
+      // also be relying on a (referenced) entity.
+      // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
+      // @todo Consider dropping this in favor of adding adapter support in https://www.drupal.org/project/canvas/issues/3464003
+      \assert($sub_expr instanceof FieldTypePropExpression);
+      $indirectly_uses_entity = self::fieldTypePropExpressionExampleRequiresEntity($sub_expr);
+      if ($indirectly_uses_entity === NULL) {
+        continue;
+      }
+      if ($indirectly_uses_entity === TRUE) {
+        return TRUE;
       }
     }
     return FALSE;
@@ -1291,9 +1286,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * Collapse prop source for storage whenever possible.
    *
-   * StaticPropSources are dangling field item lists, which require a lot of
-   * metadata to be known: field type, storage settings, instance settings and
-   * expression.
+   * StaticPropSources are conjured fields, which require a lot of metadata to
+   * be known: field type, storage settings, instance settings and expression.
+   *
    * When a StaticPropSource is being stored (to populate some component prop),
    * it MUST match the metadata in the `prop_field_definitions` for this
    * component instance's referenced version of the Component config entity.

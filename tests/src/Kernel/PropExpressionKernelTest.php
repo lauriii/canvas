@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -342,7 +338,7 @@ class PropExpressionKernelTest extends KernelTestBase {
 
     foreach (PropExpressionTest::provider() as $test_case_label => $case) {
       $expression = $case[1];
-      assert($expression instanceof StructuredDataPropExpressionInterface);
+      \assert($expression instanceof EntityFieldBasedPropExpressionInterface || $expression instanceof FieldTypeBasedPropExpressionInterface);
       $expected_dependencies = $case[3];
       // Almost always, the content-aware dependencies are the same as the
       // content-unaware ones, just with the `content` key-value pair omitted,
@@ -355,18 +351,16 @@ class PropExpressionKernelTest extends KernelTestBase {
 
       $test_case_precise_label = sprintf("%s (%s)", $test_case_label, (string) $expression);
 
-      $entity_or_field = match(get_class($expression)) {
-        FieldPropExpression::class, ReferenceFieldPropExpression::class, FieldObjectPropsExpression::class => $host_entity,
-        FieldTypePropExpression::class, ReferenceFieldTypePropExpression::class, FieldTypeObjectPropsExpression::class => (function () use ($expression) {
+      $entity_or_field = match(TRUE) {
+        $expression instanceof EntityFieldBasedPropExpressionInterface => $host_entity,
+        $expression instanceof FieldTypeBasedPropExpressionInterface => (function () use ($expression) {
           // For reference fields, ::randomizeValue() will point to incorrect
           // entities (defaulting to the `Node` entity type!) unless the storage
           // and instance settings passed to StaticPropSource are correct too.
           $storage_settings = [];
           $instance_settings = [];
-          if ($expression instanceof ReferenceFieldTypePropExpression) {
-            $target_entity_data_definition = $expression->referenced instanceof ReferenceFieldPropExpression
-              ? $expression->referenced->referencer->entityType
-              : $expression->referenced->entityType;
+          if ($expression instanceof ReferencePropExpressionInterface) {
+            $target_entity_data_definition = $expression->referenced->getHostEntityDataDefinition();
             assert($target_entity_data_definition instanceof BetterEntityDataDefinition);
             $storage_settings['target_type'] = $target_entity_data_definition->getEntityTypeId();
             $target_bundles = $target_entity_data_definition->getBundles();

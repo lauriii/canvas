@@ -12,13 +12,14 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
-final class ReferenceFieldPropExpression implements StructuredDataPropExpressionInterface {
+final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressionInterface, ReferencePropExpressionInterface {
 
   use CompoundExpressionTrait;
+  use EntityFieldBasedExpressionTrait;
 
   public function __construct(
     public readonly FieldPropExpression $referencer,
-    public readonly ReferenceFieldPropExpression|FieldPropExpression|FieldObjectPropsExpression $referenced,
+    public readonly EntityFieldBasedPropExpressionInterface $referenced,
   ) {
     // References can start from a multi-target-bundle reference field, with the
     // referenced result then either:
@@ -26,8 +27,11 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     //   but all of the `image` field type)
     // - referencing the same entity type (e.g. multiple bundles with different
     //   fields but all pointing to a `File` entity)
-    // @todo Consider adding branching support to allow per-bundle expressions resulting in the same shape in https://www.drupal.org/project/canvas/issues/3550750
-    if ($this->referencer->isMultiBundle() && $this->referenced->isMultiBundle()) {
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    // @todo Add branching support to allow per-bundle expressions resulting in the same shape in https://www.drupal.org/project/canvas/issues/3550750
+    $referencer_target_bundles = $this->referencer->getHostEntityDataDefinition()->getBundles() ?? [];
+    $referenced_target_bundles = $this->referenced->getHostEntityDataDefinition()->getBundles() ?? [];
+    if (count($referencer_target_bundles) > 1 && count($referenced_target_bundles) > 1) {
       throw new \InvalidArgumentException('A reference expression must start from a single entity reference field, and hence must start in a single entity type + bundle, UNLESS there is a single target.');
     }
   }
@@ -85,6 +89,13 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     ];
   }
 
+  /**
+   * Returns the string representation of the full/maximal reference chain.
+   *
+   * @return string
+   *
+   * @see ::getReferenceChainPrefixes()
+   */
   public function getFullReferenceChain(): string {
     $prefixes = $this->getReferenceChainPrefixes();
     $full = end($prefixes);
@@ -161,20 +172,70 @@ final class ReferenceFieldPropExpression implements StructuredDataPropExpression
     // @todo validate that the field exists?
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getHostEntityDataDefinition(): EntityDataDefinitionInterface {
     return $this->referencer->getHostEntityDataDefinition();
   }
 
-  public function isMultiBundle(): bool {
-    return $this->referencer->isMultiBundle();
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldName(): string {
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
+    \assert(!is_array($this->referencer->fieldName));
+    return $this->referencer->fieldName;
   }
 
-  public function getLeaf(): FieldPropExpression|FieldObjectPropsExpression {
-    if ($this->referenced instanceof ReferenceFieldPropExpression) {
-      return $this->referenced->getLeaf();
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldPropertyName(): string {
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
+    \assert(!is_array($this->referencer->propName));
+    return $this->referencer->propName;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDelta(): int|null {
+    return $this->referencer->delta;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTargetExpression() : EntityFieldBasedPropExpressionInterface {
+    return $this->referenced;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFinalTargetExpression(): (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ObjectPropExpressionInterface&EntityFieldBasedPropExpressionInterface) {
+    if ($this->referenced instanceof ReferencePropExpressionInterface) {
+      return $this->referenced->getFinalTargetExpression();
     }
 
+    \assert($this->referenced instanceof ScalarPropExpressionInterface || $this->referenced instanceof ObjectPropExpressionInterface);
     return $this->referenced;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function targetsMultipleBundles(): bool {
+    if (!$this->referenced instanceof FieldPropExpression) {
+      return FALSE;
+    }
+
+    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    $target_bundles = $this->referenced->getHostEntityDataDefinition()->getBundles() ?? [];
+    return count($target_bundles) > 1;
   }
 
 }

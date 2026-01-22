@@ -374,7 +374,7 @@ class ShapeMatchingHooks {
    * @param array $media_type_ids
    * @param string $media_source_class
    *
-   * @return array|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression[]
+   * @return non-empty-array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression>
    */
   protected function getFieldTypeProps(array $media_types, array $media_type_ids, string $media_source_class): array {
     $source_field_names = array_map(
@@ -382,6 +382,7 @@ class ShapeMatchingHooks {
       fn (MediaTypeInterface $type): string => $type->getSource()->getSourceFieldDefinition($type)->getName(),
       $media_types
     );
+    \assert(!empty($source_field_names));
 
     return match ($media_source_class) {
       Image::class => [
@@ -405,7 +406,7 @@ class ShapeMatchingHooks {
           )
         ),
       ],
-      default => [],
+      default => throw new \InvalidArgumentException(sprintf('%s is not a supported Media Source class for shape matching.', $media_source_class)),
     };
   }
 

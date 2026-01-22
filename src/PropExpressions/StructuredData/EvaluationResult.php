@@ -12,26 +12,14 @@ use Drupal\Core\Entity\EntityInterface;
 /**
  * A value object wrapping the result of evaluating a prop expression.
  *
- * Most common: single-cardinality scalar results:
- *
- * @phpstan-type RequiredSingleCardinalityScalarResult bool|int|float|string|\Stringable
- * @phpstan-type OptionalSingleCardinalityScalarResult RequiredSingleCardinalityScalarResult|null
- *
- * Multiple-cardinality scalar results, constructed from those.
- * @phpstan-type RequiredMultipleCardinalityScalarResult non-empty-array<int, RequiredSingleCardinalityScalarResult>
- * @phpstan-type OptionalMultipleCardinalityScalarResult array<int, RequiredSingleCardinalityScalarResult>
- *
- * Object-shaped results, constructed from single-cardinality scalars:
- * @phpstan-type SingleCardinalityObjectResult array<string, RequiredSingleCardinalityScalarResult>
- * @phpstan-type MultipleCardinalityObjectResult array<int, SingleCardinalityObjectResult>
- *
- * Intermediary results:
- * @phpstan-type EntityReferenceSingleCardinalityResult EntityInterface|null
- * @phpstan-type EntityReferenceMultipleCardinalityResult array<int, EntityInterface|null>
- * NOTE: ideally, from a conceptual POV, these would not be allowed in the
- * EvaluationResult, but doing so makes the Evaluator far more complicated.
- *
- * All of the above combined: an actually encapsulated evaluation result.
+ * @phpstan-import-type RequiredSingleCardinalityScalarResult from \Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface
+ * @phpstan-import-type OptionalSingleCardinalityScalarResult from \Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface
+ * @phpstan-import-type RequiredMultipleCardinalityScalarResult from \Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface
+ * @phpstan-import-type OptionalMultipleCardinalityScalarResult from \Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface
+ * @phpstan-import-type SingleCardinalityObjectResult from \Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface
+ * @phpstan-import-type MultipleCardinalityObjectResult from \Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface
+ * @phpstan-import-type EntityReferenceSingleCardinalityResult from \Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface
+ * @phpstan-import-type EntityReferenceMultipleCardinalityResult from \Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface
  * @phpstan-type ActualEvaluationResult RequiredSingleCardinalityScalarResult|OptionalSingleCardinalityScalarResult|RequiredMultipleCardinalityScalarResult|OptionalMultipleCardinalityScalarResult|EntityReferenceSingleCardinalityResult|EntityReferenceMultipleCardinalityResult|SingleCardinalityObjectResult|MultipleCardinalityObjectResult
  *
  * The constructor may receive additional structures, which require hoisting.

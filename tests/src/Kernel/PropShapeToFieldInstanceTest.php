@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
@@ -19,9 +20,6 @@ use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
@@ -397,7 +395,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             $adapter_matches_field_type[$match->getPluginId()][$input_name] = $storable_prop_shape_for_adapter_input
               ? (string) $storable_prop_shape_for_adapter_input->fieldTypeProp
               : NULL;
-            $adapter_matches_instance[$match->getPluginId()][$input_name] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_matches);
+            $adapter_matches_instance[$match->getPluginId()][$input_name] = array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_matches);
           }
           ksort($adapter_matches_field_type);
           ksort($adapter_matches_instance);
@@ -411,7 +409,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         $matches[$unique_match_key]['static prop source'] = $storable_prop_shape
           ? (string) $storable_prop_shape->fieldTypeProp
           : NULL;
-        $matches[$unique_match_key]['instances'] = array_map(fn (FieldPropExpression|ReferenceFieldPropExpression|FieldObjectPropsExpression $e): string => (string) $e, $instance_candidates);
+        $matches[$unique_match_key]['instances'] = array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_candidates);
         $matches[$unique_match_key]['adapter_matches_field_type'] = $adapter_matches_field_type;
         $matches[$unique_match_key]['adapter_matches_instance'] = $adapter_matches_instance;
       }

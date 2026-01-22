@@ -13,9 +13,6 @@ use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
@@ -310,15 +307,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       foreach ($suggested_instances as $dynamic_prop_source) {
         \assert($dynamic_prop_source instanceof DynamicPropSource);
         $expr = $dynamic_prop_source->expression;
-        $field_name = match (get_class($expr)) {
-          FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
-          ReferenceFieldPropExpression::class => $expr->referencer->fieldName,
-        };
-        // Even though FieldPropExpression's `fieldName` can be an array at the
-        // data structure level, it can only be a string here: because the logic
-        // in JsonSchemaFieldInstanceMatcher asses one entity type + bundle at
-        // time.
-        assert(is_string($field_name));
+        $field_name = $expr->getFieldName();
         if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {
           continue;
         }

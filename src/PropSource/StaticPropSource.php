@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -21,11 +22,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface;
 
 /**
  * Contains unstructured data for 1 explicit input of a component instance.
@@ -49,7 +46,7 @@ final class StaticPropSource extends PropSourceBase {
    */
   public function __construct(
     public readonly FieldItemListInterface $fieldItemList,
-    public readonly StructuredDataPropExpressionInterface $expression,
+    public readonly FieldTypeBasedPropExpressionInterface $expression,
     // - which cardinality to use in case of a list (`type: array`)
     // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     private readonly ?int $cardinality,
@@ -115,13 +112,11 @@ final class StaticPropSource extends PropSourceBase {
     return $array_representation;
   }
 
-  private static function conjureFieldItemList(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?int $cardinality, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemListInterface {
+  private static function conjureFieldItemList(FieldTypeBasedPropExpressionInterface $expression, ?int $cardinality, ?array $field_storage_settings, ?array $field_instance_settings): FieldItemListInterface {
     $typed_data_manager = \Drupal::service(TypedDataManagerInterface::class);
 
     // First: determine field type.
-    $field_type = $expression instanceof ReferenceFieldTypePropExpression
-      ? $expression->referencer->fieldType
-      : $expression->fieldType;
+    $field_type = $expression->getFieldType();
 
     // Second: conjure a FieldStorageDefinitionInterface instance using the:
     // - field type
@@ -168,7 +163,7 @@ final class StaticPropSource extends PropSourceBase {
    *
    * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max>|null $cardinality
    */
-  public static function generate(FieldTypePropExpression|FieldTypeObjectPropsExpression|ReferenceFieldTypePropExpression $expression, ?int $cardinality, ?array $field_storage_settings = NULL, ?array $field_instance_settings = NULL): static {
+  public static function generate(FieldTypeBasedPropExpressionInterface $expression, ?int $cardinality, ?array $field_storage_settings = NULL, ?array $field_instance_settings = NULL): static {
     return new StaticPropSource(self::conjureFieldItemList($expression, $cardinality, $field_storage_settings, $field_instance_settings), $expression, $cardinality, $field_storage_settings, $field_instance_settings);
   }
 
@@ -279,7 +274,7 @@ final class StaticPropSource extends PropSourceBase {
 
     // First: construct an expression object from the expression string.
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
-    assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
+    assert($expression instanceof FieldTypeBasedPropExpressionInterface);
 
     // Second: retrieve the field storage settings, if any.
     $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? 1;
@@ -312,7 +307,7 @@ final class StaticPropSource extends PropSourceBase {
    */
   public static function isMinimalRepresentation(array $sdc_prop_source): void {
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);
-    assert($expression instanceof FieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression || $expression instanceof ReferenceFieldTypePropExpression);
+    assert($expression instanceof FieldTypeBasedPropExpressionInterface);
     $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? NULL;
     $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
     $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;

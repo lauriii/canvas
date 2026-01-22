@@ -24,11 +24,12 @@ to one of us! 😊 🙏
 ### 1.1 Existing Drupal Terminology that is crucial for Canvas
 
 - `computed field prop`: not every `field prop` has their value _stored_, some may have their value _computed_ (for example: the `file_uri` field type's `url` prop)
-- `base field`: a `field instance` that exists for _all_ bundles of an entity type, typically defined in code
+- `base field`: an `entity field` that exists for _all_ bundles of an entity type, typically defined in code
 - `bundle field`: a `field instance` that exists for _some_ bundles of an entity type, typically defined in config
 - `content entity`: an entity that can be created by a Content Creator, containing various `field`s of a particular entity type (e.g. "node")
 - `content type`: a definition for content entities of a certain entity type and bundle, and hence every `content entity` of this bundle is guaranteed to contain the same `bundle field`s
 - `data type`: Drupal's smallest unit of representing data, defines semantics and typically comes with validation logic and convenience methods for interacting with the data it represents ⚠️ Not all data types in Drupal core do what they say, see `\Drupal\canvas\Plugin\DataTypeOverride\UriOverride` for example. ⚠️
+- `entity field`: a definition on the entity type or bundle level for creating a `field instance` on such an entity — see `base field` and `bundle field`
 - `field`: synonym of `field item list`
 - `field prop`: a property defined by a `field type`, with a value for that property on such a `field item`, represented by a `data type`. Often a single prop exists (typically: `value`), but not always (for example: the `image` field type: `target_id`, `entity`, `alt`, `title`, `width`, `height` — with `entity` a `computed field prop`)
 - `field instance`: a definition for instantiating a `field type` into a `field item list` containing >=1 `field item`
@@ -87,7 +88,7 @@ range). That primitive type plus additional restrictions identifies a unique `pr
 
 Some `prop source`s only support particular `prop shape`s, others may be able to support virtually any `prop shape`.
 
-#### 3.1.2 Finding fitting `field type`: `conjured field`s and `field instance`s
+#### 3.1.2 Finding fitting `field type`: `conjured field`s and `entity fields`s
 
 Per the product requirements, existing `field type`s and `field widget`s MUST be used, and ideally `structured data`
 SHOULD be used.  But `field type`s can be configured, and depending on the configured settings, they may support rather
@@ -110,14 +111,17 @@ ask. Because:
 - in other words: `component input`s should be populated by `structured data` if they contain _semantical_ information,
   otherwise it is _presentational_ information and hence `unstructured data` is more appropriate
 
-##### 3.1.2.a `structured data` → matching `field instance`s ⇒ `dynamic prop source`
+##### 3.1.2.a `structured data` → matching `entity fields`s ⇒ `dynamic prop source`
 
 See:
 - `\Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher`
 - `\Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::toDataTypeShapeRequirements()`
+- `\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface`
+- `\Drupal\canvas\PropSource\DynamicPropSource`
 
-All `structured data` in every `content entity` in Drupal is found in `base field`s and `bundle field`s. These already
-have field settings defined. Hence `Canvas` must **match** a `field instance` for a given `prop shape`.
+All `structured data` in every `content entity` in Drupal is found in an `entity field` (a `base field`s or
+`bundle field`). These already have field settings defined. Hence `Canvas` must **match** a `field instance` for a given
+`prop shape`.
 
 How can this reliably be matched? Drupal's validation constraints for `field type`s and `data type`s determine the
 precise shapes of values that are allowed … exactly like a `prop shape` (i.e. the JSON schema for a `component input`)!
@@ -125,15 +129,15 @@ precise shapes of values that are allowed … exactly like a `prop shape` (i.e. 
 Hence the matching works like this:
 1. transform the JSON schema of a `prop shape` to the equivalent primitive `data type` + validation constraints (see
    `JsonSchemaType::toDataTypeShapeRequirements()`)
-2. iterate over all `field instance`s in the site, and compare the previous step's `data type` + validation constraints
+2. iterate over all `entity field`s in the site, and compare the previous step's `data type` + validation constraints
    to find a match
 
 Finally, while the `prop shape` may be the same for many `component input`s, that same `prop shape` may be required for
 one `component`'s `component input`, but optional for another. So an additional filtering step is required for optional
 versus required occurrences of a `prop shape`:
-3. if a `component input` is required, the matching `field instance`s must also be marked as required
+3. if a `component input` is required, the matching `entity field`s must also be marked as required
 
-The found `field instance` can then be used in a `dynamic prop source`, that can be _evaluated_ to retrieve the stored
+The found `entity field`s can then be used in a `dynamic prop source`, that can be _evaluated_ to retrieve the stored
 value that fits in the `prop shape`.
 ℹ️ A `dynamic prop source` may specify a single "adapter" plugin (which must take a single input), which allows
 Canvas to suggest field properties that _conceptually_ fit perfectly, but don't _technically_ fit, a particular `prop shape`.
@@ -157,6 +161,8 @@ See:
 - `\Drupal\canvas\PropShape\CandidateStorablePropShape`
 - `\Drupal\canvas\PropShape\PropShape::standardize()`
 - `hook_canvas_storable_prop_shape_alter()`
+- `\Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface`
+- `\Drupal\canvas\PropSource\StaticPropSource`
 
 For any `unstructured data`, no field settings exist yet, so the appropriate settings for a `prop shape` must be
 generated. `JsonSchemaType::computeStorablePropShape()` contains logic to that relies only on `field type`s
@@ -193,9 +199,11 @@ there is a need for an additional choice (see the `PropSourceSuggester` mentione
 See
 - `\Drupal\canvas\PropExpressions\StructuredData\Labeler`
 - `\Drupal\canvas\PropExpressions\StructuredData\Evaluator`
-- `\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface`
-- `\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression`
-- `\Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression`
+- `\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface`
+- `\Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface`
+- `\Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface`
+- `\Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface`
+- `\Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface`
 - `\Drupal\Tests\canvas\Unit\PropExpressionTest`
 
 Many `field type`s contain a single `field prop` (typically named "value"), but not all. Most `field type`s have one
@@ -208,14 +216,26 @@ key-value pairs must be assembled).
 
 To express that, `prop expression`s exist, which define:
 
-1. what context they need:
-  - `field item` or `field item list` of a certain `field type`
-  - or a `content entity` of a certain `content type` (which then contains a `field
-2. optionally: specify a delta to determine which `field item` from a `field item list` to use. The absence of a delta
-   is interpreted as "everything please". For a `field item list` configured for single cardinality that would be a
-   single value, versus an array of values for multiple cardinality.
-3. what `field prop`s they must retrieve in that context, possibly following entity reference
-4. what the resulting shape is: either a single value (typically) or a list of key-value pairs — in the latter case the
+- what context they need as a starting point (**Starting point** column), either:
+  - `field item` or `field item list` of a certain `field type`: field type-based prop expressions
+  - or a `content entity` of a certain `content type` containing a particular `entity field`: entity field-based prop
+    expressions
+2. optionally for `entity field`s: specify a delta to determine which `field item` from a `field item list` to use. The
+   absence of a delta  is interpreted as "everything please". For a `field item list` configured for single cardinality
+   that would be a single value, versus an array of values for multiple cardinality.
+3. what `field prop`s they must retrieve in that context, possibly following entity references (**Reference** column)
+4. what the **evaluation result shape** is: either
+   - a single scalar value (most common), or a list ("array") of scalar values
+   - or a list of key-value pairs: an "object", or a list ("array") of such key-value pairs
+
+| prop expression class                | starting point | reference | evaluation result shape |
+|--------------------------------------|:--------------:|:---------:|:-----------------------:|
+| `FieldPropExpression`                | entity field   |    ❌    |         scalar          |
+| `FieldObjectPropExpression`          | entity field   |    ❌    |         object          |
+| `ReferenceFieldPropExpression`       | entity field   |    ✅    |            ❌           |
+| `FieldTypePropExpression`            | field type     |    ❌    |         scalar          |
+| `FieldTypeObjectPropExpression`      | field type     |    ❌    |         object          |
+| `ReferenceFieldTypePropExpression`   | field type     |    ✅    |            ❌           |
 
 `prop expression`s have 2 representations:
 

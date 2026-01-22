@@ -30,6 +30,8 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
  *   (returned by its `::getCastedValue()`), this is fine if optional.
  *   However, if it is required, NULL is unacceptable. This can only happen due
  *   to inaccessible values, so a CacheableAccessDeniedHttpException is thrown.
+ *
+ * @todo Deprecate what https://www.drupal.org/node/3530521 introduced and update the Evaluator to use the interface methods that https://www.drupal.org/project/canvas/issues/3567719 introduced in https://www.drupal.org/project/canvas/issues/3550750
  */
 final class Evaluator {
 
@@ -38,8 +40,8 @@ final class Evaluator {
       return $value;
     }
     // Unlike \Drupal\Core\Cache\CacheableMetadata::createFromObject(), when
-    // evaluating expressions against structured data (an entity or a dangling
-    // field item list), permanent cacheability must be assumed: expressions are
+    // evaluating expressions against structured data (an entity field or a
+    // conjured field), permanent cacheability must be assumed: expressions are
     // guaranteed to traverse all relevant objects and will accumulate the right
     // cacheability that way.
     return new CacheableMetadata();
@@ -69,8 +71,9 @@ final class Evaluator {
       // Use the cacheability carried by:
       // - the host entity: EntityInterface always implements
       //   CacheableDependencyInterface
-      // - the (dangling or not) field item list: some computed field types
-      //   implement CacheableDependencyInterface
+      // - the field item list (both when it is an entity field and a conjured
+      //   field): some computed field types implement
+      //   CacheableDependencyInterface
       $result,
       self::permanentCacheabilityUnlessSpecified($entity_or_field)
     );
@@ -133,12 +136,9 @@ final class Evaluator {
           );
         })(),
         FieldTypeObjectPropsExpression::class => array_filter(
-          array_combine(
-            array_keys($expr->objectPropsToFieldTypeProps),
-            array_map(
-              fn (FieldTypePropExpression|ReferenceFieldTypePropExpression $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
-              $expr->objectPropsToFieldTypeProps
-            )
+          array_map(
+            fn ((ScalarPropExpressionInterface&FieldTypeBasedPropExpressionInterface)|(ReferencePropExpressionInterface&FieldTypeBasedPropExpressionInterface) $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
+            $expr->getObjectExpressions(),
           ),
           // Omit optional props.
           fn (EvaluationResult $r) => $r->value !== StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP,
@@ -151,10 +151,10 @@ final class Evaluator {
         default => throw new \LogicException('Unhandled expression type. ' . (string) $expr),
       };
       return new EvaluationResult(
-        // Permanent cacheability because this is a dangling field instance;
-        // cacheability of a computed field property is handled in the `match`
-        // above; cacheability of a referenced entity is handled by traversing
-        // into that entity.
+        // Permanent cacheability because this is a conjured field; cacheability
+        // of a computed field property is handled in the `match` above;
+        // cacheability of a referenced entity is handled by traversing into
+        // that entity.
         // @see \Drupal\canvas\PropSource\StaticPropSource
         $result,
         self::permanentCacheabilityUnlessSpecified($result)
@@ -286,12 +286,9 @@ final class Evaluator {
           $expr->referenced,
           $is_required
         ),
-        FieldObjectPropsExpression::class => array_combine(
-          array_keys($expr->objectPropsToFieldProps),
-          array_map(
-            fn(FieldPropExpression|ReferenceFieldPropExpression $sub_expr) => self::evaluate($entity_or_field, $sub_expr, $is_required),
-            $expr->objectPropsToFieldProps
-          )
+        FieldObjectPropsExpression::class => array_map(
+          fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required),
+          $expr->getObjectExpressions(),
         ),
         default => throw new \LogicException('Unhandled expression type.'),
       };

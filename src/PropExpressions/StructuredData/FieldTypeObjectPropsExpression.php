@@ -14,7 +14,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 /**
  * For pointing to a prop in a field type (not considering any delta).
  */
-final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressionInterface {
+final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressionInterface, ObjectPropExpressionInterface {
 
   use CompoundExpressionTrait;
 
@@ -23,13 +23,14 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
    *
    * @param string $fieldType
    *   A field type.
-   * @param array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression> $objectPropsToFieldTypeProps
-   *   A mapping of SDC prop names to Field Type prop expressions.
+   * @param non-empty-array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression|\Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression> $objectPropsToFieldTypeProps
+   *   A mapping of prop names to non-object field type-based expressions.
    */
   public function __construct(
     public readonly string $fieldType,
     public readonly array $objectPropsToFieldTypeProps,
   ) {
+    \assert(!empty($this->objectPropsToFieldTypeProps));
     assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldTypeProps)));
     assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;
@@ -100,6 +101,22 @@ final class FieldTypeObjectPropsExpression implements StructuredDataPropExpressi
     if ($actual_field_type !== $this->fieldType) {
       throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->fieldType, $actual_field_type));
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldType(): string {
+    return $this->fieldType;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @return non-empty-array<string, (\Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface&\Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface)|(\Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface&\Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface)>
+   */
+  public function getObjectExpressions(): array {
+    return $this->objectPropsToFieldTypeProps;
   }
 
 }

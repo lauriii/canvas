@@ -5,17 +5,12 @@ declare(strict_types=1);
 namespace Drupal\canvas\PropShape;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
-use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
-use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropSource\StaticPropSource;
 
 /**
  * A storable prop shape: a prop shape with corresponding field type + widget.
  *
- * @see \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression
- * @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
- * @see \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
  * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
  * @internal
  */
@@ -29,7 +24,7 @@ final class StorablePropShape {
     // The corresponding UX for the prop shape:
     // - field type to use + which field properties to extract from an instance
     // of the field type
-    public readonly FieldTypePropExpression|ReferenceFieldTypePropExpression|FieldTypeObjectPropsExpression $fieldTypeProp,
+    public readonly FieldTypeBasedPropExpressionInterface $fieldTypeProp,
     // - which widget to use to populate an instance of the field type
     public readonly string $fieldWidget,
     // - (optionally) which cardinality to use in case of a list (`type: array`)
@@ -53,8 +48,8 @@ final class StorablePropShape {
     elseif ($this->cardinality !== NULL) {
       throw new \LogicException('Non-array prop shapes MUST NOT have a cardinality.');
     }
-    // In theory, this could be validated: `$this->fieldTypeProp->fieldType` is
-    // a field type plugin ID, which determines which field widgets
+    // In theory, this could be validated: $this->fieldTypeProp->getFieldType()
+    // is a field type plugin ID, which determines which field widgets
     // (`$this->fieldWidget`) would be acceptable, and what
     // `$this->fieldStorageSettings`, if any, would be acceptable.
     // In practice, we leave this to the Component config entity, because that
@@ -65,12 +60,6 @@ final class StorablePropShape {
 
   public function toStaticPropSource(): StaticPropSource {
     return StaticPropSource::generate($this->fieldTypeProp, $this->cardinality, $this->fieldStorageSettings, $this->fieldInstanceSettings);
-  }
-
-  public function getFieldType(): string {
-    return $this->fieldTypeProp instanceof ReferenceFieldTypePropExpression
-      ? $this->fieldTypeProp->referencer->fieldType
-      : $this->fieldTypeProp->fieldType;
   }
 
 }
