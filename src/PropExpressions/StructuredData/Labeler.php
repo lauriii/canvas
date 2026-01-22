@@ -9,6 +9,7 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 
 /**
@@ -304,8 +305,9 @@ final class Labeler {
       return TRUE;
     }
 
-    assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
-    $main_property = $field_definition->getItemDefinition()->getMainPropertyName();
+    $field_item_definition = $field_definition->getItemDefinition();
+    assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
+    $main_property = $field_item_definition->getMainPropertyName();
     assert(is_string($main_property));
 
     $used_props = (array) self::getUsedFieldProps($expr, $actual_entity_type_and_bundle);
@@ -318,6 +320,12 @@ final class Labeler {
 
     // Otherwise, check if one of the used field properties is a computed one
     // that depends on the main one.
+    $main_property_definition = $field_item_definition->getPropertyDefinition($main_property);
+    assert($main_property_definition instanceof DataDefinitionInterface);
+    if (in_array($main_property_definition->getSetting('is source for'), $used_props, TRUE)) {
+      return TRUE;
+    }
+
     // Drupal core does not have native support for this; Canvas adds additional
     // metadata to be able to determine this. Any contributed field types that
     // wish to have computed properties automatically matched/suggested, need to
@@ -325,12 +333,12 @@ final class Labeler {
     // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride
     // @see \Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString
     foreach ($used_props as $prop_name) {
-      $property_definition = $field_definition->getItemDefinition()->getPropertyDefinition($prop_name);
+      $property_definition = $field_item_definition->getPropertyDefinition($prop_name);
       if ($property_definition === NULL) {
         throw new \LogicException(sprintf("Property `%s` does not exist on field type `%s`. The following field properties exist: `%s`.",
           $prop_name,
           $field_definition->getType(),
-          implode('`, `', array_keys($field_definition->getItemDefinition()->getPropertyDefinitions())),
+          implode('`, `', array_keys($field_item_definition->getPropertyDefinitions())),
         ));
       }
 

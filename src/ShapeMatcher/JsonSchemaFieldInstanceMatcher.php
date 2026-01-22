@@ -56,7 +56,6 @@ use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
 use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
-use Drupal\options\Plugin\Field\FieldType\ListStringItem;
 use Drupal\telephone\Plugin\Field\FieldType\TelephoneItem;
 use Drupal\text\TextProcessed;
 use Symfony\Component\Validator\Constraint;
@@ -131,19 +130,6 @@ final class JsonSchemaFieldInstanceMatcher {
         ['type' => 'integer'],
         ['type' => 'number'],
       ],
-    ],
-    // @todo Add support in https://www.drupal.org/i/3548749
-    'list_string' => [
-      'class' => ListStringItem::class,
-      // NO exceptions for `list_string`, because such fields are virtually
-      // always configured to have human-readable labels as keys and machine
-      // names as values, meaning they are *structured* strings, not prose. The
-      // challenge is it is impossible to know what kind of structure the
-      // strings adhere to: it could be anything from locale identifiers, color
-      // names, dark-vs-light, car makes, UUIDs…
-      // @see \Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint::STRUCTURED
-      // @todo Allow matching `list_string` to any `type: string` in https://www.drupal.org/i/3548749, by flipping around how it works: it should NOT pass the *stored* string (the "value"), but the *human-readable label* (the "key") to a `type: string`. This will require adding a new computed property to the `list_string` field type that fetches the label ("key") from its `allowed_values` setting, translated to the current \Drupal\Core\Language\LanguageInterface::TYPE_CONTENT language, despite it being a config translation.
-      'exceptions' => [],
     ],
     // The `map` field type has no widget, is broken, and is hidden in the UI.
     // @see https://www.drupal.org/node/2563843

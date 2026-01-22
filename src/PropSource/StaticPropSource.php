@@ -20,6 +20,7 @@ use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -355,12 +356,23 @@ final class StaticPropSource extends PropSourceBase {
     $item_definition = $field_item->getDataDefinition();
     assert($item_definition instanceof FieldItemDataDefinitionInterface);
 
-    match (count($item_definition->getPropertyDefinitions())) {
+    // Only non-computed properties need to be stored.
+    $stored_props = array_filter(
+      $item_definition->getPropertyDefinitions(),
+      fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
+    );
+    match (count($stored_props)) {
+      // If this field type has only a single stored property, then:
+      // - it MUST be the field type's main property
+      // - the property name SHOULD be omitted from the stored value
       1 => (function () use ($expected_to_be_stored, $stored_value, $field_item) {
         if ($expected_to_be_stored[$field_item::mainPropertyName()] !== $stored_value) {
           throw new \LogicException(sprintf('Unexpected static prop value: %s should be %s', json_encode($stored_value), json_encode($expected_to_be_stored[$field_item::mainPropertyName()])));
         }
       })(),
+      // If this field type has multiple stored properties, then:
+      // - the stored value MUST have a key for every required stored property
+      // - the stored value MAY have a key for every optional stored property
       default => (function () use ($expected_to_be_stored, $stored_value, $field_item) {
         if ($expected_to_be_stored != $stored_value) {
           $optional_field_properties = array_filter($field_item->getDataDefinition()->getPropertyDefinitions(), fn ($def) => !$def->isRequired());
@@ -430,7 +442,13 @@ final class StaticPropSource extends PropSourceBase {
    *  @see \Drupal\Core\Field\FieldInputValueNormalizerTrait::normalizeValue()
    */
   private function denormalizeValue(array $field_item_value): mixed {
-    return match (count($this->getFieldItemDefinition()->getPropertyDefinitions())) {
+    $item_definition = $this->getFieldItemDefinition();
+    // Only non-computed properties need to be denormalized.
+    $stored_props = array_filter(
+      $item_definition->getPropertyDefinitions(),
+      fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
+    );
+    return match (count($stored_props)) {
       1 => $field_item_value[$this->getFieldItemDefinition()->getMainPropertyName()] ?? NULL,
       default => $field_item_value,
     };

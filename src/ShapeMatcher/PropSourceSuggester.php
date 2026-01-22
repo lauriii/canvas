@@ -413,22 +413,14 @@ final class PropSourceSuggester {
 
     $hierarchical_response = [];
     foreach ($flat_response_structure as $prop_name => &$suggestions) {
-      // 1. Enrich and sort this prop's suggestions.
+      // 1. Enrich this prop's suggestions. The sorting is already correct based
+      // on the form display.
       $enriched_suggestions = array_map(
         [self::class, 'enrichSuggestion'],
         $suggestions,
       );
-      $original_order = array_keys($suggestions);
 
-      // 2. Sort this prop's suggestions from shallow to deep. This retains the
-      // relative ordering between those suggestions that have the same depth.
-      array_multisort(
-        array_column($enriched_suggestions, 'depth'), SORT_ASC,
-        $original_order, SORT_ASC,
-        $enriched_suggestions,
-      );
-
-      // 3. Walk the depth-sorted suggestions and generate a hierarchy according
+      // 2. Walk the depth-sorted suggestions and generate a hierarchy according
       // to the label parts.
       $hierarchical_suggestions = [];
       array_walk($enriched_suggestions, function ($enriched_suggestion, string $opaque_id) use (&$hierarchical_suggestions) {
@@ -439,8 +431,8 @@ final class PropSourceSuggester {
         NestedArray::setValue($hierarchical_suggestions, $enriched_suggestion['path'], $hierarchical_suggestion);
       });
 
-      // 4. Recursively process the hierarchical suggestions: move the label
-      // parts that were used in step 3 from array keys into a `label` key-value
+      // 3. Recursively process the hierarchical suggestions: move the label
+      // parts that were used in step 2 from array keys into a `label` key-value
       // pair in each node in the tree. Replace them with numerical indexes,
       // respecting the original sort order.
       // TRICKY: \array_walk_recursive() cannot be used because it operates only

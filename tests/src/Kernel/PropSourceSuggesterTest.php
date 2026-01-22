@@ -1322,15 +1322,15 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_html_block' => [
           'required' => FALSE,
           'instances' => [
-            "field_wall_of_text → Processed text" => [
+            "field_wall_of_text" => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
-            'Primary topic → Taxonomy term → Some text field → Processed text' => [
+            'Primary topic → Taxonomy term → Some text field' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
             ],
-            'Primary topic → Taxonomy term → Description → Processed text' => [
+            'Primary topic → Taxonomy term → Description' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
@@ -1341,15 +1341,15 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_string_html' => [
           'required' => FALSE,
           'instances' => [
-            "field_wall_of_text → Processed text" => [
+            "field_wall_of_text" => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
-            'Primary topic → Taxonomy term → Some text field → Processed text' => [
+            'Primary topic → Taxonomy term → Some text field' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term:vocab_2␝some_text␞␟processed',
             ],
-            'Primary topic → Taxonomy term → Description → Processed text' => [
+            'Primary topic → Taxonomy term → Description' => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝primary_topic␞␟entity␜␜entity:taxonomy_term␝description␞␟processed',
             ],
@@ -1366,7 +1366,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html_block' => [
           'required' => TRUE,
           'instances' => [
-            "field_wall_of_text → Processed text" => [
+            "field_wall_of_text" => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],
@@ -1377,7 +1377,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_REQUIRED_string_html' => [
           'required' => TRUE,
           'instances' => [
-            "field_wall_of_text → Processed text" => [
+            "field_wall_of_text" => [
               'sourceType' => 'dynamic',
               'expression' => 'ℹ︎␜entity:node:foo␝field_wall_of_text␞␟processed',
             ],

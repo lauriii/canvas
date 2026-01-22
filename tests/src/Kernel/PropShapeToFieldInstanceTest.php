@@ -263,6 +263,28 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         'field_type' => 'list_integer',
         'required' => TRUE,
       ])->save();
+      FieldStorageConfig::create([
+        'field_name' => 'one_from_an_string_list',
+        'entity_type' => 'node',
+        'type' => 'list_string',
+        'cardinality' => 1,
+        'settings' => [
+          'allowed_values' => [
+            'first_key' => 'First Value',
+            'second_key' => 'Second Value',
+            // Make sure that the allowed value's label is properly sanitized.
+            'sanitization_required' => 'Some <script>dangerous</script> & unescaped <strong>markup</strong>',
+          ],
+        ],
+      ])->save();
+      FieldConfig::create([
+        'label' => 'A pre-defined string',
+        'field_name' => 'one_from_an_string_list',
+        'entity_type' => 'node',
+        'bundle' => 'foo',
+        'field_type' => 'list_string',
+        'required' => TRUE,
+      ])->save();
     }
 
     $propShapeRepository = $this->container->get(PropShapeRepositoryInterface::class);
@@ -581,6 +603,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:media:vacation_videos␝name␞␟value',
             'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝name␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value',
+            'ℹ︎␜entity:node:foo␝one_from_an_string_list␞␟label',
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
@@ -788,6 +811,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:media:vacation_videos␝name␞␟value',
             'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝name␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value',
+            'ℹ︎␜entity:node:foo␝one_from_an_string_list␞␟label',
             'ℹ︎␜entity:node:foo␝title␞␟value',
             'ℹ︎␜entity:path_alias␝alias␞␟value',
             'ℹ︎␜entity:path_alias␝path␞␟value',
@@ -1245,6 +1269,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝marketing_docs␞␟{label↝entity␜␜entity:media␝revision_user␞␟entity␜␜entity:user␝name␞␟value,slot↝entity␜␜entity:media␝revision_log_message␞␟value}',
             'ℹ︎␜entity:node:foo␝media_optional_vacation_videos␞␟{label↝entity␜␜entity:media␝revision_user␞␟entity␜␜entity:user␝name␞␟value,slot↝entity␜␜entity:media␝revision_log_message␞␟value}',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟{label↝entity␜␜entity:media␝revision_user␞␟entity␜␜entity:user␝name␞␟value,slot↝entity␜␜entity:media␝revision_log_message␞␟value}',
+            'ℹ︎␜entity:node:foo␝one_from_an_string_list␞␟{label↠label}',
             'ℹ︎␜entity:node:foo␝revision_log␞␟{label↠value}',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟{label↝entity␜␜entity:user␝name␞␟value}',
             'ℹ︎␜entity:node:foo␝title␞␟{label↠value}',
@@ -1337,6 +1362,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media:vacation_videos␝field_media_video_file_1␞␟description',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value',
             'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝revision_log_message␞␟value',
+            'ℹ︎␜entity:node:foo␝one_from_an_string_list␞␟label',
             'ℹ︎␜entity:node:foo␝revision_log␞␟value',
             'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝name␞␟value',
             'ℹ︎␜entity:node:foo␝title␞␟value',

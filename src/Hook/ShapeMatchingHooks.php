@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
+use Drupal\canvas\Plugin\Field\FieldTypeOverride\ListStringItemOverride;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -106,6 +107,7 @@ class ShapeMatchingHooks {
       'image' => ImageItemOverride::class,
       'link' => LinkItemOverride::class,
       'list_integer' => ListIntegerItemOverride::class,
+      'list_string' => ListStringItemOverride::class,
       'string' => StringItemOverride::class,
       'string_long' => StringLongItemOverride::class,
       'text' => TextItemOverride::class,

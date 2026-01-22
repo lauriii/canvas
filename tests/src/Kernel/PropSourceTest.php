@@ -1439,7 +1439,7 @@ class PropSourceTest extends KernelTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $complex_example;
-    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":{"value":"2020-04-16"},"expression":"ℹ︎datetime␟value","sourceTypeSettings":{"storage":{"datetime_type":"date"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
+    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":"2020-04-16","expression":"ℹ︎datetime␟value","sourceTypeSettings":{"storage":{"datetime_type":"date"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
     $complex_example = PropSource::parse(json_decode($json_representation, TRUE));
     $this->assertInstanceOf(AdaptedPropSource::class, $complex_example);
     // The contained information read back out.
@@ -1463,6 +1463,67 @@ class PropSourceTest extends KernelTestBase {
         'user',
       ],
     ], $complex_example->calculateDependencies($user));
+
+    // Since #3548749, multi-property fields with only a single stored property
+    // are serialized differently. Test backward compatibility with the old
+    // format.
+    $array_representation_prior_to_3548749 = [
+      'sourceType' => 'adapter:day_count',
+      'adapterInputs' => [
+        'oldest' => [
+          'sourceType' => 'static:field_item:datetime',
+          'value' => [
+            'value' => '2020-04-16',
+          ],
+          'expression' => 'ℹ︎datetime␟value',
+          'sourceTypeSettings' => [
+            'storage' => [
+              'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+            ],
+          ],
+        ],
+        'newest' => [
+          'sourceType' => 'adapter:unix_to_date',
+          'adapterInputs' => [
+            'unix' => [
+              'sourceType' => 'dynamic',
+              'expression' => 'ℹ︎␜entity:user␝access␞␟value',
+            ],
+          ],
+        ],
+      ],
+    ];
+    $complex_example_bc = PropSource::parse($array_representation_prior_to_3548749);
+    // Original state: the value is an array, which explicitly lists the main
+    // property (also "value") as the sole key-value pair.
+    // @phpstan-ignore staticMethod.alreadyNarrowedType
+    self::assertSame(['value' => '2020-04-16'], $array_representation_prior_to_3548749['adapterInputs']['oldest']['value']);
+    $this->assertInstanceOf(AdaptedPropSource::class, $complex_example_bc);
+    // The contained information read back out.
+    $this->assertSame('adapter:day_count', $complex_example_bc->getSourceType());
+    // Test the functionality of a DynamicPropSource:
+    // - evaluate it to populate an SDC prop
+    self::assertEquals(
+      new EvaluationResult(
+        1546,
+        (new CacheableMetadata())
+          ->setCacheTags(['user:1'])
+          ->setCacheContexts(['user.permissions']),
+      ),
+      $complex_example_bc->evaluate($user, is_required: TRUE)
+    );
+    self::assertSame([
+      'module' => [
+        'canvas',
+        'datetime',
+        'canvas',
+        'user',
+      ],
+    ], $complex_example_bc->calculateDependencies($user));
+    // Updated state: the value is no longer an array, but a single value: the
+    // value of the main property.
+    // This proves that editing a StaticPropSource automatically updates it.
+    self::assertSame('2020-04-16', $complex_example_bc->toArray()['adapterInputs']['oldest']['value']);
   }
 
   /**

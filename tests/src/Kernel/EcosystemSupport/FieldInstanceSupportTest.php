@@ -62,7 +62,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    *
    * @see \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher::IGNORE_FIELD_TYPES
    */
-  public const MATCHING_ALL_FIELD_TYPES = 0.8064516129032258;
+  public const MATCHING_ALL_FIELD_TYPES = 0.8387096774193549;
 
   /**
    * Current % of CLAIMED supported field type field properties.
@@ -76,7 +76,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
    *
    * (For example: the `password` field type never makes sense to match.)
    */
-  public const MATCHING_ALL_FIELD_TYPE_PROPERTIES = 0.7843137254901961;
+  public const MATCHING_ALL_FIELD_TYPE_PROPERTIES = 0.7884615384615384;
 
   /**
    * Supported field types (keys), with explicitly unsupported props (values).
@@ -133,6 +133,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     ],
     'list_float' => [],
     'list_integer' => [],
+    'list_string' => [],
     // Note that 'password' is deliberately not here (unsupported) as we don't
     // want any of its properties to be associated with a dynamic prop source.
     'path' => [
