@@ -41,6 +41,7 @@ readonly final class ComponentSourceHooks {
     'canvas/canvasData.v0.baseUrl' => 'getCanvasDataBaseUrlV0',
     'canvas/canvasData.v0.branding' => 'getCanvasDataBrandingV0',
     'canvas/canvasData.v0.breadcrumbs' => 'getCanvasDataBreadcrumbsV0',
+    'canvas/canvasData.v0.mainEntity' => 'getCanvasDataMainEntityV0',
     'canvas/canvasData.v0.pageTitle' => 'getCanvasDataPageTitleV0',
     'canvas/canvasData.v0.jsonapiSettings' => 'getCanvasDataJsonApiSettingsV0',
   ];
@@ -143,6 +144,12 @@ readonly final class ComponentSourceHooks {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'pageTitle']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.pageTitle'));
+      }
+    }
+    if ($all || in_array('canvas/canvasData.v0.mainEntity', $all_attached_asset_libraries, TRUE)) {
+      // Allow overrides: only set if still NULL.
+      if (NestedArray::getValue($settings, [...$path, 'mainEntity']) === NULL) {
+        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.mainEntity'));
       }
     }
     if ($all || in_array('canvas/canvasData.v0.jsonapiSettings', $all_attached_asset_libraries, TRUE)) {

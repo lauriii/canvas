@@ -225,6 +225,7 @@ canvas.js_component.*:
               Choice:
                 - v0.branding
                 - v0.breadcrumbs
+                - v0.mainEntity
                 - v0.pageTitle
                 - v0.jsonapiSettings
                 - v0.baseUrl

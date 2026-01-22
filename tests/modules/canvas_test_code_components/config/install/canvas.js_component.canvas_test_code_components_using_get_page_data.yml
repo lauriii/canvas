@@ -1,0 +1,48 @@
+uuid: a7b8c9d0-1234-5678-9abc-def012345678
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_code_components_using_get_page_data
+name: 'Using drupalSettings getPageData'
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    import { getPageData } from '@/lib/drupal-utils';
+
+    const Component = () => {
+      const { mainEntity } = getPageData();
+      const { entityTypeId, bundle, uuid } = mainEntity;
+      return (
+      <div>
+      {entityTypeId} - {bundle} - {uuid}
+      </div>
+      );
+    };
+
+    export default Component;
+  compiled: |
+    import { jsxs as _jsxs } from "react/jsx-runtime";
+    import { getPageData } from '@/lib/drupal-utils';
+    const Component = ()=>{
+    const { mainEntity } = getPageData();
+    const { entityTypeId, bundle, uuid } = mainEntity;
+    return /*#__PURE__*/ _jsxs("div", {
+      children: [
+        entityTypeId,
+        " - ",
+        bundle,
+        " - ",
+        uuid
+      ]
+      });
+    };
+    export default Component;
+css:
+  original: ''
+  compiled: ''
+dataDependencies:
+  drupalSettings:
+    - v0.mainEntity

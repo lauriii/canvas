@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Breadcrumb\ChainBreadcrumbBuilderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
@@ -17,9 +18,9 @@ use Symfony\Component\Routing\Route;
 /**
  * Service to expose site metadata to drupalSettings for JS components.
  *
- * This includes site branding, breadcrumbs, page title and base URL.
- * Intended for use with dynamic JavaScript components such as those in Drupal
- * Canvas.
+ * This includes site branding, breadcrumbs, page title, main entity
+ * identifiers, and base URL. Intended for use with dynamic
+ * JavaScript components such as those in Drupal Canvas.
  */
 readonly final class CodeComponentDataProvider {
 
@@ -153,6 +154,40 @@ readonly final class CodeComponentDataProvider {
    */
   public static function getRequiredCanvasDataLibraries(string $jsCode): array {
     @trigger_error('Calling ' . __METHOD__ . '() is deprecated in canvas:0.7.3-alpha1 and will be removed from canvas:1.0.0. There is no replacement. See https://www.drupal.org/node/3538276', E_USER_DEPRECATED);
+    return [];
+  }
+
+  /**
+   * Returns main entity data for V0 of drupalSettings.canvasData.
+   *
+   * @return array
+   */
+  public function getCanvasDataMainEntityV0(): array {
+    // List of likely route parameters to check for the entity.
+    $likelyEntityIdentifiers = ['preview_entity', 'node', 'entity', 'canvas_page'];
+    $currentRouteParams = $this->routeMatch->getParameters()->keys();
+
+    // Remove any identifiers from $currentRouteParams that are already in
+    // $likelyEntityIdentifiers.
+    $remainingParams = array_diff($currentRouteParams, $likelyEntityIdentifiers);
+    $mergedIdentifiers = array_merge($likelyEntityIdentifiers, $remainingParams);
+
+    foreach ($mergedIdentifiers as $identifier) {
+
+      $entity = $this->routeMatch->getParameter($identifier);
+
+      if ($entity instanceof EntityInterface) {
+        return [
+          self::V0 => [
+            'mainEntity' => [
+              'bundle' => $entity->bundle(),
+              'entityTypeId' => $entity->getEntityTypeId(),
+              'uuid' => $entity->uuid(),
+            ],
+          ],
+        ];
+      }
+    }
     return [];
   }
 
