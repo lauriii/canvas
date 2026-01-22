@@ -24,7 +24,7 @@ import type { Result } from '../types/Result';
 export async function downloadGlobalCssInBackground(): Promise<string> {
   const apiService = await createApiService();
   const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
-  return globalAssetLibrary.css.original;
+  return globalAssetLibrary?.css?.original || '';
 }
 
 /**
@@ -151,7 +151,7 @@ export async function buildTailwindForComponents(
 
     // Always get JS from remote for now (this contains class name candidates)
     const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
-    const globalSourceCodeJs = globalAssetLibrary.js.original;
+    const globalSourceCodeJs = globalAssetLibrary?.js?.original || '';
 
     // Write the existing global JS source code to the components' dist directory.
     const distDir = path.join(config.componentDir, 'dist');

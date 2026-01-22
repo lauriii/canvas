@@ -92,10 +92,8 @@ export function downloadCommand(program: Command): void {
         // Handle --css-only case differently to skip component fetching
         if (options.cssOnly) {
           s.start('Fetching global CSS');
-          const {
-            css: { original },
-          } = await apiService.getGlobalAssetLibrary();
-          globalCss = original;
+          const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
+          globalCss = globalAssetLibrary?.css?.original || '';
           s.stop('Global CSS fetched');
         } else {
           // Regular flow: fetch both components and global CSS
@@ -107,7 +105,7 @@ export function downloadCommand(program: Command): void {
           ]);
 
           components = fetchedComponents;
-          globalCss = globalAssetLibrary.css.original;
+          globalCss = globalAssetLibrary?.css?.original || '';
 
           if (Object.keys(components).length === 0) {
             s.stop('No components found');
