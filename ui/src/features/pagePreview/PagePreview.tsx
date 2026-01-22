@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
@@ -12,7 +12,7 @@ import {
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectPreviewHtml } from '@/features/pagePreview/previewSlice';
 import { usePostPreviewMutation } from '@/services/preview';
-import { viewportSizes } from '@/types/Preview';
+import { getViewportSizes } from '@/utils/viewports';
 
 import styles from './PagePreview.module.css';
 
@@ -28,6 +28,8 @@ const PagePreview = () => {
   const { width } = useParams();
   const [linkIntercepted, setLinkIntercepted] = useState('');
   const [submissionIntercepted, setSubmissionIntercepted] = useState(false);
+  // Get viewport sizes (supports theme-level customization).
+  const viewportSizes = useMemo(() => getViewportSizes(), []);
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
@@ -64,7 +66,7 @@ const PagePreview = () => {
         }
       });
     }
-  }, [width]);
+  }, [width, viewportSizes]);
 
   useEffect(() => {
     function handlePreviewLinkClick(event: MessageEvent) {

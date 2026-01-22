@@ -44,7 +44,10 @@ test.describe('Preview Link Behavior', () => {
     await expect(previewFrame.getByText('There goes my hero')).toBeVisible();
 
     // Switch to Tablet view
-    await page.getByRole('radio', { name: 'Tablet', checked: false }).click();
+    await page.getByLabel('Select preview width').click();
+    await page
+      .getByRole('menuitemradio', { name: /Tablet.*/, checked: false })
+      .click();
 
     await expect(page.locator('iframe[title="Page preview"]')).toHaveCSS(
       'width',

@@ -1,0 +1,42 @@
+---
+title: APIs - Theme settings
+---
+
+Themes can configure Canvas behavior by creating a `{theme}.canvas.yml` file in the theme directory. This allows themes to customize Canvas settings without modifying the module code.
+
+## Viewport configuration
+
+Themes can define custom viewport sizes for the Canvas editor preview. This is useful when your design system uses specific breakpoints that differ from Canvas defaults.
+
+### Configuration file
+
+Create a `{theme}.canvas.yml` file in your theme's root directory:
+
+```yaml
+viewports:
+  mobile: 468
+  tablet: 1024
+  desktop: 1920
+  large_desktop: 2560
+```
+
+### Viewport IDs
+
+The following viewport IDs are supported:
+
+- `mobile` - Mobile devices (default: 468px)
+- `tablet` - Tablet devices (default: 1024px)
+- `desktop` - Desktop screens (default: 1920px)
+- `large_desktop` - Large desktop screens (default: 2560px)
+
+If a viewport is missing or invalid, Canvas will fall back to the default width for that viewport.
+
+### Example
+
+For a theme that uses a custom mobile breakpoint of 375px and a desktop breakpoint of 1440px:
+
+```yaml
+viewports:
+  mobile: 375
+  desktop: 1440
+```

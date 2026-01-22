@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
@@ -56,6 +57,7 @@ final class CanvasController {
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly UrlGeneratorInterface $urlGenerator,
     private readonly CanvasExtensionPluginManager $extensionPluginManager,
+    private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
   ) {}
 
   private const HTML = <<<HTML
@@ -134,6 +136,11 @@ HTML;
     }
     $extensions = $this->extensionPluginManager->getDefinitions();
 
+    // Get theme-level Canvas settings from the default theme.
+    $theme_config = $this->configFactory->get('system.theme');
+    $default_theme_name = $theme_config->get('default');
+    $theme_settings = $this->themeSettingsDiscovery->getSettings($default_theme_name);
+
     $all_content_entity_create_links = $this->getAllContentEntityCreateLinks();
     // From the "content entity create" link collection, construct a nested
     // representation that makes things simple for the Canvas UI: entity type
@@ -194,6 +201,7 @@ HTML;
             'contentEntityCreateOperations' => $content_entity_create_operations,
             'homepagePath' => $system_site_config->get('page.front'),
             'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
+            'viewports' => $theme_settings['viewports'] ?? [],
           ],
           // Override actual `canvasData` with dummy data for code component
           // editor development purposes.

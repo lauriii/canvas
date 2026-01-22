@@ -21,6 +21,9 @@ export interface DrupalSettings {
       jsHeader: string;
       jsFooter: string;
     };
+    viewports?: {
+      [viewportId: string]: number | string;
+    };
     canvasLayoutRequestInProgress?: boolean[];
     layoutUtils: PropsValues;
     componentSelectionUtils: PropsValues;
