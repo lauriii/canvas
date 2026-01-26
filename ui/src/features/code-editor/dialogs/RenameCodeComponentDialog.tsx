@@ -5,6 +5,10 @@ import { Flex, TextField } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import {
+  getComponentId,
+  removeJsPrefix,
+} from '@/components/list/CodeComponentItem';
+import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
   setForceRefresh,
@@ -27,6 +31,8 @@ const RenameCodeComponentDialog = () => {
   const dispatch = useAppDispatch();
   const { isRenameDialogOpen } = useAppSelector(selectDialogStates);
   const { codeComponentId: codeComponentBeingEditedId } = useParams();
+  const isEmptyOrUnchanged =
+    !componentName.trim() || componentName === selectedComponent?.name;
 
   useEffect(() => {
     if (selectedComponent) {
@@ -36,14 +42,20 @@ const RenameCodeComponentDialog = () => {
 
   const handleSave = async () => {
     if (!selectedComponent) return;
+    // The selected component can be either a CodeComponentSerialized or a JSComponent.
+    // If it's type JSComponent (Component entity), we need to get the machine name from the id property.
+    // If it's type CodeComponentSerialized, we get it from machineName property.
+    // @see selectSelectedCodeComponent in `codeComponentDialogSlice.ts`
+    const componentId = getComponentId(selectedComponent);
+    const machineName = removeJsPrefix(componentId);
 
     await updateCodeComponent({
-      id: selectedComponent.machineName,
+      id: machineName,
       changes: {
         name: componentName,
       },
     });
-    if (codeEditorId === selectedComponent.machineName) {
+    if (codeEditorId === machineName) {
       if (codeEditorId === codeComponentBeingEditedId) {
         // The code editor typically won't check auto-save updates if the
         // component being edited is the same as the one being updated. Force a
@@ -96,24 +108,33 @@ const RenameCodeComponentDialog = () => {
         cancelText: 'Cancel',
         confirmText: 'Rename',
         onConfirm: handleSave,
-        isConfirmDisabled:
-          !componentName.trim() || componentName === selectedComponent?.name,
+        isConfirmDisabled: isEmptyOrUnchanged,
         isConfirmLoading: isLoading,
       }}
     >
-      <Flex direction="column" gap="2">
-        <DialogFieldLabel htmlFor={'componentName'}>
-          Component name
-        </DialogFieldLabel>
-        <TextField.Root
-          autoComplete="off"
-          id={'componentName'}
-          value={componentName}
-          onChange={(e) => setComponentName(e.target.value)}
-          placeholder="Enter a new name"
-          size="1"
-        />
-      </Flex>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (isEmptyOrUnchanged) {
+            return;
+          }
+          handleSave();
+        }}
+      >
+        <Flex direction="column" gap="2">
+          <DialogFieldLabel htmlFor={'componentName'}>
+            Component name
+          </DialogFieldLabel>
+          <TextField.Root
+            autoComplete="off"
+            id={'componentName'}
+            value={componentName}
+            onChange={(e) => setComponentName(e.target.value)}
+            placeholder="Enter a new name"
+            size="1"
+          />
+        </Flex>
+      </form>
     </Dialog>
   );
 };

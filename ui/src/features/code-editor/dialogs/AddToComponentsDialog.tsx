@@ -11,6 +11,8 @@ import {
 import { selectPreviouslyEdited } from '@/features/ui/uiSlice';
 import { useUpdateCodeComponentMutation } from '@/services/componentAndLayout';
 
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
+
 // This handles the dialog for adding a JS component to components. This changes
 // the component from being "internal" to "exposed".
 const AddToComponentsDialog = () => {
@@ -26,7 +28,7 @@ const AddToComponentsDialog = () => {
     if (!selectedComponent) return;
 
     await updateCodeComponent({
-      id: selectedComponent.machineName,
+      id: (selectedComponent as CodeComponentSerialized).machineName,
       changes: {
         // @todo: Remove "...selectedComponent" and only send wanted changes in the PATCH request in
         //   https://drupal.org/i/3524274.

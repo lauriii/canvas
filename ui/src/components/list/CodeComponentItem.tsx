@@ -18,7 +18,7 @@ import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { JSComponent } from '@/types/Component';
 
-function removeJsPrefix(input: string): string {
+export function removeJsPrefix(input: string): string {
   if (input.startsWith('js.')) {
     return input.substring(3);
   }
@@ -26,7 +26,7 @@ function removeJsPrefix(input: string): string {
 }
 
 // Helper to get the correct id for a component
-function getComponentId(
+export function getComponentId(
   component: JSComponent | CodeComponentSerialized,
 ): string {
   // JSComponent has id, CodeComponentSerialized has machineName

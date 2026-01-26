@@ -4,6 +4,7 @@ import { createAppSlice } from '@/app/createAppSlice';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import type { JSComponent } from '@/types/Component';
 
 interface CodeComponentDialogState {
   selectedCodeComponent: CodeComponentSerialized | null;
@@ -113,7 +114,9 @@ export const codeComponentDialogSlice = createAppSlice({
         isInLayoutDialogOpen,
       }),
     ),
-    selectSelectedCodeComponent: (state): CodeComponentSerialized | null => {
+    selectSelectedCodeComponent: (
+      state,
+    ): CodeComponentSerialized | JSComponent | null => {
       return state.selectedCodeComponent;
     },
   },

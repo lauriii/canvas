@@ -16,9 +16,12 @@ import {
 } from '@/services/componentAndLayout';
 
 import type { ComponentUsageDetailsResponse } from '@/services/componentAndLayout';
+import type { CodeComponentSerialized } from '@/types/CodeComponent';
 
 const DeleteCodeComponentDialog = () => {
-  const selectedComponent = useAppSelector(selectSelectedCodeComponent);
+  const selectedComponent = useAppSelector(
+    selectSelectedCodeComponent,
+  ) as CodeComponentSerialized;
   const [deleteCodeComponent, { isLoading, isSuccess, isError, error, reset }] =
     useDeleteCodeComponentMutation();
   const navigate = useNavigate();
