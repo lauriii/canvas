@@ -6,7 +6,7 @@ import { getPropsValues } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
-import { isPropSourceComponent } from '@/types/Component';
+import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
   getCanvasSettings,
   setCanvasDrupalSetting,
@@ -537,10 +537,11 @@ export const _addNewComponentToLayout =
     const slots: SlotNode[] = [];
     const uuid = uuidv4();
 
-    if (isPropSourceComponent(component)) {
-      // Create empty slots in the layout data for each child slot the component
-      // has.
-      Object.keys(component.metadata.slots || []).forEach((name) => {
+    // Create empty slots in the layout data for each child slot the component
+    // has. Slot definitions can exist on any component that implements
+    // ComponentSourceWithSlotsInterface.
+    if (hasSlotDefinitions(component)) {
+      Object.keys(component.metadata.slots).forEach((name) => {
         slots.push({
           id: `${uuid}/${name}`,
           name: name,

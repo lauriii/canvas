@@ -39,6 +39,7 @@ interface BaseComponent {
   js_footer: string;
   version: string;
   broken: boolean;
+  metadata?: { [key: string]: any };
 }
 
 export type libraryTypes =
@@ -120,4 +121,23 @@ export const isPropSourceComponent = (
   component: CanvasComponent | undefined,
 ): component is PropSourceComponent => {
   return component !== undefined && 'propSources' in component;
+};
+
+/**
+ * Type predicate to check if a component has slot definitions.
+ *
+ * Slots can exist on any component that implements ComponentSourceWithSlotsInterface.
+ *
+ * @param {CanvasComponent | undefined} component
+ *   Component to test.
+ *
+ * @return boolean
+ *   TRUE if the component has slot definitions in its metadata.
+ */
+export const hasSlotDefinitions = (
+  component: CanvasComponent | undefined,
+): component is CanvasComponent & {
+  metadata: { slots: Record<string, { title: string }> };
+} => {
+  return typeof component?.metadata?.slots === 'object';
 };

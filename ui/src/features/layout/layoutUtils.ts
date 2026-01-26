@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
+import { hasSlotDefinitions } from '@/types/Component';
 import { setCanvasDrupalSetting } from '@/utils/drupal-globals';
 import { isConsecutive } from '@/utils/function-utils';
 
@@ -757,9 +758,7 @@ export function getDisplayNameForNode(
       const [parentType] = parentComponentNode.type.split('@');
       const parentComponent = componentsData?.[parentType];
       if (
-        parentComponent &&
-        'metadata' in parentComponent &&
-        parentComponent.metadata?.slots &&
+        hasSlotDefinitions(parentComponent) &&
         parentComponent.metadata.slots[node.name]
       ) {
         return parentComponent.metadata.slots[node.name].title || node.name;
