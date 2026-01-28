@@ -32,12 +32,14 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
    *   The permissions to grant to the account.
    * @param string $op
    *   The operation to check access for.
+   * @param bool $published
+   *   Whether the page should be published.
    * @param bool $expected_result
    *   The expected result.
    *
    * @dataProvider accessCheckProvider
    */
-  public function testAccess(array $permissions, string $op, bool $expected_result): void {
+  public function testAccess(array $permissions, string $op, bool $published, bool $expected_result): void {
     $this->installPageEntitySchema();
 
     $access_handler = $this->container->get('entity_type.manager')->getAccessControlHandler(Page::ENTITY_TYPE_ID);
@@ -52,7 +54,7 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
       $result = $access_handler->createAccess(NULL, $account);
     }
     else {
-      $page = Page::create([]);
+      $page = Page::create(['status' => $published]);
       $page->save();
       $result = $access_handler->access($page, $op, $account);
     }
@@ -64,32 +66,40 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
 
   public static function accessCheckProvider(): array {
     return [
-      'create: with create permission' => [[Page::CREATE_PERMISSION], 'create', TRUE],
-      'create: with edit permission' => [[Page::EDIT_PERMISSION], 'create', FALSE],
-      'create: with delete permission' => [[Page::DELETE_PERMISSION], 'create', FALSE],
-      'create: without create permission' => [['access content'], 'create', FALSE],
+      'create: with create permission' => [[Page::CREATE_PERMISSION], 'create', TRUE, TRUE],
+      'create: with edit permission' => [[Page::EDIT_PERMISSION], 'create', TRUE, FALSE],
+      'create: with delete permission' => [[Page::DELETE_PERMISSION], 'create', TRUE, FALSE],
+      'create: without create permission' => [['access content'], 'create', TRUE, FALSE],
 
-      'view: with create permission' => [[Page::CREATE_PERMISSION], 'view', TRUE],
-      'view: with edit permission' => [[Page::EDIT_PERMISSION], 'view', TRUE],
-      'view: with delete permission' => [[Page::DELETE_PERMISSION], 'view', TRUE],
-      'view: with permission' => [['access content'], 'view', TRUE],
-      'view: without any permissions' => [[], 'view', FALSE],
+      // Published page view access.
+      'view published: with create permission' => [[Page::CREATE_PERMISSION], 'view', TRUE, TRUE],
+      'view published: with edit permission' => [[Page::EDIT_PERMISSION], 'view', TRUE, TRUE],
+      'view published: with delete permission' => [[Page::DELETE_PERMISSION], 'view', TRUE, TRUE],
+      'view published: with access content' => [['access content'], 'view', TRUE, TRUE],
+      'view published: without any permissions' => [[], 'view', TRUE, FALSE],
 
-      'update: with create permission' => [[Page::CREATE_PERMISSION], 'update', FALSE],
-      'update: with edit permission' => [[Page::EDIT_PERMISSION], 'update', TRUE],
-      'update: with delete permission' => [[Page::DELETE_PERMISSION], 'update', FALSE],
-      'update: without permission' => [['access content'], 'update', FALSE],
+      // Unpublished page view access.
+      'view unpublished: with create permission' => [[Page::CREATE_PERMISSION], 'view', FALSE, TRUE],
+      'view unpublished: with edit permission' => [[Page::EDIT_PERMISSION], 'view', FALSE, TRUE],
+      'view unpublished: with delete permission' => [[Page::DELETE_PERMISSION], 'view', FALSE, TRUE],
+      'view unpublished: with access content' => [['access content'], 'view', FALSE, FALSE],
+      'view unpublished: without any permissions' => [[], 'view', FALSE, FALSE],
 
-      'delete: with create permission' => [[Page::CREATE_PERMISSION], 'delete', FALSE],
-      'delete: with edit permission' => [[Page::EDIT_PERMISSION], 'delete', FALSE],
-      'delete: with delete permission' => [[Page::DELETE_PERMISSION], 'delete', TRUE],
-      'delete: without permission' => [['access content'], 'delete', FALSE],
+      'update: with create permission' => [[Page::CREATE_PERMISSION], 'update', TRUE, FALSE],
+      'update: with edit permission' => [[Page::EDIT_PERMISSION], 'update', TRUE, TRUE],
+      'update: with delete permission' => [[Page::DELETE_PERMISSION], 'update', TRUE, FALSE],
+      'update: without permission' => [['access content'], 'update', TRUE, FALSE],
 
-      'view all revisions: with edit permission' => [[Page::EDIT_PERMISSION], 'view all revisions', TRUE],
-      'view all revisions: without permission' => [['access content'], 'view all revisions', FALSE],
+      'delete: with create permission' => [[Page::CREATE_PERMISSION], 'delete', TRUE, FALSE],
+      'delete: with edit permission' => [[Page::EDIT_PERMISSION], 'delete', TRUE, FALSE],
+      'delete: with delete permission' => [[Page::DELETE_PERMISSION], 'delete', TRUE, TRUE],
+      'delete: without permission' => [['access content'], 'delete', TRUE, FALSE],
 
-      'view revision: with edit permission' => [[Page::EDIT_PERMISSION], 'view revision', TRUE],
-      'view revision: without permission' => [['access content'], 'view revision', FALSE],
+      'view all revisions: with edit permission' => [[Page::EDIT_PERMISSION], 'view all revisions', TRUE, TRUE],
+      'view all revisions: without permission' => [['access content'], 'view all revisions', TRUE, FALSE],
+
+      'view revision: with edit permission' => [[Page::EDIT_PERMISSION], 'view revision', TRUE, TRUE],
+      'view revision: without permission' => [['access content'], 'view revision', TRUE, FALSE],
     ];
   }
 

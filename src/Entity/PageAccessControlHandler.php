@@ -16,12 +16,21 @@ final class PageAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
+    assert($entity instanceof Page);
     $access = parent::checkAccess($entity, $operation, $account);
 
     return match ($operation) {
-      'view' => $access->orIf(
-        AccessResult::allowedIfHasPermissions($account, ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'OR')
-      ),
+      'view' => $access
+        ->orIf(AccessResult::allowedIfHasPermissions(
+          $account,
+          [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
+          'OR'
+        ))
+        ->orIf(
+          AccessResult::allowedIf($entity->isPublished())
+            ->andIf(AccessResult::allowedIfHasPermission($account, 'access content'))
+            ->addCacheableDependency($entity)
+        ),
       'update', 'view all revisions', 'view revision', 'revert' => $access->orIf(
         AccessResult::allowedIfHasPermission($account, Page::EDIT_PERMISSION)
       ),
