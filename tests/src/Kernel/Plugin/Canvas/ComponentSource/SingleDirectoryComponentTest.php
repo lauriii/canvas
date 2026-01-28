@@ -5624,6 +5624,24 @@ HTML
     return \Drupal::service('plugin.manager.sdc');
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public static function providerComponentForValidateInputRejectsUnexpectedProps(): array {
+    return [
+      'SDC with props and slots' => [
+        'source_id' => 'sdc',
+        'source_specific_id' => 'canvas_test_sdc:props-slots',
+        'valid_prop_name' => 'heading',
+        'valid_prop_input' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => [['value' => 'Valid heading']],
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+  }
+
   public function alter(ContainerBuilder $container): void {
     // Swap in the broken version of this class.
     // @see ::triggerBrokenComponent()

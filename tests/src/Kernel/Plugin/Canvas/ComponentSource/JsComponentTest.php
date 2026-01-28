@@ -2044,6 +2044,134 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     return $test_cases;
   }
 
+  /**
+   * Tests that validation always uses published prop definitions.
+   *
+   * IMPORTANT: This test covers a scenario that is impossible to trigger with
+   * the Canvas UI. When a JavaScript component has an auto-save entry with
+   * different props than the published version, the validation MUST still use
+   * the published version's props, not the auto-save version's props.
+   *
+   * This ensures that validation is consistent and predictable, regardless of
+   * whether an auto-save entry exists.
+   *
+   * @param bool $auto_save_existing
+   *   Whether an auto-save entry should exist for the test component.
+   *
+   * @covers ::validateComponentInput
+   * @testWith [false]
+   *           [true]
+   */
+  public function testValidateComponentInput(bool $auto_save_existing): void {
+    // Create a JavaScript component with initial props.
+    $js_component = JavaScriptComponent::create([
+      'machineName' => 'test_validation',
+      'name' => 'Test Validation Component',
+      'status' => TRUE,
+      'props' => [
+        'heading' => [
+          'type' => 'string',
+          'title' => 'Heading',
+          'examples' => ['Hello'],
+        ],
+      ],
+      'slots' => [],
+      'js' => [
+        'original' => 'console.log("test")',
+        'compiled' => 'console.log("test")',
+      ],
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $js_component->save();
+
+    $component_id = 'js.test_validation';
+    $component = Component::load($component_id);
+    $this->assertInstanceOf(Component::class, $component);
+
+    $source = $component->getComponentSource();
+    $this->assertInstanceOf(JsComponent::class, $source);
+    $uuid = 'test-uuid-123';
+
+    // If testing with an auto-save entry, create one with additional props that
+    // are NOT in the published version. We test this scenario for completeness
+    // to ensure the validation system is robust and always uses the published
+    // version's props.
+    if ($auto_save_existing) {
+      $js_component_for_auto_save = JavaScriptComponent::load('test_validation');
+      $this->assertInstanceOf(JavaScriptComponent::class, $js_component_for_auto_save);
+
+      $draft_props = $js_component_for_auto_save->get('props');
+      // Add a prop that only exists in the auto-save, not in the published version.
+      $draft_props['newProp'] = [
+        'type' => 'string',
+        'title' => 'New Prop (only in auto-save)',
+        'examples' => ['This should not affect validation'],
+      ];
+      $js_component_for_auto_save->set('props', $draft_props);
+      $js_component_for_auto_save->updateFromClientSide([
+        'importedJsComponents' => [],
+        'compiledJs' => $js_component_for_auto_save->getJs(),
+      ]);
+      $this->container->get(AutoSaveManager::class)->saveEntity($js_component_for_auto_save);
+    }
+
+    // Test 1: Published props are valid.
+    $valid_input = [
+      'heading' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Valid heading']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+    ];
+    $violations = $source->validateComponentInput($valid_input, $uuid, NULL);
+    $this->assertCount(0, $violations, 'Valid published prop should pass validation');
+
+    // Test 2: Unexpected props are ALWAYS rejected, regardless of whether
+    // they exist in an auto-save entry. Validation must use published props only.
+    $input_with_new_prop = [
+      'heading' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Valid heading']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+      'newProp' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Should not be allowed']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+    ];
+    $violations = $source->validateComponentInput($input_with_new_prop, $uuid, NULL);
+
+    // The 'newProp' should be rejected in BOTH cases:
+    // - When no auto-save exists: obvious - prop doesn't exist in published version
+    // - When auto-save exists with 'newProp': still rejected because validation
+    //   uses the published version, not the auto-save version
+    $this->assertCount(1, $violations, 'Unexpected prop should be rejected regardless of auto-save existence');
+    $this->assertSame("Component `$uuid`: the `newProp` prop is not defined.", $violations->get(0)->getMessage());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function providerComponentForValidateInputRejectsUnexpectedProps(): array {
+    return [
+      'JS component with props' => [
+        'source_id' => 'js',
+        'source_specific_id' => 'canvas_test_code_components_with_props',
+        'valid_prop_name' => 'name',
+        'valid_prop_input' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => [['value' => 'Valid name']],
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+  }
+
   protected function getExpectedVerboseErrorMessage(): string {
     // The code component was deleted by bypassing lots of protections.
     // @see ::triggerBrokenComponent()

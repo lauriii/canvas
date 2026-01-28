@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -110,6 +112,81 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     else {
       self::assertStringContainsString($expected_html, $html);
     }
+  }
+
+  /**
+   * Data provider for ::testValidateComponentInputRejectsUnexpectedProps().
+   *
+   * @return array<string, array{source_id: string, source_specific_id: string, valid_prop_name: string, valid_prop_input: array<string, mixed>}>
+   *   Returns an array of test cases containing:
+   *   - source_id: The component source plugin ID (e.g., 'js', 'sdc')
+   *   - source_specific_id: The source-specific component ID
+   *   - valid_prop_name: Name of a valid prop that exists on the component
+   *   - valid_prop_input: A complete, valid input array for that prop
+   */
+  abstract public static function providerComponentForValidateInputRejectsUnexpectedProps(): array;
+
+  /**
+   * Tests that validateComponentInput() rejects unexpected props (garbage values).
+   *
+   * @covers ::validateComponentInput
+   * @dataProvider providerComponentForValidateInputRejectsUnexpectedProps
+   */
+  public function testValidateComponentInputRejectsUnexpectedProps(string $source_id, string $source_specific_id, string $valid_prop_name, array $valid_prop_input): void {
+    $this->generateComponentConfig();
+
+    $component_source_manager = $this->container->get(ComponentSourceManager::class);
+    assert($component_source_manager instanceof ComponentSourceManager);
+    $component_source_definition = $component_source_manager->getDefinition($source_id);
+    assert(\array_key_exists('discovery', $component_source_definition));
+    $discovery = $this->container->get('class_resolver')->getInstanceFromDefinition($component_source_definition['discovery']);
+    \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
+    $component_id = $discovery::getComponentConfigEntityId($source_specific_id);
+
+    $component = Component::load($component_id);
+    $this->assertInstanceOf(Component::class, $component);
+
+    $source = $component->getComponentSource();
+    $this->assertInstanceOf(GeneratedFieldExplicitInputUxComponentSourceBase::class, $source);
+
+    $uuid = '07875b1b-b68c-4b90-955c-d6136ff8af93';
+
+    // Test with unexpected prop - should fail validation.
+    $input_with_garbage = [
+      $valid_prop_name => $valid_prop_input,
+      'textUnwanted' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Unwanted value']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+    ];
+    $violations = $source->validateComponentInput($input_with_garbage, $uuid, NULL);
+    $this->assertCount(1, $violations, 'Input with one unexpected prop should produce one violation');
+
+    $violation = $violations->get(0);
+    $this->assertSame("Component `$uuid`: the `textUnwanted` prop is not defined.", $violation->getMessage());
+    $this->assertSame("inputs.$uuid.textUnwanted", $violation->getPropertyPath());
+
+    // Test with multiple unexpected props.
+    $input_with_multiple_garbage = [
+      $valid_prop_name => $valid_prop_input,
+      'textUnwanted' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Unwanted value']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+      'anotherBadProp' => [
+        'sourceType' => 'static:field_item:string',
+        'value' => [['value' => 'Another unwanted value']],
+        'expression' => 'ℹ︎string␟value',
+      ],
+    ];
+    $violations = $source->validateComponentInput($input_with_multiple_garbage, $uuid, NULL);
+    $this->assertCount(2, $violations, 'Input with two unexpected props should produce two violations');
+
+    $violation_messages = array_map(fn($v) => $v->getMessage(), iterator_to_array($violations));
+    $this->assertContains("Component `$uuid`: the `textUnwanted` prop is not defined.", $violation_messages);
+    $this->assertContains("Component `$uuid`: the `anotherBadProp` prop is not defined.", $violation_messages);
   }
 
 }

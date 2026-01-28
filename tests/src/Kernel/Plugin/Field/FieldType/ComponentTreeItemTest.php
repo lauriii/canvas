@@ -508,8 +508,10 @@ class ComponentTreeItemTest extends KernelTestBase {
     ];
     $test_cases['inputs invalid, using dynamic inputs'][] = [
       \sprintf('field_canvas_test.0.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_2) => 'The property heading is required.',
+      'field_canvas_test.0.inputs.9145b0da-85a1-4ee7-ad1d-b1b63614aed6.heading-2' => 'Component `9145b0da-85a1-4ee7-ad1d-b1b63614aed6`: the `heading-2` prop is not defined.',
       'field_canvas_test.0' => "The 'dynamic' prop source type must be absent.",
       \sprintf('field_canvas_test.1.inputs.%s.heading', self::UUID_DYNAMIC_STATIC_CARD_3) => 'The property heading is required.',
+      'field_canvas_test.1.inputs.dab1145b-c5d5-4779-9be8-0a41c2d8ed29.heading-1' => 'Component `dab1145b-c5d5-4779-9be8-0a41c2d8ed29`: the `heading-1` prop is not defined.',
       'field_canvas_test.1' => "The 'dynamic' prop source type must be absent.",
       'field_canvas_test.2' => "The 'dynamic' prop source type must be absent.",
     ];

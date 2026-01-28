@@ -608,6 +608,31 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         );
       }
     }
+
+    // Check for unexpected props (garbage values).
+    try {
+      $defined_props = $this->configuration['prop_field_definitions'];
+      foreach ($inputValues as $prop_name => $prop_value) {
+        if (!array_key_exists($prop_name, $defined_props)) {
+          $violations->add(
+            new ConstraintViolation(
+              sprintf("Component `%s`: the `%s` prop is not defined.", $component_instance_uuid, $prop_name),
+              NULL,
+              [],
+              $entity,
+              "inputs.$component_instance_uuid.$prop_name",
+              $prop_value,
+            )
+          );
+        }
+      }
+    }
+    catch (ComponentNotFoundException) {
+      // The violation for a missing component will be added in the validation
+      // of the tree structure.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+    }
+
     return $violations;
   }
 
