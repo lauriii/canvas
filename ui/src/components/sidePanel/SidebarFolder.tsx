@@ -19,11 +19,17 @@ import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
 
 interface SidebarFolderProps {
   name: string;
+  // Optional custom rendering for the name (e.g., TextField for inline editing)
+  nameSlot?: React.ReactNode;
+  // Optional slot for error messages if any
+  errorSlot?: React.ReactNode;
   count?: number;
-  menuItems?: React.ReactNode; // If menuItems are provided, wrap in ContextMenu and DropdownMenu
+  // If menuItems are provided, wrap in ContextMenu and DropdownMenu
+  menuItems?: React.ReactNode;
   className?: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onNameDoubleClick?: () => void;
   children?: React.ReactNode;
   contextualMenuType?: 'dropdown' | 'context' | 'both';
   id: string;
@@ -31,11 +37,14 @@ interface SidebarFolderProps {
 
 const SidebarFolder: React.FC<SidebarFolderProps> = ({
   name,
+  nameSlot,
+  errorSlot,
   count,
   menuItems,
   className,
   isOpen: isOpenProp,
   onOpenChange,
+  onNameDoubleClick,
   children,
   contextualMenuType = 'both',
   id,
@@ -66,8 +75,8 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
         [nodeStyles.contextualAccordionVariant]: menuItems,
       })}
       flexGrow="1"
-      align="center"
-      overflow="hidden"
+      align={nameSlot ? 'start' : 'center'}
+      overflow={nameSlot ? 'visible' : 'hidden'}
       pb="2"
       pt="2"
     >
@@ -75,28 +84,42 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
         <FolderIcon className={listStyles.folderIcon} />
       </Flex>
 
-      <Flex px="2" align="center" flexGrow="1" overflow="hidden" role="button">
-        <Text size="1" weight="medium">
-          {name}
-        </Text>
+      <Flex
+        px="2"
+        align={nameSlot ? 'start' : 'center'}
+        flexGrow="1"
+        overflow="visible"
+        role="button"
+        onDoubleClick={onNameDoubleClick}
+        style={{ minWidth: 0 }}
+      >
+        {nameSlot ? (
+          nameSlot
+        ) : (
+          <Text size="1" weight="medium">
+            {name}
+          </Text>
+        )}
       </Flex>
 
       {menuItems && contextualMenuType !== 'context' && (
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger>
-            <button
-              aria-label="Open contextual menu"
-              className={nodeStyles.contextualTrigger}
-            >
-              <span className={nodeStyles.dots}>
-                <DotsHorizontalIcon />
-              </span>
-            </button>
-          </DropdownMenu.Trigger>
-          <UnifiedMenu.Content menuType="dropdown">
-            {menuItems}
-          </UnifiedMenu.Content>
-        </DropdownMenu.Root>
+        <Flex px="2" align="center" flexShrink="0">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <button
+                aria-label="Open contextual menu"
+                className={nodeStyles.contextualTrigger}
+              >
+                <span className={nodeStyles.dots}>
+                  <DotsHorizontalIcon />
+                </span>
+              </button>
+            </DropdownMenu.Trigger>
+            <UnifiedMenu.Content menuType="dropdown">
+              {menuItems}
+            </UnifiedMenu.Content>
+          </DropdownMenu.Root>
+        </Flex>
       )}
       {typeof count === 'number' && (
         <Flex
@@ -155,6 +178,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   return (
     <div ref={setDropRef} className={clsx({ [listStyles.isOver]: isOver })}>
       {collapsibleFolder}
+      {errorSlot}
     </div>
   );
 };

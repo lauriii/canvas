@@ -146,8 +146,14 @@
 .contextualAccordionVariant {
   --bg-hover: none;
   --bg-selected: none;
-  --bg-hover-dots: none;
-  --bg-selected-dots-hover: none;
+  --bg-hover-dots: var(--blue-3);
+  --bg-selected-dots-hover: var(--blue-5);
 
   composes: default;
+
+  .dots {
+    &:hover {
+      color: var(--blue-9);
+    }
+  }
 }

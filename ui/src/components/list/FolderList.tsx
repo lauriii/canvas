@@ -1,4 +1,13 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import parse from 'html-react-parser';
+import { Flex, Text, TextField } from '@radix-ui/themes';
+
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import { validateFolderNameClientSide } from '@/features/validation/validation';
+import { useUpdateFolderMutation } from '@/services/componentAndLayout';
+
+import UnifiedMenu from '../UnifiedMenu';
 
 import type { ReactNode } from 'react';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
@@ -25,16 +34,197 @@ const FolderList = ({
   folder: FolderInList;
   children: ReactNode;
 }) => {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [folderName, setFolderName] = useState(folder.name);
+  const [validationError, setValidationError] = useState('');
+  const [isFolderOpen, setIsFolderOpen] = useState(true);
+  const [updateFolder, { isLoading, isError, error, reset, isSuccess }] =
+    useUpdateFolderMutation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
+
+  // Sync local folderName state when the folder.name prop changes (e.g., after successful rename)
+  useEffect(() => {
+    setFolderName(folder.name);
+  }, [folder.name]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      setIsRenaming(false);
+      setValidationError('');
+      isSubmittingRef.current = false;
+      reset();
+    }
+  }, [isSuccess, reset, isRenaming]);
+
+  useEffect(() => {
+    if (isError) {
+      console.error('Failed to rename folder:', error);
+      isSubmittingRef.current = false;
+      // Refocus the input so the user can correct the error or cancel via blur
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }, [isError, error]);
+
   // Determine the length of items in the folder, be it object or array.
-  const getItemsLength = () => {
+  const getItemsLength = useCallback(() => {
     if (Array.isArray(folder.items)) {
       return folder.items.length;
     }
     return Object.keys(folder.items).length;
-  };
+  }, [folder.items]);
+
+  const cancelRename = useCallback(() => {
+    setIsRenaming(false);
+    setFolderName(folder.name);
+    setValidationError('');
+    isSubmittingRef.current = false;
+    reset();
+  }, [folder.name, reset]);
+
+  const handleRename = useCallback(async () => {
+    if (isSubmittingRef.current || isLoading) {
+      return;
+    }
+
+    const trimmedName = folderName.trim();
+
+    if (!trimmedName || trimmedName === folder.name || validationError) {
+      cancelRename();
+      return;
+    }
+
+    isSubmittingRef.current = true;
+
+    const items = Array.isArray(folder.items)
+      ? folder.items
+      : Object.keys(folder.items);
+
+    try {
+      await updateFolder({
+        id: folder.id,
+        changes: { name: trimmedName, weight: folder.weight, items },
+      }).unwrap();
+    } catch {
+      isSubmittingRef.current = false;
+    }
+  }, [
+    isLoading,
+    folderName,
+    folder.name,
+    folder.items,
+    folder.id,
+    folder.weight,
+    validationError,
+    cancelRename,
+    updateFolder,
+  ]);
+
+  const handleOnChange = useCallback(
+    (newName: string) => {
+      setFolderName(newName);
+      setValidationError(
+        newName.trim() && newName.trim() !== folder.name
+          ? validateFolderNameClientSide(newName)
+          : '',
+      );
+    },
+    [folder.name],
+  );
+
+  const handleBlur = useCallback(() => {
+    if (isSubmittingRef.current || isLoading) {
+      return;
+    }
+    cancelRename();
+  }, [isLoading, cancelRename]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleRename();
+      } else if (e.key === 'Escape') {
+        cancelRename();
+      }
+    },
+    [handleRename, cancelRename],
+  );
+
+  const handleNameDoubleClick = useCallback(() => {
+    // Only enable rename on double-click if not already renaming
+    if (!isRenaming) {
+      setIsRenaming(true);
+    }
+  }, [isRenaming]);
+
+  const menuItems = (
+    <UnifiedMenu.Item onClick={() => setIsRenaming(true)}>
+      Rename
+    </UnifiedMenu.Item>
+  );
+
+  // Create the nameSlot for inline editing when renaming
+  const nameSlot = isRenaming ? (
+    <TextField.Root
+      ref={inputRef}
+      value={folderName}
+      onChange={(e) => handleOnChange(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      disabled={isLoading}
+      aria-invalid={!!(validationError || isError)}
+      size="1"
+      variant="soft"
+      style={{
+        width: '100%',
+        maxWidth: '200px',
+        minHeight: 0,
+        height: 'auto',
+        padding: 0,
+        lineHeight: 'var(--line-height-1)',
+      }}
+      data-testid="canvas-folder-rename-input"
+    />
+  ) : undefined;
+
+  const errorSlot =
+    isRenaming && (validationError || isError) ? (
+      <Flex direction="column" gap="1" px="2" pb="2">
+        {validationError && (
+          <Text size="1" color="red" weight="medium">
+            {validationError}
+          </Text>
+        )}
+        {isError && (
+          <Text size="1" color="red" weight="medium">
+            {parse(extractErrorMessageFromApiResponse(error))}
+          </Text>
+        )}
+      </Flex>
+    ) : undefined;
 
   return (
-    <SidebarFolder id={folder.id} name={folder.name} count={getItemsLength()}>
+    <SidebarFolder
+      id={folder.id}
+      name={folderName}
+      nameSlot={nameSlot}
+      errorSlot={errorSlot}
+      count={getItemsLength()}
+      menuItems={isRenaming ? undefined : menuItems}
+      isOpen={isFolderOpen}
+      onOpenChange={setIsFolderOpen}
+      onNameDoubleClick={handleNameDoubleClick}
+    >
       {children}
     </SidebarFolder>
   );
