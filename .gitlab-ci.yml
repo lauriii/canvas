@@ -615,6 +615,8 @@ CLI Test:
         - openapi.yml
         - src/Entity/JavaScriptComponent.php
         - src/Controller/ApiConfigControllers.php
+        # CLI Test checks these components so changes may affect test results.
+        - tests/modules/canvas_test_code_components/**/*
     - if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
     - *manual-rule
   variables:
