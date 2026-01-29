@@ -269,6 +269,7 @@ function EnumValuesForm({
               </FormElement>
             </Box>
             <Button
+              aria-label="Remove value"
               data-testid={`canvas-prop-enum-value-delete-${propId}-${index}`}
               size="1"
               color="red"

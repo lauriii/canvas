@@ -1,3 +1,4 @@
+import { EditorView } from 'codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { Flex } from '@radix-ui/themes';
 import CodeMirror from '@uiw/react-codemirror';
@@ -32,7 +33,12 @@ export default function FormPropTypeSlot({
             value={example}
             height="100px"
             className={styles.codeMirror}
-            extensions={[javascript({ jsx: true })]}
+            extensions={[
+              javascript({ jsx: true }),
+              EditorView.contentAttributes.of({
+                'aria-label': 'Example HTML/JSX value',
+              }),
+            ]}
             onChange={(value) =>
               dispatch(
                 updateSlot({
