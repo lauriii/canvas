@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Core\DefaultContent\ExportMetadata;
@@ -78,6 +79,13 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
         \assert($component_source instanceof ComponentSourceInterface);
         $inputs = $component_source->getDefaultExplicitInput();
         foreach ($inputs as $prop_name => $input) {
+          // @todo Per https://www.drupal.org/i/3560543#comment-16406290,
+          //   considering refactoring this to use
+          //   ComponentInputs::getPropSourcesUsingExpressionClass(), but only
+          //   once https://www.drupal.org/i/3566720 is resolved.
+          if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+            continue;
+          }
           $prop_source = PropSource::parse($input);
           // Only a static prop source will store a reference to a specific
           // entity. Dynamic prop sources would store a reference to field on

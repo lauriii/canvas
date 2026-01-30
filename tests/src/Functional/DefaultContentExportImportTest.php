@@ -149,6 +149,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     $image_sdc_uuid = 'c990c4ee-341a-4f38-ab5d-e75b3de1fa1f';
     $local_file_sdc_uuid = '75144f9b-1bfc-4874-b848-b5889f066217';
     $js_component_uuid = '8b9c4e63-e3e2-4969-8f1f-7cb764e0e19f';
+    $block_component_uuid = 'ce05b065-00e7-43c4-8808-ac757de1c98a';
 
     $original_page = Page::create([
       'title' => 'Export this page',
@@ -205,6 +206,20 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
             'loading' => 'lazy',
           ],
         ],
+        // A block component instance, with a few configuration options beyond
+        // the defaults.
+        [
+          'uuid' => $block_component_uuid,
+          'component_id' => 'block.system_menu_block.main',
+          'component_version' => Component::load('block.system_menu_block.main')?->getActiveVersion(),
+          'inputs' => [
+            'label' => '',
+            'label_display' => '0',
+            'level' => 1,
+            'depth' => 3,
+            'expand_all_items' => TRUE,
+          ],
+        ],
       ],
     ]);
     $violations = $original_page->validate();
@@ -234,7 +249,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
       '--with-dependencies',
     ]);
     // The export should succeed.
-    self::assertSame(0, $process->wait());
+    self::assertSame(0, $process->wait(), $process->getOutput());
 
     // After exporting delete the page and all its dependencies.
     $unreferenced_file->delete();
