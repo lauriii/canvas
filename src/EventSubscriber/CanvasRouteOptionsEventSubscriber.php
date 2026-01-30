@@ -66,6 +66,14 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     }
   }
 
+  public function enforceJsonFormatForApis(RouteBuildEvent $event): void {
+    foreach ($event->getRouteCollection() as $route_name => $route) {
+      if (str_starts_with($route_name, 'canvas.api.')) {
+        $route->setRequirement('_format', 'json');
+      }
+    }
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -73,6 +81,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     $events[KernelEvents::REQUEST][] = ['transformWrapperFormatRouteOption'];
     $events[RoutingEvents::ALTER][] = ['addCsrfToken'];
     $events[RoutingEvents::ALTER][] = ['preventRouteNormalization'];
+    $events[RoutingEvents::ALTER][] = ['enforceJsonFormatForApis'];
     return $events;
   }
 

@@ -110,14 +110,16 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
         }
       }
 
+      // Preserve any headers, such as `WWW-Authenticate`.
+      $headers = $exception instanceof HttpExceptionInterface ? $exception->getHeaders() : [];
       if ($exception instanceof CacheableDependencyInterface) {
         $event->setResponse(
-          (new CacheableJsonResponse($response, $status))
+          (new CacheableJsonResponse($response, $status, $headers))
             ->addCacheableDependency($exception)
         );
       }
       else {
-        $event->setResponse(new JsonResponse($response, $status));
+        $event->setResponse(new JsonResponse($response, $status, $headers));
       }
     }
   }

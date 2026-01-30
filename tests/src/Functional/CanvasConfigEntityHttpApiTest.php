@@ -267,13 +267,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // this is *almost* an HTTP API route.
     $response = $this->makeApiRequest('GET', Url::fromUri('base:/canvas/api/v0/config/menu'), []);
     $this->assertSame(404, $response->getStatusCode());
-    $this->assertSame('text/html; charset=UTF-8', $response->getHeader('Content-Type')[0]);
+    $this->assertSame('application/json', $response->getHeader('Content-Type')[0]);
 
     // Even as a logged in user with correct permission.
     $this->drupalLogin($this->httpApiUser);
     $response = $this->makeApiRequest('GET', Url::fromUri('base:/canvas/api/v0/config/menu'), []);
     $this->assertSame(404, $response->getStatusCode());
-    $this->assertSame('text/html; charset=UTF-8', $response->getHeader('Content-Type')[0]);
+    $this->assertSame('application/json', $response->getHeader('Content-Type')[0]);
   }
 
   /**
