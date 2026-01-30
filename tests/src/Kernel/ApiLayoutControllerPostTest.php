@@ -536,7 +536,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
     unset($json['isNew'], $json['isPublished'], $json['html']);
     $node = Node::load(1);
-    assert($node instanceof NodeInterface);
+    \assert($node instanceof NodeInterface);
     $json += $this->getPostContentsDefaults($node);
     $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
     // Check that regions exist and are wrapped.
@@ -632,7 +632,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertCount(1, $reference_media);
     $reference_media = \reset($reference_media);
     $node = Node::load(1);
-    assert($node instanceof NodeInterface);
+    \assert($node instanceof NodeInterface);
     // Populate its client model, and take advantage of the fact that the client
     // model is allowed to be invalid when previewing: no validation may occur,
     // to ensure even invalid explicit inputs for component instances result in

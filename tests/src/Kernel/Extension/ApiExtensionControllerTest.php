@@ -53,7 +53,7 @@ class ApiExtensionControllerTest extends KernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $user = $this->createUser();
-    assert($user instanceof AccountInterface);
+    \assert($user instanceof AccountInterface);
     $this->setCurrentUser($user);
   }
 
@@ -62,7 +62,7 @@ class ApiExtensionControllerTest extends KernelTestBase {
 
     $response = $this->request(Request::create('/canvas/api/v0/extensions'));
     $this->assertEquals(200, $response->getStatusCode(), 'Response status code is 200 OK');
-    assert($response instanceof CacheableJsonResponse);
+    \assert($response instanceof CacheableJsonResponse);
     $this->assertSame([
       'user.permissions',
     ], $response->getCacheableMetadata()->getCacheContexts());

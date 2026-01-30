@@ -20,7 +20,7 @@ final class BetterConfigExistsConstraintValidator extends ConfigExistsConstraint
    * {@inheritdoc}
    */
   public function validate(mixed $name, Constraint $constraint): void {
-    assert($constraint instanceof BetterConfigExistsConstraint);
+    \assert($constraint instanceof BetterConfigExistsConstraint);
     // Ignore this line because core has incorrect parameter documentation.
     // @phpstan-ignore-next-line
     $constraint->prefix = TypeResolver::resolveDynamicTypeName($constraint->prefix, $this->context->getObject());

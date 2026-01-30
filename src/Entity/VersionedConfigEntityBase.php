@@ -33,12 +33,12 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    */
   public function __construct(array $values, $entity_type) {
     parent::__construct($values, $entity_type);
-    assert(isset($this->active_version));
+    \assert(isset($this->active_version));
     $this->loadedVersion = $this->active_version;
   }
 
   public function getActiveVersion(): string {
-    assert(isset($this->active_version));
+    \assert(isset($this->active_version));
     return $this->active_version;
   }
 
@@ -52,12 +52,12 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
 
   public function loadVersion(string $version): static {
     if ($version !== $this->loadedVersion) {
-      assert(isset($this->versioned_properties));
+      \assert(isset($this->versioned_properties));
       if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
-        throw new \OutOfRangeException(sprintf('The requested version `%s` is not available. Available versions: %s.',
+        throw new \OutOfRangeException(\sprintf('The requested version `%s` is not available. Available versions: %s.',
           (string) $version,
           implode(', ', array_map(
-            fn (string $v): string => sprintf('`%s`', (string) $v),
+            fn (string $v): string => \sprintf('`%s`', (string) $v),
             $this->getVersions(),
           )),
         ));
@@ -75,7 +75,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
       return $this;
     }
     // Reverse chronological order: new versions appear at the top.
-    assert(isset($this->versioned_properties));
+    \assert(isset($this->versioned_properties));
     $this->versioned_properties = [
       // At the top: the new version, with empty settings by default.
       self::ACTIVE_VERSION => [],
@@ -113,7 +113,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
   }
 
   public function resetToActiveVersion(): static {
-    assert(isset($this->active_version));
+    \assert(isset($this->active_version));
     $this->loadedVersion = $this->active_version;
     return $this;
   }
@@ -161,10 +161,10 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
       else {
         // 💡Nobody should see this day-to-day, but while developing Canvas this
         // helps pinpoint problems.
-        assert(!$this->isNew());
+        \assert(!$this->isNew());
         // @phpstan-ignore-next-line
         $original_versions = $this->load($this->id())->getVersions();
-        throw new \LogicException(sprintf(
+        throw new \LogicException(\sprintf(
           'Version history wipe detected! Original, %d version: [%s]. New, %d versions: [%s]. This is only possible if it was overwritten by a config install using ConfigEntityStorageInterface::updateFromStorageRecord(), typically through module installation.',
           count($original_versions),
           implode(', ', $original_versions),
@@ -189,7 +189,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
         // Not all plugin configuration key-value pairs may be needed in the
         // versioned property.
         if ($plugin_instance instanceof VersionedConfigurationSubsetSingleLazyPluginCollection) {
-          assert(is_array($value));
+          \assert(is_array($value));
           $value = array_diff_key($value, array_flip($plugin_instance->omittedKeys));
         }
       }

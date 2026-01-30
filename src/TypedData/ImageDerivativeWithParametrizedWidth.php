@@ -55,7 +55,7 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     if ($this->getParent() === NULL) {
       return NULL;
     }
-    assert($this->getParent() instanceof ImageItemOverride);
+    \assert($this->getParent() instanceof ImageItemOverride);
 
     $entity = $this->getParent()->get('entity');
 
@@ -63,20 +63,20 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     if ($entity === NULL) {
       return NULL;
     }
-    assert($entity instanceof EntityReference);
+    \assert($entity instanceof EntityReference);
     $file = $entity->getTarget()?->getValue();
-    assert($file instanceof File);
+    \assert($file instanceof File);
 
-    assert(is_string($file->getFileUri()));
+    \assert(is_string($file->getFileUri()));
     $parametrized_image_style = $this->getParametrizedImageStyle();
     $url_template = $parametrized_image_style->buildUrlTemplate($file->getFileUri());
-    assert(str_contains($url_template, '{width}'));
+    \assert(str_contains($url_template, '{width}'));
 
     // Transform absolute to relative URL template.
     $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
-    assert($file_url_generator instanceof FileUrlGeneratorInterface);
+    \assert($file_url_generator instanceof FileUrlGeneratorInterface);
     $url_template = $file_url_generator->transformRelative($url_template);
-    assert(str_contains($url_template, '{width}'));
+    \assert(str_contains($url_template, '{width}'));
     return (new GeneratedUrl())->setGeneratedUrl($url_template)
       ->addCacheableDependency($parametrized_image_style)
       ->addCacheableDependency($file);

@@ -216,9 +216,9 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     $config_importer->import();
 
     $folder = Folder::loadByNameAndConfigEntityTypeId('Test Folder, please ignore 3', Component::ENTITY_TYPE_ID);
-    assert($folder instanceof Folder);
+    \assert($folder instanceof Folder);
     $folder = Folder::loadByNameAndConfigEntityTypeId('Test Folder, please ignore 4', Component::ENTITY_TYPE_ID);
-    assert($folder instanceof Folder);
+    \assert($folder instanceof Folder);
 
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('It is impossible for an item to exist in multiple Folders.');

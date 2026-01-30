@@ -172,7 +172,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
       $this->logger->error($e->getMessage());
       // \Drupal\canvas_ai\Controller\CanvasBuilder::render() also YAML parsable output.
       // @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
-      $this->setOutput(Yaml::dump(['error' => sprintf('Failed to process Javascript component data: %s', $e->getMessage())], 10, 2));
+      $this->setOutput(Yaml::dump(['error' => \sprintf('Failed to process Javascript component data: %s', $e->getMessage())], 10, 2));
       return;
     }
     $this->setStructuredOutput([

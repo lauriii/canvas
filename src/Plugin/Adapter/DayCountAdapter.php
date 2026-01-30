@@ -30,7 +30,7 @@ final class DayCountAdapter extends AdapterBase {
       : new \DateTimeImmutable("now", $utc);
     // Note: $oldest and $newest are already guaranteed to be valid, so this
     // assertion exists only to satisfy PHPStan.
-    assert($oldest !== FALSE && $newest !== FALSE);
+    \assert($oldest !== FALSE && $newest !== FALSE);
     return new EvaluationResult($newest->diff($oldest)->days);
   }
 

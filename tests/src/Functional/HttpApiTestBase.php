@@ -198,7 +198,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       // If the default list is not empty, check against that instead of an
       // empty array. We only expect this for the Folder config entity type.
       // @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::$defaultFolders
-      assert(str_contains($list_url->getUri(), 'folder'));
+      \assert(str_contains($list_url->getUri(), 'folder'));
       $this->assertSameFoldersSansUuids($default_list, $body ?? []);
     }
     $individual_body = $this->assertExpectedResponse('GET', $resource_url, [], 404, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');

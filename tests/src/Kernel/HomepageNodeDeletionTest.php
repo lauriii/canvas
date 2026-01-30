@@ -63,14 +63,14 @@ class HomepageNodeDeletionTest extends KernelTestBase {
       ->save();
 
     $user = $this->createUser(['administer nodes', 'access content'], 'administer_node_user');
-    assert($user instanceof AccountInterface);
+    \assert($user instanceof AccountInterface);
     $access = $node->access('delete', $user, TRUE);
     $this->assertInstanceOf(AccessResultForbidden::class, $access);
     $this->assertSame('This entity cannot be deleted because its path is set as the homepage.', $access->getReason());
     $this->assertSame(['config:system.site', 'node:1'], $access->getCacheTags());
     // Provide bypass node access permission to the user.
     $user2 = $this->createUser(['bypass node access'], 'bypass_node_access_user');
-    assert($user2 instanceof AccountInterface);
+    \assert($user2 instanceof AccountInterface);
     $access = $node->access('delete', $user2, TRUE);
     $this->assertInstanceOf(AccessResult::class, $access);
     $this->assertTrue($access->isAllowed(), 'Bypass node access permission allows deletion of the node.');

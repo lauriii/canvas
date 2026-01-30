@@ -739,7 +739,7 @@ class PropSourceTest extends KernelTestBase {
       }
     }
     catch (\DomainException $e) {
-      self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `user`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
+      self::assertSame(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `user`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
 
     // - evaluate it to populate an SDC prop using a `node` host entity
@@ -783,7 +783,7 @@ class PropSourceTest extends KernelTestBase {
       }
     }
     catch (\DomainException $e) {
-      self::assertSame(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `node`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
+      self::assertSame(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `node`.", (string) $parsed_expression, $correct_host_entity_type), $e->getMessage());
     }
 
     // - calculate its dependencies
@@ -1704,7 +1704,7 @@ class PropSourceTest extends KernelTestBase {
     self::assertSame($expected_array_representation['absolute'], $source->absolute);
     self::assertSame([], $source->calculateDependencies());
     self::assertSame(
-      sprintf('host-entity-url:%s:canonical', $source->absolute ? 'absolute' : 'relative'),
+      \sprintf('host-entity-url:%s:canonical', $source->absolute ? 'absolute' : 'relative'),
       $source->asChoice(),
     );
     self::assertSame(

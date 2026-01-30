@@ -109,12 +109,12 @@ final class ComponentAudit {
    */
   public function getConfigEntityDependenciesUsingComponent(ComponentInterface $component, string $config_entity_type_id): array {
     $config_entity_definition = $this->entityTypeManager->getDefinition($config_entity_type_id);
-    assert($config_entity_definition instanceof ConfigEntityTypeInterface);
+    \assert($config_entity_definition instanceof ConfigEntityTypeInterface);
     $config_prefix = $config_entity_definition->getConfigPrefix() . '.';
     $dependents = $this->configManager->getConfigDependencyManager()->getDependentEntities('config', $component->getConfigDependencyName());
     $dependents = array_filter($dependents, fn(ConfigEntityDependency $dependency) => str_starts_with($dependency->getConfigDependencyName(), $config_prefix));
     $dependencies = array_map(fn(ConfigEntityDependency $dependency): ?EntityInterface => $this->entityTypeManager->getStorage($config_entity_type_id)->load(str_replace($config_prefix, '', $dependency->getConfigDependencyName())), $dependents);
-    assert(Inspector::assertAllObjects($dependencies, ConfigEntityInterface::class));
+    \assert(Inspector::assertAllObjects($dependencies, ConfigEntityInterface::class));
     return $dependencies;
   }
 
@@ -155,12 +155,12 @@ final class ComponentAudit {
     $dependencies = [];
     foreach ($this->autoSaveManager->getAllAutoSaveList(TRUE) as $autoSave) {
       $entity = $autoSave['entity'];
-      assert(!is_null($entity));
+      \assert(!is_null($entity));
       if (!$entity instanceof ComponentTreeEntityInterface) {
         // @todo Post-1.0, the restrictions that https://www.drupal.org/i/3520487 added will be lifted, meaning node component trees can be edited again. This will then need to be expanded to use the ComponentTreeLoader when appropriate.
         if ($entity instanceof FieldableEntityInterface) {
           // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-          trigger_error(sprintf('Not yet implemented: auto-save usages for %s entities.', $entity->getEntityTypeId()), E_USER_DEPRECATED);
+          trigger_error(\sprintf('Not yet implemented: auto-save usages for %s entities.', $entity->getEntityTypeId()), E_USER_DEPRECATED);
         }
         continue;
       }

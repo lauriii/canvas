@@ -49,7 +49,7 @@ final class HostEntityUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public static function parse(array $prop_source): static {
-    assert(
+    \assert(
       isset($prop_source['sourceType']) &&
       $prop_source['sourceType'] === PropSource::getTypePrefix(self::class)
     );

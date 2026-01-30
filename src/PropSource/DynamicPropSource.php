@@ -54,9 +54,9 @@ final class DynamicPropSource extends PropSourceBase {
   public function withAdapter(string $adapter_plugin_id): static {
     // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
     $adapter_manager = \Drupal::service(AdapterManager::class);
-    assert($adapter_manager instanceof AdapterManager);
+    \assert($adapter_manager instanceof AdapterManager);
     $adapter_instance = $adapter_manager->createInstance($adapter_plugin_id);
-    assert($adapter_instance instanceof AdapterInterface);
+    \assert($adapter_instance instanceof AdapterInterface);
     return new static(
       expression: $this->expression,
       adapter: $adapter_instance,
@@ -86,9 +86,9 @@ final class DynamicPropSource extends PropSourceBase {
     // `sourceType = dynamic` requires an expression to be specified.
     $missing = array_diff(['expression'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+      throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    assert(array_key_exists('expression', $sdc_prop_source));
+    \assert(array_key_exists('expression', $sdc_prop_source));
 
     // @phpstan-ignore-next-line argument.type
     $instance = new DynamicPropSource(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
@@ -134,7 +134,7 @@ final class DynamicPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
-    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
     // The only dependencies are those of the used expression. If a host entity
     // is given, then `content` dependencies may appear as well; otherwise the
     // calculated dependencies will be limited to the entity types, bundle (if

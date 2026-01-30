@@ -12,7 +12,7 @@ final class TestUniqueFieldConstraintValidator extends UniqueFieldValueValidator
 
   // @phpstan-ignore-next-line
   public function validate($items, Constraint $constraint): void {
-    assert($items instanceof FieldItemListInterface);
+    \assert($items instanceof FieldItemListInterface);
     // Avoid affecting all tests — require this string for the constraint to run.
     if (!str_contains($items->getString(), 'unique!')) {
       return;

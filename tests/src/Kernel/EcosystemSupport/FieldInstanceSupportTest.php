@@ -227,7 +227,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $expected_supported_field_props = [];
     $expected_unsupported_field_props = [];
     foreach ($entity_data->getPropertyDefinitions() as $field_name => $field_definition) {
-      assert($field_definition instanceof FieldDefinitionInterface);
+      \assert($field_definition instanceof FieldDefinitionInterface);
       if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {
         continue;
       }
@@ -243,7 +243,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         // Don't consider the properties of unsupported fields.
         continue;
       }
-      assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
+      \assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
       foreach ($field_definition->getItemDefinition()->getPropertyDefinitions() as $field_prop_name => $field_prop_definition) {
         // It makes no sense to map reference *targets*, only the *actual*
         // references. IOW: ignore `target_id` on entity reference fields, only
@@ -291,7 +291,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     // Perform the actual shape matching: find suggestions for every prop in the
     // test-only `all-props` SDC, which contains EVERY possible SDC prop shape.
     $component = \Drupal::service(ComponentPluginManager::class)->find('sdc_test_all_props:all-props');
-    assert($component instanceof Component);
+    \assert($component instanceof Component);
     $suggestions = $this->container->get(PropSourceSuggester::class)
       ->suggest(
         $component->getPluginId(),
@@ -341,14 +341,14 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $this->assertSame(
       self::MATCHING_CLAIMED_SUPPORTED_FIELD_TYPES,
       (float) count($actually_supported_fields) / count($expected_fields),
-      sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields))
+      \sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $missing_fields))
     );
     self::assertSame(
       self::MATCHING_ALL_FIELD_TYPES,
       (float) count($expected_fields) / (count($expected_supported_fields) + count($expected_unsupported_fields)),
     );
     // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $expected_unsupported_fields)), E_USER_DEPRECATED);
+    @trigger_error(\sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $expected_unsupported_fields)), E_USER_DEPRECATED);
 
     // Verify that also at the field type props level, all expectations are met.
     $this->assertSame([], array_values(array_diff($expected_supported_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop))), 'The known supported field types are actually supported, for all their field props.');
@@ -359,14 +359,14 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $this->assertSame(
       self::MATCHING_CLAIMED_SUPPORTED_FIELD_TYPE_PROPERTIES,
       (float) count($actually_supported_field_props) / count($expected_field_props),
-      sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props))
+      \sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $missing_field_props))
     );
     self::assertSame(
       self::MATCHING_ALL_FIELD_TYPE_PROPERTIES,
       (float) count($expected_field_props) / (count($expected_supported_field_props) + count($expected_unsupported_field_props)),
     );
     // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-    @trigger_error(sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $expected_unsupported_field_props)), E_USER_DEPRECATED);
+    @trigger_error(\sprintf('Not yet supported: a JSON schema (prop shape) for the following field properties: %s', implode(', ', $expected_unsupported_field_props)), E_USER_DEPRECATED);
   }
 
   private function createFieldsForAllFieldTypes(): array {

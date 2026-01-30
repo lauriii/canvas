@@ -52,10 +52,10 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $json = $this->traitGetValidClientJson(NULL, $dynamic_image);
     // @see \Drupal\canvas\ClientDataToEntityConverter::convert()
     $content_region = \array_values(\array_filter($json['layout'], static fn(array $region) => $region['id'] === 'content'))[0];
-    assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($content_region))) === 4);
-    assert($content_region['nodeType'] === 'region');
-    assert($content_region['id'] === 'content');
-    assert(is_array($content_region['components']));
+    \assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], array_keys($content_region))) === 4);
+    \assert($content_region['nodeType'] === 'region');
+    \assert($content_region['id'] === 'content');
+    \assert(is_array($content_region['components']));
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,

@@ -136,7 +136,7 @@ class ComponentTest extends KernelTestBase {
     //   are now two versions.
     $this->midTestSetUp();
     $updated_component = Component::load('sdc.canvas_test_sdc.image');
-    assert($updated_component instanceof Component);
+    \assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     $updated_expected_version = 'abadf2538ecfdecc';
     self::assertSame($updated_expected_version, $updated_component->getActiveVersion());
@@ -220,7 +220,7 @@ class ComponentTest extends KernelTestBase {
     // - depends on the `media_library` module
     $updated_component->deleteVersion($initial_expected_version)->save();
     $component_without_obsolete_versions = Component::load('sdc.canvas_test_sdc.image');
-    assert($component_without_obsolete_versions instanceof Component);
+    \assert($component_without_obsolete_versions instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
     self::assertSame($updated_expected_version, $updated_component->getActiveVersion());
     self::assertSame([$updated_expected_version], $updated_component->getVersions());

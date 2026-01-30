@@ -43,7 +43,7 @@ final class AddPageControllerTest extends KernelTestBase {
 
     $this->expectException(CacheableAccessDeniedHttpException::class);
     $this->expectExceptionMessage(
-      sprintf("The '%s' permission is required", Page::CREATE_PERMISSION)
+      \sprintf("The '%s' permission is required", Page::CREATE_PERMISSION)
     );
 
     $this->request(Request::create($this->getCsrfUrlString($url)));
@@ -88,7 +88,7 @@ final class AddPageControllerTest extends KernelTestBase {
       return $url->toString();
     });
     $bubbleable_metadata = $context->pop();
-    assert($bubbleable_metadata instanceof BubbleableMetadata);
+    \assert($bubbleable_metadata instanceof BubbleableMetadata);
     $build = [
       '#plain_text' => $url,
     ];

@@ -41,13 +41,13 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
   protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([Page::EDIT_PERMISSION]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
 
     // Create a user with an arbitrary permission that is not related to
     // accessing any Canvas resources.
     $user2 = $this->createUser(['view media']);
-    assert($user2 instanceof UserInterface);
+    \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
   }
 
@@ -106,7 +106,7 @@ class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer site configuration',
     ]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
 
     $this->assertExpectedResponse(

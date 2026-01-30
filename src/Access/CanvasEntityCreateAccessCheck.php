@@ -44,7 +44,7 @@ final class CanvasEntityCreateAccessCheck extends EntityCreateAccessCheck implem
       }
       // If we were unable to replace all placeholders, deny access.
       if (str_contains($bundle, '{')) {
-        return AccessResult::neutral(sprintf("Could not find '%s' request argument, therefore cannot check create access.", $bundle));
+        return AccessResult::neutral(\sprintf("Could not find '%s' request argument, therefore cannot check create access.", $bundle));
       }
     }
 

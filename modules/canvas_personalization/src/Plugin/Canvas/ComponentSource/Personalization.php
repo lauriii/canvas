@@ -69,7 +69,7 @@ final class Personalization extends ComponentSourceBase implements
     array $plugin_definition,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
   ) {
-    assert(array_key_exists('local_source_id', $configuration));
+    \assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -235,7 +235,7 @@ final class Personalization extends ComponentSourceBase implements
     $segment_id_constraints = new Sequentially([
       new Type('string'),
       new NotBlank(),
-      new ConfigExistsConstraint(['prefix' => sprintf('canvas_personalization.%s.', Segment::ENTITY_TYPE_ID)]),
+      new ConfigExistsConstraint(['prefix' => \sprintf('canvas_personalization.%s.', Segment::ENTITY_TYPE_ID)]),
     ]);
 
     $component_constraints = match ($this->getType()) {
@@ -399,7 +399,7 @@ final class Personalization extends ComponentSourceBase implements
 
   public function setSlots(array &$build, array $slots): void {
     // @see ::getSlotDefinitions()
-    assert(array_keys($slots) === ['content']);
+    \assert(array_keys($slots) === ['content']);
     $build += $slots;
   }
 

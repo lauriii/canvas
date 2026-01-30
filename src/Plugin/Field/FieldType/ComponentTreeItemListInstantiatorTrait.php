@@ -57,7 +57,7 @@ trait ComponentTreeItemListInstantiatorTrait {
       'parent' => $parent?->getTypedData(),
       'data_definition' => $list_definition,
     ]);
-    assert($item_list instanceof ComponentTreeItemList);
+    \assert($item_list instanceof ComponentTreeItemList);
 
     return $item_list;
   }

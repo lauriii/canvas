@@ -124,7 +124,7 @@ class FolderTest extends KernelTestBase {
 
     // 1. Load Folder that contains 'sdc.canvas_test_sdc.card'.
     $original_folder = Folder::loadByItemAndConfigEntityTypeId('sdc.canvas_test_sdc.card', Component::ENTITY_TYPE_ID);
-    assert($original_folder instanceof Folder);
+    \assert($original_folder instanceof Folder);
 
     // 2. Remove 'sdc.canvas_test_sdc.card' from its default Folder.
     $original_folder->removeItem('sdc.canvas_test_sdc.card')->save();
@@ -140,7 +140,7 @@ class FolderTest extends KernelTestBase {
     // 5. Delete another Component from its default Folder, this should remove
     // the Component from Folder items list.
     $default_folder_id = Folder::loadByItemAndConfigEntityTypeId('sdc.canvas_test_sdc.attributes', Component::ENTITY_TYPE_ID);
-    assert($default_folder_id instanceof Folder);
+    \assert($default_folder_id instanceof Folder);
     Component::load('sdc.canvas_test_sdc.attributes')?->delete();
     $this->assertNotContains('sdc.canvas_test_sdc.attributes', Folder::load($default_folder_id->id())?->get('items'));
   }

@@ -31,7 +31,7 @@ final class BlockComponentFormTest extends FunctionalTestBase {
 
   public function test(): void {
     $user = $this->drupalCreateUser(['access content']);
-    assert($user instanceof AccountInterface);
+    \assert($user instanceof AccountInterface);
     $this->drupalLogin($user);
 
     $page = Page::create([
@@ -45,7 +45,7 @@ final class BlockComponentFormTest extends FunctionalTestBase {
 
     self::assertCount(0, $page->validate());
     $page->save();
-    assert($page instanceof Page);
+    \assert($page instanceof Page);
 
     $html = $this->drupalGet($page->toUrl()->toString());
     $crawler = new Crawler($html);

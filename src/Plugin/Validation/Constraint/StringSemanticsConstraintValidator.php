@@ -20,7 +20,7 @@ final class StringSemanticsConstraintValidator extends ConstraintValidator {
     if (!$constraint instanceof StringSemanticsConstraint) {
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\StringSemantics');
     }
-    assert(in_array($constraint->semantic, [
+    \assert(in_array($constraint->semantic, [
       StringSemanticsConstraint::PROSE,
       StringSemanticsConstraint::MARKUP,
       StringSemanticsConstraint::STRUCTURED,

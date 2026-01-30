@@ -43,7 +43,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
       // @see `type: canvas.component_source_settings.*`
       array_diff_key($this->configuration, array_flip(['local_source_id'])),
     );
-    assert($typed_source_specific_settings instanceof Mapping);
+    \assert($typed_source_specific_settings instanceof Mapping);
     $normalized_data = [
       'settings' => $typed_source_specific_settings->toArray(),
       'slot_definitions' => $this instanceof ComponentSourceWithSlotsInterface
@@ -119,7 +119,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    */
   public function getPluginDefinition(): array {
     $definition = parent::getPluginDefinition();
-    assert(is_array($definition));
+    \assert(is_array($definition));
     return $definition;
   }
 

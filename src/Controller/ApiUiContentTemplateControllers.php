@@ -59,7 +59,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     $this->validateRequest($content_entity_type_id, $bundle, $component_config_entity_id);
     // @phpstan-ignore-next-line
     $source = Component::load($component_config_entity_id)->getComponentSource();
-    assert($source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
 
     $suggestions = $this->propSourceSuggester->suggest(
       $source->getSourceSpecificComponentId(),
@@ -89,11 +89,11 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     }
 
     if ($this->entityTypeManager->getDefinition($content_entity_type_id, FALSE) === NULL) {
-      throw new NotFoundHttpException(sprintf("The `%s` content entity type does not exist.", $content_entity_type_id));
+      throw new NotFoundHttpException(\sprintf("The `%s` content entity type does not exist.", $content_entity_type_id));
     }
 
     if (!array_key_exists($bundle, $this->entityTypeBundleInfo->getBundleInfo($content_entity_type_id))) {
-      throw new NotFoundHttpException(sprintf("The `%s` content entity type does not have a `%s` bundle.", $content_entity_type_id, $bundle));
+      throw new NotFoundHttpException(\sprintf("The `%s` content entity type does not have a `%s` bundle.", $content_entity_type_id, $bundle));
     }
   }
 
@@ -108,7 +108,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     $entity_storage = $this->entityTypeManager->getStorage($entity_type_id);
 
     $entity_ids = $entity_query->execute();
-    assert(is_array($entity_ids));
+    \assert(is_array($entity_ids));
     $entity_query_cacheability = (new CacheableMetadata())
       ->addCacheTags($entity_definition->getBundleListCacheTags($bundle))
       ->addCacheContexts($entity_storage->getEntityType()->getListCacheContexts());

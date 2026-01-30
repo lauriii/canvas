@@ -49,7 +49,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     }
 
     if (!$this->documentLocation) {
-      throw new \Exception(sprintf('Could not find OpenAPI schema at %s.', implode(' or ', $tested_paths)));
+      throw new \Exception(\sprintf('Could not find OpenAPI schema at %s.', implode(' or ', $tested_paths)));
     }
   }
 
@@ -64,15 +64,15 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     $open_api_data = $specification->getSerializableData();
     $validator->validate($open_api_data, (object) ['$ref' => 'file://' . $this->documentLocation]);
     $this->assertTrue($validator->isValid(), implode(array_map(function (array $error) {
-      return sprintf('%s:%s%s', $error['property'], $error['message'], \PHP_EOL);
+      return \sprintf('%s:%s%s', $error['property'], $error['message'], \PHP_EOL);
     }, $validator->getErrors())));
   }
 
   public function testForbidPatternProperties(): void {
     $file = file_get_contents(__DIR__ . '/../../../openapi.yml');
-    assert(!empty($file));
+    \assert(!empty($file));
     $encoded = json_encode(Yaml::decode($file));
-    assert(is_string($encoded));
+    \assert(is_string($encoded));
     // Check the encoded string to allow 'patternProperties' in comments.
     $this->assertFalse(str_contains($encoded, 'patternProperties'), '`patternProperties` in the the openapi.yml file is not supported use `additionalProperties` instead.');
   }

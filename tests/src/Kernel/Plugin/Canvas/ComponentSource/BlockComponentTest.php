@@ -120,7 +120,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     $this->generateComponentConfig();
 
     $view_block_component = Component::load('block.views_block.test_view-test_block');
-    assert($view_block_component instanceof Component);
+    \assert($view_block_component instanceof Component);
     $this->assertTrue($view_block_component->status());
 
     return array_combine($auto_created_components, $auto_created_components);
@@ -339,7 +339,7 @@ HTML,
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);
 
     $component = $canvas_field_item->getComponent();
-    assert($component instanceof Component);
+    \assert($component instanceof Component);
 
     $explicit = $component->getComponentSource()->getExplicitInput($canvas_field_item->getUuid(), $canvas_field_item);
     $componentSettings = $explicit;
@@ -450,7 +450,7 @@ HTML,
     $this->assertSame('Footer', $this->config($config)->get('label'));
 
     $menu = Menu::load('footer');
-    assert($menu instanceof Menu);
+    \assert($menu instanceof Menu);
     $label = 'Old footer menu';
     $menu->set('label', $label)->save();
 
@@ -462,7 +462,7 @@ HTML,
   public function testVersionDeterminability(): void {
     $this->generateComponentConfig();
     $original_component = Component::load('block.canvas_test_block_input_validatable');
-    assert($original_component instanceof Component);
+    \assert($original_component instanceof Component);
     $original_version = $original_component->getActiveVersion();
 
     // Trigger an alter to the schema which should result in a new version as
@@ -473,7 +473,7 @@ HTML,
     $this->generateComponentConfig();
 
     $new_component = Component::load('block.canvas_test_block_input_validatable');
-    assert($new_component instanceof Component);
+    \assert($new_component instanceof Component);
 
     $new_version = $new_component->getActiveVersion();
     self::assertNotEquals($new_version, $original_version);

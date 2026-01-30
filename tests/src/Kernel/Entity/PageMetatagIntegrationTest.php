@@ -158,7 +158,7 @@ final class PageMetatagIntegrationTest extends KernelTestBase {
     ]);
     self::assertSaveWithoutViolations($page);
     $themeHandler = $this->container->get('theme_handler');
-    assert($themeHandler instanceof ThemeHandlerInterface);
+    \assert($themeHandler instanceof ThemeHandlerInterface);
     $sut = new EntityFormController($this->container->get(AutoSaveManager::class), $this->container->get(RequestStack::class), $themeHandler);
     $form = $sut->form(Page::ENTITY_TYPE_ID, $page, 'default');
     self::assertArrayHasKey('image', $form['seo_settings']);

@@ -34,7 +34,7 @@ class UriOverride extends Uri {
       $uri .= '#' . $components['fragment'];
     }
 
-    assert(UrlHelper::isValid($uri));
+    \assert(UrlHelper::isValid($uri));
     return $uri;
   }
 

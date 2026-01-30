@@ -99,13 +99,13 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   public function setValue($value, $notify = TRUE): void {
     if (is_string($value)) {
       // If there are no inputs, an empty array is a valid value.
-      assert(str_starts_with($value, '{') || $value === '[]');
+      \assert(str_starts_with($value, '{') || $value === '[]');
       // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
       $this->value = $value;
       $this->inputs = Json::decode($value);
     }
     else {
-      assert(is_array($value));
+      \assert(is_array($value));
       $this->inputs = $value;
       $this->value = Json::encode($value);
     }
@@ -164,7 +164,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    *   The keys will be strings in the form of "INSTANCE_UUID:PROP_NAME".
    */
   public function getPropSourcesUsingExpressionClass(string $expression_class): iterable {
-    assert(is_a($expression_class, StructuredDataPropExpression::class, TRUE));
+    \assert(is_a($expression_class, StructuredDataPropExpression::class, TRUE));
     foreach ($this->getPropSources() as $key => $prop_source) {
       if ($prop_source instanceof AdaptedPropSource) {
         throw new \LogicException('@todo as soon as adapted prop sources are actually used');
@@ -237,7 +237,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    */
   public function getValues(): array {
     $item = $this->getParent();
-    assert($item instanceof ComponentTreeItem);
+    \assert($item instanceof ComponentTreeItem);
     $component_instance_uuid = $item->getUuid();
     $source = $item->getComponent()?->getComponentSource();
     if ($source === NULL) {

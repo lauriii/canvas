@@ -87,19 +87,19 @@ final class ContentTemplateTest extends KernelTestBase {
   public function testOnlyContentEntitiesCanUseTemplates(): void {
     $manager = \Drupal::entityTypeManager();
     $definition = $manager->getDefinition('node');
-    assert($definition instanceof EntityTypeInterface);
+    \assert($definition instanceof EntityTypeInterface);
     $this->assertTrue($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
     $this->assertSame(ContentTemplateAwareViewBuilder::class, $definition->getViewBuilderClass());
 
     // Config entities have no view builder and Canvas doesn't touch them.
     $definition = $manager->getDefinition('user_role');
-    assert($definition instanceof EntityTypeInterface);
+    \assert($definition instanceof EntityTypeInterface);
     $this->assertFalse($definition->hasViewBuilderClass());
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
 
     // Canvas pages are left alone despite being content entities.
     $definition = $manager->getDefinition(Page::ENTITY_TYPE_ID);
-    assert($definition instanceof EntityTypeInterface);
+    \assert($definition instanceof EntityTypeInterface);
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
   }
 

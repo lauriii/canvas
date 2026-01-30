@@ -41,7 +41,7 @@ class ContentCreatorVisibleCanvasConfigEntityAccessControlHandler extends Canvas
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
-    assert($entity instanceof ConfigEntityInterface);
+    \assert($entity instanceof ConfigEntityInterface);
     return match($operation) {
       // We allow viewing the label of these entities if the user has access to
       // Canvas to allow them to be published.

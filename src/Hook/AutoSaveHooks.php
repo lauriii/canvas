@@ -50,7 +50,7 @@ class AutoSaveHooks {
       if ($form_state->getFormObject() instanceof EntityFormInterface) {
         $entity = $form_state->getFormObject()->getEntity();
       }
-      assert($entity instanceof RevisionableInterface);
+      \assert($entity instanceof RevisionableInterface);
       if (!$this->autoSaveManager->getAutoSaveEntity($entity)->isEmpty()) {
         if (!empty($form['actions']['submit']['#submit'])) {
           $form['actions']['submit']['#submit'][] = [self::class, 'revisionRevertSubmit'];

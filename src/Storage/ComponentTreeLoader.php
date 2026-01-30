@@ -36,7 +36,7 @@ final class ComponentTreeLoader {
     }
     $field_name = $this->getCanvasFieldName($entity);
     $item = $entity->get($field_name);
-    assert($item instanceof ComponentTreeItemList);
+    \assert($item instanceof ComponentTreeItemList);
     return $item;
   }
 

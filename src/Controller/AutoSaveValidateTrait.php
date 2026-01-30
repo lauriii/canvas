@@ -52,7 +52,7 @@ trait AutoSaveValidateTrait {
     $expected_auto_saves = [];
     $foundClientIdMismatch = FALSE;
     foreach ($entitiesToValidate as $entityToValidate) {
-      assert($entityToValidate instanceof EntityInterface);
+      \assert($entityToValidate instanceof EntityInterface);
       $autoSaveEntity = $this->autoSaveManager->getAutoSaveEntity($entityToValidate);
       $expected_auto_saves[AutoSaveManager::getAutoSaveKey($entityToValidate)] = $this->autoSaveManager->getClientAutoSaveData($entityToValidate);
       $foundClientIdMismatch = $foundClientIdMismatch || (!$autoSaveEntity->isEmpty() && $autoSaveEntity->clientId !== $clientId);

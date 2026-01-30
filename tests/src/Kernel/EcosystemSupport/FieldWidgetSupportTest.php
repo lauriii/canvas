@@ -65,7 +65,7 @@ final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
     $this->assertSame(
       self::COMPLETION,
       count($supported) / count($field_widget_definitions),
-      sprintf('Not yet supported: %s', implode(', ', array_keys($missing)))
+      \sprintf('Not yet supported: %s', implode(', ', array_keys($missing)))
     );
   }
 

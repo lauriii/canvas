@@ -32,9 +32,9 @@ class UtmParametersTest extends KernelTestBase {
     $this->container->set('request_stack', new RequestStack([$request]));
 
     $condition_manager = \Drupal::service('plugin.manager.condition');
-    assert($condition_manager instanceof ConditionManager);
+    \assert($condition_manager instanceof ConditionManager);
     $condition = $condition_manager->createInstance(UtmParameters::PLUGIN_ID, $configuration);
-    assert($condition instanceof UtmParameters);
+    \assert($condition instanceof UtmParameters);
     $this->assertSame($matches, $condition->evaluate());
   }
 

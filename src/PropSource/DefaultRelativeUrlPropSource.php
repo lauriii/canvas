@@ -38,9 +38,9 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     private readonly string $componentId,
   ) {
     $component = Component::load($componentId);
-    assert($component instanceof Component);
+    \assert($component instanceof Component);
     $componentSource = $component->getComponentSource();
-    assert($componentSource instanceof UrlRewriteInterface);
+    \assert($componentSource instanceof UrlRewriteInterface);
     $this->componentSource = $componentSource;
   }
 
@@ -73,11 +73,11 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     // specified.
     $missing = array_diff(['value', 'jsonSchema', 'componentId'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+      throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    assert(array_key_exists('value', $sdc_prop_source));
-    assert(array_key_exists('jsonSchema', $sdc_prop_source));
-    assert(array_key_exists('componentId', $sdc_prop_source));
+    \assert(array_key_exists('value', $sdc_prop_source));
+    \assert(array_key_exists('jsonSchema', $sdc_prop_source));
+    \assert(array_key_exists('componentId', $sdc_prop_source));
 
     // @todo Make this far less clunky 🙈
     $minimal = PropShape::normalize(
@@ -90,7 +90,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     self::recursiveKsort($minimal);
 
     if ($sdc_prop_source_json_schema !== $minimal) {
-      throw new \LogicException(sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source_json_schema, JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
+      throw new \LogicException(\sprintf('Extraneous JSON Schema information detected: %s should have been just %s.', json_encode($sdc_prop_source_json_schema, JSON_PRETTY_PRINT), json_encode($minimal, JSON_PRETTY_PRINT)));
     }
 
     return new self(
@@ -134,7 +134,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
 
   private static function recurse(array $json_schema, mixed $value, UrlRewriteInterface $component_source): mixed {
     if ($json_schema['type'] === 'array') {
-      assert(array_is_list($value));
+      \assert(array_is_list($value));
       $evaluated = [];
       foreach ($value as $k => $v) {
         $evaluated[$k] = self::recurse($json_schema['items'], $v, $component_source);
@@ -142,7 +142,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       return $evaluated;
     }
     elseif ($json_schema['type'] === 'object') {
-      assert(!array_is_list($value));
+      \assert(!array_is_list($value));
       $evaluated = [];
       foreach ($value as $k => $v) {
         $evaluated[$k] = self::recurse($json_schema['properties'][$k], $v, $component_source);
@@ -183,10 +183,10 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
-    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
     // @phpstan-ignore-next-line
     $component_definition = \Drupal::entityTypeManager()->getDefinition(Component::ENTITY_TYPE_ID);
-    assert($component_definition instanceof ConfigEntityTypeInterface);
+    \assert($component_definition instanceof ConfigEntityTypeInterface);
     $component_prefix = $component_definition->getConfigPrefix();
     return ['config' => ["$component_prefix.$this->componentId"]];
   }

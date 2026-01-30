@@ -99,7 +99,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
       'administer content types',
       'administer node display',
     ]);
-    assert($currentUser instanceof UserInterface);
+    \assert($currentUser instanceof UserInterface);
     $this->currentUser = $currentUser;
     $this->drupalLogin($this->currentUser);
 
@@ -209,7 +209,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
       'component_tree' => [],
       'status' => $enabled,
     ]);
-    assert($template instanceof ConfigEntityInterface);
+    \assert($template instanceof ConfigEntityInterface);
     $template->save();
 
     return $template;

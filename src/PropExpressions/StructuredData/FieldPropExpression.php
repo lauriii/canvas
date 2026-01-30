@@ -71,7 +71,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
     if (is_array($fieldName)) {
       $bundles = $entityType->getBundles();
-      assert($bundles !== NULL && count($bundles) >= 1);
+      \assert($bundles !== NULL && count($bundles) >= 1);
 
       if (count($bundles) !== count(array_unique($bundles))) {
         throw new \InvalidArgumentException('Duplicate bundles are nonsensical.');
@@ -88,7 +88,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       // MUST be specified for every field name.
       // TRICKY: ⚠️ It is possible that the same field name occurs multiple
       // times (if different bundles use the same field).
-      assert(is_array($fieldName));
+      \assert(is_array($fieldName));
       if (array_values(array_unique($fieldName)) !== array_keys($propName)) {
         throw new \InvalidArgumentException('A field property name must be specified for every field name, and in the same order.');
       }
@@ -127,12 +127,12 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
    * {@inheritdoc}
    */
   public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
-    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
     // @phpstan-ignore-next-line
     $entity_type_manager = \Drupal::entityTypeManager();
     $entity_type_id = $this->entityType->getEntityTypeId();
-    assert($entity_type_manager instanceof EntityTypeManagerInterface);
-    assert(\is_string($entity_type_id));
+    \assert($entity_type_manager instanceof EntityTypeManagerInterface);
+    \assert(\is_string($entity_type_id));
     $entity_type = $entity_type_manager->getDefinition($entity_type_id);
     $dependencies = [];
 
@@ -144,7 +144,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $possible_bundles = $this->entityType->getBundles();
     if ($possible_bundles !== NULL && $entity_type->getBundleEntityType()) {
       $possible_bundles = $this->entityType->getBundles();
-      assert(is_array($possible_bundles));
+      \assert(is_array($possible_bundles));
       foreach ($possible_bundles as $bundle) {
         $bundle_config_dependency = $entity_type->getBundleConfigDependency($bundle);
         $dependencies[$bundle_config_dependency['type']][] = $bundle_config_dependency['name'];
@@ -152,10 +152,10 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     }
 
     if (is_string($this->fieldName)) {
-      assert(is_string($this->propName));
+      \assert(is_string($this->propName));
       $field_definitions = $this->entityType->getPropertyDefinitions();
       if (!isset($field_definitions[$this->fieldName])) {
-        throw new \LogicException(sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
+        throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
       }
       // Determine the bundle to use during dependency calculation:
       $bundle = match (TRUE) {
@@ -167,7 +167,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
         //   the bundle
         default => NULL,
       };
-      assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
+      \assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
       $field_definition = $field_definitions[$this->fieldName];
       $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definition, $bundle));
 
@@ -183,14 +183,14 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       }
     }
     else {
-      assert(is_array($possible_bundles));
-      assert(is_string($this->propName) || (is_array($this->propName) && is_array($this->fieldName)));
+      \assert(is_array($possible_bundles));
+      \assert(is_string($this->propName) || (is_array($this->propName) && is_array($this->fieldName)));
       foreach ($possible_bundles as $bundle) {
         // @phpstan-ignore-next-line
         $bundle_field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
         $bundle_specific_field_name = $this->fieldName[$bundle];
         if (!isset($bundle_field_definitions[$bundle_specific_field_name])) {
-          throw new \LogicException(sprintf("%s field on the %s bundle referenced in %s %s does not exist.", $bundle_specific_field_name, $bundle, (string) $this, __CLASS__));
+          throw new \LogicException(\sprintf("%s field on the %s bundle referenced in %s %s does not exist.", $bundle_specific_field_name, $bundle, (string) $this, __CLASS__));
         }
         $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($bundle_field_definitions[$bundle_specific_field_name], $bundle));
       }
@@ -226,15 +226,15 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
     if (!array_key_exists($prop_name, $property_definitions)) {
       // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
-      @trigger_error(sprintf('Property %s does not exist', $prop_name), E_USER_DEPRECATED);
+      @trigger_error(\sprintf('Property %s does not exist', $prop_name), E_USER_DEPRECATED);
     }
     elseif (is_a($property_definitions[$prop_name]->getClass(), DependentPluginInterface::class, TRUE)) {
-      assert($property_definitions[$prop_name]->isComputed());
+      \assert($property_definitions[$prop_name]->isComputed());
       foreach ($host_entity->get($field_name) as $delta => $field_item) {
         if ($targeted_delta !== NULL && $targeted_delta !== $delta) {
           continue;
         }
-        assert($field_item->get($prop_name) instanceof DependentPluginInterface);
+        \assert($field_item->get($prop_name) instanceof DependentPluginInterface);
         $dependencies = NestedArray::mergeDeep($dependencies, $field_item->get($prop_name)->calculateDependencies());
       }
     }
@@ -255,7 +255,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $target_bundle = $field_definition->getTargetBundle();
     \assert(is_string($target_bundle));
     $config = $field_definition->getConfig($target_bundle);
-    assert($config instanceof BaseFieldOverride || $config instanceof FieldConfigInterface);
+    \assert($config instanceof BaseFieldOverride || $config instanceof FieldConfigInterface);
     // Ignore config auto-generated by ::getConfig().
     if (!$config->isNew()) {
       // @todo Possible future optimization: ignore base field overrides unless they modify the `field_type`, `settings` or `required` properties compared to the code-defined base field. Any other modification has no effect on evaluating this expression.
@@ -264,7 +264,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
 
     // Calculate dependencies from the field item and its properties.
     $field_item_class = $field_definition->getItemDefinition()->getClass();
-    assert(is_subclass_of($field_item_class, FieldItemInterface::class));
+    \assert(is_subclass_of($field_item_class, FieldItemInterface::class));
     $instance_deps = $field_item_class::calculateDependencies($field_definition);
     $storage_deps = $field_item_class::calculateStorageDependencies($field_definition->getFieldStorageDefinition());
     $dependencies = NestedArray::mergeDeep(
@@ -314,14 +314,14 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
   }
 
   public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): void {
-    assert($entity instanceof EntityInterface);
+    \assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->entityType->getEntityTypeId();
     if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
-      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
+      throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
     }
     $expected_bundles = $this->entityType->getBundles();
     if ($expected_bundles !== NULL && !in_array($entity->bundle(), $expected_bundles, TRUE)) {
-      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
+      throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
     }
     // @todo validate that the field exists?
   }

@@ -55,7 +55,7 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity): array {
-    assert($entity instanceof Component);
+    \assert($entity instanceof Component);
 
     $row['id'] = $entity->id();
     $row['label'] = $entity->label();
@@ -63,7 +63,7 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     $row['component_source'] = $source->getPluginDefinition()['label'];
     $row['component_label'] = $source->getComponentDescription();
     $row['component_version']['data'] = [
-      '#prefix' => sprintf('<code title="%s">', $entity->getActiveVersion()),
+      '#prefix' => \sprintf('<code title="%s">', $entity->getActiveVersion()),
       '#plain_text' => count($entity->getVersions()),
       '#suffix' => '</code>',
     ];

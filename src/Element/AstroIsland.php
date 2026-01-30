@@ -97,7 +97,7 @@ final class AstroIsland extends RenderElementBase {
     }
 
     $client = \Drupal::service(LibraryDiscoveryInterface::class)->getLibraryByName('canvas', 'astro.client');
-    assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
+    \assert(isset($client['js'][0]['data']) && count($client['js']) === 1);
     $renderer_url = base_path() . $client['js'][0]['data'];
 
     $mapped_props = \array_map(static fn(mixed $prop_value): array => [

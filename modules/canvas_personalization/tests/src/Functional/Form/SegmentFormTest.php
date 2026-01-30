@@ -56,7 +56,7 @@ final class SegmentFormTest extends BrowserTestBase {
       'administer site configuration',
       Segment::ADMIN_PERMISSION,
     ]);
-    assert($admin_user instanceof AccountInterface);
+    \assert($admin_user instanceof AccountInterface);
     $this->drupalLogin($admin_user);
     $this->drupalGet('/admin/structure/segment/add');
     $this->assertSession()->elementExists('xpath', '//table[@id="rules-id"]//td[text() = "No rules added yet."]');
@@ -137,7 +137,7 @@ final class SegmentFormTest extends BrowserTestBase {
     $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM Parameters");
 
     $segment = Segment::load('my_segment');
-    assert($segment instanceof Segment);
+    \assert($segment instanceof Segment);
     $this->assertEquals([
       'user_role' => [
         'id' => 'user_role',

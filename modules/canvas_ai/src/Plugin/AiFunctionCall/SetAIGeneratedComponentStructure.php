@@ -115,7 +115,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());
-      $this->setOutput(sprintf('Failed to process layout data: %s', $e->getMessage()));
+      $this->setOutput(\sprintf('Failed to process layout data: %s', $e->getMessage()));
     }
   }
 

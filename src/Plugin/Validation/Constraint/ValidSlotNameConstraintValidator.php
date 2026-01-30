@@ -18,7 +18,7 @@ final class ValidSlotNameConstraintValidator extends RegexValidator {
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    assert($constraint instanceof ValidSlotNameConstraint);
+    \assert($constraint instanceof ValidSlotNameConstraint);
     if ($value === NULL) {
       return;
     }
@@ -29,10 +29,10 @@ final class ValidSlotNameConstraintValidator extends RegexValidator {
     // which case the mapping's name should be the slot name.
     if (!is_string($value)) {
       $data = $this->context->getObject();
-      assert($data instanceof TypedDataInterface);
+      \assert($data instanceof TypedDataInterface);
       $value = $data->getName();
     }
-    assert(is_string($value));
+    \assert(is_string($value));
 
     parent::validate($value, new Regex($constraint::VALID_NAME, '%value is not a valid slot name.'));
   }

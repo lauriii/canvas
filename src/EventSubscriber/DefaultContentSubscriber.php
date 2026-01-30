@@ -123,8 +123,8 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
   }
 
   public function preEntityImport(PreEntityImportEvent $event): void {
-    assert(isset($event->metadata['entity_type']));
-    assert(is_string($event->metadata['entity_type']));
+    \assert(isset($event->metadata['entity_type']));
+    \assert(is_string($event->metadata['entity_type']));
 
     if (!isset($this->componentTreeFieldMap[$event->metadata['entity_type']])) {
       // If the entity type does not have any component tree fields then no
@@ -160,10 +160,10 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
     if (!isset($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY])) {
       return $prop_input;
     }
-    assert(is_array($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY]));
+    \assert(is_array($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY]));
     $export_data = $prop_input[self::EXPORT_ENTITY_REFERENCE_KEY];
-    assert(array_key_exists('target_uuid', $export_data));
-    assert(array_key_exists('target_type', $export_data));
+    \assert(array_key_exists('target_uuid', $export_data));
+    \assert(array_key_exists('target_type', $export_data));
     $entity = $this->entityRepository->loadEntityByUuid($export_data['target_type'], $export_data['target_uuid']);
     \assert($entity instanceof EntityInterface);
     $prop_input['target_id'] = $entity->id();

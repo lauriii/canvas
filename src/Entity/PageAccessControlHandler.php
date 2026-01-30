@@ -16,7 +16,7 @@ final class PageAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
-    assert($entity instanceof Page);
+    \assert($entity instanceof Page);
     $access = parent::checkAccess($entity, $operation, $account);
 
     return match ($operation) {

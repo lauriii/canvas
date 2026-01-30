@@ -46,7 +46,7 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandler extends Ca
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
-    assert($entity instanceof ConfigEntityInterface);
+    \assert($entity instanceof ConfigEntityInterface);
 
     // We always allow viewing these entities if the user has access to Canvas,
     // even if disabled.
@@ -61,7 +61,7 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandler extends Ca
         && $entity instanceof JavaScriptComponent
         && $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($entity->id()))
     ) {
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       // TRICKY: inspect usage last for 2 reasons:
       // 1. This avoids overwriting the "config dependencies" reason to not
       //    allow access set by the parent implementation.

@@ -102,7 +102,7 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
    */
   public function getComponentTree(): ComponentTreeItemList {
     $item = $this->get('components');
-    assert($item instanceof ComponentTreeItemList);
+    \assert($item instanceof ComponentTreeItemList);
     return $item;
   }
 

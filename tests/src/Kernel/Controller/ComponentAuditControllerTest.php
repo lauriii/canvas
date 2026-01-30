@@ -127,7 +127,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       }
     }
     $page1 = $storages[Page::ENTITY_TYPE_ID]->load(1);
-    assert($page1 instanceof Page);
+    \assert($page1 instanceof Page);
     $page1->get('components')->setValue([
       [
         'uuid' => 'component-sdc',
@@ -140,7 +140,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $page1->save();
 
     $node1 = $storages['node']->load(1);
-    assert($node1 instanceof NodeInterface);
+    \assert($node1 instanceof NodeInterface);
     $node1->get('field_canvas_test')->setValue([
       [
         'uuid' => 'component-sdc',
@@ -153,7 +153,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.props-slots'])->toString();
     $response = $this->request(Request::create($audit_url));
-    assert($response instanceof HtmlResponse);
+    \assert($response instanceof HtmlResponse);
     self::assertEqualsCanonicalizing([
       'theme',
       'user.roles:authenticated',
@@ -199,7 +199,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
     $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.druplicon'])->toString();
     $response = $this->request(Request::create($audit_url));
-    assert($response instanceof HtmlResponse);
+    \assert($response instanceof HtmlResponse);
     self::assertEqualsCanonicalizing([
       'theme',
       'user.roles:authenticated',
@@ -238,7 +238,7 @@ final class ComponentAuditControllerTest extends KernelTestBase {
 
   private function assertTableCellContains(string $table_name, int $row_index, int $column_index, string $needle): void {
     $xpath_element = $this->xpath("//table[@name=\"$table_name\"]//tr[$row_index]//td[$column_index]");
-    assert(\is_array($xpath_element) && \array_key_exists(0, $xpath_element));
+    \assert(\is_array($xpath_element) && \array_key_exists(0, $xpath_element));
     $this->assertStringContainsString($needle, trim((string) $xpath_element[0]->asXML()));
   }
 

@@ -32,7 +32,7 @@ final class ApiResponseValidator extends ApiMessageValidatorBase {
     ValidatorBuilder $validatorBuilder,
     RequestEvent|ResponseEvent $event,
   ): void {
-    assert($event instanceof ResponseEvent);
+    \assert($event instanceof ResponseEvent);
     $request = $event->getRequest();
     $response = $event->getResponse();
     if (!$response instanceof JsonResponse) {

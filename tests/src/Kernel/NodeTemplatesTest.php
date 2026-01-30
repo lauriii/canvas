@@ -205,7 +205,7 @@ HTML;
     // Canvas for rendering.
     self::assertCount(0, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
     self::assertCount(0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
-    self::assertCount(0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
+    self::assertCount(0, $crawler->filter(\sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
     self::assertEqualsCanonicalizing([
@@ -233,11 +233,11 @@ HTML;
     // Confirm although we've opted in the status of the template is false so
     // will not be used.
     $template = ContentTemplate::load('node.article.full');
-    assert($template instanceof ContentTemplate);
+    \assert($template instanceof ContentTemplate);
     self::assertFalse($template->status());
     self::assertCount(0, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
     self::assertCount(0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
-    self::assertCount(0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
+    self::assertCount(0, $crawler->filter(\sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount(1, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
 
@@ -262,7 +262,7 @@ HTML;
     self::assertStringContainsString('Canvas is large and in charge!', $html);
     self::assertCount(1, $crawler->filter('h1.my-hero__heading:contains("Canvas is large and in charge!")'));
     self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter('div.my-hero__container > p.my-hero__subheading:contains("2025-12-04")'));
-    self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter(sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
+    self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter(\sprintf('div.my-hero__container > div.my-hero__actions > a[href="%s/node/1"]:contains("%s")', $GLOBALS['base_url'], $node->getTitle())));
     self::assertCount($expected_entity_data_is_accessible ? 1 : 0, $crawler->filter('p:contains("Hey this is allowed")'));
     self::assertCount(0, $crawler->filter('script'));
     self::assertEqualsCanonicalizing([
@@ -290,7 +290,7 @@ HTML;
     $crawler = $this->crawlerForRenderArray($output);
     // Confirm that the template is NOT used when viewing the node as a teaser,
     // even though the content type is opted into Canvas.
-    self::assertCount(0, $crawler->filter(sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
+    self::assertCount(0, $crawler->filter(\sprintf('a[href="%s/node/1"]:contains("Canvas is large and in charge!")', $GLOBALS['base_url'])));
     // TRICKY: note that entity access is NOT checked by the EntityViewBuilder,
     // that is up to the caller! The above is specifically testing Canvas
     // ContentTemplates' render arrays. Those are populated by field properties

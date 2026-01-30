@@ -300,19 +300,19 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $needle = is_array($label) ? reset($label) : $label;
     // When recursing, the $prop key won't exist.
     $haystack = array_key_exists($prop, $suggestions) ? $suggestions[$prop] : $suggestions;
-    assert(array_is_list($haystack));
+    \assert(array_is_list($haystack));
     foreach ($haystack as $suggestion) {
       if ($suggestion['label'] === $needle) {
         if ($is_final_level) {
-          assert(array_key_exists('id', $suggestion));
-          assert(array_key_exists('source', $suggestion));
-          assert(array_key_exists('label', $suggestion));
+          \assert(array_key_exists('id', $suggestion));
+          \assert(array_key_exists('source', $suggestion));
+          \assert(array_key_exists('label', $suggestion));
           return $suggestion;
         }
         return self::findSuggestionByLabel(array_slice($label, 1), $prop, $suggestion['items']);
       }
     }
-    throw new \LogicException(sprintf('No suggestion found for prop %s with label %s', $prop, $needle));
+    throw new \LogicException(\sprintf('No suggestion found for prop %s with label %s', $prop, $needle));
   }
 
   public function testDynamicProps(): void {

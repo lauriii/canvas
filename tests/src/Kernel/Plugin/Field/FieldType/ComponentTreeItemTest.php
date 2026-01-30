@@ -86,7 +86,7 @@ class ComponentTreeItemTest extends KernelTestBase {
   public function testSetValue(): void {
     $this->generateComponentConfig();
     $component = Component::load('sdc.canvas_test_sdc.props-slots');
-    assert($component !== NULL);
+    \assert($component !== NULL);
 
     // The test Component has a single version; create a second version.
     self::assertCount(1, $component->getVersions());
@@ -298,7 +298,7 @@ class ComponentTreeItemTest extends KernelTestBase {
 
     // Call all convenience methods on the root component instance.
     $root = $item_list->get(0);
-    assert($root instanceof ComponentTreeItem);
+    \assert($root instanceof ComponentTreeItem);
     $this->assertNull($root->getParentUuid());
     $this->assertNull($root->getParentComponentTreeItem());
     $this->assertNull($root->getSlot());
@@ -311,7 +311,7 @@ class ComponentTreeItemTest extends KernelTestBase {
 
     // Call all convenience methods on the child component instance.
     $child = $item_list->get(1);
-    assert($child instanceof ComponentTreeItem);
+    \assert($child instanceof ComponentTreeItem);
     $this->assertSame($root_uuid, $child->getParentUuid());
     $this->assertSame($root, $child->getParentComponentTreeItem());
     $this->assertSame('the_body', $child->getSlot());
@@ -563,7 +563,7 @@ class ComponentTreeItemTest extends KernelTestBase {
     ]);
     if ($expected_exception !== NULL) {
       $this->expectException($expected_exception);
-      assert(is_string($exception_message));
+      \assert(is_string($exception_message));
       $this->expectExceptionMessage($exception_message);
     }
     $violations = $node->validate();

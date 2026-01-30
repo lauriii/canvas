@@ -73,8 +73,8 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
             : $expected_messages[$parent_property_path],
           FALSE => '',
         };
-        assert(is_string($validation_error_message));
-        if (str_starts_with($validation_error_message, sprintf("'%s' is an unknown key because %s.type is", $popped, $parent_property_path))) {
+        \assert(is_string($validation_error_message));
+        if (str_starts_with($validation_error_message, \sprintf("'%s' is an unknown key because %s.type is", $popped, $parent_property_path))) {
           NestedArray::setValue($nonsensical_subtrees, $parts, TRUE);
           return FALSE;
         }
@@ -123,7 +123,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
     // does not contain sensible values.
     $non_existing_properties = array_diff(array_keys($additional_expected_validation_errors_when_missing ?? []), $config_entity_properties);
     if ($non_existing_properties) {
-      throw new \LogicException(sprintf('The test %s lists `%s` in $additional_expected_validation_errors_when_missing but it is not a property of the `%s` config entity type.',
+      throw new \LogicException(\sprintf('The test %s lists `%s` in $additional_expected_validation_errors_when_missing but it is not a property of the `%s` config entity type.',
         __METHOD__,
         implode(', ', $non_existing_properties),
         $this->entity->getEntityTypeId(),

@@ -65,11 +65,11 @@ class CanvasUiAccessCheck implements AccessInterface {
           $dummy = $this->entityTypeManager->getStorage($entity_type_id)->create([
             $this->entityTypeManager->getDefinition($entity_type_id)->getKey('bundle') => $bundle,
           ]);
-          assert($dummy instanceof FieldableEntityInterface);
+          \assert($dummy instanceof FieldableEntityInterface);
 
           $entity_update_access = $dummy->access('update', $account, TRUE);
           $canvas_field = $dummy->get($field_name);
-          assert($canvas_field instanceof ComponentTreeItemList);
+          \assert($canvas_field instanceof ComponentTreeItemList);
           $canvas_field_edit_access = $canvas_field->access('edit', $account, TRUE);
 
           // Grant access if the current user can:

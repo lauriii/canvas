@@ -98,7 +98,7 @@ final class AstroIslandTest extends KernelTestBase {
     $css_hash = Crypt::hmacBase64($css, $component->uuid());
     $js_hash = Crypt::hmacBase64($js, $component->uuid());
     $discovery = \Drupal::service(LibraryDiscoveryInterface::class);
-    assert($discovery instanceof CacheCollectorInterface);
+    \assert($discovery instanceof CacheCollectorInterface);
     self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('canvas'));
     self::assertStringEqualsFile('assets://astro-island/' . $css_hash . '.css', $css);
     self::assertStringEqualsFile('assets://astro-island/' . $js_hash . '.js', $js);
@@ -208,7 +208,7 @@ final class AstroIslandTest extends KernelTestBase {
       // @phpstan-ignore-next-line
       fn () => \Drupal::service('library.discovery.collector'),
     );
-    assert($discovery instanceof CacheCollectorInterface);
+    \assert($discovery instanceof CacheCollectorInterface);
     self::assertArrayHasKey('astro_island.' . $component->id(), $discovery->get('canvas'));
 
     $island = [

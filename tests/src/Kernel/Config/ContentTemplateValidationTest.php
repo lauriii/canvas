@@ -559,7 +559,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   public function testExposedSlotMustBeEmpty(): void {
-    assert($this->entity instanceof ContentTemplate);
+    \assert($this->entity instanceof ContentTemplate);
 
     // Add a component in one of the open slots.
     $items = $this->entity->getComponentTree();
@@ -662,7 +662,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ])->save();
 
     $tree = $this->entity->get('component_tree');
-    assert(is_array($tree));
+    \assert(is_array($tree));
     $tree[] = [
       'uuid' => '1870f74a-2611-4864-8fc0-639f0d125d7f',
       'component_id' => InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,

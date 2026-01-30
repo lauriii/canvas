@@ -21,7 +21,7 @@ trait CompoundExpressionTrait {
    * @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE
    */
   private static function withoutExpressionTypePrefix(string $representation): string {
-    assert(mb_substr($representation, 0, 2) === StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE);
+    \assert(mb_substr($representation, 0, 2) === StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE);
     return mb_substr($representation, mb_strlen(StructuredDataPropExpressionInterface::PREFIX_EXPRESSION_TYPE));
   }
 
@@ -57,7 +57,7 @@ trait CompoundExpressionTrait {
   private static function parseRootExpression(string $expression_representation): string {
     // Every expression representation MUST contains a property prefix (`␟`).
     $property_prefix_pos = mb_strpos($expression_representation, StructuredDataPropExpressionInterface::PREFIX_PROPERTY_LEVEL);
-    assert(is_int($property_prefix_pos) && $property_prefix_pos < mb_strlen($expression_representation) - 1);
+    \assert(is_int($property_prefix_pos) && $property_prefix_pos < mb_strlen($expression_representation) - 1);
 
     // In case of an *ObjectProps expression, the first character after the
     // property prefix (`␟`) will be an open curly brace (`{`). Consequently

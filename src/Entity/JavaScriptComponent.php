@@ -130,7 +130,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     ];
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
       $access = $this->access(operation: $entity_operation, return_as_object: TRUE);
-      assert($access instanceof AccessResult);
+      \assert($access instanceof AccessResult);
       if ($access->isAllowed()) {
         $route_params = [
           'canvas_config_entity_type_id' => self::ENTITY_TYPE_ID,
@@ -159,8 +159,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // TRICKY: config entity properties may allow NULL, but only valid, saved
     // config entities are ever normalized: those that have passed validation
     // against config schema.
-    assert(is_array($this->js));
-    assert(is_array($this->css));
+    \assert(is_array($this->js));
+    \assert(is_array($this->css));
     $linkCollection = $this->getEntityOperations();
     return ClientSideRepresentation::create(
       values: [
@@ -197,9 +197,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // TRICKY: config entity properties may allow NULL, but only valid, saved
     // config entities are ever normalized: those that have passed validation
     // against config schema.
-    assert(is_array($this->props));
-    assert(is_array($this->slots));
-    assert(is_string($this->uuid));
+    \assert(is_array($this->props));
+    \assert(is_array($this->slots));
+    \assert(is_string($this->uuid));
 
     // If there's an auto-saved version of this code component, load that
     // instead to generate the preview. JsComponent::renderComponent() *already*
@@ -507,7 +507,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
 
   protected function getConfigPrefix(): string {
     $entity_type = $this->getEntityType();
-    assert($entity_type instanceof ConfigEntityTypeInterface);
+    \assert($entity_type instanceof ConfigEntityTypeInterface);
     return $entity_type->getConfigPrefix();
   }
 

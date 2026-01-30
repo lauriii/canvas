@@ -400,7 +400,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    */
   public function testForAutoSaveData(array $autoSaveData, array $expected_errors): void {
     try {
-      assert($this->entity instanceof PageRegion);
+      \assert($this->entity instanceof PageRegion);
       $this->entity->forAutoSaveData($autoSaveData, validate: TRUE);
       $this->assertSame([], $expected_errors);
     }

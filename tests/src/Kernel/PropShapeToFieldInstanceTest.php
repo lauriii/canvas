@@ -101,11 +101,11 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
   public function test(array $modules, array $expected): void {
     $missing_test_modules = array_diff($modules, array_keys(\Drupal::service('extension.list.module')->getList()));
     if (!empty($missing_test_modules)) {
-      $this->markTestSkipped(sprintf('The %s test modules are missing.', implode(',', $missing_test_modules)));
+      $this->markTestSkipped(\sprintf('The %s test modules are missing.', implode(',', $missing_test_modules)));
     }
 
     $module_installer = \Drupal::service('module_installer');
-    assert($module_installer instanceof ModuleInstallerInterface);
+    \assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install($modules);
 
     // Create configurable fields for certain combinations of modules.
@@ -295,7 +295,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
 
     $sdc_manager = \Drupal::service('plugin.manager.sdc');
     $matcher = \Drupal::service(JsonSchemaFieldInstanceMatcher::class);
-    assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
+    \assert($matcher instanceof JsonSchemaFieldInstanceMatcher);
 
     /** @var array<string,ShapeMatchingResults> $matches */
     $matches = [];
@@ -352,7 +352,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         // @see https://json-schema.org/learn/getting-started-step-by-step#required
         $is_required = in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
 
-        $unique_match_key = sprintf('%s, %s',
+        $unique_match_key = \sprintf('%s, %s',
           $is_required ? 'REQUIRED' : 'optional',
           $prop_shape->uniquePropSchemaKey(),
         );

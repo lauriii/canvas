@@ -37,26 +37,26 @@ final class Labeler {
   public static function label(EntityFieldBasedPropExpressionInterface $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): TranslatableMarkup {
     $expression_entity_definition = $expr->getHostEntityDataDefinition();
     if ($expression_entity_definition->getEntityTypeId() !== $actual_entity_type_and_bundle->getEntityTypeId()) {
-      throw new \LogicException(sprintf('Expression expects entity type `%s`, actual entity type is `%s`.', $expression_entity_definition->getEntityTypeId(), $actual_entity_type_and_bundle->getEntityTypeId()));
+      throw new \LogicException(\sprintf('Expression expects entity type `%s`, actual entity type is `%s`.', $expression_entity_definition->getEntityTypeId(), $actual_entity_type_and_bundle->getEntityTypeId()));
     }
 
     // To generate a label, the target entity type and bundle must be known.
     $actual_bundles = $actual_entity_type_and_bundle->getBundles();
     if (is_array($actual_bundles) && count($actual_bundles) > 1) {
-      throw new \LogicException(sprintf('Multi-bundle entity definition given (`%s`), not allowed.', implode('`, `', $actual_bundles)));
+      throw new \LogicException(\sprintf('Multi-bundle entity definition given (`%s`), not allowed.', implode('`, `', $actual_bundles)));
     }
 
     // Bundle-specific expressions need further validation.
     $expression_bundles = $expression_entity_definition->getBundles();
     if ($expression_bundles !== NULL) {
       if ($actual_bundles === NULL) {
-        throw new \LogicException(sprintf('Expression expects bundle `%s`, no bundle given.', implode(', ', $expression_bundles)));
+        throw new \LogicException(\sprintf('Expression expects bundle `%s`, no bundle given.', implode(', ', $expression_bundles)));
       }
       if (count($expression_bundles) === 1 && reset($expression_bundles) !== reset($actual_bundles)) {
-        throw new \LogicException(sprintf('Expression expects bundle `%s`, actual bundle is `%s`.', reset($expression_bundles), reset($actual_bundles)));
+        throw new \LogicException(\sprintf('Expression expects bundle `%s`, actual bundle is `%s`.', reset($expression_bundles), reset($actual_bundles)));
       }
       if (count($expression_bundles) > 1 && !in_array(reset($actual_bundles), $expression_bundles, TRUE)) {
-        throw new \LogicException(sprintf('Expression expects one bundle of `%s`, actual bundle is `%s`.', implode('`, `', $expression_bundles), reset($actual_bundles)));
+        throw new \LogicException(\sprintf('Expression expects one bundle of `%s`, actual bundle is `%s`.', implode('`, `', $expression_bundles), reset($actual_bundles)));
       }
     }
 
@@ -64,13 +64,13 @@ final class Labeler {
 
     $field_definition = $actual_entity_type_and_bundle->getPropertyDefinition($field_name);
     if ($field_definition === NULL) {
-      throw new \LogicException(sprintf("Field `%s` does not exist on `%s` entities.",
+      throw new \LogicException(\sprintf("Field `%s` does not exist on `%s` entities.",
         $field_name,
         $actual_entity_type_and_bundle->getDataType(),
       ));
     }
-    assert($field_definition instanceof FieldDefinitionInterface);
-    assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
+    \assert($field_definition instanceof FieldDefinitionInterface);
+    \assert($field_definition->getItemDefinition() instanceof FieldItemDataDefinitionInterface);
 
     // To correctly represent this, this must take into account what
     // JsonSchemaFieldInstanceMatcher may or may not match. It will
@@ -81,7 +81,7 @@ final class Labeler {
     // - props explicitly marked as internal
     // @see \Drupal\Core\TypedData\DataDefinition::isInternal
     $main_property = $field_definition->getItemDefinition()->getMainPropertyName();
-    assert(is_string($main_property));
+    \assert(is_string($main_property));
 
     // When an expression targets a specific field item, generate an ordinal
     // suffix for the label.
@@ -306,12 +306,12 @@ final class Labeler {
     }
 
     $field_item_definition = $field_definition->getItemDefinition();
-    assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
+    \assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $main_property = $field_item_definition->getMainPropertyName();
-    assert(is_string($main_property));
+    \assert(is_string($main_property));
 
     $used_props = (array) self::getUsedFieldProps($expr, $actual_entity_type_and_bundle);
-    assert(count($used_props) >= 1);
+    \assert(count($used_props) >= 1);
 
     // Easy case: if the main property is used directly.
     if (in_array($main_property, $used_props, TRUE)) {
@@ -321,7 +321,7 @@ final class Labeler {
     // Otherwise, check if one of the used field properties is a computed one
     // that depends on the main one.
     $main_property_definition = $field_item_definition->getPropertyDefinition($main_property);
-    assert($main_property_definition instanceof DataDefinitionInterface);
+    \assert($main_property_definition instanceof DataDefinitionInterface);
     if (in_array($main_property_definition->getSetting('is source for'), $used_props, TRUE)) {
       return TRUE;
     }
@@ -335,7 +335,7 @@ final class Labeler {
     foreach ($used_props as $prop_name) {
       $property_definition = $field_item_definition->getPropertyDefinition($prop_name);
       if ($property_definition === NULL) {
-        throw new \LogicException(sprintf("Property `%s` does not exist on field type `%s`. The following field properties exist: `%s`.",
+        throw new \LogicException(\sprintf("Property `%s` does not exist on field type `%s`. The following field properties exist: `%s`.",
           $prop_name,
           $field_definition->getType(),
           implode('`, `', array_keys($field_item_definition->getPropertyDefinitions())),
@@ -358,7 +358,7 @@ final class Labeler {
       // Final sanity check: the reference expression found in the computed
       // property definition's settings MUST target the field type used by this
       // field instance.
-      assert($expr_used_by_computed_property->getFieldType() === $field_definition->getType());
+      \assert($expr_used_by_computed_property->getFieldType() === $field_definition->getType());
       return TRUE;
     }
 

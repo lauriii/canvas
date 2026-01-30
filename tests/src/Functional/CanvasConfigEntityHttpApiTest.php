@@ -245,13 +245,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       Folder::ADMIN_PERMISSION,
       ContentTemplate::ADMIN_PERMISSION,
     ]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
 
     // Create a user with an arbitrary permission that is not related to
     // accessing any Canvas resources.
     $user2 = $this->createUser(['view media']);
-    assert($user2 instanceof UserInterface);
+    \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
   }
 
@@ -1587,7 +1587,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
     $body = json_decode((string) $response->getBody(), TRUE);
     $config_entity_type_definition = $this->container->get(EntityTypeManagerInterface::class)->getDefinition($entity_type_id);
-    assert($config_entity_type_definition instanceof ConfigEntityType);
+    \assert($config_entity_type_definition instanceof ConfigEntityType);
     $idKey = $config_entity_type_definition->get('canvas_client_id_key') ?? $config_entity_type_definition->getKey('id');
     $this->assertArrayHasKey($idKey, $body);
     $id = $body[$idKey];
@@ -1628,7 +1628,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   private function assertExposedCodeComponents(array $expected, string $expected_dynamic_page_cache, array $request_options, array $additional_expected_cache_tags = []): void {
-    assert(in_array($expected_dynamic_page_cache, ['HIT', 'MISS'], TRUE));
+    \assert(in_array($expected_dynamic_page_cache, ['HIT', 'MISS'], TRUE));
     $expected_contexts = [
       'languages:language_interface',
       'route.menu_active_trails:footer',
@@ -1877,11 +1877,11 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $folder_to_send['items'] = [];
     $request_options[RequestOptions::JSON] = $folder_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    assert(is_array($body));
+    \assert(is_array($body));
     ksort($folder_to_send);
     ksort($body);
     $new_folder = Folder::loadByNameAndConfigEntityTypeId($folder_to_send['name'], $folder_to_send['type']);
-    assert($new_folder instanceof Folder);
+    \assert($new_folder instanceof Folder);
     $id = $new_folder->id();
     $this->assertEquals($folder_to_send + ['id' => $id], $body);
 
@@ -1904,7 +1904,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $new_folder_to_send['weight'] = -1;
     $request_options[RequestOptions::JSON] = $new_folder_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    assert(is_array($body));
+    \assert(is_array($body));
     $this->assertArrayHasKey('id', $body);
     $this->assertNotEquals($body['id'], $id);
     $this->assertTrue(Uuid::isValid($body['id']));
@@ -1921,7 +1921,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Fetch list of Folders to verify correct they are sorted correctly.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    assert(is_array($body));
+    \assert(is_array($body));
     $this->assertCount(count($this->defaultFolders) + 3, $body);
     $this->assertEquals($new_folder_id, array_keys($body)[0]);
     $this->assertEquals($temp_folder->id(), array_keys($body)[count($body) - 1]);

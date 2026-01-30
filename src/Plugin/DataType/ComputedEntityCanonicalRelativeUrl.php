@@ -35,7 +35,7 @@ class ComputedEntityCanonicalRelativeUrl extends Uri implements DependentPluginI
    * @see \Drupal\Core\Field\EntityReferenceFieldItemList::referencedEntities())
    */
   private function getReferencedEntity(): ?EntityInterface {
-    assert($this->getParent() !== NULL);
+    \assert($this->getParent() !== NULL);
     $field_item = $this->getParent();
     if (!$field_item instanceof EntityReferenceItemInterface) {
       throw new \LogicException('This data type must be used as a computed field property on entity references.');

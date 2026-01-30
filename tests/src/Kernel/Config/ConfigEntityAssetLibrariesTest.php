@@ -39,7 +39,7 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
 
   private function getCanvasAssetLibraries(): array {
     $library_discovery = \Drupal::service(LibraryDiscoveryInterface::class);
-    assert($library_discovery instanceof CacheCollectorInterface);
+    \assert($library_discovery instanceof CacheCollectorInterface);
 
     // Get the (cached) Canvas asset libraries.
     $discovered = $library_discovery->getLibrariesByExtension('canvas');

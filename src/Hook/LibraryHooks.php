@@ -53,8 +53,8 @@ final class LibraryHooks {
         $module_path = $this->moduleExtensionList->getPath($extension);
         $extension_settings['modulePath'] = $module_path;
 
-        assert(!empty($extension_settings['id']), "The canvasExtension config in $extension must have an 'id' property.");
-        assert(!empty($extension_settings['name']), "The canvasExtension config in $extension must have a 'name' property.");
+        \assert(!empty($extension_settings['id']), "The canvasExtension config in $extension must have an 'id' property.");
+        \assert(!empty($extension_settings['name']), "The canvasExtension config in $extension must have a 'name' property.");
 
         if (empty($extension_settings['description'])) {
           $extension_settings['description'] = new TranslatableMarkup('No description provided.');
@@ -68,7 +68,7 @@ final class LibraryHooks {
 
         // Only prepend the path if it's a relative path without a leading slash
         if (!str_starts_with($img_src, '/') && !str_starts_with($img_src, 'http')) {
-          assert(!str_starts_with($img_src, '.'), 'The extension image path must not start with "."');
+          \assert(!str_starts_with($img_src, '.'), 'The extension image path must not start with "."');
           $extension_settings['imgSrc'] = Url::fromUri('base://' . $module_path . '/' . $img_src)->toString();
         }
       }
@@ -114,7 +114,7 @@ final class LibraryHooks {
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
       }
-      assert(empty($library->getAssetLibraryDependencies()));
+      \assert(empty($library->getAssetLibraryDependencies()));
       // Draft.
       $draft_css_url = \sprintf('/canvas/api/v0/auto-saves/css/%s/%s', AssetLibrary::ENTITY_TYPE_ID, $library_id);
       $libraries[$library_name . '.draft']['css']['theme'][$draft_css_url] = ['preprocess' => FALSE];

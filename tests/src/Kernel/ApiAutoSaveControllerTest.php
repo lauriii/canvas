@@ -428,7 +428,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $staged_set_homepage->save();
 
     $user = $this->createUser($permissions);
-    assert($user instanceof AccountInterface);
+    \assert($user instanceof AccountInterface);
     $this->setCurrentUser($user);
 
     $request = Request::create(Url::fromRoute('canvas.api.auto-save.get')->toString());
@@ -1014,14 +1014,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
     $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());
-    assert($page instanceof Page);
+    \assert($page instanceof Page);
     $this->assertTrue($page->isPublished());
     $this->assertSame('The updated title.', $page->label());
     $this->assertSame($page->getRevisionUserId(), $user->id());
 
     $this->assertNotNull($template->id());
     $template = $content_template_storage->loadUnchanged($template->id());
-    assert($template instanceof ContentTemplate);
+    \assert($template instanceof ContentTemplate);
     $this->assertTrue($template->status());
 
     $this->assertNotNull($code_component->id());

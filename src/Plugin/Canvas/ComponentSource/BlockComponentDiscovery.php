@@ -90,7 +90,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
 
     // @todo is this not going to become a performance bottleneck on BlockPlugin heavy sites?
     $block = $this->blockManager->createInstance($source_specific_id);
-    assert($block instanceof BlockPluginInterface);
+    \assert($block instanceof BlockPluginInterface);
     $settings = $block->defaultConfiguration();
     $data_definition = $this->typedConfigManager->createFromNameAndData('block.settings.' . $block->getPluginId(), $settings);
     // We currently support only block plugins with no settings, or if they do
@@ -109,7 +109,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     }
 
     $plugin_definition = $block->getPluginDefinition();
-    assert(is_array($plugin_definition));
+    \assert(is_array($plugin_definition));
     $required_contexts = array_filter(
       $plugin_definition['context_definitions'],
       fn (ContextDefinitionInterface $definition): bool => $definition->isRequired(),
@@ -183,7 +183,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
           if (str_starts_with($dependency, 'views.view.')) {
             $config_id = substr($dependency, strlen('views.view.'));
             $view = View::load($config_id);
-            assert(!is_null($view));
+            \assert(!is_null($view));
             $status = !in_array('default', array_map('trim', explode(',', $view->get('tag'))), TRUE);
           }
         }
@@ -208,7 +208,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public static function getComponentConfigEntityId(string $source_specific_component_id): string {
-    return sprintf('%s.%s',
+    return \sprintf('%s.%s',
       BlockComponent::SOURCE_PLUGIN_ID,
       str_replace(PluginBase::DERIVATIVE_SEPARATOR, '.', $source_specific_component_id),
     );

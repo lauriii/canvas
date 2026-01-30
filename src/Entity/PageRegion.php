@@ -75,7 +75,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
   public function __construct(array $values, $entity_type) {
     $non_existent_properties = array_keys(array_diff_key($values, get_class_vars(__CLASS__)));
     if (!empty($non_existent_properties)) {
-      throw new \LogicException(sprintf(
+      throw new \LogicException(\sprintf(
         'Trying to set non-existent config entity properties: %s.',
         implode(', ', $non_existent_properties),
       ));
@@ -87,7 +87,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
    * {@inheritdoc}
    */
   public function label(): TranslatableMarkup {
-    assert(is_string($this->theme));
+    \assert(is_string($this->theme));
     $regions = system_region_list($this->theme);
     return new TranslatableMarkup('@region region', [
       '@region' => $regions[$this->get('region')],
@@ -133,7 +133,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
    * {@inheritdoc}
    */
   public function getComponentTree(): ComponentTreeItemList {
-    assert(is_array($this->component_tree));
+    \assert(is_array($this->component_tree));
 
     $field_items = $this->createDanglingComponentTreeItemList();
     $field_items->setValue(\array_values($this->component_tree ?? []));
@@ -277,7 +277,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
         'region' => $region_name,
         'component_tree' => $items,
       ]);
-      assert([] === iterator_to_array($page_region->getTypedData()->validate()));
+      \assert([] === iterator_to_array($page_region->getTypedData()->validate()));
       $region_instances[$page_region->id()] = $page_region;
     }
 

@@ -108,16 +108,16 @@ final class ComponentTreeFieldRenderingTest extends KernelTestBase {
 
     $request = Request::create($live_url->toString());
     $response = $this->request($request);
-    assert($response instanceof HtmlResponse);
+    \assert($response instanceof HtmlResponse);
     $this->assertCount(0, $this->cssSelect('.field--type-component-tree'));
     $this->assertText('Welcome to the site!');
 
     $request = Request::create($preview_url->toString());
     // As in this case we get a JsonResponse, we need to set the contents.
     $response = $this->request($request);
-    assert($response instanceof JsonResponse);
+    \assert($response instanceof JsonResponse);
     $contents = $this->decodeResponse($response);
-    assert(\array_key_exists('html', $contents));
+    \assert(\array_key_exists('html', $contents));
     $this->setRawContent($contents['html']);
     $this->assertCount(0, $this->cssSelect('.field--type-component-tree'));
     $this->assertText('Welcome to the site!');

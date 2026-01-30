@@ -133,7 +133,7 @@ class AutoSaveManagerTest extends KernelTestBase {
 
   private function assertAutoSaveCreated(EntityInterface $entity, array $matching_client_data, array $updated_client_data): void {
     $autoSave = $this->container->get(AutoSaveManager::class);
-    assert($autoSave instanceof AutoSaveManager);
+    \assert($autoSave instanceof AutoSaveManager);
     $autoSaveEntity = $this->convertClientData($entity, $matching_client_data);
     $autoSave->saveEntity($autoSaveEntity);
     self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
@@ -295,7 +295,7 @@ class AutoSaveManagerTest extends KernelTestBase {
   public function testAssetLibrary(): void {
     $this->installConfig('canvas');
     $asset_library = AssetLibrary::load('global');
-    assert($asset_library instanceof AssetLibrary);
+    \assert($asset_library instanceof AssetLibrary);
     $asset_library_matching_client_data = $asset_library->normalizeForClientSide()->values;
     $non_matching_asset_library_client_data = $asset_library_matching_client_data;
     $non_matching_asset_library_client_data['label'] = 'Slightly less boring label';
@@ -430,7 +430,7 @@ class AutoSaveManagerTest extends KernelTestBase {
     // On config delete, auto-saved staged config updates targeting that config
     // should be deleted. In the current state, that's everything.
     $config_manager = $this->container->get(ConfigManagerInterface::class);
-    assert($config_manager instanceof ConfigManagerInterface);
+    \assert($config_manager instanceof ConfigManagerInterface);
     $config_manager->getConfigFactory()->getEditable('system.site')->delete();
     $list = $sut->getAllAutoSaveList();
     self::assertEmpty($list);

@@ -24,7 +24,7 @@ final class SegmentForm extends EntityForm {
 
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
-    assert($this->entity instanceof SegmentInterface);
+    \assert($this->entity instanceof SegmentInterface);
 
     $form['label'] = [
       '#type' => 'textfield',
@@ -60,10 +60,10 @@ final class SegmentForm extends EntityForm {
       ],
     ];
     foreach ($this->entity->getSegmentRulesPluginCollection() as $rule) {
-      assert($rule instanceof ConditionInterface);
+      \assert($rule instanceof ConditionInterface);
       $rule_id = $rule->getPluginId();
       $plugin_definition = $rule->getPluginDefinition();
-      assert(\is_array($plugin_definition) && \array_key_exists('label', $plugin_definition));
+      \assert(\is_array($plugin_definition) && \array_key_exists('label', $plugin_definition));
       $rule_label = $plugin_definition['label'];
       $summary = $rule->summary();
 

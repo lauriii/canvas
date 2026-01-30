@@ -113,7 +113,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
       'parent' => NULL,
       'data_definition' => $list_definition,
     ]);
-    assert($item_list instanceof ComponentTreeItemList);
+    \assert($item_list instanceof ComponentTreeItemList);
     $item_list->setValue($value);
 
     // Every test case must be valid.

@@ -16,9 +16,9 @@ trait AutoSaveRequestTestTrait {
   protected function getAutoSaveStatesFromServer(): array {
     $auto_save_controller = \Drupal::service(ApiAutoSaveController::class);
     $response = $auto_save_controller->get();
-    assert($response instanceof JsonResponse);
+    \assert($response instanceof JsonResponse);
     $content = $response->getContent();
-    assert(is_string($content));
+    \assert(is_string($content));
     $auto_saves = json_decode($content, TRUE);
     return $auto_saves;
   }
@@ -41,7 +41,7 @@ trait AutoSaveRequestTestTrait {
     );
     $request->headers->set('Content-Type', 'application/json');
     $response = $this->request($request);
-    assert($response instanceof JsonResponse);
+    \assert($response instanceof JsonResponse);
     return $response;
   }
 

@@ -44,10 +44,10 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
    *   An associated array of key names and CanvasResourceLink objects.
    */
   public function __construct(array $links) {
-    assert(Inspector::assertAll(function ($key) {
+    \assert(Inspector::assertAll(function ($key) {
       return static::validKey($key);
     }, array_keys($links)));
-    assert(Inspector::assertAll(function ($link) {
+    \assert(Inspector::assertAll(function ($link) {
       return $link instanceof CanvasResourceLink;
     }, $links));
     ksort($links);
@@ -81,7 +81,7 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
    *   merged with the current set of links.
    */
   public function withLink(string $key, CanvasResourceLink $new_link): CanvasResourceLinkCollection {
-    assert(static::validKey($key));
+    \assert(static::validKey($key));
     $merged = $this->links;
     if (isset($merged[$key])) {
       if (CanvasResourceLink::compare($merged[$key], $new_link) === 0) {

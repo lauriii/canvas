@@ -68,7 +68,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     // possible to bypass both `delete` access checks and config system
     // integrity checks, so perform the necessary confirmation.
     $js_component_storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
-    assert($js_component_storage instanceof ConfigEntityStorageInterface);
+    \assert($js_component_storage instanceof ConfigEntityStorageInterface);
     return $js_component_storage->load($this->getSourceSpecificComponentId()) === NULL;
   }
 
@@ -106,11 +106,11 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public function getJavaScriptComponent(): JavaScriptComponent {
     if ($this->jsComponent === NULL) {
       $js_component_storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
-      assert($js_component_storage instanceof ConfigEntityStorageInterface);
+      \assert($js_component_storage instanceof ConfigEntityStorageInterface);
       $id = $this->getSourceSpecificComponentId();
       $js_component = $js_component_storage->load($id);
       if (!$js_component instanceof JavaScriptComponent) {
-        throw new ComponentNotFoundException(sprintf('The JavaScript Component with ID `%s` does not exist.', $id));
+        throw new ComponentNotFoundException(\sprintf('The JavaScript Component with ID `%s` does not exist.', $id));
       }
       $this->jsComponent = $js_component;
     }
@@ -320,7 +320,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         continue;
       }
       $seen[] = $js_component_dependency_name;
-      assert($js_component_dependency instanceof JavaScriptComponent);
+      \assert($js_component_dependency instanceof JavaScriptComponent);
       $dependencyAutoSave = $this->autoSaveManager->getAutoSaveEntity($js_component_dependency);
       $dependency_component_url = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
       $scoped_dependencies[$component_url]["@/components/{$js_component_dependency_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
@@ -342,7 +342,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         continue;
       }
       $seen[] = $js_component_dependency_name;
-      assert($js_component_dependency instanceof JavaScriptComponent);
+      \assert($js_component_dependency instanceof JavaScriptComponent);
       $dependencyAutoSave = $this->autoSaveManager->getAutoSaveEntity($js_component_dependency);
       $libraries[] = $js_component_dependency->getAssetLibrary($isPreview);
       $libraries = array_merge($libraries, $this->getDependencyLibraries($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));

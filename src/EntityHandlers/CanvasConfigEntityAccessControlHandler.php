@@ -51,7 +51,7 @@ class CanvasConfigEntityAccessControlHandler extends EntityAccessControlHandler 
       return parent::checkAccess($entity, $operation, $account);
     }
     $adminPermission = $this->entityType->getAdminPermission();
-    assert(is_string($adminPermission));
+    \assert(is_string($adminPermission));
     // There are dependent entities, but we want to exclude any Component
     // entities from consideration here. Component implements
     // ::onDependencyRemoval and can react to this entity being deleted.
@@ -65,7 +65,7 @@ class CanvasConfigEntityAccessControlHandler extends EntityAccessControlHandler 
     $dependent_entities = \array_diff_key($dependent_entities, $component_config_entities);
 
     // Prevent deletion if additional dependent entities exist.
-    return AccessResult::forbiddenIf(count($dependent_entities) > 0, sprintf('There is other configuration depending on this %s.', $this->entityType->getSingularLabel()))
+    return AccessResult::forbiddenIf(count($dependent_entities) > 0, \sprintf('There is other configuration depending on this %s.', $this->entityType->getSingularLabel()))
       ->orIf(AccessResult::allowedIfHasPermission($account, $adminPermission));
   }
 

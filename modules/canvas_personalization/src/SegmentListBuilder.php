@@ -28,7 +28,7 @@ final class SegmentListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity): array {
-    assert($entity instanceof SegmentInterface);
+    \assert($entity instanceof SegmentInterface);
     $row['id'] = $entity->id();
     $row['label'] = $entity->label();
     $summary_items = $entity->summary();

@@ -43,7 +43,7 @@ final class JavascriptComponentStorage extends CanvasAssetStorage {
     if (in_array('installRecipeConfig', array_column(debug_backtrace(), 'function'), TRUE)) {
       // Assert the bug is still present. This will start failing as soon as the
       // upstream bug is fixed.
-      assert(!$this->configInstaller->isSyncing());
+      \assert(!$this->configInstaller->isSyncing());
       return;
     }
     if ($this->configInstaller->isSyncing()) {

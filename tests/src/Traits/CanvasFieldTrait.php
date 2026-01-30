@@ -68,7 +68,7 @@ trait CanvasFieldTrait {
       ],
     ]);
     $media->save();
-    assert($media instanceof Media);
+    \assert($media instanceof Media);
     $this->mediaEntity = $media;
     $this->unreferencedImage = $this->createFileEntity($test_image_files[3]);
   }
@@ -78,13 +78,13 @@ trait CanvasFieldTrait {
     $uri = $test_image->uri;
     $file = File::create(['uri' => $uri]);
     $file->save();
-    assert($file instanceof File);
+    \assert($file instanceof File);
     return $file;
   }
 
   private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_inputs, array $expected_field_values): void {
     $nid = $node->id();
-    assert(is_string($nid));
+    \assert(is_string($nid));
     // Reset the node to ensure we're not getting a cached version.
     $this->container->get('entity_type.manager')
       ->getStorage('node')
@@ -261,7 +261,7 @@ trait CanvasFieldTrait {
 
   private static function getSrcPropertyFromFile(File $file): string {
     $src = str_replace(base_path(), '/', $file->createFileUrl());
-    assert(is_string($src));
+    \assert(is_string($src));
     return $src;
   }
 

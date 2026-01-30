@@ -141,7 +141,7 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
       ->method('hasPermission')
       ->willReturnCallback(fn ($permission) => in_array($permission, $permissions, TRUE));
 
-    assert($non_default_revision instanceof EntityInterface);
+    \assert($non_default_revision instanceof EntityInterface);
     $result = $access_handler->access($non_default_revision, $op, $account);
     self::assertEquals($expected_result, $result);
   }

@@ -184,7 +184,7 @@ class TranslationTest extends FunctionalTestBase {
     // information provided to the client for the UI.
     $get_name = function (NodeInterface $node): ?string {
       $component_tree = $node->get('field_canvas_test');
-      assert($component_tree instanceof ComponentTreeItemList);
+      \assert($component_tree instanceof ComponentTreeItemList);
       return $component_tree->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c')?->getLabel();
     };
     // If the field is not translatable updating inputs in the French
@@ -211,7 +211,7 @@ class TranslationTest extends FunctionalTestBase {
   protected function createCanvasNodeWithTranslation(): Node {
     $node = $this->createTestNode();
     $list = $node->get('field_canvas_test');
-    assert($list instanceof ComponentTreeItemList);
+    \assert($list instanceof ComponentTreeItemList);
     // There are five items in the default values for this field.
     self::assertEquals(5, $list->count());
 
@@ -224,7 +224,7 @@ class TranslationTest extends FunctionalTestBase {
     $translation->save();
     $translation = $node->getTranslation('fr');
     $updated_item = $list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
-    assert($updated_item instanceof ComponentTreeItem);
+    \assert($updated_item instanceof ComponentTreeItem);
     $updated_item_inputs = $updated_item->getInputs();
 
     // In both the Symmetric and Asymmetric translation cases, the `inputs` and
@@ -233,9 +233,9 @@ class TranslationTest extends FunctionalTestBase {
     $french_inputs = $updated_item_inputs;
     $french_inputs['heading'] = 'bonjour, monde!';
     $french_list = $translation->get('field_canvas_test');
-    assert($french_list instanceof ComponentTreeItemList);
+    \assert($french_list instanceof ComponentTreeItemList);
     $french_item = $french_list->getComponentTreeItemByUuid('208452de-10d6-4fb8-89a1-10e340b3744c');
-    assert($french_item instanceof ComponentTreeItem);
+    \assert($french_item instanceof ComponentTreeItem);
     $french_item->setInput($french_inputs)
       ->setLabel("Drupal, c'est magnifique !");
     $translation->save();

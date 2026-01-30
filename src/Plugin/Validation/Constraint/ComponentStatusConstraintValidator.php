@@ -19,7 +19,7 @@ final class ComponentStatusConstraintValidator extends ConstraintValidator {
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    assert($constraint instanceof ComponentStatusConstraint);
+    \assert($constraint instanceof ComponentStatusConstraint);
     // Allow status = `false` even if Component doesn't meet requirements.
     if (!$value) {
       return;

@@ -151,7 +151,7 @@ final class ContentTemplateHooks {
     }
 
     $entity_type_id = $this->routeMatch->getParameter('entity_type_id');
-    assert(is_string($entity_type_id));
+    \assert(is_string($entity_type_id));
     $bundle_entity_type = $this->entityTypeManager
       ->getDefinition($entity_type_id)->getBundleEntityType();
 

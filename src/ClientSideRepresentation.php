@@ -24,10 +24,10 @@ final class ClientSideRepresentation implements RefinableCacheableDependencyInte
    */
   public static function create(array $values, ?array $preview): self {
     if ($preview) {
-      assert(!array_key_exists('default_markup', $values));
-      assert(!array_key_exists('css', $values));
-      assert(!array_key_exists('js_header', $values));
-      assert(!array_key_exists('js_footer', $values));
+      \assert(!array_key_exists('default_markup', $values));
+      \assert(!array_key_exists('css', $values));
+      \assert(!array_key_exists('js_header', $values));
+      \assert(!array_key_exists('js_footer', $values));
     }
     return new self($values, $preview);
   }

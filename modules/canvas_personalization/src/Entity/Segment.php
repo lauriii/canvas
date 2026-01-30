@@ -112,7 +112,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
     $condition_definitions = $this->conditionPluginManager()->getFilteredDefinitions('canvas_personalization');
     if (!isset($condition_definitions[$plugin_id])) {
       $valid_ids = implode(', ', array_keys($condition_definitions));
-      throw new PluginNotFoundException($plugin_id, sprintf('The "%s" plugin does not exist. Valid plugin IDs for adding as segment rules are: %s', $plugin_id, $valid_ids));
+      throw new PluginNotFoundException($plugin_id, \sprintf('The "%s" plugin does not exist. Valid plugin IDs for adding as segment rules are: %s', $plugin_id, $valid_ids));
     }
     $this->getSegmentRulesPluginCollection()->addInstanceId($plugin_id, $settings);
     return $this;

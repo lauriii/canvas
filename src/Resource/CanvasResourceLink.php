@@ -60,8 +60,8 @@ final class CanvasResourceLink implements CacheableDependencyInterface {
    * @see https://tools.ietf.org/html/rfc8288#section-2.1
    */
   public function __construct(RefinableCacheableDependencyInterface $cacheability, Url $url, string $link_relation_type, array $target_attributes = []) {
-    assert(Inspector::assertAllStrings(array_keys($target_attributes)));
-    assert(Inspector::assertAll(function ($target_attribute_value) {
+    \assert(Inspector::assertAllStrings(array_keys($target_attributes)));
+    \assert(Inspector::assertAll(function ($target_attribute_value) {
       return is_string($target_attribute_value) || is_array($target_attribute_value);
     }, array_values($target_attributes)));
     $generated_url = $url->toString(TRUE);
@@ -127,8 +127,8 @@ final class CanvasResourceLink implements CacheableDependencyInterface {
   public static function compare(CanvasResourceLink $a, CanvasResourceLink $b): int {
     // Any string concatenation would work, but a Link header-like format makes
     // it clear what is being compared.
-    $a_string = sprintf('<%s>;rel="%s"', $a->getHref(), $a->rel);
-    $b_string = sprintf('<%s>;rel="%s"', $b->getHref(), $b->rel);
+    $a_string = \sprintf('<%s>;rel="%s"', $a->getHref(), $a->rel);
+    $b_string = \sprintf('<%s>;rel="%s"', $b->getHref(), $b->rel);
     $cmp = strcmp($a_string, $b_string);
     // If the `href` or `rel` of the links are not equivalent, it's not
     // necessary to compare target attributes.
@@ -152,7 +152,7 @@ final class CanvasResourceLink implements CacheableDependencyInterface {
    *   A new CanvasResourceLink object with merged cacheability of both links.
    */
   public static function merge(CanvasResourceLink $a, CanvasResourceLink $b): CanvasResourceLink {
-    assert(static::compare($a, $b) === 0, 'Only equivalent links can be merged.');
+    \assert(static::compare($a, $b) === 0, 'Only equivalent links can be merged.');
     $merged_cacheability = (new CacheableMetadata())->addCacheableDependency($a)->addCacheableDependency($b);
     return new static($merged_cacheability, $a->getUri(), $a->getLinkRelationType(), $a->getTargetAttributes());
   }

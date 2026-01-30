@@ -408,7 +408,7 @@ class ShapeMatchingHooks {
           )
         ),
       ],
-      default => throw new \InvalidArgumentException(sprintf('%s is not a supported Media Source class for shape matching.', $media_source_class)),
+      default => throw new \InvalidArgumentException(\sprintf('%s is not a supported Media Source class for shape matching.', $media_source_class)),
     };
   }
 

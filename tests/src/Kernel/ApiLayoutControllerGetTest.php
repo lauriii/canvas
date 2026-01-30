@@ -143,7 +143,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $title_matches_resolved_and_html('Canvas Needs This For The Time Being', $response);
 
     // Updating the title of the preview entity must propagate throughout.
-    assert($this->previewEntity instanceof Node);
+    \assert($this->previewEntity instanceof Node);
     $this->previewEntity->set('title', 'New title for preview')->save();
     $response = $this->request($get_layout_api_request);
     self::assertInstanceOf(JsonResponse::class, $response);
@@ -313,7 +313,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Test that saving the exact values as the stored/live node, no auto-saves
     // remain.
     $original_entity = $entity::load($entity->id());
-    assert($original_entity instanceof $entity);
+    \assert($original_entity instanceof $entity);
     $autoSave->saveEntity($original_entity);
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
@@ -546,12 +546,12 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Set up the current user without access to path field.
     $authenticated_role = $this->createRole(['edit any article content']);
     $limited_user = $this->createUser([], NULL, FALSE, ['roles' => [$authenticated_role]]);
-    assert($limited_user instanceof User);
+    \assert($limited_user instanceof User);
     $this->setCurrentUser($limited_user);
 
     // Create an auto-save entry with a value for a field that the user doesn't have access to.
     $autoSave = $this->container->get(AutoSaveManager::class);
-    assert($autoSave instanceof AutoSaveManager);
+    \assert($autoSave instanceof AutoSaveManager);
 
     $node->set('path', ['alias' => '/test-path']);
     $autoSave->saveEntity($node);

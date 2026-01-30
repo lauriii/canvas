@@ -211,7 +211,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    */
   public function testComponentSourceSpecificSettings(): void {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
-    assert($this->entity instanceof Component);
+    \assert($this->entity instanceof Component);
     $invalid_settings_due_to_extraneous_prop_field_definition = $invalid_settings_due_to_missing_prop_field_definition = $this->entity->getSettings();
 
     // Too much.
@@ -293,7 +293,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'css' => ['original' => '', 'compiled' => ''],
       'dataDependencies' => [],
     ])->save();
-    assert($this->entity instanceof Component);
+    \assert($this->entity instanceof Component);
     $this->entity = Component::create([
       'id' => 'js.my-cta',
       'source' => JsComponent::SOURCE_PLUGIN_ID,
@@ -593,7 +593,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // slot names in the fallback metadata for a Component are validated.
     $js_component_with_invalid_slot->enable()->save();
     $corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot');
-    assert($corresponding_component instanceof Component);
+    \assert($corresponding_component instanceof Component);
 
     // Assert that the slot name indeed is present in the auto-generated
     // fallback metadata.
@@ -605,7 +605,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     self::assertSame([$expected_version], $this->entity->getVersions());
     $expected_errors = [];
     if ($is_invalid) {
-      $expected_errors["versioned_properties.active.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
+      $expected_errors["versioned_properties.active.fallback_metadata.slot_definitions.$slot_name"] = \sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
     }
     $this->assertValidationErrors($expected_errors);
 
@@ -615,12 +615,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // for the new version.
     $js_component_with_invalid_slot->set('slots', [])->save();
     $updated_corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.invalid_slot');
-    assert($updated_corresponding_component instanceof Component);
+    \assert($updated_corresponding_component instanceof Component);
     $this->entity = $updated_corresponding_component;
     self::assertSame(['8fe3be948e0194e1', $expected_version], $this->entity->getVersions());
     $expected_errors = [];
     if ($is_invalid) {
-      $expected_errors["versioned_properties.$expected_version.fallback_metadata.slot_definitions.$slot_name"] = sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
+      $expected_errors["versioned_properties.$expected_version.fallback_metadata.slot_definitions.$slot_name"] = \sprintf('<em class="placeholder">&quot;%s&quot;</em> is not a valid slot name.', htmlentities($slot_name));
     }
     $this->assertValidationErrors($expected_errors);
   }
@@ -674,10 +674,10 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public function testInvalidPropFieldDefinition(): void {
-    assert($this->entity instanceof Component);
+    \assert($this->entity instanceof Component);
     $settings = $this->entity->getSettings();
-    assert($settings['prop_field_definitions']['text']['default_value'] !== NULL);
-    assert($settings['prop_field_definitions']['href']['required'] === TRUE);
+    \assert($settings['prop_field_definitions']['text']['default_value'] !== NULL);
+    \assert($settings['prop_field_definitions']['href']['required'] === TRUE);
     $settings['prop_field_definitions']['text']['default_value'] = NULL;
     $settings['prop_field_definitions']['href']['required'] = FALSE;
 
@@ -711,7 +711,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       ? ['versioned_properties.active.settings.prop_field_definitions.text.expression' => $expected_message]
       : [];
 
-    assert($this->entity instanceof Component);
+    \assert($this->entity instanceof Component);
     $settings = $this->entity->getSettings();
     $settings['prop_field_definitions']['text']['expression'] = $expression;
 
@@ -721,7 +721,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         'local_source_id' => $this->entity->get('source_local_id'),
         ...$settings,
       ]);
-    assert($source instanceof ComponentSourceInterface);
+    \assert($source instanceof ComponentSourceInterface);
     $this->entity
       ->createVersion($source->generateVersionHash())
       ->setSettings($settings);

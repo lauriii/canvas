@@ -272,7 +272,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
     $components = $this->componentStorage->loadMultiple($component_ids);
     foreach ($components as $component_id => $component) {
       // Use reflection to test the private ::getDefaultStaticPropSource() method.
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $source = $component->getComponentSource();
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);

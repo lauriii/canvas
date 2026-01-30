@@ -192,7 +192,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $settings = [];
     foreach ($components as $component_id => $component) {
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $settings[$component_id] = $component->getSettings();
     }
     return $settings;
@@ -211,7 +211,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $return_values = [];
     foreach ($components as $component_id => $component) {
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $return_values[$component_id] = match ($method_name) {
         'getClientSideInfo' => $component->getComponentSource()->getClientSideInfo($component),
         default => $component->getComponentSource()->$method_name(),
@@ -226,7 +226,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     // Construct a config prefix to discover all Component config entities
     // created for the tested ComponentSource's test module.
-    $prefix = sprintf(
+    $prefix = \sprintf(
       '%s.%s.%s',
       $component_config_entity_type_prefix,
       $component_source_plugin_id,
@@ -264,7 +264,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $actual_classes = [];
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component_id => $component) {
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $actual_classes[$component_id] = $component->getComponentSource()->getReferencedPluginClass();
     }
     return $actual_classes;
@@ -279,7 +279,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
 
     $rendered = [];
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component_id => $component) {
-      assert($component instanceof ComponentInterface);
+      \assert($component instanceof ComponentInterface);
       $source = $component->getComponentSource();
       $build = $source->renderComponent(
         $get_default_input($component),
@@ -291,7 +291,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
       $html = (string) $this->renderer->renderInIsolation($build);
       // Strip trailing whitespace to make heredocs easier to write.
       $html = preg_replace('/ +$/m', '', $html);
-      assert(is_string($html));
+      \assert(is_string($html));
       // Make it easier to write expectations containing root-relative URLs
       // pointing somewhere into the site-specific directory.
       $html = str_replace(base_path() . $this->siteDirectory, '::SITE_DIR_BASE_URL::', $html);
@@ -320,7 +320,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
    */
   protected static function getDefaultInputForGeneratedInputUx(Component $component): array {
-    assert($component->getComponentSource() instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    \assert($component->getComponentSource() instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
     $explicit_inputs = [];
     foreach ($component->getSettings()['prop_field_definitions'] as $sdc_prop_name => $prop_field_definition) {
       if ($prop_field_definition['default_value'] === NULL) {
@@ -515,7 +515,7 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // Test `build` using `expected_output_selectors`.
     foreach ($component_ids as $component_id) {
       if (!array_key_exists($component_id, $expected_client_side_info)) {
-        throw new \OutOfRangeException(sprintf('Test expectations missing for %s.', $component_id));
+        throw new \OutOfRangeException(\sprintf('Test expectations missing for %s.', $component_id));
       }
       $expected_output_selectors = $expected_client_side_info[$component_id]['expected_output_selectors'];
       unset($expected_client_side_info[$component_id]['expected_output_selectors']);
@@ -662,8 +662,8 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     // We should also have the HTML comments that allow overlays to work.
     $html = \trim(\preg_replace('/\s+/', ' ', $out->html()) ?: '');
     foreach ($slots as $slot_name) {
-      self::assertMatchesRegularExpression(sprintf('/<!-- canvas-slot-start-%s\/%s -->/', self::UUID_FALLBACK_ROOT, $slot_name), $html);
-      self::assertMatchesRegularExpression(sprintf('/canvas-slot-end-(.*)\/%s -->/', $slot_name), $html);
+      self::assertMatchesRegularExpression(\sprintf('/<!-- canvas-slot-start-%s\/%s -->/', self::UUID_FALLBACK_ROOT, $slot_name), $html);
+      self::assertMatchesRegularExpression(\sprintf('/canvas-slot-end-(.*)\/%s -->/', $slot_name), $html);
     }
 
     if (static::class === BlockComponentTest::class) {

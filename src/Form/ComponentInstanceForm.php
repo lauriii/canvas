@@ -42,8 +42,8 @@ final class ComponentInstanceForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     $component_tree_loader = $container->get(ComponentTreeLoader::class);
     $component_source_manager = $container->get(ComponentSourceManager::class);
-    assert($component_tree_loader instanceof ComponentTreeLoader);
-    assert($component_source_manager instanceof ComponentSourceManager);
+    \assert($component_tree_loader instanceof ComponentTreeLoader);
+    \assert($component_source_manager instanceof ComponentSourceManager);
 
     return new static(
       $component_tree_loader,

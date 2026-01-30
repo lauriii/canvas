@@ -38,7 +38,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    assert($constraint instanceof ComponentTreeMeetsRequirementsConstraint);
+    \assert($constraint instanceof ComponentTreeMeetsRequirementsConstraint);
     if ($value === NULL) {
       return;
     }
@@ -66,7 +66,7 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
         $list->setValue([$value]);
         return $list;
       },
-      default => throw new \UnexpectedValueException(sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
+      default => throw new \UnexpectedValueException(\sprintf('The value must be a ComponentTreeItem object, an array representing a single component tree, found %s.', gettype($value)))
     };
     $component_tree_item_list = $component_tree_item_list_factory($value);
 

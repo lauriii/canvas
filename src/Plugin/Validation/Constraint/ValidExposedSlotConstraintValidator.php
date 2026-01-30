@@ -37,9 +37,9 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    assert($constraint instanceof ValidExposedSlotConstraint);
+    \assert($constraint instanceof ValidExposedSlotConstraint);
 
-    assert(is_array($value), new UnexpectedTypeException($value, 'array'));
+    \assert(is_array($value), new UnexpectedTypeException($value, 'array'));
     $root = $this->context->getRoot();
     if ($root instanceof EntityAdapter) {
       $template = $root->getEntity();
@@ -47,7 +47,7 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     else {
       $template = $this->configManager->loadConfigEntityByName($root->getName());
     }
-    assert($template instanceof ContentTemplate);
+    \assert($template instanceof ContentTemplate);
 
     $component_tree_item_list = $template->getComponentTree();
     $item = $component_tree_item_list->getComponentTreeItemByUuid($value['component_uuid']);

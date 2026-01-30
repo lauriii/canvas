@@ -21,7 +21,7 @@ final class ValidStructuredDataPropExpressionConstraintValidator extends ChoiceV
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    assert($constraint instanceof ValidStructuredDataPropExpressionConstraint);
+    \assert($constraint instanceof ValidStructuredDataPropExpressionConstraint);
     if ($value === NULL) {
       return;
     }

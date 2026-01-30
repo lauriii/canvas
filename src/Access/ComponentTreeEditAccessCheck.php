@@ -47,7 +47,7 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
       // If the component tree is a field on the entity, also check field
       // access.
       if ($entity instanceof FieldableEntityInterface) {
-        assert(
+        \assert(
           // Every fieldable entity's component tree field has the edited entity
           // as its parent.
           // @phpstan-ignore-next-line method.notFound
@@ -79,7 +79,7 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
       // - sometimes a parent, but of a different entity (`ContentTemplate`)
       // @see \Drupal\canvas\Entity\ContentTemplate::getComponentTree()
       // @phpstan-ignore-next-line method.notFound
-      assert($tree->getParent() === NULL || $tree->getParent()->getEntity() !== $entity);
+      \assert($tree->getParent() === NULL || $tree->getParent()->getEntity() !== $entity);
 
       return $entity_access;
     }

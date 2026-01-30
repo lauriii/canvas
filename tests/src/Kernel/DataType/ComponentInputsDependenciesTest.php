@@ -191,10 +191,10 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
     ], self::violationsToArray($item_list->validate()));
     self::assertContains('dynamic', $item_list->getItemDefinition()->getConstraints()['ComponentTreeMeetRequirements']['inputs']['absence']);
 
-    assert($item_list->get(0) instanceof ComponentTreeItem);
-    assert($item_list->get(1) instanceof ComponentTreeItem);
-    assert($item_list->get(2) instanceof ComponentTreeItem);
-    assert($item_list->get(3) instanceof ComponentTreeItem);
+    \assert($item_list->get(0) instanceof ComponentTreeItem);
+    \assert($item_list->get(1) instanceof ComponentTreeItem);
+    \assert($item_list->get(2) instanceof ComponentTreeItem);
+    \assert($item_list->get(3) instanceof ComponentTreeItem);
 
     self::assertSame([], $item_list->get(0)->get('inputs')->calculateDependencies($node));
 
@@ -212,7 +212,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
 
     // Verify content dependencies if we have a valid entity.
     $file_entity = $hero_reference->get('field_media_image')->entity;
-    assert($file_entity instanceof File);
+    \assert($file_entity instanceof File);
     $file_uuid = $file_entity->get('uuid')->value;
     self::assertSame([
       'module' => [

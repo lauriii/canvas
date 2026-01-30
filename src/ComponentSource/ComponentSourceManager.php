@@ -178,7 +178,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
         'local_source_id' => $source_specific_component_id,
         ...$source_specific_settings,
       ]);
-      assert($source instanceof ComponentSourceBase);
+      \assert($source instanceof ComponentSourceBase);
       $version = $source->generateVersionHash();
 
       // Compute more trivial Component config entity metadata that may change,

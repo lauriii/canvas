@@ -106,7 +106,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     // Assertions are assumed to be disabled in prod, so this assignment will
     // never take place there.
     // @phpstan-ignore-next-line booleanNot.alwaysTrue, function.alreadyNarrowedType
-    assert(!($is_prod = FALSE));
+    \assert(!($is_prod = FALSE));
 
     return $is_prod;
   }
@@ -153,7 +153,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
    * Gets the validator builder configured with the module's OpenAPI schema.
    */
   private function getConfiguredValidatorBuilder(): ValidatorBuilder {
-    $openapi_spec_file = sprintf(
+    $openapi_spec_file = \sprintf(
       '%s/%s/openapi.yml',
       $this->appRoot,
       $this->moduleHandler
@@ -161,7 +161,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
         ->getPath(),
     );
 
-    assert($this->validatorBuilder instanceof ValidatorBuilder);
+    \assert($this->validatorBuilder instanceof ValidatorBuilder);
 
     return $this->validatorBuilder
       ->fromYamlFile($openapi_spec_file);

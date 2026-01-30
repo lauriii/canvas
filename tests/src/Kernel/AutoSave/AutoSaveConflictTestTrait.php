@@ -45,7 +45,7 @@ trait AutoSaveConflictTestTrait {
 
   protected function getAutoSaveManager(): AutoSaveManager {
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
-    assert($autoSaveManager instanceof AutoSaveManager);
+    \assert($autoSaveManager instanceof AutoSaveManager);
     return $autoSaveManager;
   }
 

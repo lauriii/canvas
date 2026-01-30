@@ -105,7 +105,7 @@ class ApiLayoutControllerTestBase extends KernelTestBase {
       $content = $decoded['html'] ?? $content;
     }
 
-    \preg_match_all(sprintf(self::REGION_PATTERN, $region), $content, $matches);
+    \preg_match_all(\sprintf(self::REGION_PATTERN, $region), $content, $matches);
     return array_key_exists(0, $matches[1]) ? $matches[1][0] : NULL;
   }
 

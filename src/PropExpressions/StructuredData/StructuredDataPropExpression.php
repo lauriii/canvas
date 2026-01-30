@@ -54,7 +54,7 @@ final class StructuredDataPropExpression {
     // @endcode
     // Would be a ReferenceFieldTypePropExpression.
     $root_expr_symbol_next = mb_substr($representation, mb_strlen($root_expr), 1);
-    assert((mb_strlen($root_expr) < mb_strlen($representation) && !empty($root_expr_symbol_next)) || empty($root_expr_symbol_next), 'If the top-level expression is not the full string representation of the expression, then $tle_after MUST be not empty.');
+    \assert((mb_strlen($root_expr) < mb_strlen($representation) && !empty($root_expr_symbol_next)) || empty($root_expr_symbol_next), 'If the top-level expression is not the full string representation of the expression, then $tle_after MUST be not empty.');
 
     // Parsing decision tree:
     // 1. Context: the first symbol determines the *context* for the expression.

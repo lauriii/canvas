@@ -165,7 +165,7 @@ final class Evaluator {
     else {
       $entity = $entity_or_field;
       // @todo support non-fieldable entities?
-      assert($entity instanceof FieldableEntityInterface);
+      \assert($entity instanceof FieldableEntityInterface);
       $entity_access = self::validateAccess($entity, $expr);
       $field_name = match ($expr::class) {
         FieldPropExpression::class => match (TRUE) {
@@ -180,7 +180,7 @@ final class Evaluator {
         default => throw new \LogicException('Unhandled expression type: ' . $expr::class),
       };
       $field_item_list = $entity->get($field_name);
-      assert($field_item_list instanceof FieldItemListInterface);
+      \assert($field_item_list instanceof FieldItemListInterface);
       $field_access = self::validateAccess($field_item_list, $expr);
 
       $result = match ($expr::class) {
@@ -190,16 +190,16 @@ final class Evaluator {
           // If a specific delta is requested, validate it.
           if ($expr->delta !== NULL) {
             if ($expr->delta < 0) {
-              throw new \LogicException(sprintf("Requested delta %d, but deltas must be positive integers.", $expr->delta));
+              throw new \LogicException(\sprintf("Requested delta %d, but deltas must be positive integers.", $expr->delta));
             }
             elseif ($cardinality === 1 && $expr->delta !== 0) {
-              throw new \LogicException(sprintf("Requested delta %d for single-cardinality field, must be either zero or omitted.", $expr->delta));
+              throw new \LogicException(\sprintf("Requested delta %d for single-cardinality field, must be either zero or omitted.", $expr->delta));
             }
             elseif ($cardinality !== FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED && $expr->delta >= $cardinality) {
-              throw new \LogicException(sprintf("Requested delta %d for %d cardinality field, but must be in range [0, %d].", $expr->delta, $cardinality, $cardinality - 1));
+              throw new \LogicException(\sprintf("Requested delta %d for %d cardinality field, but must be in range [0, %d].", $expr->delta, $cardinality, $cardinality - 1));
             }
             elseif (!$field_item_list->offsetExists($expr->delta)) {
-              throw new \LogicException(sprintf("Requested delta %d for unlimited cardinality field, but only deltas [0, %d] exist.", $expr->delta, $field_item_list->count() - 1));
+              throw new \LogicException(\sprintf("Requested delta %d for unlimited cardinality field, but only deltas [0, %d] exist.", $expr->delta, $field_item_list->count() - 1));
             }
           }
           $result = [];
@@ -207,7 +207,7 @@ final class Evaluator {
           $result_cacheability = new CacheableMetadata();
           foreach ($field_item_list as $delta => $field_item) {
             if ($expr->delta === NULL || $expr->delta === $delta) {
-              assert(is_string($expr->propName) || (is_array($expr->propName) && is_array($expr->fieldName)));
+              \assert(is_string($expr->propName) || (is_array($expr->propName) && is_array($expr->fieldName)));
               $prop_name = match (TRUE) {
                 is_string($expr->propName) => $expr->propName,
                 // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
@@ -273,7 +273,7 @@ final class Evaluator {
             array_walk($raw_result, $access_error_cache->addCacheableDependency(...));
           }
           throw new CacheableAccessDeniedHttpException(
-            $access_error_cache, sprintf(
+            $access_error_cache, \sprintf(
               'Required field property empty due to entity or field access while evaluating expression %s, reason: %s',
               $expr,
               $raw_result instanceof AccessResultReasonInterface ? $raw_result->getReason() : ''
@@ -305,7 +305,7 @@ final class Evaluator {
     if (!$access->isAllowed()) {
       $access_error_cache = CacheableMetadata::createFromObject($access);
       throw new CacheableAccessDeniedHttpException(
-        $access_error_cache, sprintf(
+        $access_error_cache, \sprintf(
           'Access denied to %s while evaluating expression, %s, reason: %s',
           $entity_or_field instanceof EntityInterface ? 'entity' : 'field',
           $expr,

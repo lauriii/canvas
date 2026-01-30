@@ -36,12 +36,12 @@ trait AutoSaveManagerTestTrait {
   protected function getClientAutoSaves(array $entities, bool $addRegions = TRUE): array {
     $autoSaves = [];
     $autoSaveManager = \Drupal::service(AutoSaveManager::class);
-    assert($autoSaveManager instanceof AutoSaveManager);
+    \assert($autoSaveManager instanceof AutoSaveManager);
     if ($addRegions) {
       $entities += PageRegion::loadForActiveTheme();
     }
     foreach ($entities as $entity) {
-      assert($entity instanceof EntityInterface);
+      \assert($entity instanceof EntityInterface);
       $autoSaves[AutoSaveManager::getAutoSaveKey($entity)] = $autoSaveManager->getClientAutoSaveData($entity);
     }
     return ['autoSaves' => $autoSaves];

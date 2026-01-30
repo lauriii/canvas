@@ -253,7 +253,7 @@ enum JsonSchemaType: string {
       if (!empty(array_diff(array_keys($schema), ['type', 'items', 'maxItems']))) {
         return NULL;
       }
-      assert($schema['type'] === 'array');
+      \assert($schema['type'] === 'array');
       // @todo Remove this after https://www.drupal.org/project/drupal/issues/3493086, when SDC's JSON schema validation is better; a InvalidComponentException should have been triggered for `type: array, examples: [test]` long before reaching this point!
       if (!array_key_exists('items', $schema)) {
         return NULL;

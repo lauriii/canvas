@@ -28,12 +28,12 @@ trait ComponentConfigEntityDependentValidatorTrait {
   private function createComponentConfigEntityFromContext(): Component {
     $root = $this->context->getRoot();
     if ($root->getDataDefinition()->getDataType() === 'entity:component') {
-      assert($root instanceof ConfigEntityAdapter);
+      \assert($root instanceof ConfigEntityAdapter);
       $component = $root->getEntity();
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       return $component;
     }
-    assert($root->getDataDefinition()->getDataType() === 'canvas.component.*' || $root->getDataDefinition()->getDataType() === 'config_entity_version:component');
+    \assert($root->getDataDefinition()->getDataType() === 'canvas.component.*' || $root->getDataDefinition()->getDataType() === 'config_entity_version:component');
     return Component::create($root->toArray());
   }
 

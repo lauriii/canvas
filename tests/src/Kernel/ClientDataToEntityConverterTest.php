@@ -72,7 +72,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     (new CanvasTestSetup())->setup();
     $this->setUpImages();
     $other_user = $this->createUser();
-    assert($other_user instanceof User);
+    \assert($other_user instanceof User);
     $this->otherUser = $other_user;
   }
 
@@ -557,7 +557,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
         ],
       ],
     ] + $values);
-    assert($node instanceof Node);
+    \assert($node instanceof Node);
     $this->assertSame(SAVED_NEW, $node->save());
     return $node;
   }

@@ -21,7 +21,7 @@ final class EntityTestHooks {
     if ($entity_type->id() === 'node') {
       \assert(isset($fields['title']));
       $title_field = $fields['title'];
-      assert($title_field instanceof BaseFieldDefinition);
+      \assert($title_field instanceof BaseFieldDefinition);
       $title_field->addConstraint('canvas_test_validation_unique_field');
     }
   }

@@ -34,7 +34,7 @@ class CanvasExtensionPluginManagerTest extends KernelTestBase {
     $extension_manager = $this->container->get(CanvasExtensionPluginManager::class);
     $definitions = $extension_manager->getDefinitions();
     $this->assertCount(1, $definitions);
-    assert(Inspector::assertAllObjects($definitions, CanvasExtension::class));
+    \assert(Inspector::assertAllObjects($definitions, CanvasExtension::class));
 
     /** @var \Drupal\canvas\Extension\CanvasExtensionInterface $canvas_extension */
     $canvas_extension = $extension_manager->getDefinition('canvas_test_extension');
@@ -58,7 +58,7 @@ class CanvasExtensionPluginManagerTest extends KernelTestBase {
     $extension_manager = $this->container->get(CanvasExtensionPluginManager::class);
     $definitions = $extension_manager->getDefinitions();
     $this->assertCount(3, $definitions);
-    assert(Inspector::assertAllObjects($definitions, CanvasExtension::class));
+    \assert(Inspector::assertAllObjects($definitions, CanvasExtension::class));
 
     /** @var \Drupal\canvas\Extension\CanvasExtensionInterface $first_extension */
     $first_extension = $definitions['canvas_test_extension_multiple'];

@@ -140,7 +140,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    */
   public static function getComponentConfigEntityId(string $source_specific_component_id): string {
     \assert(str_contains($source_specific_component_id, ':'));
-    return sprintf('%s.%s',
+    return \sprintf('%s.%s',
       SingleDirectoryComponent::SOURCE_PLUGIN_ID,
       str_replace(':', '.', $source_specific_component_id),
     );

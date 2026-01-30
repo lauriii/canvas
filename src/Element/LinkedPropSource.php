@@ -50,13 +50,13 @@ class LinkedPropSource extends RenderElementBase {
    */
   public static function processLinkedPropSource(array &$element): array {
     $sdc_prop_name = $element['#sdc_prop_name'];
-    assert(is_string($sdc_prop_name));
+    \assert(is_string($sdc_prop_name));
     $sdc_prop_label = $element['#sdc_prop_label'];
-    assert(is_string($sdc_prop_label));
+    \assert(is_string($sdc_prop_label));
     $linked_prop_source = $element['#linked_prop_source'];
-    assert($linked_prop_source instanceof DynamicPropSource || $linked_prop_source instanceof HostEntityUrlPropSource);
+    \assert($linked_prop_source instanceof DynamicPropSource || $linked_prop_source instanceof HostEntityUrlPropSource);
     $field_link_suggestions = $element['#field_link_suggestions'] ?? [];
-    assert(is_array($field_link_suggestions));
+    \assert(is_array($field_link_suggestions));
     $is_required = $element['#is_required'] ?? FALSE;
 
     $element['label_wrap'] = [

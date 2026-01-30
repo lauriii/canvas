@@ -65,7 +65,7 @@ final class MaybeUrl extends AccessResult implements AccessResultReasonInterface
    * {@inheritdoc}
    */
   public function setReason($reason) {
-    throw new \LogicException(sprintf("%s objects are immutable, the reason cannot be modified.", __CLASS__));
+    throw new \LogicException(\sprintf("%s objects are immutable, the reason cannot be modified.", __CLASS__));
   }
 
 }

@@ -47,7 +47,7 @@ final class ComponentTreeInputExtractorTest extends KernelTestBase {
 
   #[DataProvider('componentsAndInputs')]
   public function testExtractedInputs(array $components, array $expected_inputs): void {
-    assert(array_is_list($components));
+    \assert(array_is_list($components));
 
     $page = Page::create([
       'title' => 'Homepage',

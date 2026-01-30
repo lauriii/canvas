@@ -37,7 +37,7 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
    * {@inheritdoc}
    */
   public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $field_item_list = NULL): array {
-    assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
+    \assert($field_item_list === NULL || $field_item_list instanceof FieldItemListInterface);
     $dependencies = $this->referencer->calculateDependencies($field_item_list);
     if ($field_item_list === NULL) {
       $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
@@ -79,15 +79,15 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
     $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation, 2);
     $referencer = FieldTypePropExpression::fromString($parts[0]);
     $referenced = StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . static::PREFIX_ENTITY_LEVEL . $parts[1]);
-    assert($referenced instanceof EntityFieldBasedPropExpressionInterface);
+    \assert($referenced instanceof EntityFieldBasedPropExpressionInterface);
     return new static($referencer, $referenced);
   }
 
   public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $field): void {
-    assert($field instanceof FieldItemInterface || $field instanceof FieldItemListInterface);
+    \assert($field instanceof FieldItemInterface || $field instanceof FieldItemListInterface);
     $actual_field_type = $field->getFieldDefinition()->getType();
     if ($actual_field_type !== $this->referencer->fieldType) {
-      throw new \DomainException(sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->referencer->fieldType, $actual_field_type));
+      throw new \DomainException(\sprintf("`%s` is an expression for field type `%s`, but the provided field item (list) is of type `%s`.", (string) $this, $this->referencer->fieldType, $actual_field_type));
     }
   }
 

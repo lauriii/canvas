@@ -100,7 +100,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       }
     }
     if (!is_array($value)) {
-      throw new \UnexpectedValueException(sprintf('The value must be a valid array, found %s.', \gettype($value)));
+      throw new \UnexpectedValueException(\sprintf('The value must be a valid array, found %s.', \gettype($value)));
     }
     // TRICKY: The existing validator and execution context cannot be reused
     // because Drupal expects everything to be TypedData, whereas here it is a
@@ -293,7 +293,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
-    assert($parent_config_entity instanceof Component);
+    \assert($parent_config_entity instanceof Component);
     $component_source = $parent_config_entity->getComponentSource();
     $slots = $component_source instanceof ComponentSourceWithSlotsInterface ? $component_source->getSlotDefinitions() : [];
     if (\count($slots) === 0) {

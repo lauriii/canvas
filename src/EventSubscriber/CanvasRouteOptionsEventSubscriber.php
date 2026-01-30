@@ -56,7 +56,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
 
   public function preventRouteNormalization(RouteBuildEvent $event): void {
     foreach ($event->getRouteCollection()->getIterator() as $route_name => $route) {
-      assert($route instanceof Route);
+      \assert($route instanceof Route);
       // This ensures our react based routing works with redirect module
       // enabled.
       // @see \Drupal\canvas\PathProcessor\CanvasPathProcessor::processInbound.

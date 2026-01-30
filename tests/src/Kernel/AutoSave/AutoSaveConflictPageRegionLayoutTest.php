@@ -37,7 +37,7 @@ final class AutoSaveConflictPageRegionLayoutTest extends ApiLayoutControllerTest
       $region->save();
     }
     $sideBarRegion = PageRegion::load('stark.sidebar_first');
-    assert($sideBarRegion instanceof PageRegion);
+    \assert($sideBarRegion instanceof PageRegion);
     $this->entity = $sideBarRegion;
   }
 

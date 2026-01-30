@@ -49,7 +49,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
     // this prefix.
     $entity_type = $this->entityTypeManager->getDefinition(Component::ENTITY_TYPE_ID);
     \assert($entity_type instanceof ConfigEntityTypeInterface);
-    $config_prefix = sprintf('%s.%s.', $entity_type->getConfigPrefix(), JsComponent::SOURCE_PLUGIN_ID);
+    $config_prefix = \sprintf('%s.%s.', $entity_type->getConfigPrefix(), JsComponent::SOURCE_PLUGIN_ID);
     $already_exposed_js_components = $this->configFactory->listAll($config_prefix);
     return array_filter(
       $js_components,

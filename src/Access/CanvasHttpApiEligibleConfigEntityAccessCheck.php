@@ -30,7 +30,7 @@ final class CanvasHttpApiEligibleConfigEntityAccessCheck implements AccessInterf
   public function access(RouteMatchInterface $route_match) {
     $canvas_config_entity_type_id = $route_match->getParameter('canvas_config_entity_type_id');
     $canvas_config_entity_type = $this->entityTypeManager->getDefinition($canvas_config_entity_type_id);
-    assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
+    \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
 
     return AccessResult::allowedIf(is_a($canvas_config_entity_type->getClass(), CanvasHttpApiEligibleConfigEntityInterface::class, TRUE));
   }

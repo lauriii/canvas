@@ -74,16 +74,16 @@ final class AdaptedPropSource extends PropSourceBase {
   // @phpstan-ignore-next-line method.childParameterType
   public static function parse(array $sdc_prop_source): static {
     $adapter_manager = \Drupal::service(AdapterManager::class);
-    assert($adapter_manager instanceof AdapterManager);
+    \assert($adapter_manager instanceof AdapterManager);
     $adapter_instance = $adapter_manager->createInstance(explode(self::SOURCE_TYPE_PREFIX_SEPARATOR, $sdc_prop_source['sourceType'])[1]);
-    assert($adapter_instance instanceof AdapterInterface);
+    \assert($adapter_instance instanceof AdapterInterface);
 
     // `sourceType = adapter:*` requires adapterInputs to be specified.
     $missing = array_diff(['adapterInputs'], array_keys($sdc_prop_source));
     if (!empty($missing)) {
-      throw new \LogicException(sprintf('Missing the keys %s.', implode(',', $missing)));
+      throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    assert(array_key_exists('adapterInputs', $sdc_prop_source));
+    \assert(array_key_exists('adapterInputs', $sdc_prop_source));
 
     return new AdaptedPropSource($adapter_instance, $sdc_prop_source['adapterInputs']);
   }

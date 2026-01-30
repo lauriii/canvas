@@ -74,7 +74,7 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandlerTest extend
     $sut->setModuleHandler($moduleHandler);
     $result = $sut->access($entity, 'view', $account, TRUE);
     $this->assertTrue($result::class == $expectedAccessResult);
-    assert($result instanceof RefinableCacheableDependencyInterface);
+    \assert($result instanceof RefinableCacheableDependencyInterface);
     $this->assertSame(['user.permissions'], $result->getCacheContexts());
     $this->assertSame([], $result->getCacheTags());
     $this->assertSame(Cache::PERMANENT, $result->getCacheMaxAge());

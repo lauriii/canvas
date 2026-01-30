@@ -28,7 +28,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
       throw new UnexpectedTypeException($constraint, StringPartsConstraint::class);
     }
 
-    assert($this->context->getObject() instanceof TypedDataInterface);
+    \assert($this->context->getObject() instanceof TypedDataInterface);
     $resolved_parts = array_map(
       fn (string $expression): mixed => TypeResolver::resolveExpression($expression, $this->context->getObject()),
       $constraint->parts
@@ -50,7 +50,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
     foreach ($constraint->parts as $index => $part) {
       $part_value = $resolved_parts[$index];
       if (!is_string($part_value)) {
-        throw new \LogicException(sprintf('The "%s" property does not contain a string, but a %s: "%s".', $part, gettype($part_value), (string) $part_value));
+        throw new \LogicException(\sprintf('The "%s" property does not contain a string, but a %s: "%s".', $part, gettype($part_value), (string) $part_value));
       }
       $expected_string_parts[] = $part_value;
     }
@@ -63,7 +63,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
       $expected_format = implode(
         $constraint->separator,
         array_map(function (string $v) {
-          return sprintf('<%s>', $v);
+          return \sprintf('<%s>', $v);
         }, $constraint->parts)
       );
       $this->context->addViolation($constraint->message, [

@@ -82,7 +82,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'label' => 'Canvas page admin',
     ])->save();
     $admin_user->addRole('canvaspageadmin')->save();
-    assert($admin_user instanceof AccountInterface);
+    \assert($admin_user instanceof AccountInterface);
     $this->drupalLogin($admin_user);
     $this->assertSession('canvas_ui');
   }
@@ -374,7 +374,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_e2e_code_components']);
     // @see tests/modules/canvas_test_e2e_code_components/config/install/canvas.js_component.site_branding.yml
     $branding_component = JavaScriptComponent::load('site_branding');
-    assert($branding_component instanceof JavaScriptComponent);
+    \assert($branding_component instanceof JavaScriptComponent);
     $branding_component->enable()->save();
     $matching_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($branding_component->id()));
     \assert($matching_component instanceof ComponentInterface);
@@ -653,7 +653,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     $this->assertCount(count($expected_slots), $actual_slots);
     $slot_index = 0;
     foreach ($expected_slots as $expected_slot_name => $expected_slot_contents) {
-      assert($actual_slots[$slot_index] instanceof \DOMElement);
+      \assert($actual_slots[$slot_index] instanceof \DOMElement);
       $this->assertSame($expected_slot_name, $actual_slots[$slot_index]->getAttribute('data-astro-template'));
       $this->assertSame($expected_slot_contents, \trim($actual_slots[$slot_index]->textContent));
       $slot_index++;

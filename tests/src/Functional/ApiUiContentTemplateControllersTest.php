@@ -129,7 +129,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->drupalLogin($account);
 
     $user2 = $this->createUser(['view media']);
-    assert($user2 instanceof UserInterface);
+    \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
   }
 
@@ -638,7 +638,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: NULL,
     );
-    $this->assertSame(['errors' => [sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
+    $this->assertSame(['errors' => [\sprintf("The '%s' permission is required.", ContentTemplate::ADMIN_PERMISSION)]], $json);
   }
 
   public function testSuggestPreviewContentEntities(): void {

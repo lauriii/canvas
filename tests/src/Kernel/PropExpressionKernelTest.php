@@ -293,7 +293,7 @@ class PropExpressionKernelTest extends KernelTestBase {
     $labeler = \Drupal::service(Labeler::class);
     foreach (PropExpressionTest::provider() as $test_case_label => $case) {
       $expression = $case[1];
-      $test_case_precise_label = sprintf("%s (%s)", $test_case_label, (string) $expression);
+      $test_case_precise_label = \sprintf("%s (%s)", $test_case_label, (string) $expression);
       $expected_expression_label = $case[2];
 
       try {
@@ -319,7 +319,7 @@ class PropExpressionKernelTest extends KernelTestBase {
           }
           continue;
         }
-        self::fail(sprintf('Unexpected exception `%s` with message `%s for case `%s`.', get_class($e), $e->getMessage(), $test_case_precise_label));
+        self::fail(\sprintf('Unexpected exception `%s` with message `%s for case `%s`.', get_class($e), $e->getMessage(), $test_case_precise_label));
       }
       self::assertSame($expected_expression_label, (string) $label, $test_case_precise_label);
     }
@@ -349,7 +349,7 @@ class PropExpressionKernelTest extends KernelTestBase {
           : NULL
       );
 
-      $test_case_precise_label = sprintf("%s (%s)", $test_case_label, (string) $expression);
+      $test_case_precise_label = \sprintf("%s (%s)", $test_case_label, (string) $expression);
 
       $entity_or_field = match(TRUE) {
         $expression instanceof EntityFieldBasedPropExpressionInterface => $host_entity,
@@ -361,7 +361,7 @@ class PropExpressionKernelTest extends KernelTestBase {
           $instance_settings = [];
           if ($expression instanceof ReferencePropExpressionInterface) {
             $target_entity_data_definition = $expression->referenced->getHostEntityDataDefinition();
-            assert($target_entity_data_definition instanceof BetterEntityDataDefinition);
+            \assert($target_entity_data_definition instanceof BetterEntityDataDefinition);
             $storage_settings['target_type'] = $target_entity_data_definition->getEntityTypeId();
             $target_bundles = $target_entity_data_definition->getBundles();
             if ($target_bundles) {
@@ -381,7 +381,7 @@ class PropExpressionKernelTest extends KernelTestBase {
             // Ensure that expected content dependencies always use the hardcoded
             // file entity UUID.
             // @see ::setUp()
-            assert($field_item_list[0] instanceof FieldItemInterface);
+            \assert($field_item_list[0] instanceof FieldItemInterface);
             $field_item_list[0]->get('target_id')->setValue(1);
           }
           return $field_item_list;

@@ -41,7 +41,7 @@ final class MediaLibraryCanvasPropOpener extends MediaLibraryFieldWidgetOpener {
     // validated the hash.
     // @see \Drupal\media_library\MediaLibraryState::fromRequest()
     // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementMediaLibraryWidgetFormAlter()
-    assert($state->isValidHash($state->getHash()));
+    \assert($state->isValidHash($state->getHash()));
     // Still, in case this URL is shared, still require that the current session
     // is for a user that has sufficient permissions to use Canvas.
     return $this->canvasUiAccessCheck->access($account);

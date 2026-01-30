@@ -49,7 +49,7 @@ final class ListStringItemLabel extends StringData implements DependentPluginInt
     $this->cacheability = new CacheableMetadata();
 
     $list_item = $this->getParent();
-    assert($list_item instanceof ListItemBase);
+    \assert($list_item instanceof ListItemBase);
     $value = $list_item->getValue()['value'];
 
     $this->cacheability->addCacheableDependency($list_item->getFieldDefinition()->getFieldStorageDefinition());
@@ -59,11 +59,11 @@ final class ListStringItemLabel extends StringData implements DependentPluginInt
   }
 
   public function calculateDependencies() {
-    assert($this->getParent() !== NULL);
+    \assert($this->getParent() !== NULL);
     $field_item_list = $this->getParent()->getParent();
-    assert($field_item_list instanceof FieldItemListInterface);
+    \assert($field_item_list instanceof FieldItemListInterface);
     $instructions = $this->getDataDefinition()->getSettings();
-    assert(array_key_exists('value', $instructions) && is_string($instructions['value']));
+    \assert(array_key_exists('value', $instructions) && is_string($instructions['value']));
     // Calculate the dependencies for this computed field property, by
     // calculating the dependencies of all structured data prop expressions this
     // (see ::getValue()) uses.

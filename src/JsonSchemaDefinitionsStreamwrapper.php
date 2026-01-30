@@ -48,14 +48,14 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
 
     $contents = file_get_contents($extension_path . DIRECTORY_SEPARATOR . 'schema.json');
-    assert(is_string($contents));
+    \assert(is_string($contents));
     $json_schema = json_decode($contents, TRUE);
     // @todo validate this file is valid JSON schema.
     if (!array_key_exists('$defs', $json_schema)) {
-      throw new \InvalidArgumentException(sprintf("%s does not contain any definitions.", $extension_path));
+      throw new \InvalidArgumentException(\sprintf("%s does not contain any definitions.", $extension_path));
     }
     if (!array_key_exists($definition_name, $json_schema['$defs'])) {
-      throw new \InvalidArgumentException(sprintf("%s does not contain a `%s` definition.", $extension_path, $definition_name));
+      throw new \InvalidArgumentException(\sprintf("%s does not contain a `%s` definition.", $extension_path, $definition_name));
     }
 
     $stream = fopen('php://memory', 'r+');
@@ -64,7 +64,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
 
     $json = json_encode($json_schema['$defs'][$definition_name]);
-    assert(is_string($json));
+    \assert(is_string($json));
     fwrite($stream, $json);
     rewind($stream);
     $this->handle = $stream;
@@ -121,7 +121,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     if (!isset($extension_path_resolver)) {
       $extension_path_resolver = \Drupal::service(ExtensionPathResolver::class);
     }
-    assert($extension_path_resolver instanceof ExtensionPathResolver);
+    \assert($extension_path_resolver instanceof ExtensionPathResolver);
 
     $url_components = parse_url($uri);
     if ($url_components === FALSE || !array_key_exists('host', $url_components) || !array_key_exists('path', $url_components)) {

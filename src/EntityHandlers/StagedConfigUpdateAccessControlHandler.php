@@ -53,7 +53,7 @@ final class StagedConfigUpdateAccessControlHandler extends EntityAccessControlHa
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
-    assert($entity instanceof StagedConfigUpdate);
+    \assert($entity instanceof StagedConfigUpdate);
     return match ($operation) {
       // We allow viewing these entities if the user has access to Canvas.
       'view' => $this->canvasUiAccessCheck->access($account),

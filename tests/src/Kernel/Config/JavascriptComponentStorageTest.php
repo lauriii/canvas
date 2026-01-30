@@ -200,7 +200,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   public function testComponentEntityUpdate(array $js_component_values): void {
     $js_component = JavaScriptComponent::create($js_component_values);
     $js_component->save();
-    assert(is_string($js_component->id()));
+    \assert(is_string($js_component->id()));
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component->id());
 
     // Name should carry over.

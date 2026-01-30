@@ -105,7 +105,7 @@ final class ApiUsageControllers extends ApiControllerBase {
 
     $base_url = Url::fromRoute('canvas.api.usage.component.list');
     $pager = $this->pagerManager->getPager();
-    assert(!is_null($pager));
+    \assert(!is_null($pager));
     $current_page = $pager->getCurrentPage();
     return new JsonResponse(
       data: [

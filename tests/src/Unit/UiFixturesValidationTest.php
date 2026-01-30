@@ -31,8 +31,8 @@ class UiFixturesValidationTest extends UnitTestCase {
    */
   protected function getUiFixtureData(string $filename): array {
     $fixturesDirectory = dirname(__FILE__, 4) . '/ui/tests/fixtures';
-    $json = file_get_contents(sprintf('%s/%s', $fixturesDirectory, $filename));
-    assert(is_string($json));
+    $json = file_get_contents(\sprintf('%s/%s', $fixturesDirectory, $filename));
+    \assert(is_string($json));
     return Json::decode($json);
   }
 

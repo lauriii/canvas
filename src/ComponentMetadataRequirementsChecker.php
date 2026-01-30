@@ -80,7 +80,7 @@ final class ComponentMetadataRequirementsChecker {
         $validator->validate($example, $prop);
         if (!$validator->isValid()) {
           $messages[] = \sprintf('Prop "%s" has invalid example value: %s', $prop_name, implode("\n", array_map(
-            static fn(array $error): string => sprintf("[%s] %s", $error['property'], $error['message']),
+            static fn(array $error): string => \sprintf("[%s] %s", $error['property'], $error['message']),
             $validator->getErrors()
           )));
         }

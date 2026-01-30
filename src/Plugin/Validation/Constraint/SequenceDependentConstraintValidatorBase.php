@@ -46,8 +46,8 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
   }
 
   protected function getTargetConfigObject(SequenceDependentConstraintBase $constraint): Mapping {
-    assert(!is_null($constraint->configName));
-    assert($this->context->getObject() instanceof TypedDataInterface);
+    \assert(!is_null($constraint->configName));
+    \assert($this->context->getObject() instanceof TypedDataInterface);
     $resolved_config_name = TypeResolver::resolveExpression(
       $constraint->configName,
       $this->context->getObject(),
@@ -59,7 +59,7 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
       $this->context->addViolation($config_exists_constraint->message, ['@name' => $constraint->configPrefix . $resolved_config_name]);
     }
     $config_object = $this->typedConfigManager->get($constraint->configPrefix . $resolved_config_name);
-    assert($config_object instanceof Mapping);
+    \assert($config_object instanceof Mapping);
     return $config_object;
   }
 
@@ -74,7 +74,7 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
     // Verify the target property is indeed a sequence; if not, that's a logical
     // error in the config schema, not in concrete config.
     if (!$target_sequence instanceof Sequence) {
-      throw new \LogicException(sprintf(
+      throw new \LogicException(\sprintf(
         "The `%s` config object's `%s` property path was expected to point to a `%s` instance, but got a `%s` instead.",
         $target_config_object->getName(),
         $constraint->propertyPathToSequence,

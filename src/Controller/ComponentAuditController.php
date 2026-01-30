@@ -180,7 +180,7 @@ final class ComponentAuditController {
         $bundle = $content_template->getTargetBundle();
         $bundle_label = $this->bundleInfo->getBundleInfo($entity_type_id)[$bundle]['label'];
         $view_mode = EntityViewMode::load("$entity_type_id.{$content_template->getMode()}");
-        assert($view_mode instanceof EntityViewMode);
+        \assert($view_mode instanceof EntityViewMode);
         $row = [];
         $row['title']['data'] = $content_template->label();
         $row['entity_type_id']['data'] = $this->entityTypeManager->getDefinition($entity_type_id)->getLabel();

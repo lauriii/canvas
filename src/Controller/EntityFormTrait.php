@@ -36,7 +36,7 @@ trait EntityFormTrait {
    */
   protected function buildFormState(EntityFormInterface $form, FieldableEntityInterface $entity, string $entity_form_mode): FormStateInterface {
     $form->setEntity($entity);
-    assert($form instanceof ContentEntityForm);
+    \assert($form instanceof ContentEntityForm);
     // `EntityFormDisplay::collectRenderDisplay()` assumes that if the form
     // mode is 'default' then $default_fallback should be TRUE. Otherwise, it
     // will have a warning for an undefined variable.
@@ -59,9 +59,9 @@ trait EntityFormTrait {
     // @see hook_ENTITY_TYPE_form_mode_alter()
     // @see hook_entity_form_mode_alter()
     if (!$form_display || $form_display->getMode() === EntityDisplayBase::CUSTOM_MODE) {
-      throw new \UnexpectedValueException(sprintf('The "%s" form display was not found', $entity_form_mode));
+      throw new \UnexpectedValueException(\sprintf('The "%s" form display was not found', $entity_form_mode));
     }
-    assert($form_display instanceof EntityFormDisplay);
+    \assert($form_display instanceof EntityFormDisplay);
     $form_state = new FormState();
     $form->setFormDisplay($form_display, $form_state);
     return $form_state;
@@ -93,7 +93,7 @@ trait EntityFormTrait {
           $original_count = $field->count();
           $non_empty_count = $field->filterEmptyItems()->count();
           if ($original_count !== $non_empty_count) {
-            assert($original_count > $non_empty_count);
+            \assert($original_count > $non_empty_count);
             for ($empty_delta = $non_empty_count; $empty_delta < $original_count; $empty_delta++) {
               NestedArray::unsetValue($values, $form[$field_name]['widget'][$empty_delta]['#parents']);
             }

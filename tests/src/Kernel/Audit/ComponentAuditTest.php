@@ -146,7 +146,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
 
     // @todo Uncomment this in https://www.drupal.org/i/3530051.
-    assert($new_version != $old_version);
+    \assert($new_version != $old_version);
     /*
     // 2. Active (i.e. new) version: no uses yet.
     $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id, [$new_version]);

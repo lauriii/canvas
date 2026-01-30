@@ -221,7 +221,7 @@ class PropSourceSuggesterTest extends KernelTestBase {
    */
   public function test(string $component_plugin_id, string $data_type_context, array $expected): void {
     $component = \Drupal::service(ComponentPluginManager::class)->find($component_plugin_id);
-    assert($component instanceof Component);
+    \assert($component instanceof Component);
     $suggestions = $this->container->get(PropSourceSuggester::class)
       ->suggest(
         $component_plugin_id,

@@ -140,9 +140,9 @@ final class PropSourceSuggester {
    */
   public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
-    assert(is_string($host_entity_type_id));
+    \assert(is_string($host_entity_type_id));
     $bundles = $host_entity_type->getBundles();
-    assert(is_array($bundles) && !empty($bundles));
+    \assert(is_array($bundles) && !empty($bundles));
     $host_entity_type_bundle = reset($bundles);
 
     // 1. Get raw matches.

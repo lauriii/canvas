@@ -55,7 +55,7 @@ final class JsComponentHasValidAndSupportedSdcMetadataConstraintValidator extend
     $equivalent_sdc_definition = $data->toSdcDefinition();
     try {
       $result = $this->componentValidator->validateDefinition($equivalent_sdc_definition, TRUE);
-      assert($result === TRUE);
+      \assert($result === TRUE);
     }
     catch (InvalidComponentException $e) {
       $this->context->addViolation($e->getMessage());

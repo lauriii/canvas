@@ -20,7 +20,7 @@ final readonly class TypedDataHelper {
       'parent' => NULL,
       'data_definition' => $field_item_definition,
     ]);
-    assert($field_item instanceof FieldItemInterface);
+    \assert($field_item instanceof FieldItemInterface);
     return $field_item;
   }
 

@@ -87,7 +87,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
       // Server-side error responses.
       // @todo Make these also use JSON:API-style error responses?
       else {
-        assert($status >= 500);
+        \assert($status >= 500);
         $response = [
           'message' => ExceptionHelper::getVerboseMessage($exception),
         ];

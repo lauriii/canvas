@@ -39,7 +39,7 @@ class CanvasAssetStorage extends ConfigEntityStorage implements EntityHandlerInt
 
     // Update the file system representations of the asset library described by
     // this config entity.
-    assert($entity instanceof CanvasAssetInterface);
+    \assert($entity instanceof CanvasAssetInterface);
     $this->generateFiles($entity);
 
     return $result;

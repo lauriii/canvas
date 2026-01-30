@@ -25,7 +25,7 @@ final class UnixTimestampToDateAdapter extends AdapterBase {
   public function adapt(): EvaluationResult {
     // @todo Ensure that the `unix` input is constrained to the appropriate range.
     $datetime = \DateTime::createFromFormat('U', $this->unix);
-    assert($datetime !== FALSE);
+    \assert($datetime !== FALSE);
     return new EvaluationResult($datetime->format('Y-m-d'));
   }
 

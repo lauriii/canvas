@@ -163,7 +163,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $components = $this->componentStorage->loadMultiple($component_ids);
     foreach ($components as $component_id => $component) {
       // Use reflection to test the private ::getDefaultStaticPropSource() method.
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $source = $component->getComponentSource();
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);
@@ -715,7 +715,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
     $this->generateComponentConfig();
     foreach ($this->componentStorage->loadMultiple($component_ids) as $component) {
-      assert($component instanceof Component);
+      \assert($component instanceof Component);
       $source = $component->getComponentSource();
       \assert($source instanceof JsComponent);
       $expected_cacheability = (new CacheableMetadata())
@@ -1094,7 +1094,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
    *           [true, true, true, "draft"]
    */
   public function testImportMaps(bool $preview, bool $create_auto_save, bool $create_dependency_auto_save, string $dependencies_expected_result): void {
-    assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
+    \assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
     $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
     \assert($file_generator instanceof FileUrlGeneratorInterface);
 
@@ -1189,7 +1189,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $js_component->save();
 
     $autoSave = $this->container->get(AutoSaveManager::class);
-    assert($autoSave instanceof AutoSaveManager);
+    \assert($autoSave instanceof AutoSaveManager);
     $touch_component = function (JavaScriptComponent $component) {
       $css = $component->get('css');
       // We need to make this different to the saved value.
@@ -1723,9 +1723,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
     // Grab one of the test components.
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId("canvas_test_code_components_with_props"));
-    assert($component instanceof ComponentInterface);
+    \assert($component instanceof ComponentInterface);
     $source = $component->getComponentSource();
-    assert($source instanceof JsComponent);
+    \assert($source instanceof JsComponent);
     $js_component = $source->getJavaScriptComponent();
     // Create an auto-save entry for this test code component.
     $js_component->set('name', 'With props - Draft');
@@ -1882,7 +1882,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // Save and enable to create a component.
     $js_component->enable()->save();
     $corresponding_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    assert($corresponding_component instanceof Component);
+    \assert($corresponding_component instanceof Component);
 
     $original_version = $corresponding_component->getActiveVersion();
     $versions = [$original_version];
@@ -1899,7 +1899,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
     ])->save();
     $second_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    assert($second_version_component instanceof Component);
+    \assert($second_version_component instanceof Component);
 
     $second_version = $second_version_component->getActiveVersion();
     self::assertNotEquals($original_version, $second_version);
@@ -1925,7 +1925,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     ])->save();
 
     $third_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    assert($third_version_component instanceof Component);
+    \assert($third_version_component instanceof Component);
 
     $third_version = $third_version_component->getActiveVersion();
     $versions[] = $third_version;
@@ -1950,7 +1950,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     ])->save();
 
     $fourth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    assert($fourth_version_component instanceof Component);
+    \assert($fourth_version_component instanceof Component);
 
     $fourth_version = $fourth_version_component->getActiveVersion();
     self::assertEquals($fourth_version, $third_version);
@@ -1966,7 +1966,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     ])->save();
 
     $fifth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    assert($fifth_version_component instanceof Component);
+    \assert($fifth_version_component instanceof Component);
 
     $fifth_version = $fifth_version_component->getActiveVersion();
     $versions[] = $fifth_version;
@@ -2019,9 +2019,9 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface {
     $config_storage = \Drupal::service('config.storage');
-    assert($config_storage instanceof StorageInterface);
+    \assert($config_storage instanceof StorageInterface);
     $js_component_source = $component->getComponentSource();
-    assert($js_component_source instanceof JsComponent);
+    \assert($js_component_source instanceof JsComponent);
 
     // Delete the JavaScriptComponent config WITHOUT triggering
     // Component::onDependencyRemoval(), hence simulating a bypassing of all
@@ -2175,7 +2175,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   protected function getExpectedVerboseErrorMessage(): string {
     // The code component was deleted by bypassing lots of protections.
     // @see ::triggerBrokenComponent()
-    return sprintf('The JavaScript Component with ID `%s` does not exist.', self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
+    return \sprintf('The JavaScript Component with ID `%s` does not exist.', self::PSEUDO_RANDOM_CODE_COMPONENT_ID);
   }
 
 }

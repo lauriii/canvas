@@ -70,9 +70,9 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match, array $additionalData = []): JsonResponse {
     $response = parent::renderResponse($main_content, $request, $route_match);
-    assert($response instanceof AttachmentsInterface);
+    \assert($response instanceof AttachmentsInterface);
     $response = $this->attachmentsResponseProcessor->processAttachments($response);
-    assert($response instanceof Response);
+    \assert($response instanceof Response);
 
     // @todo Expose warnings and errors to the Canvas UI: https://www.drupal.org/project/canvas/issues/3489302#comment-15877293
     return new JsonResponse([

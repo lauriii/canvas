@@ -302,7 +302,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     }
 
     // Update the `foo` key-value pair from string to integer.
-    assert(is_string($block_plugin_settings['foo']));
+    \assert(is_string($block_plugin_settings['foo']));
     $block_plugin_settings['foo'] = match ($block_plugin_settings['foo']) {
       // Remap the old default to the new default.
       // @see \Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc::defaultConfiguration()
@@ -342,12 +342,12 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
   public function testBlockPluginUpdateConsequences(): void {
     // @see `type: block_settings`
     $block_settings_schema = \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData('block_settings', []);
-    assert($block_settings_schema instanceof Mapping);
+    \assert($block_settings_schema instanceof Mapping);
     $generic_block_settings = $block_settings_schema->getRequiredKeys();
 
     // Before the update.
     $before = Component::load('block.canvas_test_block_input_schema_change_poc');
-    assert($before instanceof Component);
+    \assert($before instanceof Component);
     self::assertSame(CanvasTestBlockInputSchemaChangePoc::class, $before->getComponentSource()->getReferencedPluginClass());
     self::assertSame('7cc894b85e93a7d8', $before->getActiveVersion());
     self::assertSame(['7cc894b85e93a7d8'], $before->getVersions());
@@ -364,7 +364,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // 2. updated default settings
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions()
     $after = Component::load($before->id());
-    assert($after instanceof Component);
+    \assert($after instanceof Component);
     self::assertSame(SimulatedInputSchemaChangeBlock::class, $after->getComponentSource()->getReferencedPluginClass());
     self::assertSame('88c370526c14d185', $after->getActiveVersion());
     self::assertSame(['88c370526c14d185', '7cc894b85e93a7d8'], $after->getVersions());
@@ -476,7 +476,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
     // because in real workloads, it is impossible to experience Component
     // updates within a single request.
     $reloaded_page = Page::load($page->id());
-    assert(!is_null($reloaded_page));
+    \assert(!is_null($reloaded_page));
     self::assertSame($expected_post_update_violations, self::violationsToArray($reloaded_page->getComponentTree()->validate()));
     self::assertSame($expected_mid_update_markup_bc_layer, self::getTextOfAllRenderedBlockComponentInstances($reloaded_page));
     self::assertSame($expected_mid_update_markup_bc_layer, self::getTextOfAllRenderedBlockComponentInstances($page));
@@ -498,7 +498,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
       ? ['canvas.pattern.update_path_test_block']
       : [];
     $audit = $this->container->get(ComponentAudit::class);
-    assert($audit instanceof ComponentAudit);
+    \assert($audit instanceof ComponentAudit);
     $updated_component = Component::load('block.canvas_test_block_input_schema_change_poc');
     // The new version of the component does not have any uses.
     self::assertSame([], $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]));
@@ -589,7 +589,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
   }
 
   private static function contentEntityRevisionObjectToString(ContentEntityInterface $e): string {
-    return sprintf("%s:%s:%s", $e->getEntityTypeId(), $e->id(), $e->getRevisionId());
+    return \sprintf("%s:%s:%s", $e->getEntityTypeId(), $e->id(), $e->getRevisionId());
   }
 
 }

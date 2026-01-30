@@ -41,7 +41,7 @@ trait OpenApiSpecTrait {
    * Gets the path to the OpenAPI specification.
    */
   private function getSpecificationPath(): string {
-    return sprintf(
+    return \sprintf(
       '%s/openapi.yml',
       dirname(__DIR__, 3),
     );
@@ -59,18 +59,18 @@ trait OpenApiSpecTrait {
     $validator = new SchemaValidator();
     try {
       $specification = $this->getSpecification();
-      assert(!is_null($specification->components));
-      assert($specification->components->schemas[$schemaType] instanceof Schema);
+      \assert(!is_null($specification->components));
+      \assert($specification->components->schemas[$schemaType] instanceof Schema);
       $validator->validate($data, $specification->components->schemas[$schemaType]);
       $this->addToAssertionCount(1);
     }
     catch (KeywordMismatch $e) {
-      assert(!is_null($e->dataBreadCrumb()));
-      $this->fail(sprintf('%s:%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->keyword(), $e->getMessage()));
+      \assert(!is_null($e->dataBreadCrumb()));
+      $this->fail(\sprintf('%s:%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->keyword(), $e->getMessage()));
     }
     catch (SchemaMismatch $e) {
-      assert(!is_null($e->dataBreadCrumb()));
-      $this->fail(sprintf('%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->getMessage()));
+      \assert(!is_null($e->dataBreadCrumb()));
+      $this->fail(\sprintf('%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->getMessage()));
     }
   }
 

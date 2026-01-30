@@ -151,7 +151,7 @@ final class UtmParameters extends ConditionPluginBase {
       $result &= match($parameter['matching']) {
         'exact' => $parameter['value'] === $requestParamValue,
         'starts_with' => str_starts_with($requestParamValue, $parameter['value']),
-        default => throw new \LogicException(sprintf('Unknown matching for condition %s', $this->pluginId)),
+        default => throw new \LogicException(\sprintf('Unknown matching for condition %s', $this->pluginId)),
       };
     }
     return (bool) ($this->configuration['negate'] ? !$result : $result);

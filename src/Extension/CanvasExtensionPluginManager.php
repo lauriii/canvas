@@ -66,15 +66,15 @@ final class CanvasExtensionPluginManager extends DefaultPluginManager implements
     parent::processDefinition($definition, $plugin_id);
     $module_path = $this->moduleHandler->getModule($definition['provider'])->getPath();
     if (empty($definition['api_version'])) {
-      throw new ExtensionValidationException(sprintf('The extension %s in module %s must define its api_version.', $definition['id'], $definition['provider']));
+      throw new ExtensionValidationException(\sprintf('The extension %s in module %s must define its api_version.', $definition['id'], $definition['provider']));
     }
     // Only prepend the path if it's a relative path without a leading slash
     foreach (['icon', 'url'] as $uri) {
       if (!empty($definition[$uri]) && str_starts_with($definition[$uri], '/')) {
-        throw new ExtensionValidationException(sprintf('The extension %s in module %s path %s cannot start with "/". Use an absolute url or a path relative to your module info.yml file.', $definition['id'], $definition['provider'], $uri));
+        throw new ExtensionValidationException(\sprintf('The extension %s in module %s path %s cannot start with "/". Use an absolute url or a path relative to your module info.yml file.', $definition['id'], $definition['provider'], $uri));
       }
       if (!empty($definition[$uri]) && !str_starts_with($definition[$uri], '/') && !str_starts_with($definition[$uri], 'http')) {
-        assert(!str_starts_with($definition[$uri], '.'), 'The extension paths must not start with "."');
+        \assert(!str_starts_with($definition[$uri], '.'), 'The extension paths must not start with "."');
         $definition[$uri] = Url::fromUri('base://' . $module_path . '/' . $definition[$uri])->toString();
       }
     }

@@ -110,7 +110,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
       ->loadEntityByUuid('node', 'c66664af-53b9-42f4-a0ca-8ecc9edacb8c');
     $this->assertInstanceOf(FieldableEntityInterface::class, $node);
     $canvas_field = $node->get('field_canvas_demo');
-    assert($canvas_field instanceof ComponentTreeItemList);
+    \assert($canvas_field instanceof ComponentTreeItemList);
     $inputs = $canvas_field
       ->getComponentTreeItemByUuid('348bfa10-af72-49cd-900b-084d617c87df')
       ?->getInputs();

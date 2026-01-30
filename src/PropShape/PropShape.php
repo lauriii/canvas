@@ -32,7 +32,7 @@ final class PropShape {
   ) {
     $normalized = self::normalizePropSchema($this->schema);
     if ($schema !== $normalized) {
-      throw new \InvalidArgumentException(sprintf("The passed in schema (%s) should be normalized (%s).", print_r($schema, TRUE), print_r($normalized, TRUE)));
+      throw new \InvalidArgumentException(\sprintf("The passed in schema (%s) should be normalized (%s).", print_r($schema, TRUE), print_r($normalized, TRUE)));
     }
     $this->resolvedSchema = self::resolveSchemaReferences($schema);
   }
@@ -217,7 +217,7 @@ final class PropShape {
       $known_normalized
     );
     if (count($known_normalized) > count(array_unique($unique_keys_as_values))) {
-      throw new \LogicException(sprintf(
+      throw new \LogicException(\sprintf(
         '🐛 Duplicate $ref definitions detected: %s.',
         implode(',', array_keys(array_diff_key($known_normalized, array_unique($unique_keys_as_values))))
       ));

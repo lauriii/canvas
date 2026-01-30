@@ -106,7 +106,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
    * {@inheritdoc}
    */
   public function calculateDependencies(FieldableEntityInterface|FieldItemListInterface|null $host_entity = NULL): array {
-    assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
+    \assert($host_entity === NULL || $host_entity instanceof FieldableEntityInterface);
     $dependencies = $this->referencer->calculateDependencies($host_entity);
     if ($host_entity === NULL) {
       $dependencies = NestedArray::mergeDeep($dependencies, $this->referenced->calculateDependencies());
@@ -160,14 +160,14 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
   }
 
   public function validateSupport(EntityInterface|FieldItemInterface|FieldItemListInterface $entity): void {
-    assert($entity instanceof EntityInterface);
+    \assert($entity instanceof EntityInterface);
     $expected_entity_type_id = $this->referencer->entityType->getEntityTypeId();
     if ($entity->getEntityTypeId() !== $expected_entity_type_id) {
-      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
+      throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
     }
     $expected_bundles = $this->referencer->entityType->getBundles();
     if ($expected_bundles !== NULL && !in_array($entity->bundle(), $expected_bundles, TRUE)) {
-      throw new \DomainException(sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
+      throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
     }
     // @todo validate that the field exists?
   }

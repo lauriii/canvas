@@ -99,7 +99,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     private readonly PluginFormFactoryInterface $pluginFormFactory,
     private readonly AutoSaveManager $autoSaveManager,
   ) {
-    assert(array_key_exists('local_source_id', $configuration));
+    \assert(array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -129,8 +129,8 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
 
   public function determineDefaultFolder(): string {
     $plugin_definition = $this->getBlockPlugin()->getPluginDefinition();
-    assert(is_array($plugin_definition));
-    assert(!empty($plugin_definition['category']));
+    \assert(is_array($plugin_definition));
+    \assert(!empty($plugin_definition['category']));
 
     return (string) $plugin_definition['category'];
   }
@@ -153,7 +153,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   protected function getBlockPlugin(): BlockPluginInterface {
     // @todo this should probably use DefaultSingleLazyPluginCollection
     $block = $this->blockManager->createInstance($this->configuration['local_source_id'], $this->configuration);
-    assert($block instanceof BlockPluginInterface);
+    \assert($block instanceof BlockPluginInterface);
     return $block;
   }
 
@@ -169,7 +169,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function getComponentDescription(): TranslatableMarkup {
     $pluginDefinition = $this->getBlockPlugin()->getPluginDefinition() ?? [];
-    assert(is_array($pluginDefinition));
+    \assert(is_array($pluginDefinition));
     return new TranslatableMarkup('Block: %name', [
       '%name' => $pluginDefinition['admin_label'] ?? new TranslatableMarkup('Invalid/broken'),
     ]);
@@ -223,7 +223,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
     if ($block instanceof TitleBlockPluginInterface || $block instanceof MessagesBlockPluginInterface) {
       if (\Fiber::getCurrent() === NULL) {
-        throw new \LogicException(sprintf('The %s block plugin does not support previews.', $block->getPluginId()));
+        throw new \LogicException(\sprintf('The %s block plugin does not support previews.', $block->getPluginId()));
       }
       \Fiber::suspend($block);
     }
@@ -236,7 +236,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     $cacheable_metadata = CacheableMetadata::createFromObject($block);
     $cacheable_metadata->applyTo($build);
 
-    assert($build['#access'] instanceof AccessResultInterface);
+    \assert($build['#access'] instanceof AccessResultInterface);
     if (!$build['#access']->isAllowed()) {
       return $build;
     }
@@ -309,7 +309,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     catch (MissingComponentInputsException) {
       // There is no input for this component. That should only be the case for
       // block plugins without any settings.
-      assert(!$this->requiresExplicitInput());
+      \assert(!$this->requiresExplicitInput());
       return [];
     }
   }

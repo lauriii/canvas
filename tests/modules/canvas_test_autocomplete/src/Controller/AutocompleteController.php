@@ -18,7 +18,7 @@ class AutocompleteController {
 
   public function result(Request $request): JsonResponse {
     $search_string = $request->query->get('q');
-    assert(is_string($search_string));
+    \assert(is_string($search_string));
     $results = array_filter($this->items, fn($item) => str_contains($item['value'], strtolower($search_string)));
     return new JsonResponse(array_values($results));
   }

@@ -100,7 +100,7 @@ HTML;
 
   public function __invoke(?string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     // @phpstan-ignore-next-line function.alreadyNarrowedType
-    assert($this->validateTransformAssetLibraries());
+    \assert($this->validateTransformAssetLibraries());
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
       'system/base',
@@ -340,7 +340,7 @@ HTML;
     );
     $missing = array_diff($transforms, $encountered_transform_asset_libraries);
     if (!empty($missing)) {
-      throw new \LogicException(sprintf("Client-side transforms '%s' encountered without corresponding asset libraries.", implode("', '", $missing)));
+      throw new \LogicException(\sprintf("Client-side transforms '%s' encountered without corresponding asset libraries.", implode("', '", $missing)));
     }
 
     return TRUE;

@@ -53,7 +53,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
       Page::EDIT_PERMISSION,
       Segment::ADMIN_PERMISSION,
     ]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
 
     $this->expectedDefaultSegment = [
@@ -68,7 +68,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     // Create a user with an arbitrary permission that is not related to
     // accessing any Canvas resources.
     $user2 = $this->createUser(['view own unpublished content']);
-    assert($user2 instanceof UserInterface);
+    \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
   }
 
@@ -202,7 +202,7 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     /** @var \Drupal\Core\Entity\EntityStorageInterface $segment_storage */
     $segment_storage = \Drupal::service('entity_type.manager')->getStorage(Segment::ENTITY_TYPE_ID);
     $segment = $segment_storage->loadUnchanged('my_segment');
-    assert($segment instanceof Segment);
+    \assert($segment instanceof Segment);
     self::assertFalse($segment->status());
 
     // Creating a segment with an already-in-use ID: 409.

@@ -31,7 +31,7 @@ final class UriSchemeConstraintValidator extends ConstraintValidator {
       if ($scheme === 'temporary') {
         return;
       }
-      assert(is_string($scheme));
+      \assert(is_string($scheme));
       $this->context->buildViolation($constraint->messageInvalidUriScheme)
         ->setParameter('@scheme', $scheme)
         ->setParameter('@allowed-schemes', implode(', ', $constraint->allowedSchemes))

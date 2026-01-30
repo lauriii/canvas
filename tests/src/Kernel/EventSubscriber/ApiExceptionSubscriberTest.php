@@ -56,9 +56,9 @@ class ApiExceptionSubscriberTest extends KernelTestBase {
 
     // Assert on the response.
     $response = $event->getResponse();
-    assert($response instanceof Response);
+    \assert($response instanceof Response);
     $content = $response->getContent();
-    assert(is_string($content));
+    \assert(is_string($content));
     $content = json_decode($content, TRUE, 512, JSON_THROW_ON_ERROR);
     self::assertEquals(500, $response->getStatusCode(), 'Response status code is 500.');
     self::assertArrayHasKey('message', $content, 'Response contains correct message.');

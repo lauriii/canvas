@@ -55,7 +55,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
     // Resolve any dynamic tokens, like %parent, in the SDC plugin ID.
     // @phpstan-ignore argument.type
     $sdc_plugin_id = TypeResolver::resolveDynamicTypeName("[$constraint->sdcPluginId]", $this->context->getObject());
-    assert(!str_contains($sdc_plugin_id, '%'));
+    \assert(!str_contains($sdc_plugin_id, '%'));
     try {
       $sdc = $this->componentPluginManager->find($sdc_plugin_id);
     }

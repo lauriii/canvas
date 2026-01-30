@@ -25,7 +25,7 @@ final class SegmentRuleForm extends EntityForm {
 
   public static function create(ContainerInterface $container): self {
     $condition_manager = $container->get('plugin.manager.condition');
-    assert($condition_manager instanceof ConditionManager);
+    \assert($condition_manager instanceof ConditionManager);
     return new static(
       $condition_manager,
     );
@@ -33,7 +33,7 @@ final class SegmentRuleForm extends EntityForm {
 
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
-    assert($this->entity instanceof SegmentInterface);
+    \assert($this->entity instanceof SegmentInterface);
     $segment_rules = $this->entity->getSegmentRules();
 
     // Filter those conditions that we want to allow in personalization only.
@@ -60,7 +60,7 @@ final class SegmentRuleForm extends EntityForm {
 
       $condition_id = $form_state->getValue('plugin_id') ?? \array_key_first($condition_options);
       $condition = $this->conditionManager->createInstance($condition_id, $segment_rules[$condition_id]['settings'] ?? []);
-      assert($condition instanceof ConditionInterface);
+      \assert($condition instanceof ConditionInterface);
       $form_state->set($condition_id, $condition);
       $condition_form = $condition->buildConfigurationForm([], $form_state);
       $condition_form['#title'] = $this->t('Settings');
@@ -92,10 +92,10 @@ final class SegmentRuleForm extends EntityForm {
     $sub_form_state = SubformState::createForSubform($form['settings'], $form, $form_state);
     // Call the plugin submit handler.
     $condition = $this->conditionManager->createInstance($condition_id);
-    assert($condition instanceof ConditionInterface);
+    \assert($condition instanceof ConditionInterface);
     $condition->submitConfigurationForm($form, $sub_form_state);
 
-    assert($this->entity instanceof SegmentInterface);
+    \assert($this->entity instanceof SegmentInterface);
     $this->entity->addSegmentRule($condition_id, $condition->getConfiguration());
     parent::submitForm($form, $form_state);
   }

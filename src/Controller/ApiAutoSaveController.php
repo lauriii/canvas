@@ -145,7 +145,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
 
     // Filter those the user has access to.
     $filtered = \array_filter($this->autoSaveManager->getAllAutoSaveList(TRUE), function (array $item) use ($cache) {
-      assert($item['entity'] instanceof EntityInterface);
+      \assert($item['entity'] instanceof EntityInterface);
       $access = $item['entity']->access('view label', return_as_object: TRUE);
       // @todo This will result in the cache tag for this entity being returned
       //   in the response even though the user does not have access to view the
@@ -226,7 +226,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     $access_error_cache = new CacheableMetadata();
     $loadedEntities = [];
     foreach ($publish_auto_saves as $autoSaveKey => ['entity' => $entity]) {
-      assert($entity instanceof EntityInterface);
+      \assert($entity instanceof EntityInterface);
       // Auto-saves always are updates to existing entities. This just used
       // EntityStorageInterface::create() to construct an entity object from
       // just its values, which for some entities would result in it being
@@ -245,7 +245,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       }
     }
     if (!empty($access_error_labels)) {
-      throw new CacheableAccessDeniedHttpException($access_error_cache, sprintf('Unable to update entities: %s.', implode(', ', array_map(fn(\Stringable|string|NULL $label) => $label ? "'$label'" : "''", $access_error_labels))));
+      throw new CacheableAccessDeniedHttpException($access_error_cache, \sprintf('Unable to update entities: %s.', implode(', ', array_map(fn(\Stringable|string|NULL $label) => $label ? "'$label'" : "''", $access_error_labels))));
     }
 
     foreach ($loadedEntities as $entity) {
@@ -260,14 +260,14 @@ final class ApiAutoSaveController extends ApiControllerBase {
         }
       }
       else {
-        assert($entity instanceof ContentEntityInterface);
+        \assert($entity instanceof ContentEntityInterface);
 
         $fields = $entity->getFieldDefinitions();
         $entity_definition = $entity->getEntityType();
-        assert($entity_definition instanceof ContentEntityTypeInterface);
-        assert(!is_null($entity->id()));
+        \assert($entity_definition instanceof ContentEntityTypeInterface);
+        \assert(!is_null($entity->id()));
         $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
-        assert($original_entity instanceof FieldableEntityInterface);
+        \assert($original_entity instanceof FieldableEntityInterface);
         foreach ($fields as $field_name => $field) {
           $field_access = $entity->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
           $original_field = $original_entity->get($field_name);
@@ -290,7 +290,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
           if (!$ignore_field && $field_access->isForbidden()) {
             throw new CacheableAccessDeniedHttpException(
               (new CacheableMetadata())->addCacheableDependency($field_access),
-              sprintf('Unable to update field %s for entity "%s".', $field_name, $entity->label()),
+              \sprintf('Unable to update field %s for entity "%s".', $field_name, $entity->label()),
             );
           }
         }
@@ -318,7 +318,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // published before in Drupal Canvas.
         // @see \Drupal\canvas\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
         if ($revision_user = $entity_definition->getRevisionMetadataKey('revision_user')) {
-          assert(is_string($revision_user));
+          \assert(is_string($revision_user));
           $entity->set($revision_user, $this->currentUser->id());
         }
         // Even though we will validate each entity individually before it is
@@ -372,7 +372,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       \assert(count($violationList) > 0);
       $violationList = self::getViolationSetsFromPropertyPathsAndRoot($lastEntityEvaluated, $violationList);
       $violationsResponse = self::createJsonResponseFromViolationSets($violationList);
-      assert($violationsResponse instanceof JsonResponse);
+      \assert($violationsResponse instanceof JsonResponse);
       return $violationsResponse;
     }
     catch (\Exception $e) {

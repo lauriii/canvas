@@ -92,7 +92,7 @@ class AiResponseValidator {
       foreach ($componentGroup as $componentId => $componentData) {
         $componentUuid = $this->uuidService->generate();
 
-        $componentPath = sprintf('%s.%d.[%s]', $pathPrefix, $groupIndex, $componentId);
+        $componentPath = \sprintf('%s.%d.[%s]', $pathPrefix, $groupIndex, $componentId);
         $pathMapping[$componentUuid] = $componentPath;
 
         // Create a temp version if the component does not exist to allow
@@ -127,7 +127,7 @@ class AiResponseValidator {
         // Process slots recursively.
         if (isset($componentData['slots']) && is_array($componentData['slots'])) {
           foreach ($componentData['slots'] as $slot => $slotComponentGroups) {
-            $slotPath = sprintf('%s.slots.%s', $componentPath, $slot);
+            $slotPath = \sprintf('%s.slots.%s', $componentPath, $slot);
             $componentTreeData = array_merge(
               $componentTreeData,
               $this->convertToComponentTreeData(

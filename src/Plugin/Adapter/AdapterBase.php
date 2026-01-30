@@ -63,7 +63,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
 
     $message_parts = array_map(
       static function (array $error): string {
-        return sprintf("[%s] %s", $error['property'], $error['message']);
+        return \sprintf("[%s] %s", $error['property'], $error['message']);
       },
       $validator->getErrors()
     );
@@ -75,8 +75,8 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @return JsonSchema
    */
   public function getOutputSchema(): array {
-    assert(is_array($this->getPluginDefinition()));
-    assert(array_key_exists('output', $this->getPluginDefinition()));
+    \assert(is_array($this->getPluginDefinition()));
+    \assert(array_key_exists('output', $this->getPluginDefinition()));
     return PropShape::standardize($this->getPluginDefinition()['output'])->resolvedSchema;
   }
 
@@ -84,8 +84,8 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @todo Determine whether there is a better way.
    */
   public function inputIsRequired(string $input): bool {
-    assert(is_array($this->getPluginDefinition()));
-    assert(array_key_exists('requiredInputs', $this->getPluginDefinition()));
+    \assert(is_array($this->getPluginDefinition()));
+    \assert(array_key_exists('requiredInputs', $this->getPluginDefinition()));
     return in_array($input, $this->getPluginDefinition()['requiredInputs'], TRUE);
   }
 

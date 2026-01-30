@@ -47,7 +47,7 @@ final class ComponentSource extends Plugin {
     public readonly array $discoveryCacheTags = [],
   ) {
     if (is_string($discovery)) {
-      assert(class_exists($discovery));
+      \assert(class_exists($discovery));
     }
   }
 

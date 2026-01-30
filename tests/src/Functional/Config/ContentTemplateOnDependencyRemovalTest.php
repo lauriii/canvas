@@ -165,7 +165,7 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
     // Log in with permission to administer fields, and go delete one of the
     // fields in use by the template.
     $account = $this->drupalCreateUser(['administer node fields']);
-    assert($account instanceof AccountInterface);
+    \assert($account instanceof AccountInterface);
     $this->drupalLogin($account);
     $this->drupalGet('/admin/structure/types/manage/article/fields/node.article.field_slogan/delete');
     // The template should be among the things being updated, but nothing should
@@ -203,9 +203,9 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
     // The template does not depend on the module that is about to be
     // uninstalled, but it does depend on the field instance that depends on it.
     $content_template = ContentTemplate::load('node.article.full');
-    assert($content_template instanceof ContentTemplate);
+    \assert($content_template instanceof ContentTemplate);
     $slogan_field = FieldConfig::load('node.article.field_slogan');
-    assert($slogan_field instanceof FieldConfig);
+    \assert($slogan_field instanceof FieldConfig);
     self::assertNotContains('entity_test', $content_template->getDependencies()['module']);
     self::assertContains($slogan_field->getConfigDependencyName(), $content_template->getDependencies()['config']);
     self::assertContains('entity_test', $slogan_field->getDependencies()['module']);
@@ -227,7 +227,7 @@ final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
     // entity_test module (which provides the single_internal_property_test
     // field type) cannot be uninstalled.
     $account = $this->drupalCreateUser(['administer modules']);
-    assert($account instanceof AccountInterface);
+    \assert($account instanceof AccountInterface);
     $this->drupalLogin($account);
     $this->drupalGet('/admin/modules/uninstall');
     $assert_session->elementAttributeExists('named', ['field', 'Entity CRUD test module'], 'disabled');

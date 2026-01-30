@@ -891,7 +891,7 @@ class CanvasAiPageBuilderHelper {
       // Find the parent component and place in its slot.
       $path = $this->getPathFromUuid($modified_layout, $parent_uuid);
       if (empty($path)) {
-        throw new \Exception(sprintf('Component with UUID "%s" not found in layout', $parent_uuid));
+        throw new \Exception(\sprintf('Component with UUID "%s" not found in layout', $parent_uuid));
       }
       $modified_layout = $this->insertComponentsAtSlot($modified_layout, $path, $slot_name, $component_tree);
     }
@@ -902,7 +902,7 @@ class CanvasAiPageBuilderHelper {
         $modified_layout[$target] = array_merge($component_tree, $modified_layout[$target]);
       }
       else {
-        throw new \Exception(sprintf('Region "%s" not found in layout', $target));
+        throw new \Exception(\sprintf('Region "%s" not found in layout', $target));
       }
     }
 
@@ -933,7 +933,7 @@ class CanvasAiPageBuilderHelper {
     // Get path to the reference component.
     $path = $this->getPathFromUuid($modified_layout, $reference_uuid);
     if (empty($path)) {
-      throw new \Exception(sprintf('Component with UUID "%s" not found in layout', $reference_uuid));
+      throw new \Exception(\sprintf('Component with UUID "%s" not found in layout', $reference_uuid));
     }
 
     $modified_layout = $this->insertComponents($modified_layout, $path, $component_tree, $above_or_below);
@@ -1060,7 +1060,7 @@ class CanvasAiPageBuilderHelper {
 
     // Ensure slot exists.
     if (!isset($reference[$slot_name])) {
-      throw new \Exception(sprintf('Slot "%s" not found in path "%s"', $slot_name, implode('/', $path)));
+      throw new \Exception(\sprintf('Slot "%s" not found in path "%s"', $slot_name, implode('/', $path)));
     }
 
     // Insert components to the slot.

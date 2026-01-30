@@ -146,10 +146,10 @@ final class ApiContentControllers {
     // - without a search term: get the N newest content entities
     if ($search === NULL) {
       $content_entity_type = $this->entityTypeManager->getDefinition($entity_type);
-      assert($content_entity_type instanceof ContentEntityTypeInterface);
+      \assert($content_entity_type instanceof ContentEntityTypeInterface);
       $revision_created_field_name = $content_entity_type->getRevisionMetadataKey('revision_created');
       // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/canvas/issues/3498525.
-      assert(is_string($revision_created_field_name));
+      \assert(is_string($revision_created_field_name));
 
       $entity_query = $storage->getQuery()
         ->accessCheck(TRUE)
@@ -161,7 +161,7 @@ final class ApiContentControllers {
     // - with a search term: get the N best matches using the entity reference
     //   selection plugin, get all auto-save matches, and combine both
     else {
-      assert(is_string($search));
+      \assert(is_string($search));
       $search = trim($search);
       $ids = $this->filterAndMergeIds(
         // TRICKY: covered by the "list cacheability" at the top.
@@ -248,7 +248,7 @@ final class ApiContentControllers {
       'target_type' => $entity_type_id,
       'handler' => 'default',
     ]);
-    assert($selection_handler instanceof SelectionInterface);
+    \assert($selection_handler instanceof SelectionInterface);
     $matching_data = $selection_handler->getReferenceableEntities(
       $search,
       'CONTAINS',
@@ -341,7 +341,7 @@ final class ApiContentControllers {
     $entity_key = $entity_type->getKey('label') ?? 'title';
     // @phpstan-ignore-next-line
     $duplicate->set($entity_key, $duplicate->label() . AutoSaveManager::ENTITY_DUPLICATE_SUFFIX);
-    assert($duplicate instanceof EntityPublishedInterface);
+    \assert($duplicate instanceof EntityPublishedInterface);
     $duplicate->setUnpublished();
     $duplicate->save();
 
@@ -400,7 +400,7 @@ final class ApiContentControllers {
         $access = $this->entityTypeManager->getAccessControlHandler($content_entity->getEntityTypeId())
           ->createAccess(entity_bundle: $content_entity->bundle(), return_as_object: TRUE);
       }
-      assert($access instanceof AccessResult);
+      \assert($access instanceof AccessResult);
       if ($access->isAllowed()) {
         $links = $links->withLink(
           $link_rel,

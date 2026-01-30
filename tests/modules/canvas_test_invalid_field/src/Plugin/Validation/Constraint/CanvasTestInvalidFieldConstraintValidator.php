@@ -21,7 +21,7 @@ class CanvasTestInvalidFieldConstraintValidator extends ConstraintValidator {
     }
 
     if ($value->value === 'invalid constraint') {
-      assert($constraint instanceof CanvasTestInvalidFieldConstraint);
+      \assert($constraint instanceof CanvasTestInvalidFieldConstraint);
       $this->context->addViolation($constraint->message);
     }
   }

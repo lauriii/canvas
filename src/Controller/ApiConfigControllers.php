@@ -70,7 +70,7 @@ final class ApiConfigControllers extends ApiControllerBase {
    */
   public function list(string $canvas_config_entity_type_id): CacheableJsonResponse {
     $canvas_config_entity_type = $this->entityTypeManager->getDefinition($canvas_config_entity_type_id);
-    assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
+    \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
 
     // Load the queried config entities: a list of all of them.
     $storage = $this->entityTypeManager->getStorage($canvas_config_entity_type_id);
@@ -168,13 +168,13 @@ final class ApiConfigControllers extends ApiControllerBase {
     $additional_cacheability->addCacheTags(['entity_bundles']);
     foreach ($supported_entity_type_ids as $entity_type_id) {
       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-      assert($entity_type instanceof EntityTypeInterface);
+      \assert($entity_type instanceof EntityTypeInterface);
       $bundle_entity_type_id = $entity_type->getBundleEntityType();
 
       $label = $entity_type->getCollectionLabel();
       if ($bundle_entity_type_id) {
         $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
-        assert($bundle_entity_type instanceof EntityTypeInterface);
+        \assert($bundle_entity_type instanceof EntityTypeInterface);
         $label = $bundle_entity_type->getCollectionLabel();
       }
       $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
@@ -182,11 +182,11 @@ final class ApiConfigControllers extends ApiControllerBase {
       foreach ($bundle_info as $bundle_key => $info) {
         /** @var \Drupal\Core\Access\AccessResultInterface $edit_fields_access_check */
         $edit_fields_access_check = $this->accessManager->checkNamedRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
-        assert($edit_fields_access_check instanceof AccessResultInterface);
+        \assert($edit_fields_access_check instanceof AccessResultInterface);
         $edit_fields_access = $edit_fields_access_check->isAllowed();
         /** @var \Drupal\Core\Access\AccessResultInterface $delete_access_check */
         $delete_access_check = $this->accessManager->checkNamedRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
-        assert($delete_access_check instanceof AccessResultInterface);
+        \assert($delete_access_check instanceof AccessResultInterface);
         $delete_access = $delete_access_check->isAllowed();
 
         $bundles[$bundle_key] = [
@@ -227,9 +227,9 @@ final class ApiConfigControllers extends ApiControllerBase {
       }
       if ($bundle_entity_type_id) {
         // @phpstan-ignore-next-line variable.undefined
-        assert($bundle_entity_type instanceof ConfigEntityTypeInterface);
+        \assert($bundle_entity_type instanceof ConfigEntityTypeInterface);
         $additional_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
-        $individual_bundle_entity_cache_tag_prefixes_to_ignore[] = sprintf("config:%s.", $bundle_entity_type->getConfigPrefix());
+        $individual_bundle_entity_cache_tag_prefixes_to_ignore[] = \sprintf("config:%s.", $bundle_entity_type->getConfigPrefix());
       }
     }
 
@@ -265,7 +265,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
   public function get(Request $request, CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): CacheableJsonResponse {
     $canvas_config_entity_type = $canvas_config_entity->getEntityType();
-    assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
+    \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
     $representation = $this->normalize($canvas_config_entity);
     return (new CacheableJsonResponse(status: 200, data: $representation->values))
       ->addCacheableDependency($canvas_config_entity)
@@ -274,13 +274,13 @@ final class ApiConfigControllers extends ApiControllerBase {
 
   public function post(string $canvas_config_entity_type_id, Request $request): JsonResponse {
     $canvas_config_entity_type = $this->entityTypeManager->getDefinition($canvas_config_entity_type_id);
-    assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
+    \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
 
     // Create an in-memory config entity.
     $decoded = self::decode($request);
     try {
       $canvas_config_entity = $canvas_config_entity_type->getClass()::createFromClientSide($decoded);
-      assert($canvas_config_entity instanceof CanvasHttpApiEligibleConfigEntityInterface);
+      \assert($canvas_config_entity instanceof CanvasHttpApiEligibleConfigEntityInterface);
       $this->validate($canvas_config_entity);
     }
     catch (ConstraintViolationException $e) {
@@ -335,7 +335,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     // Save the Canvas config entity, respond with a 200.
     $canvas_config_entity->save();
     $canvas_config_entity_type = $canvas_config_entity->getEntityType();
-    assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
+    \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
     $representation = $this->normalize($canvas_config_entity);
     return new JsonResponse(status: 200, data: $representation->values);
   }
@@ -364,7 +364,7 @@ final class ApiConfigControllers extends ApiControllerBase {
         $context,
         fn () => $entity->normalizeForClientSide()->renderPreviewIfAny($this->renderer, $this->assetRenderer),
       );
-      assert($representation instanceof ClientSideRepresentation);
+      \assert($representation instanceof ClientSideRepresentation);
       if (!$context->isEmpty()) {
         $leaked_cacheability = $context->pop();
         $representation->addCacheableDependency($leaked_cacheability);
@@ -388,7 +388,7 @@ final class ApiConfigControllers extends ApiControllerBase {
       $ignorable_cache_contexts = ['session', 'user'];
 
       if (array_diff($problematic_cache_contexts, $ignorable_cache_contexts)) {
-        throw new \LogicException(sprintf('No PHP API exists yet to allow specifying a technique to avoid the `%s` cache context(s) while still generating an acceptable preview', implode(',', $problematic_cache_contexts)));
+        throw new \LogicException(\sprintf('No PHP API exists yet to allow specifying a technique to avoid the `%s` cache context(s) while still generating an acceptable preview', implode(',', $problematic_cache_contexts)));
       }
 
       try {

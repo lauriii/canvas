@@ -166,7 +166,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   public function label(): TranslatableMarkup {
     $entity_type = $this->entityTypeManager()
       ->getDefinition($this->getTargetEntityTypeId());
-    assert($entity_type instanceof EntityTypeInterface);
+    \assert($entity_type instanceof EntityTypeInterface);
 
     $bundle_info = \Drupal::service(EntityTypeBundleInfoInterface::class)
       ->getBundleInfo($entity_type->id());
@@ -195,7 +195,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $view_mode = $this->entityTypeManager()
       ->getStorage('entity_view_mode')
       ->load($this->getTargetEntityTypeId() . '.' . $this->getMode());
-    assert($view_mode instanceof EntityViewModeInterface);
+    \assert($view_mode instanceof EntityViewModeInterface);
     return $view_mode;
   }
 
@@ -304,14 +304,14 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $entity_type_manager = \Drupal::entityTypeManager();
     $storage = $entity_type_manager->getStorage($this->getTargetEntityTypeId());
     $content_entity_type = $entity_type_manager->getDefinition($this->getTargetEntityTypeId());
-    assert($content_entity_type instanceof ContentEntityTypeInterface);
+    \assert($content_entity_type instanceof ContentEntityTypeInterface);
 
     $empty_target_entity = $content_entity_type->hasKey('bundle')
       ? $storage->create([
         $content_entity_type->getKey('bundle') => $this->getTargetBundle(),
       ])
       : $storage->create();
-    assert($empty_target_entity instanceof FieldableEntityInterface);
+    \assert($empty_target_entity instanceof FieldableEntityInterface);
 
     return $empty_target_entity;
   }
@@ -362,7 +362,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
 
     // @todo Prior to supporting multiple exposed slots, https://www.drupal.org/i/3526189
     //   must be investigated and a decision needs to be made.
-    assert(count($this->getExposedSlots()) === 1);
+    \assert(count($this->getExposedSlots()) === 1);
     $canvas_field_name = \Drupal::service(ComponentTreeLoader::class)
       ->getCanvasFieldName($entity);
     $sub_tree_item_list = $entity->get($canvas_field_name);
@@ -501,13 +501,13 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $entity_definition = $entity_type_manager->getDefinition($entity_type_id);
 
     $id_key = $entity_definition->getKey('id');
-    assert(is_string($id_key));
+    \assert(is_string($id_key));
     $entity_query = $entity_type_manager->getStorage($entity_type_id)->getQuery()
       ->accessCheck(TRUE)
       ->range(0, $limit);
     if ($entity_definition->hasKey('bundle')) {
       $bundle_key = $entity_definition->getKey('bundle');
-      assert(is_string($bundle_key));
+      \assert(is_string($bundle_key));
       $entity_query->condition($bundle_key, $bundle);
     }
 
@@ -522,7 +522,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   }
 
   private function getSuggestedPreviewEntity(): ?ContentEntityInterface {
-    assert($this->content_entity_type_id !== NULL);
+    \assert($this->content_entity_type_id !== NULL);
 
     $query = self::getPreviewSuggestionQuery(
       $this->getTargetEntityTypeId(),
@@ -530,7 +530,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       1
     );
     $results = $query->execute();
-    assert(is_array($results));
+    \assert(is_array($results));
 
     if (empty($results)) {
       return NULL;
@@ -539,7 +539,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $entity = $this->entityTypeManager()
       ->getStorage($this->getTargetEntityTypeId())
       ->load(reset($results));
-    assert($entity instanceof ContentEntityInterface);
+    \assert($entity instanceof ContentEntityInterface);
     return $entity;
   }
 

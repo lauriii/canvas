@@ -47,13 +47,13 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
       Page::EDIT_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
     ]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
 
     // Create a user with an arbitrary permission that is not related to
     // accessing any Canvas resources.
     $user2 = $this->createUser(['view media']);
-    assert($user2 instanceof UserInterface);
+    \assert($user2 instanceof UserInterface);
     $this->limitedPermissionsUser = $user2;
   }
 
@@ -205,7 +205,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $storage = $entity_type_manager->getStorage($entity_type_id);
     $definition = $entity_type_manager->getDefinition($entity_type_id);
     $id_key = $definition->getKey('id');
-    assert(!empty($initial_entity[$id_key]));
+    \assert(!empty($initial_entity[$id_key]));
     $entity_id = $initial_entity[$id_key];
     $base = rtrim(base_path(), '/');
     $post_url = Url::fromUri("base:/canvas/api/v0/config/$entity_type_id");
@@ -246,7 +246,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $original_entity = $storage->load($entity_id);
     \assert($original_entity instanceof CanvasAssetInterface);
     $original_entity_array = $original_entity->toArray();
-    assert(is_array($original_entity_array));
+    \assert(is_array($original_entity_array));
 
     // Now the entity exists, these should serve a 200 response containing the
     // non-draft CSS/JS, and NOT redirect to the non-draft. Otherwise, a race

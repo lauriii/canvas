@@ -41,10 +41,10 @@ final readonly class ComponentTreeInputExtractor {
     $tree = $this->componentTreeLoader->load($entity);
 
     foreach ($tree as $component_tree_item) {
-      assert($component_tree_item instanceof ComponentTreeItem);
+      \assert($component_tree_item instanceof ComponentTreeItem);
       $component_instance_uuid = $component_tree_item->getUuid();
       $component = $component_tree_item->getComponent();
-      assert($component !== NULL);
+      \assert($component !== NULL);
 
       $prop_shapes = self::getPropShapes($component);
       if (count($prop_shapes) === 0) {
@@ -57,7 +57,7 @@ final readonly class ComponentTreeInputExtractor {
       foreach ($prop_shapes as $prop_expression => $prop_shape) {
         $prop_name = ComponentPropExpression::fromString($prop_expression)->propName;
         if (self::allowedProp($prop_name, $prop_shape, $ignored_prop_names) && isset($input['resolved'][$prop_name])) {
-          assert($input['resolved'][$prop_name] instanceof EvaluationResult);
+          \assert($input['resolved'][$prop_name] instanceof EvaluationResult);
           $extracted[$component_instance_uuid][] = $input['resolved'][$prop_name]->value;
         }
       }

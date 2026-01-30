@@ -13,7 +13,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    */
   public function id(): string {
     // The title from YAML file discovery may be a TranslatableMarkup object.
-    assert(is_array($this->pluginDefinition) && \array_key_exists('id', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('id', $this->pluginDefinition));
     return (string) $this->pluginDefinition['id'];
   }
 
@@ -22,7 +22,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    */
   public function label(): string {
     // The title from YAML file discovery may be a TranslatableMarkup object.
-    assert(is_array($this->pluginDefinition) && \array_key_exists('name', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('name', $this->pluginDefinition));
     return (string) $this->pluginDefinition['name'];
   }
 
@@ -31,7 +31,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    */
   public function getDescription(): string {
     // The title from YAML file discovery may be a TranslatableMarkup object.
-    assert(is_array($this->pluginDefinition) && \array_key_exists('description', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('description', $this->pluginDefinition));
     return (string) $this->pluginDefinition['description'];
   }
 
@@ -39,7 +39,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    * {@inheritdoc}
    */
   public function getIcon(): string {
-    assert(is_array($this->pluginDefinition) && \array_key_exists('icon', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('icon', $this->pluginDefinition));
     return (string) $this->pluginDefinition['icon'];
   }
 
@@ -47,7 +47,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    * {@inheritdoc}
    */
   public function getUrl(): string {
-    assert(is_array($this->pluginDefinition) && \array_key_exists('url', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('url', $this->pluginDefinition));
     return (string) $this->pluginDefinition['url'];
   }
 
@@ -55,7 +55,7 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    * {@inheritdoc}
    */
   public function getType(): CanvasExtensionTypeEnum {
-    assert(is_array($this->pluginDefinition) && \array_key_exists('type', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('type', $this->pluginDefinition));
     return CanvasExtensionTypeEnum::from((string) $this->pluginDefinition['type']);
   }
 
@@ -63,13 +63,13 @@ class CanvasExtension extends PluginBase implements CanvasExtensionInterface {
    * {@inheritdoc}
    */
   public function getApiVersion(): string {
-    assert(is_array($this->pluginDefinition) && \array_key_exists('api_version', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('api_version', $this->pluginDefinition));
     return (string) $this->pluginDefinition['api_version'];
   }
 
   public function getPermissions(): array {
-    assert(is_array($this->pluginDefinition) && \array_key_exists('permissions', $this->pluginDefinition));
-    assert(is_array($this->pluginDefinition['permissions']));
+    \assert(is_array($this->pluginDefinition) && \array_key_exists('permissions', $this->pluginDefinition));
+    \assert(is_array($this->pluginDefinition['permissions']));
     return $this->pluginDefinition['permissions'];
   }
 

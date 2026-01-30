@@ -211,7 +211,7 @@ class CanvasConfigUpdater {
     foreach (array_reverse($component->getVersions()) as $version) {
       $component->loadVersion($version);
       $settings = $component->getSettings();
-      assert(\array_key_exists('prop_field_definitions', $settings));
+      \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
         if (!isset($prop_field_definition['required'])) {
           $needs_updating = TRUE;
@@ -251,8 +251,8 @@ class CanvasConfigUpdater {
     $component_source = $component->getComponentSource();
     \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
     $metadata = $component_source->getMetadata();
-    assert(\is_array($metadata->schema));
-    assert(\array_key_exists('properties', $metadata->schema));
+    \assert(\is_array($metadata->schema));
+    \assert(\array_key_exists('properties', $metadata->schema));
     $required_props = $metadata->schema['required'] ?? [];
 
     // This must update Component versions from newest to oldest. The newest
@@ -267,7 +267,7 @@ class CanvasConfigUpdater {
     // created past version.
     $component->loadVersion($component->getActiveVersion());
     $settings = $component->getSettings();
-    assert(\array_key_exists('prop_field_definitions', $settings));
+    \assert(\array_key_exists('prop_field_definitions', $settings));
     $active_version_updated = FALSE;
     foreach ($settings['prop_field_definitions'] as $prop_name => &$prop_field_definition) {
       if (!isset($prop_field_definition['required'])) {
@@ -306,7 +306,7 @@ class CanvasConfigUpdater {
       $component->loadVersion($version);
       \assert(!$component->isLoadedVersionActiveVersion());
       $settings = $component->getSettings();
-      assert(\array_key_exists('prop_field_definitions', $settings));
+      \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_name => &$prop_field_definition) {
         if (!isset($prop_field_definition['required'])) {
           $prop_field_definition['required'] = in_array($prop_name, $required_props, TRUE);
@@ -356,7 +356,7 @@ class CanvasConfigUpdater {
     foreach (array_reverse($component->getVersions()) as $version) {
       $component->loadVersion($version);
       $settings = $component->getSettings();
-      assert(\array_key_exists('prop_field_definitions', $settings));
+      \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
@@ -388,8 +388,8 @@ class CanvasConfigUpdater {
     $component_source = $component->getComponentSource();
     \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
     $metadata = $component_source->getMetadata();
-    assert(\is_array($metadata->schema));
-    assert(\array_key_exists('properties', $metadata->schema));
+    \assert(\is_array($metadata->schema));
+    \assert(\array_key_exists('properties', $metadata->schema));
 
     // This must update Component versions from newest to oldest. The newest
     // is called the "active" version. It:
@@ -404,7 +404,7 @@ class CanvasConfigUpdater {
     $new_past_version = $component->getActiveVersion();
     $component->loadVersion($new_past_version);
     $settings = $component->getSettings();
-    assert(\array_key_exists('prop_field_definitions', $settings));
+    \assert(\array_key_exists('prop_field_definitions', $settings));
     $active_version_updated = FALSE;
     foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
       \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
@@ -450,7 +450,7 @@ class CanvasConfigUpdater {
       $component->loadVersion($version);
       \assert(!$component->isLoadedVersionActiveVersion());
       $settings = $component->getSettings();
-      assert(\array_key_exists('prop_field_definitions', $settings));
+      \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
         \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
         $expression = ComponentPropExpression::fromString($prop_field_definition['expression']);
@@ -501,7 +501,7 @@ class CanvasConfigUpdater {
     $component->resetToActiveVersion();
 
     $settings = $component->getSettings();
-    assert(\array_key_exists('prop_field_definitions', $settings));
+    \assert(\array_key_exists('prop_field_definitions', $settings));
     $stored_prop_order = array_keys($settings['prop_field_definitions']);
 
     $metadata = $component_source->getMetadata();

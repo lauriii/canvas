@@ -17,7 +17,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
 
   public function testRoutingYmlDx(): array {
     $routes = Yaml::parseFile(__DIR__ . '/../../../canvas.routing.yml');
-    assert(is_array($routes));
+    \assert(is_array($routes));
 
     // All route definitions must be alphabetically ordered.
     $actual_routes_order = array_keys($routes);

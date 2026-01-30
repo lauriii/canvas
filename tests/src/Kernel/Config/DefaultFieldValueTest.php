@@ -146,7 +146,7 @@ class DefaultFieldValueTest extends KernelTestBase {
     $field_config->setDefaultValue($field_values);
     if ($expected_exception != NULL) {
       $this->expectException($expected_exception);
-      assert(is_string($exception_message));
+      \assert(is_string($exception_message));
       $this->expectExceptionMessage($exception_message);
     }
 

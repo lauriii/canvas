@@ -30,7 +30,7 @@ final class ApiRequestValidator extends ApiMessageValidatorBase {
     ValidatorBuilder $validatorBuilder,
     RequestEvent|ResponseEvent $event,
   ): void {
-    assert($event instanceof RequestEvent);
+    \assert($event instanceof RequestEvent);
     $validator = $validatorBuilder->getRequestValidator();
 
     $psr7_request = $this->httpMessageFactory

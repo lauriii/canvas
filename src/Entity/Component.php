@@ -569,7 +569,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * @return void
    */
   private function populateFallbackMetadata(): void {
-    assert($this->isLoadedVersionActiveVersion());
+    \assert($this->isLoadedVersionActiveVersion());
     $source = $this->getComponentSource();
 
     if ($source instanceof Fallback) {
@@ -672,8 +672,8 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
 
     // @phpstan-ignore-next-line
     $component = $context->getObject()->getParent();
-    assert($component instanceof Mapping);
-    assert($component->getDataDefinition()->getDataType() === 'canvas.component.*');
+    \assert($component instanceof Mapping);
+    \assert($component->getDataDefinition()->getDataType() === 'canvas.component.*');
     // The version should be based on the source-specific settings for this
     // version, not on anything else (certainly not the fallback metadata.)
     $raw = $component->getValue();
@@ -683,7 +683,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
           'local_source_id' => $raw['source_local_id'],
           ...$raw['versioned_properties'][VersionedConfigEntityInterface::ACTIVE_VERSION]['settings'],
         ]);
-      assert($source instanceof ComponentSourceInterface);
+      \assert($source instanceof ComponentSourceInterface);
       $expected_version = $source->generateVersionHash();
     }
     catch (\Exception) {

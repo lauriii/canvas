@@ -89,7 +89,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     // Authenticated, authorized: 200.
     $user = $this->createUser([Page::EDIT_PERMISSION], 'administer_canvas_page_user');
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
@@ -254,13 +254,13 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \Drupal::keyValue('canvas_test_access')->set('cache_tags', $extraCacheTags);
 
     $user = $this->createUser($permissions);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     // We have a cache tag for page 2 as it's the homepage, set in system.site
     // config.
     $body = $this->assertExpectedResponse('GET', $url, [], 200, Cache::mergeContexts(['url.query_args:search', 'user.permissions'], $extraCacheContexts), Cache::mergeTags([AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], $extraCacheTags), 'UNCACHEABLE (request policy)', 'MISS');
-    assert(\is_array($body));
-    assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
+    \assert(\is_array($body));
+    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
     $this->assertEquals(
       $expectedLinks,
       $body['1']['links']
@@ -347,11 +347,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     // Authenticated, authorized: 200.
     $user = $this->createUser([Page::EDIT_PERMISSION, Page::DELETE_PERMISSION], 'administer_canvas_page_user');
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     $body = $this->assertExpectedResponse('GET', $url, [], 200, ['url.query_args:search', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:system.site', 'http_response', 'canvas_page:2', 'canvas_page_list'], 'UNCACHEABLE (request policy)', 'MISS');
-    assert(\is_array($body));
-    assert(\array_key_exists('2', $body) && \array_key_exists('links', $body['2']));
+    \assert(\is_array($body));
+    \assert(\array_key_exists('2', $body) && \array_key_exists('links', $body['2']));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/2')->toString(),
@@ -361,7 +361,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       'Links for page 2 should not include delete operation, as it is set as homepage.'
     );
     // Assert links for page 1.
-    assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
+    \assert(\array_key_exists('1', $body) && \array_key_exists('links', $body['1']));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
@@ -372,7 +372,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       'Links for page 1 should include delete operation.'
     );
     // Assert links for page 3.
-    assert(\array_key_exists('3', $body) && \array_key_exists('links', $body['3']));
+    \assert(\array_key_exists('3', $body) && \array_key_exists('links', $body['3']));
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
@@ -407,7 +407,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     );
 
     $original = \Drupal::entityTypeManager()->getStorage('canvas_page')->load(1);
-    assert($original instanceof ContentEntityInterface);
+    \assert($original instanceof ContentEntityInterface);
     $this->assertEquals('Page 1', $original->label());
     self::assertFalse($original->get('path')->isEmpty());
     self::assertNotNull($original->get('path')->first()?->get('alias')->getValue());
@@ -435,7 +435,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       (string) $response->getBody()
     );
     $duplicate_1 = \Drupal::entityTypeManager()->getStorage('canvas_page')->load(4);
-    assert($duplicate_1 instanceof ContentEntityInterface);
+    \assert($duplicate_1 instanceof ContentEntityInterface);
     $this->assertEquals('Page 1 (Copy)', $duplicate_1->label());
     self::assertNull($duplicate_1->get('path')->first()?->get('alias')->getValue());
 
@@ -454,7 +454,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     );
 
     $duplicate_2 = \Drupal::entityTypeManager()->getStorage('canvas_page')->load(5);
-    assert($duplicate_2 instanceof EntityInterface);
+    \assert($duplicate_2 instanceof EntityInterface);
     // Test that the data from the temp store is present.
     $this->assertEquals('Title from temp store (Copy)', $duplicate_2->label());
     $this->assertNotEmpty($auto_save_manager->getAutoSaveEntity($original));
@@ -472,7 +472,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
     // Authenticated but unauthorized: 403 due to missing CSRF token.
     $user = $this->createUser([]);
-    assert($user instanceof UserInterface);
+    \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     if ($method !== 'GET') {
       $response = $this->makeApiRequest($method, $url, $request_options);
