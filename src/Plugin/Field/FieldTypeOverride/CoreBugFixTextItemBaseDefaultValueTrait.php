@@ -43,7 +43,7 @@ trait CoreBugFixTextItemBaseDefaultValueTrait {
     // Notify the parent if necessary.
     if ($notify && $this->parent) {
       $name = $this->getName();
-      \assert(\is_string($name));
+      \assert(\is_string($name) || \is_int($name));
       $this->parent->onChange($name);
     }
   }
