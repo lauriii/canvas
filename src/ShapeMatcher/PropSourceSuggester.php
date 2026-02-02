@@ -76,6 +76,7 @@ final class PropSourceSuggester {
    */
   private function isConsideredIrrelevant(EntityFieldBasedPropExpressionInterface $expression): bool {
     $entity_type_id = $expression->getHostEntityDataDefinition()->getEntityTypeId();
+    \assert(\is_string($entity_type_id));
     $expression_field_name = Labeler::getFieldName($expression, $expression->getHostEntityDataDefinition());
     $referenced_entity_type_id = $expression instanceof ReferencePropExpressionInterface
       ? $expression->getTargetExpression()->getHostEntityDataDefinition()->getEntityTypeId()

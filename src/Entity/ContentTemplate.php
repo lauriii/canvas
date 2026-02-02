@@ -435,6 +435,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
 
   public function normalizeForClientSide(): ClientSideRepresentation {
     $entity_type_manager = $this->entityTypeManager();
+    \assert(\is_string($this->content_entity_type_id));
     $content_entity_type = $entity_type_manager->getDefinition($this->content_entity_type_id);
     $storage = $entity_type_manager->getStorage($this->getTargetEntityTypeId());
 

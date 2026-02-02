@@ -1019,7 +1019,7 @@ final class JsonSchemaFieldInstanceMatcher {
         // bundleless entity type), inspect all fields.
         $bundles = $dd->getBundles();
         $specific_bundle = (is_array($bundles) && count($bundles) == 1) ? reset($bundles) : NULL;
-        if ($specific_bundle === NULL && !$this->entityTypeManager->getDefinition($dd->getEntityTypeId())->hasKey('bundle')) {
+        if ($specific_bundle === NULL && !$this->entityTypeManager->getDefinition($entity_type_id)->hasKey('bundle')) {
           $specific_bundle = $entity_type_id;
         }
         if ($specific_bundle !== NULL) {
