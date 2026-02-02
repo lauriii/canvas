@@ -8,6 +8,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
@@ -429,6 +430,8 @@ final class JsonSchemaFieldInstanceMatcher {
           continue;
         }
         $referencer_key = (string) $expr->referencer;
+        // @todo Add multi-branch support in https://www.drupal.org/i/3563309, remove this assertion
+        \assert(!$expr->referenced instanceof ReferencedBundleSpecificBranches);
         $target_entity_type_and_bundle = $expr->referenced
           ->getHostEntityDataDefinition()
           ->getDataType();

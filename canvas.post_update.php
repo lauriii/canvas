@@ -229,3 +229,21 @@ function canvas_post_update_0010_migrate_auto_save(): void {
     }
   }
 }
+
+/**
+ * Updates multi-bundle reference prop expressions to the improved format.
+ *
+ * (Also updates single-bundle reference prop expressions that are repeated in
+ * every bundle of a multi-bundle reference prop, to keep things consistent.)
+ *
+ * @see https://www.drupal.org/node/3563451
+ * @see \Drupal\canvas\CanvasConfigUpdater::expressionUsesDeprecatedReference()
+ * @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+ */
+function canvas_post_update_0011_multi_bundle_reference_prop_expressions(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->needsMultiBundleReferencePropExpressionUpdate($component));
+}

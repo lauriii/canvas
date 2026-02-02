@@ -34,7 +34,18 @@ interface StructuredDataPropExpressionInterface extends PropExpressionInterface,
   const SUFFIX_OBJECT = '}';
   const SYMBOL_OBJECT_MAPPED_FOLLOW_REFERENCE = '↝';
   const SYMBOL_OBJECT_MAPPED_USE_PROP = '↠';
+  // @todo Remove this constant in Canvas 2.0.0.
+  // @see https://www.drupal.org/node/3563451
   const SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP = '␀';
+
+  // References may point to different bundles of the same entity type. Each
+  // bundle may contain different fields (of different field types and hence
+  // different field properties) that populate the same prop shape.
+  // For example: multiple Media entities referenced from a single field of
+  // different MediaTypes (and different MediaSources), but they all can
+  // populate a "video URL" prop shape.
+  const PREFIX_BRANCH = '[';
+  const SUFFIX_BRANCH = ']';
 
   /**
    * Assesses whether the given evaluation context is supported.

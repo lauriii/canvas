@@ -33,6 +33,13 @@ final class NotNullIfRequiredComponentPropConstraintValidator extends Constraint
     /** @phpstan-ignore method.nonObject */
     $context_parent = $this->context->getObject()->getParent();
     $component_prop_name = $context_parent->getName();
+    $prop_field_definition = $context_parent->getValue();
+    // Avoid triggering a PHP warning if the 'required' key does not exist yet;
+    // that absence will itself already trigger a validation error.
+    // @see \canvas_post_update_0001_track_props_have_required_flag_in_components()
+    if (!array_key_exists('required', $prop_field_definition)) {
+      return;
+    }
     $is_required_component_prop = $context_parent->getValue()['required'];
 
     if ($is_required_component_prop && $mapping === NULL) {

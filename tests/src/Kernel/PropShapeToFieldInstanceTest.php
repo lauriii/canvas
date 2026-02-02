@@ -570,7 +570,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲canvas_test_sdc:video␟video',
           ],
-          'static prop source' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_videos|vacation_videos␝field_media_video_file|field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url}',
+          'static prop source' => 'ℹ︎entity_reference␟entity␜[␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}][␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}]',
           'instances' => [
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
             'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
@@ -1285,7 +1285,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
           'SDC props' => [
             '⿲sdc_test_all_props:all-props␟test_object_drupal_video',
           ],
-          'static prop source' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_videos|vacation_videos␝field_media_video_file|field_media_video_file_1␞␟entity␜␜entity:file␝uri␞␟url}',
+          'static prop source' => 'ℹ︎entity_reference␟entity␜[␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}][␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}]',
           'instances' => [
             'ℹ︎␜entity:media:baby_videos␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
             'ℹ︎␜entity:media:vacation_videos␝field_media_video_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url}',

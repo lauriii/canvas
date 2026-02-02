@@ -32,8 +32,8 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     // targeting multiple bundles with different field names, but was only ever
     // used in the context of reference fields, not stand-alone. It mistakenly
     // added the "multi-bundle reference" infrastructure to FieldPropExpression
-    // rather than ReferenceField(Type)PropExpression. #3550750 is fixing this.
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
+    // rather than ReferenceField(Type)PropExpression. This was deprecated.
+    // @see https://www.drupal.org/node/3563451
     // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
     public readonly string|array $fieldName,
     // A content entity field item delta is optional.
@@ -42,6 +42,9 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     public readonly string|array $propName,
   ) {
     $bundles = $entityType->getBundles();
+    if (is_array($bundles) && count($bundles) > 1) {
+      @trigger_error('Creating ' . __CLASS__ . ' that targets multiple bundles is deprecated in canvas:1.0.5 and will be removed from canvas:2.0.0. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
+    }
     if (($bundles === NULL || count($bundles) <= 1) && is_array($fieldName) && count($fieldName) > 1) {
       throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field name can be specified.');
     }
@@ -140,7 +143,6 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $dependencies['module'][] = $entity_type->getProvider();
 
     // Bundle: only if there is a bundle config entity type.
-    $bundle = NULL;
     $possible_bundles = $this->entityType->getBundles();
     if ($possible_bundles !== NULL && $entity_type->getBundleEntityType()) {
       $possible_bundles = $this->entityType->getBundles();
@@ -151,70 +153,33 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       }
     }
 
-    if (is_string($this->fieldName)) {
-      \assert(is_string($this->propName));
-      $field_definitions = $this->entityType->getPropertyDefinitions();
-      if (!isset($field_definitions[$this->fieldName])) {
-        throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
-      }
-      // Determine the bundle to use during dependency calculation:
-      $bundle = match (TRUE) {
-        // - an array with a single value: a single bundle is targeted
-        is_array($possible_bundles) && count($possible_bundles) === 1 => reset($possible_bundles),
-        // - no bundle: the entity type is targeted
-        // - an array with multiple values: multiple bundles are targeted, but
-        //   the same base field on all of them, so then fall back to `NULL` as
-        //   the bundle
-        default => NULL,
-      };
-      \assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
-      $field_definition = $field_definitions[$this->fieldName];
-      $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definition, $bundle));
-
-      // Computed properties can have dependencies of their own.
-      if ($host_entity !== NULL) {
-        $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
-          $host_entity,
-          $this->fieldName,
-          $this->delta,
-          $this->propName,
-          $field_definition
-        ));
-      }
+    // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+    \assert(is_string($this->fieldName));
+    \assert(is_string($this->propName));
+    $field_definitions = $this->entityType->getPropertyDefinitions();
+    if (!isset($field_definitions[$this->fieldName])) {
+      throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
     }
-    else {
-      \assert(is_array($possible_bundles));
-      \assert(is_string($this->propName) || (is_array($this->propName) && is_array($this->fieldName)));
-      foreach ($possible_bundles as $bundle) {
-        // @phpstan-ignore-next-line
-        $bundle_field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
-        $bundle_specific_field_name = $this->fieldName[$bundle];
-        if (!isset($bundle_field_definitions[$bundle_specific_field_name])) {
-          throw new \LogicException(\sprintf("%s field on the %s bundle referenced in %s %s does not exist.", $bundle_specific_field_name, $bundle, (string) $this, __CLASS__));
-        }
-        $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($bundle_field_definitions[$bundle_specific_field_name], $bundle));
-      }
+    // Determine the bundle to use during dependency calculation:
+    $bundle = match (TRUE) {
+      // - an array with a single value: a single bundle is targeted
+      is_array($possible_bundles) && count($possible_bundles) === 1 => reset($possible_bundles),
+      // - no bundle: the entity type is targeted
+      default => NULL,
+    };
+    \assert($field_definitions[$this->fieldName] instanceof FieldDefinitionInterface);
+    $field_definition = $field_definitions[$this->fieldName];
+    $dependencies = NestedArray::mergeDeep($dependencies, $this->calculateDependenciesForFieldDefinition($field_definition, $bundle));
 
-      // Computed properties can have dependencies of their own.
-      if ($host_entity !== NULL) {
-        $bundle = $host_entity->bundle();
-        $bundle_specific_field_name = $this->fieldName[$bundle];
-        $prop_name = match (TRUE) {
-          is_string($this->propName) => $this->propName,
-          // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
-          is_array($this->propName) => $this->propName[$bundle_specific_field_name],
-        };
-        if ($prop_name !== StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP) {
-          $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
-            $host_entity,
-            $bundle_specific_field_name,
-            $this->delta,
-            $prop_name,
-            // @phpstan-ignore-next-line argument.type
-            $host_entity->getFieldDefinition($bundle_specific_field_name),
-          ));
-        }
-      }
+    // Computed properties can have dependencies of their own.
+    if ($host_entity !== NULL) {
+      $dependencies = NestedArray::mergeDeep($dependencies, self::calculateDependenciesForProperty(
+        $host_entity,
+        $this->fieldName,
+        $this->delta,
+        $this->propName,
+        $field_definition
+      ));
     }
 
     return $dependencies;
@@ -337,9 +302,8 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
    * {@inheritdoc}
    */
   public function getFieldName(): string {
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
-    \assert(!is_array($this->fieldName));
+    // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+    \assert(is_string($this->fieldName));
     return $this->fieldName;
   }
 
@@ -347,9 +311,8 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
    * {@inheritdoc}
    */
   public function getFieldPropertyName(): string {
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
-    \assert(!is_array($this->propName));
+    // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+    \assert(is_string($this->propName));
     return $this->propName;
   }
 

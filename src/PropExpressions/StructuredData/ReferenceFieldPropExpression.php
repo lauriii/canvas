@@ -9,6 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 
@@ -19,28 +20,63 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
 
   public function __construct(
     public readonly FieldPropExpression $referencer,
-    public readonly EntityFieldBasedPropExpressionInterface $referenced,
+    public readonly ReferencedBundleSpecificBranches|EntityFieldBasedPropExpressionInterface $referenced,
   ) {
-    // References can start from a multi-target-bundle reference field, with the
-    // referenced result then either:
-    // - using the same field type (e.g. multiple bundles with different fields,
-    //   but all of the `image` field type)
-    // - referencing the same entity type (e.g. multiple bundles with different
-    //   fields but all pointing to a `File` entity)
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    // @todo Add branching support to allow per-bundle expressions resulting in the same shape in https://www.drupal.org/project/canvas/issues/3550750
-    $referencer_target_bundles = $this->referencer->getHostEntityDataDefinition()->getBundles() ?? [];
-    $referenced_target_bundles = $this->referenced->getHostEntityDataDefinition()->getBundles() ?? [];
-    if (count($referencer_target_bundles) > 1 && count($referenced_target_bundles) > 1) {
-      throw new \InvalidArgumentException('A reference expression must start from a single entity reference field, and hence must start in a single entity type + bundle, UNLESS there is a single target.');
+    if ($referenced instanceof ReferencedBundleSpecificBranches) {
+      // Note: AFTER the update path has run, this would pass when moved outside
+      // this if-test. However, during the update path it would trigger a fatal
+      // error.
+      // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+      if (count($this->referencer->getHostEntityDataDefinition()->getBundles() ?? []) > 1) {
+        throw new \InvalidArgumentException('A reference expression MUST start from a single entity reference field on a single entity type + bundle.');
+      }
+      // Validate the target branches of the entity reference field correspond
+      // to the specified bundle-specific branches. However:
+      // 1. the `target_bundles` settings can change over time!
+      // 2. the entity type manager is not available in all circumstances
+      // Hence trigger a deprecation error if we can perform the validation, but
+      // do not throw an exception.
+      // @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testInvalidReferenceFieldTypePropExpressionDueToMismatchedLeafExpressionCardinality
+      // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+      if (\Drupal::getContainer()->has('entity_type.manager')) {
+        $reference_field_definition = $referencer->getHostEntityDataDefinition()
+          ->getPropertyDefinition($referencer->getFieldName());
+        \assert($reference_field_definition instanceof FieldDefinitionInterface);
+        $target_entity_type_id = $reference_field_definition->getSettings()['target_type'];
+        $current_target_bundles = $reference_field_definition->getSettings()['handler_settings']['target_bundles'];
+        $expected_branches = array_map(
+          fn (string $bundle) => "entity:$target_entity_type_id:$bundle",
+          $current_target_bundles,
+        );
+        sort($expected_branches);
+        $actual_branches = array_keys($referenced->bundleSpecificReferencedExpressions);
+        if ($expected_branches !== $actual_branches) {
+          // phpcs:ignore
+          trigger_error(\sprintf(
+            'The reference expression `%s` was constructed with bundle-specific branches `%s`, but the referenced field `%s` on entity type `%s` currently targets bundles `%s`.',
+            (string) $this,
+            implode(', ', $actual_branches),
+            $referencer->getFieldName(),
+            $referencer->getHostEntityDataDefinition()->getEntityTypeId(),
+            implode(', ', $expected_branches),
+          ), E_USER_DEPRECATED);
+        }
+      }
     }
   }
 
   public function __toString(): string {
+    if (!$this->referenced instanceof ReferencedBundleSpecificBranches) {
+      $referenced_as_string = self::withoutExpressionTypePrefix((string) $this->referenced);
+    }
+    else {
+      $referenced_as_string = (string) $this->referenced;
+    }
+
     return static::PREFIX_EXPRESSION_TYPE
       . self::withoutExpressionTypePrefix((string) $this->referencer)
       . self::PREFIX_ENTITY_LEVEL
-      . self::withoutExpressionTypePrefix((string) $this->referenced);
+      . $referenced_as_string;
   }
 
   /**
@@ -152,6 +188,36 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
   }
 
   public static function fromString(string $representation): static {
+    $is_branching = str_contains($representation, self::PREFIX_ENTITY_LEVEL . self::PREFIX_BRANCH . self::PREFIX_ENTITY_LEVEL);
+    if ($is_branching) {
+      // Find opening of first branch
+      $opening_first_branch = mb_strpos($representation, self::PREFIX_BRANCH);
+      \assert(is_int($opening_first_branch));
+      // Find closing of last branch.
+      $closing_last_branch = mb_strrpos($representation, self::SUFFIX_BRANCH);
+      \assert(is_int($closing_last_branch));
+      $branches = self::parseBranches(mb_substr($representation, $opening_first_branch, $closing_last_branch));
+      $referenced_branches = array_map(
+      // Each of the branch expressions MUST be starting with an entity field,
+      // because that is the only way to branch. Therefore, parse each as its
+      // own stand-alone prop expression.
+        fn (string $branch) => StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . $branch),
+        $branches
+      );
+      $parts = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_BRANCH . self::PREFIX_ENTITY_LEVEL, $representation, 2);
+      $referencer = FieldPropExpression::fromString($parts[0]);
+      // @phpstan-ignore argument.type
+      $referenced = new ReferencedBundleSpecificBranches(array_combine(
+        array_map(
+        // @phpstan-ignore argument.type
+          fn (EntityFieldBasedPropExpressionInterface $expr) => $expr->getHostEntityDataDefinition()->getDataType(),
+          $referenced_branches,
+        ),
+        $referenced_branches,
+      ));
+      return new static($referencer, $referenced);
+    }
+
     [$referencer_part, $remainder] = explode(self::PREFIX_ENTITY_LEVEL . self::PREFIX_ENTITY_LEVEL, $representation, 2);
     $referencer = FieldPropExpression::fromString($referencer_part);
     $referenced = StructuredDataPropExpression::fromString(static::PREFIX_EXPRESSION_TYPE . self::PREFIX_ENTITY_LEVEL . $remainder);
@@ -183,20 +249,14 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
    * {@inheritdoc}
    */
   public function getFieldName(): string {
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
-    \assert(!is_array($this->referencer->fieldName));
-    return $this->referencer->fieldName;
+    return $this->referencer->getFieldName();
   }
 
   /**
    * {@inheritdoc}
    */
   public function getFieldPropertyName(): string {
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::__construct()
-    \assert(!is_array($this->referencer->propName));
-    return $this->referencer->propName;
+    return $this->referencer->getFieldPropertyName();
   }
 
   /**
@@ -209,8 +269,34 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
   /**
    * {@inheritdoc}
    */
-  public function getTargetExpression() : EntityFieldBasedPropExpressionInterface {
-    return $this->referenced;
+  public function getTargetExpression(FieldableEntityInterface|EntityDataDefinitionInterface|null $referenced = NULL) : EntityFieldBasedPropExpressionInterface {
+    if ($this->targetsMultipleBundles() && $referenced === NULL) {
+      throw new \LogicException('A reference expression that targets multiple bundles needs to be informed which branch to return.');
+    }
+
+    // Single-branch.
+    if ($referenced === NULL) {
+      \assert(!$this->referenced instanceof ReferencedBundleSpecificBranches);
+      // @see ::withoutBranch()
+      return $this->referenced;
+    }
+
+    // Multi-branch.
+    \assert($this->referenced instanceof ReferencedBundleSpecificBranches);
+
+    if ($referenced instanceof FieldableEntityInterface) {
+      \assert($referenced->bundle() !== NULL);
+      return $this->referenced->getBranch($referenced->getEntityTypeId(), $referenced->bundle());
+    }
+
+    if ($referenced->getEntityTypeId() === NULL) {
+      throw new \LogicException('The referenced entity data definition must have an entity type ID defined when selecting a bundle-specific branch.');
+    }
+    $bundles = $referenced->getBundles() ?? [];
+    if (count($bundles) !== 1) {
+      throw new \LogicException('The referenced entity data definition must have a single bundle defined when selecting a bundle-specific branch.');
+    }
+    return $this->referenced->getBranch($referenced->getEntityTypeId(), reset($bundles));
   }
 
   /**
@@ -229,13 +315,8 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
    * {@inheritdoc}
    */
   public function targetsMultipleBundles(): bool {
-    if (!$this->referenced instanceof FieldPropExpression) {
-      return FALSE;
-    }
-
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    $target_bundles = $this->referenced->getHostEntityDataDefinition()->getBundles() ?? [];
-    return count($target_bundles) > 1;
+    // @see ::withoutBranch()
+    return $this->referenced instanceof ReferencedBundleSpecificBranches;
   }
 
 }

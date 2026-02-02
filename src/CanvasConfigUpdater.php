@@ -7,11 +7,14 @@ namespace Drupal\canvas;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -540,6 +543,190 @@ class CanvasConfigUpdater {
     // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
 
     return TRUE;
+  }
+
+  /**
+   * @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+   * @internal
+   */
+  private static function expressionUsesDeprecatedReference(FieldTypeBasedPropExpressionInterface $expr): bool {
+    return match (TRUE) {
+      // Case 1: Multi-bundle reference field type prop expressions. These need
+      // branching. (This made following references only for a specific bundle
+      // impossible!).
+      // @see \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches
+      // Example:
+      // - obsolete: `ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image_1|field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value`
+      // - successor: `ℹ︎entity_reference␟entity␜[␜entity:media:baby_photos␝field_media_image_1␞␟entity␜␜entity:file␝uri␞␟value][␜entity:media:vacation_photos␝field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value]`
+      $expr instanceof ReferenceFieldTypePropExpression && $expr->needsMultiBundleReferencePropExpressionUpdate() => TRUE,
+      // Case 2: Field type object prop expression containing multi-bundle
+      // reference field type prop expressions. These need both lifting of the
+      // reference and then branching at the start of the expression.
+      // @see \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches
+      // Example:
+      // - obsolete: `ℹ︎entity_reference␟{src↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟alt,width↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟width,height↝entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image|field_media_image_1␞␟height}`
+      // - successor: `ℹ︎entity_reference␟entity␜[␜entity:media:baby_photos␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}][␜entity:media:vacation_photos␝field_media_image_1␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}]`
+      $expr instanceof FieldTypeObjectPropsExpression && $expr->needsMultiBundleReferencePropExpressionUpdate() => TRUE,
+      // Case 3: Field type object prop expressions containing single-bundle
+      // reference field type prop expressions. These need only lifting of the
+      // reference.
+      // Example:
+      // - obsolete: `ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}`
+      // - successor: `ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}`
+      $expr instanceof FieldTypeObjectPropsExpression && $expr->needsLiftedReferencePropExpressionUpdate() => TRUE,
+      // All other prop expressions remain unchanged.
+      default => FALSE,
+    };
+  }
+
+  /**
+   * @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
+   * @internal
+   */
+  public function needsMultiBundleReferencePropExpressionUpdate(Component $component): bool {
+    $component_source = $component->getComponentSource();
+    // @see `type: canvas.generated_field_explicit_input_ux`
+    if (!$component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase) {
+      return FALSE;
+    }
+
+    // Track the originally loaded version to enable avoiding side effects.
+    $originally_loaded_version = $component->getLoadedVersion();
+
+    // Any versions of the Component config entity cannot use a multi-bundle
+    // FieldPropExpression.
+    $needs_updating = FALSE;
+    foreach (array_reverse($component->getVersions()) as $version) {
+      $component->loadVersion($version);
+      $settings = $component->getSettings();
+      \assert(\array_key_exists('prop_field_definitions', $settings));
+      foreach ($settings['prop_field_definitions'] as $prop_field_definition) {
+        \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+        $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
+        \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
+        $needs_updating = self::expressionUsesDeprecatedReference($expression);
+        if ($needs_updating) {
+          break 2;
+        }
+      }
+    }
+
+    // Avoid side effects: ensure the given Component still has the same version
+    // loaded. (Not strictly necessary, just a precaution.)
+    $component->loadVersion($originally_loaded_version);
+    return $needs_updating;
+  }
+
+  public function updateMultiBundleReferencePropExpressionToMultiBranch(Component $component) : bool {
+    if (!$this->needsMultiBundleReferencePropExpressionUpdate($component)) {
+      return FALSE;
+    }
+
+    $updated_versions = [];
+
+    // Get the list of required props from the component metadata.
+    $component_source = $component->getComponentSource();
+    \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+    $metadata = $component_source->getMetadata();
+    \assert(\is_array($metadata->schema));
+    \assert(\array_key_exists('properties', $metadata->schema));
+
+    // This must update Component versions from newest to oldest. The newest
+    // is called the "active" version. It:
+    // - DOES NOT need updating for components that do not have any affected
+    //   expressions
+    //   that release shipped with the logic, but without the update path.
+    // - DOES need updating in all other scenarios
+    // Note that in the "DOES" case, a new version will be created, which means
+    // there will be one new "past version".
+    // If this would update oldest to newest, it'd fail to update the newly
+    // created past version.
+    $new_past_version = $component->getActiveVersion();
+    $component->loadVersion($new_past_version);
+    $settings = $component->getSettings();
+    \assert(\array_key_exists('prop_field_definitions', $settings));
+    $active_version_updated = FALSE;
+    foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+      \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+      $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
+      \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
+      $needs_updating = self::expressionUsesDeprecatedReference($expression);
+      if ($needs_updating) {
+        \assert($expression instanceof ReferenceFieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression);
+        $prop_field_definition['expression'] = match ($expression::class) {
+          FieldTypeObjectPropsExpression::class => (string) $expression->liftReferenceAndCreateBranchesIfNeeded(),
+          ReferenceFieldTypePropExpression::class => (string) $expression->generateBundleSpecificBranches(),
+        };
+        $active_version_updated = TRUE;
+        $updated_versions[] = $component->getActiveVersion();
+      }
+    }
+    // >=1 expression was changed. The active version is validated against
+    // `type: canvas.component.versioned.active.*`, which means a new version is
+    // required — otherwise the version hash will not match, triggering a
+    // validation error.
+    if ($active_version_updated) {
+      $source_for_new_version = $this->componentSourceManager->createInstance(
+        $component_source->getPluginId(),
+        [
+          'local_source_id' => $component->get('source_local_id'),
+          ...$settings,
+        ],
+      );
+      \assert($source_for_new_version instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
+      $version = $source_for_new_version->generateVersionHash();
+      $component->createVersion($version)
+        ->setSettings($settings);
+    }
+
+    // Now update all past versions. These won't require generating new versions
+    // because they are validated against `type: canvas.component.versioned.*.*`
+    // which uses `type: ignore` for `settings`.
+    $past_version_updated = FALSE;
+    foreach ($component->getVersions() as $version) {
+      if ($version === $component->getActiveVersion()) {
+        // The active version has already been updated above.
+        continue;
+      }
+      $component->loadVersion($version);
+      \assert(!$component->isLoadedVersionActiveVersion());
+      $settings = $component->getSettings();
+      \assert(\array_key_exists('prop_field_definitions', $settings));
+      foreach ($settings['prop_field_definitions'] as &$prop_field_definition) {
+        \assert(isset($prop_field_definition['expression']) && isset($prop_field_definition['field_type']));
+        $expression = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
+        \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
+        $needs_updating = self::expressionUsesDeprecatedReference($expression);
+        if ($needs_updating) {
+          \assert($expression instanceof ReferenceFieldTypePropExpression || $expression instanceof FieldTypeObjectPropsExpression);
+          $prop_field_definition['expression'] = match ($expression::class) {
+            FieldTypeObjectPropsExpression::class => (string) $expression->liftReferenceAndCreateBranchesIfNeeded(),
+            ReferenceFieldTypePropExpression::class => (string) $expression->generateBundleSpecificBranches(),
+          };
+          $past_version_updated = TRUE;
+          $updated_versions[] = $version;
+        }
+      }
+      if ($past_version_updated) {
+        // Pretend to be syncing; otherwise changing settings of past versions
+        // is forbidden.
+        $component->setSyncing(TRUE)
+          ->setSettings($settings)
+          ->setSyncing(FALSE);
+      }
+    }
+
+    // Typically, the active version is loaded, unless otherwise requested.
+    $component->resetToActiveVersion();
+
+    $deprecations_triggered = &$this->triggeredDeprecations['3563451'][\sprintf('%s:%s', $component->getEntityTypeId(), $component->id())];
+    if ($this->deprecationsEnabled && !$deprecations_triggered) {
+      $deprecations_triggered = TRUE;
+      // phpcs:ignore
+      @trigger_error(\sprintf('%s with ID %s has one or more versions (%s) that use a "multi-bundle expression". It must be updated to use bundle-specific branches. This is deprecated in canvas:1.0.0-rc1 and will be removed in canvas:2.0.0. See https://www.drupal.org/node/3563451', $component->getEntityType()->getLabel(), $component->id(), implode(', ', $updated_versions)), E_USER_DEPRECATED);
+    }
+
+    return $active_version_updated || $past_version_updated;
   }
 
 }

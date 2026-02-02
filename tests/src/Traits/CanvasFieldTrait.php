@@ -136,7 +136,7 @@ trait CanvasFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_IMAGE_UUID,
-              'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+              'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
               'slots' => [],
             ],
             [
@@ -222,7 +222,8 @@ trait CanvasFieldTrait {
             'image' => [
               'value' => (int) $this->mediaEntity->id(),
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [

@@ -44,6 +44,8 @@ use Symfony\Component\DependencyInjection\Reference;
  * @coversDefaultClass \Drupal\canvas\PropShape\PersistentPropShapeRepository
  * @covers \Drupal\canvas\PropShape\EphemeralPropShapeRepository
  * @group canvas
+ * @group canvas_data_model
+ * @group canvas_data_model__prop_expressions
  */
 class PropShapeRepositoryTest extends KernelTestBase {
 

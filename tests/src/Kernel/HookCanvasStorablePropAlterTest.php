@@ -12,6 +12,8 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 /**
  * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository
  * @group canvas
+ * @group canvas_data_model
+ * @group canvas_data_model__prop_expressions
  */
 class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
 

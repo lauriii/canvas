@@ -49,19 +49,16 @@ final class Labeler {
     // Bundle-specific expressions need further validation.
     $expression_bundles = $expression_entity_definition->getBundles();
     if ($expression_bundles !== NULL) {
+      \assert(count($expression_bundles) === 1);
       if ($actual_bundles === NULL) {
         throw new \LogicException(\sprintf('Expression expects bundle `%s`, no bundle given.', implode(', ', $expression_bundles)));
       }
-      if (count($expression_bundles) === 1 && reset($expression_bundles) !== reset($actual_bundles)) {
+      if (reset($expression_bundles) !== reset($actual_bundles)) {
         throw new \LogicException(\sprintf('Expression expects bundle `%s`, actual bundle is `%s`.', reset($expression_bundles), reset($actual_bundles)));
-      }
-      if (count($expression_bundles) > 1 && !in_array(reset($actual_bundles), $expression_bundles, TRUE)) {
-        throw new \LogicException(\sprintf('Expression expects one bundle of `%s`, actual bundle is `%s`.', implode('`, `', $expression_bundles), reset($actual_bundles)));
       }
     }
 
-    $field_name = self::getFieldName($expr, $actual_entity_type_and_bundle);
-
+    $field_name = $expr->getFieldName();
     $field_definition = $actual_entity_type_and_bundle->getPropertyDefinition($field_name);
     if ($field_definition === NULL) {
       throw new \LogicException(\sprintf("Field `%s` does not exist on `%s` entities.",
@@ -118,6 +115,31 @@ final class Labeler {
           // phpcs:ignore Drupal.Semantics.FunctionT.NotLiteralString
           implode('', $label_parts),
           $label_arguments,
+        );
+      }
+
+      // Multi-bundle reference expression: convey only the reachable entity
+      // type and bundles, do not recurse further even though this may omit
+      // crucial information.
+      // @todo Refine: consider (conditionally) recursing to better inform Canvas content template authors in https://www.drupal.org/i/3563309
+      if ($expr->targetsMultipleBundles()) {
+        // @phpstan-ignore property.notFound
+        \assert($expr->referenced instanceof ReferencedBundleSpecificBranches);
+        $referenceable_bundle_labels = array_map(
+          // @phpstan-ignore return.type
+          fn (EntityFieldBasedPropExpressionInterface $bundle_specific_expr): string => $bundle_specific_expr->getHostEntityDataDefinition()->getLabel(),
+          $expr->referenced->bundleSpecificReferencedExpressions,
+        );
+        return new TranslatableMarkup(
+          // phpcs:ignore Drupal.Semantics.FunctionT.NotLiteralString
+          implode('', [
+            ...$label_parts,
+            StructuredDataPropExpressionInterface::PREFIX_ENTITY_LEVEL,
+            '@referenced-entity-bundle-labels',
+          ]),
+          $label_arguments + [
+            '@referenced-entity-bundle-labels' => implode(', ', $referenceable_bundle_labels),
+          ],
         );
       }
 
@@ -231,55 +253,10 @@ final class Labeler {
   }
 
   /**
-   * @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-   * @todo Make private.
-   * @internal
-   */
-  public static function getFieldName(EntityFieldBasedPropExpressionInterface $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): string {
-    $expr_field_name = match ($expr::class) {
-      ReferenceFieldPropExpression::class => $expr->referencer->fieldName,
-      FieldPropExpression::class, FieldObjectPropsExpression::class => $expr->fieldName,
-      default => throw new \LogicException('Unhandled expression type.'),
-    };
-    // TRICKY: FieldPropExpression::$fieldName can be an array, but only
-    // when used in a reference.
-    // @see https://www.drupal.org/i/3530521
-    if (is_string($expr_field_name)) {
-      return $expr_field_name;
-    }
-    \assert(is_array($actual_entity_type_and_bundle->getBundles()));
-    \assert(array_keys($actual_entity_type_and_bundle->getBundles()) === [0]);
-    $actual_bundle = $actual_entity_type_and_bundle->getBundles()[0];
-    \assert(array_key_exists($actual_bundle, $expr_field_name));
-    return $expr_field_name[$actual_bundle];
-  }
-
-  /**
    * @todo Make private.
    * @internal
    */
   public static function getUsedFieldProps(EntityFieldBasedPropExpressionInterface $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): string|array {
-    // Multi-bundle expressions need extra care.
-    // @todo Deprecate what https://www.drupal.org/node/3530521 introduced and refactor this in https://www.drupal.org/project/canvas/issues/3550750
-    if ($expr instanceof FieldPropExpression && is_array($expr->fieldName)) {
-      $props = $expr->propName;
-      // Even though a multi-bundle expression may target multiple fields, they
-      // may all use the same field property.
-      if (is_string($props)) {
-        return $props;
-      }
-      \assert(!array_is_list($props));
-      \assert(is_array($actual_entity_type_and_bundle->getBundles()));
-      \assert(array_keys($actual_entity_type_and_bundle->getBundles()) === [0]);
-      // Use the actual bundle to determine the actual field name, to in turn
-      // determine the props actually used by this expression.
-      $actual_bundle = $actual_entity_type_and_bundle->getBundles()[0];
-      $actual_field = $expr->fieldName[$actual_bundle];
-      $actual_props = $props[$actual_field];
-      \assert(is_string($actual_props));
-      return $actual_props;
-    }
-
     $props = match (TRUE) {
       $expr instanceof ObjectPropExpressionInterface => array_map(
         // PHPStan incorrectly flags this error. It fails to realize that the

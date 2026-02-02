@@ -62,24 +62,9 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
           string $obj_prop_name,
           (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $expr,
         ) {
-          // It is guaranteed that every referencer's fieldName matches exactly
-          // and is hence guaranteed to be a string. Which automatically means
-          // propName must also be a string.
-          // Assert it here both to satisfy PHPStan and to prove it while
-          // assertions are on.
-          // @see __construct()
-          // @see \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct()
-          // @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames()
-          \assert(($expr instanceof ReferenceFieldPropExpression && is_string($expr->referencer->propName)) || ($expr instanceof FieldPropExpression && is_string($expr->propName)));
           $tail = match ($expr::class) {
-            ReferenceFieldPropExpression::class => (function () use ($expr) {
-              \assert(is_string($expr->referencer->propName));
-              return $expr->referencer->propName . static::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced);
-            })(),
-            FieldPropExpression::class => (function () use ($expr) {
-              \assert(is_string($expr->propName));
-              return $expr->propName;
-            })(),
+            ReferenceFieldPropExpression::class => $expr->referencer->getFieldPropertyName() . static::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced),
+            default => $expr->getFieldPropertyName(),
           };
           return \sprintf(
             '%s%s%s',

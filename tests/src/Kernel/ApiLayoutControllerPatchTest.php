@@ -229,7 +229,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       BadRequestHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+        'componentType' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
       ],
     ];
     yield 'No such component in model' => [
@@ -237,7 +237,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       NotFoundHttpException::class,
       [
         'componentInstanceUuid' => 'e8c95423-4f22-4210-8707-08bade75ff22',
-        'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+        'componentType' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
         'model' => [],
         'autoSaves' => [],
         'clientInstanceId' => 'sample-client-id',
@@ -389,7 +389,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $new_model['source']['image']['value'] = $media->id();
     $updateImageClientData = [
       'model' => $new_model,
-      'componentType' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+      'componentType' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
       'componentInstanceUuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
     ] + $this->getPatchContentsDefaults([$entity]);
     $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));

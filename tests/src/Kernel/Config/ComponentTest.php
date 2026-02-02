@@ -138,7 +138,7 @@ class ComponentTest extends KernelTestBase {
     $updated_component = Component::load('sdc.canvas_test_sdc.image');
     \assert($updated_component instanceof Component);
     $this->assertSame('entity_reference', $updated_component->getSettings()['prop_field_definitions']['image']['field_type']);
-    $updated_expected_version = 'abadf2538ecfdecc';
+    $updated_expected_version = 'fb40be57bd7e0973';
     self::assertSame($updated_expected_version, $updated_component->getActiveVersion());
     self::assertSame([$updated_expected_version, 'f4d1c916802ab8db'], $updated_component->getVersions());
     self::assertSame([

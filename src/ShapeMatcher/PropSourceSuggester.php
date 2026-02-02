@@ -77,15 +77,12 @@ final class PropSourceSuggester {
   private function isConsideredIrrelevant(EntityFieldBasedPropExpressionInterface $expression): bool {
     $entity_type_id = $expression->getHostEntityDataDefinition()->getEntityTypeId();
     \assert(\is_string($entity_type_id));
-    $expression_field_name = Labeler::getFieldName($expression, $expression->getHostEntityDataDefinition());
+    $expression_field_name = $expression->getFieldName();
     $referenced_entity_type_id = $expression instanceof ReferencePropExpressionInterface
       ? $expression->getTargetExpression()->getHostEntityDataDefinition()->getEntityTypeId()
       : NULL;
     $referenced_expression_field_name = $expression instanceof ReferencePropExpressionInterface
-      ? Labeler::getFieldName(
-        $expression->getTargetExpression(),
-        $expression->getTargetExpression()->getHostEntityDataDefinition(),
-      )
+      ? $expression->getTargetExpression()->getFieldName()
       : NULL;
 
     // Node-specific heuristics:
@@ -172,7 +169,7 @@ final class PropSourceSuggester {
         if ($this->isConsideredIrrelevant($expr)) {
           continue;
         }
-        $bucketed_by_field[Labeler::getFieldName($expr, $expr->getHostEntityDataDefinition())][] = $s;
+        $bucketed_by_field[$expr->getFieldName()][] = $s;
       }
       // Keep only non-empty (field) buckets.
       $bucketed_by_field = array_map('array_filter', $bucketed_by_field);

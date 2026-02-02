@@ -94,7 +94,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -130,7 +130,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -171,7 +171,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
             'image' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -221,7 +221,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
             'images' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [
@@ -277,7 +277,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
             'images' => [
               'value' => [],
               'sourceType' => 'static:field_item:entity_reference',
-              'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟src_with_alternate_widths,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
+              'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
               'sourceTypeSettings' => [
                 'storage' => ['target_type' => 'media'],
                 'instance' => [

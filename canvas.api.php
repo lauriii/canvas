@@ -5,9 +5,12 @@
  * Documentation related to Drupal Canvas.
  */
 
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\CandidateStorablePropShape;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 
 /**
  * @addtogroup hooks
@@ -50,6 +53,52 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
   if ($storable_prop_shape->fieldTypeProp === NULL && $storable_prop_shape->shape->schema == ['type' => 'string', 'format' => 'duration']) {
     $storable_prop_shape->fieldTypeProp = new FieldTypePropExpression('contrib_duration_field', 'value');
     $storable_prop_shape->fieldWidget = 'fancy_duration_widget';
+  }
+
+  // The `type: object, $ref: json-schema-definitions://canvas.module/image`
+  // shape allows picking any media of a media type powered by the "image" media
+  // source by default.
+  // Some sites may want to exclude certain media types, and/or add other media
+  // types that use a different media source (with a different expression).
+  // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::hasBranch()
+  // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withoutBranch()
+  // @see \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withAdditionalBranch()
+  if (
+    // "image" object shape?
+    $storable_prop_shape->shape->schema['type'] === 'object'
+    && isset($storable_prop_shape->shape->schema['$ref'])
+    && $storable_prop_shape->shape->schema['$ref'] === 'json-schema-definitions://canvas.module/image'
+    // Currently using media types?
+    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+    && $storable_prop_shape->fieldTypeProp instanceof ReferenceFieldTypePropExpression
+    && $storable_prop_shape->fieldTypeProp->getFieldType() === 'entity_reference'
+    && $storable_prop_shape->fieldTypeProp->getTargetExpression()->getHostEntityDataDefinition()->getEntityTypeId() === 'media'
+  ) {
+    $expr = $storable_prop_shape->fieldTypeProp;
+    $target_bundles = $storable_prop_shape->fieldInstanceSettings['handler_settings']['target_bundles'];
+
+    // Exclude the "vacation_photos" media type: don't allow it to be stored in
+    // the field, and update the expression.
+    if ($expr->hasBranch('entity:media:vacation_photos')) {
+      $target_bundles = array_diff_key($target_bundles, array_flip(['vacation_photos']));
+      $expr = $expr->withoutBranch('entity:media:vacation_photos');
+    }
+
+    // Add the "remote_image" media type, which uses the oEmbed media source.
+    // Allow it to be stored in the field, and update the expression.
+    // @see https://www.drupal.org/project/media_remote_image
+    $target_bundles = $target_bundles + ['remote_image' => 'remote_image'];
+    $expr->withAdditionalBranch(new FieldPropExpression(
+      entityType: BetterEntityDataDefinition::create('media', ['remote_image']),
+      fieldName: 'field_media_remote_image',
+      delta: NULL,
+      // @todo Update this to use the relevant computed property instead of "non_existent_computed_property" after Canvas depends on a Drupal core version that includes https://www.drupal.org/project/drupal/issues/3567249
+      propName: 'non_existent_computed_property',
+    ));
+
+    // Apply the updated changes.
+    $storable_prop_shape->fieldTypeProp = $expr;
+    $storable_prop_shape->fieldInstanceSettings['handler_settings']['target_bundles'] = $target_bundles;
   }
 }
 

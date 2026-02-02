@@ -529,6 +529,9 @@ canvas.generated_field_explicit_input_ux:
             type: string
             label: 'The expression that contains the field evaluation instructions'
             constraints:
+              # 💡 Crucially, this also will ensure that every expression for every prop field definition for every
+              # version of this Component config entity is valid against the current set of supported expressions: any
+              # exception thrown during validation will prevent saving the Component config entity.
               ValidStructuredDataPropExpression:
                 choices:
                   - FieldTypePropExpression

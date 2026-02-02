@@ -391,7 +391,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+                  'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
                   'name' => NULL,
                   'slots' => [],
                 ],
@@ -447,7 +447,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                 [
                   'uuid' => CanvasTestSetup::UUID_ADAPTED_IMAGE,
                   'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@abadf2538ecfdecc',
+                  'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
                   'name' => 'Magnificent image!',
                   'slots' => [],
                 ],

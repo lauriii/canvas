@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropExpressions\StructuredData;
 
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
+
 /**
  * A prop expression that points to another prop expression via a reference.
  *
@@ -35,9 +38,22 @@ interface ReferencePropExpressionInterface extends StructuredDataPropExpressionI
    *
    * (This may or may not be the final reference in the chain.)
    *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|\Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface|null $referenced
+   *   Optional for single-bundle target reference expressions.
+   *   Required for multi-bundle target reference expressions: either the
+   *   referenced (content) entity itself, or its data definition object. This
+   *   is used to select the correct branch.
+   *
    * @return \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface
+   *   The prop expression for the target entity of this reference.
+   *
+   * @throws \LogicException
+   *   Thrown when called on a multi-bundle target reference expression without
+   *   providing the required referenced entity or its data definition object.
+   *
+   * @see ::targetsMultipleBundles()
    */
-  public function getTargetExpression() : EntityFieldBasedPropExpressionInterface;
+  public function getTargetExpression(FieldableEntityInterface|EntityDataDefinitionInterface|null $referenced = NULL) : EntityFieldBasedPropExpressionInterface;
 
   /**
    * Gets the final prop expression: a concrete value this ultimately points to.
@@ -50,6 +66,9 @@ interface ReferencePropExpressionInterface extends StructuredDataPropExpressionI
    *   a concrete value (scalar or object).
    *   This also MUST be an entity field-rooted prop expression, because only
    *   only entity fields can be references.
+   *
+   * @internal
+   * @todo Finalize this in https://www.drupal.org/project/canvas/issues/3563309, or drop it.
    */
   public function getFinalTargetExpression() : (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ObjectPropExpressionInterface&EntityFieldBasedPropExpressionInterface);
 

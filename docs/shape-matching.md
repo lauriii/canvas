@@ -196,6 +196,17 @@ there is a need for an additional choice (see the `PropSourceSuggester` mentione
 
 #### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
 
+`prop expression`s are one of the lowest level building block of how Canvas works: it's similar to Drupal core's "token"
+system, but more precise (it can return non-string values) and powerful (they can be chained).
+
+Only developers of field types ever have to understand them in detail. Site Builders and Content Creators only interact
+with them  indirectly: Site Builders choose `dynamic prop source`s or `static prop source`s to populate
+`component input`s, and those `prop source`s contain `prop expression`s that define how to retrieve the actual value(s).
+
+So, _if_ you're going to implement `hook_canvas_storable_prop_shape_alter()`, you will need to have at least a basic
+understanding of `prop expression`s, because you may need to read or modify them. The classes and tests mentioned below
+should help with that.
+
 See
 - `\Drupal\canvas\PropExpressions\StructuredData\Labeler`
 - `\Drupal\canvas\PropExpressions\StructuredData\Evaluator`
@@ -204,7 +215,10 @@ See
 - `\Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface`
 - `\Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface`
 - `\Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface`
-- `\Drupal\Tests\canvas\Unit\PropExpressionTest`
+- `\Drupal\Tests\canvas\Unit\PropExpressionTest::testFromString()`
+- `\Drupal\Tests\canvas\Unit\PropExpressionTest::testToString()`
+- `\Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testLabel()`
+- `\Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()`
 
 Many `field type`s contain a single `field prop` (typically named "value"), but not all. Most `field type`s have one
 required "main prop", many have additional optional props or even computed props.
@@ -251,13 +265,22 @@ Examples:
   markers such as `␞` are never shown to the end user.
 - `ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,alt↠alt}` declares it evaluates an "image" `field item`, has no
   corresponding label (because it is for a `static prop source` and hence never needs to be explained/presented to a
-  Canvas user), and returns
-  two key-value pairs:
+  Canvas user), and returns two key-value pairs:
   - the first one being "src" for which the first "url" `field prop` of the "uri" `field` on the "file"
     `content entity` that is referenced by the "image" `field type`
   - the second one being "alt", which can be retrieved directly from the "image" `field item`.
+- `ℹ︎entity_reference␟entity␜[␜entity:media:image␝field_media_image␞␟src_with_alternate_widths][␜entity:media:remote_image␝field_media_oembed_image␞␟remote_image_web_uri]`
+  declares it evaluates an entity reference `field item`, has no corresponding label (same reason as above), branches
+  based on the bundle of the referenced `Media` `content entity`:
+  - if it is of the "image" media type, it fetches the "src_with_alternate_widths" field property
+  - if it is of the "remote_image" media type, it fetches the "remote_image_web_uri" field property
+  - … but in either case, it returns a single value: an HTTP(S) URI pointing to an image
 
-For more examples, see `\Drupal\Tests\canvas\Unit\PropExpressionTest`.
+For more examples, see `\Drupal\Tests\canvas\Unit\PropExpressionTest`. To gain a deeper understanding of how these work,
+put a breakpoint in its `::testFromString()` and `::testToString()` methods.
+Note that their functionality that requires a working kernel has its test logic in
+`\Drupal\Tests\canvas\Kernel\PropExpressionKernelTest`, but reuses the same test cases as the unit test. It is split to
+keep maximally benefit from unit test speed when working on this. This improves maintainability/DX.
 
 
 #### 3.1.4 Non-structured data `prop source`: `host entity URL prop source`

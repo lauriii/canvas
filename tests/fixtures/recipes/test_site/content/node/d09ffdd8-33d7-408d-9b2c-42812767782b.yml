@@ -52,7 +52,7 @@ default:
       slot: column_one
       uuid: 348bfa10-af72-49cd-900b-084d617c87df
       component_id: sdc.canvas_test_sdc.image
-      component_version: abadf2538ecfdecc
+      component_version: fb40be57bd7e0973
       inputs: '{"image":1}'
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040

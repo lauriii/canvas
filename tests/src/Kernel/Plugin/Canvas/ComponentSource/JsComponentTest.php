@@ -196,7 +196,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
             // ⚠️ Empty default value.
             // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
             'default_value' => [],
-            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:video␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url}',
+            // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+            'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:video␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
           ],
           'displayWidth' => [
             'required' => FALSE,
@@ -1337,7 +1338,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
               'id' => 'json-schema-definitions://canvas.module/video',
             ],
             'sourceType' => 'static:field_item:entity_reference',
-            'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:video␝field_media_video_file␞␟entity␜␜entity:file␝uri␞␟url}',
+            // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+            'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:video␝field_media_video_file␞␟{src↝entity␜␜entity:file␝uri␞␟url}',
             'sourceTypeSettings' => [
               'storage' => [
                 'target_type' => 'media',
