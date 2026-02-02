@@ -5,7 +5,11 @@ import { Flex, Text, TextField } from '@radix-ui/themes';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { validateFolderNameClientSide } from '@/features/validation/validation';
-import { useUpdateFolderMutation } from '@/services/componentAndLayout';
+import {
+  useDeleteFolderMutation,
+  useUpdateFolderMutation,
+} from '@/services/componentAndLayout';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import UnifiedMenu from '../UnifiedMenu';
 
@@ -40,8 +44,18 @@ const FolderList = ({
   const [isFolderOpen, setIsFolderOpen] = useState(true);
   const [updateFolder, { isLoading, isError, error, reset, isSuccess }] =
     useUpdateFolderMutation();
+  const [
+    deleteFolder,
+    {
+      isLoading: isDeleting,
+      isError: isDeleteError,
+      error: deleteApiError,
+      reset: resetDelete,
+    },
+  ] = useDeleteFolderMutation();
   const inputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false);
+  const canvasSettings = getCanvasSettings();
 
   useEffect(() => {
     if (isRenaming && inputRef.current) {
@@ -161,16 +175,48 @@ const FolderList = ({
   );
 
   const handleNameDoubleClick = useCallback(() => {
-    // Only enable rename on double-click if not already renaming
-    if (!isRenaming) {
+    // Only enable rename on double-click if devMode
+    // is enabled and not already renaming.
+    if (canvasSettings.devMode && !isRenaming) {
       setIsRenaming(true);
     }
-  }, [isRenaming]);
+  }, [canvasSettings.devMode, isRenaming]);
+
+  const hasItems = getItemsLength() > 0;
+
+  const handleDelete = useCallback(async () => {
+    // Don't delete folder if it has items or is already being deleted.
+    if (hasItems || isDeleting) {
+      return;
+    }
+
+    resetDelete();
+
+    try {
+      await deleteFolder(folder.id).unwrap();
+    } catch (error) {
+      // Error state is handled via RTK Query (isDeleteError),
+      // logging for debugging purposes only.
+      console.error(error);
+    }
+  }, [folder.id, deleteFolder, resetDelete, hasItems, isDeleting]);
 
   const menuItems = (
-    <UnifiedMenu.Item onClick={() => setIsRenaming(true)}>
-      Rename
-    </UnifiedMenu.Item>
+    <>
+      <UnifiedMenu.Item onClick={() => setIsRenaming(true)}>
+        Rename
+      </UnifiedMenu.Item>
+      <UnifiedMenu.Item
+        onClick={handleDelete}
+        disabled={isDeleting || hasItems}
+        color="red"
+        title={
+          hasItems ? 'Cannot delete folder containing components' : undefined
+        }
+      >
+        Delete folder
+      </UnifiedMenu.Item>
+    </>
   );
 
   // Create the nameSlot for inline editing when renaming
@@ -197,8 +243,17 @@ const FolderList = ({
     />
   ) : undefined;
 
+  // Clear delete error when renaming starts.
+  useEffect(() => {
+    if (isRenaming) {
+      resetDelete();
+    }
+  }, [isRenaming, resetDelete]);
+
+  const hasRenameError = isRenaming && (validationError || isError);
+
   const errorSlot =
-    isRenaming && (validationError || isError) ? (
+    hasRenameError || isDeleteError ? (
       <Flex direction="column" gap="1" px="2" pb="2">
         {validationError && (
           <Text size="1" color="red" weight="medium">
@@ -208,6 +263,11 @@ const FolderList = ({
         {isError && (
           <Text size="1" color="red" weight="medium">
             {parse(extractErrorMessageFromApiResponse(error))}
+          </Text>
+        )}
+        {isDeleteError && (
+          <Text size="1" color="red" weight="medium">
+            {parse(extractErrorMessageFromApiResponse(deleteApiError))}
           </Text>
         )}
       </Flex>
@@ -220,7 +280,7 @@ const FolderList = ({
       nameSlot={nameSlot}
       errorSlot={errorSlot}
       count={getItemsLength()}
-      menuItems={isRenaming ? undefined : menuItems}
+      menuItems={isRenaming || !canvasSettings.devMode ? undefined : menuItems}
       isOpen={isFolderOpen}
       onOpenChange={setIsFolderOpen}
       onNameDoubleClick={handleNameDoubleClick}

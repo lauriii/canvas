@@ -392,4 +392,63 @@ test.describe('Folder Management', () => {
       .getAttribute('aria-expanded');
     expect(isFolderClosed).toBe(isFolderStillClosed);
   });
+
+  test('Folder deletion', async ({ page, drupal, canvasEditor }) => {
+    await drupal.loginAsAdmin();
+    await canvasEditor.goToCanvasRoot();
+    await canvasEditor.openLibraryPanel();
+
+    await page
+      .locator('[data-testid="canvas-library-components-tab-select"]')
+      .click();
+    await expect(
+      page.locator(
+        '[data-testid="canvas-library-components-tab-select"][aria-selected="true"]',
+      ),
+    ).toBeVisible();
+
+    // Create an empty test folder for deletion in Library tab.
+    await testAddFolder(page, ['Empty Folder To Delete']);
+
+    // Verify the folder was created.
+    await expect(
+      page.locator('[data-canvas-folder-name="Empty Folder To Delete"]'),
+    ).toBeAttached();
+
+    // Successfully delete an empty folder.
+    await page
+      .locator('[data-canvas-folder-name="Empty Folder To Delete"]')
+      .hover();
+    await page
+      .locator('[data-canvas-folder-name="Empty Folder To Delete"]')
+      .getByRole('button', { name: 'Menu' })
+      .click();
+
+    // Click Delete folder option.
+    await page.getByRole('menuitem', { name: 'Delete folder' }).click();
+
+    // Wait for folder to be deleted.
+    await expect(
+      page.locator('[data-canvas-folder-name="Empty Folder To Delete"]'),
+    ).not.toBeAttached({ timeout: 10000 });
+
+    // Attempt to delete a folder containing components and
+    // verify deletion is disabled.
+    // Find a folder that contains components.
+    const folderWithComponents = page.locator(
+      '[data-canvas-folder-name="Atom/Text"]',
+    );
+    if ((await folderWithComponents.count()) > 0) {
+      await folderWithComponents.hover();
+      await folderWithComponents.getByRole('button', { name: 'Menu' }).click();
+      // The delete folder menu item should be present and disabled.
+      const deleteMenuItem = page.getByRole('menuitem', {
+        name: 'Delete folder',
+      });
+      await expect(deleteMenuItem).toBeVisible();
+      await expect(deleteMenuItem).toBeDisabled();
+      // Close the menu by pressing Escape.
+      await page.keyboard.press('Escape');
+    }
+  });
 });

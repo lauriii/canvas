@@ -343,6 +343,16 @@ export const componentAndLayoutApi = createApi({
         { type: 'Layout' },
       ],
     }),
+    deleteFolder: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `canvas/api/v0/config/folder/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        { type: 'Folders', id: 'LIST' },
+        { type: 'Components', id: 'LIST' },
+      ],
+    }),
     getFolders: builder.query<
       {
         folders: Record<string, any>;
@@ -468,6 +478,7 @@ export const {
   useDeleteCodeComponentMutation,
   useCreateFolderMutation,
   useUpdateFolderMutation,
+  useDeleteFolderMutation,
   useGetFoldersQuery,
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
