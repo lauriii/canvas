@@ -13,7 +13,6 @@ use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\LengthConstraint;
-use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -294,8 +293,8 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     }
 
     \assert($parent_config_entity instanceof Component);
-    $component_source = $parent_config_entity->getComponentSource();
-    $slots = $component_source instanceof ComponentSourceWithSlotsInterface ? $component_source->getSlotDefinitions() : [];
+    $parent_config_entity->loadVersion($parent_instance['component_version']);
+    $slots = $parent_config_entity->getSlotDefinitions();
     if (\count($slots) === 0) {
       $context->buildViolation('Invalid component subtree. A component subtree must only exist for components with >=1 slot, but the component %component has no slots, yet a subtree exists for the instance with UUID %uuid.', [
         '%component' => $parent_instance['component_id'],
