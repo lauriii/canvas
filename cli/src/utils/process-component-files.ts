@@ -148,7 +148,7 @@ export function createComponentPayload(params: {
   return {
     machineName,
     name: metadata.name || componentName,
-    status: true,
+    status: metadata.status,
     required: Array.isArray(metadata.required) ? metadata.required : [],
     props: propsData,
     slots: slotsData,
