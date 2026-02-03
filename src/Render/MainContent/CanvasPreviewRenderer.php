@@ -115,7 +115,7 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
   /**
    * {@inheritdoc}
    */
-  public function buildPageTopAndBottom(array &$html): void {
+  public function buildPageTopAndBottom(array &$html, array $page_top = [], array $page_bottom = []): void {
     // Intentionally does nothing, so we don't get toolbar, etc.
   }
 
