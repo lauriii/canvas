@@ -65,7 +65,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     // ::buildUrlTemplate() returns an absolute URL, just like ::buildUrl().
     $parametrized_image_style_url = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate('public://2025-04/cat.jpg');
     self::assertSame(
-      PublicStream::baseUrl() . '/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=DnW_VIs-',
+      PublicStream::baseUrl() . '/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=Kyw8-Hxx',
       $parametrized_image_style_url
     );
 
@@ -74,7 +74,7 @@ class ParametrizedImageStyleTest extends KernelTestBase {
     \assert($file_url_generator instanceof FileUrlGeneratorInterface);
     $parametrized_image_style_relative_url = $file_url_generator->transformRelative($parametrized_image_style_url);
     self::assertSame(
-      \base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.webp?itok=DnW_VIs-',
+      \base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--{width}/public/2025-04/cat.jpg.avif?itok=Kyw8-Hxx',
       $parametrized_image_style_relative_url
     );
   }

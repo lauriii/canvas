@@ -605,13 +605,13 @@ class PropSourceTest extends KernelTestBase {
       ],
       'expected_user_value' => [
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.webp?itok=spSF5vvd'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.webp?itok=SnSVAYVj'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,
@@ -801,7 +801,7 @@ class PropSourceTest extends KernelTestBase {
           'alt' => 'amazing',
         ],
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.webp?itok=SnSVAYVj'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=' . UrlHelper::encodePath('::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
           'alt' => 'An image so amazing that to gaze upon it would melt your face',
           'width' => 80,
           'height' => 60,
@@ -1448,7 +1448,7 @@ class PropSourceTest extends KernelTestBase {
       'expected_user_access_denied_message' => NULL,
       'expected_evaluation_with_node_host_entity' => new EvaluationResult(
         [
-          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.webp?itok=spSF5vvd'),
+          'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
           'alt' => 'amazing',
           'width' => 80,
           'height' => 60,
@@ -1500,13 +1500,13 @@ class PropSourceTest extends KernelTestBase {
       'expected_evaluation_with_node_host_entity' => new EvaluationResult(
         [
           [
-            'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.webp?itok=spSF5vvd'),
+            'src' => '::SITE_DIR_BASE_URL::/files/image-3.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-3.jpg.avif?itok=ZZaCKDGa'),
             'alt' => 'amazing',
             'width' => 80,
             'height' => 60,
           ],
           [
-            'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.webp?itok=SnSVAYVj'),
+            'src' => '::SITE_DIR_BASE_URL::/files/image-2.jpg?alternateWidths=::SITE_DIR_BASE_URL::' . UrlHelper::encodePath('/files/styles/canvas_parametrized_width--{width}/public/image-2.jpg.avif?itok=XYZlDjzC'),
             'alt' => 'An image so amazing that to gaze upon it would melt your face',
             'width' => 80,
             'height' => 60,

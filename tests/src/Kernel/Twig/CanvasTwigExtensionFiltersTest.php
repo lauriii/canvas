@@ -135,7 +135,7 @@ class CanvasTwigExtensionFiltersTest extends KernelTestBase {
    */
   private static function generateExpectedSrcSet(array $widths): string {
     return implode(', ', array_map(
-      fn ($width) => "/sites/default/files/styles/canvas_parametrized_width--$width/public/balloons.png.webp?itok=uQqtnjV1 {$width}w",
+      fn ($width) => "/sites/default/files/styles/canvas_parametrized_width--$width/public/balloons.png.avif?itok=Oa4IMo7_ {$width}w",
       $widths
     ));
   }

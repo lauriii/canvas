@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\image\Entity\ImageStyle;
 
 /**
  * Track that props have the required flag in component config entities.
@@ -246,4 +247,22 @@ function canvas_post_update_0011_multi_bundle_reference_prop_expressions(array &
   $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
   \Drupal::classResolver(ConfigEntityUpdater::class)
     ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->needsMultiBundleReferencePropExpressionUpdate($component));
+}
+
+/**
+ * Updates Canvas-provided image style to use AVIF with WebP fallback.
+ */
+function canvas_post_update_0012_canvas_image_style_avif(array &$sandbox): void {
+  $image_style = ImageStyle::load('canvas_parametrized_width');
+  $effect_id = '249b8926-f421-4d60-8453-fb5d9265c731';
+  if (!$image_style) {
+    return;
+  }
+  $effects = $image_style->getEffects();
+  $effects_data = $image_style->get('effects');
+  if ($effects->has($effect_id) && $effects->get($effect_id)->getPluginId() === 'image_convert') {
+    $effects_data[$effect_id]['id'] = 'image_convert_avif';
+    $image_style->set('effects', $effects_data);
+    $image_style->save();
+  }
 }
