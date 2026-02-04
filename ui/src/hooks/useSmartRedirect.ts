@@ -11,7 +11,7 @@ import { useGetContentListQuery } from '@/services/content';
  */
 export const useSmartRedirect = () => {
   const navigate = useNavigate();
-  const { setEditorEntity } = useEditorNavigation();
+  const { navigateToEditor } = useEditorNavigation();
   const homepagePath = useAppSelector(selectHomepagePath);
 
   const { data: pageItems = [] } = useGetContentListQuery({
@@ -35,10 +35,10 @@ export const useSmartRedirect = () => {
 
     if (isHomepageAvailable) {
       // Redirect to the canvas_page that is set as the homepage
-      setEditorEntity('canvas_page', String(homepage.id));
+      navigateToEditor('canvas_page', String(homepage.id));
     } else if (availablePages.length > 0) {
       // Redirect to the first available canvas_page
-      setEditorEntity('canvas_page', String(availablePages[0].id));
+      navigateToEditor('canvas_page', String(availablePages[0].id));
     } else {
       // Redirect to /editor if there are no canvas_pages (last resort)
       navigate('/editor');

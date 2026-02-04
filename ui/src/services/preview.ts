@@ -42,10 +42,16 @@ export const previewApi = createApi({
   endpoints: (builder) => ({
     postPreview: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        entityType: string;
+        entityId: string;
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+      }
     >({
-      query: (body) => ({
-        url: 'canvas/api/v0/layout/{entity_type}/{entity_id}',
+      query: ({ entityType, entityId, ...body }) => ({
+        url: `canvas/api/v0/layout/${entityType}/${entityId}`,
         method: 'POST',
         body,
       }),
@@ -125,12 +131,24 @@ const createUpdateComponentSelector = createSelector(
 // determine the current update mutation loading state given a component
 // instance ID. As createUpdateComponentSelector is memoized, we must also use
 // createSelector here so that the subsequent selector is memoised.
+// Returns false if componentInstanceId is undefined.
 // @see https://redux-toolkit.js.org/rtk-query/usage/usage-without-react-hooks
 // @see https://redux.js.org/tutorials/fundamentals/part-7-standard-patterns#memoizing-selectors-with-createselector
-export const selectUpdateComponentLoadingState = createSelector(
-  (state: RootState) => state,
-  (state: RootState, componentInstanceId: string) =>
-    createUpdateComponentSelector(componentInstanceId),
-  (state, selectUpdateComponentSelector) =>
-    selectUpdateComponentSelector(state).isLoading,
+export const selectUpdateComponentLoadingState: (
+  state: RootState,
+  componentInstanceId: string | undefined,
+) => boolean = createSelector(
+  [
+    (state: RootState) => state,
+    (_state: RootState, componentInstanceId: string | undefined) =>
+      componentInstanceId,
+  ],
+  (state, componentInstanceId): boolean => {
+    if (!componentInstanceId) {
+      return false;
+    }
+    const selectUpdateComponentSelector =
+      createUpdateComponentSelector(componentInstanceId);
+    return selectUpdateComponentSelector(state).isLoading;
+  },
 );

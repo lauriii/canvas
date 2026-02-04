@@ -20,5 +20,9 @@
 }
 
 .pageLink {
+  display: flex;
+  flex-grow: 1;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
 }

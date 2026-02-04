@@ -7,6 +7,7 @@ import Dialog from '@/components/Dialog';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import {
@@ -130,6 +131,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     useDeleteContentTemplateMutation();
   const selectedTemplateId = useGetEditedTemplateId();
   const { redirectToNextBestPage } = useSmartRedirect();
+  const { urlForTemplateEditor } = useEditorNavigation();
 
   const handleDelete = async () => {
     try {
@@ -206,7 +208,6 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
         <ContextMenu.Trigger>
           <SidebarNode
             key={viewMode.id}
-            href={`/canvas/template/${viewMode.entityType}/${viewMode.bundle}/${viewMode.viewMode}/${viewMode.suggestedPreviewEntityId || ''}`}
             title={`${viewMode.viewModeLabel} template`}
             variant="template"
             dropdownMenuContent={
@@ -216,6 +217,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
             }
             selected={selectedTemplateId === viewMode.id}
             indent={2.5}
+            to={urlForTemplateEditor(viewMode)}
           />
         </ContextMenu.Trigger>
         <UnifiedMenu.Content menuType="context" align="start" side="right">

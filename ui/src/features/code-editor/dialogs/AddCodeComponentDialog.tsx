@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import parse from 'html-react-parser';
 import { useParams } from 'react-router';
-import { useNavigate } from 'react-router-dom';
 import { Flex, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -15,6 +14,7 @@ import {
 } from '@/features/ui/codeComponentDialogSlice';
 import { setActivePanel } from '@/features/ui/primaryPanelSlice';
 import { validateCodeMachineNameClientSide } from '@/features/validation/validation';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useCreateCodeComponentMutation } from '@/services/componentAndLayout';
 
 const AddCodeComponentDialog = () => {
@@ -24,7 +24,7 @@ const AddCodeComponentDialog = () => {
     createCodeComponent,
     { isLoading, isSuccess, isError, error, reset, data },
   ] = useCreateCodeComponentMutation();
-  const navigate = useNavigate();
+  const { navigateToCodeEditor } = useEditorNavigation();
   const dispatch = useAppDispatch();
   const { isAddDialogOpen } = useAppSelector(selectDialogStates);
   const { entityId, entityType } = useParams();
@@ -65,14 +65,14 @@ const AddCodeComponentDialog = () => {
       setComponentName('');
       setValidationError('');
       dispatch(closeAllDialogs());
-      navigate(`/code-editor/component/${data.machineName}`);
+      navigateToCodeEditor(data.machineName);
       reset();
     }
   }, [
     isSuccess,
     data?.machineName,
     dispatch,
-    navigate,
+    navigateToCodeEditor,
     componentName,
     reset,
     entityType,

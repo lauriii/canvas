@@ -180,6 +180,23 @@ export class CanvasEditor {
     }
   }
 
+  async openPagesPanel() {
+    await this.page.getByTestId('canvas-side-menu').getByLabel('Pages').click();
+    try {
+      await expect(
+        this.page.getByRole('heading', { name: 'Pages' }),
+      ).toBeVisible();
+      await expect(
+        this.page.locator('[data-testid="canvas-page-list"]'),
+      ).toBeVisible();
+    } catch (error) {
+      throw new Error(
+        'openPagesPanel: Pages panel did not open - was it already open?\n' +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
+  }
+
   async openComponent(title: string) {
     await this.page
       .locator(

@@ -29,7 +29,7 @@ export const HOMEPAGE_CONFIG_ID = 'canvas_set_homepage';
 
 const Pages = () => {
   const { showBoundary } = useErrorBoundary();
-  const { setEditorEntity } = useEditorNavigation();
+  const { navigateToEditor } = useEditorNavigation();
   const { redirectToNextBestPage } = useSmartRedirect();
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
@@ -104,7 +104,7 @@ const Pages = () => {
   }
 
   function handleOnSelect(item: ContentStub) {
-    setEditorEntity('canvas_page', String(item.id));
+    navigateToEditor('canvas_page', item.id);
   }
 
   function handleSetHomepage(item: ContentStub) {
@@ -138,12 +138,12 @@ const Pages = () => {
 
   useEffect(() => {
     if (isCreateContentSuccess) {
-      setEditorEntity(
+      navigateToEditor(
         createContentData.entity_type,
         createContentData.entity_id,
       );
     }
-  }, [isCreateContentSuccess, createContentData, setEditorEntity]);
+  }, [isCreateContentSuccess, createContentData, navigateToEditor]);
 
   useEffect(() => {
     if (createContentError) {

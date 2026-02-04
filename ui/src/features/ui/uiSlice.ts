@@ -188,6 +188,11 @@ export const uiSlice = createAppSlice({
         state.redoStack = [];
       },
     ),
+    clearUndoRedoHistory: create.reducer((state) => {
+      state.undoStack = [];
+      state.redoStack = [];
+      state.latestUndoRedoActionId = '';
+    }),
     performUndoOrRedo: create.reducer(
       // Take care of moving undo/redo items:
       // * from the undo stack to the redo stack in the case of an UNDO action;
@@ -479,6 +484,7 @@ export const {
   unsetEditorFrameContext,
   pushUndo,
   performUndoOrRedo,
+  clearUndoRedoHistory,
   clearSelection,
   setSelection,
   setPreviouslyEdited,
@@ -577,4 +583,7 @@ export const uiSliceReducer = uiSlice.reducer;
 export const UndoRedoActionCreators = {
   undo: (type: UndoRedoType) => ({ type: `@@redux-undo/${type}_UNDO` }),
   redo: (type: UndoRedoType) => ({ type: `@@redux-undo/${type}_REDO` }),
+  clearHistory: (type: UndoRedoType) => ({
+    type: `@@redux-undo/${type}_CLEAR_HISTORY`,
+  }),
 };

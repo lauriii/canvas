@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useParams } from 'react-router';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppSelector } from '@/app/hooks';
 import {
   selectLayout,
   selectModel,
@@ -18,31 +19,35 @@ import {
   selectEditorFrameContext,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
-import { useEntityTitle } from '@/hooks/useEntityTitle';
+import { useStableCallback } from '@/hooks/useStableCallback';
+import useSyncTitle from '@/hooks/useSyncTitle';
 import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
-import { contentApi } from '@/services/content';
 import {
   selectUpdateComponentLoadingState,
   usePostPreviewMutation,
 } from '@/services/preview';
+import { isAjaxing } from '@/utils/isAjaxing';
 
 import type React from 'react';
 
-interface PreviewProps {}
-
-const Preview: React.FC<PreviewProps> = () => {
+const Preview: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const backgroundUpdate = useAppSelector(selectPreviewBackgroundUpdate);
-  const selectedComponentId = selectedComponent || 'noop';
   const entity_form_fields = useAppSelector(selectPageData);
-  const title = useEntityTitle();
-  const previousEntityFormTitle = useRef(title);
-  // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
-  const previousEntityFormAlias = useRef(entity_form_fields['path[0][alias]']);
+  const { entityId, entityType } = useParams();
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const frameSrcDoc = useAppSelector(selectPreviewHtml);
+  const { showBoundary } = useErrorBoundary();
+  useSyncTitle();
 
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+
+  // --- API Mutations ---
   const [postPreview, { isLoading: isFetching }] = usePostPreviewMutation({
     fixedCacheKey: 'editorFramePreview',
   });
@@ -51,73 +56,99 @@ const Preview: React.FC<PreviewProps> = () => {
       fixedCacheKey: 'editorFrameTemplatePreview',
     });
   const isPatching = useAppSelector((state) =>
-    selectUpdateComponentLoadingState(state, selectedComponentId),
+    selectUpdateComponentLoadingState(state, selectedComponent),
   );
-  const dispatch = useAppDispatch();
-  const frameSrcDoc = useAppSelector(selectPreviewHtml);
-  const { showBoundary } = useErrorBoundary();
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
 
-  useEffect(() => {
-    const sendPreviewRequest = async () => {
+  const sendPreviewRequest = useCallback(
+    async (context: 'entity' | 'template') => {
       try {
-        // Trigger the mutation
-        await postPreview({ layout, model, entity_form_fields }).unwrap();
+        // Execute Request
+        if (context === 'entity' && entityId && entityType) {
+          await postPreview({
+            layout,
+            model,
+            entity_form_fields,
+            entityId,
+            entityType,
+          }).unwrap();
+        } else if (context === 'template') {
+          await postTemplatePreview({
+            layout,
+            model,
+            entity_form_fields,
+          }).unwrap();
+        }
       } catch (err) {
         showBoundary(err);
       }
-    };
-    const sendTemplatePreviewRequest = async () => {
-      try {
-        // Trigger the mutation
-        await postTemplatePreview({
-          layout,
-          model,
-          entity_form_fields,
-        }).unwrap();
-      } catch (err) {
-        showBoundary(err);
-      }
-    };
-    if (updatePreview) {
-      // Specifically when updating the Title or Alias, the page list used in the navigator must be re-fetched so that
-      // it can display those updated values.
-      let invalidatePageList = false;
-      if (
-        title !== previousEntityFormTitle.current ||
-        // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
-        entity_form_fields['path[0][alias]'] !== previousEntityFormAlias.current
-      ) {
-        invalidatePageList = true;
-        previousEntityFormTitle.current = title;
-        // @todo stop hardcoding `path` after https://drupal.org/i/3503446.
-        previousEntityFormAlias.current = entity_form_fields['path[0][alias]'];
+    },
+    [
+      layout,
+      model,
+      entity_form_fields,
+      entityId,
+      entityType,
+      postPreview,
+      postTemplatePreview,
+      showBoundary,
+    ],
+  );
+
+  /**
+   * STABLE WRAPPER:
+   * This function identity never changes, but it always "sees" the latest
+   * sendPreviewRequest closure. This allows us to use it in useEffect
+   * without triggering the effect when layout/model changes.
+   */
+  const stableScheduleRequest = useStableCallback(
+    (context: 'entity' | 'template') => {
+      // Clear any existing polling to avoid double-requests
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
 
-      if (editorFrameContext === 'template') {
-        sendTemplatePreviewRequest().then(() => {});
-      } else if (editorFrameContext === 'entity') {
-        sendPreviewRequest().then(() => {
-          if (invalidatePageList) {
-            dispatch(
-              contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
-            );
+      if (isAjaxing()) {
+        pollingIntervalRef.current = setInterval(() => {
+          if (!isAjaxing()) {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            sendPreviewRequest(context);
           }
-        });
+        }, 50);
+      } else {
+        sendPreviewRequest(context);
       }
+    },
+  );
+
+  // Effect: Trigger POSTing of layout, model and entity_form_fields when they change
+  // to generate a new preview and create a new autoSave.
+  useEffect(() => {
+    if (updatePreview) {
+      const context = editorFrameContext === 'template' ? 'template' : 'entity';
+      stableScheduleRequest(context);
     }
   }, [
     layout,
     model,
-    postPreview,
     entity_form_fields,
     updatePreview,
-    showBoundary,
-    dispatch,
-    title,
-    postTemplatePreview,
     editorFrameContext,
+    stableScheduleRequest,
   ]);
+
+  // Effect: Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <ComponentHtmlMapProvider>

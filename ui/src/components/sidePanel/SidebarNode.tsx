@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { clsx } from 'clsx';
+import { Link } from 'react-router-dom';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   BoxModelIcon,
@@ -51,7 +52,7 @@ const SidebarNode = React.forwardRef<
     open?: boolean;
     className?: string;
     onMenuOpenChange?: (open: boolean) => void;
-    href?: string;
+    to?: string;
     /**
      * Number of indentation levels to apply to the node.
      * Will fall back to the ListIndentContext if not provided.
@@ -73,7 +74,7 @@ const SidebarNode = React.forwardRef<
       open = false,
       className,
       onMenuOpenChange,
-      href,
+      to,
       indent,
       ...props
     },
@@ -142,14 +143,14 @@ const SidebarNode = React.forwardRef<
       </Flex>
     );
 
-    if (href) {
+    if (to) {
       return (
-        <a
-          href={href}
+        <Link
+          to={to}
           style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
         >
           {content}
-        </a>
+        </Link>
       );
     }
 

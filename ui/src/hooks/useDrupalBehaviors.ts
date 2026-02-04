@@ -9,8 +9,12 @@ const Drupal = getDrupal();
 export function useDrupalBehaviors(
   ref: RefObject<HTMLElement>,
   dependency: React.ReactNode | null | HTMLDivElement,
+  loading: boolean = false,
 ) {
   useEffect(() => {
+    if (loading) {
+      return;
+    }
     let element: HTMLElement | null = null;
 
     const timeout = setTimeout(() => {
@@ -26,5 +30,5 @@ export function useDrupalBehaviors(
         Drupal.detachBehaviors(element);
       }
     };
-  }, [ref, dependency]);
+  }, [ref, dependency, loading]);
 }

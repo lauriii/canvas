@@ -1,5 +1,6 @@
 - tabpanel "Patterns":
-  - textbox "Search content"
+  - textbox "Search content":
+    - /placeholder: Search…
   - img
   - button "New":
     - img

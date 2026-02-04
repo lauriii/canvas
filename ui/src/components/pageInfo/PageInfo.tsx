@@ -79,7 +79,7 @@ export const HOMEPAGE_CONFIG_ID = 'canvas_set_homepage';
 
 const PageInfo = () => {
   const { showBoundary } = useErrorBoundary();
-  const { setEditorEntity } = useEditorNavigation();
+  const { navigateToEditor } = useEditorNavigation();
   const { redirectToNextBestPage } = useSmartRedirect();
   const {
     regionId: focusedRegion = DEFAULT_REGION,
@@ -138,6 +138,7 @@ const PageInfo = () => {
     });
   const [isCurrentPageHomepage, setIsCurrentPageHomepage] =
     useState<boolean>(false);
+  const [popoverOpen, setPopoverOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isGetPageItemsSuccess) {
@@ -163,6 +164,7 @@ const PageInfo = () => {
     createContent({
       entity_type: 'canvas_page',
     });
+    setPopoverOpen(false);
   }
 
   const [deleteContent, { error: deleteContentError }] =
@@ -192,11 +194,7 @@ const PageInfo = () => {
       entity_type: 'canvas_page',
       entity_id: String(item.id),
     });
-  }
-
-  // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types.
-  function handleOnSelect(item: ContentStub) {
-    setEditorEntity('canvas_page', String(item.id));
+    setPopoverOpen(false);
   }
 
   function handleSetHomepage(item: ContentStub) {
@@ -222,12 +220,13 @@ const PageInfo = () => {
 
   useEffect(() => {
     if (isCreateContentSuccess) {
-      setEditorEntity(
+      setPopoverOpen(false);
+      navigateToEditor(
         createContentData.entity_type,
         createContentData.entity_id,
       );
     }
-  }, [isCreateContentSuccess, createContentData, setEditorEntity]);
+  }, [isCreateContentSuccess, createContentData, navigateToEditor]);
 
   useEffect(() => {
     if (createContentError) {
@@ -274,7 +273,7 @@ const PageInfo = () => {
         </NavLink>
       ) : null}
       {focusedRegion === DEFAULT_REGION ? (
-        <Popover.Root>
+        <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
           <Popover.Trigger>
             <Button
               color="gray"
@@ -324,7 +323,7 @@ const PageInfo = () => {
                   showNew={canCreatePages}
                   onNewPage={handleNewPage}
                   onSearch={setSearchTerm}
-                  onSelect={handleOnSelect}
+                  onSelect={() => setPopoverOpen(false)}
                   onDuplicate={handleDuplication}
                   onSetHomepage={handleSetHomepage}
                   onDelete={handleDeletePage}

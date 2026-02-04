@@ -2,23 +2,47 @@ import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
-import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 import {
   removeComponentFromPathname,
   setRegionInPathname,
 } from '@/utils/route-utils';
 
+import type { NavigateOptions } from 'react-router-dom';
+import type { TemplateViewMode } from '@/services/componentAndLayout';
+
 const canvasSettings = getCanvasSettings();
 
 /**
- * Hook for editor navigation functions
- * Handles URL/route based navigation for regions and entities
+ * Minimal template view mode properties needed for navigation.
+ * Extracts only the essential fields from TemplateViewMode required to construct a route.
+ */
+export type TemplateViewModeNavigation = Pick<
+  TemplateViewMode,
+  'entityType' | 'bundle' | 'viewMode'
+> & {
+  suggestedPreviewEntityId?: number | string;
+};
+
+/**
+ * Hook for editor navigation functions.
+ *
+ * Provides a unified API for navigating between different editor views:
+ * - Entity editor (e.g., nodes, blocks)
+ * - Template editor (for view modes)
+ * - Code editor (for custom components)
+ *
+ * Also handles region selection within the current route and exposes
+ * navigation utilities globally via `canvasSettings.navUtils`.
  */
 export function useEditorNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const drupalBaseUrl = getBaseUrl();
 
+  /**
+   * Updates the current route to select a specific region.
+   * Removes any component selection from the path and sets the region segment.
+   */
   const setSelectedRegion = useCallback(
     (regionId?: string) => {
       // Remove any /component/:componentId from the path first
@@ -30,27 +54,137 @@ export function useEditorNavigation() {
     [navigate, location.pathname],
   );
 
-  const setEditorEntity = useCallback(
-    (entityType: string, entityId: string) => {
-      // @todo revisit approach (like using FE routing) and see if timeout can be removed in follow up to https://www.drupal.org/i/3502887
-      // For now, we are using window.location.href to force a full page reload
-      // to ensure all state is reset when switching entities. Later we can use navigate:
-      // navigate(`${baseUrl}editor/${entityType}/${entityId}`);
-      setTimeout(() => {
-        // Use a timeout to ensure that RTK query cleans up its subscriptions first before navigating away.
-        // Without this timeout, RTK throws an error because it tries to make a request following cache invalidation while
-        // the window.location.href is in progress.
-        window.location.href = `${drupalBaseUrl}canvas/editor/${entityType}/${entityId}`;
-      }, 100);
+  /**
+   * Constructs a URL path for the entity editor.
+   * @param entityType - The type of entity (e.g., 'node', 'block').
+   * @param entityId - The ID of the entity to edit.
+   * @returns The URL path string, or empty string if parameters are missing.
+   */
+  const urlForEditor = useCallback(
+    (entityType?: string, entityId?: string | number) => {
+      if (!entityType || !entityId) {
+        console.warn(
+          '[useEditorNavigation] urlForEditor called with undefined parameters:',
+          { entityType, entityId },
+        );
+        return '';
+      }
+      return `/editor/${entityType}/${entityId}`;
     },
-    [drupalBaseUrl],
+    [],
   );
 
+  /**
+   * Constructs a URL path for the template editor.
+   * @param viewMode - The template view mode containing entityType, bundle, viewMode,
+   *                   and optionally a suggested preview entity ID.
+   * @returns The URL path string, or empty string if viewMode is incomplete.
+   */
+  const urlForTemplateEditor = useCallback(
+    (viewMode?: TemplateViewModeNavigation) => {
+      if (!viewMode?.entityType || !viewMode?.bundle || !viewMode?.viewMode) {
+        console.warn(
+          '[useEditorNavigation] urlForTemplateEditor called with undefined or incomplete viewMode:',
+          viewMode,
+        );
+        return '';
+      }
+      return `/template/${viewMode.entityType}/${viewMode.bundle}/${viewMode.viewMode}/${viewMode.suggestedPreviewEntityId || ''}`;
+    },
+    [],
+  );
+
+  /**
+   * Constructs a URL path for the code editor.
+   * @param machineName - The machine name of the component to edit.
+   * @returns The URL path string, or empty string if machineName is missing.
+   */
+  const urlForCodeEditor = useCallback((machineName?: string) => {
+    if (!machineName) {
+      console.warn(
+        '[useEditorNavigation] urlForCodeEditor called with undefined machineName',
+      );
+      return '';
+    }
+    return `/code-editor/component/${machineName}`;
+  }, []);
+
+  /**
+   * Navigates to the entity editor for a given entity.
+   * @param entityType - The type of entity (e.g., 'node', 'canvas_page').
+   * @param entityId - The ID of the entity to edit.
+   * @param options - Optional React Router navigation options.
+   */
+  const navigateToEditor = useCallback(
+    (
+      entityType?: string,
+      entityId?: string | number,
+      options?: NavigateOptions,
+    ) => {
+      if (!entityType || !entityId) {
+        console.warn(
+          '[useEditorNavigation] navigateToEditor called with undefined parameters:',
+          { entityType, entityId },
+        );
+        return;
+      }
+      navigate(urlForEditor(entityType, entityId), options);
+    },
+    [navigate, urlForEditor],
+  );
+
+  /**
+   * Navigates to the template editor for a given view mode.
+   * @param viewMode - The template view mode containing entityType, bundle, viewMode.
+   * @param options - Optional React Router navigation options.
+   */
+  const navigateToTemplateEditor = useCallback(
+    (viewMode?: TemplateViewModeNavigation, options?: NavigateOptions) => {
+      if (!viewMode?.entityType || !viewMode?.bundle || !viewMode?.viewMode) {
+        console.warn(
+          '[useEditorNavigation] navigateToTemplateEditor called with undefined or incomplete viewMode:',
+          viewMode,
+        );
+        return;
+      }
+      navigate(urlForTemplateEditor(viewMode), options);
+    },
+    [navigate, urlForTemplateEditor],
+  );
+
+  /**
+   * Navigates to the code editor for a given component.
+   * @param machineName - The machine name of the component to edit.
+   * @param options - Optional React Router navigation options.
+   */
+  const navigateToCodeEditor = useCallback(
+    (machineName?: string, options?: NavigateOptions) => {
+      if (!machineName) {
+        console.warn(
+          '[useEditorNavigation] navigateToCodeEditor called with undefined machineName',
+        );
+        return;
+      }
+      navigate(urlForCodeEditor(machineName), options);
+    },
+    [navigate, urlForCodeEditor],
+  );
+
+  /**
+   * Collection of all navigation utilities provided by this hook.
+   * Also exposed globally via canvasSettings.navUtils for external access.
+   */
   const editorNavUtils = {
     setSelectedRegion,
-    setEditorEntity,
+    urlForEditor,
+    urlForTemplateEditor,
+    urlForCodeEditor,
+    navigateToEditor,
+    navigateToTemplateEditor,
+    navigateToCodeEditor,
   };
 
+  // Expose navigation utilities globally so external code can access them
   canvasSettings.navUtils = editorNavUtils;
 
   return editorNavUtils;

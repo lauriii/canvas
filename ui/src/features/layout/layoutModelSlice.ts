@@ -436,6 +436,9 @@ export const layoutModelSlice = createSlice({
     ),
     setInitialized: create.reducer((state, action: PayloadAction<boolean>) => {
       state.isInitialized = action.payload;
+      if (!action.payload) {
+        state.updatePreview = false;
+      }
     }),
     setLayoutModel: create.reducer(
       (state, action: PayloadAction<LayoutModelSliceState>) => {

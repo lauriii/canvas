@@ -127,12 +127,12 @@ const UnpublishedChanges = () => {
 
       await publishAllChanges(changesToPublish);
 
-      if (isCurrentChanged) {
+      if (isCurrentChanged && entityId && entityType) {
         // Update the isPublished and isNew status.
         dispatch(
           componentAndLayoutApi.util.updateQueryData(
             'getPageLayout',
-            undefined,
+            { entityId, entityType },
             (draft) => {
               draft.isPublished = true;
               draft.isNew = false;

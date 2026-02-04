@@ -258,7 +258,7 @@ const ComponentInstanceFormRenderer: React.FC<
   // Any time this form changes, process it through Drupal behaviors the same
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
   // Drupal functionality like Autocomplete work in this React-rendered form.
-  useDrupalBehaviors(formRef, jsxFormContent);
+  useDrupalBehaviors(formRef, jsxFormContent, isFetching);
 
   return (
     <Spinner

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ChevronDownIcon,
   DotsVerticalIcon,
@@ -24,6 +25,7 @@ import {
 
 import { useAppSelector } from '@/app/hooks';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 import type { FormEvent } from 'react';
 import type { ContentStub } from '@/types/Content';
@@ -148,6 +150,7 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const homepagePath = useAppSelector(selectHomepagePath);
+  const { urlForEditor } = useEditorNavigation();
   if (items.length === 0) {
     return (
       <Callout.Root
@@ -187,10 +190,10 @@ const ContentGroup = ({
               key={item.id}
               data-canvas-page-id={item.id}
             >
-              <Flex
+              <Link
+                to={urlForEditor('canvas_page', item.id)}
                 role={'listitem'}
                 className={styles.pageLink}
-                flexGrow="1"
                 onClick={onSelect ? () => onSelect(item) : undefined}
               >
                 <Box px="3" pt="1">
@@ -208,7 +211,7 @@ const ContentGroup = ({
                     </span>
                   </Text>
                 </Flex>
-              </Flex>
+              </Link>
               {Object.keys(item.links).length && (
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger>

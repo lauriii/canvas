@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useParams } from 'react-router';
 import { Box, Spinner } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
@@ -11,6 +13,7 @@ import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetPageDataFormQuery } from '@/services/pageDataForm';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
@@ -18,7 +21,6 @@ import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
 
 const PageDataFormRenderer = () => {
-  const { currentData, error, isFetching } = useGetPageDataFormQuery();
   const pageData = useAppSelector(selectPageData);
   const { showBoundary } = useErrorBoundary();
   const [jsxFormContent, setJsxFormContent] =
@@ -27,9 +29,22 @@ const PageDataFormRenderer = () => {
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.ENTITY_FORM),
   );
+  const { entityId, entityType } = useParams();
+  const {
+    currentData: formTemplate,
+    error,
+    isFetching,
+    refetch,
+  } = useGetPageDataFormQuery(
+    entityId && entityType ? { entityId, entityType } : skipToken,
+  );
+  const { isFetching: isFetchingLayout } = useGetPageLayoutQuery(
+    entityId && entityType ? { entityId, entityType } : skipToken,
+  );
 
   const formRef = useRef<HTMLDivElement>(null);
-  useDrupalBehaviors(formRef, jsxFormContent);
+  const loading = isFetching || isFetchingLayout;
+  useDrupalBehaviors(formRef, jsxFormContent, loading);
 
   const pageDataExists = !!Object.keys(pageData).length;
 
@@ -40,16 +55,22 @@ const PageDataFormRenderer = () => {
   }, [error, showBoundary]);
 
   useEffect(() => {
+    if (entityId && entityType) {
+      refetch();
+    }
+  }, [refetch, entityId, entityType]);
+
+  useEffect(() => {
     // If the HTML for the form has not yet loaded OR the JSON for the page data
     // has not, don't render the form.
     // Were we pulling this data *directly* from an API, doing this would be
     // best accomplished by the isLoading property provided by RTK. This serves
     // the same purpose without adding complexity to our reducers.
-    if (!currentData || !pageDataExists) {
+    if (!formTemplate || !pageDataExists) {
       return;
     }
 
-    const template = parseHyperscriptifyTemplate(currentData as string);
+    const template = parseHyperscriptifyTemplate(formTemplate as string);
     if (!template) {
       return;
     }
@@ -65,7 +86,7 @@ const PageDataFormRenderer = () => {
         )}
       </div>,
     );
-  }, [currentData, pageDataExists]);
+  }, [formTemplate, pageDataExists]);
 
   useEffect(() => {
     const ajaxUpdateFormStateListener: (
@@ -97,16 +118,18 @@ const PageDataFormRenderer = () => {
     };
   }, [formState, dispatch]);
 
-  return (
-    <Spinner size="3" loading={isFetching}>
-      {/* Add some space above the spinner. */}
-      {isFetching && <Box mt="9" />}
-      {/* Wrap the JSX form in a ref, so we can send it as a stable DOM element
-          argument to Drupal.attachBehaviors() anytime jsxFormContent changes.
-          See the useEffect just above this. */}
-      <div ref={formRef}>{jsxFormContent}</div>
-    </Spinner>
-  );
+  if (isFetching || isFetchingLayout || !pageDataExists) {
+    return (
+      <Spinner size="3" loading={true}>
+        <Box mt="9" />
+      </Spinner>
+    );
+  }
+
+  /* Wrap the JSX form in a ref, so we can send it as a stable DOM element
+      argument to Drupal.attachBehaviors() anytime jsxFormContent changes.
+      See the useEffect just above this. */
+  return <div ref={formRef}>{jsxFormContent}</div>;
 };
 
 export default PageDataFormRenderer;

@@ -23,6 +23,7 @@ const PagePreview = () => {
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const [postPreview] = usePostPreviewMutation();
+  const { entityId, entityType } = useParams();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
   const { width } = useParams();
@@ -33,11 +34,16 @@ const PagePreview = () => {
 
   useEffect(() => {
     const sendPreviewRequest = async () => {
+      if (!entityType || !entityId) {
+        return;
+      }
       try {
         await postPreview({
           layout,
           model,
           entity_form_fields,
+          entityId,
+          entityType,
         }).unwrap();
       } catch (err) {
         showBoundary(err);
@@ -51,6 +57,8 @@ const PagePreview = () => {
     model,
     postPreview,
     entity_form_fields,
+    entityId,
+    entityType,
     updatePreview,
     showBoundary,
   ]);

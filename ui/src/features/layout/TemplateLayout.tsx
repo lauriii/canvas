@@ -1,13 +1,20 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { useParams } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetTemplateLayoutQuery } from '@/services/componentAndLayout';
 
-import { selectIsInitialized, setInitialLayoutModel } from './layoutModelSlice';
+import {
+  selectIsInitialized,
+  setInitialized,
+  setInitialLayoutModel,
+} from './layoutModelSlice';
 
 const TemplateLayout = () => {
   const dispatch = useAppDispatch();
+  const { entityType, bundle, viewMode, previewEntityId } = useParams();
 
   const isInitialized = useAppSelector(selectIsInitialized);
   const {
@@ -15,8 +22,11 @@ const TemplateLayout = () => {
     error,
     isError,
     isFetching,
+    refetch,
   } = useGetTemplateLayoutQuery(
-    undefined,
+    entityType && bundle && viewMode && previewEntityId
+      ? { entityType, bundle, viewMode, previewEntityId }
+      : skipToken,
     // Setting `refetchOnMountOrArgChange` instead of a cache invalidation
     // prevents re-fetching due to the same query being used elsewhere in the app.
     { refetchOnMountOrArgChange: true },
@@ -25,6 +35,13 @@ const TemplateLayout = () => {
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
   const { layout, model } = fetchedLayout || {};
+
+  useEffect(() => {
+    dispatch(setInitialized(false));
+    if (entityType && bundle && viewMode && previewEntityId) {
+      refetch();
+    }
+  }, [entityType, bundle, viewMode, previewEntityId, refetch, dispatch]);
 
   useEffect(() => {
     if (isError && error && !isFetching) {
@@ -37,7 +54,7 @@ const TemplateLayout = () => {
     // allow the page to render.
     resetBoundary();
 
-    if (layout && model && !isInitialized) {
+    if (layout && model && !isInitialized && !isFetching) {
       dispatch(
         setInitialLayoutModel({
           layout,

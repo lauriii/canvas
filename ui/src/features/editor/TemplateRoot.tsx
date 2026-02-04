@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { ExclamationTriangleIcon, PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Text } from '@radix-ui/themes';
 
@@ -9,13 +9,14 @@ import {
   setEditorFrameContext,
   unsetEditorFrameContext,
 } from '@/features/ui/uiSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetContentTemplatesQuery } from '@/services/componentAndLayout';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
 import styles from './TemplateRoot.module.css';
 
 const TemplateRoot = () => {
-  const navigate = useNavigate();
+  const { navigateToTemplateEditor } = useEditorNavigation();
   const { entityType, bundle, viewMode } = useParams();
   const dispatch = useAppDispatch();
 
@@ -36,15 +37,27 @@ const TemplateRoot = () => {
       const suggestedEntityId = viewModeData?.suggestedPreviewEntityId;
 
       if (suggestedEntityId) {
-        navigate(
-          `/template/${entityType}/${bundle}/${viewMode}/${suggestedEntityId}`,
+        navigateToTemplateEditor(
+          {
+            entityType,
+            bundle,
+            viewMode,
+            suggestedPreviewEntityId: suggestedEntityId,
+          },
           {
             replace: true,
           },
         );
       }
     }
-  }, [isSuccess, templatesData, entityType, bundle, viewMode, navigate]);
+  }, [
+    isSuccess,
+    templatesData,
+    entityType,
+    bundle,
+    viewMode,
+    navigateToTemplateEditor,
+  ]);
 
   useEffect(() => {
     dispatch(setEditorFrameContext(EditorFrameContext.TEMPLATE));

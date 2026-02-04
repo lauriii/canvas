@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -20,6 +19,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
@@ -39,7 +39,6 @@ export const ComponentContextMenuContent: React.FC<
   }
 > = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
@@ -49,6 +48,7 @@ export const ComponentContextMenuContent: React.FC<
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
+  const { navigateToCodeEditor } = useEditorNavigation();
 
   // Check if this is a code component
   const [componentType] = (component.type || '').split('@');
@@ -142,10 +142,10 @@ export const ComponentContextMenuContent: React.FC<
       if (component.type && component.type.startsWith('js.')) {
         const machineNameAndVersion = component.type.substring(3);
         const [machineName] = machineNameAndVersion.split('@');
-        navigate(`/code-editor/component/${machineName}`);
+        navigateToCodeEditor(machineName);
       }
     },
-    [component.type, navigate],
+    [component.type, navigateToCodeEditor],
   );
 
   const closeContextMenu = () => {

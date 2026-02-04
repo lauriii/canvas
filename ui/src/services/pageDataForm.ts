@@ -10,10 +10,13 @@ export const pageDataFormApi = createApi({
   baseQuery,
   tagTypes: ['PageDataForm'],
   endpoints: (builder) => ({
-    getPageDataForm: builder.query<string, void>({
-      query: () => {
+    getPageDataForm: builder.query<
+      string,
+      { entityId: string; entityType: string }
+    >({
+      query: ({ entityId, entityType }) => {
         return {
-          url: `/canvas/api/v0/form/content-entity/{entity_type}/{entity_id}/default?${addAjaxPageState('')}`,
+          url: `/canvas/api/v0/form/content-entity/${entityType}/${entityId}/default?${addAjaxPageState('')}`,
         };
       },
       transformResponse: processResponseAssets(),

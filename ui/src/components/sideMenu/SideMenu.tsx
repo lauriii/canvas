@@ -57,25 +57,6 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     (segments.includes('editor') && params.entityId !== undefined) ||
     (segments.includes('template') && params.previewEntityId !== undefined);
 
-  /**
-   * Navigate to previously edited item when opening layers or library panel
-   */
-  // const previouslyEdited = useAppSelector(selectPreviouslyEdited);
-  // const navigate = useNavigate();
-  // useEffect(() => {
-  //   // This useEffect can immediately navigate to the previously edited item when the user clicks on the layers or library panel buttons.
-  //   // however this currently causes a page reload which is a bit disruptive.
-  //   if (
-  //     !hasActiveEditorFrame &&
-  //     (activePanel === 'layers' || activePanel === 'library') &&
-  //     previouslyEdited?.path
-  //   ) {
-  //     console.log('navigate to editor');
-  //     navigate(previouslyEdited.path);
-  //   }
-  // }, [activePanel, previouslyEdited, hasActiveEditorFrame, navigate]);
-  /** Re-add this block once we allow navigating between entities without a page load  */
-
   const handleMenuClick = useCallback(
     (panelId: string) => {
       if (activePanel === panelId) {

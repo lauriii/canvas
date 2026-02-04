@@ -1,4 +1,5 @@
-- textbox "Search content"
+- textbox "Search content":
+  - /placeholder: Search…
 - img
 - button "New":
   - img
@@ -10,13 +11,15 @@
   - img
 - list:
   - listitem:
-    - img
-    - text: Component using imports
-    - button "Open contextual menu"
+    - link "Component using imports Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_using_imports
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: Using drupalSettings getSiteData
-    - button "Open contextual menu"
+    - link "Using drupalSettings getSiteData Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_using_drupalsettings_get_site_data
+      - img
+      - button "Open contextual menu"
 - img
 - button "Empty Code"
 - text: "0"
@@ -30,35 +33,48 @@
   - img
 - list:
   - listitem:
-    - img
-    - text: My Code Component Link
-    - button "Open contextual menu"
+    - link "My Code Component Link Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_with_link_prop
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: With no props
-    - button "Open contextual menu"
+    - link "With no props Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_with_no_props
+      - img
+      - button "Open contextual menu"
 - list:
   - listitem:
-    - img
-    - text: Captioned video
-    - button "Open contextual menu"
+    - link "Captioned video Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_captioned_video
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: Interactive
-    - button "Open contextual menu"
+    - link "Interactive Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_interactive
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: Vanilla Image
-    - button "Open contextual menu"
+    - link "Using drupalSettings getPageData Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_using_get_page_data
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: With enums
-    - button "Open contextual menu"
+    - link "Vanilla Image Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_vanilla_image
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: With props
-    - button "Open contextual menu"
+    - link "With enums Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_with_enums
+      - img
+      - button "Open contextual menu"
   - listitem:
-    - img
-    - text: With slot
-    - button "Open contextual menu"
+    - link "With props Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_with_props
+      - img
+      - button "Open contextual menu"
+  - listitem:
+    - link "With slot Open contextual menu":
+      - /url: /canvas/code-editor/component/canvas_test_code_components_with_slots
+      - img
+      - button "Open contextual menu"

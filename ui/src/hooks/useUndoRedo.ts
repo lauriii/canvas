@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectRedoItem,
@@ -10,6 +12,7 @@ interface UndoRedoState {
   isRedoable: boolean;
   dispatchUndo: () => void;
   dispatchRedo: () => void;
+  dispatchClearUndoRedoHistory: () => void;
 }
 
 export function useUndoRedo(): UndoRedoState {
@@ -17,20 +20,28 @@ export function useUndoRedo(): UndoRedoState {
   const undoItem = useAppSelector(selectUndoItem);
   const redoItem = useAppSelector(selectRedoItem);
 
-  const dispatchUndo = () =>
-    undoItem
-      ? dispatch(UndoRedoActionCreators.undo(undoItem.targetSlice))
-      : null;
+  const dispatchUndo = useCallback(() => {
+    if (undoItem) {
+      dispatch(UndoRedoActionCreators.undo(undoItem.targetSlice));
+    }
+  }, [dispatch, undoItem]);
 
-  const dispatchRedo = () =>
-    redoItem
-      ? dispatch(UndoRedoActionCreators.redo(redoItem.targetSlice))
-      : null;
+  const dispatchRedo = useCallback(() => {
+    if (redoItem) {
+      dispatch(UndoRedoActionCreators.redo(redoItem.targetSlice));
+    }
+  }, [dispatch, redoItem]);
+
+  const dispatchClearUndoRedoHistory = useCallback(() => {
+    dispatch(UndoRedoActionCreators.clearHistory('layoutModel'));
+    dispatch(UndoRedoActionCreators.clearHistory('pageData'));
+  }, [dispatch]);
 
   return {
     isUndoable: undoItem !== undefined,
     isRedoable: redoItem !== undefined,
     dispatchUndo,
     dispatchRedo,
+    dispatchClearUndoRedoHistory,
   };
 }

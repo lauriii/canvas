@@ -5,6 +5,7 @@ import { Button } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
+import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import { pageDataFormApi } from '@/services/pageDataForm';
 
 type PreviewControlsProps = {
@@ -15,6 +16,7 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { entityId, entityType } = useParams();
+  const { navigateToEditor } = useEditorNavigation();
   function handleChangeModeClick() {
     if (isPreview) {
       dispatch(
@@ -22,7 +24,7 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
           { type: 'PageDataForm', id: 'FORM' },
         ]),
       );
-      navigate(`/editor/${entityType}/${entityId}`);
+      navigateToEditor(entityType, entityId);
     } else {
       navigate(`/preview/${entityType}/${entityId}/full`);
     }

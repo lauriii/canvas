@@ -12,11 +12,12 @@ import {
 import TemplateList from '@/components/list/TemplateList';
 import PermissionCheck from '@/components/PermissionCheck';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import {
   useCreateContentTemplateMutation,
   useGetViewModesQuery,
 } from '@/services/componentAndLayout';
-import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type { ModeData } from '@/services/componentAndLayout';
 
@@ -90,6 +91,7 @@ const AddTemplateDialog = ({
   contentType = null,
   entityType = 'node',
 }: TemplateDialogProps) => {
+  const { navigateToTemplateEditor } = useEditorNavigation();
   const [selectedContentType, setSelectedContentType] = useState<string | null>(
     contentType,
   );
@@ -105,17 +107,18 @@ const AddTemplateDialog = ({
     error: getViewModeError,
     isError: isGetViewModeError,
   } = useGetViewModesQuery();
-  const drupalBaseUrl = getBaseUrl();
 
   const redirectToSelectedAfterCreation = useCallback(() => {
-    // For now, we are using window.location.href to force a full page reload
-    // to ensure all state is reset when switching entities. Later we can use navigate:
-    // navigate(`${baseUrl}canvas/${entityType}/${contentType}/${viewMode}`);
-    setTimeout(() => {
-      window.location.href = `${drupalBaseUrl}canvas/template/${selectedEntityType}/${selectedContentType}/${selectedViewMode}`;
-    }, 100);
+    if (!selectedContentType || !selectedEntityType || !selectedViewMode) {
+      return;
+    }
+    navigateToTemplateEditor({
+      entityType: selectedEntityType,
+      bundle: selectedContentType,
+      viewMode: selectedViewMode,
+    });
   }, [
-    drupalBaseUrl,
+    navigateToTemplateEditor,
     selectedContentType,
     selectedEntityType,
     selectedViewMode,

@@ -18,6 +18,7 @@ import {
   setFirstLoadComplete,
   unsetEditorFrameContext,
 } from '@/features/ui/uiSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useReturnableLocation from '@/hooks/useReturnableLocation';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 
@@ -32,12 +33,13 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   useReturnableLocation();
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const params = useParams();
-  const navigate = useNavigate();
+  const { entityId, entityType, bundle, viewMode } = useParams();
+  const { navigateToTemplateEditor } = useEditorNavigation();
 
   useEffect(() => {
     dispatch(setEditorFrameContext(context));
@@ -51,7 +53,7 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
     dispatch(setUpdatePreview(false));
     // When the entityId or entityType changes, we want to reset the first load complete state
     dispatch(setFirstLoadComplete(false));
-  }, [dispatch, params.entityId, params.entityType]);
+  }, [dispatch, entityId, entityType]);
 
   if (latestError) {
     if (latestError.status === '409') {
@@ -83,12 +85,22 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
           <ErrorBoundary
             title="An error has occurred while fetching the template."
             variant="alert"
-            onReset={() =>
-              navigate(
-                `/template/${params.entityType}/${params.bundle}/${params.viewMode}`,
-                { replace: true },
-              )
-            }
+            onReset={() => {
+              if (entityType && bundle && viewMode) {
+                navigateToTemplateEditor(
+                  {
+                    entityType,
+                    bundle,
+                    viewMode,
+                  },
+                  {
+                    replace: true,
+                  },
+                );
+              } else {
+                navigate('/', { replace: true });
+              }
+            }}
             resetButtonText="Return to templates"
           >
             <TemplateLayout />

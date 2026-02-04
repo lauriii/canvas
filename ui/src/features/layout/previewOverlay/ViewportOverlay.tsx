@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import ReactDOM from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
@@ -12,6 +12,7 @@ import {
   selectEditorViewPortScale,
   selectZooming,
 } from '@/features/ui/uiSlice';
+import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useTransitionEndListener from '@/hooks/useTransitionEndListener';
 import useWindowResizeListener from '@/hooks/useWindowResizeListener';
@@ -39,7 +40,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
-  const navigate = useNavigate();
+  const { navigateToEditor } = useEditorNavigation();
   const {
     regionId: focusedRegion = DEFAULT_REGION,
     entityId,
@@ -107,7 +108,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   function handleDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     if (focusedRegion !== DEFAULT_REGION) {
-      navigate(`/editor/${entityType}/${entityId}`);
+      navigateToEditor(entityType, entityId);
     }
   }
 

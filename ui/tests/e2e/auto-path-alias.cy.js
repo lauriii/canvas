@@ -63,6 +63,7 @@ describe('Auto path alias generation', () => {
     cy.get('#edit-title-0-value').blur();
     cy.get('#edit-path-0-alias').should('have.value', '/lauris-new-page');
     cy.wait('@updatePreview');
+    cy.findByText('Review 1 change');
 
     // Refresh the page and make sure that the path alias is still set.
     cy.loadURLandWaitForCanvasLoaded({
@@ -89,6 +90,7 @@ describe('Auto path alias generation', () => {
     cy.wait('@updatePreview');
     cy.get('#edit-title-0-value').blur();
     cy.get('#edit-path-0-alias').should('have.value', '/custom-url');
+    cy.wait('@updatePreview');
 
     // Refresh the page and make sure that the path alias is still set to the
     // custom value and doesn't get updated.
@@ -97,6 +99,7 @@ describe('Auto path alias generation', () => {
       clearAutoSave: false,
     });
     cy.get('iframe[data-canvas-preview]').should('exist');
+    cy.get('#edit-path-0-alias').should('have.value', '/custom-url');
     cy.get('#edit-title-0-value').clear();
     cy.get('#edit-title-0-value').type("Lauri's updated page");
     cy.get('#edit-title-0-value').blur();
@@ -107,7 +110,10 @@ describe('Auto path alias generation', () => {
     'after changes are published, new path is no longer generated automatically',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/1' });
+      cy.loadURLandWaitForCanvasLoaded({
+        url: 'canvas/editor/canvas_page/1',
+        clearAutoSave: true,
+      });
       cy.get('iframe[data-canvas-preview]').should('exist');
 
       cy.findByTestId('canvas-navigation-button').click();
@@ -146,11 +152,16 @@ describe('Auto path alias generation', () => {
   );
 
   it(`canvas/editor/canvas_page/3 will generate path alias based on title for published content if path is empty`, () => {
-    cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/canvas_page/3' });
+    cy.loadURLandWaitForCanvasLoaded({
+      url: 'canvas/editor/canvas_page/3',
+      clearAutoSave: true,
+    });
     cy.get('iframe[data-canvas-preview]').should('exist');
 
     cy.get('#edit-title-0-value').should('exist');
     cy.get('#edit-path-0-alias').should('exist');
+    cy.get('#edit-path-0-alias').should('have.value', '');
+    cy.findByTestId('canvas-topbar').findByText('Published');
     cy.get('#edit-title-0-value').clear();
     cy.get('#edit-title-0-value').type('My new page title');
     cy.get('#edit-title-0-value').blur();

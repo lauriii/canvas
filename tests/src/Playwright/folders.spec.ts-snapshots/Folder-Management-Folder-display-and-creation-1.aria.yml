@@ -4,7 +4,6 @@
   - img
   - button "New":
     - img
-    - text: New
     - img
   - img
   - button "Atom/Media"
@@ -14,6 +13,7 @@
     - listitem:
       - img
       - text: Video
+      - button "Open contextual menu"
   - img
   - button "Atom/Tabs"
   - button "Collapse Atom/Tabs folder" [expanded]:
@@ -22,9 +22,11 @@
     - listitem:
       - img
       - text: Shoe Tab
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Shoe Tab Panel
+      - button "Open contextual menu"
   - img
   - button "Atom/Text"
   - button "Collapse Atom/Text folder" [expanded]:
@@ -32,10 +34,16 @@
   - list:
     - listitem:
       - img
+      - text: Date
+      - button "Open contextual menu"
+    - listitem:
+      - img
       - text: Heading
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Shoe Badge
+      - button "Open contextual menu"
   - img
   - button "Container"
   - button "Collapse Container folder" [expanded]:
@@ -44,15 +52,19 @@
     - listitem:
       - img
       - text: Columns
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Grid Container
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: One Column
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Two Column
+      - button "Open contextual menu"
   - img
   - button "Container/Special"
   - button "Collapse Container/Special folder" [expanded]:
@@ -61,6 +73,7 @@
     - listitem:
       - img
       - text: Shoe Tab Group
+      - button "Open contextual menu"
   - img
   - button "Empty Components"
   - button "Collapse Empty Components folder" [expanded]:
@@ -74,9 +87,11 @@
     - listitem:
       - img
       - text: Footer
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Main navigation
+      - button "Open contextual menu"
   - img
   - button "Other"
   - button "Collapse Other folder" [expanded]:
@@ -85,66 +100,87 @@
     - listitem:
       - img
       - text: Banner
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Call to Absolute Action
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC for image gallery (>1 image)
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: /Canvas test SDC for sparkline \(>1 integers between -\d+ and \d+\)/
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC for tags
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: "Canvas test SDC for testing type: `Drupal\\Core\\Template\\Attribute` special casing"
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC that crashes when 'crash' prop is TRUE
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with missing image $ref schema
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with optional image and heading
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with optional image, with example
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with optional image, without example
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with props and slots
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with props but no slots
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Canvas test SDC with required image, with example
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Captioned video
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Card
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Card with local image
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Card with remote image
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Card with stream wrapper image
+      - button "Open contextual menu"
     - listitem:
       - img
-      - text: Component mismatch meta:enum, but still operational thanks to https://www.drupal.org/i/3528998
+      - text: /Component mismatch meta:enum, but still operational thanks to https:\/\/www\.drupal\.org\/i\/\d+/
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Component no meta:enum
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Component using imports
@@ -152,9 +188,11 @@
     - listitem:
       - img
       - text: Druplicon
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Hero
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Interactive
@@ -166,9 +204,15 @@
     - listitem:
       - img
       - text: Section
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Test SDC Image
+      - button "Open contextual menu"
+    - listitem:
+      - img
+      - text: Using drupalSettings getPageData
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Using drupalSettings getSiteData
@@ -201,9 +245,11 @@
     - listitem:
       - img
       - text: Deprecated SDC
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Experimental SDC
+      - button "Open contextual menu"
   - img
   - button "System"
   - button "Collapse System folder" [expanded]:
@@ -212,12 +258,17 @@
     - listitem:
       - img
       - text: Breadcrumbs
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Messages
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Powered by Drupal
+      - button "Open contextual menu"
     - listitem:
       - img
       - text: Site branding
+      - button "Open contextual menu"
+  - list

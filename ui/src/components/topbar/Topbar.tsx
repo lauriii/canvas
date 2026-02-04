@@ -12,8 +12,9 @@ import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
-import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
+import { getDrupalSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
 
@@ -30,7 +31,7 @@ const Topbar = () => {
   const isSegments = location.pathname.includes('/segments');
   const isTemplateEditorContext =
     useAppSelector(selectEditorFrameContext) === 'template';
-  const drupalBaseUrl = getBaseUrl();
+  const { navigateToTemplateEditor } = useEditorNavigation();
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;
@@ -63,13 +64,12 @@ const Topbar = () => {
   // Handle preview entity selection change
   const handlePreviewEntityChange = (selectedEntityId: string) => {
     if (entityType && bundle && viewMode) {
-      // @todo: Change to use navigate() when we can do full FE routing.
-      setTimeout(() => {
-        // Use a timeout to ensure that RTK query cleans up its subscriptions first before navigating away.
-        // Without this timeout, RTK throws an error because it tries to make a request following cache invalidation while
-        // the window.location.href is in progress.
-        window.location.href = `${drupalBaseUrl}canvas/template/${entityType}/${bundle}/${viewMode}/${selectedEntityId}`;
-      }, 100);
+      navigateToTemplateEditor({
+        entityType,
+        bundle,
+        viewMode,
+        suggestedPreviewEntityId: selectedEntityId,
+      });
     }
   };
 

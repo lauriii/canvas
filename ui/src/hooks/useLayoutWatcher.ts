@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayoutForRegion } from '@/features/layout/layoutModelSlice';
 import { DEFAULT_REGION, selectFirstLoadComplete } from '@/features/ui/uiSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 /**
  * This hook watches the layout array of the currently selected region. If the region's list of components
@@ -11,6 +12,7 @@ import { DEFAULT_REGION, selectFirstLoadComplete } from '@/features/ui/uiSlice';
  */
 const useLayoutWatcher = () => {
   const navigate = useNavigate();
+  const { urlForEditor } = useEditorNavigation();
   const { regionId, entityId, entityType } = useParams();
   const currentRegion = regionId || DEFAULT_REGION;
   const regionLayout = useAppSelector((state) =>
@@ -25,7 +27,10 @@ const useLayoutWatcher = () => {
       currentRegion !== DEFAULT_REGION
     ) {
       // We are focused into a region that is empty, navigate the user back to the DEFAULT_REGION
-      navigate(`/editor/${entityType}/${entityId}`);
+      if (!entityType || !entityId) {
+        return;
+      }
+      navigate(urlForEditor(entityType, entityId));
     }
   }, [
     regionLayout,
@@ -34,6 +39,7 @@ const useLayoutWatcher = () => {
     firstLoadComplete,
     entityType,
     entityId,
+    urlForEditor,
   ]);
 };
 
