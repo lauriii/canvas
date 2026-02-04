@@ -103,6 +103,53 @@ Use the `sizes` attribute to optimize image loading for different viewport sizes
 }) only %}
 ```
 
+## Using Drupal image styles
+
+Canvas provides an `image_style` Twig filter that applies Drupal image styles
+(focal point cropping, effects) before the responsive image handling. This lets
+you leverage existing image style configurations while still getting Canvas's
+responsive image optimization.
+
+### The image_style filter
+
+The `image_style` filter accepts an image source and returns a stream wrapper URI
+for the styled derivative:
+
+```twig
+{{ image.src|image_style('16_9_crop') }}
+```
+
+### Combining with the Image component
+
+Apply an image style before passing to the Canvas Image component:
+
+```twig
+{% include 'canvas:image' with {
+  src: image.src|image_style('hero_crop'),
+  alt: image.alt,
+  width: image.width,
+  height: image.height,
+} only %}
+```
+
+The styled image will still receive responsive image handling via `srcset`,
+generating multiple width variants of the cropped/styled image.
+
+### Supported input formats
+
+The `image_style` filter accepts the same formats as the Image component:
+
+- **Stream wrapper URIs**: `public://photo.jpg`
+- **Local file URLs**: `/sites/default/files/photo.jpg`
+- **External URLs**: Returned unchanged (cannot be styled server-side)
+
+### When to use image styles
+
+Use the `image_style` filter when you need:
+
+- **Cropping**: Leverage Drupal's focal point module for smart cropping
+- **Image effects**: Apply blur, desaturation, or other effects on the server-side
+
 ## Best practices
 
 - Always provide meaningful `alt` text for accessibility
