@@ -135,7 +135,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
   public function getComponentTree(): ComponentTreeItemList {
     \assert(is_array($this->component_tree));
 
-    $field_items = $this->createDanglingComponentTreeItemList();
+    $field_items = $this->createDanglingComponentTreeItemList($this);
     $field_items->setValue(\array_values($this->component_tree ?? []));
 
     return $field_items;

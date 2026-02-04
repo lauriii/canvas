@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
@@ -138,7 +139,7 @@ class ComponentTreeItem extends FieldItemBase {
    *
    * @see \Drupal\Component\Plugin\DependentPluginInterface
    */
-  public function calculateFieldItemValueDependencies(?FieldableEntityInterface $host_entity = NULL): array {
+  public function calculateFieldItemValueDependencies(FieldableEntityInterface|ComponentTreeEntityInterface|null $host_entity = NULL): array {
     // Every field property that has dependencies on config or extensions must
     // implement DependentPluginInterface to ensure accurate dependency (i.e.
     // usage) tracking.
@@ -152,7 +153,8 @@ class ComponentTreeItem extends FieldItemBase {
         $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies());
       }
       elseif ($property instanceof ContentAwareDependentInterface) {
-        $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies($host_entity));
+        $fieldable_host_entity = $host_entity instanceof FieldableEntityInterface ? $host_entity : NULL;
+        $dependencies = NestedArray::mergeDeep($dependencies, $property->calculateDependencies($fieldable_host_entity));
       }
     }
 

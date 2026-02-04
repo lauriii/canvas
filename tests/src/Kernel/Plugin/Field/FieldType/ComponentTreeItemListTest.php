@@ -10,7 +10,10 @@ use Drupal\canvas\Element\RenderSafeComponentContainer;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Exception\SubtreeInjectionException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -89,7 +92,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
    * @covers ::toRenderable()
    * @dataProvider provider
    */
-  public function testHydrationAndRendering(array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
+  public function testHydrationAndRendering(string $host_entity_type_id, array $host_entity_values, array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
     // Some test cases may contain StaticPropSources referencing Users.
     $this->setUpCurrentUser(permissions: ['access user profiles']);
 
@@ -104,13 +107,24 @@ class ComponentTreeItemListTest extends KernelTestBase {
     // We need to force the cache busting query to ensure we use it correctly.
     $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
 
+    // Simulate the expected host entity containing this component tree exists,
+    // without actually creating (and saving) the host entity.
+    $host_entity = match ($host_entity_type_id) {
+      Page::ENTITY_TYPE_ID => Page::create($host_entity_values)->enforceIsNew(FALSE),
+      PageRegion::ENTITY_TYPE_ID => PageRegion::create($host_entity_values),
+      Pattern::ENTITY_TYPE_ID => Pattern::create($host_entity_values),
+      ContentTemplate::ENTITY_TYPE_ID => ContentTemplate::create($host_entity_values),
+      default => throw new \LogicException("Unhandled host entity type ID $host_entity_type_id in " . __METHOD__),
+    };
+
     $typed_data_manager = $this->container->get(TypedDataManagerInterface::class);
     $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');
     \assert(\method_exists($list_definition, 'setCardinality'));
     $list_definition->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
     $item_list = $typed_data_manager->createInstance('list', [
       'name' => NULL,
-      'parent' => NULL,
+      // Every component tree is stored in some entity.
+      'parent' => $host_entity->getTypedData(),
       'data_definition' => $list_definition,
     ]);
     \assert($item_list instanceof ComponentTreeItemList);
@@ -241,7 +255,53 @@ class ComponentTreeItemListTest extends KernelTestBase {
     return $expectation;
   }
 
+  /**
+   * Generates the same test cases for multiple host entity types.
+   *
+   * @return \Generator
+   */
   public static function provider(): \Generator {
+    foreach (self::hostEntityProvider() as $host_entity_type_label => [$entity_type_id, $entity_values, $expected_host_entity_cache_tag]) {
+      foreach (iterator_to_array(self::hostEntityAgnosticProvider($expected_host_entity_cache_tag)) as $component_tree_label => $expectations) {
+        $label = "$host_entity_type_label | $component_tree_label";
+        yield $label => [$entity_type_id, $entity_values, ...$expectations];
+      }
+    }
+  }
+
+  /**
+   * @return array<string, array{0: string, 1: array<string, mixed>, 2: string}>
+   */
+  public static function hostEntityProvider(): array {
+    return [
+      'content entity type: Page' => [
+        Page::ENTITY_TYPE_ID,
+        ['id' => 42],
+        'canvas_page:42',
+      ],
+      'config entity type: PageRegion' => [
+        PageRegion::ENTITY_TYPE_ID,
+        ['theme' => 'stark', 'region' => 'sidebar_first'],
+        'config:canvas.page_region.stark.sidebar_first',
+      ],
+      'config entity type: Pattern' => [
+        Pattern::ENTITY_TYPE_ID,
+        ['id' => 'my_pretty_pattern'],
+        'config:canvas.pattern.my_pretty_pattern',
+      ],
+      'config entity type: ContentTemplate' => [
+        ContentTemplate::ENTITY_TYPE_ID,
+        [
+          'content_entity_type_id' => 'node',
+          'content_entity_type_bundle' => 'article',
+          'content_entity_type_view_mode' => 'full',
+        ],
+        'config:canvas.content_template.node.article.full',
+      ],
+    ];
+  }
+
+  public static function hostEntityAgnosticProvider(string $expected_host_entity_cache_tag): \Generator {
     $generate_static_prop_source = function (string $label): string {
       return "Hello, $label!";
     };
@@ -250,9 +310,15 @@ class ComponentTreeItemListTest extends KernelTestBase {
       'expected_value' => [
         ComponentTreeItemList::ROOT_UUID => [],
       ],
-      'expected_renderable' => [],
+      'expected_renderable' => [
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
+      ],
       'expected_html' => '',
-      'expected_cache_tags' => [],
+      'expected_cache_tags' => [$expected_host_entity_cache_tag],
     ];
     yield 'empty component tree' => [...$empty_component_tree, 'isPreview' => FALSE];
     yield 'empty component tree in preview' => [...$empty_component_tree, 'isPreview' => TRUE];
@@ -333,6 +399,11 @@ class ComponentTreeItemListTest extends KernelTestBase {
             ],
           ],
         ],
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
       ],
       'expected_html' => <<<HTML
 <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -350,6 +421,7 @@ class ComponentTreeItemListTest extends KernelTestBase {
 <!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
       ],
     ];
@@ -447,6 +519,11 @@ HTML,
             ],
           ],
         ],
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
       ],
       'expected_html' => <<<HTML
 <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div id="block-41595148-e5c1-4873-b373-be3ae6e21340">
@@ -458,6 +535,7 @@ HTML,
 <!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:system.site',
         'config:canvas.component.block.system_branding_block',
       ],
@@ -553,6 +631,11 @@ HTML,
             ],
           ],
         ],
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
       ],
       'expected_html' => <<<HTML
 <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -564,6 +647,7 @@ HTML,
 <!-- canvas-end-fcf67861-87da-45e5-916b-31f5b74be747 -->
 HTML,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       ],
     ];
@@ -674,6 +758,11 @@ HTML,
             ],
           ],
         ],
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
       ],
       'expected_html' => <<<HTML
 <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -694,6 +783,7 @@ HTML,
 <!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
       ],
@@ -1235,6 +1325,11 @@ HTML,
             ],
           ],
         ],
+        '#cache' => [
+          'contexts' => [],
+          'tags' => [$expected_host_entity_cache_tag],
+          'max-age' => Cache::PERMANENT,
+        ],
       ],
       'expected_html' => <<<HTML
 <!-- canvas-start-41595148-e5c1-4873-b373-be3ae6e21340 --><div  data-component-id="canvas_test_sdc:props-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -1300,6 +1395,7 @@ HTML,
 <!-- canvas-end-41595148-e5c1-4873-b373-be3ae6e21340 -->
 HTML,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'user:1103448',
         'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
@@ -1453,6 +1549,7 @@ HTML,
      HTML,
       'isPreview' => TRUE,
       'expected_cache_tags' => [
+        $expected_host_entity_cache_tag,
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'user:1103448',
         'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',

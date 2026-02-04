@@ -198,15 +198,17 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // and map that into a render array. This guarantees none of this will ever
     // rely on Render API specifics.
     $renderable_component_tree = $this->getHydratedTree();
-
-    $build = [];
-    // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
-    CacheableMetadata::createFromObject($renderable_component_tree)->applyTo($build);
-
     $hydrated = $renderable_component_tree->getTree();
 
     \assert(array_keys($hydrated) === [self::ROOT_UUID]);
-    return self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview);
+    $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview);
+
+    // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
+    CacheableMetadata::createFromObject($renderable_component_tree)
+      ->addCacheableDependency($entity)
+      ->applyTo($build);
+
+    return $build;
   }
 
   /**

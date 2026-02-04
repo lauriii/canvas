@@ -23,6 +23,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -326,21 +327,30 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       ];
     }
 
-    // A component instance can be part of a dangling component tree if it is
-    // contained by a config entity. If that config entity's component tree
-    // uses DynamicPropSources, it needs a (fieldable) host entity to evaluate
-    // DynamicPropSources.
-    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::createDanglingComponentTreeItemList()
-    // @see \Drupal\canvas\Entity\ContentTemplate
-    $is_dangling = $item->getRoot() === $item->getParent();
-    $entity = $is_dangling ? $host_entity : $item->getEntity();
+    // Prop sources can only evaluate structured data from fieldable entities,
+    // but the component tree may be contained by a config entity.
+    // It is up to the code using/rendering that config entity to provide a
+    // fieldable host entity if DynamicPropSources are used, which currently is
+    // only the case for ContentTemplate component trees.
+    // @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
+    $root = $item->getRoot();
+    $fieldable_host_entity = match (TRUE) {
+      // Prioritize using the given host entity, if any.
+      $host_entity instanceof FieldableEntityInterface => $host_entity,
+      // Next, use the component instance's tree's host entity, if fieldable.
+      $root instanceof EntityAdapter && $root->getEntity() instanceof FieldableEntityInterface => $root->getEntity(),
+      // Otherwise, fall back to no host entity. This implies no
+      // DynamicPropSource can be evaluated.
+      default => NULL,
+    };
+
     $values = $item->getInputs() ?? [];
     $resolved_values = [];
     foreach ($values as $prop => $input) {
       $values[$prop] = $this->uncollapse($input, $prop)->toArray();
       try {
         $resolved_values[$prop] = PropSource::parse($values[$prop])
-          ->evaluate($entity, is_required: FALSE);
+          ->evaluate($fieldable_host_entity, is_required: FALSE);
       }
       catch (CacheableAccessDeniedHttpException $e) {
         $this->logger->warning('Access denied when evaluating prop source for prop %prop of component instance %uuid with input `%input`. Original error: %error', [

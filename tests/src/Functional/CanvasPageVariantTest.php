@@ -281,6 +281,19 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     ));
     $pageRegion->save();
 
+    // Create a second enabled PageRegion, but leave it empty.
+    $empty_page_region = PageRegion::create([
+      'theme' => $this->defaultTheme,
+      'region' => 'sidebar_second',
+      'component_tree' => [],
+    ]);
+    self::assertTrue($empty_page_region->status());
+    self::assertSame([], array_map(
+      fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
+      iterator_to_array($empty_page_region->getTypedData()->validate()),
+    ));
+    $empty_page_region->save();
+
     // ⚠️ In the future, we may want to reduce the number of cache tags and rely
     // solely on the Canvas PageRegion config entity's list cache tag. That would
     // require intersecting every Canvas Component config entity cache tag
@@ -529,6 +542,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // 10. If all Drupal Canvas PageRegion config entities are disabled,
     // BlockPageVariant is used once again.
     $pageRegion->disable()->save();
+    $empty_page_region->disable()->save();
     $this->assertPageDisplayVariant(BlockPageVariant::class, [$block], expected_additional_cache_contexts: ['route.name']);
     $this->assertSame([
       'blocks' => [$block->id()],
@@ -569,11 +583,12 @@ class CanvasPageVariantTest extends FunctionalTestBase {
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],
-      // The `config:canvas.page_region.stark.sidebar_first` cache tag
-      // appears on top of the baseline.
+      // The Canvas PageRegion config entities' cache tags appear on top of the
+      // baseline — even for empty PageRegions.
       CanvasPageVariant::class => [
         ...$expected_baseline_cache_tags,
         'config:canvas.page_region.stark.sidebar_first',
+        'config:canvas.page_region.stark.sidebar_second',
         ...$expected_dependency_cacheability->getCacheTags(),
         ...$expected_additional_cache_tags,
       ],

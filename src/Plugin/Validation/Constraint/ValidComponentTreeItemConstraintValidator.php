@@ -6,6 +6,8 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -55,20 +57,19 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
 
     // Validate in-depth. This is simpler if the ComponentTreeItem-provided
     // infrastructure is available, so conjure one from $value if not already.
+    $fieldable_host_entity = NULL;
     if (!$value instanceof ComponentTreeItem) {
       \assert(array_key_exists('uuid', $value));
       \assert(array_key_exists('component_id', $value));
       \assert(array_key_exists('inputs', $value));
-      $component_tree_type = 'config';
       $value = $this->conjureFieldItemObject($value);
     }
     else {
-      $component_tree_type = 'content';
-    }
-
-    $host_entity = NULL;
-    if ($component_tree_type === 'content' && $value->getParent()?->getParent() !== NULL) {
-      $host_entity = $value->getEntity();
+      $host_entity = $value->getParent()?->getParent();
+      if ($host_entity !== NULL && !$host_entity instanceof ConfigEntityAdapter) {
+        $fieldable_host_entity = $value->getEntity();
+        \assert($fieldable_host_entity instanceof FieldableEntityInterface);
+      }
     }
 
     // Validate the prop source resolves into a value that is considered
@@ -133,7 +134,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       $component_source->validateComponentInput(
         inputValues: $stored_explicit_input,
         component_instance_uuid: $value->getUuid(),
-        entity: $host_entity,
+        entity: $fieldable_host_entity,
       ),
       // We need to ensure the validation root context is transferred over.
       $this->context->getRoot()

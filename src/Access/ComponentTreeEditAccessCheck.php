@@ -4,8 +4,10 @@ namespace Drupal\canvas\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\DataType\ConfigEntityAdapter;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -73,13 +75,10 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
         return $entity_access->andIf($tree->access('edit', $account, TRUE));
       }
 
-      // Every non-fieldable entity containing a component tree either has a
-      // dangling component tree with either:
-      // - never a parent (`PageRegion`, `Pattern`)
-      // - sometimes a parent, but of a different entity (`ContentTemplate`)
-      // @see \Drupal\canvas\Entity\ContentTemplate::getComponentTree()
-      // @phpstan-ignore-next-line method.notFound
-      \assert($tree->getParent() === NULL || $tree->getParent()->getEntity() !== $entity);
+      // Every non-fieldable entity containing a component tree has a component
+      // tree with a config entity as the host entity.
+      \assert($tree->getParent() instanceof ConfigEntityAdapter && $tree->getParent()->getEntity() === $entity);
+      \assert($entity instanceof ConfigEntityInterface);
 
       return $entity_access;
     }

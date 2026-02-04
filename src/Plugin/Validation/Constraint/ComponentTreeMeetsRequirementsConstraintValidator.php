@@ -50,7 +50,8 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
       $value instanceof ComponentTreeItemList => static fn ($value): ComponentTreeItemList => $value,
       // A single content-defined component tree item.
       $value instanceof ComponentTreeItem => function ($value): ComponentTreeItemList {
-        $list = $this->createDanglingComponentTreeItemList();
+        $host_entity = $value->getParent()?->getParent()?->getEntity();
+        $list = $this->createDanglingComponentTreeItemList($host_entity);
         $list->setValue([$value->toArray()]);
         return $list;
       },

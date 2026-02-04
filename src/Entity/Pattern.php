@@ -59,7 +59,7 @@ final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpA
    * {@inheritdoc}
    */
   public function getComponentTree(): ComponentTreeItemList {
-    $component_tree = $this->createDanglingComponentTreeItemList();
+    $component_tree = $this->createDanglingComponentTreeItemList($this);
     $component_tree->setValue(\array_values($this->component_tree ?? []));
     return $component_tree;
   }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -27,7 +28,7 @@ trait ComponentTreeItemListInstantiatorTrait {
   /**
    * Instantiates a (dangling) Canvas component tree.
    */
-  protected function createDanglingComponentTreeItemList(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
+  protected function createDanglingComponentTreeItemList(FieldableEntityInterface|ComponentTreeEntityInterface|null $parent = NULL): ComponentTreeItemList {
     return self::staticallyCreateDanglingComponentTreeItemList($this->getTypedDataManager(), $parent);
   }
 
@@ -48,7 +49,7 @@ trait ComponentTreeItemListInstantiatorTrait {
    *
    * @see \Drupal\Core\TypedData\Validation\RecursiveContextualValidator::validateNode())
    */
-  protected static function staticallyCreateDanglingComponentTreeItemList(TypedDataManagerInterface $typed_data_manager, ?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
+  protected static function staticallyCreateDanglingComponentTreeItemList(TypedDataManagerInterface $typed_data_manager, FieldableEntityInterface|ComponentTreeEntityInterface|null $parent = NULL): ComponentTreeItemList {
     $list_definition = $typed_data_manager->createListDataDefinition('field_item:component_tree');
     \assert(\method_exists($list_definition, 'setCardinality'));
     $list_definition->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
