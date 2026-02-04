@@ -27,7 +27,7 @@ use Twig\TwigFunction;
  *
  * This:
  * 1. adds metadata to output as HTML comments
- * 2. provides a `toSrcSet` Twig filter
+ * 2. provides a `toSrcSet` Twig filter.
  */
 final class CanvasTwigExtension extends AbstractExtension {
 
@@ -77,7 +77,7 @@ final class CanvasTwigExtension extends AbstractExtension {
         [$this, 'getHeight'],
       ),
       new TwigFilter(
-        'image_style',
+        'apply_image_style',
         [$this, 'applyImageStyle'],
       ),
       new TwigFilter(
@@ -103,6 +103,8 @@ final class CanvasTwigExtension extends AbstractExtension {
   /**
    * Generates `srcset` from URLs with ?alternateWidths and stream wrapper URIs.
    *
+   * Also handles local file URLs by converting them to stream wrapper URIs.
+   *
    * @param string $src
    *   An img.src attribute.
    * @param int|null $intrinsicImageWidth
@@ -116,16 +118,18 @@ final class CanvasTwigExtension extends AbstractExtension {
 
     // URLs with alternateWidths query parameter.
     $query = parse_url($src, PHP_URL_QUERY);
+    $hasAlternateWidths = FALSE;
     if ($query) {
       parse_str($query, $params);
       if (!empty($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM])) {
         // We only expect 1 `alternateWidths` query parameter.
         \assert(\is_string($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM]));
         $template = urldecode($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM]);
+        $hasAlternateWidths = TRUE;
       }
     }
     // Stream wrappers.
-    elseif ($this->streamWrapperManager->isValidUri($src)) {
+    if (!$hasAlternateWidths && $this->streamWrapperManager->isValidUri($src)) {
       $template = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate($src);
       if (\is_string($template)) {
         $template = $this->fileUrlGenerator->transformRelative($template);
@@ -138,6 +142,22 @@ final class CanvasTwigExtension extends AbstractExtension {
         : min($intrinsicImageWidth, $actual_intrinsic_image_width);
       if (\is_null($intrinsicImageWidth)) {
         $intrinsicImageWidth = $this->getWidth($src);
+      }
+    }
+    // Local file URLs (e.g., /sites/default/files/image.jpg).
+    // Convert to stream wrapper URI and use same logic as above.
+    // For styled images, caller should pass correct width.
+    elseif (!$hasAlternateWidths && !$this->streamWrapperManager->isValidUri($src)) {
+      $uri = $this->urlToStreamWrapperUri($src);
+      if ($uri) {
+        $template = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate($uri);
+        if (is_string($template)) {
+          $template = $this->fileUrlGenerator->transformRelative($template);
+        }
+        // Trust the passed width if available, otherwise try to read from file.
+        if (is_null($intrinsicImageWidth)) {
+          $intrinsicImageWidth = $this->getWidth($uri);
+        }
       }
     }
 
@@ -161,6 +181,32 @@ final class CanvasTwigExtension extends AbstractExtension {
 
     $srcset = \array_map(static fn($w) => str_replace('{width}', (string) $w, $template) . " {$w}w", $widths);
     return implode(', ', $srcset);
+  }
+
+  /**
+   * Converts a local file URL to a stream wrapper URI.
+   *
+   * @param string $url
+   *   A local file URL (e.g., /sites/default/files/image.jpg or
+   *   /sites/default/files/styles/thumbnail/public/image.jpg).
+   *
+   * @return string|null
+   *   The stream wrapper URI, or NULL if the URL cannot be converted.
+   */
+  private function urlToStreamWrapperUri(string $url): ?string {
+    $publicBasePath = PublicStream::basePath();
+    $path = ltrim(parse_url($url, PHP_URL_PATH) ?? $url, '/');
+
+    // Check if this is a public files URL.
+    if (!str_starts_with($path, $publicBasePath . '/')) {
+      return NULL;
+    }
+
+    // Extract the path after the public files base.
+    $target = substr($path, strlen($publicBasePath) + 1);
+
+    // Return the stream wrapper URI.
+    return 'public://' . $target;
   }
 
   /**
@@ -204,54 +250,58 @@ final class CanvasTwigExtension extends AbstractExtension {
   }
 
   /**
-   * Applies an image style to an image and returns the styled derivative URI.
+   * Applies an image style to an image object.
    *
-   * Returns a stream wrapper URI for the styled derivative, which can be
-   * passed to the Canvas Image component. This allows the Image component
-   * to generate responsive images via toSrcSet.
+   * This filter takes an image object and applies a Drupal image style,
+   * returning a new object with the styled URL and transformed dimensions.
+   * The dimensions are calculated using ImageStyle::transformDimensions()
+   * so the styled derivative doesn't need to exist yet.
    *
-   * Accepts the same input formats as the Canvas Image component:
-   * - Stream wrapper URIs (e.g., public://image.jpg)
-   * - Local file URLs (e.g., /sites/default/files/image.jpg)
-   * - External URLs (returned unchanged - cannot be styled)
-   *
-   * @param string $src
-   *   The image source: stream wrapper URI, local URL, or external URL.
+   * @param array $image
+   *   Image object with 'src', 'width', 'height', and optionally 'alt'.
    * @param string $styleName
-   *   The machine name of the image style.
+   *   The image style machine name.
    *
-   * @return string|null
-   *   The stream wrapper URI for the styled derivative (e.g.,
-   *   public://styles/thumbnail/public/image.jpg), or the original URL if
-   *   styling is not possible, or NULL if the style doesn't exist.
+   * @return array
+   *   Image object with 'src' as styled URL and transformed 'width'/'height'.
    */
-  public function applyImageStyle(string $src, string $styleName): ?string {
+  public function applyImageStyle(array $image, string $styleName): array {
+    $result = $image;
+    $src = $image['src'] ?? '';
+
+    if (empty($src)) {
+      return $result;
+    }
+
     $style = ImageStyle::load($styleName);
     if (!$style) {
-      return NULL;
+      return $result;
     }
 
-    // Handle stream wrapper URIs directly (e.g., public://image.jpg).
-    if ($this->streamWrapperManager->isValidUri($src)) {
-      // Return the styled derivative URI so it can work with toSrcSet.
-      return $style->buildUri($src);
+    // Convert src to URI if needed.
+    $uri = $this->streamWrapperManager->isValidUri($src)
+      ? $src
+      : $this->urlToStreamWrapperUri($src);
+
+    if (!$uri || !$style->supportsUri($uri)) {
+      return $result;
     }
 
-    // Handle local file URLs by converting to stream wrapper URI.
-    // Check if this is a local URL pointing to the public files directory.
-    $publicBasePath = PublicStream::basePath();
-    $path = ltrim(parse_url($src, PHP_URL_PATH) ?? $src, '/');
+    // Get styled URL.
+    $result['src'] = $this->fileUrlGenerator->transformRelative($style->buildUrl($uri));
 
-    if (str_starts_with($path, $publicBasePath . '/')) {
-      // Convert /sites/default/files/image.jpg -> public://image.jpg
-      $target = substr($path, strlen($publicBasePath) + 1);
-      $uri = 'public://' . $target;
-      // Return the styled derivative URI so it can work with toSrcSet.
-      return $style->buildUri($uri);
+    // Transform dimensions if we have them.
+    if (!empty($image['width']) && !empty($image['height'])) {
+      $dimensions = [
+        'width' => (int) $image['width'],
+        'height' => (int) $image['height'],
+      ];
+      $style->transformDimensions($dimensions, $uri);
+      $result['width'] = $dimensions['width'];
+      $result['height'] = $dimensions['height'];
     }
 
-    // External URLs or unrecognized paths - return unchanged.
-    return $src;
+    return $result;
   }
 
   /**
