@@ -1,0 +1,8 @@
+name: Drupal Canvas dev translation
+description: 'Enables translation features for Canvas - useful for testing translation scenarios'
+core_version_requirement: ^11
+hidden: true
+type: module
+package: Drupal Canvas
+dependencies:
+  - canvas:canvas
