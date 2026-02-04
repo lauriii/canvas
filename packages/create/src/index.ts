@@ -107,9 +107,9 @@ program
         } else {
           const selected = await p.select({
             message: 'Select a template',
-            options: (templates as Template[]).map((t) => ({
+            options: (templates as Template[]).map((t, index) => ({
               value: t.id,
-              label: t.label,
+              label: index === 0 ? `${t.label} (Recommended)` : t.label,
             })),
           });
 
