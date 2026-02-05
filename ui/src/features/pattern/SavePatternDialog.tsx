@@ -80,7 +80,7 @@ const SavePatternDialog: React.FC = () => {
       return;
     }
 
-    let modelsToSave = {
+    const modelsToSave = {
       [selectedComponent]: model[selectedComponent],
     };
     const thisNode = findComponentByUuid(layout, selectedComponent);

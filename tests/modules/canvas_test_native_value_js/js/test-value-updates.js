@@ -13,7 +13,6 @@
           ).value = 'SURPRISE!';
           // Update the controlling text input, use jQuery val() so we have an
           // instance of that method working in our tests.
-          // eslint-disable-next-line no-jquery/no-val
           $('#edit-controlling-text').val('make visible invisible');
         });
       });

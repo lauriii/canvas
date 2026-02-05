@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "license": "GPL-2.0-or-later",
   "scripts": {
-    "build": "npm run build -w drupal-canvas && astro build && node extract-hydration-script.js"
+    "build": "npm run build:drupal-canvas && astro build && node extract-hydration-script.js",
+    "build:drupal-canvas": "npm run build --workspace=drupal-canvas",
+    "type-check": "tsc --noEmit --pretty"
   },
   "canvas": {
     "//": "@see docs/adr/0008-astro-hydration-bundled-dependencies-as-external.md",
@@ -12,7 +14,7 @@
   },
   "dependencies": {
     "@astrojs/preact": "^4.0.3",
-    "astro": "^5.2.2",
+    "astro": "^5.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drupal-canvas": "^0.1.0",

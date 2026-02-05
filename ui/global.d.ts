@@ -2,8 +2,8 @@ import type React from 'react';
 import type ReactDom from 'react-dom';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type * as ReactRedux from 'react-redux';
+import type { DrupalSettings } from '@drupal-canvas/types';
 import type * as ReduxToolkit from '@reduxjs/toolkit';
-import type { DrupalSettings } from '@/types/DrupalSettings';
 import type { transliterate as TransliterateType } from '@/types/transliterate';
 import type { TransformConfig } from '@/utils/transforms';
 
@@ -31,3 +31,5 @@ declare global {
     _canvasTransforms: Record<string, TransformConfig>;
   }
 }
+
+declare module '*.css';

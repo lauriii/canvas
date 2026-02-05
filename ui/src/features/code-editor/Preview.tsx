@@ -38,8 +38,9 @@ import type { File } from '@babel/types';
 import styles from './Preview.module.css';
 
 const Drupal = getDrupal();
-const CANVAS_MODULE_UI_PATH =
-  `${getBaseUrl()}${getCanvasSettings().canvasModulePath}/ui` as const;
+const CANVAS_MODULE_PATH =
+  `${getBaseUrl()}${getCanvasSettings().canvasModulePath}` as const;
+const CANVAS_MODULE_UI_PATH = `${CANVAS_MODULE_PATH}/ui` as const;
 const PREVIEW_LIB_PATH = 'dist/assets/code-editor-preview.js' as const;
 
 const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
@@ -82,29 +83,29 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     () => ({
       imports: {
         // Map to Canvas generated libraries.
-        preact: `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/preact.module.js`,
-        'preact/hooks': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/hooks.module.js`,
-        'react/jsx-runtime': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/jsx-runtime-default.js`,
-        react: `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
-        'react-dom': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
-        'react-dom/client': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/compat.module.js`,
+        preact: `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/preact.module.js`,
+        'preact/hooks': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/hooks.module.js`,
+        'react/jsx-runtime': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/jsx-runtime-default.js`,
+        react: `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/compat.module.js`,
+        'react-dom': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/compat.module.js`,
+        'react-dom/client': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/compat.module.js`,
         // @todo Remove hardcoding and allow components to nominate their own?
-        clsx: `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/clsx.js`,
-        'class-variance-authority': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/class-variance-authority.js`,
-        'tailwind-merge': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/tailwind-merge.js`,
+        clsx: `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/clsx.js`,
+        'class-variance-authority': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/class-variance-authority.js`,
+        'tailwind-merge': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/tailwind-merge.js`,
         '@/components/': Drupal.url(
           'canvas/api/v0/auto-saves/js/js_component/',
         ),
-        'drupal-jsonapi-params': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-params.js`,
-        swr: `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/swr.js`,
-        'drupal-canvas': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/drupal-canvas.js`,
+        'drupal-jsonapi-params': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/jsonapi-params.js`,
+        swr: `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/swr.js`,
+        'drupal-canvas': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/drupal-canvas.js`,
         // Backward compatibility entries for elements that were moved into drupal-canvas package.
-        '@/lib/FormattedText': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/FormattedText.js`,
-        'next-image-standalone': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/next-image-standalone.js`,
-        '@/lib/utils': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/utils.js`,
-        '@drupal-api-client/json-api-client': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-client.js`,
-        '@/lib/jsonapi-utils': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/jsonapi-utils.js`,
-        '@/lib/drupal-utils': `${CANVAS_MODULE_UI_PATH}/lib/astro-hydration/dist/drupal-utils.js`,
+        '@/lib/FormattedText': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/FormattedText.js`,
+        'next-image-standalone': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/next-image-standalone.js`,
+        '@/lib/utils': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/utils.js`,
+        '@drupal-api-client/json-api-client': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/jsonapi-client.js`,
+        '@/lib/jsonapi-utils': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/jsonapi-utils.js`,
+        '@/lib/drupal-utils': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/drupal-utils.js`,
       },
     }),
     [],

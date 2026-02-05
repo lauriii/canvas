@@ -31,7 +31,7 @@
       "scripts/tag-release.sh",
       "test-results/**",
       "tests/fixtures/recipes/**/content/**/**",
-      "ui/lib/astro-hydration/**",
+      "packages/astro-hydration/**",
       "ui/src/local_packages/**",
       "ui/tests/fixtures/layout-default.json",
       "vendor",

@@ -20,6 +20,7 @@ type DrupalSiteInstall = {
 
 const drupalSite = base.extend<DrupalSiteInstall>({
   drupalSite: [
+    // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
       const stdout = await exec(
         `php core/scripts/test-site.php install --no-interaction --install-profile minimal --base-url ${process.env.DRUPAL_TEST_BASE_URL} --db-url ${process.env.DRUPAL_TEST_DB_URL} --json`,

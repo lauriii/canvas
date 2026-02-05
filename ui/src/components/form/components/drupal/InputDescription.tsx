@@ -54,7 +54,7 @@ const InputDescription: React.FC<InputDescriptionProps> = ({
     styles.description,
   );
 
-  var descriptionElement;
+  let descriptionElement;
   if (typeof description === 'string') {
     descriptionElement = (
       <div {...a2p({}, { className: descriptionClasses })}>

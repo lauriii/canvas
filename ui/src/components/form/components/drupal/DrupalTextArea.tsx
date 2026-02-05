@@ -8,8 +8,8 @@ import { getDrupalSettings } from '@/utils/drupal-globals';
 
 import DrupalFormattedTextArea from './DrupalFormattedTextArea';
 
+import type { FormatType } from '@drupal-canvas/types';
 import type { Attributes } from '@/types/DrupalAttribute';
-import type { FormatType } from '@/types/FormatType';
 
 const drupalSettings = getDrupalSettings();
 

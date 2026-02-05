@@ -31,5 +31,4 @@
       },
     };
   }
-  // eslint-disable-next-line no-undef
 )(Drupal, once);

@@ -91,7 +91,7 @@ ajax.hyperscriptify:
 
 astro.client:
   js:
-    ui/lib/astro-hydration/dist/client.js: {}
+    packages/astro-hydration/dist/client.js: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
@@ -100,10 +100,10 @@ astro.client:
 astro.hydration:
   header: true
   js:
-    ui/lib/astro-hydration/dist/hydration.js: {}
+    packages/astro-hydration/dist/hydration.js: {}
   css:
     theme:
-      ui/lib/astro-hydration/dist/styles/hydration.css: {}
+      packages/astro-hydration/dist/styles/hydration.css: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE

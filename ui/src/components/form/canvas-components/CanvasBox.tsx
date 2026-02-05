@@ -2,7 +2,7 @@ import { Box } from '@radix-ui/themes';
 
 import { a2p } from '@/local_packages/utils';
 
-import type { PropsValues } from '@/types/Form';
+import type { PropsValues } from '@drupal-canvas/types';
 
 // This renders `<canvas-box>` components used in Twig templates.
 const CanvasBox = (props: PropsValues) => {

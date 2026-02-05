@@ -151,7 +151,7 @@ final class AstroIslandTest extends KernelTestBase {
     self::assertEquals($component_url, $element->attr('component-url'));
 
     $canvas_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'canvas');
-    self::assertEquals(\sprintf('/%s/ui/lib/astro-hydration/dist/client.js', $canvas_directory), $element->attr('renderer-url'));
+    self::assertEquals(\sprintf('/%s/packages/astro-hydration/dist/client.js', $canvas_directory), $element->attr('renderer-url'));
 
     $slots = $element->filter('template[data-astro-template]');
     self::assertCount(2, $slots);

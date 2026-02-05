@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { useSelector, useDispatch } from 'react-redux';
 import Button from './Button';
 import { useState } from 'react';

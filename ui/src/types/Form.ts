@@ -4,10 +4,6 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import type { ComponentsList } from '@/types/Component';
 
-export interface PropsValues {
-  [key: string]: any;
-}
-
 export interface InputMessage {
   type: 'error' | 'warning' | 'info';
   message: string;

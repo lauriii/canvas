@@ -40,7 +40,7 @@ describe('useRouteSync', () => {
       renderHook(() => useRouteSync(), { wrapper });
 
       const uiState = store.getState().ui;
-      expect(uiState.currentRoute).to.deep.equal({
+      expect(uiState.currentRoute).toEqual({
         pathname: '/initial-route',
         search: '?param=value',
         hash: '#section',
@@ -59,7 +59,7 @@ describe('useRouteSync', () => {
       renderHook(() => useRouteSync(), { wrapper: wrapper2 });
 
       // Should update to new route.
-      expect(store.getState().ui.currentRoute).to.deep.equal({
+      expect(store.getState().ui.currentRoute).toEqual({
         pathname: '/new-route',
         search: '?param=value2',
         hash: '#section2',

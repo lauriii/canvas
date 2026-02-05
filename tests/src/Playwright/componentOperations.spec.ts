@@ -26,7 +26,6 @@ test.describe('Perform CRUD operations on components', () => {
         if (args.length > 0) {
           try {
             error = await args[0].jsonValue();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (e) {
             // If it's not JSON serializable, get the text
             error = await args[0].evaluate((arg) => arg.toString());

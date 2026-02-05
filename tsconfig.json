@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "useDefineForClassFields": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "sourceMap": false,
+    "inlineSourceMap": true,
+    "inlineSources": false,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "paths": {
+      "@drupal-canvas/types": ["./packages/types/src"],
+      "@drupal-canvas/ui/*": ["./ui/src/*"],
+        "@drupal-canvas/eslint-config": ["./packages/eslint-config/src/index.ts"],
+      "@/*": ["./ui/src/*"],
+      "@assets/*": ["./ui/assets/*"],
+      "@tests/*": ["./ui/tests/*"],
+      "@experimental/*": ["./experimental/*"]
+    },
+  },
+  "exclude": ["dist", "node_modules"],
+}

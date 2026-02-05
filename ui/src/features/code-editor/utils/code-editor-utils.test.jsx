@@ -1,4 +1,5 @@
 /* cspell:ignore Mycomponentname HelloWorldexample */
+/* eslint-disable vitest/expect-expect */
 import { describe, expect, it } from 'vitest';
 import { parse } from '@babel/parser';
 import fixtureProps from '@tests/fixtures/code-component-props.json';
@@ -60,12 +61,10 @@ function matchDeserializedProps(received, propIndices) {
 
   // Compare the rest of the props by removing IDs first
   const actualWithoutIds = received.map((prop) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = prop;
     return rest;
   });
   const expectedWithoutIds = expected.map((prop) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = prop;
     return rest;
   });

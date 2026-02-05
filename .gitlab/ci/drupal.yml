@@ -67,11 +67,8 @@
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
   # Install the UI
-  # @todo consolidate this with the UI job?
-  - cd ui
   - npm ci
-  - npm run build
-  - cd ../
+  - npm run build --workspace=ui
 
 .drupal: &drupal
   - !reference [ .drupal-files ]

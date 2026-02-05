@@ -4,7 +4,7 @@ type FormattedTextProps = {
   className?: string;
   id?: string;
   style?: Record<string, string>;
-  [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };
 
 export default function FormattedText({

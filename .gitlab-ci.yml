@@ -209,6 +209,7 @@ phpcs-rules-match-drupal-11:
       exit $DIFF_EXIT_CODE
   # Allow this to fail, to avoid disrupting Canvas's CI when upstream changes.
   allow_failure: true
+
 stylelint:
   allow_failure: false
   # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
@@ -232,10 +233,6 @@ phpunit:
   needs:
     - composer
     - UI
-  before_script:
-    # ⚠️ Since Drupal 11.2 this is necessary to avoid PHPUnit tests taking painfully long.
-    # @see https://www.drupal.org/project/drupal/issues/3249443
-    - rm -rf ui/node_modules && echo "🧹 clean up node modules"
   parallel:
     # @see https://www.drupal.org/node/3444548
     matrix:
@@ -302,71 +299,61 @@ phpunit (>11.2-only features):
     - *UI-fixtures-files-change-rule
     - *manual-rule
 
-eslint:
-  # This module wants to strictly comply with eslint.
+prettier:
+  stage: validate
+  image: node:20-alpine
   allow_failure: false
-  before_script:
-    # 🤷‍.eslintignore already instructs eslint to ignore this, but it does not seem to work. This is validated by the `UI eslint` job below.
-    # @todo Remove when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
-    - rm -rf ui
-    - rm -rf tests/src/Playwright playwright.config.ts eslint.config.mjs
-    # This job runs ESLint and Prettier checks using what's installed in Drupal core.
-    # Delete our custom .prettierrc.json, and use the one from Drupal core instead. This avoids problems with Prettier
-    # plugins that are not installed in Drupal core, e.g., @ianvs/prettier-plugin-sort-imports.
-    - rm -rf .prettierrc.json
-    # The eslint job in gitlab_templates creates a symlink if a Prettier config file is not found.
-    # However, some misterious race condition recreates the file before the symlink is created, so we create the symlink
-    # here with the -f (force) option.
-    - ln -sf $CI_PROJECT_DIR/$_WEB_ROOT/core/.prettierrc.json .
+  needs: []
+  # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - .prettier*
         - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
         - "**/*.yml"
     - *manual-rule
+  script:
+    - npm ci
+    - npm run lint:prettier
 
 UI:
   stage: build
   image: node:20-alpine
   needs: []
   script:
-    - cd ui
     - npm ci
     # Verify building the entire app succeeds — this first runs the TypeScript Compiler.
-    - npm run build
-    # @todo In the future, when `ui/dist` and `ui/lib/astro-hydration/dist` are
+    - npm run build --workspace=@drupal-canvas/ui
+    # @todo In the future, when `ui/dist` and `packages/astro-hydration/dist` are
     # committed, verify here that they match.
   artifacts:
     paths:
       - ui/dist
-      - ui/lib/astro-hydration/dist
-      # TRICKY: necessary for the `Cypress` job to be able to run `cypress install`.
-      - ui/node_modules
+      - packages/astro-hydration/dist
 
-UI eslint:
+eslint:
   stage: validate
   image: node:20-alpine
   allow_failure: false
-  needs:
-    - UI
+  needs: []
   # @todo Refine when https://www.drupal.org/project/gitlab_templates/issues/3452183 lands.
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - ui/package.json
-        - ui/package-lock.json
-        - ui/**/*.js
-        - ui/**/*.ts
-        - ui/**/*.tsx
-        - ui/tsconfig.json
-        - ui/tsconfig.node.json
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
     - *manual-rule
   script:
-    - cd ui
-    - node_modules/.bin/eslint . --format=junit --output-file=$CI_PROJECT_DIR/ui-eslint-junit.xml --max-warnings=0
+    - npm ci
+    - npm run lint:eslint -- --format=junit --output-file=$CI_PROJECT_DIR/ui-eslint-junit.xml --max-warnings=0
   artifacts:
     expose_as: junit
     expire_in: 6 mos
@@ -381,8 +368,7 @@ vitest:
   stage: test
   image: node:20-alpine
   allow_failure: false
-  needs:
-    - UI
+  needs: []
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -394,8 +380,8 @@ vitest:
     - *UI-fixtures-files-change-rule
     - *manual-rule
   script:
-    - cd ui
-    - npm test -- --reporter=junit --outputFile=$CI_PROJECT_DIR/ui-vitest-junit.xml
+    - npm ci
+    - npm run test --workspace=@drupal-canvas/ui -- --reporter=junit --outputFile=$CI_PROJECT_DIR/ui-vitest-junit.xml
   artifacts:
     expose_as: junit
     expire_in: 6 mos
@@ -438,23 +424,25 @@ vitest:
     #
     # 👆
     #
-    - cd $DRUPAL_PROJECT_FOLDER
+    - cd $CI_PROJECT_DIR
     - echo -e "\e[0Ksection_start:`date +%s`:Cypress-install[collapsed=true]\r\e[0KInstall Cypress."
-    - cp ./ui/.env.example ./ui/.env
-    - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> ./ui/.env
-    - echo "DB_URL='${DRUPAL_TEST_DB_URL}'" >> ./ui/.env
-    - echo "DRUPAL_TEST_WEBSERVER_USER=www-data" >> ./ui/.env
-    - echo "DRUPAL_ROOT_CORE='${CI_PROJECT_DIR}/${_WEB_ROOT}/core'" >> ./ui/.env
-    - cd ./ui/
+    - npm ci
+    - cd ui
+    - cp .env.example .env
+    - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> .env
+    - echo "DB_URL='${DRUPAL_TEST_DB_URL}'" >> .env
+    - echo "DRUPAL_TEST_WEBSERVER_USER=www-data" >> .env
+    - echo "DRUPAL_ROOT_CORE='${CI_PROJECT_DIR}/${_WEB_ROOT}/core'" >> .env
     - cat .env
-    - mkdir -p ./cycache /var/www/.npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
-    - chown -R www-data:www-data ./cycache /var/www/.npm /usr/bin/npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
-    - chmod -R 755 ./cycache
-    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress install
+    - mkdir -p $CYPRESS_CACHE_FOLDER /var/www/.npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
+    - chown -R www-data:www-data $CYPRESS_CACHE_FOLDER /var/www/.npm /usr/bin/npm /home/apache/.cache/fontconfig ~/.cache /usr/share/fonts/ /var/cache/fontconfig
+    - chmod -R 755 $CYPRESS_CACHE_FOLDER
+    - sudo -u www-data CYPRESS_CACHE_FOLDER=$CYPRESS_CACHE_FOLDER npx cypress install
+    - sudo -u www-data CYPRESS_CACHE_FOLDER=$CYPRESS_CACHE_FOLDER npx cypress --version
     - echo -e "\e[0Ksection_end:`date +%s`:Cypress-install\r\e[0K"
-    - sudo -u www-data CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress --version
   variables:
     _TARGET_DB_TYPE: sqlite
+    CYPRESS_CACHE_FOLDER: $DRUPAL_PROJECT_FOLDER/ui/cycache
   artifacts:
     when: always
     expire_in: 6 mos
@@ -468,12 +456,12 @@ cypress E2E:
   extends: .cypress-base
   parallel: 4
   script:
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js`
+    - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js`
 
 cypress unit:
   extends: .cypress-base
   script:
-    - CYPRESS_CACHE_FOLDER=./cycache node ./node_modules/.bin/cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
+    - npx cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
   rules:
     - *is-push-rule
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -531,6 +519,17 @@ lint (node):
   script:
     - npm ci
     - npm run lint
+
+type-check:
+  stage: validate
+  needs: []
+  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
+  before_script:
+    - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
+  script:
+    - npm ci
+    - npm run build --workspace=drupal-canvas
+    - npm run type-check --workspaces
 
 lint (OpenAPI):
   stage: validate
@@ -598,7 +597,7 @@ CLI Test:
   needs: []
   rules:
     - changes:
-        - "cli/**/*"
+        - "packages/cli/**/*"
         - package.json
         - package-lock.json
         - openapi.yml
@@ -626,11 +625,10 @@ CLI Test:
       - 100
   script:
     - npm ci
-    - npm run type-check --workspace=cli
-    - npm run test --workspace=cli
-    - npm run build --workspace=cli
-    - npm version 0.0.1 --workspace=cli
-    - npm pack --pack-destination=test-results --workspace=cli
+    - npm run test --workspace=@drupal-canvas/cli
+    - npm run build --workspace=@drupal-canvas/cli
+    - npm version 0.0.1 --workspace=@drupal-canvas/cli
+    - npm pack --pack-destination=test-results --workspace=@drupal-canvas/cli
     - npm audit --audit-level=moderate --production || exit 100
   artifacts:
     expose_as: 'CLI package'
@@ -651,9 +649,9 @@ CLI Publish:
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
   script:
     - npm ci
-    - npm run build --workspace=cli
-    - npm version $(echo ${CI_COMMIT_TAG} | cut -c5-) --workspace=cli
-    - npm publish --access public --workspace=cli
+    - npm run build --workspace=@drupal-canvas/cli
+    - npm version $(echo ${CI_COMMIT_TAG} | cut -c5-) --workspace=@drupal-canvas/cli
+    - npm publish --access public --workspace=@drupal-canvas/cli
 
 # User facing documentation.
 pages-mr:

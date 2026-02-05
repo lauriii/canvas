@@ -325,7 +325,7 @@ export const layoutModelSlice = createSlice({
         }
 
         let updatedModel: ComponentModels = { ...state.model };
-        let newLayout: Array<RegionNode> = JSON.parse(
+        const newLayout: Array<RegionNode> = JSON.parse(
           JSON.stringify(state.layout),
         );
         const components = layoutModel.layout;

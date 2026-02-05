@@ -90,7 +90,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         iframe.contentDocument!.querySelector('#component-wrapper');
 
       const offsetWidth = componentWrapper!.scrollWidth;
-      let offsetHeight = componentWrapper!.scrollHeight;
+      const offsetHeight = componentWrapper!.scrollHeight;
 
       scalingElement.style.width = `${offsetWidth}px`;
       scalingElement.style.height = `${offsetHeight}px`;

@@ -41,7 +41,7 @@ cd ..
 
 echo "${WHITE_ON_BLUE}[3/5] Committing built UI …${NC}"
 # TRICKY: `-f` to force it even if it's listed in .gitignore.
-git add -f ui/package.json ui/package-lock.json ui/dist ui/lib/astro-hydration/dist
+git add -f ui/package.json ui/package-lock.json ui/dist packages/astro-hydration/dist
 # Similar to core: https://git.drupalcode.org/project/drupal/-/commit/b33c9280991c437a3fa05dec941c54bca0ddb7d8
 git commit -q -m "Drupal Canvas $TAG"
 git tag "$TAG" HEAD
@@ -54,7 +54,7 @@ cd ui
 npm version "0.0.0" --allow-same-version --no-git-tag-version
 cd ..
 git add -f ui/package.json ui/package-lock.json
-git rm -rfq ui/dist ui/lib/astro-hydration/dist
+git rm -rfq ui/dist packages/astro-hydration/dist
 # Similar to core: https://git.drupalcode.org/project/drupal/-/commit/f30549fbdd5ebfb2b338c3bbcfda36ac0bf1ca9d
 git commit -q -m "Back to dev."
 echo "  ℹ️  ${GREEN}Built UI removed locally.${NC}"

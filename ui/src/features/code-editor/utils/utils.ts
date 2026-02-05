@@ -55,7 +55,7 @@ export function parsePropValueForPreview(
 export function getPropValuesForPreview(
   props: CodeComponentProp[],
 ): Record<string, CodeComponentPropPreviewValue> {
-  let propValues = {} as Record<string, CodeComponentPropPreviewValue>;
+  const propValues = {} as Record<string, CodeComponentPropPreviewValue>;
   props
     .filter((prop) => prop.name)
     .forEach((prop) => {

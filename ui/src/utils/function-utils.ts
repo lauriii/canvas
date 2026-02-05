@@ -1,3 +1,4 @@
+import type { PropsValues } from '@drupal-canvas/types';
 import type { PendingChanges } from '@/services/pendingChangesApi';
 import type {
   BoundingRect,
@@ -6,7 +7,6 @@ import type {
   SlotsMap,
   StackDirection,
 } from '@/types/Annotations';
-import type { PropsValues } from '@/types/Form';
 
 export function handleNonWorkingBtn(): void {
   alert('Not yet supported.');

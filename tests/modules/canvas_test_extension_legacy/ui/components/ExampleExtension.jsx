@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { useSelector } from 'react-redux';
 import ReactDOM from 'react-dom';
 import ConceptProver from './ConceptProver';

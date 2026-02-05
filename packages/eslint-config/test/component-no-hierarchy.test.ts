@@ -7,7 +7,7 @@ import rule from '../src/rules/component-no-hierarchy.js';
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   readdirSync: vi.fn((dir) => {
-    const directories = {
+    const directories: Record<string, string[]> = {
       '/valid': ['src'],
       '/valid/src': ['components'],
       '/valid/src/components': ['button', 'card', 'modal', 'nested'],

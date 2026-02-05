@@ -14,5 +14,8 @@
     ".": "./index.ts",
     "./DrupalExec": "./DrupalExec.ts",
     "./DrupalFilesystem": "./DrupalFilesystem.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit --pretty"
   }
 }

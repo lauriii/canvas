@@ -139,7 +139,7 @@ test.describe('AI Features', () => {
 
     const submitButton = page
       .getByTestId('canvas-ai-panel')
-      .locator('.input-button.inside-right');
+      .locator('.input-button.inside-end');
     await expect(submitButton).not.toBeVisible();
 
     await page

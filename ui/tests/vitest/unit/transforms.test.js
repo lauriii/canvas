@@ -11,7 +11,7 @@ describe('Transforms - link', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link([{ uri: 'https://example.com' }], {}, fieldData),
-    ).to.equal('https://example.com');
+    ).toEqual('https://example.com');
   });
 
   it('Should return URI and title if title is enabled', () => {
@@ -22,14 +22,14 @@ describe('Transforms - link', () => {
         {},
         fieldData,
       ),
-    ).to.deep.equal({ uri: 'https://example.com', title: 'Click me' });
+    ).toEqual({ uri: 'https://example.com', title: 'Click me' });
   });
 
   it('Should match on autocomplete, no title', () => {
     fieldData.sourceTypeSettings.instance.title = 0;
     expect(
       transforms.link([{ uri: 'A node title (3)' }], {}, fieldData),
-    ).to.equal('entity:node/3');
+    ).toEqual('entity:node/3');
   });
 
   it('Should match on autocomplete, with title', () => {
@@ -40,7 +40,7 @@ describe('Transforms - link', () => {
         {},
         fieldData,
       ),
-    ).to.deep.equal({ uri: 'entity:node/3', title: 'Click me' });
+    ).toEqual({ uri: 'entity:node/3', title: 'Click me' });
   });
 });
 

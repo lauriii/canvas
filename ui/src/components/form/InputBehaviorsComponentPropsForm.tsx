@@ -28,13 +28,14 @@ import { useUpdateComponentMutation } from '@/services/preview';
 import { isPropSourceComponent } from '@/types/Component';
 import { flaggedForRemoval, parseValue } from '@/utils/function-utils';
 
+import type { PropsValues } from '@drupal-canvas/types';
 import type {
   ComponentModels,
   ResolvedValues,
   Sources,
 } from '@/features/layout/layoutModelSlice';
 import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
-import type { InputUIData, PropsValues } from '@/types/Form';
+import type { InputUIData } from '@/types/Form';
 
 export const InputBehaviorsComponentPropsForm = (
   OriginalInput: React.FC,
@@ -188,7 +189,7 @@ export const InputBehaviorsComponentPropsForm = (
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
 
-  const propsOverrides: { options?: Object[] } = {};
+  const propsOverrides: { options?: object[] } = {};
 
   const { multipleInputsSingleValue } = propInputData(
     formState,

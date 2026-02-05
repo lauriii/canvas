@@ -64,7 +64,7 @@ export function recurseNodes(
   node: LayoutNode,
   functionOrFunctions: NodeFunction | NodeFunction[] = [],
 ): void {
-  let functionsToRun: NodeFunction[] = Array.isArray(functionOrFunctions)
+  const functionsToRun: NodeFunction[] = Array.isArray(functionOrFunctions)
     ? functionOrFunctions
     : [functionOrFunctions];
 

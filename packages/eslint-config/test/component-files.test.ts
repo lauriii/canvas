@@ -13,7 +13,7 @@ const testRunner = new RuleTester({
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   readdirSync: vi.fn((dir) => {
-    const dirs = {
+    const dirs: Record<string, string[]> = {
       '/components/button': ['component.yml', 'index.jsx', 'index.css'],
       '/components/button2': ['component.yml', 'index.jsx'],
       '/components/button3': ['component.yml'],

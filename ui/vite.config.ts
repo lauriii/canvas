@@ -64,6 +64,10 @@ export default defineConfig(({ command, mode }) => {
         '@assets': path.resolve(__dirname, './assets'),
         '@experimental': path.resolve(__dirname, '../experimental'),
         '@tests': path.resolve(__dirname, './tests'),
+        '@drupal-canvas/astro-hydration': path.resolve(
+          __dirname,
+          '../packages/astro-hydration',
+        ),
       },
     },
     optimizeDeps: {

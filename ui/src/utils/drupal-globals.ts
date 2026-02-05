@@ -1,5 +1,4 @@
-import type { DrupalSettings } from '@/types/DrupalSettings';
-import type { PropsValues } from '@/types/Form';
+import type { DrupalSettings, PropsValues } from '@drupal-canvas/types';
 
 const { Drupal, drupalSettings } = window as any;
 

@@ -6,7 +6,7 @@ import type { Modifier } from '@dnd-kit/core';
 let currentMousePosition: { x: number; y: number } | null = null;
 let haveOffsetPosition: boolean = false;
 let trackMouseFunction: ((e: MouseEvent | TouchEvent) => void) | null = null;
-let mouseDiff = {
+const mouseDiff = {
   x: 0,
   y: 0,
 };

@@ -63,7 +63,6 @@ export const getModuleDir = async (): Promise<string | null> => {
         modulePath = key.replace('/{$name}', '');
       }
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     console.log('Unable to locate module directory, using default value.');
   }

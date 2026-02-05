@@ -69,6 +69,7 @@ const rule: EslintRule.RuleModule = {
     }
 
     return {
+      // @ts-expect-error - YAMLPair is a valid listener from eslint-plugin-yml
       YAMLPair(node: AST.YAMLPair) {
         const keyName = getYAMLStringValue(node.key);
         if (keyName !== 'props') {

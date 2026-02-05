@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line vitest/no-mocks-import
 import { server } from './__mocks__/server';
 import { ApiService } from './api';
 

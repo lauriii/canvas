@@ -1,5 +1,5 @@
 import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { Button, Callout, Flex, Text } from '@radix-ui/themes';
+import { Button, Callout, Flex } from '@radix-ui/themes';
 
 import type React from 'react';
 

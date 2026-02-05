@@ -753,7 +753,7 @@ const AiWizard = () => {
               maxNumberOfFiles: 1,
             },
             button: {
-              position: 'inside-left',
+              position: 'inside-start',
               styles: {
                 container: {
                   default: {

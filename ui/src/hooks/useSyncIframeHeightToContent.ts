@@ -89,7 +89,7 @@ function useSyncIframeHeightToContent(
             if (previewIframe) {
               // These height ratios were determined in the prior forEach block,
               // and are used to identify element heights with VH units.
-              const ratios: Number[] = heightRatios.get(element) || [];
+              const ratios: number[] = heightRatios.get(element) || [];
 
               // If the element height consistently changed at the same ratio
               // as the container iframe (all 3 numbers in ratios are the same),

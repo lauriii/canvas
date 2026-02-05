@@ -1113,24 +1113,24 @@ HTML,
                                       ],
                                       '#import_maps' => [
                                         ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
-                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
-                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
-                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
-                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
-                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
-                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
-                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
-                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
-                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
-                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
-                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
-                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
-                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
-                                          'drupal-canvas' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
+                                          'preact' => \sprintf('%s/packages/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
+                                          'preact/hooks' => \sprintf('%s/packages/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/packages/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
+                                          'react' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom/client' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'clsx' => \sprintf('%s/packages/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
+                                          'class-variance-authority' => \sprintf('%s/packages/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
+                                          'tailwind-merge' => \sprintf('%s/packages/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/packages/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
+                                          'next-image-standalone' => \sprintf('%s/packages/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
+                                          '@/lib/utils' => \sprintf('%s/packages/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
+                                          '@drupal-api-client/json-api-client' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
+                                          'drupal-jsonapi-params' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
+                                          '@/lib/jsonapi-utils' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
+                                          '@/lib/drupal-utils' => \sprintf('%s/packages/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
+                                          'swr' => \sprintf('%s/packages/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
+                                          'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
                                         ],
                                       ],
                                       '#attached' => [
@@ -1139,14 +1139,14 @@ HTML,
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
+                                              'href' => \sprintf('%s/packages/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                           [
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
+                                              'href' => \sprintf('%s/packages/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                         ],
@@ -1186,24 +1186,24 @@ HTML,
                                       ],
                                       '#import_maps' => [
                                         ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => [
-                                          'preact' => \sprintf('%s/ui/lib/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
-                                          'preact/hooks' => \sprintf('%s/ui/lib/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
-                                          'react/jsx-runtime' => \sprintf('%s/ui/lib/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
-                                          'react' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'react-dom' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'react-dom/client' => \sprintf('%s/ui/lib/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
-                                          'clsx' => \sprintf('%s/ui/lib/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
-                                          'class-variance-authority' => \sprintf('%s/ui/lib/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
-                                          'tailwind-merge' => \sprintf('%s/ui/lib/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
-                                          '@/lib/FormattedText' => \sprintf('%s/ui/lib/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
-                                          'next-image-standalone' => \sprintf('%s/ui/lib/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
-                                          '@/lib/utils' => \sprintf('%s/ui/lib/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
-                                          '@drupal-api-client/json-api-client' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
-                                          'drupal-jsonapi-params' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
-                                          '@/lib/jsonapi-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
-                                          '@/lib/drupal-utils' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
-                                          'swr' => \sprintf('%s/ui/lib/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
-                                          'drupal-canvas' => \sprintf('%s/ui/lib/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
+                                          'preact' => \sprintf('%s/packages/astro-hydration/dist/preact.module.js?2.1.0-alpha3', $path),
+                                          'preact/hooks' => \sprintf('%s/packages/astro-hydration/dist/hooks.module.js?2.1.0-alpha3', $path),
+                                          'react/jsx-runtime' => \sprintf('%s/packages/astro-hydration/dist/jsx-runtime-default.js?2.1.0-alpha3', $path),
+                                          'react' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'react-dom/client' => \sprintf('%s/packages/astro-hydration/dist/compat.module.js?2.1.0-alpha3', $path),
+                                          'clsx' => \sprintf('%s/packages/astro-hydration/dist/clsx.js?2.1.0-alpha3', $path),
+                                          'class-variance-authority' => \sprintf('%s/packages/astro-hydration/dist/class-variance-authority.js?2.1.0-alpha3', $path),
+                                          'tailwind-merge' => \sprintf('%s/packages/astro-hydration/dist/tailwind-merge.js?2.1.0-alpha3', $path),
+                                          '@/lib/FormattedText' => \sprintf('%s/packages/astro-hydration/dist/FormattedText.js?2.1.0-alpha3', $path),
+                                          'next-image-standalone' => \sprintf('%s/packages/astro-hydration/dist/next-image-standalone.js?2.1.0-alpha3', $path),
+                                          '@/lib/utils' => \sprintf('%s/packages/astro-hydration/dist/utils.js?2.1.0-alpha3', $path),
+                                          '@drupal-api-client/json-api-client' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-client.js?2.1.0-alpha3', $path),
+                                          'drupal-jsonapi-params' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-params.js?2.1.0-alpha3', $path),
+                                          '@/lib/jsonapi-utils' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $path),
+                                          '@/lib/drupal-utils' => \sprintf('%s/packages/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $path),
+                                          'swr' => \sprintf('%s/packages/astro-hydration/dist/swr.js?2.1.0-alpha3', $path),
+                                          'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $path),
                                         ],
                                       ],
                                       '#attached' => [
@@ -1212,14 +1212,14 @@ HTML,
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
+                                              'href' => \sprintf('%s/packages/astro-hydration/dist/signals.module.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                           [
                                             [
                                               'rel' => 'modulepreload',
                                               'fetchpriority' => 'high',
-                                              'href' => \sprintf('%s/ui/lib/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
+                                              'href' => \sprintf('%s/packages/astro-hydration/dist/preload-helper.js?2.1.0-alpha3', $path),
                                             ],
                                           ],
                                         ],
@@ -1353,16 +1353,16 @@ HTML,
 <!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
       component-url="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js"
       component-export="default"
-      renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+      renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js"
       props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
       ssr="" client="only"
-      opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+      opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/zp6hEMcVLAQUXUUP3gsBwM5-MNs4_2kJ_7z16CTg1Sk.js" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
       component-url="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js"
       component-export="default"
-      renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+      renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js"
       props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
       ssr="" client="only"
-      opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+      opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="::SITE_DIR_BASE_URL::/files/astro-island/dErbetE11Vm2Twy1AoP3OU8bws4QaYAih9Gd8PgRrm4.js" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
   <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
 </div>
 <!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->
@@ -1506,16 +1506,16 @@ HTML,
      <!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1"
           component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta"
           component-export="default"
-          renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+          renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js"
           props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
           ssr="" client="only"
-          opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
+          opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7"
           component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save"
           component-export="default"
-          renderer-url="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js"
+          renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js"
           props="{&quot;text&quot;:[&quot;raw&quot;,&quot;Hello, from a \&quot;auto-save code component\&quot;!&quot;],&quot;href&quot;:[&quot;raw&quot;,&quot;https:\/\/example.com&quot;]}"
           ssr="" client="only"
-          opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/ui/lib/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+          opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/client.js" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
       <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
      </div>
      <!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->

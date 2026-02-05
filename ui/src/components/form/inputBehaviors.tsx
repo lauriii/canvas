@@ -23,11 +23,11 @@ import {
 import { AJAX_UPDATE_FORM_BUILD_ID_EVENT } from '@/types/Ajax';
 import { isAjaxing } from '@/utils/isAjaxing';
 
+import type { PropsValues } from '@drupal-canvas/types';
 import type { ErrorObject } from 'ajv/dist/types';
 import type { FormId } from '@/features/form/formStateSlice';
 import type { AjaxUpdateFormBuildIdEvent } from '@/types/Ajax';
 import type { Attributes } from '@/types/DrupalAttribute';
-import type { PropsValues } from '@/types/Form';
 
 const ajv = new Ajv();
 

@@ -17,7 +17,7 @@ import {
 import { selectLatestUndoRedoActionId } from '@/features/ui/uiSlice';
 
 import type * as React from 'react';
-import type { PropsValues } from '@/types/Form';
+import type { PropsValues } from '@drupal-canvas/types';
 
 // Provides a higher order component to wrap a form element that is part of the
 // entity fields form.

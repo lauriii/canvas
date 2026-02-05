@@ -89,7 +89,6 @@ export class ApiService {
 
             // Retry the original request
             return this.client(originalRequest);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (refreshError) {
             // Token refresh failed, reject with original error
             return Promise.reject(error);

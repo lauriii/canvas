@@ -28,12 +28,12 @@ export default defineConfig({
             // Make sure the output chunks for dependencies have useful file
             // names so we can easily distinguish between them.
             const matches = {
-              'lib/astro-hydration/src/lib/jsx-runtime-default.js': 'jsx-runtime-default.js',
+              'astro-hydration/src/lib/jsx-runtime-default.js': 'jsx-runtime-default.js',
               clsx: 'clsx.js',
               'class-variance-authority': 'class-variance-authority.js',
               'tailwind-merge': 'tailwind-merge.js',
-              'lib/astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
-              'lib/astro-hydration/src/lib/swr.ts': 'swr.js',
+              'astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
+              'astro-hydration/src/lib/swr.ts': 'swr.js',
               'drupal-canvas': 'drupal-canvas.js',
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {

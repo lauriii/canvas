@@ -26,10 +26,10 @@ interface ViewportOverlayProps {
   previewContainerRef: React.RefObject<HTMLDivElement>;
 }
 interface Rect {
-  left: Number;
-  top: Number;
-  width: Number;
-  height: Number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const { iframeRef, previewContainerRef } = props;
@@ -47,7 +47,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
     entityType,
   } = useParams();
 
-  let displayedRegions = layout.filter((region) => {
+  const displayedRegions = layout.filter((region) => {
     return region.components.length > 0 || region.id === DEFAULT_REGION;
   });
 

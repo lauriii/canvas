@@ -20,6 +20,7 @@ const rule: EslintRule.RuleModule = {
     }
     let hasMachineName = false;
     return {
+      // @ts-expect-error - YAMLPair is a valid listener from eslint-plugin-yml
       YAMLPair(node: AST.YAMLPair) {
         const keyName = getYAMLStringValue(node.key);
         if (keyName !== 'machineName') {

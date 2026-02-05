@@ -8,7 +8,6 @@ export const CANVAS_CACHE_DIR = path.join(os.homedir(), '.canvas');
 
 // Download the JS source of all code components into a local directory: ~/.canvas
 export async function downloadJsSourceFromCanvas(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   componentsToDownload: Record<string, any>,
 ) {
   for (const key in componentsToDownload) {
