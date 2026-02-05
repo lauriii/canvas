@@ -43,7 +43,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
   ) {
     $bundles = $entityType->getBundles();
     if (is_array($bundles) && count($bundles) > 1) {
-      @trigger_error('Creating ' . __CLASS__ . ' that targets multiple bundles is deprecated in canvas:1.0.5 and will be removed from canvas:2.0.0. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
+      @trigger_error('Creating ' . __CLASS__ . ' that targets multiple bundles is deprecated in canvas:1.1.0 and will be removed from canvas:2.0.0. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
     }
     if (($bundles === NULL || count($bundles) <= 1) && is_array($fieldName) && count($fieldName) > 1) {
       throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field name can be specified.');

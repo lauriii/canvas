@@ -29,7 +29,7 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
       // Note this cannot be an exception, because that would prevent the update
       // path from working.
       // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
-      @trigger_error('Creating ' . __CLASS__ . ' that contains references targeting multiple bundles is deprecated in canvas:1.0.5 and will be removed from canvas:2.0.0. Instead, create a ' . ReferenceFieldTypePropExpression::class . ', then use its ::withAdditionalBranch() to create multiple expression branches, each pointing to a single-bundle ' . __CLASS__ . '. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
+      @trigger_error('Creating ' . __CLASS__ . ' that contains references targeting multiple bundles is deprecated in canvas:1.1.0 and will be removed from canvas:2.0.0. Instead, create a ' . ReferenceFieldTypePropExpression::class . ', then use its ::withAdditionalBranch() to create multiple expression branches, each pointing to a single-bundle ' . __CLASS__ . '. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
     }
   }
 
