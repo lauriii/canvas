@@ -103,7 +103,9 @@ final class CanvasTwigExtension extends AbstractExtension {
   /**
    * Generates `srcset` from URLs with ?alternateWidths and stream wrapper URIs.
    *
-   * Also handles local file URLs by converting them to stream wrapper URIs.
+   * Also handles public files URLs (e.g., /sites/default/files/... including
+   * styled image URLs) by converting them to public:// stream wrapper URIs
+   * when possible.
    *
    * @param string $src
    *   An img.src attribute.
@@ -144,9 +146,8 @@ final class CanvasTwigExtension extends AbstractExtension {
         $intrinsicImageWidth = $this->getWidth($src);
       }
     }
-    // Local file URLs (e.g., /sites/default/files/image.jpg).
-    // Convert to stream wrapper URI and use same logic as above.
-    // For styled images, caller should pass correct width.
+    // Public files URLs (e.g., /sites/default/files/image.jpg).
+    // Convert to public:// URI when possible, then use same logic as above.
     elseif (!$hasAlternateWidths && !$this->streamWrapperManager->isValidUri($src)) {
       $uri = $this->urlToStreamWrapperUri($src);
       if ($uri) {
@@ -184,14 +185,16 @@ final class CanvasTwigExtension extends AbstractExtension {
   }
 
   /**
-   * Converts a local file URL to a stream wrapper URI.
+   * Converts a public files URL back to its stream wrapper URI.
+   *
+   * This reverses what \Drupal\Core\StreamWrapper\PublicStream::getLocalPath()
+   * does, but only for public:// files.
    *
    * @param string $url
-   *   A local file URL (e.g., /sites/default/files/image.jpg or
-   *   /sites/default/files/styles/thumbnail/public/image.jpg).
+   *   A public files URL (e.g., /sites/default/files/image.jpg).
    *
    * @return string|null
-   *   The stream wrapper URI, or NULL if the URL cannot be converted.
+   *   The public:// stream wrapper URI, or NULL if not a public files URL.
    */
   private function urlToStreamWrapperUri(string $url): ?string {
     $publicBasePath = PublicStream::basePath();
