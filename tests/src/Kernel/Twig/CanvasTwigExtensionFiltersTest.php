@@ -245,6 +245,36 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests the apply_image_style filter with local file outside public path.
+   *
+   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
+   */
+  public function testApplyImageStyleWithLocalFileOutsidePublicPath(): void {
+    // Create a test image style.
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $extension = $this->container->get(CanvasTwigExtension::class);
+    \assert($extension instanceof CanvasTwigExtension);
+
+    // Test with a local file URL that is NOT inside PublicStream::basePath().
+    $image = [
+      'src' => '/var/www/other/image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $result = $extension->applyImageStyle($image, 'test_style');
+
+    // Should return unchanged since the file is outside the public files path.
+    $this->assertIsArray($result);
+    $this->assertSame('/var/www/other/image.jpg', $result['src']);
+    $this->assertSame(400, $result['width']);
+    $this->assertSame(300, $result['height']);
+  }
+
+  /**
    * Tests the apply_image_style filter with invalid style name.
    *
    * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
