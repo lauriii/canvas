@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
-use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -12,7 +11,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
@@ -25,8 +23,6 @@ final class FieldUiHooks {
   use StringTranslationTrait;
 
   public function __construct(
-    private readonly CanvasUiAccessCheck $canvasUiAccessCheck,
-    private readonly AccountInterface $currentUser,
     private readonly RouteMatchInterface $routeMatch,
     private readonly MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -55,14 +51,9 @@ final class FieldUiHooks {
    */
   #[Hook('form_entity_view_display_edit_form_alter')]
   public function formEntityViewDisplayEditFormAlter(array &$form, FormStateInterface $form_state): void {
-    $access_result = $this->canvasUiAccessCheck->access($this->currentUser);
-    if (!$access_result->isAllowed()) {
-      return;
-    }
-
     // @todo Make this available for other entity types in
     //   https://www.drupal.org/project/canvas/issues/3498525.
-    if ($this->routeMatch->getRouteName() !== 'entity.entity_view_display.node.default') {
+    if ($this->routeMatch->getRouteName() !== 'entity.entity_view_display.node.default' || $this->messenger->messagesByType('canvas_cta')) {
       return;
     }
 
@@ -86,6 +77,12 @@ final class FieldUiHooks {
 
     // Only show CTA if no content templates exist for this bundle.
     if (!empty($existing_templates)) {
+      return;
+    }
+
+    // Only show the CTA if this user can create a content template.
+    $can_create = $this->entityTypeManager->getAccessControlHandler(ContentTemplate::ENTITY_TYPE_ID)->createAccess();
+    if (!$can_create) {
       return;
     }
 
