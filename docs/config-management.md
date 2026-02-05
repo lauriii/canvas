@@ -102,6 +102,7 @@ See:
 - `\Drupal\canvas\Entity\Component`
 - `\Drupal\canvas\ComponentSource\ComponentSourceDiscoveryInterface`
 - `\Drupal\canvas\ComponentSource\ComponentSourceInterface`
+- `\Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface`
 
 One `Component config entity` is [automatically created (and updated](https://www.drupal.org/project/canvas/issues/3463999)
 per `component` that is present and meets the criteria (see [`Canvas Components` doc, section 3.1.1](components.md#3.1.1)).

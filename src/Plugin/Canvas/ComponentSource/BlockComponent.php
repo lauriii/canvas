@@ -63,6 +63,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   // contain logic and perform e.g. database queries that fetch data to present.
   supportsImplicitInputs: TRUE,
   discovery: BlockComponentDiscovery::class,
+  updater: FALSE,
   // @see \Drupal\Core\Block\BlockManager::__construct()
   discoveryCacheTags: [],
 )]

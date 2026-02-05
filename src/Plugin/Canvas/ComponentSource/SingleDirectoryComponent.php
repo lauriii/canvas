@@ -27,6 +27,7 @@ use Symfony\Component\Filesystem\Path;
   label: new TranslatableMarkup('Single-Directory Components'),
   supportsImplicitInputs: FALSE,
   discovery: SingleDirectoryComponentDiscovery::class,
+  updater: GeneratedFieldExplicitInputUxComponentInstanceUpdater::class,
   // @see \Drupal\Core\Theme\ComponentPluginManager::__construct()
   discoveryCacheTags: ['component_plugins'],
 )]

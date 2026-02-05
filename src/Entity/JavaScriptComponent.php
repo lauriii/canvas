@@ -406,6 +406,11 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function setProps(array $props): self {
     $this->props = $props;
+    // If a required prop was removed, we need to remove it from the list of
+    // required props.
+    if (!is_null($this->required)) {
+      $this->required = \array_intersect(\array_keys($props), $this->required);
+    }
     return $this;
   }
 

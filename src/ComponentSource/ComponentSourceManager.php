@@ -9,6 +9,8 @@ use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityBase;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
@@ -237,6 +239,35 @@ final class ComponentSourceManager extends DefaultPluginManager {
 
       if ($needs_update) {
         $component->save();
+      }
+    }
+  }
+
+  /**
+   * Updates component instances to the active (aka latest) version if possible.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $component_tree
+   *   The component tree containing instances to update.
+   */
+  public function updateComponentInstances(ComponentTreeItemList $component_tree): void {
+    foreach ($component_tree as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $component = $item->getComponent();
+      if ($component === NULL) {
+        // If the component is missing, there's nothing to update.
+        continue;
+      }
+      $component_source = $component->getComponentSource();
+      $updater_class = $component_source->getPluginDefinition()['updater'] ?? FALSE;
+      if (!$updater_class) {
+        continue;
+      }
+      $updater = $this->classResolver->getInstanceFromDefinition($updater_class);
+      \assert($updater instanceof ComponentInstanceUpdaterInterface);
+      // Check if update is needed and safe, then perform the update.
+      if ($updater->isUpdateNeeded($item) && $updater->canUpdate($item)) {
+        $update_result = $updater->update($item);
+        \assert($update_result === ComponentInstanceUpdateAttemptResult::Latest);
       }
     }
   }

@@ -13,7 +13,7 @@ In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
 ### 1.2 Canvas terminology
 
-- `component`: a component generates markup (and might attach CSS + JS), potentially based on some input. ⚠️ This is currently limited to `SDC`s, but that _will_ change. So: read this more broadly. ⚠️
+- `component`: a component generates markup (and might attach CSS + JS), potentially based on some input.
 - `Component Source Plugin`: `component`s have a translation layer (per `component type`) between the `Component` config entity and the actual plugin that
   accepts input and generates output, e.g. `SingleDirectoryComponent` (`sdc`-prefixed) and `BlockComponent` (`block`-prefixed).
 - `component input`: either `explicit component input` or `implicit component input`, this is the catch-all for both

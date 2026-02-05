@@ -35,15 +35,25 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * Not all component sources support slots. A source that supports slots should
  * implement \Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface.
  *
- * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
- * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
- * @phpstan-import-type OptimizedExplicitInput from \Drupal\canvas\Plugin\DataType\ComponentInputs
- * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * This interface handles all component instance concerns besides updating. Some
+ * concerns are optional, and have explicit handlers:
+ * - discovery: a ComponentCandidatesDiscoveryInterface — handles discovering
+ *   components in this source
+ * - updater: a ComponentInstanceUpdaterInterface — handles updating existing
+ *   component instances to the active (aka latest) version of the Component
+ *   config entity
  *
  * @see \Drupal\canvas\Attribute\ComponentSource
  * @see \Drupal\canvas\ComponentSource\ComponentSourceBase
  * @see \Drupal\canvas\ComponentSource\ComponentSourceManager
  * @see \Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface
+ * @see \Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface
+ * @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface
+ *
+ * @phpstan-import-type PropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
+ * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type OptimizedExplicitInput from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @phpstan-import-type OptimizedSingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
  */
 interface ComponentSourceInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ContextAwarePluginInterface {
 

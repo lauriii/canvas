@@ -6,6 +6,8 @@ namespace Drupal\canvas\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
+use Drupal\canvas\PropShape\PropShape;
+use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -70,21 +72,12 @@ final class StaticPropSource extends PropSourceBase {
     if ((string) $this->expression !== (string) $other->expression) {
       return FALSE;
     }
-    // Cardinality, field storage settings and field instance settings all are
-    // optional:
-    // - cardinality defaults to 1
-    if (($this->cardinality ?? 1) !== ($other->cardinality ?? 1)) {
-      return FALSE;
-    }
-    // - field storage settings defaults to NULL
-    if (($this->fieldStorageSettings ?? []) !== ($other->fieldStorageSettings ?? [])) {
-      return FALSE;
-    }
-    // - field instance settings defaults to NULL
-    if (($this->fieldInstanceSettings ?? []) !== ($other->fieldInstanceSettings ?? [])) {
-      return FALSE;
-    }
-    return TRUE;
+    $irrelevant = $this->getCardinality() === 1
+      ? new PropShape(['type' => 'object'])
+      : new PropShape(['type' => 'array', 'items' => ['type' => 'object']]);
+    $this_storable = new StorablePropShape($irrelevant, $this->expression, 'irrelevant', $this->cardinality, $this->fieldStorageSettings, $this->fieldInstanceSettings);
+    $other_storable = new StorablePropShape($irrelevant, $other->expression, 'irrelevant', $other->cardinality, $other->fieldStorageSettings, $other->fieldInstanceSettings);
+    return $this_storable->fieldDataFitsIn($other_storable);
   }
 
   /**
@@ -98,15 +91,13 @@ final class StaticPropSource extends PropSourceBase {
       'value' => $this->getValue(),
       'expression' => (string) $this->expression,
     ];
-    if ($this->fieldStorageSettings !== NULL && $this->fieldStorageSettings !== []) {
+    if ($this->fieldStorageSettings !== NULL && $this->fieldStorageSettings !== StorablePropShape::DEFAULT_STORAGE_SETTINGS) {
       $array_representation['sourceTypeSettings']['storage'] = $this->fieldStorageSettings;
     }
-    if ($this->fieldInstanceSettings !== NULL && $this->fieldInstanceSettings !== []) {
+    if ($this->fieldInstanceSettings !== NULL && $this->fieldInstanceSettings !== StorablePropShape::DEFAULT_INSTANCE_SETTINGS) {
       $array_representation['sourceTypeSettings']['instance'] = $this->fieldInstanceSettings;
     }
-    // Single-cardinality is the default.
-    // @see ::parse()
-    if ($this->cardinality !== NULL && $this->cardinality !== 1) {
+    if ($this->cardinality !== NULL && $this->cardinality !== StorablePropShape::DEFAULT_CARDINALITY) {
       $array_representation['sourceTypeSettings']['cardinality'] = $this->cardinality;
     }
 
@@ -175,7 +166,7 @@ final class StaticPropSource extends PropSourceBase {
     // TRICKY: unfortunately, `field.storage_settings.*` does not store
     // cardinality, but the FieldStorageConfig entity does (config schema:
     // `field.storage.*.*`). Hence the need for an additional key-value pair.
-    return $this->cardinality ?? 1;
+    return $this->cardinality ?? StorablePropShape::DEFAULT_CARDINALITY;
   }
 
   /**
@@ -278,7 +269,7 @@ final class StaticPropSource extends PropSourceBase {
     \assert($expression instanceof FieldTypeBasedPropExpressionInterface);
 
     // Second: retrieve the field storage settings, if any.
-    $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? 1;
+    $cardinality = $sdc_prop_source['sourceTypeSettings']['cardinality'] ?? StorablePropShape::DEFAULT_CARDINALITY;
     $field_storage_settings = $sdc_prop_source['sourceTypeSettings']['storage'] ?? NULL;
     $field_instance_settings = $sdc_prop_source['sourceTypeSettings']['instance'] ?? NULL;
 

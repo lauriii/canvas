@@ -27,12 +27,26 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
   /**
    * Gets component settings.
    *
+   * @param string|null $version
+   *   The version of the component we want the settings for. If omitted,
+   *   defaults to the currently loaded version.
+   *
    * @return array
    *   Component Settings.
    */
-  public function getSettings(): array;
+  public function getSettings(?string $version = NULL): array;
 
-  public function getSlotDefinitions(): array;
+  /**
+   * Gets component slot definitions.
+   *
+   * @param string|null $version
+   *   The version of the component we want the slot definitions for. If
+   *   omitted, defaults to the currently loaded version.
+   *
+   * @return array
+   *   Slot definitions.
+   */
+  public function getSlotDefinitions(?string $version = NULL): array;
 
   /**
    * Sets component settings.

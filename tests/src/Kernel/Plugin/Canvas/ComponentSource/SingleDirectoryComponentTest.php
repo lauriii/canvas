@@ -1165,7 +1165,7 @@ HTML
     $hero_with_dynamic_sources = [
       'uuid' => 'partly-dynamic-hero',
       'component_id' => 'sdc.canvas_test_sdc.my-hero',
-      'component_version' => '888412021fbcc837',
+      'component_version' => 'a681ae184a8f6b7f',
       'inputs' => [
         'heading' => 'hello, world!',
         'subheading' => [

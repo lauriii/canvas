@@ -53,18 +53,31 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
   public function loadVersion(string $version): static {
     if ($version !== $this->loadedVersion) {
       \assert(isset($this->versioned_properties));
-      if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
-        throw new \OutOfRangeException(\sprintf('The requested version `%s` is not available. Available versions: %s.',
-          (string) $version,
-          implode(', ', array_map(
-            fn (string $v): string => \sprintf('`%s`', (string) $v),
-            $this->getVersions(),
-          )),
-        ));
-      }
+      $this->assertVersionExists($version);
       $this->loadedVersion = $version;
     }
     return $this;
+  }
+
+  /**
+   * Asserts the given version exists, or throws an exception.
+   *
+   * @param string $version
+   *   A version string.
+   *
+   * @return void
+   */
+  protected function assertVersionExists(string $version): void {
+    \assert(isset($this->versioned_properties));
+    if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
+      throw new \OutOfRangeException(\sprintf('The requested version `%s` is not available. Available versions: %s.',
+        (string) $version,
+        implode(', ', array_map(
+          fn (string $v): string => \sprintf('`%s`', (string) $v),
+          $this->getVersions(),
+        )),
+      ));
+    }
   }
 
   public function createVersion(string $version): static {

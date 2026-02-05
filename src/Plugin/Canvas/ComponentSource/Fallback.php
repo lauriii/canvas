@@ -25,6 +25,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
   label: new TranslatableMarkup('Fallback'),
   supportsImplicitInputs: FALSE,
   discovery: FALSE,
+  updater: FALSE,
 )]
 final class Fallback extends ComponentSourceBase implements ComponentSourceWithSlotsInterface {
   public const string PLUGIN_ID = 'fallback';

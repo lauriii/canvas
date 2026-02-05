@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -52,6 +53,7 @@ final class ApiLayoutController {
     private readonly FormBuilderInterface $formBuilder,
     private readonly ClientDataToEntityConverter $converter,
     private readonly ComponentTreeLoader $componentTreeLoader,
+    private readonly ComponentSourceManager $componentSourceManager,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -128,6 +130,11 @@ final class ApiLayoutController {
 
   private function buildRegion(string $id, ?ComponentTreeItemList $items = NULL, ?array &$model = NULL, ?FieldableEntityInterface $preview_entity = NULL): array {
     if ($items) {
+      // Auto-update component instances before serving them, which will make
+      // the preview accurate with what the editor would see when editing the
+      // component tree.
+      $this->componentSourceManager->updateComponentInstances($items);
+
       $built = $items->getClientSideRepresentation($preview_entity);
       $model += $built['model'];
       $components = $built['layout'];
@@ -272,8 +279,9 @@ final class ApiLayoutController {
       throw new AccessDeniedHttpException(\sprintf('Access denied for region %s', $entity_to_patch->get('region')));
     }
 
-    // Update the entity & auto-save it.
-    $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $model, $preview_entity);
+    // Update the entity & auto-save it. We might be updating a component
+    // instance version aside of the model itself.
+    $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $preview_entity);
     $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId);
 
     // Inform the UI of the updated reality.
@@ -520,11 +528,16 @@ final class ApiLayoutController {
    *
    * @return void
    */
-  private function updateComponentInstance(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid, array $client_model, ?FieldableEntityInterface $host_entity): void {
+  private function updateComponentInstance(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid, string $version, array $client_model, ?FieldableEntityInterface $host_entity): void {
     $tree = $this->componentTreeLoader->load($entity);
     if ($item = $tree->getComponentTreeItemByUuid($componentInstanceUuid)) {
-      $component = $item->getComponent();
+      // We might be not only updating the inputs, but also the component
+      // instance version (if automatically updating is feasible).
+      // @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface
+      // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getClientSideRepresentation()
+      $component = $item->getComponent()?->loadVersion($version);
       \assert($component instanceof Component);
+      $item->set('component_version', $version);
       $item->setInput(
         $component->getComponentSource()->clientModelToInput(
           $componentInstanceUuid,

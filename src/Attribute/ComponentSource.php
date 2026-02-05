@@ -37,6 +37,9 @@ final class ComponentSource extends Plugin {
    *   SDC, which causes zero changes in Component config entities, and hence
    *   would not be impacted by an invalidation of the `config:component_list`
    *   cache tag. Hence the need for an additional cache tag.
+   * @param class-string|false $updater
+   *   FQCN to a ComponentInstanceUpdaterInterface implementation, or FALSE
+   *   if no updater.
    */
   public function __construct(
     public readonly string $id,
@@ -45,9 +48,13 @@ final class ComponentSource extends Plugin {
     public readonly string|false $discovery,
     public readonly ?string $deriver = NULL,
     public readonly array $discoveryCacheTags = [],
+    public readonly string|false $updater = FALSE,
   ) {
     if (is_string($discovery)) {
       \assert(class_exists($discovery));
+    }
+    if (is_string($this->updater)) {
+      \assert(class_exists($this->updater));
     }
   }
 

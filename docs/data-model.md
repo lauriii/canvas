@@ -101,6 +101,7 @@ See `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem` + its validation c
 Canvas defines a new `Canvas field type` with the following `field prop`s:
 - _uuid_ — A unique ID for this `component instance`
 - _component_id_ — This is the ID of the `Component config entity` this `component instance` references
+- _component_version_ — This is the version of the `Component config entity` this `component instance` uses.
 - _parent_uuid_ — If this `component instance` is placed inside another `component instance` in the tree, the UUID of the parent `component instance`
 - _slot_ — If this `component instance` is placed inside another `component instance` in the tree, the machine name of the `component slot` in which it is placed. This slot must exist in the parent `component instance`.
 - _inputs_ — see 3.2.2
@@ -552,3 +553,39 @@ A complete example, with three `region node`s:
   }
 }
 ```
+
+### 3.5 Data Model: dealing with `component`s evolution
+
+The stored `component tree`s contain `component instance`s tied with specific versions of the associated `Component config entity`. But every `component` can evolve, which will result in new versions.
+
+Each `component source` is able to specify an updater class (see `\Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface`).
+This updater will be responsible for:
+
+* Checking if a `component instance` is using the active version.
+* Deciding if a `component instance` not using the active version can be updated automatically without any data loss.
+* Performing that update.
+
+This update of the `component tree`'s`component instance`s will happen automatically
+as soon as we attempt to edit a component tree (see `\Drupal\canvas\Controller\ApiLayoutController::buildRegion()` and
+`\Drupal\canvas\Controller\ApiConfigControllers::normalize()`).
+
+For those `component source`s not providing an input UX (see [`Canvas Components` doc](components.md)), the scenarios
+where such an update is possible without any risk are:
+
+- Adding optional props
+- Adding slots
+- Changing props from required to optional
+- Changing a prop matched prop shape field widget (but only the widget!)
+- Changing default values in prop_field_definitions
+- Changing slot examples
+
+Unsafe changes (that prevent auto-update) include:
+
+- Adding a new required prop. (@todo We should be able to auto-update when adding a new required prop. Fix it in https://www.drupal.org/i/3568602 and move to the safe changes section.)
+- Removing props (required or optional)
+- Removing slots
+- Changing props from optional to required
+- Changing prop shapes
+
+See
+- `\Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater::canUpdate`

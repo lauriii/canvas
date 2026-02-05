@@ -537,7 +537,8 @@ class ComponentTreeItem extends FieldItemBase {
   }
 
   /**
-   * @todo This belongs in a normalizer */
+   * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
+   */
   public function getClientSideRepresentation(): array {
     return [
       'uuid' => $this->getUuid(),
@@ -655,7 +656,15 @@ class ComponentTreeItem extends FieldItemBase {
   }
 
   public function optimizeInputs(): void {
-    $source = $this->getComponent()?->getComponentSource();
+    $component = $this->getComponent();
+    // We avoid getComponentVersion() to not handle the exception here.
+    // It will be triggered with config schema validation instead.
+    // @see \Drupal\canvas\Entity\Component::save()
+    $version = $this->get('component_version')->getValue();
+    if ($version && in_array($version, $component?->getVersions() ?? [], TRUE)) {
+      $component?->loadVersion($version);
+    }
+    $source = $component?->getComponentSource();
     if ($source === NULL) {
       // This could be running against data that has not been validated, in
       // which case there is nothing we can do without a valid component or
