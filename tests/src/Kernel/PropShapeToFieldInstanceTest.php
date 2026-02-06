@@ -383,7 +383,7 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
         $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
         $primitive_type = JsonSchemaType::from($schema['type']);
         // 2. find matching field instances
-        // @see \Drupal\canvas\PropSource\DynamicPropSource
+        // @see \Drupal\canvas\PropSource\EntityFieldPropSource
         $instance_candidates = [];
         foreach ($entity_types_and_bundles as ['type' => $entity_type_id, 'bundle' => $bundle]) {
           $instance_candidates = [

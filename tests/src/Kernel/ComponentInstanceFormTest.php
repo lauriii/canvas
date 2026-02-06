@@ -353,11 +353,11 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     )->toString();
 
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);
-    // Confirm the `heading` and `subheading` props are not yet linked to DynamicPropSources.
+    // Confirm the `heading` and `subheading` props are not yet linked to EntityFieldPropSources.
     self::assertCount(0, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));
     self::assertCount(0, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-subheading-"]'));
 
-    // Second request: with a valid expression in DynamicPropSource.
+    // Second request: with a valid expression in EntityFieldPropSource.
     // 💡 These are the ones provided by the API response at the start of the
     // test (…/suggestions/prop-sources/…).
     $form_canvas_props['source']['heading'] = self::findSuggestionByLabel('Title', 'heading', $fieldSuggestions)['source'];
@@ -376,7 +376,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));
     self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-subheading-"]'));
 
-    // Third request: with an invalid expression in DynamicPropSource.
+    // Third request: with an invalid expression in EntityFieldPropSource.
     // ⚠️ This cannot happen in the UI, but component trees could be manipulated
     // outside the UI. This shows what would happen when editing such
     // out-of-band manipulated component trees in the Canvas UI.

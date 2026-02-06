@@ -41,7 +41,7 @@ use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\canvas\PropSource\DefaultRelativeUrlPropSource;
-use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
@@ -848,10 +848,10 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\canvas\PropSource\DynamicPropSource
-   * @dataProvider providerDynamicPropSource
+   * @coversClass \Drupal\canvas\PropSource\EntityFieldPropSource
+   * @dataProvider providerEntityFieldPropSource
    */
-  public function testDynamicPropSource(
+  public function testEntityFieldPropSource(
     array $permissions,
     string $expression,
     ?string $adapter_plugin_id,
@@ -865,8 +865,8 @@ class PropSourceTest extends KernelTestBase {
     array $expected_dependencies_expression_only,
     array $expected_dependencies_with_host_entity,
   ): void {
-    // Evaluating dynamic props requires entity and field access of the data
-    // being accessed.
+    // Evaluating entity field props requires entity and field access of the
+    // data being accessed.
 
     // For testing expressions relying on users.
     $this->installEntitySchema('user');
@@ -895,7 +895,7 @@ class PropSourceTest extends KernelTestBase {
       'label' => 'A timestamp, maybe',
       'entity_type' => 'node',
       'bundle' => 'page',
-      // Optional, to be able to test how DynamicPropSource' adapter support
+      // Optional, to be able to test how EntityFieldPropSource' adapter support
       // handles missing optional values (i.e. NULL).
       'required' => FALSE,
       'settings' => [],
@@ -917,9 +917,9 @@ class PropSourceTest extends KernelTestBase {
       'field_photos' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
     ]);
 
-    $original = DynamicPropSource::parse(match ($adapter_plugin_id) {
-      NULL => ['sourceType' => 'dynamic', 'expression' => $expression],
-      default => ['sourceType' => 'dynamic', 'expression' => $expression, 'adapter' => $adapter_plugin_id],
+    $original = EntityFieldPropSource::parse(match ($adapter_plugin_id) {
+      NULL => ['sourceType' => PropSource::EntityField->value, 'expression' => $expression],
+      default => ['sourceType' => PropSource::EntityField->value, 'expression' => $expression, 'adapter' => $adapter_plugin_id],
     });
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
@@ -928,13 +928,13 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame($expected_array_representation, $decoded_representation);
     // @phpstan-ignore argument.type
     $parsed = PropSource::parse($decoded_representation);
-    $this->assertInstanceOf(DynamicPropSource::class, $parsed);
+    $this->assertInstanceOf(EntityFieldPropSource::class, $parsed);
     // The contained information read back out.
-    $this->assertSame('dynamic', $parsed->getSourceType());
+    $this->assertSame(PropSource::EntityField->value, $parsed->getSourceType());
     // @phpstan-ignore-next-line argument.type
     $this->assertInstanceOf($expected_expression_class, StructuredDataPropExpression::fromString($parsed->asChoice()));
 
-    // Test the functionality of a DynamicPropSource:
+    // Test the functionality of a EntityFieldPropSource:
     $parsed_expression = StructuredDataPropExpression::fromString($expression);
     $correct_host_entity_type = match (get_class($parsed_expression)) {
       FieldPropExpression::class, FieldObjectPropsExpression::class => $parsed_expression->entityType->getEntityTypeId(),
@@ -1028,14 +1028,14 @@ class PropSourceTest extends KernelTestBase {
     $this->assertSame($expected_dependencies_with_host_entity, $parsed->calculateDependencies($correct_host_entity));
   }
 
-  public static function providerDynamicPropSource(): \Generator {
+  public static function providerEntityFieldPropSource(): \Generator {
     yield "simple: FieldPropExpression" => [
       'permissions' => ['access user profiles'],
       'expression' => 'ℹ︎␜entity:user␝name␞␟value',
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:user␝name␞␟value',
       ],
       'expected_expression_class' => FieldPropExpression::class,
@@ -1063,7 +1063,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => 'unix_to_date',
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:user␝created␞␟value',
         'adapter' => UnixTimestampToDateAdapter::PLUGIN_ID,
       ],
@@ -1102,7 +1102,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => 'unix_to_date',
       'is_required' => FALSE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝a_timestamp_maybe␞␟value',
         'adapter' => UnixTimestampToDateAdapter::PLUGIN_ID,
       ],
@@ -1154,7 +1154,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
       ],
       'expected_expression_class' => FieldPropExpression::class,
@@ -1208,7 +1208,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => FALSE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝uid␞␟url',
       ],
       'expected_expression_class' => FieldPropExpression::class,
@@ -1258,7 +1258,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝uid␞␟entity␜␜entity:user␝name␞␟value',
       ],
       'expected_expression_class' => ReferenceFieldPropExpression::class,
@@ -1301,7 +1301,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝uid␞␟{human_id↝entity␜␜entity:user␝name␞␟value,machine_id↠target_id}',
       ],
       'expected_expression_class' => FieldObjectPropsExpression::class,
@@ -1440,7 +1440,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => "ℹ︎␜entity:node:page␝field_photos␞0␟entity␜$per_media_type_specific_expression_branches",
       ],
       'expected_expression_class' => ReferenceFieldPropExpression::class,
@@ -1491,7 +1491,7 @@ class PropSourceTest extends KernelTestBase {
       'adapter_plugin_id' => NULL,
       'is_required' => TRUE,
       'expected_array_representation' => [
-        'sourceType' => PropSource::Dynamic->value,
+        'sourceType' => PropSource::EntityField->value,
         'expression' => "ℹ︎␜entity:node:page␝field_photos␞␟entity␜$per_media_type_specific_expression_branches",
       ],
       'expected_expression_class' => ReferenceFieldPropExpression::class,
@@ -1659,7 +1659,7 @@ class PropSourceTest extends KernelTestBase {
     ];
   }
 
-  public static function providerInvalidDynamicPropSourceFieldPropExpressionDueToDelta(): iterable {
+  public static function providerInvalidEntityFieldPropSourceFieldPropExpressionDueToDelta(): iterable {
     yield [
       "ℹ︎␜entity:user␝name␞␟value",
       NULL,
@@ -1719,8 +1719,8 @@ class PropSourceTest extends KernelTestBase {
   /**
    * @covers \Drupal\canvas\PropExpressions\StructuredData\Evaluator
    */
-  #[DataProvider('providerInvalidDynamicPropSourceFieldPropExpressionDueToDelta')]
-  public function testInvalidDynamicPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value, CacheableMetadata $expected_cacheability): void {
+  #[DataProvider('providerInvalidEntityFieldPropSourceFieldPropExpressionDueToDelta')]
+  public function testInvalidEntityFieldPropSourceFieldPropExpressionDueToDelta(string $expression, ?string $expected_message, mixed $expected_value, CacheableMetadata $expected_cacheability): void {
     $this->setUpCurrentUser(permissions: ['administer permissions', 'access user profiles', 'administer users']);
     Role::create(['id' => 'test_role_a', 'label' => 'Test role A'])->save();
     Role::create(['id' => 'test_role_b', 'label' => 'Test role B'])->save();
@@ -1733,14 +1733,14 @@ class PropSourceTest extends KernelTestBase {
     ])->activate();
 
     // @phpstan-ignore-next-line argument.type
-    $dynamic_prop_source_delta_test = new DynamicPropSource(StructuredDataPropExpression::fromString($expression));
+    $entity_field_prop_source_delta_test = new EntityFieldPropSource(StructuredDataPropExpression::fromString($expression));
 
     if ($expected_message !== NULL) {
       $this->expectException(\LogicException::class);
       $this->expectExceptionMessage($expected_message);
     }
 
-    $evaluation_result = $dynamic_prop_source_delta_test->evaluate($user, is_required: TRUE);
+    $evaluation_result = $entity_field_prop_source_delta_test->evaluate($user, is_required: TRUE);
     self::assertSame($expected_value, $evaluation_result->value);
     self::assertSame($expected_cacheability->getCacheTags(), $evaluation_result->getCacheTags());
     self::assertSame($expected_cacheability->getCacheContexts(), $evaluation_result->getCacheContexts());
@@ -1748,15 +1748,15 @@ class PropSourceTest extends KernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropSource\DynamicPropSource::withAdapter()
-   * @covers \Drupal\canvas\PropSource\DynamicPropSource::parse())
+   * @covers \Drupal\canvas\PropSource\EntityFieldPropSource::withAdapter()
+   * @covers \Drupal\canvas\PropSource\EntityFieldPropSource::parse())
    */
-  public function testInvalidDynamicPropSourceDueToMissingAdapter(): void {
+  public function testInvalidEntityFieldPropSourceDueToMissingAdapter(): void {
     $this->expectException(PluginNotFoundException::class);
     $this->expectExceptionMessage('The "unix_to_date_oops_I_have_been_renamed" plugin does not exist.');
 
-    DynamicPropSource::parse([
-      'sourceType' => PropSource::Dynamic->value,
+    EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
       'expression' => 'ℹ︎␜entity:user␝created␞␟value',
       'adapter' => 'unix_to_date_oops_I_have_been_renamed',
     ]);
@@ -1799,7 +1799,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(AdaptedPropSource::class, $simple_static_example);
     // The contained information read back out.
     $this->assertSame('adapter:day_count', $simple_static_example->getSourceType());
-    // Test the functionality of a DynamicPropSource:
+    // Test the functionality of a EntityFieldPropSource:
     // - evaluate it to populate an SDC prop
     $user = User::create(['name' => 'John Doe', 'created' => 694695600, 'access' => 1720602713]);
     // TRICKY: entities must be saved for them to have cache tags.
@@ -1819,15 +1819,15 @@ class PropSourceTest extends KernelTestBase {
       ],
     ], $simple_static_example->calculateDependencies());
 
-    // A simple dynamic example.
-    $simple_dynamic_example = AdaptedPropSource::parse([
+    // A simple entity field example.
+    $simple_entity_field_example = AdaptedPropSource::parse([
       'sourceType' => 'adapter:day_count',
       'adapterInputs' => [
         'oldest' => [
           'sourceType' => 'adapter:unix_to_date',
           'adapterInputs' => [
             'unix' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:user␝created␞␟value',
             ],
           ],
@@ -1836,7 +1836,7 @@ class PropSourceTest extends KernelTestBase {
           'sourceType' => 'adapter:unix_to_date',
           'adapterInputs' => [
             'unix' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:user␝access␞␟value',
             ],
           ],
@@ -1845,13 +1845,13 @@ class PropSourceTest extends KernelTestBase {
     ]);
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
-    $json_representation = (string) $simple_dynamic_example;
-    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝created␞␟value"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
-    $simple_dynamic_example = PropSource::parse(json_decode($json_representation, TRUE));
-    $this->assertInstanceOf(AdaptedPropSource::class, $simple_dynamic_example);
+    $json_representation = (string) $simple_entity_field_example;
+    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"entity-field","expression":"ℹ︎␜entity:user␝created␞␟value"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"entity-field","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
+    $simple_entity_field_example = PropSource::parse(json_decode($json_representation, TRUE));
+    $this->assertInstanceOf(AdaptedPropSource::class, $simple_entity_field_example);
     // The contained information read back out.
-    $this->assertSame('adapter:day_count', $simple_dynamic_example->getSourceType());
-    // Test the functionality of a DynamicPropSource:
+    $this->assertSame('adapter:day_count', $simple_entity_field_example->getSourceType());
+    // Test the functionality of a EntityFieldPropSource:
     // - evaluate it to populate an SDC prop
     $this->setUpCurrentUser(permissions: ['access user profiles', 'administer users']);
     self::assertEquals(
@@ -1860,7 +1860,7 @@ class PropSourceTest extends KernelTestBase {
         (new CacheableMetadata())
           ->setCacheTags(['user:1'])
           ->setCacheContexts(['user.permissions'])),
-      $simple_dynamic_example->evaluate($user, is_required: TRUE)
+      $simple_entity_field_example->evaluate($user, is_required: TRUE)
     );
     self::assertSame([
       'module' => [
@@ -1870,7 +1870,7 @@ class PropSourceTest extends KernelTestBase {
         'canvas',
         'user',
       ],
-    ], $simple_dynamic_example->calculateDependencies($user));
+    ], $simple_entity_field_example->calculateDependencies($user));
 
     // A complex example.
     $complex_example = AdaptedPropSource::parse([
@@ -1890,7 +1890,7 @@ class PropSourceTest extends KernelTestBase {
           'sourceType' => 'adapter:unix_to_date',
           'adapterInputs' => [
             'unix' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:user␝access␞␟value',
             ],
           ],
@@ -1900,12 +1900,12 @@ class PropSourceTest extends KernelTestBase {
     // First, get the string representation and parse it back, to prove
     // serialization and deserialization works.
     $json_representation = (string) $complex_example;
-    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":"2020-04-16","expression":"ℹ︎datetime␟value","sourceTypeSettings":{"storage":{"datetime_type":"date"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"dynamic","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
+    $this->assertSame('{"sourceType":"adapter:day_count","adapterInputs":{"oldest":{"sourceType":"static:field_item:datetime","value":"2020-04-16","expression":"ℹ︎datetime␟value","sourceTypeSettings":{"storage":{"datetime_type":"date"}}},"newest":{"sourceType":"adapter:unix_to_date","adapterInputs":{"unix":{"sourceType":"entity-field","expression":"ℹ︎␜entity:user␝access␞␟value"}}}}}', $json_representation);
     $complex_example = PropSource::parse(json_decode($json_representation, TRUE));
     $this->assertInstanceOf(AdaptedPropSource::class, $complex_example);
     // The contained information read back out.
     $this->assertSame('adapter:day_count', $complex_example->getSourceType());
-    // Test the functionality of a DynamicPropSource:
+    // Test the functionality of a EntityFieldPropSource:
     // - evaluate it to populate an SDC prop
     self::assertEquals(
       new EvaluationResult(
@@ -1947,7 +1947,7 @@ class PropSourceTest extends KernelTestBase {
           'sourceType' => 'adapter:unix_to_date',
           'adapterInputs' => [
             'unix' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:user␝access␞␟value',
             ],
           ],
@@ -1962,7 +1962,7 @@ class PropSourceTest extends KernelTestBase {
     $this->assertInstanceOf(AdaptedPropSource::class, $complex_example_bc);
     // The contained information read back out.
     $this->assertSame('adapter:day_count', $complex_example_bc->getSourceType());
-    // Test the functionality of a DynamicPropSource:
+    // Test the functionality of a EntityFieldPropSource:
     // - evaluate it to populate an SDC prop
     self::assertEquals(
       new EvaluationResult(
@@ -2101,48 +2101,48 @@ class PropSourceTest extends KernelTestBase {
    * @param class-string<\Throwable>|null $expected_exception
    */
   #[TestWith([
-    ['sourceType' => 'host-entity-url'],
-    ['sourceType' => 'host-entity-url', 'absolute' => TRUE],
+    ['sourceType' => PropSource::HostEntityUrl->value],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => TRUE],
     'media',
     self::IMAGE_MEDIA_UUID1,
     '/media/1/edit',
     NULL,
   ])]
   #[TestWith([
-    ['sourceType' => 'host-entity-url'],
-    ['sourceType' => 'host-entity-url', 'absolute' => TRUE],
+    ['sourceType' => PropSource::HostEntityUrl->value],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => TRUE],
     'file',
     self::FILE_UUID1,
     NULL,
     UndefinedLinkTemplateException::class,
   ])]
   #[TestWith([
-    ['sourceType' => 'host-entity-url'],
-    ['sourceType' => 'host-entity-url', 'absolute' => TRUE],
+    ['sourceType' => PropSource::HostEntityUrl->value],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => TRUE],
     'media',
     'not-a-real-uuid',
     NULL,
     MissingHostEntityException::class,
   ])]
   #[TestWith([
-    ['sourceType' => 'host-entity-url'],
-    ['sourceType' => 'host-entity-url', 'absolute' => TRUE],
+    ['sourceType' => PropSource::HostEntityUrl->value],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => TRUE],
     'node',
     'with-alias',
     '/awesome-page',
     NULL,
   ])]
   #[TestWith([
-    ['sourceType' => 'host-entity-url'],
-    ['sourceType' => 'host-entity-url', 'absolute' => TRUE],
+    ['sourceType' => PropSource::HostEntityUrl->value],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => TRUE],
     'node',
     'without-alias',
     '/node/1',
     NULL,
   ])]
   #[TestWith([
-    ['sourceType' => 'host-entity-url', 'absolute' => FALSE],
-    ['sourceType' => 'host-entity-url', 'absolute' => FALSE],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => FALSE],
+    ['sourceType' => PropSource::HostEntityUrl->value, 'absolute' => FALSE],
     'node',
     'with-alias',
     '/awesome-page',
@@ -2161,7 +2161,7 @@ class PropSourceTest extends KernelTestBase {
     // Confirm that the array representation can be parsed back.
     $source = PropSource::parse($expected_array_representation);
     self::assertInstanceOf(HostEntityUrlPropSource::class, $source);
-    self::assertSame('host-entity-url', $source->getSourceType());
+    self::assertSame(PropSource::HostEntityUrl->value, $source->getSourceType());
     self::assertSame($expected_array_representation['absolute'], $source->absolute);
     self::assertSame([], $source->calculateDependencies());
     self::assertSame(
@@ -2198,6 +2198,19 @@ class PropSourceTest extends KernelTestBase {
       $this->expectException($expected_exception);
     }
     self::assertSame($expected_url, $source->evaluate($entity, TRUE)->value);
+  }
+
+  /**
+   * @covers PropSource::Dynamic
+   * @group legacy
+   */
+  public function testDynamicPrefixIsTransformedOnLoad(): void {
+    $this->expectDeprecation('The "dynamic" prop source was renamed to "entity field" is deprecated in canvas:1.2.0 and will be removed from canvas:2.0.0. Re-save (and re-export) all Canvas content templates. See https://www.drupal.org/node/3566701');
+    $prop_source = PropSource::parse([
+      'sourceType' => PropSource::Dynamic->value,
+      'expression' => "ℹ︎␜entity:user␝name␞␟value",
+    ]);
+    self::assertInstanceOf(EntityFieldPropSource::class, $prop_source);
   }
 
 }

@@ -1,0 +1,22 @@
+# cspell:ignore centity dtitle
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.sdc.canvas_test_sdc.heading
+    - core.entity_view_mode.node.full
+    - node.type.page
+  module:
+    - node
+    - options
+id: node.page.full
+content_entity_type_id: node
+content_entity_type_bundle: page
+content_entity_type_view_mode: full
+component_tree:
+  -
+    uuid: ee301ace-62c0-4a16-9363-d29bfd9239df
+    component_id: sdc.canvas_test_sdc.heading
+    component_version: 8c01a2bdb897a810
+    inputs: '{"text":{"sourceType":"dynamic","expression":"\u2139\ufe0e\u241centity:node:page\u241dtitle\u241e\u241fvalue"},"style":"primary","element":"h1"}'
+exposed_slots: {  }

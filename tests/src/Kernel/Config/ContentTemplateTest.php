@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
@@ -159,7 +160,7 @@ final class ContentTemplateTest extends KernelTestBase {
         'component_version' => 'b1e991f726a2a266',
         'inputs' => [
           'heading' => [
-            'sourceType' => 'dynamic',
+            'sourceType' => PropSource::EntityField->value,
             'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
           ],
         ],
@@ -240,7 +241,7 @@ final class ContentTemplateTest extends KernelTestBase {
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
             ],
           ],

@@ -41,10 +41,10 @@ classDiagram
     class PropSource {
         sourceType
     }
-    PropSource <|-- DynamicPropSource: Implements
+    PropSource <|-- EntityFieldPropSource: Implements
     PropSource <|-- StaticPropSource: Implements
     PropSource <|-- AdaptedPropSource: Implements
-    class DynamicPropSource {
+    class EntityFieldPropSource {
         PropExpression expression
     }
     class StaticPropSource {
@@ -54,13 +54,13 @@ classDiagram
     }
     class AdaptedPropSource {
         string adapterPlugin
-        StaticPropSource|DynamicPropSource adapterPluginInput[]
+        StaticPropSource|EntityFieldPropSource adapterPluginInput[]
     }
-    DynamicPropSource "1" --> "1" FieldPropExpression: Uses
+    EntityFieldPropSource "1" --> "1" FieldPropExpression: Uses
     StaticPropSource "1" --> "1" FieldTypePropExpression: Uses
-    DynamicPropSource "1" --> "1" other-base-or-bundle-field: Evaluates
+    EntityFieldPropSource "1" --> "1" other-base-or-bundle-field: Evaluates
     AdaptedPropSource "1…N" --> "0…N" StaticPropSource: Uses
-    AdaptedPropSource "1…N" --> "0…N" DynamicPropSource: Uses
+    AdaptedPropSource "1…N" --> "0…N" EntityFieldPropSource: Uses
     PropExpression <|-- FieldTypePropExpression: Implements
     PropExpression <|-- FieldPropExpression: Implements
     class PropExpression {

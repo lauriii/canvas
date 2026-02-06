@@ -6,12 +6,12 @@ namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
-use Drupal\canvas\PropSource\DynamicPropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
@@ -330,8 +330,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // Prop sources can only evaluate structured data from fieldable entities,
     // but the component tree may be contained by a config entity.
     // It is up to the code using/rendering that config entity to provide a
-    // fieldable host entity if DynamicPropSources are used, which currently is
-    // only the case for ContentTemplate component trees.
+    // fieldable host entity if EntityFieldPropSources are used, which currently
+    // is only the case for ContentTemplate component trees.
     // @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
     $root = $item->getRoot();
     $fieldable_host_entity = match (TRUE) {
@@ -551,10 +551,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       );
     }
     catch (MissingHostEntityException $e) {
-      // DynamicPropSources cannot be validated in isolation, only in the
+      // EntityFieldPropSources cannot be validated in isolation, only in the
       // context of a host content entity.
       if ($entity === NULL) {
-        // This case can only be hit when using a DynamicPropSource
+        // This case can only be hit when using a EntityFieldPropSource
         // inappropriately, which is validated elsewhere.
         // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraintValidator
         return $violations;
@@ -716,9 +716,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         ));
       }
       $disabled = FALSE;
-      $linked_prop_source = ($source instanceof DynamicPropSource || $source instanceof HostEntityUrlPropSource) ? $source : NULL;
+      $linked_prop_source = ($source instanceof EntityFieldPropSource || $source instanceof HostEntityUrlPropSource) ? $source : NULL;
       if (!$source instanceof StaticPropSource) {
-        // @todo Build DynamicPropSource UX in https://www.drupal.org/i/3541037. Related: https://www.drupal.org/project/canvas/issues/3459234
+        // @todo Build EntityFieldPropSource UX in https://www.drupal.org/i/3541037. Related: https://www.drupal.org/project/canvas/issues/3459234
         // @todo Design is undefined for the AdaptedPropSource UX.
         // Fall back to the static version, disabled for now where the design is
         // undefined.
@@ -1221,9 +1221,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
           $prop_source['value'] = $prop_value;
         }
         $source = PropSource::parse($prop_source);
-        if ($source instanceof DynamicPropSource) {
+        if ($source instanceof EntityFieldPropSource) {
           if ($host_entity === NULL) {
-            throw new \InvalidArgumentException('A host entity is required to set dynamic prop sources.');
+            throw new \InvalidArgumentException('A host entity is required to set entity field prop sources.');
           }
           $source->expression->validateSupport($host_entity);
           $props[$prop] = $this->collapse($source, $prop);

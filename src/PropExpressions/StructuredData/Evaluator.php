@@ -176,8 +176,8 @@ final class Evaluator {
         self::permanentCacheabilityUnlessSpecified($result)
       );
     }
-    // 💡 This branch handles expressions used by DynamicPropSources.
-    // @see \Drupal\canvas\PropSource\DynamicPropSource::evaluate()
+    // 💡 This branch handles expressions used by EntityFieldPropSources.
+    // @see \Drupal\canvas\PropSource\EntityFieldPropSource::evaluate()
     else {
       \assert($expr instanceof EntityFieldBasedPropExpressionInterface);
       $entity = $entity_or_field;

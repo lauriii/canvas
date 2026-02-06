@@ -16,7 +16,7 @@ use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 
 /**
- * @todo Add test coverage for dynamic prop sources used in the content type
+ * @todo Add test coverage for entity field prop sources used in the content
  *   templates in https://drupal.org/i/3455629. This will most likely require
  *   adding back `canvas_entity_prepare_view()` which was removed in
  *   https://www.drupal.org/i/3481720.

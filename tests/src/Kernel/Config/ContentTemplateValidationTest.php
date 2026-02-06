@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\canvas\Entity\Component;
@@ -118,7 +119,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '89881c04a0fde367',
           'inputs' => [
             'text' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
             ],
           ],
@@ -130,7 +131,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:alpha␝field_test␞␟value',
             ],
           ],
@@ -143,7 +144,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'inputs' => [
             'text' => 'Behold this node in all its glory',
             'href' => [
-              'sourceType' => 'host-entity-url',
+              'sourceType' => PropSource::HostEntityUrl->value,
             ],
           ],
         ],
@@ -241,7 +242,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'expected_messages' => [],
     ];
 
-    yield "no DynamicPropSource, so no structured data from the content entity" => [
+    yield "no EntityFieldPropSource, so no structured data from the content entity" => [
       'component_tree' => [
         [
           'uuid' => '19ff9a18-54a2-422a-bf68-49d65a5d53ac',
@@ -261,7 +262,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -313,7 +314,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -327,7 +328,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
               'sourceType' => 'adapter:image_apply_style',
               'adapterInputs' => [
                 'image' => [
-                  'sourceType' => 'dynamic',
+                  'sourceType' => PropSource::EntityField->value,
                   'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↝entity␜␜entity:file␝uri␞0␟value,alt↠alt,width↠width,height↠height}',
                 ],
                 'imageStyle' => [
@@ -353,7 +354,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -364,7 +365,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -383,7 +384,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -396,7 +397,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -415,7 +416,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -428,7 +429,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -447,7 +448,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => '85a5c0c7dd53e0bb',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -475,7 +476,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
@@ -570,7 +571,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
       'inputs' => [
         'heading' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:alpha␝title␞␟value',
         ],
       ],

@@ -32,7 +32,13 @@ enum PropSource: string {
 
   case Adapter = 'adapter';
   case DefaultRelativeUrl = 'default-relative-url';
+  // The 'dynamic' prop source type is a backwards-compatible alias for
+  // 'entity-field'.
+  // @todo Remove before Canvas 2.0
+  // @see https://www.drupal.org/node/3566701
+  // @see ::parse()
   case Dynamic = 'dynamic';
+  case EntityField = 'entity-field';
   case Static = 'static';
   case HostEntityUrl = 'host-entity-url';
 
@@ -55,7 +61,7 @@ enum PropSource: string {
       DefaultRelativeUrlPropSource::class => self::DefaultRelativeUrl->value,
       HostEntityUrlPropSource::class => self::HostEntityUrl->value,
       StaticPropSource::class => self::Static->value,
-      DynamicPropSource::class => self::Dynamic->value,
+      EntityFieldPropSource::class => self::EntityField->value,
       default => throw new \LogicException('Unknown prop source class.'),
     };
   }
@@ -67,9 +73,14 @@ enum PropSource: string {
     $source_type_prefix = strstr($prop_source['sourceType'], PropSourceBase::SOURCE_TYPE_PREFIX_SEPARATOR, TRUE);
     // If the prefix separator is not present, then use the full source type.
     // For example: `dynamic` does not need a more detailed source type.
-    // @see \Drupal\canvas\PropSource\DynamicPropSource::__toString()
+    // @see \Drupal\canvas\PropSource\EntityFieldPropSource::__toString()
     if ($source_type_prefix === FALSE) {
       $source_type_prefix = $prop_source['sourceType'];
+    }
+    if ($source_type_prefix === self::Dynamic->value) {
+      // The 'dynamic' source type is a backwards-compatible alias for
+      // 'entity-field'.
+      @trigger_error('The "dynamic" prop source was renamed to "entity field" and is deprecated in canvas:1.2.0 and will be removed from canvas:2.0.0. Re-save (and re-export) all Canvas content templates. See https://www.drupal.org/node/3566701', E_USER_DEPRECATED);
     }
     return match (self::tryFrom($source_type_prefix)) {
       // The DefaultRelativeUrlPropSource allows referring to a
@@ -91,7 +102,7 @@ enum PropSource: string {
       // @phpstan-ignore-next-line argument.type
       self::Adapter => AdaptedPropSource::parse($prop_source),
       self::Static => StaticPropSource::parse($prop_source),
-      self::Dynamic => DynamicPropSource::parse($prop_source),
+      self::EntityField, self::Dynamic => EntityFieldPropSource::parse($prop_source),
       default => throw new \LogicException('Unknown source type.'),
     };
   }

@@ -1169,12 +1169,12 @@ HTML
       'inputs' => [
         'heading' => 'hello, world!',
         'subheading' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
         ],
         'cta1href' => ['uri' => 'https://drupal.org'],
         'cta1' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
         ],
       ],
@@ -5331,7 +5331,7 @@ HTML
     $clientModel = [
       'source' => [
         'heading' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:page␝title␞␟value',
           'value' => 'Some value, will be ignored by server',
         ],
@@ -5357,7 +5357,7 @@ HTML
           'value' => 'Inside developer joke',
         ],
         'subheading' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:page␝revision_log␞␟value',
           'value' => NULL,
         ],
@@ -5372,7 +5372,7 @@ HTML
     ];
     $expectedInput = [
       'heading' => [
-        'sourceType' => 'dynamic',
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝title␞␟value',
       ],
       'cta1' => 'Witty test value',
@@ -5382,22 +5382,22 @@ HTML
       ],
       'cta2' => 'Inside developer joke',
       'subheading' => [
-        'sourceType' => 'dynamic',
+        'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:node:page␝revision_log␞␟value',
       ],
     ];
     $nodeValues = ['type' => 'page', 'title' => 'Test page for inputToClientModel'];
     // Explicit failure when no host entity is provided.
-    yield "Invalid: DynamicPropSource without host entity" => [
+    yield "Invalid: EntityFieldPropSource without host entity" => [
       'clientModel' => $clientModel,
       'nodeValues' => NULL,
       'expectedInput' => NULL,
       'expectedExceptionClass' => \InvalidArgumentException::class,
-      'expectedExceptionMessage' => 'A host entity is required to set dynamic prop sources.',
+      'expectedExceptionMessage' => 'A host entity is required to set entity field prop sources.',
     ];
     // Expected (server-side) component instance input for the given client model when provided with a host entity.
     // The non-required property "subheading" is linked to an empty field, revision_log.
-    yield "Valid: DynamicPropSource with host entity, empty non-required property" => [
+    yield "Valid: EntityFieldPropSource with host entity, empty non-required property" => [
       'clientModel' => $clientModel,
       'nodeValues' => $nodeValues,
       'expectedInput' => $expectedInput,
@@ -5407,7 +5407,7 @@ HTML
     // Expected (server-side) component instance input for the given client model when provided with a host entity.
     // The non-required property "subheading" is linked to a non-empty field, revision_log.
     $nodeValues['revision_log'] = 'This is the revision log.';
-    yield "Valid: DynamicPropSource with host entity, not empty non-required property" => [
+    yield "Valid: EntityFieldPropSource with host entity, not empty non-required property" => [
       'clientModel' => $clientModel,
       'nodeValues' => $nodeValues,
       'expectedInput' => $expectedInput,
@@ -5416,7 +5416,7 @@ HTML
     ];
     // Modifying the client model to use an expression requiring a different bundle triggers an exception.
     $clientModel['source']['heading']['expression'] = 'ℹ︎␜entity:node:article␝title␞␟value';
-    yield "Invalid: DynamicPropSource, expression with non-matching bundle" => [
+    yield "Invalid: EntityFieldPropSource, expression with non-matching bundle" => [
       'clientModel' => $clientModel,
       'nodeValues' => $nodeValues,
       'expectedInput' => NULL,

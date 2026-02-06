@@ -50,7 +50,7 @@ to one of us! 😊 🙏
 - `prop shape`: a normalized representation of the schema for a `component input`, without metadata that does not affect the _shape_: a title or description does not affect what values _fit into this shape_; only necessary for `Component Source Plugins` that DO NOT provide their own input UX.
 - `prop source`: a source for retrieving a prop value
   - `static prop source`: a `prop source` powered by a `conjured field` (i.e. `unstructured data`)
-  - `dynamic prop source`: a `prop source` powered by a `base field` or `bundle field` (i.e. `structured data`)
+  - `entity field prop source`: a `prop source` powered by a `base field` or `bundle field` (i.e. `structured data`)
   - `host entity URL prop source`: a `prop source` that generates various URLs for the `content entity` that contains it (e.g., the entity's canonical URL)
   - TBD: `remote prop source`: a `prop source` powered by a remote source ("external data"), i.e. data stored outside Drupal
 - `structured data`: the data model defined by a Site Builder in a `content type`, and whose smallest units are `field props` — queryable by Views
@@ -111,7 +111,7 @@ ask. Because:
 - in other words: `component input`s should be populated by `structured data` if they contain _semantical_ information,
   otherwise it is _presentational_ information and hence `unstructured data` is more appropriate
 
-##### 3.1.2.a `structured data` → matching `entity fields`s ⇒ `dynamic prop source`
+##### 3.1.2.a `structured data` → matching `entity field`s ⇒ `entity field prop source`
 
 See:
 - `\Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher`
@@ -137,14 +137,14 @@ one `component`'s `component input`, but optional for another. So an additional 
 versus required occurrences of a `prop shape`:
 3. if a `component input` is required, the matching `entity field`s must also be marked as required
 
-The found `entity field`s can then be used in a `dynamic prop source`, that can be _evaluated_ to retrieve the stored
-value that fits in the `prop shape`.
-ℹ️ A `dynamic prop source` may specify a single "adapter" plugin (which must take a single input), which allows
+The found `entity field`s can then be used in a `entity field prop source`, that can be _evaluated_ to retrieve the
+stored value that fits in the `prop shape`.
+ℹ️ An `entity field prop source` may specify a single "adapter" plugin (which must take a single input), which allows
 Canvas to suggest field properties that _conceptually_ fit perfectly, but don't _technically_ fit, a particular `prop shape`.
 For example: "timestamp" fields (which contain UNIX timestamps) can be made available to props that have the
 `type: string, format: date` shape, by using the `unix_to_date` adapter plugin.
 
-See `\Drupal\canvas\PropSource\DynamicPropSource`.
+See `\Drupal\canvas\PropSource\EntityFieldPropSource`.
 
 ⚠️ **Multiple** bits of `structured data` may be able to fit into a given `prop shape`. All viable choices are
 suggested by `\Drupal\canvas\ShapeMatcher\PropSourceSuggester`, with irrelevant choices omitted (such as the
@@ -194,13 +194,13 @@ Note: if the result is  different, a [new version is added to the `Component con
 using the aforementioned logic what `field type`, `field widget` et cetera to use. Only when using `structured data`,
 there is a need for an additional choice (see the `PropSourceSuggester` mentioned in 3.1.2.a).
 
-#### 3.1.3 `prop expression`s: evaluating a `dynamic prop source` or `static prop source`
+#### 3.1.3 `prop expression`s: evaluating a `entity field prop source` or `static prop source`
 
 `prop expression`s are one of the lowest level building block of how Canvas works: it's similar to Drupal core's "token"
 system, but more precise (it can return non-string values) and powerful (they can be chained).
 
 Only developers of field types ever have to understand them in detail. Site Builders and Content Creators only interact
-with them  indirectly: Site Builders choose `dynamic prop source`s or `static prop source`s to populate
+with them  indirectly: Site Builders choose `entity field prop source`s or `static prop source`s to populate
 `component input`s, and those `prop source`s contain `prop expression`s that define how to retrieve the actual value(s).
 
 So, _if_ you're going to implement `hook_canvas_storable_prop_shape_alter()`, you will need to have at least a basic
@@ -223,7 +223,7 @@ See
 Many `field type`s contain a single `field prop` (typically named "value"), but not all. Most `field type`s have one
 required "main prop", many have additional optional props or even computed props.
 
-To reliable retrieve the value from a `static prop source` or `dynamic prop source`, the `field item` alone is
+To reliable retrieve the value from a `static prop source` or `entity field prop source`, the `field item` alone is
 insufficient: `Canvas` needs to know exactly which `field prop`(s) to retrieve from a `field item`. Plus, it may need to
 arrange those retrieved values in a particular layout (for `prop shape`s that use the "object" primitive type the right
 key-value pairs must be assembled).

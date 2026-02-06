@@ -266,3 +266,21 @@ function canvas_post_update_0012_canvas_image_style_avif(array &$sandbox): void 
     $image_style->save();
   }
 }
+
+/**
+ * Updates content templates' DynamicPropSources to EntityFieldPropSources.
+ */
+function canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  // Loading and re-saving automatically triggers a just-in-time update path.
+  // @see \Drupal\canvas\PropSource\PropSource::parse()
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    // We might not need to update every single ContentTemplate, because
+    // entity-field prop source presence is allowed, but not enforced via config
+    // schema. But the chances a content template won't have an entity-field
+    // prop source is quite low and irrelevant.
+    ->update($sandbox, ContentTemplate::ENTITY_TYPE_ID, static fn(ContentTemplate $template): bool => TRUE);
+
+}

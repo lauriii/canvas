@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -84,7 +85,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     $top_level_component_uuid = '5f71027b-d9d3-4f3d-8990-a6502c0ba676';
     $nested_component_uuid = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7859';
-    // Add a heading populated by a dynamic prop source using the `title` field.
+    // Add a heading populated by an entity field prop source using the `title`
+    // field.
     $components = [
       [
         'uuid' => $top_level_component_uuid,
@@ -92,7 +94,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         'component_version' => '85a5c0c7dd53e0bb',
         'inputs' => [
           'heading' => [
-            'sourceType' => 'dynamic',
+            'sourceType' => PropSource::EntityField->value,
             'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
         ],
@@ -103,7 +105,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         'component_version' => 'b1e991f726a2a266',
         'inputs' => [
           'heading' => [
-            'sourceType' => 'dynamic',
+            'sourceType' => PropSource::EntityField->value,
             'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
           ],
         ],
@@ -137,7 +139,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       self::assertSame($expected_title, (string) $this->cssSelect('[data-component-id="canvas_test_sdc:props-slots"] [data-component-id="canvas_test_sdc:props-no-slots"] > h1')[0]);
     };
 
-    // Assert the original resolved dynamic prop source + resulting HTML.
+    // Assert the original resolved entity field prop source + resulting HTML.
     $response = $this->request($get_layout_api_request);
     self::assertInstanceOf(JsonResponse::class, $response);
     $title_matches_resolved_and_html('Canvas Needs This For The Time Being', $response);

@@ -172,7 +172,7 @@ final class PageTest extends KernelTestBase {
     );
     // See \Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
     // \Drupal\Tests\canvas\Unit\PropExpressionTest for extended test coverage,
-    // which combined with \Drupal\Tests\canvas\Kernel\PropSourceTest::testDynamicPropSource,
+    // which combined with \Drupal\Tests\canvas\Kernel\PropSourceTest::testEntityFieldPropSource,
     // does already prove that this will work correctly for EVERYTHING.
     $dependencies = $components->calculateDependencies();
     $this->assertSame([

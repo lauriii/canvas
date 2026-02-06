@@ -88,8 +88,8 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
           }
           $prop_source = PropSource::parse($input);
           // Only a static prop source will store a reference to a specific
-          // entity. Dynamic prop sources would store a reference to field on
-          // the host entity where the actual entity would depend on the host
+          // entity. Entity field prop sources would store a reference to field
+          // on the host entity where the actual entity would depend on the host
           // entity.
           if (!$prop_source instanceof StaticPropSource) {
             continue;

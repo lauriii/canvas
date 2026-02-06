@@ -12,7 +12,7 @@ use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropShape\PropShape;
-use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
@@ -38,7 +38,8 @@ use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
  * The following prop source types should be suggested, based on shape matches,
  * with guarantees that each suggestion can indeed correctly populate the given
  * component's props:
- * - DynamicPropSources — these suggest fields (on the host entity type+bundle)
+ * - EntityFieldPropSources — these suggest fields (on the host entity
+ *   type+bundle)
  * - HostEntityUrlPropSources — these suggest (relative or absolute) URLs
  * - AdaptedPropSource — these suggest adapters
  *
@@ -134,7 +135,7 @@ final class PropSourceSuggester {
    *   Host entity type + bundle, necessary to suggest certain types of prop
    *   sources.
    *
-   * @return array<string, array{required: bool, instances: array<string, DynamicPropSource>, adapters: array<AdapterInterface>, host_entity_urls: array<string, HostEntityUrlPropSource>}>
+   * @return array<string, array{required: bool, instances: array<string, EntityFieldPropSource>, adapters: array<AdapterInterface>, host_entity_urls: array<string, HostEntityUrlPropSource>}>
    */
   public function suggest(string $component_plugin_id, ComponentMetadata $component_metadata, EntityDataDefinitionInterface $host_entity_type): array {
     $host_entity_type_id = $host_entity_type->getEntityTypeId();
@@ -197,7 +198,7 @@ final class PropSourceSuggester {
         $dynamic_prop_sources_in_entity_form_display_order = NestedArray::mergeDeep(...$m['instances']);
         $suggestions[$cpe]['instances'] = array_combine(
           array_map(
-            fn (DynamicPropSource $s) => (string) Labeler::flatten($this->labeler->label($s->expression, $host_entity_type)),
+            fn (EntityFieldPropSource $s) => (string) Labeler::flatten($this->labeler->label($s->expression, $host_entity_type)),
             $dynamic_prop_sources_in_entity_form_display_order
           ),
           $dynamic_prop_sources_in_entity_form_display_order
@@ -228,7 +229,7 @@ final class PropSourceSuggester {
   }
 
   /**
-   * @return array<string, array{instances: array<DynamicPropSource>, adapters: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host_entity_urls: array<HostEntityUrlPropSource>}>
+   * @return array<string, array{instances: array<EntityFieldPropSource>, adapters: array<\Drupal\canvas\Plugin\Adapter\AdapterInterface>, host_entity_urls: array<HostEntityUrlPropSource>}>
    */
   private function getRawMatches(string $component_plugin_id, ComponentMetadata $component_metadata, string $host_entity_type, string $host_entity_bundle): array {
     $raw_matches = [];
@@ -244,13 +245,13 @@ final class PropSourceSuggester {
 
       $instance_candidates = $this->propMatcher->findFieldInstanceFormatMatches($primitive_type, $is_required, $schema, $host_entity_type, $host_entity_bundle);
       $adapter_candidates = $this->propMatcher->findAdaptersByMatchingOutput($schema);
-      $raw_matches[(string) $cpe]['instances'] = array_map(fn ($expr): DynamicPropSource => new DynamicPropSource($expr), $instance_candidates);
+      $raw_matches[(string) $cpe]['instances'] = array_map(fn ($expr): EntityFieldPropSource => new EntityFieldPropSource($expr), $instance_candidates);
       // @todo Remove these hard-coded bits with generic logic in https://www.drupal.org/project/canvas/issues/3563960
       if ($schema === ['type' => 'string', 'format' => 'date'] && $host_entity_type === 'node') {
-        $created_as_date_string = (new DynamicPropSource(
+        $created_as_date_string = (new EntityFieldPropSource(
           new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'created', NULL, 'value'),
         ))->withAdapter('unix_to_date');
-        $changed_as_date_string = (new DynamicPropSource(
+        $changed_as_date_string = (new EntityFieldPropSource(
           expression: new FieldPropExpression(BetterEntityDataDefinition::create('node'), 'changed', NULL, 'value'),
         ))->withAdapter('unix_to_date');
         $raw_matches[(string) $cpe]['instances'][] = $created_as_date_string;
@@ -337,7 +338,7 @@ final class PropSourceSuggester {
         // populate the component prop.
         fn (array $prop_sources): array => array_combine(
           array_map(
-            fn (DynamicPropSource|HostEntityUrlPropSource $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
+            fn (EntityFieldPropSource|HostEntityUrlPropSource $prop_source): string => \hash('xxh64', $prop_source->asChoice()),
             array_values($prop_sources),
           ),
           // Values: objects with "label" and "source" keys, with:
@@ -347,7 +348,7 @@ final class PropSourceSuggester {
           //   selected by the human, the client should use verbatim as the
           //   source to populate this component instance's prop.
           array_map(
-            function (string $label, DynamicPropSource|HostEntityUrlPropSource $prop_source) {
+            function (string $label, EntityFieldPropSource|HostEntityUrlPropSource $prop_source) {
               return [
                 'label' => $label,
                 'source' => $prop_source->toArray(),
@@ -384,9 +385,9 @@ final class PropSourceSuggester {
     return [
       ...$suggestion,
       'depth' => match ($suggestion['source']['sourceType']) {
-        // DynamicPropSources have hierarchy: infer depth from label; determines
-        // hierarchy building order.
-        PropSource::Dynamic->value => $depth,
+        // EntityFieldPropSources have hierarchy: infer depth from label;
+        // determines hierarchy building order.
+        PropSource::EntityField->value => $depth,
         // All other PropSources: keep outside the hierarchy and list first by
         // generating an artificially impossibly low depth.
         default => -1,

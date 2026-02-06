@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -32,7 +33,7 @@ trait CanvasFieldTrait {
       ],
       self::TEST_IMAGE_UUID => $dynamic_image ? [
         'image' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
         ],
       ] : [
@@ -205,7 +206,7 @@ trait CanvasFieldTrait {
           ],
           'source' => [
             'image' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
             ],
           ],

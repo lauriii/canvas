@@ -24,7 +24,7 @@ interface ContentAwareDependentInterface {
    * When the optional $root is provided, content dependencies can be
    * resolved too. This is optional though, because it is also possible to
    * calculate dependencies solely for the content entity type + bundle + field
-   * structure expected by a DynamicPropSource.
+   * structure expected by a EntityFieldPropSource.
    *
    * For example:
    * - a `ContentTemplate` config entity on its own has dependencies on specific

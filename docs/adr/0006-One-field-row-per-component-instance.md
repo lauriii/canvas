@@ -35,8 +35,8 @@ Unchanged from ADR #2: ideally, all existing Drupal functionality continues to w
 In summary, Canvas's (server-side) data model was originally designed with:
 
 * Only SDCs
-* Dynamic data fetched from host entity fields via expressions (i.e. `DynamicPropSources`)
-* Static data stored in independent field item objects (i.e. `StaticPropSources`)
+* Dynamic data fetched from host entity fields via expressions (i.e. `EntityFieldPropSource` and `HostEntityUrlPropSource` )
+* Static data stored in independent field item objects (i.e. `StaticPropSource`)
 * Both symmetric translations (`tree` locked, all `inputs` translatable) and asymmetric translations (`tree` and `inputs` both translatable)
 * The same component tree representation to be used for content and config entities
 * Support both revisions and translations when a component tree lives in a content entity

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
@@ -57,16 +58,19 @@ use Symfony\Component\Validator\ConstraintViolationList;
   constraints: [
     'ValidComponentTreeItem' => [],
     'ComponentTreeMeetRequirements' => [
-      // Only StaticPropSources may be used, because using DynamicPropSources or
-      // HostEntityUrlPropSources a decision that should be made at the Content
-      // Template level by a Site Builder, not by each Content Creator.
+      // Only StaticPropSources may be used, because using
+      // EntityFieldPropSources or HostEntityUrlPropSources is a decision that
+      // should be made at the Content Template level by a Site Builder, not by
+      // each Content Creator.
       // @see https://www.drupal.org/project/canvas/issues/3455629
       'inputs' => [
         'absence' => [
-          'dynamic',
-          'host-entity-url',
+          PropSource::EntityField->value,
+          PropSource::HostEntityUrl->value,
           // @todo Allow adapters that consume a single shape and output that same single shape in https://www.drupal.org/project/canvas/issues/3536115
-          'adapter',
+          PropSource::Adapter->value,
+          // @todo Remove before Canvas 2.0, see https://www.drupal.org/node/3566701
+          PropSource::Dynamic->value,
         ],
         'presence' => NULL,
       ],

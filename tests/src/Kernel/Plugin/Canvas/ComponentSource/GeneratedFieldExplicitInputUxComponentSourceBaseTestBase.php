@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 /**
@@ -83,7 +84,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getExplicitInputDefinitions()
     $resolved = array_intersect_key($resolved, $component_with_optional_image_object_shape->getSettings()['prop_field_definitions']);
 
-    // TRICKY: DynamicPropSources can only be used in ContentTemplates and hence
+    // TRICKY: EntityFieldPropSources can only be used in ContentTemplates and hence
     // no host entity is known, which in turn causes the detailed validation for
     // it to be skipped thanks to MissingHostEntityException
     // being thrown.
@@ -91,7 +92,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     self::assertCount(0, $source->validateComponentInput(
       [
         'image' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:user␝user_picture␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
         ],
       ] + $resolved,

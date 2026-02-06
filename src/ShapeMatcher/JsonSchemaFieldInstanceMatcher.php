@@ -79,9 +79,9 @@ use Symfony\Component\Validator\Constraint;
  *
  * @see \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface
  *
- * These are then used in "dynamic prop sources".
+ * These are then used in "entity field prop sources".
  *
- * @see \Drupal\canvas\PropSource\DynamicPropSource
+ * @see \Drupal\canvas\PropSource\EntityFieldPropSource
  *
  * For "static prop sources", the equivalents are:
  *

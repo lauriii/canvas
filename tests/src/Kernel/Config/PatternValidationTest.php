@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 // cspell:ignore thisisatestpattern
 
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
@@ -182,7 +183,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public static function providerInvalidComponentTree(): \Generator {
-    yield "using DynamicPropSource" => [
+    yield "using EntityFieldPropSource" => [
       'component_tree' => [
         [
           'uuid' => '8c59b08a-59f7-4c33-b1b6-06af8f153e73',
@@ -190,14 +191,14 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
         ],
       ],
       'expected_messages' => [
-        'component_tree' => 'The \'dynamic\' prop source type must be absent.',
+        'component_tree' => 'The \'entity-field\' prop source type must be absent.',
       ],
     ];
 
@@ -212,7 +213,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
               'value' => 'Visit sunny Vienna',
             ],
             'href' => [
-              'sourceType' => 'host-entity-url',
+              'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => TRUE,
             ],
           ],

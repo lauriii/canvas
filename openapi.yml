@@ -1246,7 +1246,7 @@ paths:
     description: TODO
     parameters:
       - $ref: '#/components/parameters/configEntityId'
-      # The preview entity to use. (Used for verifying all DynamicPropSources can be evaluated.)
+      # The preview entity to use. (Used for verifying all EntityFieldPropSources can be evaluated.)
       - $ref: '#/components/parameters/entityId'
     patch:
       summary: Generates a component instance form for a content template.
@@ -2732,7 +2732,7 @@ components:
           description: Opaque identifier
         source:
           type: object
-          description: The object representation of a DynamicPropSource or HostEntityUrlPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
+          description: The object representation of an EntityFieldPropSource or HostEntityUrlPropSource that, if selected by the human, the client should use verbatim as the source to populate this component instance's prop.
         items:
           $ref: '#/components/schemas/SuggestedPropSources'
       additionalProperties: false

@@ -115,12 +115,12 @@ enum JsonSchemaType: string {
    * Maps the given schema to data type shape requirements.
    *
    * Used for matching against existing field instances, to find candidate
-   * dynamic prop source expressions that return a value that fits in this prop
-   * shape.
+   * entity field prop source expressions that return a value that fits in this
+   * prop shape.
    *
    * @param JsonSchema $schema
    *
-   * @see \Drupal\canvas\PropSource\DynamicPropSource
+   * @see \Drupal\canvas\PropSource\EntityFieldPropSource
    * @see \Drupal\canvas\JsonSchemaFieldInstanceMatcher
    */
   public function toDataTypeShapeRequirements(array $schema): DataTypeShapeRequirement|DataTypeShapeRequirements|false {

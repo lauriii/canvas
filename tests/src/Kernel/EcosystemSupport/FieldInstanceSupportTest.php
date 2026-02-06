@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
-use Drupal\canvas\PropSource\DynamicPropSource;
+use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
@@ -135,7 +135,8 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     'list_integer' => [],
     'list_string' => [],
     // Note that 'password' is deliberately not here (unsupported) as we don't
-    // want any of its properties to be associated with a dynamic prop source.
+    // want any of its properties to be associated with an entity field prop
+    // source.
     'path' => [
       // 🐛 Core bug: PathFieldItemList is entirely computed so the individual
       // properties are therefore also computed.
@@ -306,7 +307,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     $compatible_sdc_prop_shapes_per_field_prop = [];
     foreach ($suggestions as $cpe => ['instances' => $suggested_instances]) {
       foreach ($suggested_instances as $dynamic_prop_source) {
-        \assert($dynamic_prop_source instanceof DynamicPropSource);
+        \assert($dynamic_prop_source instanceof EntityFieldPropSource);
         $expr = $dynamic_prop_source->expression;
         $field_name = $expr->getFieldName();
         if (!str_starts_with($field_name, self::CANVAS_TEST_FIELD_PREFIX)) {

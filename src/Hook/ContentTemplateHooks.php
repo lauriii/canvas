@@ -74,7 +74,7 @@ final class ContentTemplateHooks {
     foreach ($definitions as $entity_type) {
       // Canvas pages don't have any structured data, and therefore don't
       // support content templates (which require structured data anyway – that
-      // is, they need to be using at least one dynamic prop source).
+      // is, they need to be using at least one entity field prop source).
       // @see docs/adr/0004-page-entity-type.md
       if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
         continue;

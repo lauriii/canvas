@@ -476,9 +476,9 @@ class PropExpressionKernelTest extends KernelTestBase {
       // `content` dependencies (if any) should be present, because it is
       // impossible for just an expression to reference content entities.
       // (This is the case when evaluating for example a prop expression used in
-      // a DynamicPropSource in a ContentTemplate: the content template applies
+      // a EntityFieldPropSource in a ContentTemplate: the content template applies
       // to many possible host entities, not any single one, so its
-      // DynamicPropSources cannot possibly depend on any content entities.)
+      // EntityFieldPropSources cannot possibly depend on any content entities.)
       self::assertSame($expected_content_unaware_dependencies, $expression->calculateDependencies(NULL), $test_case_precise_label);
     }
   }

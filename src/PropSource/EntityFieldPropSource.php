@@ -30,7 +30,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * @phpstan-import-type PropSourceArray from PropSourceBase
  * @internal
  */
-final class DynamicPropSource extends PropSourceBase {
+final class EntityFieldPropSource extends PropSourceBase {
 
   /**
    * @param \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface $expression
@@ -91,7 +91,7 @@ final class DynamicPropSource extends PropSourceBase {
     \assert(array_key_exists('expression', $sdc_prop_source));
 
     // @phpstan-ignore-next-line argument.type
-    $instance = new DynamicPropSource(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
+    $instance = new self(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
 
     // Optionally, a single adapter plugin ID can be specified.
     $has_adapter = array_key_exists('adapter', $sdc_prop_source);

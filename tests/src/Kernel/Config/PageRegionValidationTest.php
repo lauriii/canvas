@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Exception\ConstraintViolationException;
@@ -209,7 +210,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   public static function providerInvalidComponentTree(): \Generator {
-    yield "using DynamicPropSource" => [
+    yield "using EntityFieldPropSource" => [
       'component_tree' => [
         [
           'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
@@ -217,14 +218,14 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           'component_version' => 'b1e991f726a2a266',
           'inputs' => [
             'heading' => [
-              'sourceType' => 'dynamic',
+              'sourceType' => PropSource::EntityField->value,
               'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
             ],
           ],
         ],
       ],
       'expected_messages' => [
-        'component_tree' => "The 'dynamic' prop source type must be absent.",
+        'component_tree' => "The 'entity-field' prop source type must be absent.",
       ],
     ];
 
@@ -239,7 +240,7 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
               'value' => 'Visit sunny Vienna',
             ],
             'href' => [
-              'sourceType' => 'host-entity-url',
+              'sourceType' => PropSource::HostEntityUrl->value,
               'absolute' => TRUE,
             ],
           ],

@@ -58,7 +58,7 @@ to one of us! 😊 🙏
 - `prop expression`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
 - `prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
 - `static prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
-- `dynamic prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
+- `entity field prop source`: see [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
 - `region node`: one of the node types in the UI data model, representing a `theme region`'s `component tree`
 - `slot node`: one of the node types in the UI data model, representing a `component instance`'s `component slot`
 - `Canvas field`: an instance of the `component tree field type`

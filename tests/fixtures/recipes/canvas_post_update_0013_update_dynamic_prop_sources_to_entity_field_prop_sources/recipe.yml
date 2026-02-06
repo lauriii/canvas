@@ -1,0 +1,6 @@
+name: 'Drupal Canvas update path test: Update dynamic prop sources to entity field prop sources'
+description: 'canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources()'
+type: 'Canvas'
+recipes:
+  - base
+  - test_site

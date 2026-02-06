@@ -13,12 +13,12 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 /**
  * Prop source that is used to generate a URL to the host entity.
  *
- * Conceptual sibling of DynamicPropSource, but:
- * - DynamicPropSource retrieves information from structured data in the host
- *   entity (aka a field on the host entity)
+ * Conceptual sibling of EntityFieldPropSource, but:
+ * - EntityFieldPropSource retrieves information from structured data in the
+ *   host entity (aka a field on the host entity)
  * - this generates a URL to the host entity.
  *
- * @see \Drupal\canvas\PropSource\DynamicPropSource
+ * @see \Drupal\canvas\PropSource\EntityFieldPropSource
  *
  * @phpstan-import-type HostEntityUrlPropSourceArray from PropSourceBase
  * @internal

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\DataType;
 
+use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -163,7 +164,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'component_id' => 'sdc.canvas_test_sdc.heading',
       'inputs' => [
         'heading' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:alpha␝body␞␟value',
         ],
       ],
@@ -173,23 +174,23 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
       'component_id' => 'sdc.canvas_test_sdc.image',
       'inputs' => [
         'image' => [
-          'sourceType' => 'dynamic',
+          'sourceType' => PropSource::EntityField->value,
           'expression' => 'ℹ︎␜entity:node:alpha␝field_hero␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
         ],
       ],
     ]);
-    // The component tree's structure is valid, but this test is using
-    // DynamicPropSources, which are NOT considered valid in component trees'
+    // The component tree's structure is valid, but this test is using >1
+    // EntityFieldPropSource, which are NOT considered valid in component trees'
     // default validation constraints (only ContentTemplates allow these).
     // That doesn't matter for testing dependency calculation, so we can ignore
     // these validation errors.
     // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait::staticallyCreateDanglingComponentTreeItemList()
     self::assertSame([
       "0.inputs.$uuid_of_component_instance_with_invalid_static_prop_source" => 'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.heading</em> at version <em class="placeholder">8c01a2bdb897a810</em>.',
-      2 => "The 'dynamic' prop source type must be absent.",
-      3 => "The 'dynamic' prop source type must be absent.",
+      2 => "The 'entity-field' prop source type must be absent.",
+      3 => "The 'entity-field' prop source type must be absent.",
     ], self::violationsToArray($item_list->validate()));
-    self::assertContains('dynamic', $item_list->getItemDefinition()->getConstraints()['ComponentTreeMeetRequirements']['inputs']['absence']);
+    self::assertContains('entity-field', $item_list->getItemDefinition()->getConstraints()['ComponentTreeMeetRequirements']['inputs']['absence']);
 
     \assert($item_list->get(0) instanceof ComponentTreeItem);
     \assert($item_list->get(1) instanceof ComponentTreeItem);
