@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import {
@@ -39,9 +39,25 @@ const DragEventsHandler: React.FC = () => {
   const dispatch = useAppDispatch();
   const [componentName, setComponentName] = useState('...');
   const [dragOrigin, setDragOrigin] = useState('');
+  const [isDraggingFolder, setIsDraggingFolder] = useState(false);
+  const [isFolderAtBoundary, setIsFolderAtBoundary] = useState(false);
   const { handleFolderDrop } = useDropOnFolderHandler();
   const { handleNewDrop } = useDropFromLibraryHandler();
   const { handleExistingDrop } = useDropFromLayoutHandler();
+
+  // Apply/remove folderAtBoundary class when state changes.
+  useEffect(() => {
+    if (isFolderAtBoundary) {
+      window.document.body.classList.add(styles.folderAtBoundary);
+    } else {
+      window.document.body.classList.remove(styles.folderAtBoundary);
+    }
+
+    // Cleanup: remove class when component unmounts.
+    return () => {
+      window.document.body.classList.remove(styles.folderAtBoundary);
+    };
+  }, [isFolderAtBoundary]);
 
   const afterDrag = (
     elements: HTMLElement[] = [],
@@ -63,13 +79,58 @@ const DragEventsHandler: React.FC = () => {
     }
   };
 
+  // Custom modifier to restrict folder dragging to sidebar area.
+  const restrictFolderToSidebar = ({ transform, active }: any) => {
+    if (active?.data?.current?.type !== 'folder') {
+      return transform;
+    }
+
+    // Get the sidebar element using the existing test ID.
+    const sidebar = document.querySelector(
+      '[data-testid="canvas-primary-panel"]',
+    );
+    if (!sidebar) {
+      return transform;
+    }
+
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const activeRect = active.rect.current.translated;
+
+    if (!activeRect) {
+      return transform;
+    }
+
+    // Check if dragging beyond the right edge of sidebar.
+    if (activeRect.left + transform.x > sidebarRect.right) {
+      // Constrain to sidebar right boundary and change cursor to default.
+      if (!isFolderAtBoundary) {
+        setIsFolderAtBoundary(true);
+      }
+      return {
+        ...transform,
+        x: sidebarRect.right - activeRect.left,
+      };
+    }
+
+    // Reset cursor to grabbing if within bounds.
+    if (isFolderAtBoundary) {
+      setIsFolderAtBoundary(false);
+    }
+    return transform;
+  };
+
   const modifiers = ['layers', 'code'].includes(dragOrigin)
     ? [snapRightToCursor, restrictToFirstScrollableAncestor]
-    : [snapRightToCursor, restrictToWindowEdges];
+    : isDraggingFolder
+      ? [restrictFolderToSidebar]
+      : [snapRightToCursor, restrictToWindowEdges];
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
     setComponentName(event.active.data?.current?.name);
+    const isFolderDrag = event.active.data?.current?.type === 'folder';
+    setIsDraggingFolder(isFolderDrag);
+    setIsFolderAtBoundary(false);
     window.document.body.classList.add(styles.dragging);
     const origin = getOrigin(event);
     setDragOrigin(origin);
@@ -85,9 +146,17 @@ const DragEventsHandler: React.FC = () => {
   }
 
   function handleDragOver(event: DragOverEvent) {
-    const { over } = event;
+    const { over, active } = event;
     const parentSlot = over?.data?.current?.parentSlot;
     const parentRegion = over?.data?.current?.parentRegion;
+
+    // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
+    if (active.data?.current?.type === 'folder') {
+      if (!over || over.data?.current?.destination !== 'folder') {
+        dispatch(unsetTargetSlot());
+        return;
+      }
+    }
 
     if (parentRegion) {
       dispatch(setTargetSlot(parentRegion.id));
@@ -102,6 +171,8 @@ const DragEventsHandler: React.FC = () => {
     dispatch(setTreeDragging(false));
     dispatch(setCodeDragging(false));
     dispatch(unsetTargetSlot());
+    setIsDraggingFolder(false);
+    setIsFolderAtBoundary(false);
     window.document.body.classList.remove(styles.dragging);
 
     // Ensure the mouse tracking is cleaned up
@@ -122,9 +193,9 @@ const DragEventsHandler: React.FC = () => {
 
     if (
       over.data?.current?.destination === 'folder' &&
-      ['library', 'code'].includes(origin)
+      ['library', 'code', 'folder'].includes(origin)
     ) {
-      // Handle drop into folder from library
+      // Handle drop into folder from library or folder reordering.
       handleFolderDrop(event);
     } else if (
       origin === 'overlay' ||
@@ -132,8 +203,11 @@ const DragEventsHandler: React.FC = () => {
     ) {
       // Handle dropping an existing instance back into layout from overlay or layers panel
       handleExistingDrop(event, afterDrag);
-    } else if (origin === 'library') {
-      // Handle dropping a new component/pattern etc. from library into layout
+    } else if (
+      origin === 'library' &&
+      active.data?.current?.type !== 'folder'
+    ) {
+      // Handle dropping components/patterns from library (folders excluded).
       handleNewDrop(event);
     }
   }
@@ -155,7 +229,7 @@ const DragEventsHandler: React.FC = () => {
       className={clsx(styles.dragOverlay)}
       dropAnimation={null}
     >
-      <div>{componentName}</div>
+      {!isDraggingFolder && <div>{componentName}</div>}
     </DragOverlay>
   );
 };

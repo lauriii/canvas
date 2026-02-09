@@ -122,6 +122,10 @@
   --bg-selected-dots-hover: var(--blue-11);
 
   composes: default;
+
+  &.draggable {
+    cursor: default;
+  }
 }
 
 .regionVariant {

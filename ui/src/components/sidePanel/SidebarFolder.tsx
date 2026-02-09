@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import FolderIcon from '@assets/icons/folder.svg?react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon, DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ContextMenu, DropdownMenu, Flex, Text } from '@radix-ui/themes';
@@ -10,6 +10,7 @@ import { useAppSelector } from '@/app/hooks';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { selectDragging } from '@/features/ui/uiSlice';
 import { usePermissionCheck } from '@/hooks/usePermissionCheck';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -33,6 +34,10 @@ interface SidebarFolderProps {
   children?: React.ReactNode;
   contextualMenuType?: 'dropdown' | 'context' | 'both';
   id: string;
+  // Optional weight for drag data
+  weight?: number;
+  // Whether the folder can be dragged (default: true)
+  isDraggable?: boolean;
 }
 
 const SidebarFolder: React.FC<SidebarFolderProps> = ({
@@ -48,28 +53,87 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   children,
   contextualMenuType = 'both',
   id,
+  weight = 0,
+  isDraggable: isDraggableProp = true,
 }) => {
   const [isOpen, setIsOpen] = useState(isOpenProp ?? true);
+  const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(
+    null,
+  );
   const { previewDragging } = useAppSelector(selectDragging);
   const administerFolders = usePermissionCheck({
     hasPermission: 'folders',
+  });
+  const canvasSettings = getCanvasSettings();
+
+  // Draggable hook for folder reordering
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    isDragging,
+    active,
+  } = useDraggable({
+    id: `folder-${id}`,
+    data: {
+      type: 'folder',
+      origin: 'folder',
+      folderId: id,
+      name,
+      weight,
+    },
+    disabled: !canvasSettings.devMode || !administerFolders || !isDraggableProp,
   });
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id,
     data: {
       destination: 'folder',
-      accepts: ['library', 'code'],
+      accepts: canvasSettings.devMode
+        ? ['library', 'code', 'folder']
+        : ['library', 'code'],
+      weight,
     },
     // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.
     disabled: !administerFolders || previewDragging,
   });
+
+  // Combine drag and drop refs
+  const setRefs = (element: HTMLDivElement | null) => {
+    setDropRef(element);
+    setDragRef(element);
+  };
+
+  // Determine drop position indicator based on dragged folder position.
+  useEffect(() => {
+    if (isOver && active?.data?.current?.type === 'folder') {
+      const draggedFolderId = active.data.current.folderId;
+      const draggedWeight = active.data.current.weight;
+      const targetWeight = weight;
+
+      if (draggedFolderId === id) {
+        setDropPosition(null);
+        return;
+      }
+
+      if (typeof draggedWeight === 'number') {
+        setDropPosition(draggedWeight < targetWeight ? 'below' : 'above');
+      }
+    } else {
+      setDropPosition(null);
+    }
+  }, [isOver, active, weight, id]);
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     onOpenChange?.(open);
   };
+
   const folderRow = (
     <Flex
+      {...listeners}
+      {...attributes}
+      role={undefined}
       data-canvas-folder-name={name}
       className={clsx(listStyles.folderTrigger, {
         [nodeStyles.contextualAccordionVariant]: menuItems,
@@ -176,7 +240,15 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   );
 
   return (
-    <div ref={setDropRef} className={clsx({ [listStyles.isOver]: isOver })}>
+    <div
+      ref={setRefs}
+      className={clsx({
+        [listStyles.isOver]: isOver,
+        [listStyles.isDragging]: isDragging,
+        [listStyles.dropIndicatorAbove]: dropPosition === 'above',
+        [listStyles.dropIndicatorBelow]: dropPosition === 'below',
+      })}
+    >
       {collapsibleFolder}
       {errorSlot}
     </div>

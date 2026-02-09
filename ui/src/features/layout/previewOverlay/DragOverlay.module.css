@@ -21,3 +21,8 @@
 .dragging, .dragging * {
   cursor: grabbing !important;
 }
+
+.folderAtBoundary, .folderAtBoundary * {
+  cursor: default !important;
+}
+

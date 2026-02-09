@@ -248,7 +248,7 @@ test.describe('Folder Management', () => {
     await canvasEditor.goToCanvasRoot();
     await canvasEditor.openLibraryPanel();
 
-    // Navigate to Components tab
+    // Navigate to Components tab.
     await page
       .locator('[data-testid="canvas-library-components-tab-select"]')
       .click();
@@ -258,21 +258,21 @@ test.describe('Folder Management', () => {
       ),
     ).toBeVisible();
 
-    // Create two test folders
+    // Create two test folders.
     await testAddFolder(page, ['Test Folder to Rename', 'Existing Folder']);
 
-    // Test: Double-click to enter rename mode
+    // Test: Double-click to enter rename mode.
     await page
       .locator('[data-canvas-folder-name="Test Folder to Rename"]')
       .dblclick();
 
-    // Verify TextField is visible and focused after double-click
+    // Verify TextField is visible and focused after double-click.
     const textFieldDoubleClick = page.getByTestId('canvas-folder-rename-input');
     await textFieldDoubleClick.waitFor({ state: 'visible', timeout: 5000 });
     await expect(textFieldDoubleClick).toBeFocused();
     await expect(textFieldDoubleClick).toHaveValue('Test Folder to Rename');
 
-    // Test successful rename via double-click with Enter key
+    // Test successful rename via double-click with Enter key.
     await textFieldDoubleClick.fill('Renamed via Double Click');
     await textFieldDoubleClick.press('Enter');
     await page
@@ -282,10 +282,10 @@ test.describe('Folder Management', () => {
       page.locator('[data-canvas-folder-name="Test Folder to Rename"]'),
     ).not.toBeAttached();
 
-    // Wait for it to fully stabilize after rename
+    // Wait for it to fully stabilize after rename.
     await page.waitForTimeout(500);
 
-    // Test: Double-click rename cancellation with Escape
+    // Test: Double-click rename cancellation with Escape.
     await page
       .locator('[data-canvas-folder-name="Renamed via Double Click"]')
       .dblclick();
@@ -305,7 +305,7 @@ test.describe('Folder Management', () => {
       page.locator('[data-canvas-folder-name="Should Be Cancelled"]'),
     ).not.toBeAttached();
 
-    // Test: Open folder menu and click Rename (traditional method)
+    // Test: Open folder menu and click Rename (traditional method).
     await page
       .locator('[data-canvas-folder-name="Renamed via Double Click"]')
       .hover();
@@ -330,7 +330,7 @@ test.describe('Folder Management', () => {
       page.locator('[data-canvas-folder-name="Renamed via Double Click"]'),
     ).not.toBeAttached();
 
-    // Test rename cancellation on blur without changes
+    // Test rename cancellation on blur without changes.
     await page.locator('[data-canvas-folder-name="Renamed Folder"]').hover();
     await page
       .locator('[data-canvas-folder-name="Renamed Folder"]')
@@ -344,7 +344,7 @@ test.describe('Folder Management', () => {
       page.locator('[data-canvas-folder-name="Renamed Folder"]'),
     ).toBeAttached();
 
-    // Test validation error for duplicate folder name
+    // Test validation error for duplicate folder name.
     await page.locator('[data-canvas-folder-name="Renamed Folder"]').hover();
     await page
       .locator('[data-canvas-folder-name="Renamed Folder"]')
@@ -356,14 +356,14 @@ test.describe('Folder Management', () => {
     await textField4.fill('Existing Folder');
     await textField4.press('Enter');
     await page.waitForTimeout(1000);
-    // The error message is in a span with data-accent-color="red" and contains "is not unique"
+    // The error message is in a span with data-accent-color="red" and contains "is not unique".
     const errorSpan = page.locator('span[data-accent-color="red"]');
     await expect(errorSpan).toBeVisible({ timeout: 10000 });
     await expect(errorSpan).toContainText('is not unique');
 
     await textField4.press('Escape');
 
-    // Verify folder was not renamed (still has original name)
+    // Verify folder was not renamed (still has original name).
     await expect(
       page.locator('[data-canvas-folder-name="Renamed Folder"]'),
     ).toBeAttached();
@@ -371,7 +371,7 @@ test.describe('Folder Management', () => {
       page.locator('[data-canvas-folder-name="Existing Folder"]'),
     ).toHaveCount(1);
 
-    // Test that folder state (open/closed) is preserved during rename
+    // Test that folder state (open/closed) is preserved during rename.
     await page.locator('[data-canvas-folder-name="Renamed Folder"]').click();
     const isFolderClosed = await page
       .locator('[data-canvas-folder-name="Renamed Folder"]')
@@ -450,5 +450,91 @@ test.describe('Folder Management', () => {
       // Close the menu by pressing Escape.
       await page.keyboard.press('Escape');
     }
+  });
+
+  test('Folder drag and drop reordering', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    await drupal.loginAsAdmin();
+    await canvasEditor.goToCanvasRoot();
+    await canvasEditor.openLibraryPanel();
+
+    await page.waitForLoadState('networkidle');
+
+    // Helper to get current folder order.
+    const getFolderOrder = async (): Promise<string[]> => {
+      const folderElements = await page
+        .locator('[data-canvas-folder-name]')
+        .all();
+      return await Promise.all(
+        folderElements.map(async (element) => {
+          return (await element.getAttribute('data-canvas-folder-name')) || '';
+        }),
+      );
+    };
+
+    // Start on the Components tab.
+    await expect(
+      page.locator(
+        '[data-testid="canvas-library-components-tab-select"][aria-selected="true"]',
+      ),
+    ).toBeVisible();
+
+    // Create two test folders for drag and drop testing.
+    await testAddFolder(page, ['Drag Test Folder A', 'Drag Test Folder B']);
+
+    // Get initial folder order.
+    const initialOrder = await getFolderOrder();
+    expect(initialOrder[0]).toBe('Drag Test Folder B');
+    expect(initialOrder[1]).toBe('Drag Test Folder A');
+
+    // Get the source folder (A is first, we'll drag it to B's position).
+    const sourceFolder = page.locator(
+      '[data-canvas-folder-name="Drag Test Folder A"]',
+    );
+    // Get the target folder.
+    const targetFolder = page.locator(
+      '[data-canvas-folder-name="Drag Test Folder B"]',
+    );
+
+    await expect(sourceFolder).toBeVisible();
+    await expect(targetFolder).toBeVisible();
+
+    // Get bounding boxes for drag coordinates.
+    const sourceBox = await sourceFolder.boundingBox();
+    const targetBox = await targetFolder.boundingBox();
+
+    if (!sourceBox || !targetBox) {
+      throw new Error('Could not get bounding boxes for folders');
+    }
+
+    // Calculate center positions.
+    const sourceX = sourceBox.x + sourceBox.width / 2;
+    const sourceY = sourceBox.y + sourceBox.height / 2;
+    const targetX = targetBox.x + targetBox.width / 2;
+    const targetY = targetBox.y + targetBox.height / 2;
+
+    // Perform manual drag for dnd-kit compatibility.
+    // dnd-kit uses PointerSensor with 3px activation distance.
+    await page.mouse.move(sourceX, sourceY);
+    await page.mouse.down();
+    // Move past activation distance.
+    await page.mouse.move(sourceX, sourceY + 10, { steps: 5 });
+    // Move to target.
+    await page.mouse.move(targetX, targetY, { steps: 10 });
+    await page.mouse.up();
+
+    // Wait for the folder order to actually change.
+    await expect(async () => {
+      const currentOrder = await getFolderOrder();
+      expect(currentOrder[0]).toBe('Drag Test Folder A');
+    }).toPass({ timeout: 10000 });
+
+    // Verify the order has changed(A moved to B's position, so B is now first).
+    const newOrder = await getFolderOrder();
+    expect(newOrder[0]).toBe('Drag Test Folder A');
+    expect(newOrder[1]).toBe('Drag Test Folder B');
   });
 });

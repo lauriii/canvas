@@ -50,9 +50,45 @@
 
 .isOver {
   border-radius: var(--radius-2);
-  outline: 1px solid var(--blue-9);
   background: var(--blue-3);
   * {
     pointer-events: none;
   }
+}
+
+.isDragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.dropIndicatorAbove {
+  position: relative;
+}
+
+.dropIndicatorAbove::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--blue-9);
+  z-index: 10;
+  border-radius: 1px;
+}
+
+.dropIndicatorBelow {
+  position: relative;
+}
+
+.dropIndicatorBelow::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--blue-9);
+  z-index: 10;
+  border-radius: 1px;
 }
