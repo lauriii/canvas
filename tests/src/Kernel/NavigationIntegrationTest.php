@@ -4,21 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\Group;
 
 #[Group('canvas')]
-final class NavigationIntegrationTest extends KernelTestBase {
+final class NavigationIntegrationTest extends CanvasKernelTestBase {
 
   use PageTrait;
 
   protected static $modules = [
-    'system',
-    'canvas',
     ...self::PAGE_TEST_MODULES,
-    'block',
-    'file',
+    'layout_discovery',
     'layout_builder',
     'navigation',
   ];

@@ -37,6 +37,7 @@ trait AutoSaveConflictTestTrait {
     $this->container->get('theme_installer')->install(['stark']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
 
     $this->setUpEntity();

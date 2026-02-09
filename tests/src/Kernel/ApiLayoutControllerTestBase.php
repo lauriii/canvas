@@ -21,8 +21,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
+ * @todo Refactor this in https://www.drupal.org/project/canvas/issues/3531679 to use CanvasKernelTestBase
  */
-class ApiLayoutControllerTestBase extends KernelTestBase {
+abstract class ApiLayoutControllerTestBase extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
 

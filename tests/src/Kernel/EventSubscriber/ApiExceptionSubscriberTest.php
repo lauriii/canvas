@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
 use Drupal\Core\Routing\RouteMatch;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
 use Drupal\Tests\canvas\Doubles\TestVerboseException;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,16 +18,7 @@ use Symfony\Component\Routing\Route;
 /**
  * @group canvas
  */
-class ApiExceptionSubscriberTest extends KernelTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = [
-    'canvas',
-    'system',
-    'user',
-  ];
+class ApiExceptionSubscriberTest extends CanvasKernelTestBase {
 
   /**
    * Tests the response for an HTTP 500 error.

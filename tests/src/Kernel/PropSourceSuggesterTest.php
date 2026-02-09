@@ -15,11 +15,9 @@ use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
 /**
@@ -28,47 +26,26 @@ use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
  *
  * @phpstan-import-type HostEntityUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  */
-class PropSourceSuggesterTest extends KernelTestBase {
+class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use EntityReferenceFieldCreationTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    // The two only modules Drupal truly requires.
-    'system',
-    'user',
-    // The module being tested.
-    'canvas',
-    // The dependent modules.
-    'sdc',
-    'media',
-    // The module providing realistic test SDCs.
-    'canvas_test_sdc',
     // The module providing the sample SDC to test all JSON schema types.
     'sdc_test_all_props',
     'canvas_test_sdc',
-    // All other core modules providing field types.
+    // All other core modules providing field types (in addition to the ones
+    // installed by CanvasKernelTestBase).
     'comment',
-    'datetime',
     'datetime_range',
-    'file',
-    'image',
-    'link',
-    'options',
-    'path',
     'telephone',
-    'text',
     // Create sample configurable fields on the `node` entity type.
     'node',
     'field',
     'taxonomy',
-    // Modules that field type-providing modules depend on.
-    'filter',
-    'ckeditor5',
-    'editor',
   ];
 
   /**
@@ -76,7 +53,6 @@ class PropSourceSuggesterTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('canvas');
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installEntitySchema('field_storage_config');

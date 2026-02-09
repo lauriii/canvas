@@ -30,6 +30,8 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @group #slow
  * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  * @covers \Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
+ *
+ * TRICKY: this must NOT use CanvasKernelTestBase because that would pre-install the Canvas module.
  */
 final class RecipeSubscriberTest extends KernelTestBase {
 

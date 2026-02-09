@@ -10,11 +10,11 @@ use Drupal\Component\Uuid\Php as UuidGenerator;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\search_api\processor\ComponentTreeInputs;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\search_api\Entity\Index;
 use Drupal\search_api\Entity\Server;
 use Drupal\search_api\IndexInterface;
 use Drupal\search_api\Item\Item;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\Group;
 
 #[Group('canvas')]
 #[CoversClass(ComponentTreeInputs::class)]
-final class ComponentTreeInputsTest extends KernelTestBase {
+final class ComponentTreeInputsTest extends CanvasKernelTestBase {
 
   use PageTrait;
   use RequestTrait;
@@ -35,24 +35,9 @@ final class ComponentTreeInputsTest extends KernelTestBase {
   private const string INDEX_FIELD_ID = 'canvas_component_tree_inputs_fulltext';
 
   protected static $modules = [
-    'file',
-    'canvas',
-    'canvas_test_sdc',
-    'filter',
-    'text',
-    'image',
-    'link',
-    'media',
-    'media_library',
-    'options',
-    'path',
-    'path_alias',
     'search_api',
     'search_api_db',
     'search_api_test',
-    'system',
-    'user',
-    'views',
   ];
 
   protected function setUp(): void {

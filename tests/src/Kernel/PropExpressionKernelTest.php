@@ -23,13 +23,11 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Unit\PropExpressionTest;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
@@ -49,9 +47,8 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
-class PropExpressionKernelTest extends KernelTestBase {
+class PropExpressionKernelTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use EntityReferenceFieldCreationTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
@@ -65,21 +62,8 @@ class PropExpressionKernelTest extends KernelTestBase {
   protected static $modules = [
     'field',
     'node',
-    'system',
     'taxonomy',
-    'editor',
-    'ckeditor5',
-    'text',
-    'filter',
-    'user',
-    'file',
-    'image',
-    'media',
-    'media_library',
     'media_test_source',
-    'views',
-    // Ensure field type overrides are installed and hence testable.
-    'canvas',
   ];
 
   /**
@@ -97,12 +81,11 @@ class PropExpressionKernelTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('file');
     $this->installEntitySchema('node');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('taxonomy_term');
     $this->installEntitySchema('user');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('media');
-
-    $this->installConfig('canvas');
 
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $this->createMediaType('image', ['id' => 'baby_photos', 'label' => 'Baby photos']);

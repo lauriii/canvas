@@ -35,7 +35,6 @@ use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -48,10 +47,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @coversDefaultClass \Drupal\canvas\Controller\ApiAutoSaveController
  * @group canvas
  * @group #slow
+ * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use AutoSaveManagerTestTrait;
   use AutoSaveRequestTestTrait;
   use UserCreationTrait;
@@ -66,7 +65,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'system',
     'path_alias',
     'path',
     'test_user_config',
@@ -78,8 +76,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('system');
     $this->installEntitySchema('path_alias');
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
   }
 

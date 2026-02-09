@@ -17,6 +17,7 @@ use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
  * @coversDefaultClass \Drupal\canvas\Storage\ComponentTreeLoader
  *
  * @group canvas
+ * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 class ComponentTreeLoaderTest extends KernelTestBase {
 
@@ -28,6 +29,7 @@ class ComponentTreeLoaderTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
   }
 

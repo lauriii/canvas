@@ -11,13 +11,12 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -26,49 +25,25 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group canvas
  */
-final class ComponentAuditControllerTest extends KernelTestBase {
+final class ComponentAuditControllerTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use PageTrait;
   use RequestTrait;
   use UserCreationTrait;
   use GenerateComponentConfigTrait;
-  use ContentTypeCreationTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'system',
     'node',
-    'datetime',
-    'canvas_test_sdc',
     ...self::PAGE_TEST_MODULES,
-    // Canvas's dependencies (modules providing field types + widgets).
-    'ckeditor5',
-    'editor',
-    'field',
-    'file',
-    'image',
-    'link',
-    'media',
-    'node',
-    'options',
-    'text',
   ];
 
   protected function setUp(): void {
     parent::setUp();
-    // Drupal Canvas configuration (creates the global AssetLibrary).
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
 
-    $this->container->get('theme_installer')->install(['stark']);
-
-    // Needed for date formats.
-    $this->installConfig(['system']);
-    $this->installConfig('node');
     $this->installEntitySchema('node');
     $this->installSchema('node', ['node_access']);
     $this->installEntitySchema('path_alias');
@@ -76,7 +51,10 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     $this->installEntitySchema('field_config');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
-    $this->createContentType(['name' => 'Article', 'type' => 'article']);
+    NodeType::create([
+      'type' => 'article',
+      'name' => 'Article',
+    ])->save();
 
     FieldStorageConfig::create([
       'entity_type' => 'node',
@@ -156,10 +134,11 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     \assert($response instanceof HtmlResponse);
     self::assertEqualsCanonicalizing([
       'theme',
-      'user.roles:authenticated',
       'languages:language_interface',
       'user.permissions',
       'url.query_args:_wrapper_format',
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      'route.name',
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertEqualsCanonicalizing([
       'rendered',
@@ -169,6 +148,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       // @see \Drupal\canvas\Hook\ModuleHooks::pageAttachments()
       // @see \Drupal\canvas\Access\CanvasUiAccessCheck
       'test_create_access_cache_tag',
+      // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant
+      'config:block_list',
     ], $response->getCacheableMetadata()->getCacheTags());
 
     $this->assertTitle('Audit of Canvas test SDC with props and slots usages | ');
@@ -202,10 +183,11 @@ final class ComponentAuditControllerTest extends KernelTestBase {
     \assert($response instanceof HtmlResponse);
     self::assertEqualsCanonicalizing([
       'theme',
-      'user.roles:authenticated',
       'languages:language_interface',
       'user.permissions',
       'url.query_args:_wrapper_format',
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      'route.name',
     ], $response->getCacheableMetadata()->getCacheContexts());
     self::assertEqualsCanonicalizing([
       'rendered',
@@ -215,6 +197,8 @@ final class ComponentAuditControllerTest extends KernelTestBase {
       // @see \Drupal\canvas\Hook\ModuleHooks::pageAttachments()
       // @see \Drupal\canvas\Access\CanvasUiAccessCheck
       'test_create_access_cache_tag',
+      // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant
+      'config:block_list',
     ], $response->getCacheableMetadata()->getCacheTags());
 
     $this->assertTitle('Audit of Druplicon usages | ');

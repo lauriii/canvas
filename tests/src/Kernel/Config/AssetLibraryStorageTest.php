@@ -6,8 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\CanvasAssetInterface;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage
@@ -15,19 +14,16 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
  * @group canvas
  * @internal
  */
-class AssetLibraryStorageTest extends KernelTestBase {
-
-  use ContribStrictConfigSchemaTestTrait;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = ['canvas'];
+class AssetLibraryStorageTest extends CanvasKernelTestBase {
 
   /**
    * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
    */
   public function testGeneratedFiles(): void {
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    self::assertNotNull($asset_library);
+    $asset_library->delete();
+
     $asset_library = AssetLibrary::create([
       'id' => 'global',
       'label' => 'Test',

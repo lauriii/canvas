@@ -10,23 +10,13 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
  * @group canvas
  */
-final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = [
-    'canvas',
-    'user',
-    'system',
-    'media',
-  ];
+final class ConfigEntityAssetLibrariesTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
@@ -34,7 +24,6 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
-    $this->installConfig(['system']);
   }
 
   private function getCanvasAssetLibraries(): array {
@@ -92,20 +81,10 @@ final class ConfigEntityAssetLibrariesTest extends KernelTestBase {
     ]);
     $js_component->save();
     // And an asset library.
-    $library_id = $this->randomMachineName();
-    $library = AssetLibrary::create([
-      'id' => $library_id,
-      'label' => 'Test',
-      'css' => [
-        'original' => '',
-        'compiled' => '',
-      ],
-      'js' => [
-        'original' => '',
-        'compiled' => '',
-      ],
-    ]);
-    $library->save();
+    // @todo Randomize once `type: canvas.asset_library.*` allows asset libraries besides `global`.
+    $library_id = AssetLibrary::GLOBAL_ID;
+    $library = AssetLibrary::load($library_id);
+    self::assertNotNull($library);
 
     $discovered = $this->getCanvasAssetLibraries();
     $asset_library_draft = \sprintf('asset_library.%s.draft', $library_id);

@@ -12,16 +12,7 @@ trait PageTrait {
   use ConstraintViolationsTestTrait;
 
   protected const array PAGE_TEST_MODULES = [
-    'user',
-    'path',
-    'path_alias',
     'field',
-    'image',
-    'text',
-    'media',
-    'views',
-    'filter',
-    'media_library',
     'canvas_test_page',
   ];
 

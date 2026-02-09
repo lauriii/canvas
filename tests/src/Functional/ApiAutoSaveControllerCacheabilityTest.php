@@ -49,6 +49,7 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
     $this->setUpImages();
   }

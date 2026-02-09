@@ -13,7 +13,7 @@ use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\canvas\Element\AstroIsland;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
@@ -24,7 +24,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @group JavaScriptComponents
  * @group canvas
  */
-final class AstroIslandTest extends KernelTestBase {
+final class AstroIslandTest extends CanvasKernelTestBase {
 
   use CrawlerTrait;
   use UserCreationTrait;
@@ -32,15 +32,9 @@ final class AstroIslandTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['canvas', 'user', 'system', 'media'];
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
-    $this->installConfig(['system']);
   }
 
   /**

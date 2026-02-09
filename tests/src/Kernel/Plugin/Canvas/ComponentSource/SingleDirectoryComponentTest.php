@@ -39,7 +39,6 @@ use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -60,7 +59,6 @@ use Twig\Error\SyntaxError;
 final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use ConstraintViolationsTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
   use CiModulePathTrait;
   use CrawlerTrait;
@@ -73,14 +71,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas_test_sdc',
-    'image',
-    'media',
     'node',
-    'path',
-    'user',
     'field',
-    'text',
   ];
 
   /**

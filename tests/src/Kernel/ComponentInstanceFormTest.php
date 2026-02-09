@@ -17,7 +17,6 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -32,7 +31,6 @@ use Symfony\Component\HttpFoundation\Request;
 final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   use CiModulePathTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use NodeCreationTrait;
 
   /**
@@ -44,6 +42,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $this->container->get('module_installer')->install(['system', 'canvas_test_sdc', 'canvas_test_block']);
     $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
 
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
     $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes', Page::EDIT_PERMISSION]);
   }

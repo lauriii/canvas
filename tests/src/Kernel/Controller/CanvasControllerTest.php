@@ -15,8 +15,8 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\canvas\Entity\Folder;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
@@ -28,7 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group canvas
  */
-final class CanvasControllerTest extends KernelTestBase {
+final class CanvasControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;
   use RequestTrait;
@@ -39,30 +39,15 @@ final class CanvasControllerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
     'canvas_test_page',
     'entity_test',
     'canvas_entity_test',
-    ...self::PAGE_TEST_MODULES,
-    'block',
     'node',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
-    'image',
-    'media',
-    'options',
-    'path',
-    'link',
-    'text',
-    'system',
-    'user',
+    ...self::PAGE_TEST_MODULES,
   ];
 
   protected function setUp(): void {
     parent::setUp();
-    // Needed for date formats.
-    $this->installConfig(['system']);
     $this->installConfig(['node']);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('node_type');

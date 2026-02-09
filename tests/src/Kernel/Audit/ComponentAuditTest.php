@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\node\Entity\NodeType;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Audit\ComponentAudit
@@ -93,17 +94,23 @@ class ComponentAuditTest extends ComponentAuditTestBase {
   }
 
   protected function createTestContentTemplate(array $tree): ContentTemplate {
-    $entity_type_id = Page::ENTITY_TYPE_ID;
+    $entity_type_id = 'node';
+    $bundle = 'foo';
     $view_mode = 'reverse';
+
     EntityViewMode::create([
       'id' => \implode('.', [$entity_type_id, $view_mode]),
       'label' => 'Reverse',
       'targetEntityType' => $entity_type_id,
     ])->save();
+    NodeType::create([
+      'type' => $bundle,
+      'name' => $this->randomString(),
+    ])->save();
     $content_template = ContentTemplate::create([
-      'id' => \implode('.', [$entity_type_id, $entity_type_id, $view_mode]),
+      'id' => \implode('.', [$entity_type_id, $bundle, $view_mode]),
       'content_entity_type_id' => $entity_type_id,
-      'content_entity_type_bundle' => $entity_type_id,
+      'content_entity_type_bundle' => $bundle,
       'content_entity_type_view_mode' => $view_mode,
       'component_tree' => $tree,
     ]);

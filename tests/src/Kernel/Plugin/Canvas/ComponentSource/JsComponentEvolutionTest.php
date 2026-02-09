@@ -19,11 +19,10 @@ use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Url;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,9 +35,8 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  *
  * @group canvas
  */
-final class JsComponentEvolutionTest extends KernelTestBase {
+final class JsComponentEvolutionTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use CiModulePathTrait;
   use CrawlerTrait;
   use ComponentTreeItemListInstantiatorTrait;
@@ -62,21 +60,6 @@ final class JsComponentEvolutionTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'media',
-    'path',
-    'file',
-    'image',
-    'link',
-    'options',
-    'text',
-    'system',
-    'block',
-    'datetime',
-    'user',
-    'filter',
-    'ckeditor5',
-    'editor',
     'canvas_test_code_components',
   ];
 
@@ -98,12 +81,12 @@ final class JsComponentEvolutionTest extends KernelTestBase {
     \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);
     $this->uuid = \Drupal::service(UuidInterface::class);
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     Page::create([
       'title' => 'Interior Live Oak',
     ])->save();
     $this->installSchema('user', 'users_data');
-    $this->installConfig('canvas');
     $this->installConfig('canvas_test_code_components');
     // Set up a test user "bob"
     $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2], [JavaScriptComponent::ADMIN_PERMISSION, Page::EDIT_PERMISSION]);

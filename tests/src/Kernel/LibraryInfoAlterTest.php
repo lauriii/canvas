@@ -9,14 +9,13 @@ use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\canvas\Controller\CanvasController;
 use Drupal\canvas\Entity\Page;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter()
  * @group canvas
  */
-final class LibraryInfoAlterTest extends KernelTestBase {
+final class LibraryInfoAlterTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
 
@@ -24,15 +23,7 @@ final class LibraryInfoAlterTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'system',
     'canvas_test_page',
-    'media',
-    'user',
-    'image',
-    'file',
-    'path_alias',
-    'path',
   ];
 
   /**
@@ -41,12 +32,10 @@ final class LibraryInfoAlterTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
-    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('file');
     $this->installEntitySchema('media');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
-    $this->installConfig(['system']);
-
   }
 
   /**

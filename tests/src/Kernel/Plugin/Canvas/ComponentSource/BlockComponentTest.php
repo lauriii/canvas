@@ -50,10 +50,8 @@ final class BlockComponentTest extends ComponentSourceTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'block',
     'canvas_test_block',
     'node',
-    'views',
   ];
 
   /**
@@ -397,7 +395,6 @@ HTML,
   }
 
   protected function createAndSaveInUseComponentForFallbackTesting(): ComponentInterface {
-    $this->installConfig(['system']);
     $this->generateComponentConfig();
     /** @var \Drupal\canvas\Entity\ComponentInterface */
     return Component::load('block.system_menu_block.footer');
@@ -442,8 +439,6 @@ HTML,
    * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::computeCurrentComponentMetadata()
    */
   public function testDependencyUpdate(): void {
-    // Install the default menus provided by system.module.
-    $this->installConfig(['system']);
     $this->generateComponentConfig();
 
     $config = 'canvas.component.block.system_menu_block.footer';

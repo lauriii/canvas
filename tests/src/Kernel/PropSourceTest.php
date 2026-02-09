@@ -47,12 +47,10 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -72,7 +70,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
-class PropSourceTest extends KernelTestBase {
+class PropSourceTest extends CanvasKernelTestBase {
 
   private const FILE_UUID1 = 'a461c159-039a-4de2-96e5-07d1112105df';
   private const FILE_UUID2 = '792ea357-71d6-45fa-a12b-78d029edbe4c';
@@ -81,7 +79,6 @@ class PropSourceTest extends KernelTestBase {
   private const TEST_MEDIA = '43b145bb-d8c3-4410-bbd6-fdcd06e27c29';
 
   use ContentTypeCreationTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use EntityReferenceFieldCreationTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
@@ -94,23 +91,10 @@ class PropSourceTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
     'field',
-    'file',
-    'image',
     'node',
-    'user',
-    'datetime',
     'datetime_range',
-    'media',
-    'media_library',
     'media_test_source',
-    'system',
-    'media',
-    'views',
-    'filter',
-    'ckeditor5',
-    'editor',
   ];
 
   /**
@@ -118,10 +102,10 @@ class PropSourceTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('canvas');
     $this->installEntitySchema('field_storage_config');
     $this->installEntitySchema('field_config');
     $this->installEntitySchema('media');
+    $this->installEntitySchema('path_alias');
 
     $this->createMediaType('image', ['id' => 'image']);
     $this->createMediaType('image', ['id' => 'anything_is_possible']);
@@ -2173,7 +2157,6 @@ class PropSourceTest extends KernelTestBase {
       (string) $source->label(),
     );
 
-    $this->enableModules(['path', 'path_alias', 'text']);
     $this->installConfig('node');
     $this->installEntitySchema('node');
     $this->installEntitySchema('path_alias');

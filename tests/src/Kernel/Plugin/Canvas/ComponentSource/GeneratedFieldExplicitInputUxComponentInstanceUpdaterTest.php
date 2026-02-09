@@ -15,8 +15,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -28,9 +27,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * @group canvas_component_sources
  * @group canvas_data_model
  */
-class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends KernelTestBase {
+class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use ComponentTreeItemListInstantiatorTrait;
   use MediaTypeCreationTrait;
@@ -40,23 +38,6 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends KernelTe
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'media',
-    'media_library',
-    'path',
-    'file',
-    'image',
-    'link',
-    'options',
-    'text',
-    'system',
-    'block',
-    'datetime',
-    'user',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'views',
     'field',
   ];
 
@@ -70,11 +51,9 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends KernelTe
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('theme_installer')->install(['stark']);
     $this->installEntitySchema('user');
     $this->installEntitySchema('media');
-    $this->installConfig(['system', 'filter']);
-    $this->installConfig(['canvas']);
+    $this->installConfig(['filter']);
 
     // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
     $this->createMediaType('image', ['id' => 'baby_photos']);

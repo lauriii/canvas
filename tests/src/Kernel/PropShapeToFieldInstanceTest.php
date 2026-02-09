@@ -25,10 +25,8 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 
 /**
@@ -47,9 +45,8 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  *
  * @phpstan-type ShapeMatchingResults array{'SDC props': non-empty-list<string>, 'static prop source': null|string, instances: string[], adapter_matches_field_type: string[], adapter_matches_instance: string[]}
  */
-class PropShapeToFieldInstanceTest extends KernelTestBase {
+class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use MediaTypeCreationTrait;
 
   protected static $configSchemaCheckerExclusions = [
@@ -62,27 +59,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = [
-    // The two only modules Drupal truly requires.
-    'system',
-    'user',
-    // The module being tested.
-    'canvas',
-    // The dependent modules.
-    'sdc',
-    'file',
-    'image',
-    'media',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'datetime',
-    'canvas_test_sdc',
-  ];
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp(): void {
     parent::setUp();
     // Necessary for uninstalling modules.
@@ -90,7 +66,6 @@ class PropShapeToFieldInstanceTest extends KernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('media');
     $this->installEntitySchema('file');
-    $this->installConfig('canvas');
   }
 
   /**

@@ -58,6 +58,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig('system');
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
   }
 

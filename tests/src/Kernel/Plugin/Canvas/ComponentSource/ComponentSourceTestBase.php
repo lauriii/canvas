@@ -34,12 +34,11 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\UninstallValidatorTestTrait;
@@ -69,7 +68,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
-abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerInterface, ServiceModifierInterface {
+abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements LoggerInterface, ServiceModifierInterface {
 
   use RfcLoggerTrait;
   use UninstallValidatorTestTrait;
@@ -103,7 +102,6 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   use CrawlerTrait;
   use ComponentTreeItemListInstantiatorTrait;
   use ConstraintViolationsTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 
   protected readonly EntityStorageInterface $componentStorage;
@@ -111,29 +109,6 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
   protected readonly ConfigFactoryInterface $configFactory;
   protected readonly ComponentTreeLoader $componentTreeLoader;
   protected readonly RendererInterface $renderer;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = [
-    'canvas',
-    'file',
-    'image',
-    'link',
-    'options',
-    'text',
-    'system',
-    'media',
-    'path',
-    'canvas_test_sdc',
-    'block',
-    'datetime',
-    'user',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'path_alias',
-  ];
 
   /**
    * {@inheritdoc}
@@ -148,7 +123,6 @@ abstract class ComponentSourceTestBase extends KernelTestBase implements LoggerI
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->installSchema('user', 'users_data');
-    $this->installConfig('canvas');
   }
 
   /**

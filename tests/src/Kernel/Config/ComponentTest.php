@@ -9,17 +9,15 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Entity\Component;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 /**
  * @group canvas
  * @group canvas_component_sources
  */
-class ComponentTest extends KernelTestBase {
+class ComponentTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 
   const MISSING_COMPONENT_ID = 'canvas:missing-component';
@@ -29,33 +27,8 @@ class ComponentTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = [
-    'canvas',
-    'sdc',
-    'sdc_test',
-    'canvas_test_sdc',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
-    'image',
-    'options',
-    'path',
-    'link',
-    'system',
-    'user',
-    'text',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'datetime',
-  ];
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
   }
 

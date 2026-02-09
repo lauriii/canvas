@@ -14,7 +14,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
 
@@ -25,23 +25,11 @@ use Drupal\user\UserInterface;
  * @covers \Drupal\canvas\Entity\JavaScriptComponent
  * @covers \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
  */
-final class JavascriptComponentAccessTest extends KernelTestBase {
+final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
 
-  protected static $modules = [
-    'canvas',
-    'user',
-    'system',
-    'datetime',
-    'file',
-    'image',
-    'options',
-    'path',
-    'path_alias',
-    'link',
-    'media',
-  ];
+  private const UUID_IN_ROOT = '84b672ce-cfca-44b6-a84d-477d13a1f6fb';
 
   /**
    * {@inheritdoc}
@@ -51,7 +39,6 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installEntitySchema('path_alias');
-    $this->installConfig(['system']);
   }
 
   public function testAccess(): void {
@@ -183,7 +170,12 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
     $pattern = Pattern::create([
       'label' => $this->randomMachineName(),
       'component_tree' => [
-        ['uuid' => 'uuid-in-root', 'component_id' => $component_id, 'inputs' => []],
+        [
+          'uuid' => self::UUID_IN_ROOT,
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [],
+        ],
       ],
     ]);
     $pattern->save();
@@ -205,7 +197,14 @@ final class JavascriptComponentAccessTest extends KernelTestBase {
 
     // If >=1 component instance exists in the auto-save for a config entity,
     // deletion is again forbidden.
-    $pattern->setComponentTree([['uuid' => 'uuid-in-root', 'component_id' => $component_id, 'inputs' => []]]);
+    $pattern->setComponentTree([
+      [
+        'uuid' => self::UUID_IN_ROOT,
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => [],
+      ],
+    ]);
     $auto_save_manager->saveEntity($pattern);
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
     self::assertEquals(

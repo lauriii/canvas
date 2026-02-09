@@ -24,17 +24,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
    * {@inheritdoc}
    */
   protected static $modules = [
-    // @see \Drupal\media\Entity\Media
-    'media',
-    // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
-    'media_library',
-    // Without this module installed, the media source fields can't be created,
-    // because the FieldConfig entity type would not exist.
     'field',
-    // The Media Library widget uses Views.
-    'views',
-    // @see \Drupal\media_library\MediaLibraryEditorOpener::__construct()
-    'filter',
   ];
 
   /**
@@ -45,6 +35,7 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
 
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::generateSampleValue()
     $this->installEntitySchema('media');
+    $this->installEntitySchema('path_alias');
 
     // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
     $this->installEntitySchema('user');

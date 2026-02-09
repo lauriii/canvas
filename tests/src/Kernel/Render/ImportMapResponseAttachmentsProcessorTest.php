@@ -11,7 +11,7 @@ use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -20,34 +20,14 @@ use Symfony\Component\HttpFoundation\Request;
  * @coversDefaultClass \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor
  * @group canvas
  */
-final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
+final class ImportMapResponseAttachmentsProcessorTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
     'big_pipe',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'ckeditor5',
-    'editor',
-    'field',
-    'file',
-    'filter',
-    'image',
-    'link',
-    'media',
-    'options',
-    'path',
-    'text',
-    'user',
   ];
-
-  protected function setUp(): void {
-    parent::setUp();
-    // Drupal Canvas configuration (creates the global AssetLibrary).
-    $this->installConfig('canvas');
-  }
 
   public function testImportMapResponseAttachmentsProcessor(): void {
     $renderer = $this->container->get('main_content_renderer.html');
@@ -100,7 +80,16 @@ final class ImportMapResponseAttachmentsProcessorTest extends KernelTestBase {
     $attachments = $response->getAttachments();
     self::assertArrayNotHasKey('import_maps', $attachments);
     self::assertArrayHasKey('html_head', $attachments);
-    [$element, $name] = \reset($attachments['html_head']);
+    self::assertCount(6, $attachments['html_head']);
+    self::assertSame([
+      'system_meta_content_type',
+      'system_meta_generator',
+      'MobileOptimized',
+      'HandheldFriendly',
+      'viewport',
+      'canvas_import_map',
+    ], array_map(fn (array $a) => $a[1], $attachments['html_head']));
+    [$element, $name] = \end($attachments['html_head']);
     self::assertEquals('canvas_import_map', $name);
     self::assertEquals('script', $element['#tag']);
     self::assertEquals('html_tag', $element['#type']);

@@ -9,32 +9,12 @@ use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Theme\ThemeInitializationInterface;
-use Drupal\KernelTests\KernelTestBase;
 
 /**
  * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
  * @group canvas
  */
-final class MediaLibrariesBuildTest extends KernelTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = [
-    'canvas',
-    'block',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
-    'image',
-    'media',
-    'options',
-    'path',
-    'link',
-    'text',
-    'system',
-    'user',
-  ];
+final class MediaLibrariesBuildTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}

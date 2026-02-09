@@ -7,9 +7,8 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\field\Entity\FieldConfig;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 // cspell:ignore elink estring
@@ -17,38 +16,19 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 /**
  * @group canvas
  */
-class DefaultFieldValueTest extends KernelTestBase {
+class DefaultFieldValueTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'user',
-    'block',
-    'canvas',
-    'system',
-    'canvas_test_sdc',
     'canvas_test_config_node_article',
     // All of `canvas_test_config_node_article`'s dependencies.
     'node',
     'field',
-    'link',
-    'text',
-    // Canvas's dependencies.
-    'datetime',
-    'file',
-    'image',
-    'options',
-    'path',
-    'media',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'datetime',
   ];
 
   /**
@@ -56,7 +36,6 @@ class DefaultFieldValueTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');

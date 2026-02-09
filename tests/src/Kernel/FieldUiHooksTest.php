@@ -15,8 +15,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -28,9 +26,8 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas')]
 #[CoversClass(FieldUiHooks::class)]
-final class FieldUiHooksTest extends KernelTestBase {
+final class FieldUiHooksTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use ContentTypeCreationTrait;
   use UserCreationTrait;
 
@@ -38,13 +35,8 @@ final class FieldUiHooksTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'system',
-    'user',
     'node',
     'field',
-    'text',
-    'media',
   ];
 
   /**
@@ -58,8 +50,9 @@ final class FieldUiHooksTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('node');
-    $this->installConfig(['node', 'system']);
+    $this->installConfig(['node']);
     // Create user 1, which has special admin privileges that could interfere
     // with access tests.
     // @todo Remove in https://www.drupal.org/node/540008.

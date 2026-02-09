@@ -9,10 +9,9 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -21,9 +20,8 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  * @coversDefaultClass \Drupal\canvas\Entity\ContentTemplate
  * @group canvas
  */
-final class ContentTemplateTest extends KernelTestBase {
+final class ContentTemplateTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use ContentTypeCreationTrait;
   use GenerateComponentConfigTrait;
 
@@ -31,28 +29,8 @@ final class ContentTemplateTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    // The two only modules Drupal truly requires.
-    'system',
-    'user',
-    // The module being tested.
-    'canvas',
-    // The content entity type being tested plus bundle fields.
     'node',
     'field',
-    'text',
-    // Test components.
-    'canvas_test_sdc',
-    'block',
-    // Field types used by test components.
-    'media',
-    'image',
-    'link',
-    'file',
-    'options',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'datetime',
   ];
 
   /**
@@ -60,6 +38,7 @@ final class ContentTemplateTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installEntitySchema('path_alias');
     $this->installConfig(['node', 'user']);
     NodeType::create(['type' => 'helpful', 'name' => 'Helpful'])->save();
   }
@@ -107,7 +86,6 @@ final class ContentTemplateTest extends KernelTestBase {
   public function testTreeKeyOrdering(): void {
     $this->installConfig('node');
     $this->createContentType(['type' => 'alpha']);
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
     $template = ContentTemplate::create([
       'content_entity_type_id' => 'node',

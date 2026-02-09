@@ -8,7 +8,6 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Component\Uuid\Php as UuidGenerator;
 use Drupal\canvas\ComponentTreeInputExtractor;
 use Drupal\canvas\Entity\Page;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,26 +15,12 @@ use PHPUnit\Framework\Attributes\Group;
 
 #[Group('canvas')]
 #[CoversClass(ComponentTreeInputExtractor::class)]
-final class ComponentTreeInputExtractorTest extends KernelTestBase {
+final class ComponentTreeInputExtractorTest extends CanvasKernelTestBase {
 
   use PageTrait;
 
   protected static $modules = [
-    'file',
-    'image',
-    'canvas',
-    'canvas_test_sdc',
     'canvas_test_search',
-    'datetime',
-    'link',
-    'media',
-    'filter',
-    'text',
-    'media_library',
-    'options',
-    'path',
-    'system',
-    'user',
     'views',
   ];
 

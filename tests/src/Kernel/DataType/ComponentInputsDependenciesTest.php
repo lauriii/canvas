@@ -13,12 +13,11 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -29,11 +28,10 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @see \Drupal\Tests\canvas\Unit\DataType\ComponentInputsTest
  * @group canvas
  */
-class ComponentInputsDependenciesTest extends KernelTestBase {
+class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
 
   use ComponentTreeItemListInstantiatorTrait;
   use ConstraintViolationsTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use ImageFieldCreationTrait;
   use MediaTypeCreationTrait;
@@ -46,22 +44,7 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
    */
   protected static $modules = [
     'node',
-    'ckeditor5',
-    'editor',
     'field',
-    'filter',
-    'text',
-    'file',
-    'image',
-    'media',
-    'user',
-    'system',
-    'path',
-    'canvas',
-    'link',
-    'options',
-    'datetime',
-    'canvas_test_sdc',
   ];
 
   /**
@@ -69,15 +52,13 @@ class ComponentInputsDependenciesTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig([
-      'canvas',
-      'filter',
-    ]);
+    $this->installConfig('filter');
     $this->installEntitySchema('user');
     $this->installEntitySchema('node_type');
     $this->installEntitySchema('node');
     $this->installEntitySchema('file');
     $this->installEntitySchema('media');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installSchema('file', ['file_usage']);
   }

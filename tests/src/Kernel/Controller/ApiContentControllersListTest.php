@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\Page;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
  * @group canvas
  * @coversDefaultClass \Drupal\canvas\Controller\ApiContentControllers
  */
-class ApiContentControllersListTest extends KernelTestBase {
+class ApiContentControllersListTest extends CanvasKernelTestBase {
   use UserCreationTrait;
 
   /**
@@ -37,17 +37,8 @@ class ApiContentControllersListTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'system',
     'canvas_test_page',
-    'user',
     'field',
-    'text',
-    'filter',
-    'path_alias',
-    'path',
-    'media',
-    'image',
   ];
 
   /**

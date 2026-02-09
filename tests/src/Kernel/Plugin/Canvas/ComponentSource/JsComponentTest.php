@@ -78,8 +78,6 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     'canvas_test_code_components',
     // For testing a code component using the "video" prop shape.
     'field',
-    'media_library',
-    'views',
     'canvas_test_video_fixture',
   ];
 

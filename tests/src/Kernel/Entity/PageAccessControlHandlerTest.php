@@ -7,13 +7,13 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\Page;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 
 /**
  * @group canvas
  */
-final class PageAccessControlHandlerTest extends KernelTestBase {
+final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
 
   use PageTrait;
 
@@ -21,7 +21,6 @@ final class PageAccessControlHandlerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
     ...self::PAGE_TEST_MODULES,
   ];
 

@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Validation;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
@@ -15,29 +15,11 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
  * @coversDefaultClass \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  * @group canvas
  */
-final class ComponentTreeStructureConstraintValidatorTest extends KernelTestBase {
+final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
   use GenerateComponentConfigTrait;
   use ComponentTreeItemListInstantiatorTrait;
-
-  protected static $modules = [
-    'canvas',
-    'canvas_test_sdc',
-    'block',
-    // Canvas's dependencies (modules providing field types + widgets).
-    'datetime',
-    'file',
-    'image',
-    'media',
-    'options',
-    'path',
-    'link',
-    'text',
-    'filter',
-    'system',
-    'user',
-  ];
 
   /**
    * @dataProvider providerValidation

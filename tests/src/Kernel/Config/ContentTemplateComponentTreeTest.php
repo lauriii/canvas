@@ -40,7 +40,6 @@ final class ContentTemplateComponentTreeTest extends ConfigWithComponentTreeTest
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installConfig('node');
-    $this->installConfig('canvas');
     $this->createContentType(['type' => 'alpha']);
     FieldStorageConfig::create([
       'field_name' => 'field_test',

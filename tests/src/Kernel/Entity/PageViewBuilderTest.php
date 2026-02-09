@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageViewBuilder;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -15,7 +15,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 /**
  * @group canvas
  */
-final class PageViewBuilderTest extends KernelTestBase {
+final class PageViewBuilderTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
   use PageTrait;
@@ -25,19 +25,6 @@ final class PageViewBuilderTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'block',
-    'sdc',
-    'sdc_test',
-    'datetime',
-    'canvas_test_sdc',
-    // Modules providing field types + widgets for the SDC Components'
-    // `prop_field_definitions`.
-    'file',
-    'image',
-    'options',
-    'link',
-    'system',
     ...self::PAGE_TEST_MODULES,
   ];
 

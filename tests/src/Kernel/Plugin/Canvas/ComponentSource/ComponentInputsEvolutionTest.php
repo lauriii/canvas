@@ -21,12 +21,11 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\link\LinkItemInterface;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeSchemaUpdateTestTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
@@ -40,10 +39,9 @@ use Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block\Simulated
  * @group canvas
  * @group canvas_component_sources
  */
-final class ComponentInputsEvolutionTest extends KernelTestBase {
+final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
 
   use BlockComponentTreeSchemaUpdateTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
@@ -57,23 +55,7 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'media',
-    'path',
-    'file',
-    'image',
-    'link',
-    'options',
-    'text',
-    'system',
-    'block',
-    'datetime',
-    'user',
     'canvas_test_block',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'canvas_test_sdc',
   ];
 
   /**
@@ -82,9 +64,9 @@ final class ComponentInputsEvolutionTest extends KernelTestBase {
   public function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installSchema('user', 'users_data');
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
     // Set up a test user "bob"
     $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2]);

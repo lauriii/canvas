@@ -13,12 +13,11 @@ use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
@@ -28,12 +27,11 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @coversDefaultClass \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
  * @group canvas
  */
-class ComponentTreeItemTest extends KernelTestBase {
+class ComponentTreeItemTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
   use ComponentTreeItemListInstantiatorTrait;
   use ConstraintViolationsTestTrait;
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
   use UserCreationTrait;
@@ -43,28 +41,11 @@ class ComponentTreeItemTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'sdc',
-    'sdc_test',
-    'canvas_test_sdc',
-    // Dependencies must actually exist.
     'field',
-    'user',
     'node',
-    // Modules providing field types + widgets for the SDC Components'
-    // `prop_field_definitions`.
-    'file',
-    'image',
-    'options',
-    'link',
-    'text',
-    'system',
-    'media',
+    // Test components.
     'canvas_test_code_components',
-    'filter',
-    'ckeditor5',
-    'editor',
-    'datetime',
+    'sdc_test',
   ];
 
   /**
@@ -73,7 +54,6 @@ class ComponentTreeItemTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig('canvas');
     $this->generateComponentConfig();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node_type');
@@ -555,6 +535,7 @@ class ComponentTreeItemTest extends KernelTestBase {
    * @dataProvider providerInvalidField
    */
   public function testInvalidField(array $field_values, array $expected_violations, array $permissions = [], ?string $expected_exception = NULL, ?string $exception_message = NULL): void {
+    $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: $permissions);
     $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
     $node = Node::create([

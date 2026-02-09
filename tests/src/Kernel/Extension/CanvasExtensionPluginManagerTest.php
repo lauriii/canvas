@@ -9,22 +9,19 @@ use Drupal\canvas\Extension\CanvasExtension;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
 use Drupal\canvas\Extension\CanvasExtensionTypeEnum;
 use Drupal\Component\Assertion\Inspector;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 #[Group('canvas')]
 #[CoversClass(CanvasExtensionPluginManager::class)]
-class CanvasExtensionPluginManagerTest extends KernelTestBase {
+class CanvasExtensionPluginManagerTest extends CanvasKernelTestBase {
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'system',
-    'user',
     'canvas_test_extension',
   ];
 

@@ -51,6 +51,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * @group canvas
  * @group #slow
+ * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
@@ -69,6 +70,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   public function setUp(): void {
     parent::setUp();
     $this->container->get('module_installer')->install(['system']);
+    // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
     $this->setUpImages();
     $other_user = $this->createUser();

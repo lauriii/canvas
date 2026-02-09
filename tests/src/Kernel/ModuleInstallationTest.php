@@ -11,6 +11,10 @@ use Drupal\KernelTests\KernelTestBase;
 /**
  * Tests module installation.
  *
+ * Note this cannot use CanvasKernelTestBase because it needs to test
+ * installation and uninstallation of the module, which is not possible when the
+ * module is already installed for the test class.
+ *
  * @group canvas
  */
 final class ModuleInstallationTest extends KernelTestBase {

@@ -10,19 +10,14 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileRepositoryInterface;
-use Drupal\image\Entity\ImageStyle;
-use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\TestFileCreationTrait;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Entity\ParametrizedImageStyle
  * @group canvas
  */
-class ParametrizedImageStyleTest extends KernelTestBase {
+class ParametrizedImageStyleTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use TestFileCreationTrait {
     getTestFiles as drupalGetTestFiles;
   }
@@ -30,23 +25,8 @@ class ParametrizedImageStyleTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = [
-    'system',
-    'user',
-    'canvas',
-    'image',
-    'file',
-  ];
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp(): void {
     parent::setUp();
-
-    ImageStyle::create(
-      Yaml::parseFile(__DIR__ . '/../../../config/install/image.style.canvas_parametrized_width.yml')
-    )->save();
 
     // Fixate the private key & hash salt to get predictable `itok`.
     $this->container->get('state')->set('system.private_key', 'dynamic_image_style_private_key');

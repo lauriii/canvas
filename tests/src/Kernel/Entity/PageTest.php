@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -15,7 +15,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 /**
  * @group canvas
  */
-final class PageTest extends KernelTestBase {
+final class PageTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
   use MediaTypeCreationTrait;
@@ -25,19 +25,6 @@ final class PageTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
-    'block',
-    'sdc',
-    'sdc_test',
-    'datetime',
-    'canvas_test_sdc',
-    // Modules providing field types + widgets for the SDC Components'
-    // `prop_field_definitions`.
-    'file',
-    'image',
-    'options',
-    'link',
-    'system',
     ...self::PAGE_TEST_MODULES,
   ];
 

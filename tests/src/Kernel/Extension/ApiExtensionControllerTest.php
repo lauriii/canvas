@@ -9,9 +9,8 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
-use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
@@ -23,9 +22,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 #[Group('canvas')]
 #[CoversFunction('ApiExtensionControllers::list')]
-class ApiExtensionControllerTest extends KernelTestBase {
+class ApiExtensionControllerTest extends CanvasKernelTestBase {
 
-  use ContribStrictConfigSchemaTestTrait;
   use GenerateComponentConfigTrait;
   use OpenApiSpecTrait;
   use AssertPageCacheContextsAndTagsTrait;
@@ -37,11 +35,8 @@ class ApiExtensionControllerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'canvas',
     'canvas_test_extension',
     'canvas_test_extension_multiple',
-    'user',
-    'media',
   ];
 
   /**
@@ -50,6 +45,7 @@ class ApiExtensionControllerTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $user = $this->createUser();
