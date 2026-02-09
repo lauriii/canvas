@@ -30,7 +30,7 @@ The most common commands in the development process are:
 1. `ddev xb-site-install`: This will reinstall the site and enable a couple of commands. Very useful when you update Canvas and what to have a fresh installation.
 2. `ddev xb-ui-build`: This will build the `canvas/ui` javascript application. Required whenever you update Canvas.
 3. Tests and linting: The commands `xb-eslint`, `xb-fix`, `xb-phpcs`, `xb-phpstan` and `xb-phpunit` must be used before any commit to ensure code looks good and pass tests.
-4. More commands with `ddev | grep xb-` and in the [ddev-drupal-xb-dev repo usage](https://github.com/drupal-xb/ddev-xb-canvas-dev#usage).
+4. More commands with `ddev | grep xb-` and in the [ddev-drupal-xb-dev repo usage](https://github.com/drupal-canvas/ddev-drupal-xb-dev#usage).
 
 Tip: Use `ddev help <command>` for additional information about the command and arguments available.
 

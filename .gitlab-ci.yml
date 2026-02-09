@@ -476,7 +476,7 @@ cypress unit:
 lint (php):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
   variables:
     GIT_DEPTH: 1
     COMPOSER_ROOT_VERSION: 0.0.0
@@ -513,7 +513,7 @@ lint (php):
 lint (node):
   stage: validate
   needs: []
-  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
   before_script:
     - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
   script:
@@ -523,7 +523,7 @@ lint (node):
 type-check:
   stage: validate
   needs: []
-  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
   before_script:
     - . /root/.nvm/nvm.sh && nvm install 24 && nvm alias default 24
   script:
@@ -547,7 +547,7 @@ playwright:
     - *e2e-tests-are-enabled-rule
     - *manual-rule
   interruptible: true
-  image: ghcr.io/drupal-xb/drupal-testing:1.0.0
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.0
   extends:
     - .test-variables
   variables:
@@ -593,7 +593,7 @@ playwright:
 
 CLI Test:
   stage: test
-  image: ghcr.io/drupal-xb/drupal-testing:1.0.1
+  image: ghcr.io/drupal-canvas/drupal-testing:1.0.1
   needs: []
   rules:
     - changes:
