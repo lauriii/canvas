@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -78,6 +79,51 @@ class TranslationTest extends FunctionalTestBase {
     // that hold a list of languages.
     $this->rebuildContainer();
     $this->enableContentTranslation('node', 'article');
+  }
+
+  /**
+   * Tests that component_tree is translatable in config entities when canvas_dev_translation is enabled.
+   */
+  public function testComponentTreeTranslatableInConfigEntities(): void {
+    // First test that component_tree is not translatable when canvas_dev_translation is disabled.
+    $typed_config = $this->container->get('config.typed');
+    \assert($typed_config instanceof TypedConfigManagerInterface);
+    // Test canvas.page_region.* schema.
+    $page_region_schema = $typed_config->getDefinition('canvas.page_region.*');
+    $this->assertIsArray($page_region_schema);
+    $this->assertArrayHasKey('mapping', $page_region_schema);
+    $this->assertArrayHasKey('component_tree', $page_region_schema['mapping']);
+    $this->assertArrayNotHasKey('translatable', $page_region_schema['mapping']['component_tree'], 'component_tree should not be translatable for canvas.page_region.* without canvas_dev_translation');
+
+    // Test canvas.content_template.*.*.* schema.
+    $content_template_schema = $typed_config->getDefinition('canvas.content_template.*.*.*');
+    $this->assertIsArray($content_template_schema);
+    $this->assertArrayHasKey('mapping', $content_template_schema);
+    $this->assertArrayHasKey('component_tree', $content_template_schema['mapping']);
+    $this->assertArrayNotHasKey('translatable', $content_template_schema['mapping']['component_tree'], 'component_tree should not be translatable for canvas.content_template.*.*.* without canvas_dev_translation');
+
+    // Enable the canvas_dev_translation module and test that component_tree is now translatable.
+    $module_installer = $this->container->get('module_installer');
+    \assert($module_installer instanceof ModuleInstallerInterface);
+    $module_installer->install(['canvas_dev_translation']);
+    $this->rebuildContainer();
+    $typed_config = $this->container->get('config.typed');
+
+    // Test canvas.page_region.* schema.
+    $page_region_schema = $typed_config->getDefinition('canvas.page_region.*');
+    $this->assertIsArray($page_region_schema);
+    $this->assertArrayHasKey('mapping', $page_region_schema);
+    $this->assertArrayHasKey('component_tree', $page_region_schema['mapping']);
+    $this->assertArrayHasKey('translatable', $page_region_schema['mapping']['component_tree']);
+    $this->assertTrue($page_region_schema['mapping']['component_tree']['translatable'], 'component_tree should be translatable for canvas.page_region.*');
+
+    // Test canvas.content_template.*.*.* schema.
+    $content_template_schema = $typed_config->getDefinition('canvas.content_template.*.*.*');
+    $this->assertIsArray($content_template_schema);
+    $this->assertArrayHasKey('mapping', $content_template_schema);
+    $this->assertArrayHasKey('component_tree', $content_template_schema['mapping']);
+    $this->assertArrayHasKey('translatable', $content_template_schema['mapping']['component_tree']);
+    $this->assertTrue($content_template_schema['mapping']['component_tree']['translatable'], 'component_tree should be translatable for canvas.content_template.*.*.*');
   }
 
   /**
