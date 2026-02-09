@@ -9,6 +9,7 @@ use Drupal\canvas\Hook\ContentTemplateHooks;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\UserInterface;
@@ -178,6 +179,42 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
     $this->drupalGet("admin/structure/types/manage/$bundle/display/$view_mode_id");
     $this->assertStringContainsString("admin/structure/types/manage/$bundle/display/$view_mode_id", $this->getSession()->getCurrentUrl());
 
+  }
+
+  /**
+   * Tests that ViewModeDisplayController works with Layout Builder enabled.
+   *
+   * Ensures Canvas does not cause errors due to Layout Builder's alterations to
+   * view mode routes.
+   *
+   * @see https://drupal.org/i/3571881
+   * @see \Drupal\layout_builder\Routing\LayoutBuilderRoutes::onAlterRoutes
+   *
+   * #[CoversMethod(ViewModeDisplayController::class, '__invoke')]
+   */
+  public function testLayoutBuilderCompatibility(): void {
+    $bundle = 'page';
+    $this->container->get('module_installer')->install(['layout_builder']);
+    $this->resetAll();
+
+    // Refresh storage after module installation.
+    $this->viewDisplayStorage = $this->container->get('entity_type.manager')->getStorage('entity_view_display');
+
+    $this->createNodeType(['type' => $bundle]);
+    $this->createViewDisplay($bundle, 'teaser');
+
+    // Enable Layout Builder on the teaser view mode.
+    $teaser_display = $this->viewDisplayStorage->load("node.$bundle.teaser");
+    \assert($teaser_display instanceof LayoutBuilderEntityViewDisplay);
+    $teaser_display->enableLayoutBuilder()
+      ->setOverridable()
+      ->save();
+
+    // Visit teaser view mode, no Canvas template, enabled for Layout Builder.
+    // @see \Drupal\layout_builder\Form\LayoutBuilderEntityViewDisplayForm
+    $this->drupalGet("admin/structure/types/manage/$bundle/display/teaser");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextNotContains('The website encountered an unexpected error');
   }
 
   /**

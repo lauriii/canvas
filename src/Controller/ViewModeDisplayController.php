@@ -7,11 +7,11 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Entity\HtmlEntityFormController;
 use Drupal\Core\Routing\LocalRedirectResponse;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Controller for handling view mode display forms with content templates.
@@ -19,8 +19,7 @@ use Drupal\Core\Url;
 final class ViewModeDisplayController {
 
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly FormBuilderInterface $formBuilder,
+    private readonly HtmlEntityFormController $entityFormController,
   ) {
   }
 
@@ -39,7 +38,7 @@ final class ViewModeDisplayController {
    * @return array<string, mixed>|\Drupal\Core\Cache\CacheableResponseInterface
    *   A render array for the form or a redirect response.
    */
-  public function __invoke(string $entity_type_id, string $bundle, string $view_mode_name, RouteMatchInterface $route_match): array|CacheableResponseInterface {
+  public function __invoke(string $entity_type_id, string $bundle, string $view_mode_name, Request $request, RouteMatchInterface $route_match): array|CacheableResponseInterface {
     $template = ContentTemplate::load("$entity_type_id.$bundle.$view_mode_name");
 
     // Check if a ContentTemplate exists for this view mode and entity type.
@@ -50,15 +49,8 @@ final class ViewModeDisplayController {
       $response->addCacheableDependency($template);
       return $response;
     }
-
-    // Build the entity view display form.
-    $form_object = $this->entityTypeManager
-      ->getFormObject('entity_view_display', 'edit');
-
-    $entity = $form_object->getEntityFromRouteMatch($route_match, 'entity_view_display');
-    $form_object->setEntity($entity);
-
-    return $this->formBuilder->getForm($form_object);
+    // Fallback to the standard view mode display form.
+    return $this->entityFormController->getContentResult($request, $route_match);
   }
 
 }
