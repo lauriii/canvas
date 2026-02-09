@@ -11,7 +11,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
  * @todo hopefully this won't be necessary once http://drupal.org/i/3566074 is resolved
  *
  */
-const CLEANUP_TRIGGER_PARAMS = [
+const UNDO_REDO_HISTORY_CLEANUP_TRIGGER_PARAMS = [
   'entityType',
   'entityId',
   'bundle',
@@ -40,7 +40,7 @@ function useNavigationListener() {
   useEffect(() => {
     // Get current values of the monitored parameters
     const currentParams: Record<string, string | undefined> = {};
-    CLEANUP_TRIGGER_PARAMS.forEach((paramName) => {
+    UNDO_REDO_HISTORY_CLEANUP_TRIGGER_PARAMS.forEach((paramName) => {
       currentParams[paramName] = params[paramName];
     });
 
@@ -49,18 +49,20 @@ function useNavigationListener() {
 
     if (!isInitialRender) {
       // Check if any of the monitored parameters have changed
-      const hasRelevantChange = CLEANUP_TRIGGER_PARAMS.some((paramName) => {
-        const previous = previousParamsRef.current[paramName];
-        const current = currentParams[paramName];
+      const hasRelevantChange = UNDO_REDO_HISTORY_CLEANUP_TRIGGER_PARAMS.some(
+        (paramName) => {
+          const previous = previousParamsRef.current[paramName];
+          const current = currentParams[paramName];
 
-        // Consider it a change if:
-        // - Previous value existed and current is different, OR
-        // - Previous value didn't exist and current does exist
-        return (
-          previous !== current &&
-          (previous !== undefined || current !== undefined)
-        );
-      });
+          // Consider it a change if:
+          // - Previous value existed and current is different, OR
+          // - Previous value didn't exist and current does exist
+          return (
+            previous !== current &&
+            (previous !== undefined || current !== undefined)
+          );
+        },
+      );
 
       if (hasRelevantChange) {
         // Execute cleanup actions

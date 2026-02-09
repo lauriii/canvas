@@ -57,6 +57,8 @@ const PageStatus = () => {
     useGetAllPendingChangesQuery();
   const { entityType, entityId } = useParams();
   const [hasAutoSave, setHasAutoSave] = useState(false);
+  // skipToken prevents the query from running until both args are defined.
+  // "Pass skipToken to a query selector to have that selector return an uninitialized state."
   const { data: fetchedLayout, isError } = useGetPageLayoutQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
