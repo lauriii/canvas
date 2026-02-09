@@ -1,9 +1,18 @@
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
 .idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-/.env
+.env
+.env.development.local
 
-/node_modules
+node_modules
 
 # Playwright
 /test-results/
@@ -23,7 +32,15 @@
 # GitLab CI
 /.gitlab-ci-local/
 /_drupal/
+
+# Logs
 /logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # User Documentation
 # build output
@@ -33,6 +50,14 @@
 # dependencies
 /docs/user/node_modules/
 
+# UI
+/ui/logs
+/ui/dist
+/ui/dist-ssr
+/ui/*.local
+/ui/*storybook.log
+/packages/astro-hydration/dist
+/packages/astro-hydration/.astro
+
 # Playwright
-node_modules/
 /playwright/.auth/
