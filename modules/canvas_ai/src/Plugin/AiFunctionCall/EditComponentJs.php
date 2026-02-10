@@ -175,11 +175,13 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
       $this->setOutput(Yaml::dump(['error' => \sprintf('Failed to process Javascript component data: %s', $e->getMessage())], 10, 2));
       return;
     }
-    $this->setStructuredOutput([
+    $output = [
       'js_structure' => $js,
       'props_metadata' => Json::encode($transformed_props),
       'required_props' => $required_props,
-    ]);
+    ];
+    $this->setStructuredOutput($output);
+    $this->setOutput('Component with id "' . $machine_name . '" has been successfully updated.');
   }
 
 }

@@ -112,6 +112,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       $custom_yaml = $this->pageBuilderHelper->customYamlToArrayMapper($component_structure);
       \assert(array_keys($custom_yaml) === ['operations']);
       $this->setStructuredOutput($custom_yaml);
+      $this->setOutput('Component structure processed successfully.');
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());

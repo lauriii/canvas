@@ -167,6 +167,7 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       return;
     }
     $this->setStructuredOutput(['component_structure' => $output]);
+    $this->setOutput('The component ' . $component_name . ' has been created successfully.');
   }
 
 }
