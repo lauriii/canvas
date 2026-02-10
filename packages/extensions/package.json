@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/extensions",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "API for building extensions for Drupal Canvas",
   "license": "GPL-2.0-or-later",
   "repository": {
