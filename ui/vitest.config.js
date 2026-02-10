@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/vitest/support/vitest.setup.js'],
+    globalSetup: ['./tests/vitest/support/vitest.global-setup.js'],
     mockReset: true,
     restoreMocks: true,
     deps: {

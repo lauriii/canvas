@@ -23,6 +23,7 @@ import {
   Label,
 } from '@/features/code-editor/component-data/FormElement';
 import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/FormPropTypeBoolean';
+import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPropTypeDate';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
@@ -167,6 +168,7 @@ export default function Props() {
                 <FormPropTypeLink
                   id={prop.id}
                   example={prop.example as string}
+                  format={prop.format as string}
                   isDisabled={componentStatus}
                 />
               );
@@ -205,6 +207,16 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example as string}
+                  isDisabled={componentStatus}
+                />
+              );
+            case 'date':
+              return (
+                <FormPropTypeDate
+                  id={prop.id}
+                  example={prop.example as string}
+                  format={prop.format as string}
+                  // @todo: Remove in https://drupal.org/i/3561912.
                   isDisabled={componentStatus}
                 />
               );

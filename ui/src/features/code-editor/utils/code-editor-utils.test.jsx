@@ -150,6 +150,28 @@ describe('Code editor utilities', () => {
         'formattedTextWithExampleValue',
       ]);
     });
+
+    it('of type date', () => {
+      const result = serializeProps([
+        deserializedPropsFixture[24],
+        deserializedPropsFixture[25],
+      ]);
+      matchSerializedProps(result, [
+        'dateWithNoExampleValue',
+        'dateWithExampleValue',
+      ]);
+    });
+
+    it('of type dateTime', () => {
+      const result = serializeProps([
+        deserializedPropsFixture[26],
+        deserializedPropsFixture[27],
+      ]);
+      matchSerializedProps(result, [
+        'dateTimeWithNoExampleValue',
+        'dateTimeWithExampleValue',
+      ]);
+    });
   });
 
   describe('deserialize props', () => {
@@ -234,6 +256,22 @@ describe('Code editor utilities', () => {
       ]);
       matchDeserializedProps(result, [16, 17, 18, 19]);
     });
+
+    it('of type date', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.dateWithNoExampleValue,
+        serializedPropsFixture.dateWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [24, 25]);
+    });
+
+    it('of type dateTime', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.dateTimeWithNoExampleValue,
+        serializedPropsFixture.dateTimeWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [26, 27]);
+    });
   });
 
   it('serialize slots', () => {
@@ -297,6 +335,10 @@ describe('Code editor preview utilities', () => {
         src: '/modules/contrib/canvas/ui/assets/videos/mountain_wide.mp4',
         poster: 'https://placehold.co/1920x1080.png?text=Horizontal',
       },
+      dateWithNoExampleValue: '',
+      dateWithExampleValue: '2026-01-15',
+      dateTimeWithNoExampleValue: '',
+      dateTimeWithExampleValue: '2026-01-15T12:34:56.789Z',
     });
   });
 

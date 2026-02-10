@@ -247,6 +247,38 @@
       },
       "id": "4ea2a14d-7828-467c-a505-063f006f1ebf",
       "derivedType": "video"
+    },
+    {
+      "name": "Date with no example value",
+      "type": "string",
+      "format": "date",
+      "example": "",
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "derivedType": "date"
+    },
+    {
+      "name": "Date with example value",
+      "type": "string",
+      "format": "date",
+      "example": "2026-01-15",
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "derivedType": "date"
+    },
+    {
+      "name": "DateTime with no example value",
+      "type": "string",
+      "format": "date-time",
+      "example": "",
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "derivedType": "date"
+    },
+    {
+      "name": "DateTime with example value",
+      "type": "string",
+      "format": "date-time",
+      "example": "2026-01-15T12:34:56.789Z",
+      "id": "d4e5f6a7-b8c9-0123-def1-234567890123",
+      "derivedType": "date"
     }
   ],
   "serialized": {
@@ -404,6 +436,28 @@
         "poster": "https://placehold.co/1920x1080.png?text=Horizontal"
       }],
       "$ref": "json-schema-definitions://canvas.module/video"
+    },
+    "dateWithNoExampleValue": {
+      "title": "Date with no example value",
+      "type": "string",
+      "format": "date"
+    },
+    "dateWithExampleValue": {
+      "title": "Date with example value",
+      "type": "string",
+      "format": "date",
+      "examples": ["2026-01-15"]
+    },
+    "dateTimeWithNoExampleValue": {
+      "title": "DateTime with no example value",
+      "type": "string",
+      "format": "date-time"
+    },
+    "dateTimeWithExampleValue": {
+      "title": "DateTime with example value",
+      "type": "string",
+      "format": "date-time",
+      "examples": ["2026-01-15T12:34:56.789Z"]
     }
   }
 }

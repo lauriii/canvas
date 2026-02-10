@@ -19,16 +19,25 @@ import styles from '@/features/code-editor/component-data/FormElement.module.css
 
 const BASE_URL = window.location.origin;
 
+const linkFormatMap = {
+  'uri-reference': 'relative',
+  uri: 'full',
+};
+
 export default function FormPropTypeLink({
   id,
   example,
+  format,
   isDisabled = false,
 }: Pick<CodeComponentProp, 'id'> & {
   example: string;
+  format: string;
   isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
-  const [linkType, setLinkType] = useState<'relative' | 'full'>('relative');
+  const [linkType, setLinkType] = useState<'relative' | 'full'>(
+    format ? linkFormatMap[format] : 'relative',
+  );
   const [isExampleValueValid, setIsExampleValueValid] = useState(true);
 
   return (

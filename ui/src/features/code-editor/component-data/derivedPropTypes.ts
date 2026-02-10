@@ -82,6 +82,17 @@ const derivedPropTypes = [
     },
   },
   {
+    type: 'date' as const,
+    displayName: 'Date and time',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'string' &&
+      ['date', 'date-time'].includes(prop.format as string),
+    init: {
+      type: 'string',
+      format: 'date',
+    },
+  },
+  {
     type: 'boolean' as const,
     displayName: 'Boolean',
     derive: (prop: CodeComponentPropSerialized) => prop.type === 'boolean',
