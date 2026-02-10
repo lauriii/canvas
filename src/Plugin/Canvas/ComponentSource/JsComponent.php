@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
-use Drupal\Core\Asset\AssetQueryStringInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
@@ -19,9 +18,9 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\GlobalImports;
 use Drupal\canvas\ComponentSource\UrlRewriteInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
-use Drupal\canvas\Version;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -46,17 +45,15 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
   protected FileUrlGeneratorInterface $fileUrlGenerator;
-  protected Version $version;
-  protected AssetQueryStringInterface $assetQueryString;
   protected ?JavaScriptComponent $jsComponent = NULL;
+  protected GlobalImports $globalImports;
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->extensionPathResolver = $container->get(ExtensionPathResolver::class);
     $instance->autoSaveManager = $container->get(AutoSaveManager::class);
     $instance->fileUrlGenerator = $container->get(FileUrlGeneratorInterface::class);
-    $instance->version = $container->get(Version::class);
-    $instance->assetQueryString = $container->get(AssetQueryStringInterface::class);
+    $instance->globalImports = $container->get(GlobalImports::class);
     return $instance;
   }
 
@@ -158,45 +155,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
 
     $canvas_path = $this->extensionPathResolver->getPath('module', 'canvas');
     // Build base import map.
-    // Whenever updating this import map, also update
-    // `src/features/code-editor/Preview.tsx`,
-    // as well as the list of supported imports in
-    // `packages/eslint-config/src/rules/component-imports.ts`.
-    // @see https://drupal.org/i/3552914
-    // @see https://drupal.org/i/3560197
-    $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = [
-      'preact' => \sprintf('%s%s/packages/astro-hydration/dist/preact.module.js', $base_path, $canvas_path),
-      'preact/hooks' => \sprintf('%s%s/packages/astro-hydration/dist/hooks.module.js', $base_path, $canvas_path),
-      'react/jsx-runtime' => \sprintf('%s%s/packages/astro-hydration/dist/jsx-runtime-default.js', $base_path, $canvas_path),
-      'react' => \sprintf('%s%s/packages/astro-hydration/dist/compat.module.js', $base_path, $canvas_path),
-      'react-dom' => \sprintf('%s%s/packages/astro-hydration/dist/compat.module.js', $base_path, $canvas_path),
-      'react-dom/client' => \sprintf('%s%s/packages/astro-hydration/dist/compat.module.js', $base_path, $canvas_path),
-      'clsx' => \sprintf('%s%s/packages/astro-hydration/dist/clsx.js', $base_path, $canvas_path),
-      'class-variance-authority' => \sprintf('%s%s/packages/astro-hydration/dist/class-variance-authority.js', $base_path, $canvas_path),
-      'tailwind-merge' => \sprintf('%s%s/packages/astro-hydration/dist/tailwind-merge.js', $base_path, $canvas_path),
-      'drupal-jsonapi-params' => \sprintf('%s%s/packages/astro-hydration/dist/jsonapi-params.js', $base_path, $canvas_path),
-      'swr' => \sprintf('%s%s/packages/astro-hydration/dist/swr.js', $base_path, $canvas_path),
-
-      'drupal-canvas' => \sprintf('%s%s/packages/astro-hydration/dist/drupal-canvas.js', $base_path, $canvas_path),
-      // Backward compatibility entries for elements that were moved
-      // into drupal-canvas package.
-      '@/lib/FormattedText' => \sprintf('%s%s/packages/astro-hydration/dist/FormattedText.js', $base_path, $canvas_path),
-      'next-image-standalone' => \sprintf('%s%s/packages/astro-hydration/dist/next-image-standalone.js', $base_path, $canvas_path),
-      '@/lib/utils' => \sprintf('%s%s/packages/astro-hydration/dist/utils.js', $base_path, $canvas_path),
-      '@drupal-api-client/json-api-client' => \sprintf('%s%s/packages/astro-hydration/dist/jsonapi-client.js', $base_path, $canvas_path),
-      '@/lib/jsonapi-utils' => \sprintf('%s%s/packages/astro-hydration/dist/jsonapi-utils.js', $base_path, $canvas_path),
-      '@/lib/drupal-utils' => \sprintf('%s%s/packages/astro-hydration/dist/drupal-utils.js', $base_path, $canvas_path),
-    ];
-    // We need a cache-busting query string for the browser to not use cached
-    // files after installing an update.
-    $version = $this->version->getVersion();
-    // If version is 0.0.0, use the AssetQueryStringInterface service to improve
-    // DX: avoid the need to do a hard refresh or wipe the browser cache.
-    $query_string = $version === '0.0.0' ? $this->assetQueryString->get() : $version;
-    foreach ($import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] as &$asset) {
-      $asset .= '?' . $query_string;
-    }
-
+    $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS] = $this->globalImports->getGlobalImports();
     // For scoped dependencies we don't need cache-busting query strings, as
     // those are already busted by its content-dependent filename: when the
     // code component changes, so does the filename.
@@ -221,7 +180,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
         [
           'rel' => 'modulepreload',
           'fetchpriority' => 'high',
-          'href' => $url . '?' . $query_string,
+          'href' => $url . '?' . $this->globalImports->getQueryString(),
         ],
       ];
     }

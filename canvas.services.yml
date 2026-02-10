@@ -70,6 +70,7 @@ services:
   Drupal\canvas\Version: {}
   Drupal\canvas\CanvasConfigUpdater: ~
   Drupal\canvas\ComponentTreeInputExtractor: {}
+  Drupal\canvas\GlobalImports: {}
 
   # Event subscribers.
   canvas.openapi.http_request_validator.subscriber:

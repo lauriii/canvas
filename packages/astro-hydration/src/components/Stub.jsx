@@ -14,6 +14,7 @@ const { ...tailwindMerge } = await import('tailwind-merge');
 const { cva } = await import('class-variance-authority');
 const { DrupalJsonApiParams } = await import('../lib/jsonapi-params');
 const useSwr = await import('../lib/swr');
+const tailwindTypography = await import('../lib/tailwindcss-typography');
 
 const { ...drupalCanvas } = await import('../lib/drupal-canvas');
 // For backward compatibility import separately elements that were moved to the drupal-canvas package

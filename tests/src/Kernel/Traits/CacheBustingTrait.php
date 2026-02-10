@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Traits;
 
 use Drupal\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Version;
 
 trait CacheBustingTrait {
@@ -13,6 +14,8 @@ trait CacheBustingTrait {
   protected function setCacheBustingQueryString(ContainerInterface $container, string $queryString): void {
     $mockVersion = new MockVersion($container->get(ModuleExtensionList::class), $queryString);
     $container->set(Version::class, $mockVersion);
+    // Force GlobalImports to be recreated with the new Version service.
+    $container->set(GlobalImports::class, NULL);
   }
 
 }

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Extension\CanvasExtensionPluginManager;
+use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\Component\Utility\Html;
@@ -58,12 +60,14 @@ final class CanvasController {
     private readonly UrlGeneratorInterface $urlGenerator,
     private readonly CanvasExtensionPluginManager $extensionPluginManager,
     private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
+    private readonly GlobalImports $globalImports,
   ) {}
 
   private const HTML = <<<HTML
 <!doctype html>
 <html {{ html_attributes }}>
 <head>
+  <head-placeholder token="HEAD-HERE-PLEASE">
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
@@ -232,8 +236,12 @@ HTML;
         // Note: the tokens here are under our control, and this accepts no user
         // input. Hence these hardcoded tokens are fine.
         'html_response_attachment_placeholders' => [
+          'head' => '<head-placeholder token="HEAD-HERE-PLEASE">',
           'styles' => '<css-placeholder token="CSS-HERE-PLEASE">',
           'scripts' => '<js-placeholder token="JS-HERE-PLEASE">',
+        ],
+        'import_maps' => [
+          ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS => $this->globalImports->getGlobalImports(),
         ],
       ]);
   }

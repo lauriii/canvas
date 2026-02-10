@@ -74,7 +74,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
 
-  // @see JsComponent.php
+  // @see GlobalImports.php
   // Whenever updating this import map, also update the list of supported imports
   // in packages/eslint-config/src/rules/component-imports.ts.
   // @see https://drupal.org/i/3552914
@@ -98,6 +98,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         ),
         'drupal-jsonapi-params': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/jsonapi-params.js`,
         swr: `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/swr.js`,
+        '@tailwindcss/typography': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/tailwindcss-typography.js`,
         'drupal-canvas': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/drupal-canvas.js`,
         // Backward compatibility entries for elements that were moved into drupal-canvas package.
         '@/lib/FormattedText': `${CANVAS_MODULE_PATH}/packages/astro-hydration/dist/FormattedText.js`,
