@@ -1900,7 +1900,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Create a Folder with BE generated id: 201.
     $new_folder_to_send = $folder_to_send;
     $new_folder_to_send['name'] = 'Unique test name, please ignore.';
-    // Create folder with weight of -1 to place at the bottom of the list.
+    // Create folder with weight of -1 to place at the top of the list.
     $new_folder_to_send['weight'] = -1;
     $request_options[RequestOptions::JSON] = $new_folder_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);

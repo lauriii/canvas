@@ -15,6 +15,7 @@ parameters:
     # Sometimes npm packages include PHP files
     - '**/node_modules/**'
     # These are 1:1 copies from Drupal core, with trivial additions that cannot have significant PHPStan impact. PHPStan compliance should happen upstream.
+    - src/CoreBugFix/**
     - src/Plugin/Field/FieldTypeOverride
     - src/TypedData/BetterEntityDataDefinition.php
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.

@@ -25,6 +25,7 @@ use Drupal\canvas\ClientSideRepresentation;
   entity_keys: [
     'id' => 'uuid',
     'label' => 'name',
+    'weight' => 'weight',
   ],
   config_export: [
     'name',
@@ -84,7 +85,7 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
   }
 
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
-    $query->sort('weight');
+    // Nothing to do.
   }
 
   public static function loadByNameAndConfigEntityTypeId(string $name, string $configEntityTypeId): self|NULL {

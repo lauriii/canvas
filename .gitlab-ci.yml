@@ -224,12 +224,81 @@ stylelint:
     - rm -rf .prettierrc.json
 
 phpunit:
+  # Auto-retry when random failures occur due to upstream bugs.
+  # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
+  retry:
+    max: 2
+    exit_codes: 112
   variables:
     # Note: Canvas uses `@group #slow` to start slow tests early. The threshold is (at the time of writing) ~60 seconds.
     _PHPUNIT_CONCURRENT: 1
     # 💡To run a single PHPUnit test, e.g. PropSourceTest, comment the above and uncomment the below.
     # _PHPUNIT_CONCURRENT: 0
     # _PHPUNIT_EXTRA: '--filter PropSourceTest'
+  # TRICKY: duplicate all of the upstream `.phpunit-base`'s `script` to add conditional auto-retry functionality
+  # @todo Work with upstream `gitlab_templates` project to allow this logic to be injected without repeating everything
+  script:
+    - cd $CI_PROJECT_DIR && pwd
+    - !reference [ .check-composer-end-code ]
+    - !reference [ .phpunit-webdriver-variables ]
+    - !reference [ .show-environment-variables ]
+    - !reference [ .setup-webserver ]
+    - !reference [ .simpletest-db ]
+    - !reference [ .show-context ]
+    # Recipe projects require the test files to be real, not symlinks.
+    - |
+      if [[ $PROJECT_TYPE == "recipe" && _COMPOSER_SYMLINK != "0" ]]; then
+        echo "Replacing the test file symlinks with real copied files"
+        rm -Rvf $DRUPAL_PROJECT_FOLDER/tests
+        cp -Rvp $CI_PROJECT_DIR/tests $DRUPAL_PROJECT_FOLDER
+      fi
+    # Remove all spaces from _PHPUNIT_TESTGROUPS for reliable checking and to
+    # ensure only one string is passed to bin/phpunit or run-tests.sh
+    - _PHPUNIT_TESTGROUPS=$(echo $_PHPUNIT_TESTGROUPS | sed -e 's/ //g')
+    # Execute tests.
+    - |
+      if [ "$_PHPUNIT_CONCURRENT" == "0" ]; then
+        echo "Webdriver arguments: '$MINK_DRIVER_ARGS_WEBDRIVER'"
+        # if _PHPUNIT_TESTGROUPS is blank then do not add anything because the test group will be handled by the matrix.
+        # if _PHPUNIT_TESTGROUPS is --all then do not add anything because the default is to run all tests in the module.
+        # Otherwise add --group $_PHPUNIT_TESTGROUPS
+        WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" || "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "" || echo "--group $_PHPUNIT_TESTGROUPS")
+        PHPUNIT_OPTIONS=''
+        # If the project does not have its own phpunit.xml(.dist) then use the one from core. Only do this if no configuration options are specified in _PHPUNIT_EXTRA.
+        if [[ ! -f "$CI_PROJECT_DIR/phpunit.xml" && ! -f "$CI_PROJECT_DIR/phpunit.xml.dist" && ! $_PHPUNIT_EXTRA =~ (-c |--configuration|--no-configuration) ]]; then
+          echo "This project has no phpunit.xml(.dist), getting default from $_WEB_ROOT/core"
+          cp -v $_WEB_ROOT/core/phpunit.xml.dist phpunit.xml
+          source $CI_PROJECT_DIR/get-file-via-curl.sh scripts/prepare-phpunit-xml.php
+          php prepare-phpunit-xml.php $VERBOSE_FLAG
+          rm prepare-phpunit-xml.php
+          printf "$DIVIDER\n"
+        fi
+        printf "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA\nPHPUNIT_OPTIONS=$PHPUNIT_OPTIONS, WHAT_TO_RUN=$WHAT_TO_RUN\n"
+        # Create an empty phpunit-ignore.xml file because the phpunit binary does not write any phpunit-*.xml but the artifact definition needs one to exist.
+        echo '<not-used/>' > $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-ignore.xml
+        echo "executing: sudo -u www-data -H -E $COMPOSER_BIN_DIR/phpunit $PHPUNIT_OPTIONS --bootstrap $PWD/$_WEB_ROOT/core/tests/bootstrap.php $DRUPAL_PROJECT_FOLDER --log-junit $CI_PROJECT_DIR/junit.xml $WHAT_TO_RUN $_PHPUNIT_EXTRA"
+        sudo -u www-data -H -E $COMPOSER_BIN_DIR/phpunit $PHPUNIT_OPTIONS --bootstrap $PWD/$_WEB_ROOT/core/tests/bootstrap.php $DRUPAL_PROJECT_FOLDER --log-junit $CI_PROJECT_DIR/junit.xml $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
+      elif [ "$_PHPUNIT_CONCURRENT" == "1" ]; then
+        # if _PHPUNIT_TESTGROUPS is blank then do not add anything, because the test group will be handled by the matrix.
+        # if _PHPUNIT_TESTGROUPS is --all then add --directory $DRUPAL_PROJECT_FOLDER
+        # Otherwise add $_PHPUNIT_TESTGROUPS (without the --group)
+        WHAT_TO_RUN=$([[ "$_PHPUNIT_TESTGROUPS" == "" ]] && echo "" || ([[ "$_PHPUNIT_TESTGROUPS" == "--all" ]] && echo "--directory $DRUPAL_PROJECT_FOLDER" || echo "$_PHPUNIT_TESTGROUPS"))
+        echo "_PHPUNIT_CONCURRENT=$_PHPUNIT_CONCURRENT, _PHPUNIT_TESTGROUPS=$_PHPUNIT_TESTGROUPS, _PHPUNIT_EXTRA=$_PHPUNIT_EXTRA, WHAT_TO_RUN=$WHAT_TO_RUN"
+        # Create an empty junit.xml because run-tests.sh does not write to this file but the artifact needs to exist.
+        echo '<not-used/>' > junit.xml
+        echo "executing: sudo -u www-data -H -E php $_WEB_ROOT/core/scripts/run-tests.sh --php '$(which php)' --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat '1' --sqlite 'sites/default/files/.sqlite' --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA"
+        $COMPOSER_BIN_DIR/phpunit --version
+        sudo -u www-data -H -E php $_WEB_ROOT/core/scripts/run-tests.sh --php "$(which php)" --color --keep-results --concurrency $_CONCURRENCY_THREADS --repeat "1" --sqlite "sites/default/files/.sqlite" --dburl $SIMPLETEST_DB --url $SIMPLETEST_BASE_URL --xml $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest --verbose --non-html $WHAT_TO_RUN $_PHPUNIT_EXTRA || EXIT_CODE=$?
+      fi
+    - cp /var/log/apache2/test.apache.access.log $CI_PROJECT_DIR/apache.access.log.txt
+    - cp /var/log/apache2/test.apache.error.log $CI_PROJECT_DIR/apache.error.log.txt
+    # Auto-retry when random failures occur due to upstream bugs.
+    # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
+    # @todo Rewrite this after https://www.drupal.org/project/gitlab_templates/issues/3572371 lands
+    - 'grep "RecursiveDirectoryIterator::__construct(/builds/project/canvas/web/sites/simpletest/.*): Failed to open directory: No such file or directory" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
+    - 'grep "Warning: rmdir(sites/simpletest/.*): Directory not empty in .*/FileSystem.php" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
+    - 'grep "RecursiveDirectoryIterator::__construct(/builds/project/canvas/web/sites/simpletest/.*/files/php/twig/.*): Failed to open directory: No such file or directory" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
+    - exit $EXIT_CODE
   needs:
     - composer
     - UI
@@ -456,7 +525,17 @@ cypress E2E:
   extends: .cypress-base
   parallel: 4
   script:
-    - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js`
+    - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log || EXIT_CODE=$?
+    # Auto-retry when known frequent random failures occur.
+    - grep "✖.*autocomplete-props\.cy\.js" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
+    - grep "✖.*copy-and-paste\.cy\.js" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
+    - grep "✖.*global-regions-interact\.cy\.js" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
+    - grep "✖.*media-library-component-instance\.cy\.js" $CI_PROJECT_DIR/ui/cypress.log && exit 112 || true
+    # If no auto-retry was attempted, use the original exit code.
+    - exit $EXIT_CODE
+  retry:
+    max: 2
+    exit_codes: 112
 
 cypress unit:
   extends: .cypress-base
