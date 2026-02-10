@@ -23,6 +23,9 @@ use Symfony\Component\HttpFoundation\Response;
  * @group canvas
  * @group canvas_personalization
  * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
+ *
+ * Note this cannot use CanvasKernelTestBase because that would pre-install the
+ * Canvas module: this test is installing Canvas via a recipe.
  */
 final class PersonalizationTest extends KernelTestBase {
 

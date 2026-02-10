@@ -19,8 +19,14 @@ use Drupal\KernelTests\KernelTestBase;
  * own, so that tests can opt in to installing only the ones they need, and thus
  * avoid the overhead of installing and uninstalling them for every single test.
  *
- * Use this class for every Canvas kernel test except if the test needs to test
- * Canvas' installation process (installed directly or through a Recipe).
+ * Use this class for every Canvas kernel test except if there is a specific
+ * reason *not* to do that. Then that reason should be documented in the test's
+ * docblock with a comment that starts with
+ * @code
+ * Note this cannot use CanvasKernelTestBase because
+ * @endcode
+ *
+ * @see \Canvas\Sniffs\Tests\KernelTestBaseSniff
  */
 abstract class CanvasKernelTestBase extends KernelTestBase {
 

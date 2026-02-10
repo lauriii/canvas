@@ -46,4 +46,9 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
       <property name="include" type="array" value="assert,sprintf,array_map" />
     </properties>
   </rule>
+  <rule ref="./coding_standards/Canvas">
+    <!-- @todo eventually apply stricter rules to canvas_ai and canvas_oauth too. -->
+    <exclude-pattern>*/canvas_ai/*</exclude-pattern>
+    <exclude-pattern>*/canvas_oauth/tests/src/Kernel/CanvasOauthAuthenticationProviderTest.php</exclude-pattern>
+  </rule>
 </ruleset>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!-- See http://pear.php.net/manual/en/package.php.php-codesniffer.annotated-ruleset.php -->
+<ruleset name="Canvas">
+  <description>Canvas' additional coding standards, to automate boring parts of code reviews.</description>
+  <rule ref="Canvas.Tests.KernelTestBase">
+    <include-pattern>tests/src/Kernel/*</include-pattern>
+  </rule>
+</ruleset>

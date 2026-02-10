@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_oauth\Kernel;
 
 use Drupal\Core\Routing\RouteObjectInterface;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider;
+use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;

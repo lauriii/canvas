@@ -31,7 +31,8 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  * @covers \Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
  *
- * TRICKY: this must NOT use CanvasKernelTestBase because that would pre-install the Canvas module.
+ * Note this cannot use CanvasKernelTestBase because that would pre-install the
+ * Canvas module: this test is installing Canvas via a recipe.
  */
 final class RecipeSubscriberTest extends KernelTestBase {
 

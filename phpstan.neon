@@ -20,6 +20,8 @@ parameters:
     - src/TypedData/BetterEntityDataDefinition.php
     # This trait decorates core's \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings(), which itself triggers a PHPStan warning that core ignores. Match that.
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
+    # PHPCS rules are not executed in production, no need to comply.
+    - coding_standards/**
   treatPhpDocTypesAsCertain: false
   drupal:
     entityMapping:

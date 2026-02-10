@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
 
 use Drupal\Core\Condition\ConditionManager;
-use Drupal\KernelTests\KernelTestBase;
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -15,10 +15,9 @@ use Symfony\Component\HttpFoundation\Session\Session;
  * @group canvas
  * @group canvas_personalization
  */
-class UtmParametersTest extends KernelTestBase {
+class UtmParametersTest extends CanvasKernelTestBase {
 
   protected static $modules = [
-    'canvas',
     'canvas_personalization',
   ];
 
