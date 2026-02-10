@@ -228,7 +228,7 @@ final class LibraryHooks {
         $internal_library_name = str_replace($theme_name . '/', '', $library_name);
         $library_we_need = $all_library_definitions[(string) $internal_library_name] ?? [];
         if (isset($library_we_need['css'])) {
-          $css = array_map(fn($item) => [
+          $css = \array_map(fn($item) => [
             ...$item,
             'data' => './' . $item['data'],
             'preprocess' => FALSE,
@@ -246,7 +246,7 @@ final class LibraryHooks {
             $internal_dependency_name = str_replace($theme_name . '/', '', $dependency);
             $dependee_library = $all_library_definitions[$internal_dependency_name];
             if (isset($dependee_library['css'])) {
-              $css = array_map(fn($item) => [
+              $css = \array_map(fn($item) => [
                 ...$item,
                 'data' => './' . $item['data'],
                 'preprocess' => FALSE,
@@ -381,7 +381,7 @@ final class LibraryHooks {
         $internal_library_name = str_replace($admin_theme_name . '/', '', $library_name);
         $library_we_need = $admin_theme_library_definitions[(string) $internal_library_name] ?? [];
         if (isset($library_we_need['css'])) {
-          $css = array_map(fn($item) => [
+          $css = \array_map(fn($item) => [
             ...$item,
             'data' => './' . $item['data'],
             'preprocess' => FALSE,
@@ -399,7 +399,7 @@ final class LibraryHooks {
             $internal_dependency_name = str_replace($admin_theme_name . '/', '', $dependency);
             $dependee_library = $admin_theme_library_definitions[$internal_dependency_name];
             if (isset($dependee_library['css'])) {
-              $css = array_map(fn($item) => [
+              $css = \array_map(fn($item) => [
                 ...$item,
                 'data' => './' . $item['data'],
                 'preprocess' => FALSE,
@@ -480,7 +480,7 @@ final class LibraryHooks {
           $libraries[$replacement_library_name] = $the_libraries[$library_id];
 
           // Replace the original dependency with the overridden one.
-          $libraries['canvas.drupal.dialog']['dependencies'] = array_unique(array_map(
+          $libraries['canvas.drupal.dialog']['dependencies'] = array_unique(\array_map(
             fn($item) => $item === $library_name ? 'canvas/' . $replacement_library_name : $item,
             $libraries['canvas.drupal.dialog']['dependencies']
           ));

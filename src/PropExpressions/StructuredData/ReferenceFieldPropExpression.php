@@ -44,7 +44,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
         \assert($reference_field_definition instanceof FieldDefinitionInterface);
         $target_entity_type_id = $reference_field_definition->getSettings()['target_type'];
         $current_target_bundles = $reference_field_definition->getSettings()['handler_settings']['target_bundles'];
-        $expected_branches = array_map(
+        $expected_branches = \array_map(
           fn (string $bundle) => "entity:$target_entity_type_id:$bundle",
           $current_target_bundles,
         );
@@ -114,7 +114,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
     $additional = [];
     if ($this->referenced instanceof ReferenceFieldPropExpression) {
       // @see ::__toString()
-      $additional = array_map(
+      $additional = \array_map(
         fn (string $recursion_result): string => $chain . self::withoutExpressionTypePrefix($recursion_result),
         $this->referenced->getReferenceChainPrefixes()
       );
@@ -162,7 +162,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       \assert(Inspector::assertAllObjects($referenced_content_entities, FieldableEntityInterface::class));
       $dependencies['content'] = [
         ...$dependencies['content'] ?? [],
-        ...array_map(
+        ...\array_map(
           fn (FieldableEntityInterface $entity) => $entity->getConfigDependencyName(),
           $referenced_content_entities,
         ),
@@ -197,7 +197,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       $closing_last_branch = mb_strrpos($representation, self::SUFFIX_BRANCH);
       \assert(is_int($closing_last_branch));
       $branches = self::parseBranches(mb_substr($representation, $opening_first_branch, $closing_last_branch));
-      $referenced_branches = array_map(
+      $referenced_branches = \array_map(
       // Each of the branch expressions MUST be starting with an entity field,
       // because that is the only way to branch. Therefore, parse each as its
       // own stand-alone prop expression.
@@ -208,7 +208,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       $referencer = FieldPropExpression::fromString($parts[0]);
       // @phpstan-ignore argument.type
       $referenced = new ReferencedBundleSpecificBranches(array_combine(
-        array_map(
+        \array_map(
         // @phpstan-ignore argument.type
           fn (EntityFieldBasedPropExpressionInterface $expr) => $expr->getHostEntityDataDefinition()->getDataType(),
           $referenced_branches,

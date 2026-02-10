@@ -80,7 +80,7 @@ final class RecipeSubscriberTest extends KernelTestBase {
       1 => ['Homepage', '/homepage'],
       2 => ['Empty Page', '/test-page'],
       3 => ['Page without a path', NULL],
-    ], array_map(
+    ], \array_map(
       // @phpstan-ignore-next-line
       fn (Page $page) => [$page->label(), $page->get('path')->alias],
       Page::loadMultiple()

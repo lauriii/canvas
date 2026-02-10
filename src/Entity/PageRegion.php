@@ -180,7 +180,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
   public static function loadForActiveThemeByClientSideId(): array {
     $regions = self::loadForActiveTheme();
     return array_combine(
-      array_map(fn(PageRegion $r) => $r->get('region'), $regions),
+      \array_map(fn(PageRegion $r) => $r->get('region'), $regions),
       $regions,
     );
   }
@@ -262,7 +262,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
     foreach ($region_names as $region_name) {
       $items = [];
       if (isset($regions[$region_name])) {
-        $items = array_map(
+        $items = \array_map(
           static fn(array $block) => \array_intersect_key($block, \array_flip([
             'component_id',
             'component_version',

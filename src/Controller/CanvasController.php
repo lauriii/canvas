@@ -128,7 +128,7 @@ HTML;
         $entity_types_with_keys[$entity_type_id] = $entity_type_definition->getKeys();
         if ($entity_type_definition->getBundleEntityType()) {
           $bundles = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
-          $entity_type_labels[$entity_type_id] = array_map(fn($bundle) => $bundle['label'], $bundles);
+          $entity_type_labels[$entity_type_id] = \array_map(fn($bundle) => $bundle['label'], $bundles);
         }
         else {
           $entity_type_labels[$entity_type_id] = $entity_type_definition->getLabel();
@@ -315,7 +315,7 @@ HTML;
       $module_transforms = \array_filter(\array_keys($this->libraryDiscovery->getLibrariesByExtension($module)), static fn (string $library_name) => \str_starts_with($library_name, 'canvas.transform.'));
       $libraries = [
         ...$libraries,
-        ...array_map(fn ($lib_name) => "$module/$lib_name", $module_transforms),
+        ...\array_map(fn ($lib_name) => "$module/$lib_name", $module_transforms),
       ];
     }
     return $libraries;
@@ -336,7 +336,7 @@ HTML;
     $transforms = array_unique($transforms);
 
     // Detect used client-side transforms without a corresponding asset library.
-    $encountered_transform_asset_libraries = array_map(
+    $encountered_transform_asset_libraries = \array_map(
       fn (string $asset_library): string => substr($asset_library, strpos($asset_library, '/') + strlen('/canvas.transform.')),
       $this->getTransformAssetLibraries(),
     );

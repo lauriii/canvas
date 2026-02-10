@@ -190,7 +190,7 @@ final class Personalization extends ComponentSourceBase implements
     if (!empty($slot_definitions)) {
       // Use the first example defined in the components metadata, which we
       // guarantee it exists.
-      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0], $slot_definitions);
+      $hydrated['slots'] = \array_map(fn($slot) => $slot['examples'][0], $slot_definitions);
     }
     return $hydrated;
   }

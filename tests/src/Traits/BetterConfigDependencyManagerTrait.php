@@ -46,7 +46,7 @@ trait BetterConfigDependencyManagerTrait {
     $active_storage = $this->container->get('config.storage');
 
     // @see \Drupal\Core\Config\ConfigManager::getConfigDependencyManager()
-    $config_entity_data = array_filter(array_map(function (array $data) {
+    $config_entity_data = array_filter(\array_map(function (array $data) {
       // Only config entities have UUIDs.
       if (isset($data['uuid'])) {
         return $data;

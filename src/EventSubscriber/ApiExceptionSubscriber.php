@@ -68,7 +68,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
       if ($status >= 400 && $status < 500) {
         $response = match (TRUE) {
           $exception instanceof ConstraintViolationException => [
-            'errors' => array_map(
+            'errors' => \array_map(
               fn($violation) => self::violationToJsonApiStyleErrorObject($violation),
               iterator_to_array($exception->getConstraintViolationList())
             ),

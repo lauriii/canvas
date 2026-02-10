@@ -146,7 +146,7 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
     // it here.
     if (isset($ajax_page_state['libraries']) && !is_array($ajax_page_state['libraries'])) {
       if (is_array($ajax_page_state['libraries'])) {
-        $ajax_page_state['libraries'] = array_map(
+        $ajax_page_state['libraries'] = \array_map(
           fn($item) => str_contains($item, '/') ? $item : UrlHelper::uncompressQueryParameter($item),
           $ajax_page_state['libraries'],
         );
@@ -184,13 +184,13 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
     // response so the client can add them to the page using Drupal.Ajax()
     $get_css = $this->assetResolver->getCssAssets($assets, FALSE);
     $css_array = $this->cssCollectionRenderer->render($get_css);
-    $css_for_ajax = array_map(fn($item) =>
+    $css_for_ajax = \array_map(fn($item) =>
       array_diff_key($item['#attributes'], ['rel' => 'rel']), $css_array);
 
     [$head_assets, $foot_assets] = $this->assetResolver->getJsAssets($assets, FALSE);
     $head_array = $this->jsCollectionRenderer->render($head_assets);
     $foot_array = $this->jsCollectionRenderer->render($foot_assets);
-    $js_for_ajax = array_map(
+    $js_for_ajax = \array_map(
       fn($item) => array_diff_key($item['#attributes'], ['rel' => 'rel']),
       [...$head_array, ...$foot_array]
     );

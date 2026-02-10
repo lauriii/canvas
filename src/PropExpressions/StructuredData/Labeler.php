@@ -125,7 +125,7 @@ final class Labeler {
       if ($expr->targetsMultipleBundles()) {
         // @phpstan-ignore property.notFound
         \assert($expr->referenced instanceof ReferencedBundleSpecificBranches);
-        $referenceable_bundle_labels = array_map(
+        $referenceable_bundle_labels = \array_map(
           // @phpstan-ignore return.type
           fn (EntityFieldBasedPropExpressionInterface $bundle_specific_expr): string => $bundle_specific_expr->getHostEntityDataDefinition()->getLabel(),
           $expr->referenced->bundleSpecificReferencedExpressions,
@@ -205,7 +205,7 @@ final class Labeler {
       [
         '@field-label' => $field_definition->getLabel(),
         ...$label_item_delta_arguments,
-        '@field-item-properties-labels' => implode(', ', array_map(
+        '@field-item-properties-labels' => implode(', ', \array_map(
           // @phpstan-ignore-next-line method.nonObject
           fn (string $field_property_name): string => (string) $field_definition->getItemDefinition()
             ->getPropertyDefinition($field_property_name)
@@ -243,7 +243,7 @@ final class Labeler {
         array_values($map_levels_to_characters),
         $hierarchical_label->getUntranslatedString(),
       ),
-      array_map(
+      \array_map(
         fn (mixed $arg): mixed => $arg instanceof TranslatableMarkup
           ? self::flatten($arg, $map_levels_to_characters)
           : $arg,
@@ -258,7 +258,7 @@ final class Labeler {
    */
   public static function getUsedFieldProps(EntityFieldBasedPropExpressionInterface $expr, EntityDataDefinitionInterface $actual_entity_type_and_bundle): string|array {
     $props = match (TRUE) {
-      $expr instanceof ObjectPropExpressionInterface => array_map(
+      $expr instanceof ObjectPropExpressionInterface => \array_map(
         // PHPStan incorrectly flags this error. It fails to realize that the
         // argument is of the correct type.
         // @phpstan-ignore argument.type

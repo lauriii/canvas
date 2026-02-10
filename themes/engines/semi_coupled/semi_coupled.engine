@@ -269,7 +269,7 @@ function _semi_coupled_get_variable(array|object $variables, string $index_in_js
       // The referenced entities will have their data made available as their
       // 'toArray' form when possible.
       // @phpstan-ignore-next-line function.alreadyNarrowedType
-      $entity_summaries = array_map(fn($entity) => method_exists($entity, 'toArray') ? $entity->toArray() : $entity, $referenced_entities);
+      $entity_summaries = \array_map(fn($entity) => method_exists($entity, 'toArray') ? $entity->toArray() : $entity, $referenced_entities);
 
       // To avoid unnecessary nesting, single-result entity references are not
       // returned inside an array.
@@ -281,7 +281,7 @@ function _semi_coupled_get_variable(array|object $variables, string $index_in_js
       // valid field name, an exception does not stop this process entirely.
       try {
         $field_content = $variables->get($index_in_js_format);
-        $values = array_map(fn($item) => $item['value'], $field_content->getValue());
+        $values = \array_map(fn($item) => $item['value'], $field_content->getValue());
         // To avoid unnecessary nesting, single-result values are not returned
         // inside an array.
         return count($values) <= 1 ? $values[0] : $values;

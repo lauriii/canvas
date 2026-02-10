@@ -88,7 +88,7 @@ final class ImportMapResponseAttachmentsProcessorTest extends CanvasKernelTestBa
       'HandheldFriendly',
       'viewport',
       'canvas_import_map',
-    ], array_map(fn (array $a) => $a[1], $attachments['html_head']));
+    ], \array_map(fn (array $a) => $a[1], $attachments['html_head']));
     [$element, $name] = \end($attachments['html_head']);
     self::assertEquals('canvas_import_map', $name);
     self::assertEquals('script', $element['#tag']);

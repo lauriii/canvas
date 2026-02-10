@@ -79,7 +79,7 @@ final class ComponentMetadataRequirementsChecker {
         $validator->reset();
         $validator->validate($example, $prop);
         if (!$validator->isValid()) {
-          $messages[] = \sprintf('Prop "%s" has invalid example value: %s', $prop_name, implode("\n", array_map(
+          $messages[] = \sprintf('Prop "%s" has invalid example value: %s', $prop_name, implode("\n", \array_map(
             static fn(array $error): string => \sprintf("[%s] %s", $error['property'], $error['message']),
             $validator->getErrors()
           )));
@@ -113,7 +113,7 @@ final class ComponentMetadataRequirementsChecker {
         }
 
         // Ensure we replace dots with underscores when checking meta:enums.
-        $meta_enum_valid_keys = array_map(fn($key) => str_replace(
+        $meta_enum_valid_keys = \array_map(fn($key) => str_replace(
           array_keys($forbidden_key_characters),
           array_values($forbidden_key_characters),
           (string) $key,

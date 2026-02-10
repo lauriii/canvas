@@ -151,7 +151,7 @@ final class PropShape {
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
     // those too.
     if ($normalized_prop_schema['type'] === JsonSchemaType::Object->value && array_key_exists('properties', $normalized_prop_schema)) {
-      $normalized_prop_schema['properties'] = array_map(
+      $normalized_prop_schema['properties'] = \array_map(
         fn (array $prop_schema) => self::normalizePropSchema($prop_schema),
         $normalized_prop_schema['properties'],
       );
@@ -200,11 +200,11 @@ final class PropShape {
       \assert(Inspector::assertAllStrings(array_keys($json['$defs'])));
       $extension_type = array_key_exists($extension_name, $installed_modules) ? 'module' : 'theme';
       $known_normalized += array_combine(
-        array_map(
+        \array_map(
           fn(string $def_name) => "json-schema-definitions://$extension_name.$extension_type/$def_name",
           array_keys($json['$defs']),
         ),
-        array_map(
+        \array_map(
           fn(array $prop_schema) => self::normalizePropSchema(self::resolveSchemaReferences($prop_schema)),
           $json['$defs'],
         ),
@@ -212,7 +212,7 @@ final class PropShape {
     }
     // No 2 modules should provide the same definition; otherwise we won't know
     // whose was intended.
-    $unique_keys_as_values = array_map(
+    $unique_keys_as_values = \array_map(
       fn (array $schema) => self::normalize($schema)->uniquePropSchemaKey(),
       $known_normalized
     );

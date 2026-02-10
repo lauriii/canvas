@@ -63,7 +63,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     $validator = new Validator();
     $open_api_data = $specification->getSerializableData();
     $validator->validate($open_api_data, (object) ['$ref' => 'file://' . $this->documentLocation]);
-    $this->assertTrue($validator->isValid(), implode(array_map(function (array $error) {
+    $this->assertTrue($validator->isValid(), implode(\array_map(function (array $error) {
       return \sprintf('%s:%s%s', $error['property'], $error['message'], \PHP_EOL);
     }, $validator->getErrors())));
   }

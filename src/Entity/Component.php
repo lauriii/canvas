@@ -201,7 +201,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *   @see \Drupal\Core\Theme\ComponentPluginManager::$defaults
    */
   public static function getClasses(array $ids): array {
-    return array_values(array_unique(array_filter(array_map(
+    return array_values(array_unique(array_filter(\array_map(
       static fn (Component $component): ?string => $component->getComponentSource()->getReferencedPluginClass(),
       Component::loadMultiple($ids)
     ))));

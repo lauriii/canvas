@@ -116,7 +116,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
     if (!$all_references_to_single_bundle) {
       return FALSE;
     }
-    $unique_referenced_entity_type_and_bundles = array_map(
+    $unique_referenced_entity_type_and_bundles = \array_map(
       // PHPStan fails the narrower types here as a result of the early return.
       // @phpstan-ignore argument.type, method.notFound
       fn (ReferenceFieldTypePropExpression $expr) => $expr->referenced->getHostEntityDataDefinition()->getDataType(),
@@ -247,7 +247,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
     return static::PREFIX_EXPRESSION_TYPE
       . $this->fieldType
       . static::PREFIX_PROPERTY_LEVEL . static::PREFIX_OBJECT
-      . implode(',', array_map(
+      . implode(',', \array_map(
         fn (string $obj_prop_name, FieldTypePropExpression|ReferenceFieldTypePropExpression $expr) => \sprintf('%s%s%s',
           $obj_prop_name,
           $expr instanceof ReferenceFieldTypePropExpression

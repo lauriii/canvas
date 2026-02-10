@@ -1116,7 +1116,7 @@ HTML
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);
     $actual_props = array_combine(
       array_keys($expected_props_for_uuids),
-      array_map(
+      \array_map(
         fn (string $uuid) => $canvas_field_item->getComponent()?->getComponentSource()->getExplicitInput($uuid, $canvas_field_item)['resolved'],
         array_keys($expected_props_for_uuids)
       )

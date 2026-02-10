@@ -29,7 +29,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
     }
 
     \assert($this->context->getObject() instanceof TypedDataInterface);
-    $resolved_parts = array_map(
+    $resolved_parts = \array_map(
       fn (string $expression): mixed => TypeResolver::resolveExpression($expression, $this->context->getObject()),
       $constraint->parts
     );
@@ -62,7 +62,7 @@ class StringPartsConstraintValidator extends ConstraintValidator {
     if ($expected_string !== $value) {
       $expected_format = implode(
         $constraint->separator,
-        array_map(function (string $v) {
+        \array_map(function (string $v) {
           return \sprintf('<%s>', $v);
         }, $constraint->parts)
       );

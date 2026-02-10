@@ -57,7 +57,7 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
       . static::PREFIX_FIELD_LEVEL . $this->fieldName
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
       . static::PREFIX_PROPERTY_LEVEL . static::PREFIX_OBJECT
-      . implode(',', array_map(
+      . implode(',', \array_map(
         function (
           string $obj_prop_name,
           (ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $expr,

@@ -174,7 +174,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
 
     ksort($dependencies);
-    return array_map(static function ($values) {
+    return \array_map(static function ($values) {
       $values = array_unique($values);
       sort($values);
       return $values;
@@ -262,8 +262,8 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     return [
       'required' => $required,
       'shapes' => array_combine(
-        array_map(fn (string $cpe) => ComponentPropExpression::fromString($cpe)->propName, array_keys($prop_shapes)),
-        array_map(fn (PropShape $shape) => $shape->schema, $prop_shapes),
+        \array_map(fn (string $cpe) => ComponentPropExpression::fromString($cpe)->propName, array_keys($prop_shapes)),
+        \array_map(fn (PropShape $shape) => $shape->schema, $prop_shapes),
       ),
     ];
   }
@@ -409,7 +409,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // logic but still results in an empty slot.
       // @see https://www.drupal.org/node/3391702
       // @see \Drupal\Core\Render\Element\ComponentElement::generateComponentTemplate()
-      $hydrated['slots'] = array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions);
+      $hydrated['slots'] = \array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions);
     }
 
     return $hydrated;
@@ -442,7 +442,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     $model = [
       'source' => $explicit_input['source'],
       // The client model doesn't need cacheability metadata.
-      'resolved' => array_map(fn (EvaluationResult $r) => $r->value, $explicit_input['resolved']),
+      'resolved' => \array_map(fn (EvaluationResult $r) => $r->value, $explicit_input['resolved']),
     ];
     \assert(Inspector::assertAll(fn ($r) => !$r instanceof EvaluationResult, $model['resolved']));
 
@@ -543,7 +543,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
     }
     try {
-      $resolvedInputValues = array_map(
+      $resolvedInputValues = \array_map(
       // @phpstan-ignore-next-line
         fn(array $prop_source): mixed => PropSource::parse($prop_source)
           ->evaluate($entity, is_required: FALSE)->value,

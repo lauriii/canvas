@@ -1298,7 +1298,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     $publish_data = array_combine(
       $auto_save_keys_to_publish,
-      array_map(
+      \array_map(
         fn (string $auto_save_key) => $auto_save_data[$auto_save_key],
         $auto_save_keys_to_publish
       ),

@@ -199,7 +199,7 @@ class PropSourceTest extends CanvasKernelTestBase {
   private function recursivelyReplaceStrings(mixed $value, array $string_replacements): mixed {
     // Recurse.
     if (is_array($value)) {
-      return array_map(
+      return \array_map(
         fn (mixed $v) => $this->recursivelyReplaceStrings($v, $string_replacements),
         $value,
       );

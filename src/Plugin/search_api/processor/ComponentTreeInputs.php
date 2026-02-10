@@ -92,7 +92,7 @@ final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFor
     $ignored_prop_names = $form_state->getValue('ignored_prop_names');
     // Split by lines and filter out empty values.
     $ignored_prop_names = array_values(array_filter(
-      array_map('trim', explode("\n", $ignored_prop_names)),
+      \array_map('trim', explode("\n", $ignored_prop_names)),
       static fn($name) => $name !== ''
     ));
     $this->setConfiguration(['ignored_prop_names' => $ignored_prop_names]);

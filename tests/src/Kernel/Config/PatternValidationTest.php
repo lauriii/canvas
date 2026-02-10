@@ -166,7 +166,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       'This is a test pattern',
       'This is a test pattern',
       'This is a test pattern',
-    ], array_map(
+    ], \array_map(
       fn (Pattern $p): string => (string) $p->label(),
       array_values(Pattern::loadMultiple())
     ));

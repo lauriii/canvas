@@ -236,7 +236,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // instances must comply with the referenced Component version.
     self::assertSame([
       'Using a static prop source that deviates from the configuration for Component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em> at version <em class="placeholder">85a5c0c7dd53e0bb</em>.',
-    ], array_map(
+    ], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
       iterator_to_array($pageRegion->getTypedData()->validate()),
     ));
@@ -275,7 +275,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       ],
     ]);
     $pageRegion->setComponentTree($tree->getValue());
-    self::assertSame([], array_map(
+    self::assertSame([], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
       iterator_to_array($pageRegion->getTypedData()->validate()),
     ));
@@ -288,7 +288,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       'component_tree' => [],
     ]);
     self::assertTrue($empty_page_region->status());
-    self::assertSame([], array_map(
+    self::assertSame([], \array_map(
       fn (ConstraintViolationInterface $v) => (string) $v->getMessage(),
       iterator_to_array($empty_page_region->getTypedData()->validate()),
     ));
@@ -631,7 +631,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
    * @return string[]
    */
   private function getRenderedBlockIds(): array {
-    return array_map(
+    return \array_map(
       fn (NodeElement $e) => substr((string) $e->getAttribute('id'), strlen('block-')),
       $this->getSession()->getPage()->findAll('css', '[id^=block-]')
     );
@@ -642,7 +642,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
    * @return string[]
    */
   private function getRenderedJavaScriptComponentIds(): array {
-    return array_map(
+    return \array_map(
       fn (NodeElement $e) => (string) $e->getAttribute('uid'),
       $this->getSession()->getPage()->findAll('css', 'canvas-island')
     );

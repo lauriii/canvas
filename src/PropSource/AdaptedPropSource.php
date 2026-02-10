@@ -57,9 +57,9 @@ final class AdaptedPropSource extends PropSourceBase {
       'sourceType' => $this->getSourceType(),
       'adapterInputs' => array_combine(
         array_keys($this->adapter_inputs),
-        array_map(
+        \array_map(
           fn (PropSourceBase $source): array => $source->toArray(),
-          array_map(
+          \array_map(
             fn (string $input_name): PropSourceBase => $this->getInputPropSource($input_name),
             array_keys($this->adapter_inputs)
           )

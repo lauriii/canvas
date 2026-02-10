@@ -98,7 +98,7 @@ final class Fallback extends ComponentSourceBase implements ComponentSourceWithS
 
   public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
     return [
-      'slots' => array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions),
+      'slots' => \array_map(fn($slot) => $slot['examples'][0] ?? '', $slot_definitions),
     ];
   }
 

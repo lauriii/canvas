@@ -32,7 +32,7 @@ final class UriTemplateWithVariablesConstraintValidator extends ConstraintValida
       throw new UnexpectedValueException($value, 'string');
     }
 
-    $expected_placeholders = array_map(fn (string $name): string => "{$name}", $constraint->requiredVariables);
+    $expected_placeholders = \array_map(fn (string $name): string => "{$name}", $constraint->requiredVariables);
 
     foreach ($expected_placeholders as $required_placeholder) {
       if (!str_contains($value, $required_placeholder)) {

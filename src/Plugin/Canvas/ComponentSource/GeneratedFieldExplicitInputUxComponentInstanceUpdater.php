@@ -114,8 +114,8 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
         fieldInstanceSettings: $prop_field_definition['field_instance_settings'] ?? NULL,
       );
     };
-    $from_props = array_map($prop_field_definition_to_storable_prop_shape, $from_props);
-    $to_props = array_map($prop_field_definition_to_storable_prop_shape, $to_props);
+    $from_props = \array_map($prop_field_definition_to_storable_prop_shape, $from_props);
+    $to_props = \array_map($prop_field_definition_to_storable_prop_shape, $to_props);
     $common_props_names_with_changed_definition = \array_any(
       $common_props_names,
       fn (string $prop_name): bool => !$from_props[$prop_name]->fieldDataFitsIn($to_props[$prop_name]),

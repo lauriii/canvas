@@ -156,7 +156,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   private static function ignoreDynamicPathPartNames(array $array_with_paths_as_keys): array {
     return array_combine(
       // @phpstan-ignore-next-line
-      array_map(
+      \array_map(
         fn (string $path) => preg_replace('/\{.*\}/', '{}', $path),
         array_keys($array_with_paths_as_keys),
       ),

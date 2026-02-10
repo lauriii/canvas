@@ -245,7 +245,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       }
     }
     if (!empty($access_error_labels)) {
-      throw new CacheableAccessDeniedHttpException($access_error_cache, \sprintf('Unable to update entities: %s.', implode(', ', array_map(fn(\Stringable|string|NULL $label) => $label ? "'$label'" : "''", $access_error_labels))));
+      throw new CacheableAccessDeniedHttpException($access_error_cache, \sprintf('Unable to update entities: %s.', implode(', ', \array_map(fn(\Stringable|string|NULL $label) => $label ? "'$label'" : "''", $access_error_labels))));
     }
 
     foreach ($loadedEntities as $entity) {

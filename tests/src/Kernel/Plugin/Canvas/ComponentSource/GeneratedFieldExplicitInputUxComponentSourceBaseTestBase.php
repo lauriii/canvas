@@ -185,7 +185,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     $violations = $source->validateComponentInput($input_with_multiple_garbage, $uuid, NULL);
     $this->assertCount(2, $violations, 'Input with two unexpected props should produce two violations');
 
-    $violation_messages = array_map(fn($v) => $v->getMessage(), iterator_to_array($violations));
+    $violation_messages = \array_map(fn($v) => $v->getMessage(), iterator_to_array($violations));
     $this->assertContains("Component `$uuid`: the `textUnwanted` prop is not defined.", $violation_messages);
     $this->assertContains("Component `$uuid`: the `anotherBadProp` prop is not defined.", $violation_messages);
   }

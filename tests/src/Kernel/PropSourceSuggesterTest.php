@@ -211,9 +211,9 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         $expected[$prop_name],
         [
           'required' => $suggestions[$prop_name]['required'],
-          'instances' => array_map(fn (EntityFieldPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['instances']),
-          'adapters' => array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name]['adapters']),
-          'host_entity_urls' => array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['host_entity_urls']),
+          'instances' => \array_map(fn (EntityFieldPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['instances']),
+          'adapters' => \array_map(fn (AdapterInterface $a): string => $a->getPluginId(), $suggestions[$prop_name]['adapters']),
+          'host_entity_urls' => \array_map(fn (HostEntityUrlPropSource $s): array => $s->toArray(), $suggestions[$prop_name]['host_entity_urls']),
         ],
         "Unexpected prop source suggestion for $prop_name"
       );

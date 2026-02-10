@@ -231,11 +231,11 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
     // given component tree; this is necessary for e.g. default content.
     $component_instances = iterator_to_array($item_list->componentTreeItemsIterator());
     $component_instance_deps_by_uuid = array_filter(array_combine(
-      array_map(
+      \array_map(
         fn (ComponentTreeItem $item) => $item->getUuid(),
         $component_instances
       ),
-      array_map(
+      \array_map(
         fn (ComponentTreeItem $item) => $item->calculateFieldItemValueDependencies($node)['content'] ?? [],
         $component_instances
       ),

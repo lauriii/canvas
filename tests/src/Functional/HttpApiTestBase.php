@@ -246,7 +246,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
   protected function assertSameFoldersSansUuids(array $expected, array $actual): void {
     $this->assertCount(count($expected), $actual);
 
-    $expected_values = array_map(function ($item) {
+    $expected_values = \array_map(function ($item) {
       unset($item['id']);
       $items = $item['items'];
       asort($items);
@@ -257,7 +257,7 @@ abstract class HttpApiTestBase extends FunctionalTestBase {
       return strcmp($a['name'], $b['name']);
     });
 
-    $actual_values = array_map(function ($item) {
+    $actual_values = \array_map(function ($item) {
       unset($item['id']);
       $items = $item['items'];
       asort($items);

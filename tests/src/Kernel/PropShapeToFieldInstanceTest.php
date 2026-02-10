@@ -288,7 +288,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
     // Ensure the consistent sorting that ComponentPluginManager should have
     // already guaranteed.
     $components = array_combine(
-      array_map(fn (Component $c) => $c->getPluginId(), $components),
+      \array_map(fn (Component $c) => $c->getPluginId(), $components),
       $components
     );
     ksort($components);
@@ -392,7 +392,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
             $adapter_matches_field_type[$match->getPluginId()][$input_name] = $storable_prop_shape_for_adapter_input
               ? (string) $storable_prop_shape_for_adapter_input->fieldTypeProp
               : NULL;
-            $adapter_matches_instance[$match->getPluginId()][$input_name] = array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_matches);
+            $adapter_matches_instance[$match->getPluginId()][$input_name] = \array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_matches);
           }
           ksort($adapter_matches_field_type);
           ksort($adapter_matches_instance);
@@ -406,7 +406,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
         $matches[$unique_match_key]['static prop source'] = $storable_prop_shape
           ? (string) $storable_prop_shape->fieldTypeProp
           : NULL;
-        $matches[$unique_match_key]['instances'] = array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_candidates);
+        $matches[$unique_match_key]['instances'] = \array_map(fn (EntityFieldBasedPropExpressionInterface $e): string => (string) $e, $instance_candidates);
         $matches[$unique_match_key]['adapter_matches_field_type'] = $adapter_matches_field_type;
         $matches[$unique_match_key]['adapter_matches_instance'] = $adapter_matches_instance;
       }

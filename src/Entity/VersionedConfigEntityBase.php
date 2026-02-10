@@ -72,7 +72,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
     if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
       throw new \OutOfRangeException(\sprintf('The requested version `%s` is not available. Available versions: %s.',
         (string) $version,
-        implode(', ', array_map(
+        implode(', ', \array_map(
           fn (string $v): string => \sprintf('`%s`', (string) $v),
           $this->getVersions(),
         )),

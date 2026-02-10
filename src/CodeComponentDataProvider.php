@@ -84,7 +84,7 @@ readonly final class CodeComponentDataProvider {
   public function getCanvasDataBreadcrumbsV0(): array {
     return [
       self::V0 => [
-        'breadcrumbs' => array_map(static function (Link $link) {
+        'breadcrumbs' => \array_map(static function (Link $link) {
           $url = $link->getUrl();
           return [
             'key' => $url->getRouteName() ?? '',

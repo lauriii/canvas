@@ -225,7 +225,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     \assert($js_component_source instanceof JsComponent);
 
     // Retrieve all props' example values, prefer auto-saved ones.
-    $example_inputs = array_filter(array_map(
+    $example_inputs = array_filter(\array_map(
       // Note that an example is optional!
       // @see `type: canvas.json_schema.prop.*`
       fn (array $prop_definition) : null|bool|int|float|string|\Stringable|array => $prop_definition['examples'][0] ?? NULL,
@@ -244,7 +244,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // happen is on the client side, or if there's a logic bug.
     $build = $js_component_source->renderComponent(
       inputs: [
-        JsComponent::EXPLICIT_INPUT_NAME => array_map(
+        JsComponent::EXPLICIT_INPUT_NAME => \array_map(
           fn (bool|int|float|string|\Stringable|array $v) => new EvaluationResult($v),
           $example_inputs,
         ),
@@ -488,7 +488,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if ($violation_list->count() > 0) {
       throw new ConstraintViolationException($violation_list);
     }
-    $imported_js_component_dependency_names = array_values(array_map(
+    $imported_js_component_dependency_names = array_values(\array_map(
       fn(string $component_name) => $this->getConfigPrefix() . ".$component_name",
       $imported_js_components
     ));
@@ -555,14 +555,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       $instance->getDependencies()['config'] ?? [],
       static fn(string $dependency) => \str_starts_with($dependency, $instance->getConfigPrefix())
     );
-    $js_component_ids = array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
+    $js_component_ids = \array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
     return self::loadMultiple($js_component_ids);
   }
 
   public function getCacheTags() {
     $cache_tags = parent::getCacheTags();
     if ($dependencies = $this->getDependencies()) {
-      $cache_tags = array_merge($cache_tags, array_map(fn($dependency) => "config:$dependency", $dependencies['config'] ?? []));
+      $cache_tags = array_merge($cache_tags, \array_map(fn($dependency) => "config:$dependency", $dependencies['config'] ?? []));
     }
     return \array_values($cache_tags);
   }

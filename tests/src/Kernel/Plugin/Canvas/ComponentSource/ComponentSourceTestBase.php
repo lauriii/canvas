@@ -209,7 +209,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Transform from `canvas.component.<ID>` to just `<ID>`.
     $discovered_component_config_names = $this->configFactory->listAll($prefix);
-    $discovered_component_entity_ids = array_map(
+    $discovered_component_entity_ids = \array_map(
       fn(string $config_name) => str_replace("$component_config_entity_type_prefix.", '', $config_name),
       $discovered_component_config_names
     );

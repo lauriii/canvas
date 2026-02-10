@@ -43,7 +43,7 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
   <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalFunctions">
     <properties>
       <!-- @todo Keep expanding this list until it applies to all global functions. -->
-      <property name="include" type="array" value="assert,sprintf" />
+      <property name="include" type="array" value="assert,sprintf,array_map" />
     </properties>
   </rule>
 </ruleset>

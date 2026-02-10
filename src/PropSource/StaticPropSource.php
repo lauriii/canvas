@@ -406,7 +406,7 @@ final class StaticPropSource extends PropSourceBase {
       };
     }
 
-    $denormalized_values = array_map(
+    $denormalized_values = \array_map(
       fn (FieldItemInterface $item) => $this->denormalizeValue($item->getValue()),
       iterator_to_array($this->fieldItemList),
     );
@@ -551,7 +551,7 @@ final class StaticPropSource extends PropSourceBase {
       $storage_deps,
     );
     ksort($dependencies);
-    return array_map(static function ($values) {
+    return \array_map(static function ($values) {
       $values = array_unique($values);
       sort($values);
       return $values;

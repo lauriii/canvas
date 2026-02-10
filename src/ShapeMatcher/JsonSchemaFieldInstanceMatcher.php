@@ -447,7 +447,7 @@ final class JsonSchemaFieldInstanceMatcher {
       fn (array $info) => array_keys($info['props']) == $required_object_props,
     );
 
-    return array_map(
+    return \array_map(
       fn (array $info) => $info['target_data_type'],
       $references_worth_following
     );
@@ -739,14 +739,14 @@ final class JsonSchemaFieldInstanceMatcher {
     // ensure security.
     // @see \Drupal\Tests\file\Kernel\Plugin\Validation\Constraint\FileExtensionConstraintValidatorTest
     // @see \Drupal\file\Validation\FileValidatorInterface
-    $mime_types = array_filter(array_map(
+    $mime_types = array_filter(\array_map(
       fn (string $extension): ?string => $this->extensionMimeTypeGuesser->guessMimeType("Jack.$extension"),
       $extensions
     ));
     // Strip subtypes, suffixes and parameters.
     // @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types#structure_of_a_mime_type
     // @see https://en.wikipedia.org/wiki/Media_type#Structure
-    $mime_media_type_names = array_map(
+    $mime_media_type_names = \array_map(
       fn (string $mime_type): string => explode('/', $mime_type, 2)[0],
       $mime_types,
     );
@@ -804,7 +804,7 @@ final class JsonSchemaFieldInstanceMatcher {
     $entity_data_definition = EntityDataDefinition::createFromDataType("entity:$host_entity_type:$host_entity_bundle");
     $matches = $this->matchEntityProps($entity_data_definition, $levels_to_recurse, $primitive_type, $is_required_in_json_schema, $schema);
     /** @var array<\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface> */
-    $keyed_by_string = array_combine(array_map(fn ($e) => (string) $e, $matches), $matches);
+    $keyed_by_string = array_combine(\array_map(fn ($e) => (string) $e, $matches), $matches);
     ksort($keyed_by_string);
     $instances = array_values($keyed_by_string);
     $this->cache->set($cid, $instances);
@@ -900,7 +900,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // the field type to override default property-level constraints.
     $rekey = function (array $constraints) {
       return array_combine(
-        array_map(
+        \array_map(
           fn (Constraint $c): string => get_class($c),
           $constraints,
         ),

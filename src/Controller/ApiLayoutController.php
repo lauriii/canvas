@@ -65,7 +65,7 @@ final class ApiLayoutController {
     // across all themes, and for which no PageRegion config entity is allowed
     // to exist.
     // @see \Drupal\system\Controller\SystemController::themesPage()
-    $server_side_ids = array_map(
+    $server_side_ids = \array_map(
       fn (string $region_name): string => $region_name === CanvasPageVariant::MAIN_CONTENT_REGION
         ? CanvasPageVariant::MAIN_CONTENT_REGION
         : "$theme.$region_name",
@@ -99,7 +99,7 @@ final class ApiLayoutController {
     if ($regions) {
       \assert($model !== NULL);
       $this->addGlobalRegions($regions, $model, $layout);
-      $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $layout), $layout);
+      $layout_keyed_by_region = array_combine(\array_map(static fn($region) => $region['id'], $layout), $layout);
       // Reorder the layout to match theme order.
       $layout = array_values(array_replace(
         array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),
@@ -442,7 +442,7 @@ final class ApiLayoutController {
     $data['layout'] = [$this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'], $preview_entity)];
     \assert(is_array($data['model']));
     $this->addGlobalRegions($regions, $data['model'], $data['layout'], includeAllRegions: TRUE);
-    $layout_keyed_by_region = array_combine(array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
+    $layout_keyed_by_region = array_combine(\array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
     // Reorder the layout to match theme order.
     $data['layout'] = array_values(array_replace(
       array_intersect_key(array_flip($this->regionsClientSideIds), $layout_keyed_by_region),

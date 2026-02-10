@@ -110,7 +110,7 @@ final class Evaluator {
     // @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
     if ($entity_or_field instanceof FieldItemListInterface) {
       return new EvaluationResult(
-        array_map(
+        \array_map(
           fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required),
           iterator_to_array($entity_or_field),
         ),
@@ -135,7 +135,7 @@ final class Evaluator {
             self::permanentCacheabilityUnlessSpecified($prop->getValue())
           );
         })(),
-        FieldTypeObjectPropsExpression::class => array_map(
+        FieldTypeObjectPropsExpression::class => \array_map(
           fn ((ScalarPropExpressionInterface&FieldTypeBasedPropExpressionInterface)|(ReferencePropExpressionInterface&FieldTypeBasedPropExpressionInterface) $sub_expr) => self::evaluate($field, $sub_expr, $is_required),
           $expr->getObjectExpressions(),
         ),
@@ -314,7 +314,7 @@ final class Evaluator {
           }
           return new EvaluationResult($evaluated_references, $referencer_result);
         })(),
-        FieldObjectPropsExpression::class => array_map(
+        FieldObjectPropsExpression::class => \array_map(
           fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required),
           $expr->getObjectExpressions(),
         ),

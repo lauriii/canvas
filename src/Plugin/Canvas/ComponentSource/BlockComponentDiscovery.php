@@ -184,7 +184,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
             $config_id = substr($dependency, strlen('views.view.'));
             $view = View::load($config_id);
             \assert(!is_null($view));
-            $status = !in_array('default', array_map('trim', explode(',', $view->get('tag'))), TRUE);
+            $status = !in_array('default', \array_map('trim', explode(',', $view->get('tag'))), TRUE);
           }
         }
       }

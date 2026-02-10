@@ -279,16 +279,16 @@ class ShapeMatchingHooks {
 
       $media_types = self::getMediaTypesForSource(Image::class);
       if (!empty($media_types)) {
-        $source_field_names = array_map(
+        $source_field_names = \array_map(
           // @phpstan-ignore method.nonObject
           fn (MediaTypeInterface $type): string => $type->getSource()->getSourceFieldDefinition($type)->getName(),
           $media_types,
         );
-        $branch_names = array_map(
+        $branch_names = \array_map(
           fn (MediaTypeInterface $type): string => \sprintf('entity:media:%s', $type->id()),
           $media_types,
         );
-        $bundle_specific_expressions = array_map(
+        $bundle_specific_expressions = \array_map(
           fn (string $media_type_id, string $source_field_name) => new ReferenceFieldPropExpression(
             new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_id), $source_field_name, NULL, 'entity'),
             new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
@@ -404,7 +404,7 @@ class ShapeMatchingHooks {
       fn (MediaTypeInterface $type): bool => is_a($type->getSource(), $media_source_class)
     );
     ksort($media_types);
-    $media_type_ids = array_map(
+    $media_type_ids = \array_map(
     // @phpstan-ignore-next-line
       fn (MediaTypeInterface $type): string => $type->id(),
       $media_types

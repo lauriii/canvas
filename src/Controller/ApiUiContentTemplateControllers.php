@@ -124,7 +124,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       return $access->isAllowed();
     });
 
-    $entities_data = array_map(fn (EntityInterface $entity) => [
+    $entities_data = \array_map(fn (EntityInterface $entity) => [
       'id' => $entity->id(),
       'label' => $entity->label(),
     ], $entities);

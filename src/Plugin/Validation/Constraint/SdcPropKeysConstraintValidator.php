@@ -67,7 +67,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
 
     // Fetch the props defined in the SDC's metadata.
     $prop_shapes = GeneratedFieldExplicitInputUxComponentSourceBase::getComponentInputsForMetadata($sdc->getPluginId(), $sdc->metadata);
-    $expected_keys = array_map(
+    $expected_keys = \array_map(
       fn (string $component_prop_expression) => ComponentPropExpression::fromString($component_prop_expression)->propName,
       array_keys($prop_shapes)
     );

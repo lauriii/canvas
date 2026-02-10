@@ -122,7 +122,7 @@ final class CanvasTwigExtension extends AbstractExtension {
     // @todo Read this from third-party settings: https://drupal.org/i/3533563
     $widths = array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, static fn($w) => $w <= $intrinsicImageWidth);
 
-    $srcset = array_map(static fn($w) => str_replace('{width}', (string) $w, $template) . " {$w}w", $widths);
+    $srcset = \array_map(static fn($w) => str_replace('{width}', (string) $w, $template) . " {$w}w", $widths);
     return implode(', ', $srcset);
   }
 

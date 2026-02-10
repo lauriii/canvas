@@ -117,7 +117,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * Generate expected srcset for balloons.png.
    */
   private static function generateExpectedSrcSet(array $widths): string {
-    return implode(', ', array_map(
+    return implode(', ', \array_map(
       fn ($width) => "/sites/default/files/styles/canvas_parametrized_width--$width/public/balloons.png.avif?itok=Oa4IMo7_ {$width}w",
       $widths
     ));

@@ -365,7 +365,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     self::assertCount(3, $data, 'Search should return all three matching pages');
 
     // Get the IDs in order they appear in the results
-    $result_ids = array_map(function ($item) {
+    $result_ids = \array_map(function ($item) {
       return $item['id'];
     }, $data);
 

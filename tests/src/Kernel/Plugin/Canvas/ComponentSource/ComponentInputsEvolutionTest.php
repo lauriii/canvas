@@ -487,7 +487,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // Only the old version has uses that need to be updated.
     $content_entity_revisions_to_update = $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]);
     self::assertSame($expected_config_entities_to_update, array_keys($audit->getConfigEntityDependenciesUsingComponent($updated_component, Pattern::ENTITY_TYPE_ID)));
-    self::assertSame($expected_content_entity_revisions_to_update, array_map(
+    self::assertSame($expected_content_entity_revisions_to_update, \array_map(
       self::contentEntityRevisionObjectToString(...),
       $content_entity_revisions_to_update,
     ));
@@ -512,7 +512,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // 2. contains exactly the expected values
     // 3. renders the expected markup
     self::assertSame([], self::violationsToArray($page->validate()));
-    self::assertSame($expected_post_update_component_tree, array_map(
+    self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());
         $array['inputs'] = json_decode($array['inputs'], TRUE);
@@ -523,11 +523,11 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $page->save();
     // Zero uses remain of the old version, every component instance is on the
     // new version.
-    self::assertSame([], array_map(
+    self::assertSame([], \array_map(
       self::contentEntityRevisionObjectToString(...),
       $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]),
     ));
-    self::assertSame($expected_content_entity_revisions_to_update, array_map(
+    self::assertSame($expected_content_entity_revisions_to_update, \array_map(
       self::contentEntityRevisionObjectToString(...),
       $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]),
     ));
@@ -538,7 +538,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // config-defined component trees.
     // @todo Add missing Drupal core infrastructure to allow updating plugin configuration in https://www.drupal.org/project/drupal/issues/3521221.
     // @todo Abstract away the content- vs config-defined component tree differences in https://www.drupal.org/project/canvas/issues/3524751
-    $pattern_component_instances_to_update = array_map(
+    $pattern_component_instances_to_update = \array_map(
       fn (ComponentTreeItem $item): string => $item->getUuid(),
       iterator_to_array($pattern->getComponentTree()->componentTreeItemsIterator(
         static fn (ComponentTreeItem $item) => $item->getComponentId() === 'block.canvas_test_block_input_schema_change_poc'
@@ -558,7 +558,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // 2. contains exactly the expected values
     // 3. renders the expected markup
     self::assertSame([], self::violationsToArray($pattern->getTypedData()->validate()));
-    self::assertSame($expected_post_update_component_tree, array_map(
+    self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());
         $array['inputs'] = json_decode($array['inputs'], TRUE);

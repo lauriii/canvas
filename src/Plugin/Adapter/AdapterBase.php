@@ -61,7 +61,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
       return TRUE;
     }
 
-    $message_parts = array_map(
+    $message_parts = \array_map(
       static function (array $error): string {
         return \sprintf("[%s] %s", $error['property'], $error['message']);
       },

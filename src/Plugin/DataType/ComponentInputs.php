@@ -124,7 +124,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    *   values, for this component tree.
    */
   public function getPropSourceTypes(): array {
-    return array_unique(array_map(
+    return array_unique(\array_map(
       PropSource::getTypePrefix(...),
       iterator_to_array($this->getPropSources()),
     ));

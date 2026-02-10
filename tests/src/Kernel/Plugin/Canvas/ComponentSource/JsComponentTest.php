@@ -385,7 +385,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // ⚠️ The `'html'` expectations are tested separately for this very complex
     // rendering.
     // @see ::testRenderComponent()
-    $rendered_without_html = array_map(
+    $rendered_without_html = \array_map(
       fn($expectations) => array_diff_key($expectations, ['html' => NULL]),
       $rendered,
     );
@@ -747,7 +747,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     $js_component = $source->getJavaScriptComponent();
     $expected_component_compiled_js = $js_component->getJs();
     $expected_component_compiled_css = $js_component->getCss();
-    $expected_component_props = array_map(
+    $expected_component_props = \array_map(
       fn (array $prop_json_schema) => new EvaluationResult($prop_json_schema['examples'][0]),
       $js_component->getProps() ?? [],
     );
@@ -765,7 +765,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       $css['original'] .= '/**/';
       $js_component->set('css', $css);
       $js_component->updateFromClientSide([
-        'importedJsComponents' => array_map(
+        'importedJsComponents' => \array_map(
           fn (string $config_name): string => str_replace('canvas.js_component.', '', $config_name),
           $js_component->toArray()['dependencies']['enforced']['config'] ?? []
         ),
