@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Plugin\DataTypeOverride;
 
 use Drupal\Core\TypedData\Plugin\DataType\Uri;

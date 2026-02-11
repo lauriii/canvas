@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Render\MainContent;
 
 use Drupal\Component\Utility\NestedArray;

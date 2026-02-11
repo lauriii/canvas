@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Controller;
 
 use Drupal\Core\Entity\EntityInterface;

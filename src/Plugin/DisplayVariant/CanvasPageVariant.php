@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Plugin\DisplayVariant;
 
 use Drupal\Core\Block\MessagesBlockPluginInterface;

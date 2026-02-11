@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Plugin\DataType;
 
 use Drupal\Core\Access\AccessResult;

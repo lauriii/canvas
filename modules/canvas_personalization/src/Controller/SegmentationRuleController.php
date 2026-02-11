@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 namespace Drupal\canvas_personalization\Controller;
 
 use Drupal\Core\Routing\TrustedRedirectResponse;

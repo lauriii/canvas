@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Access;
 
 use Drupal\canvas\Entity\ContentTemplate;

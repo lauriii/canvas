@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\canvas\Plugin\Adapter;
 
 use Drupal\Core\Plugin\PluginBase;

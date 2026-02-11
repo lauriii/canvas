@@ -20,11 +20,11 @@ final class UnixTimestampToDateAdapter extends AdapterBase {
 
   public const string PLUGIN_ID = 'unix_to_date';
 
-  protected string $unix;
+  protected int $unix;
 
   public function adapt(): EvaluationResult {
     // @todo Ensure that the `unix` input is constrained to the appropriate range.
-    $datetime = \DateTime::createFromFormat('U', $this->unix);
+    $datetime = \DateTime::createFromFormat('U', (string) $this->unix);
     \assert($datetime !== FALSE);
     return new EvaluationResult($datetime->format('Y-m-d'));
   }
