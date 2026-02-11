@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+
 /**
  * Checks that all core field widgets have Canvas client-side transforms metadata.
  *
@@ -11,6 +13,7 @@ namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
  * @see docs/redux-integrated-field-widgets.md#3.4
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
   public const COMPLETION = 0.5;

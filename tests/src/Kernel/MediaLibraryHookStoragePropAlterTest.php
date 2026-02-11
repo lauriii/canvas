@@ -8,6 +8,7 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
@@ -16,6 +17,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
+#[RunTestsInSeparateProcesses]
 class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
 
   use MediaTypeCreationTrait;

@@ -12,19 +12,23 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\TestTools\Random;
 use Drupal\canvas_test_validation\Plugin\Canvas\ComponentSource\InvalidSlots;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
+  use DataProviderWithCoreSpecificComponentActiveVersionTrait;
   use ContentTypeCreationTrait;
   use ContribStrictConfigSchemaTestTrait;
   use CreateTestJsComponentTrait;
@@ -152,10 +156,10 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => 'b7f36452-ecd9-4c7c-a73c-492b81538512',
           'component_id' => 'block.system_branding_block',
-          'component_version' => '247a23298360adb2',
+          'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
             'use_site_logo' => FALSE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
@@ -231,6 +235,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
    * @dataProvider providerInvalidComponentTree
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
+    self::addMissingBlockComponentVersions($component_tree);
     \assert($this->entity instanceof ContentTemplate);
     $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
@@ -270,31 +275,31 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         [
           'uuid' => '08a60f2c-4737-47d3-9c34-956f33d5627e',
           'component_id' => 'block.system_branding_block',
-          'component_version' => '247a23298360adb2',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         [
           'uuid' => 'ea2459e3-248d-4a0a-bdbc-1d982f729959',
           'component_id' => 'block.page_title_block',
-          'component_version' => '62af221149ae4887',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         [
           'uuid' => '90804335-d16d-4799-9e80-ddb11692530a',
           'component_id' => 'block.system_messages_block',
-          'component_version' => 'b92f802cf68eb83e',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
       ],

@@ -56,6 +56,7 @@ final class GetNodeFieldsTest extends KernelTestBase {
     'node',
     'user',
     'ai',
+    'ai_agents',
     'system',
     'field',
     'field_ui',

@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -14,9 +15,10 @@ use PHPUnit\Framework\Attributes\TestWith;
 /**
  * @group canvas
  */
-class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
+abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
+  use DataProviderWithCoreSpecificComponentActiveVersionTrait;
   use GenerateComponentConfigTrait;
 
   /**
@@ -87,12 +89,12 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
         'component_id' => 'block.system_powered_by_block',
-        'component_version' => '3332388cade78d20',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_footer',
         'inputs' => [
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       [
@@ -116,7 +118,7 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
         'component_id' => 'block.system_branding_block',
-        'component_version' => '247a23298360adb2',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -124,7 +126,7 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
           'use_site_name' => TRUE,
           'use_site_slogan' => TRUE,
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
     ],
@@ -160,7 +162,7 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '0:the_body:1' => [
         'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
         'component_id' => 'block.system_branding_block',
-        'component_version' => '247a23298360adb2',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -168,18 +170,18 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
           'use_site_name' => TRUE,
           'use_site_slogan' => TRUE,
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       '0:the_footer:0' => [
         'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
         'component_id' => 'block.system_powered_by_block',
-        'component_version' => '3332388cade78d20',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_footer',
         'inputs' => [
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       '1' => [
@@ -225,12 +227,12 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       [
         'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
         'component_id' => 'block.system_powered_by_block',
-        'component_version' => '3332388cade78d20',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'slot' => 'the_body',
         'inputs' => [
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       [
@@ -368,12 +370,12 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
       '0:the_body:0:the_body:0:the_body:0' => [
         'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
         'component_id' => 'block.system_powered_by_block',
-        'component_version' => '3332388cade78d20',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
         'parent_uuid' => '1955e628-73ae-4334-a354-06fcbda376d6',
         'slot' => 'the_body',
         'inputs' => [
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       '0:the_body:0:the_body:0:the_body:1' => [
@@ -635,6 +637,8 @@ class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
     ],
   ], 'It is possible to list the deepest-in-the-tree component instances first; all that should matter is the order within each level (each parent_uuid + slot pair)')]
   public function testComponentTreeKeyOrder(array $tree_input, array $expected_sorted_output): void {
+    self::addMissingBlockComponentVersions($tree_input);
+    self::addMissingBlockComponentVersions($expected_sorted_output);
     $this->entity->setComponentTree($tree_input);
     $tree_output = $this->entity->get('component_tree');
     self::assertEquals(\count($tree_input), \count($tree_output));

@@ -16,10 +16,12 @@ use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 #[Group('canvas')]
 #[CoversClass(AddPageController::class)]
+#[RunTestsInSeparateProcesses]
 final class AddPageControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;

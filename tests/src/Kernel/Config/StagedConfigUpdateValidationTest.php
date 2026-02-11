@@ -6,7 +6,9 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+#[RunTestsInSeparateProcesses]
 class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**

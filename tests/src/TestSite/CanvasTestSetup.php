@@ -451,7 +451,7 @@ class CanvasTestSetup implements TestSetupInterface {
       'uuid' => self::UUID_EMPTY_COMPONENT,
       'inputs' => [
         'label' => 'Administration',
-        'label_display' => FALSE,
+        'label_display' => '0',
         'level' => 1,
         'depth' => NULL,
         'expand_all_items' => FALSE,
@@ -485,7 +485,7 @@ class CanvasTestSetup implements TestSetupInterface {
           'component_id' => 'block.system_branding_block',
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,

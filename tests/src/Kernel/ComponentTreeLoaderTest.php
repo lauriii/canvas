@@ -12,6 +12,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Storage\ComponentTreeLoader
@@ -19,6 +20,7 @@ use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
  * @group canvas
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
+#[RunTestsInSeparateProcesses]
 class ComponentTreeLoaderTest extends KernelTestBase {
 
   use VfsPublicStreamUrlTrait;

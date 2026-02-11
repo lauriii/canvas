@@ -22,11 +22,13 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ComponentTreeItemTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;

@@ -8,8 +8,10 @@ use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
+#[RunTestsInSeparateProcesses]
 final class AutoSaveConflictPageLayoutTest extends ApiLayoutControllerTestBase {
 
   use AutoSaveConflictTestTrait;

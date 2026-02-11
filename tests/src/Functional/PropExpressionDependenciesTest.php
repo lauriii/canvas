@@ -17,6 +17,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
@@ -32,6 +33,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class PropExpressionDependenciesTest extends FunctionalTestBase {
 
   use EntityReferenceFieldCreationTrait;

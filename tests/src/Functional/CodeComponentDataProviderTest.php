@@ -13,11 +13,13 @@ use Drupal\canvas\Entity\Page;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class CodeComponentDataProviderTest extends FunctionalTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

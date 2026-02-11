@@ -10,6 +10,7 @@ use Drupal\canvas\Element\AstroIsland;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -18,6 +19,7 @@ use Symfony\Component\DomCrawler\Crawler;
  * @group canvas
  * @group Twig
  */
+#[RunTestsInSeparateProcesses]
 final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

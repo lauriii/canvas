@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\PageRegion;
@@ -12,10 +13,11 @@ use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * @group canvas
- */
+#[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
@@ -37,12 +39,14 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
     // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
+    'field',
     'image',
     'options',
     'path',
     'link',
     'text',
     'filter',
+    'user',
   ];
 
   /**
@@ -89,19 +93,19 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
           'component_id' => 'block.page_title_block',
-          'component_version' => '62af221149ae4887',
+          'component_version' => Component::load('block.page_title_block')?->getActiveVersion(),
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         [
           'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
           'component_id' => 'block.system_messages_block',
-          'component_version' => 'b92f802cf68eb83e',
+          'component_version' => Component::load('block.system_messages_block')?->getActiveVersion(),
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
       ],
@@ -400,6 +404,14 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
    * @dataProvider providerForAutoSaveData
    */
   public function testForAutoSaveData(array $autoSaveData, array $expected_errors): void {
+    // Block component versions may vary due to upstream changes in core, so
+    // load the current version dynamically.
+    // @see \Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait
+    foreach ($autoSaveData['layout'] as &$node) {
+      if (isset($node['type']) && str_starts_with($node['type'], 'block.') && str_ends_with($node['type'], '@')) {
+        $node['type'] .= Component::load(rtrim($node['type'], '@'))?->getActiveVersion();
+      }
+    }
     try {
       \assert($this->entity instanceof PageRegion);
       $this->entity->forAutoSaveData($autoSaveData, validate: TRUE);
@@ -449,14 +461,14 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
           [
             "nodeType" => "component",
             "slots" => [],
-            "type" => "block.page_title_block@62af221149ae4887",
+            "type" => "block.page_title_block@",
             "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
           ],
         ],
         'model' => [
           'c3f3c22c-c22e-4bb6-ad16-635f069148e4' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
       ],

@@ -215,7 +215,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
     // Note how much simpler the stored information is, because it uses the Block system's native input UX:
     'inputs' => [
       'label' => '',
-      'label_display' => FALSE,
+      'label_display' => '0',
       'use_site_logo' => TRUE,
       'use_site_name' => TRUE,
       'use_site_slogan' => TRUE,
@@ -260,7 +260,7 @@ optimize the stored data. For example:
     'component_version' => '247a23298360adb2',
     'inputs' => [
       'label' => '',
-      'label_display' => FALSE,
+      'label_display' => '0',
       'use_site_logo' => TRUE,
       'use_site_name' => TRUE,
       'use_site_slogan' => TRUE,

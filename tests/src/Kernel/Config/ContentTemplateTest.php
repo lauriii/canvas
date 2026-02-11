@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -14,12 +15,14 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Entity\ContentTemplate
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ContentTemplateTest extends CanvasKernelTestBase {
 
   use ContentTypeCreationTrait;
@@ -114,12 +117,12 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       [
         'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
         'component_id' => 'block.system_powered_by_block',
-        'component_version' => '3332388cade78d20',
+        'component_version' => Component::load('block.system_powered_by_block')?->getActiveVersion(),
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_footer',
         'inputs' => [
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
       [
@@ -146,7 +149,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
       [
         'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
         'component_id' => 'block.system_branding_block',
-        'component_version' => '247a23298360adb2',
+        'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
         'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
         'slot' => 'the_body',
         'inputs' => [
@@ -154,7 +157,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
           'use_site_name' => TRUE,
           'use_site_slogan' => TRUE,
           'label' => '',
-          'label_display' => FALSE,
+          'label_display' => '0',
         ],
       ],
     ]);
@@ -191,7 +194,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
         '0:the_body:1' => [
           'uuid' => '93af433a-8ab0-4dd9-912a-73a99c882347',
           'component_id' => 'block.system_branding_block',
-          'component_version' => '247a23298360adb2',
+          'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
           'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
           'slot' => 'the_body',
           'inputs' => [
@@ -199,18 +202,18 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         '0:the_footer:0' => [
           'uuid' => '5f1c5361-5658-467e-9c53-b0015d57945d',
           'component_id' => 'block.system_powered_by_block',
-          'component_version' => '3332388cade78d20',
+          'component_version' => Component::load('block.system_powered_by_block')?->getActiveVersion(),
           'parent_uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
           'slot' => 'the_footer',
           'inputs' => [
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         '1' => [

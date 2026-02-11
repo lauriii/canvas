@@ -75,7 +75,9 @@ trait CoreFeatureEntityReferenceItemAddPropertiesTrait {
         // accessible URL (root-relative, absolute using HTTP, absolute using
         // HTTPs or relative).
         ->addConstraint(UriConstraint::PLUGIN_ID, ['allowReferences' => TRUE])
-        ->addConstraint(UriSchemeConstraint::PLUGIN_ID, ['http', 'https'])
+        ->addConstraint(UriSchemeConstraint::PLUGIN_ID, [
+          'allowedSchemes' => ['http', 'https'],
+        ])
         ->setClass(ComputedEntityCanonicalRelativeUrl::class);
     }
 

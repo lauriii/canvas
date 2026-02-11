@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Functional;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\Entity\Page;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the admin view for the canvas page content listing.
@@ -14,6 +15,7 @@ use Drupal\canvas\Entity\Page;
  * @group canvas
  * @covers \Drupal\canvas\Entity\Page
  */
+#[RunTestsInSeparateProcesses]
 class CanvasPageListTest extends FunctionalTestBase {
 
   /**

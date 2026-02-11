@@ -11,6 +11,7 @@ use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
  * @coversDefaultClass \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ImportMapResponseAttachmentsProcessorTest extends CanvasKernelTestBase {
 
   /**

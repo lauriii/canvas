@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\canvas\Entity\Component;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
@@ -18,6 +19,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  * @group canvas_data_model__prop_expressions
  * @group legacy
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends CanvasUpdatePathTestBase {
 
   use MediaTypeCreationTrait;

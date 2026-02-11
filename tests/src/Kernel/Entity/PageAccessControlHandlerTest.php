@@ -9,10 +9,12 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
 
   use PageTrait;

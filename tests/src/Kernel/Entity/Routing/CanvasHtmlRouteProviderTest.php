@@ -10,11 +10,13 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class CanvasHtmlRouteProviderTest extends CanvasKernelTestBase {
 
   use PageTrait;

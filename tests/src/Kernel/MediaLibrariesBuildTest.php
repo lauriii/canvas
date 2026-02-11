@@ -9,11 +9,13 @@ use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Theme\ThemeInitializationInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class MediaLibrariesBuildTest extends CanvasKernelTestBase {
 
   /**

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\canvas\Entity\JavaScriptComponent;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests auto-save conflict handling for code components.
  *
  * @see \Drupal\canvas\Entity\JavaScriptComponent
  */
+#[RunTestsInSeparateProcesses]
 final class AutoSaveConflictJavaScriptComponentTest extends AutoSaveConflictConfigTestBase {
 
   protected string $updateKey = 'name';

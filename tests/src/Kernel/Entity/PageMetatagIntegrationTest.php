@@ -15,12 +15,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @group canvas
  * @requires function Drupal\metatag\MetatagManager::tagsFromEntity
  */
+#[RunTestsInSeparateProcesses]
 final class PageMetatagIntegrationTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;

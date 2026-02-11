@@ -17,6 +17,7 @@ use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Checks that instances of all field types can be mapped to SDC props.
@@ -46,6 +47,7 @@ use Drupal\field\Entity\FieldStorageConfig;
  * @see docs/shape-matching.md#3.1.2.a
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
   /**

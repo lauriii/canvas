@@ -24,14 +24,16 @@ use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests validation of component entities.
- *
- * @group canvas
- * @group canvas_component_sources
  */
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
+#[RunTestsInSeparateProcesses]
 class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
@@ -50,6 +52,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
+    'field',
     'image',
     'options',
     'path',
@@ -58,6 +61,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'user',
   ];
 
   /**
@@ -352,8 +356,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'label' => 'Test',
     ]);
+    // We can't know the active version ahead of time, because block versions
+    // can vary depending on upstream changes in core.
+    $version = $this->entity->getComponentSource()->generateVersionHash();
+
     $this->assertValidationErrors([
-      'active_version' => 'The version 7a2bdba02d8b7911 does not match the hash of the settings for this version, expected f80ad196f2c2cc64.',
+      'active_version' => "The version 7a2bdba02d8b7911 does not match the hash of the settings for this version, expected $version.",
       \sprintf('versioned_properties.%s.settings.default_settings', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'use_site_slogan' is a required key because source_local_id is system_branding_block (see config schema type block.settings.system_branding_block).",
       // @see \Drupal\canvas\Entity\Component::preSave()
       \sprintf('versioned_properties.%s', VersionedConfigEntityInterface::ACTIVE_VERSION) => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type canvas.component.versioned.active.*).",
@@ -503,7 +511,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       'label' => 'Test',
       'source' => BlockComponent::SOURCE_PLUGIN_ID,
       'source_local_id' => 'node_syndicate_block',
-      'active_version' => '8d6f197567cc882e',
+      'active_version' => 'random',
       'versioned_properties' => [
         VersionedConfigEntityBase::ACTIVE_VERSION => [
           'settings' => [
@@ -520,6 +528,11 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
     ]);
+    // We can't know the active version ahead of time, because block versions
+    // can vary depending on upstream changes in core.
+    $version = $component->getComponentSource()->generateVersionHash();
+    $component->set('active_version', $version);
+    $component->resetToActiveVersion();
 
     $this->assertTrue($component instanceof Component);
     $this->assertFalse($component->status());
@@ -580,8 +593,13 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
       // @see core/assets/schemas/v1/metadata-full.schema.json
       if (\preg_match('/^[a-zA-Z0-9_-]+$/', $slot_name) !== 1) {
         $expected_violations = [
-          '' => \sprintf('[slots] The property %s is not defined and the definition does not allow additional properties', $slot_name),
+          '' => \sprintf("In component canvas:invalid_slot:\n[slots] The property %s is not defined and the definition does not allow additional properties", $slot_name),
         ] + $expected_violations;
+      }
+      // Strip out the prefix added by https://www.drupal.org/node/3549909. This
+      // can be removed when 11.3 is the minimum supported version of core.
+      if (version_compare(\Drupal::VERSION, '11.3', '<')) {
+        $expected_violations[''] = substr($expected_violations[''], 34);
       }
       self::assertSame($expected_violations, self::violationsToArray($violations));
     }

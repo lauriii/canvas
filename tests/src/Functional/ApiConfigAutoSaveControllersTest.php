@@ -15,6 +15,7 @@ use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.
@@ -22,6 +23,7 @@ use GuzzleHttp\RequestOptions;
  * @covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

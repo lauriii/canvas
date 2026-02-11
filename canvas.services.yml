@@ -158,7 +158,6 @@ services:
   Drupal\canvas\Controller\ApiExtensionControllers: ~
   Drupal\canvas\Controller\ApiLayoutController: {}
   Drupal\canvas\Controller\ApiLogController: {}
-  Drupal\canvas\Controller\ApiContentUpdateForDemoController: {}
   Drupal\canvas\Controller\ApiContentControllers: {}
   Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController: {}
   Drupal\canvas\Controller\ComponentStatusController: {}

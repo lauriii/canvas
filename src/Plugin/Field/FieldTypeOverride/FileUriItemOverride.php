@@ -30,7 +30,9 @@ class FileUriItemOverride extends FileUriItem {
       // @todo should respect the `uri_scheme` field storage setting of \Drupal\file\Plugin\Field\FieldType\FileItem
       // @see \Drupal\file\Plugin\Field\FieldType\FileItem::defaultStorageSettings()
       ->addConstraint(UriConstraint::PLUGIN_ID, ['allowReferences' => FALSE])
-      ->addConstraint(UriSchemeConstraint::PLUGIN_ID, ['public']);
+      ->addConstraint(UriSchemeConstraint::PLUGIN_ID, [
+        'allowedSchemes' => ['public'],
+      ]);
     $properties['url']
       ->setClass(ComputedFileUrlOverride::class)
       // The `url` property is computed using the `value` property, which is
@@ -39,7 +41,9 @@ class FileUriItemOverride extends FileUriItem {
       // The ComputedFileUrl data type generates a browser-accessible URL (root-
       // relative, absolute using HTTP, absolute using HTTPs or relative).
       ->addConstraint(UriConstraint::PLUGIN_ID, ['allowReferences' => TRUE])
-      ->addConstraint(UriSchemeConstraint::PLUGIN_ID, ['http', 'https']);
+      ->addConstraint(UriSchemeConstraint::PLUGIN_ID, [
+        'allowedSchemes' => ['http', 'https'],
+      ]);
     return $properties;
   }
 

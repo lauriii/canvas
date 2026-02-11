@@ -15,12 +15,14 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Controller\ApiContentControllers
  * @group canvas
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
   /**

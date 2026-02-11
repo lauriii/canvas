@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\node\Entity\NodeType;
 
 /**
@@ -23,6 +24,7 @@ use Drupal\node\Entity\NodeType;
  * @todo Improve in
  *   https://www.drupal.org/project/canvas/issues/3522953
  */
+#[RunTestsInSeparateProcesses]
 class ComponentAuditTest extends ComponentAuditTestBase {
 
   /**

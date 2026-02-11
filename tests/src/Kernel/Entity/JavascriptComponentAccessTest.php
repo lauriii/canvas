@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests JavascriptComponent access.
@@ -25,11 +26,12 @@ use Drupal\user\UserInterface;
  * @covers \Drupal\canvas\Entity\JavaScriptComponent
  * @covers \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
  */
+#[RunTestsInSeparateProcesses]
 final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
 
-  private const UUID_IN_ROOT = '84b672ce-cfca-44b6-a84d-477d13a1f6fb';
+  private const string UUID_IN_ROOT = '84b672ce-cfca-44b6-a84d-477d13a1f6fb';
 
   /**
    * {@inheritdoc}

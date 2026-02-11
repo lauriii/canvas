@@ -36,6 +36,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
 use JsonSchema\Validator;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
@@ -45,6 +46,7 @@ use Symfony\Component\DependencyInjection\Reference;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
+#[RunTestsInSeparateProcesses]
 class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

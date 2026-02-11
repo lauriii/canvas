@@ -45,6 +45,7 @@ use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
 use Drupal\canvas_test_article_fields\Hook\CanvasTestArticleFieldsHooks;
 use GuzzleHttp\Psr7\Query;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -53,6 +54,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @group #slow
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
+#[RunTestsInSeparateProcesses]
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
   use CanvasFieldTrait {
@@ -276,6 +278,15 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     );
     // The field value should remain unchanged.
     $this->assertFalse($test_node->isSticky());
+
+    // TRICKY! In Drupal 11.3 and later, the `sticky` field is hidden by
+    // default, which means it will not be updated because Canvas uses the form
+    // API to convert client data to entity data.
+    // @see https://www.drupal.org/node/3518643
+    \Drupal::service(EntityDisplayRepositoryInterface::class)
+      ->getFormDisplay('node', $test_node->getType())
+      ->setComponent('sticky', ['type' => 'boolean_checkbox'])
+      ->save();
 
     // If the client has elevated permissions, they can update protected fields.
     $permissions = ['administer nodes'];

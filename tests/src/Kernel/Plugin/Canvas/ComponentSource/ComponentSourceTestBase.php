@@ -13,7 +13,6 @@ use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -106,7 +105,6 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
   protected readonly EntityStorageInterface $componentStorage;
   protected readonly ComponentIncompatibilityReasonRepository $componentReasonRepository;
-  protected readonly ConfigFactoryInterface $configFactory;
   protected readonly ComponentTreeLoader $componentTreeLoader;
   protected readonly RendererInterface $renderer;
 
@@ -117,7 +115,6 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     parent::setUp();
     $this->componentReasonRepository = $this->container->get(ComponentIncompatibilityReasonRepository::class);
     $this->componentStorage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Component::ENTITY_TYPE_ID);
-    $this->configFactory = $this->container->get(ConfigFactoryInterface::class);
     $this->componentTreeLoader = $this->container->get(ComponentTreeLoader::class);
     $this->renderer = $this->container->get(RendererInterface::class);
     $this->installEntitySchema('user');
@@ -208,7 +205,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
     );
 
     // Transform from `canvas.component.<ID>` to just `<ID>`.
-    $discovered_component_config_names = $this->configFactory->listAll($prefix);
+    $discovered_component_config_names = \Drupal::configFactory()->listAll($prefix);
     $discovered_component_entity_ids = \array_map(
       fn(string $config_name) => str_replace("$component_config_entity_type_prefix.", '', $config_name),
       $discovered_component_config_names

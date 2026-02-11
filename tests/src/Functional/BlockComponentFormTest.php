@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Session\AccountInterface;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Tests a user being able to submit a block form in a component.
- *
- * @group canvas
  */
+#[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class BlockComponentFormTest extends FunctionalTestBase {
 
   /**
@@ -39,7 +42,7 @@ final class BlockComponentFormTest extends FunctionalTestBase {
       'components' => [
         'uuid' => '16176e0b-8197-40e3-ad49-48f1b6e9a7f9',
         'component_id' => 'block.test_form_in_block',
-        'component_version' => 'fd9a41c092d9de57',
+        'component_version' => Component::load('block.test_form_in_block')?->getActiveVersion(),
       ],
     ]);
 

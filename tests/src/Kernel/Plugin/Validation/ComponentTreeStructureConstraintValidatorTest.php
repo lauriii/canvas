@@ -10,11 +10,13 @@ use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;

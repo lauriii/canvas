@@ -15,6 +15,7 @@ use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -23,7 +24,9 @@ use Symfony\Component\HttpFoundation\Request;
  * @group canvas
  * @coversDefaultClass \Drupal\canvas\Controller\ApiContentControllers
  */
+#[RunTestsInSeparateProcesses]
 class ApiContentControllersListTest extends CanvasKernelTestBase {
+
   use UserCreationTrait;
 
   /**
@@ -31,7 +34,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
    *
    * @todo Strip `canvas_page` in https://www.drupal.org/i/3498525, and add test coverage for other content entity types.
    */
-  private const API_BASE_PATH = '/api/canvas/content/canvas_page';
+  private const string API_BASE_PATH = '/api/canvas/content/canvas_page';
 
   /**
    * {@inheritdoc}

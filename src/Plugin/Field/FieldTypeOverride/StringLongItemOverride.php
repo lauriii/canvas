@@ -18,7 +18,9 @@ class StringLongItemOverride extends StringLongItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
-    $properties['value']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
+    $properties['value']->addConstraint('StringSemantics', [
+      'semantic' => StringSemanticsConstraint::PROSE,
+    ]);
     $properties['value']->addConstraint('Regex', [
       'pattern' => '/(.|\r?\n)*/',
     ]);

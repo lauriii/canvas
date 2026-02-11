@@ -42,6 +42,12 @@ parameters:
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
+    # Impossible to make this pass on <=11.2.
+    -
+      message: '#^Attribute class Drupal\\Core\\Hook\\Attribute\\LegacyRequirementsHook does not exist\.$#'
+      identifier: attribute.notFound
+      count: 1
+      path: canvas.install
     # Ignore invalid phpunit methods/covers
     # @todo Remove in https://drupal.org/i/3533845
     - identifier: phpunit.coversMethod

@@ -26,6 +26,7 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -35,6 +36,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class JsComponentEvolutionTest extends CanvasKernelTestBase {
 
   use CiModulePathTrait;

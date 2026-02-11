@@ -15,6 +15,7 @@ use Drupal\Tests\BrowserTestBase;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -31,6 +32,7 @@ use Symfony\Component\DomCrawler\Crawler;
 #[Group('canvas')]
 #[CoversMethod(ContentTemplateHooks::class, 'menuLocalTasksAlter')]
 #[CoversMethod(ContentTemplateHooks::class, 'preprocessMenuLocalTask')]
+#[RunTestsInSeparateProcesses]
 final class CanvasTemplateDisplayTest extends BrowserTestBase {
 
   /**

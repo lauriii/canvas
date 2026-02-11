@@ -11,18 +11,20 @@ use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  * @group canvas_component_sources
  */
+#[RunTestsInSeparateProcesses]
 class ComponentTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
 
-  const MISSING_COMPONENT_ID = 'canvas:missing-component';
-  const MISSING_CONFIG_ENTITY_ID = 'sdc.canvas.missing-component';
-  const LABEL = 'Test Component';
+  const string MISSING_COMPONENT_ID = 'canvas:missing-component';
+  const string MISSING_CONFIG_ENTITY_ID = 'sdc.canvas.missing-component';
+  const string LABEL = 'Test Component';
 
   /**
    * {@inheritdoc}

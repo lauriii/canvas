@@ -27,6 +27,7 @@ use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -34,6 +35,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @group canvas
  * @group #slow
  */
+#[RunTestsInSeparateProcesses]
 final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   use AutoSaveRequestTestTrait;

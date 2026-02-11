@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\canvas\Entity\Component;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers canvas_post_update_0005_use_processed_for_text_props_in_components()
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentWithRichTextShouldUseProcessedUpdateTest extends CanvasUpdatePathTestBase {
 
   protected $defaultTheme = 'stark';

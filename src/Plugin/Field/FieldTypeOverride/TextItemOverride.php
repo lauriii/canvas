@@ -28,7 +28,9 @@ class TextItemOverride extends TextItem {
       // It is computed from the required `value` property, so this value can be
       // considered required, too.
       ->setRequired(TRUE)
-      ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+      ->addConstraint('StringSemantics', [
+        'semantic' => StringSemanticsConstraint::MARKUP,
+      ]);
     // Convey to schema-matching systems like Drupal Canvas to deduce that
     // only `processed` contains actually relevant information for humans.
     $properties['format']->setSetting('is source for', 'processed');

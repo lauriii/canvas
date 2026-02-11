@@ -11,12 +11,14 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Controller\ApiUsageControllers
  * @group canvas
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 class ApiUsageControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

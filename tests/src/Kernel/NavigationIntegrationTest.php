@@ -6,8 +6,10 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class NavigationIntegrationTest extends CanvasKernelTestBase {
 
   use PageTrait;

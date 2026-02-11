@@ -10,6 +10,7 @@ use Drupal\Core\Url;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
@@ -19,6 +20,7 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
  * @covers \Drupal\canvas\Controller\CanvasBlockListController
  * @covers \Drupal\canvas\Entity\PageRegion::createFromBlockLayout()
  */
+#[RunTestsInSeparateProcesses]
 class CanvasPageVariantEnableTest extends BrowserTestBase {
 
   use GenerateComponentConfigTrait;

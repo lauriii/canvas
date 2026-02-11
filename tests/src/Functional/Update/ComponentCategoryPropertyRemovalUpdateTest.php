@@ -7,11 +7,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\canvas\Entity\Component;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers canvas_post_update_0009_unset_category_property_on_components()
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentCategoryPropertyRemovalUpdateTest extends CanvasUpdatePathTestBase {
 
   protected $defaultTheme = 'stark';

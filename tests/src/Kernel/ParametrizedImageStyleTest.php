@@ -11,11 +11,13 @@ use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileRepositoryInterface;
 use Drupal\Tests\TestFileCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Entity\ParametrizedImageStyle
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ParametrizedImageStyleTest extends CanvasKernelTestBase {
 
   use TestFileCreationTrait {

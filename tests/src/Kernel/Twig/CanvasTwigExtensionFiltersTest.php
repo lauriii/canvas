@@ -11,6 +11,7 @@ use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\file\FileInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 // cspell:ignore itok
@@ -21,6 +22,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
  * @group canvas
  * @covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
  */
+#[RunTestsInSeparateProcesses]
 class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   /**

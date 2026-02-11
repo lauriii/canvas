@@ -28,12 +28,14 @@ use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Symfony\Component\Validator\ConstraintViolation;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * @coversDefaultClass \Drupal\canvas\AutoSave\AutoSaveManager
  * @group canvas.
  */
+#[RunTestsInSeparateProcesses]
 class AutoSaveManagerTest extends CanvasKernelTestBase {
 
   use CanvasFieldCreationTrait;

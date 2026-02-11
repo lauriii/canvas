@@ -46,46 +46,69 @@ default:
       uuid: 7480dded-2e3e-4425-82c3-3da911442040
       component_id: sdc.canvas_test_sdc.two_column
       component_version: f90c1f6cfb2fc04a
-      inputs: '{"width":50}'
+      inputs:
+        width: 50
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 348bfa10-af72-49cd-900b-084d617c87df
       component_id: sdc.canvas_test_sdc.image
       component_version: fb40be57bd7e0973
-      inputs: '{"image":1}'
+      inputs:
+        image: 1
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 0a476da3-8daa-4409-85a8-ef7c2ed5ee5f
       component_id: sdc.canvas_test_sdc.my-hero
       component_version: a681ae184a8f6b7f
-      inputs: '{"heading":"meow!","subheading":"this is a hero","cta1":"View","cta1href":{"uri":"https://drupal.org","options":[]},"cta2":"Click"}'
+      inputs:
+        heading: meow!
+        subheading: this is a hero
+        cta1: View
+        cta1href:
+          uri: 'https://drupal.org'
+          options: {  }
+        cta2: Click
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 15952413-432a-41d6-a6b6-c492dfbedf20
       component_id: js.canvas_test_code_components_with_props
       component_version: aad3da04e9cf4211
-      inputs: '{"name":"Kitty","age":50}'
+      inputs:
+        name: Kitty
+        age: 50
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: 9fd85ace-6a33-421b-8237-3416fcf39c30
       component_id: sdc.canvas_test_sdc.one_column
       component_version: 80cc82f44d0a94f2
-      inputs: '{"width":"full"}'
+      inputs:
+        width: full
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_one
       uuid: cea4c5b3-7921-4c6f-b388-da921bd1496d
       component_id: block.system_menu_block.admin
-      component_version: 02b80c9f6cbacff5
-      inputs: '{"label":"Administration","label_display":false,"level":1,"depth":1,"expand_all_items":false}'
+      inputs:
+        label: Administration
+        label_display: '0'
+        level: 1
+        depth: 1
+        expand_all_items: false
     -
       parent_uuid: 7480dded-2e3e-4425-82c3-3da911442040
       slot: column_two
       uuid: a9727e4b-42a7-4621-a502-be43cab1e20a
       component_id: sdc.canvas_test_sdc.my-hero
       component_version: a681ae184a8f6b7f
-      inputs: '{"heading":"hello, world!","subheading":"protect yourself from dangerous cats","cta1":"Yes","cta1href":{"uri":"https://drupal.org","options":[]},"cta2":"No thanks"}'
+      inputs:
+        heading: hello, world!
+        subheading: protect yourself from dangerous cats
+        cta1: 'Yes'
+        cta1href:
+          uri: 'https://drupal.org'
+          options: {  }
+        cta2: No thanks

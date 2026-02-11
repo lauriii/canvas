@@ -14,6 +14,7 @@ use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @coversDefaultClass \Drupal\canvas\Controller\ApiAutoSaveController
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
 
   use ApiRequestTrait;
@@ -98,7 +100,7 @@ final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
         RequestOptions::HEADERS => ['X-CSRF-Token' => $token],
       ]
     );
-    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getBody());
 
     // Now the cache should be invalidated and we should get a MISS.
     $this->drupalGet($url);

@@ -20,12 +20,14 @@ use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
  * @covers \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class NodeTemplatesTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;

@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests validation of JavaScriptComponent entities.
@@ -16,6 +17,7 @@ use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
  * @group canvas
  * @group JavaScriptComponents
  */
+#[RunTestsInSeparateProcesses]
 class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
@@ -424,6 +426,11 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    */
   public function testEntityShapes(array $shape, array $expected_errors): void {
     $this->entity = JavaScriptComponent::create($shape);
+    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
+    // can be removed when 11.3 is the minimum supported version of core.
+    if (isset($expected_errors['']) && str_starts_with($expected_errors[''], 'In component canvas:test-unknown-prop-type:') && version_compare(\Drupal::VERSION, '11.3', '<')) {
+      $expected_errors[''] = substr($expected_errors[''], 44);
+    }
     $this->assertValidationErrors($expected_errors);
   }
 
@@ -483,7 +490,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
           'dataDependencies' => [],
         ],
         [
-          '' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "canvas:test-unknown-prop-type".',
+          '' => "In component canvas:test-unknown-prop-type:\nUnable to find class/interface \"unknown\" specified in the prop \"mixed_up_prop\" for the component \"canvas:test-unknown-prop-type\".",
           'props.mixed_up_prop' => [
             "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
             "'meta:enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
@@ -973,9 +980,14 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     // entity.
     if ($this->entity->id() !== 'dash-separated' && $expected_messages === $invalid_id_messages) {
       $expected_messages[''] = [
-        "[id] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$\n[machineName] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$",
+        "In component canvas:{$this->entity->id()}:\n[id] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$\n[machineName] Does not match the regex pattern ^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$",
         $expected_messages[''],
       ];
+      // Strip out the prefix added by https://www.drupal.org/node/3549909. This
+      // can be removed when 11.3 is the minimum supported version of core.
+      if (version_compare(\Drupal::VERSION, '11.3', '<')) {
+        $expected_messages[''][0] = substr($expected_messages[''][0], strlen("In component canvas:{$this->entity->id()}:\n"));
+      }
     }
     parent::assertValidationErrors($expected_messages);
   }

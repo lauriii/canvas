@@ -9,7 +9,9 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Folder;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\ConfigTestTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+#[RunTestsInSeparateProcesses]
 class FolderTest extends CanvasKernelTestBase {
 
   use ConfigTestTrait;

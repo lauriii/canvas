@@ -24,6 +24,7 @@ use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
@@ -34,6 +35,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * Note this cannot use CanvasKernelTestBase because that would pre-install the
  * Canvas module: this test is installing Canvas via a recipe.
  */
+#[RunTestsInSeparateProcesses]
 final class RecipeSubscriberTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

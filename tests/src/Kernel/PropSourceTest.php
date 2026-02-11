@@ -61,6 +61,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
@@ -70,6 +71,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
+#[RunTestsInSeparateProcesses]
 class PropSourceTest extends CanvasKernelTestBase {
 
   private const FILE_UUID1 = 'a461c159-039a-4de2-96e5-07d1112105df';

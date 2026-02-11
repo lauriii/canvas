@@ -30,6 +30,7 @@ use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\views\Entity\View;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
@@ -39,6 +40,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  * @group canvas_component_sources
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
+#[RunTestsInSeparateProcesses]
 final class BlockComponentTest extends ComponentSourceTestBase {
 
   use BlockComponentTreeTestTrait;
@@ -349,7 +351,7 @@ HTML,
   public static function providerRenderComponentFailure(): \Generator {
     $block_settings = [
       'label' => 'crash dummy',
-      'label_display' => FALSE,
+      'label_display' => '0',
       'name' => 'Canvas',
     ];
 
@@ -408,7 +410,7 @@ HTML,
   protected static function getPropsForComponentFallbackTesting(): array {
     return [
       'label' => 'Main navigation',
-      'label_display' => '',
+      'label_display' => '0',
       'level' => 1,
       'depth' => NULL,
       'expand_all_items' => TRUE,

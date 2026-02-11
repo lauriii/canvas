@@ -23,6 +23,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -32,6 +33,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @group canvas
  * @group canvas_component_sources
  */
+#[RunTestsInSeparateProcesses]
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
   use MediaTypeCreationTrait;

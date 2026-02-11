@@ -9,12 +9,14 @@ use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\image\Functional\ImageStyleDownloadAccessControlTest;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  * @covers \Drupal\canvas\Routing\ParametrizedImageStyleConverter
  * @covers \Drupal\canvas\Entity\ParametrizedImageStyle
  */
+#[RunTestsInSeparateProcesses]
 class ParametrizedImageStyleDownloadAccessControlTest extends ImageStyleDownloadAccessControlTest {
 
   use ContribStrictConfigSchemaTestTrait;

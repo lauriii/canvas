@@ -23,21 +23,27 @@ default:
       uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       component_id: js.canvas_test_code_components_with_slots
       component_version: d5c6ab208aeca9cf
-      inputs: '{"name":"Sir Gablethorp"}'
+      inputs:
+        name: Sir Gablethorp
     -
       parent_uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       slot: description
       uuid: 2c6e91ae-23ac-433d-9bb8-687144464b34
       component_id: sdc.canvas_test_sdc.props-slots
       component_version: 85a5c0c7dd53e0bb
-      inputs: '{"heading":"Welcome to the site!"}'
+      inputs:
+        heading: Welcome to the site!
     -
       parent_uuid: null
       slot: null
       uuid: 78c73c1d-4988-4f9b-ad17-f7e337d40c29
       component_id: block.system_branding_block
-      component_version: 247a23298360adb2
-      inputs: '{"label":"","label_display":false,"use_site_logo":true,"use_site_name":true,"use_site_slogan":true}'
+      inputs:
+        label: ''
+        label_display: '0'
+        use_site_logo: true
+        use_site_name: true
+        use_site_slogan: true
 
   path:
     -

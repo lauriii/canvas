@@ -15,6 +15,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\ApiRequestTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @todo Add test coverage for entity field prop sources used in the content
@@ -24,6 +25,7 @@ use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
  * @see https://www.drupal.org/project/canvas/issues/3455629#comment-15831060
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class TranslationTest extends FunctionalTestBase {
 
   use ApiRequestTrait;

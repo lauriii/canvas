@@ -11,12 +11,14 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Entity\ContentTemplate::onDependencyRemoval
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
 
   /**

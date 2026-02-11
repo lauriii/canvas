@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
@@ -39,6 +40,7 @@ use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -49,6 +51,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @group #slow
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
+#[RunTestsInSeparateProcesses]
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
@@ -122,7 +125,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         [
           "nodeType" => "component",
           "slots" => [],
-          "type" => "block.page_title_block@62af221149ae4887",
+          "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
           "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
@@ -398,7 +401,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         [
           "nodeType" => "component",
           "slots" => [],
-          "type" => "block.page_title_block@62af221149ae4887",
+          "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
           "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
@@ -628,7 +631,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           [
             "nodeType" => "component",
             "slots" => [],
-            "type" => "block.page_title_block@62af221149ae4887",
+            "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
             "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
           ],
         ],
@@ -764,7 +767,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
-      'detail' => 'Unable to find class/interface "unknown" specified in the prop "mixed_up_prop" for the component "canvas:test-component".',
+      'detail' => "In component canvas:test-component:\nUnable to find class/interface \"unknown\" specified in the prop \"mixed_up_prop\" for the component \"canvas:test-component\".",
       'source' => [
         'pointer' => '',
       ],
@@ -776,6 +779,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
+    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
+    // can be removed when 11.3 is the minimum supported version of core.
+    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
+      $index = count($errors) - 1;
+      $errors[$index]['detail'] = substr($errors[$index]['detail'], 36);
+    }
     $errors[] = [
       'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
       'source' => [

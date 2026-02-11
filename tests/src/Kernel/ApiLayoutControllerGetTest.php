@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
@@ -28,6 +29,7 @@ use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -35,6 +37,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * @group canvas
  * @group #slow
  */
+#[RunTestsInSeparateProcesses]
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   /**
@@ -190,7 +193,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         [
           "nodeType" => "component",
           "slots" => [],
-          "type" => "block.page_title_block@62af221149ae4887",
+          "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
           "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         ],
       ],
@@ -227,7 +230,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@62af221149ae4887",
+        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         'name' => NULL,
       ],
@@ -276,7 +279,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@62af221149ae4887",
+        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
         "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
         'name' => NULL,
       ],
@@ -304,7 +307,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         "nodeType" => "component",
         "slots" => [],
-        "type" => "block.page_title_block@62af221149ae4887",
+        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
         'name' => NULL,
       ],
     ],
@@ -349,7 +352,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
             "nodeType" => "component",
             'name' => NULL,
             "slots" => [],
-            "type" => "block.page_title_block@62af221149ae4887",
+            // The component version may vary depending on upstream changes in
+            // core.
+            "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
           ],
         ],
           // Filter out the UUID as that is added randomly by creating the block
@@ -363,7 +368,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         $this->assertSame([
           [
             "nodeType" => "component",
-            "type" => "block.system_messages_block@b92f802cf68eb83e",
+            // The component version may vary depending on upstream changes in
+            // core.
+            "type" => "block.system_messages_block@" . Component::load('block.system_messages_block')?->getActiveVersion(),
             'name' => NULL,
             "slots" => [],
           ],

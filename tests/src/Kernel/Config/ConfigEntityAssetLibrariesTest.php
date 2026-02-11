@@ -10,12 +10,14 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ConfigEntityAssetLibrariesTest extends CanvasKernelTestBase {
 
   /**

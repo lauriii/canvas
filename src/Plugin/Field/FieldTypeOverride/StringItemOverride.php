@@ -19,7 +19,9 @@ class StringItemOverride extends StringItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
-    $properties['value']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
+    $properties['value']->addConstraint('StringSemantics', [
+      'semantic' => StringSemanticsConstraint::PROSE,
+    ]);
     return $properties;
   }
 

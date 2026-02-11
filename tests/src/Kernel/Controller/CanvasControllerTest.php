@@ -21,6 +21,7 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CanvasUiAssertionsTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -28,6 +29,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class CanvasControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;

@@ -13,11 +13,13 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   use GenerateComponentConfigTrait;

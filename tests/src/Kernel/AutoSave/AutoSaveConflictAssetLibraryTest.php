@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests auto-save conflict handling for asset libraries.
  *
  * @see \Drupal\canvas\Entity\AssetLibrary
  */
+#[RunTestsInSeparateProcesses]
 final class AutoSaveConflictAssetLibraryTest extends AutoSaveConflictConfigTestBase {
 
   protected string $updateKey = 'label';

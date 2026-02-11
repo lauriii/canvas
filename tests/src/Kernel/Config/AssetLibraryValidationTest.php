@@ -7,11 +7,14 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\Component\Utility\Crypt;
 use Drupal\canvas\Entity\AssetLibrary;
 
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+
 /**
  * Tests validation of Asset Library entities.
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
 
   /**

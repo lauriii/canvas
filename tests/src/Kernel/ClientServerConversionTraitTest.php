@@ -24,12 +24,14 @@ use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
  * @group canvas
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
+#[RunTestsInSeparateProcesses]
 class ClientServerConversionTraitTest extends KernelTestBase {
 
   private const TOP_LEVEL_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7858';
@@ -151,7 +153,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'component_version' => '247a23298360adb2',
+        'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
       ],
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
@@ -204,7 +206,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TEST_BLOCK,
         'component_id' => 'block.system_branding_block',
-        'component_version' => '247a23298360adb2',
+        'component_version' => Component::load('block.system_branding_block')?->getActiveVersion(),
       ],
     ], \array_map(static fn (array $item) => \array_filter(\array_diff_key($item, \array_flip(['inputs']))), $converted_items));
 
@@ -260,7 +262,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'nodeType' => 'component',
         'uuid' => '587334b5-8a05-48f5-9f48-02b5a84e7267',
-        'type' => 'block.canvas_test_block_input_none@f91f8d4aff4aba7c',
+        'type' => 'block.canvas_test_block_input_none@' . Component::load('block.canvas_test_block_input_none')?->getActiveVersion(),
         'slots' => [],
       ],
     ];
@@ -344,7 +346,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
         [
           'nodeType' => 'component',
           'uuid' => self::TEST_BLOCK,
-          'type' => 'block.system_branding_block@247a23298360adb2',
+          'type' => 'block.system_branding_block@' . Component::load('block.system_branding_block')?->getActiveVersion(),
           'slots' => [],
         ],
       ],
@@ -414,7 +416,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
               'use_site_slogan' => FALSE,
             ],
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
       ],

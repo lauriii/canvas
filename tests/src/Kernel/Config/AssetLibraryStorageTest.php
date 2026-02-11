@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage
@@ -14,6 +15,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
  * @group canvas
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 class AssetLibraryStorageTest extends CanvasKernelTestBase {
 
   /**

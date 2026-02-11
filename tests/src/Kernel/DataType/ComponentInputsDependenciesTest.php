@@ -22,12 +22,14 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
  * @see \Drupal\Tests\canvas\Unit\DataType\ComponentInputsTest
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
 
   use ComponentTreeItemListInstantiatorTrait;
@@ -37,7 +39,7 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
   use MediaTypeCreationTrait;
   use UserCreationTrait;
 
-  private const TEST_IMAGE_UUID = 'd650b614-3219-4842-9a1f-f9976bdc20be';
+  private const string TEST_IMAGE_UUID = 'd650b614-3219-4842-9a1f-f9976bdc20be';
 
   /**
    * {@inheritdoc}

@@ -18,7 +18,7 @@ trait BlockComponentTreeTestTrait {
             'component_id' => 'block.canvas_test_block_input_none',
             'inputs' => [
               'label' => 'Test block with no settings.',
-              'label_display' => '',
+              'label_display' => '0',
             ],
           ],
         ],
@@ -31,7 +31,7 @@ trait BlockComponentTreeTestTrait {
             'component_id' => 'block.canvas_test_block_input_validatable',
             'inputs' => [
               'label' => 'Test Block for testing.',
-              'label_display' => '',
+              'label_display' => '0',
               'name' => 'Component',
             ],
           ],

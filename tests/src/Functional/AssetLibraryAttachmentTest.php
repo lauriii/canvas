@@ -11,6 +11,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -18,6 +19,7 @@ use Symfony\Component\DomCrawler\Crawler;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
   /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DataType\ComputedUrlWithQueryString;
@@ -26,6 +27,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -33,6 +35,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @group canvas
  * @group #slow
  */
+#[RunTestsInSeparateProcesses]
 final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   use CanvasFieldTrait;
@@ -459,10 +462,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'model' => [
           'resolved' => [
             'label' => $new_label,
-            'label_display' => '',
+            'label_display' => '0',
           ],
         ],
-        'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
+        // The component version may vary depending on upstream changes in core.
+        'componentType' => 'block.system_messages_block@' . Component::load('block.system_messages_block')?->getActiveVersion(),
         'componentInstanceUuid' => $globalComponentUuid,
       ] + $this->getPatchContentsDefaults([$entity]);
       $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($updateRegionClientData, JSON_THROW_ON_ERROR)));
@@ -549,10 +553,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'model' => [
         'resolved' => [
           'label' => $new_label,
-          'label_display' => '',
+          'label_display' => '0',
         ],
       ],
-      'componentType' => 'block.system_messages_block@b92f802cf68eb83e',
+      // The component version may vary depending on upstream changes in core.
+      'componentType' => 'block.system_messages_block@' . Component::load('block.system_messages_block')?->getActiveVersion(),
       'componentInstanceUuid' => $globalComponentUuid,
     ] + $this->getPatchContentsDefaults([$entity], FALSE), JSON_THROW_ON_ERROR)));
   }

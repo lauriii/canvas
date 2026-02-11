@@ -19,6 +19,7 @@ use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @coversClass \Drupal\canvas\ShapeMatcher\PropSourceSuggester
@@ -26,6 +27,7 @@ use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
  *
  * @phpstan-import-type HostEntityUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  */
+#[RunTestsInSeparateProcesses]
 class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
   use EntityReferenceFieldCreationTrait;

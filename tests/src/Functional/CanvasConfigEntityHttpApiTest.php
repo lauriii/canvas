@@ -32,6 +32,7 @@ use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -40,6 +41,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @group canvas
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
@@ -843,10 +845,10 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
-    $this->assertSame([
+    $expected_body = [
       'errors' => [
         [
-          'detail' => 'Unable to find class/interface "nonsense" specified in the prop "incorrect" for the component "canvas:test".',
+          'detail' => "In component canvas:test:\nUnable to find class/interface \"nonsense\" specified in the prop \"incorrect\" for the component \"canvas:test\".",
           'source' => ['pointer' => ''],
         ],
         [
@@ -854,7 +856,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'source' => ['pointer' => 'props.incorrect.type'],
         ],
       ],
-    ], $body);
+    ];
+    // Strip out the prefix added by https://www.drupal.org/node/3549909. This
+    // can be removed when 11.3 is the minimum supported version of core.
+    if (version_compare(\Drupal::VERSION, '11.3', '<')) {
+      $expected_body['errors'][0]['detail'] = substr($expected_body['errors'][0]['detail'], 26);
+    }
+    $this->assertSame($expected_body, $body);
 
     // Meet data shape requirements, but provide missing component as a
     // dependency in `importedJsComponents`: 422

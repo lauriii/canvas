@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\PageRegion;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the component tree aspects of the PageRegion config entity type.
@@ -13,6 +14,7 @@ use Drupal\canvas\Entity\PageRegion;
  * @group canvas
  * @coversDefaultClass \Drupal\canvas\Entity\PageRegion
  */
+#[RunTestsInSeparateProcesses]
 final class PageRegionComponentTreeTest extends ConfigWithComponentTreeTestBase {
 
   /**

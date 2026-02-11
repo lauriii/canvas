@@ -223,6 +223,7 @@ stylelint:
     # plugins that are not installed in Drupal core, e.g., @ianvs/prettier-plugin-sort-imports.
     - rm -rf .prettierrc.json
 
+# Tests the minimum Drupal core version Canvas supports: 11.2.
 phpunit:
   # Auto-retry when random failures occur due to upstream bugs.
   # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
@@ -334,39 +335,11 @@ phpunit:
     - *UI-fixtures-files-change-rule
     - *manual-rule
 
-# Canvas requires 11.2, but may provide >11.2-only features.
-phpunit (>11.2-only features):
+phpunit (11.3):
   extends: phpunit
   needs:
     - composer (next minor)
     - UI
-  variables:
-    _PHPUNIT_TESTGROUPS: ''
-    _PHPUNIT_CONCURRENT: 0
-    _PHPUNIT_EXTRA: '--filter DefaultContentExportImportTest'
-  parallel:
-    matrix:
-      - _TARGET_DB_TYPE: sqlite
-        _TARGET_DB_VERSION: '3'
-        _TARGET_PHP: '8.3-ubuntu'
-        _FOR_EVERY_MR_COMMIT: 'true'
-      - _TARGET_DB_TYPE: 'mariadb'
-        _TARGET_DB_VERSION: '10.6'
-        _FOR_EVERY_MR_COMMIT: 'false'
-      - _TARGET_DB_TYPE: 'mysql'
-        _TARGET_DB_VERSION: '8'
-        _FOR_EVERY_MR_COMMIT: 'false'
-      - _TARGET_DB_TYPE: 'pgsql'
-        _TARGET_DB_VERSION: '16'
-        _FOR_EVERY_MR_COMMIT: 'false'
-  rules:
-    - *is-push-rule
-    - *php-files-change-rule
-    - *module-metadata-files-change-rule
-    - *module-config-files-change-rule
-    - *SDC-files-change-rule
-    - *UI-fixtures-files-change-rule
-    - *manual-rule
 
 prettier:
   stage: validate

@@ -35,6 +35,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests PropExpression functionality that cannot be tested in a unit test.
@@ -47,6 +48,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
+#[RunTestsInSeparateProcesses]
 class PropExpressionKernelTest extends CanvasKernelTestBase {
 
   use EntityReferenceFieldCreationTrait;

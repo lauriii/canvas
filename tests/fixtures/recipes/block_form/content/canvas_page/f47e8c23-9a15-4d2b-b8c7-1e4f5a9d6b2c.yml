@@ -22,8 +22,7 @@ default:
       slot: null
       uuid: 78c73c1d-4988-4f9b-ad17-f7e337d40c29
       component_id: block.system_branding_block
-      component_version: 247a23298360adb2
-      inputs: '{"label":"","label_display":false,"use_site_logo":true,"use_site_name":true,"use_site_slogan":true}'
+      inputs: '{"label":"","label_display":"0","use_site_logo":true,"use_site_name":true,"use_site_slogan":true}'
 
   path:
     -

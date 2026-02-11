@@ -28,10 +28,12 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
 #[Group('default_content_api')]
 #[CoversClass(DefaultContentSubscriber::class)]
+#[RunTestsInSeparateProcesses]
 final class DefaultContentExportImportTest extends BrowserTestBase {
 
   use MediaTypeCreationTrait;

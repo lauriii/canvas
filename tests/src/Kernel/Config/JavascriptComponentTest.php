@@ -7,12 +7,14 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
  * @coversDefaultClass \Drupal\canvas\Entity\JavaScriptComponent
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class JavascriptComponentTest extends CanvasKernelTestBase {
 
   /**

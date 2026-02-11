@@ -13,12 +13,14 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\Entity\Component::onDependencyRemoval
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ComponentOnDependencyRemovalTest extends FunctionalTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

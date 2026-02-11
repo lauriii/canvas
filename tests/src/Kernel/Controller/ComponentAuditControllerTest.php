@@ -18,6 +18,7 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -25,6 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentAuditControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;
@@ -132,14 +134,15 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.props-slots'])->toString();
     $response = $this->request(Request::create($audit_url));
     \assert($response instanceof HtmlResponse);
-    self::assertEqualsCanonicalizing([
+    $expected_cache_contexts = [
       'theme',
       'languages:language_interface',
       'user.permissions',
       'url.query_args:_wrapper_format',
       // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
       'route.name',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    ];
+    self::assertEqualsCanonicalizing($expected_cache_contexts, $response->getCacheableMetadata()->getCacheContexts());
     self::assertEqualsCanonicalizing([
       'rendered',
       'http_response',
@@ -181,14 +184,7 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     $audit_url = Url::fromRoute('entity.component.audit', ['component' => 'sdc.canvas_test_sdc.druplicon'])->toString();
     $response = $this->request(Request::create($audit_url));
     \assert($response instanceof HtmlResponse);
-    self::assertEqualsCanonicalizing([
-      'theme',
-      'languages:language_interface',
-      'user.permissions',
-      'url.query_args:_wrapper_format',
-      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
-      'route.name',
-    ], $response->getCacheableMetadata()->getCacheContexts());
+    self::assertEqualsCanonicalizing($expected_cache_contexts, $response->getCacheableMetadata()->getCacheContexts());
     self::assertEqualsCanonicalizing([
       'rendered',
       'http_response',

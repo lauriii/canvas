@@ -11,6 +11,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Recipe\InvalidConfigException;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\StagedConfigUpdate;
@@ -20,10 +21,12 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
 #[CoversClass(StagedConfigUpdate::class)]
 #[CoversClass(StagedConfigUpdateStorage::class)]
+#[RunTestsInSeparateProcesses]
 final class StagedConfigUpdateTest extends CanvasKernelTestBase implements ServiceModifierInterface {
 
   use UserCreationTrait;
@@ -46,8 +49,13 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase implements Servi
    *
    * @see testSavingWhichLeadsToInvalidSchema()
    * @see makeSystemSiteValidated()
+   *
+   * @todo Remove this alter hook once Drupal 11.3 is the minimum supported version, as kernel tests implementing hooks is only supported in Drupal 11.3 and later.
    */
   public function alter(ContainerBuilder $container): void {
+    if (version_compare(\Drupal::VERSION, '11.3', '>=')) {
+      return;
+    }
     $container->register(self::class)
       ->setClass(self::class)
       ->addTag('kernel.event_listener', [
@@ -71,6 +79,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase implements Servi
    * @see testSavingWhichLeadsToInvalidSchema()
    * @see https://www.drupal.org/project/drupal/issues/3443432
    */
+  #[Hook('config_schema_info_alter')]
   public function makeSystemSiteValidated(array &$definitions): void {
     if ($this->markSystemSiteFullyValidated === TRUE) {
       $definitions['system.site']['constraints']['FullyValidatable'] = NULL;

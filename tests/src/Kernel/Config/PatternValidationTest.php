@@ -6,18 +6,23 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore thisisatestpattern
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * @group canvas
- */
+#[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
+  use DataProviderWithCoreSpecificComponentActiveVersionTrait;
   use GenerateComponentConfigTrait;
 
   /**
@@ -30,6 +35,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
+    'field',
     'image',
     'options',
     'path',
@@ -37,6 +43,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
     'text',
     'filter',
     'datetime',
+    'user',
   ];
 
   /**
@@ -81,9 +88,9 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '56031f0f-a073-471d-8298-4ecf757ff0e7',
           'component_id' => 'block.local_tasks_block',
-          'component_version' => '7ce07cbe2a7fa7ce',
+          'component_version' => Component::load('block.local_tasks_block')?->getActiveVersion(),
           'inputs' => [
-            'label_display' => FALSE,
+            'label_display' => '0',
             'primary' => TRUE,
             'secondary' => TRUE,
             'label' => '',
@@ -178,6 +185,8 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
    */
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
     \assert($this->entity instanceof Pattern);
+    self::addMissingBlockComponentVersions($component_tree);
+    \assert($this->entity instanceof ComponentTreeEntityInterface);
     $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);
   }
@@ -235,19 +244,19 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '7f91aa44-c672-454f-8ed0-417d0de76b14',
           'component_id' => 'block.system_branding_block',
-          'component_version' => '247a23298360adb2',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
           ],
         ],
         [
           'uuid' => 'block-invalid',
           'component_id' => 'block.page_title_block',
-          'component_version' => '62af221149ae4887',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
           'inputs' => [],
         ],
       ],

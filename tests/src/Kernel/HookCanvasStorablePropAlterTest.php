@@ -8,6 +8,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository
@@ -15,6 +16,7 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions
  */
+#[RunTestsInSeparateProcesses]
 class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
 
   /**

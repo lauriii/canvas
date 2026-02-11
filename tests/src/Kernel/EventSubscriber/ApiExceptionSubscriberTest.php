@@ -14,10 +14,12 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Route;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ApiExceptionSubscriberTest extends CanvasKernelTestBase {
 
   /**

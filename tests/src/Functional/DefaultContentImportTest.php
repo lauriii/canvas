@@ -9,11 +9,13 @@ use Drupal\Core\DefaultContent\Importer;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  * @group default_content_api
  */
+#[RunTestsInSeparateProcesses]
 class DefaultContentImportTest extends FunctionalTestBase {
 
   /**

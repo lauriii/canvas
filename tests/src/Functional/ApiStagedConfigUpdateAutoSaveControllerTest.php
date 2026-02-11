@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the details of auto-saving Staged Config Update entities.
@@ -20,6 +21,7 @@ use GuzzleHttp\RequestOptions;
  * @covers \Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

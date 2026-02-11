@@ -11,7 +11,9 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Tests\ConfigTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+#[RunTestsInSeparateProcesses]
 class FolderValidationTest extends BetterConfigEntityValidationTestBase {
 
   use ConfigTestTrait;
@@ -27,6 +29,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // Canvas's dependencies (modules providing field types + widgets).
     'datetime',
     'file',
+    'field',
     'image',
     'options',
     'path',
@@ -35,6 +38,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     'filter',
     'ckeditor5',
     'editor',
+    'user',
   ];
 
   protected function setUp(): void {

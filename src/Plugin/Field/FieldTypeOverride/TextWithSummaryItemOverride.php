@@ -30,11 +30,15 @@ class TextWithSummaryItemOverride extends TextWithSummaryItem {
       // It is computed from the required `value` property, so this value can be
       // considered required, too.
       ->setRequired(TRUE)
-      ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+      ->addConstraint('StringSemantics', [
+        'semantic' => StringSemanticsConstraint::MARKUP,
+      ]);
 
     // Also override the summary_processed property.
     $properties['summary_processed']
-      ->addConstraint('StringSemantics', StringSemanticsConstraint::MARKUP);
+      ->addConstraint('StringSemantics', [
+        'semantic' => StringSemanticsConstraint::MARKUP,
+      ]);
 
     // Convey to schema-matching systems like Drupal Canvas to deduce that
     // only `processed` contains actually relevant information for humans.

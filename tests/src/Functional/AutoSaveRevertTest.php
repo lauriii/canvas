@@ -12,12 +12,14 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests that auto-saved changes are deleted when reverting a page revision.
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class AutoSaveRevertTest extends BrowserTestBase {
 
   use ContentTypeCreationTrait;

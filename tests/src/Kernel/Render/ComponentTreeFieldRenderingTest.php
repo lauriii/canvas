@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ComponentTreeFieldRenderingTest extends CanvasKernelTestBase {
 
   use RequestTrait;

@@ -10,10 +10,12 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class HomepageNodeDeletionTest extends CanvasKernelTestBase {
 
   use NodeCreationTrait;

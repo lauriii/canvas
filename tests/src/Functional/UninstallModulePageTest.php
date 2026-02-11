@@ -8,12 +8,14 @@ use Drupal\Core\Database\Database;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\FunctionalTests\Installer\InstallerTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the uninstalling module page is loaded.
  *
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class UninstallModulePageTest extends InstallerTestBase {
 
   /**

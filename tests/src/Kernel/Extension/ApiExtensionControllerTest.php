@@ -18,10 +18,12 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 #[Group('canvas')]
 #[CoversFunction('ApiExtensionControllers::list')]
+#[RunTestsInSeparateProcesses]
 class ApiExtensionControllerTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;

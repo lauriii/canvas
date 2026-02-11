@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 
 /**
@@ -55,6 +56,7 @@ function canvas_module_preuninstall(string $module, bool $is_syncing): void {
  *
  * @todo Remove when https://www.drupal.org/project/drupal/issues/3472008 is fixed in Drupal core.
  */
+#[LegacyRequirementsHook]
 function canvas_requirements(string $phase): array {
   $requirements = [];
   if ($phase === 'install' || $phase == 'runtime') {

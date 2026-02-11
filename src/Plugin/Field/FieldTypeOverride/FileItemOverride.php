@@ -24,7 +24,9 @@ class FileItemOverride extends FileItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
-    $properties['description']->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE);
+    $properties['description']->addConstraint('StringSemantics', [
+      'semantic' => StringSemanticsConstraint::PROSE,
+    ]);
     return $properties;
   }
 

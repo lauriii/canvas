@@ -6,10 +6,12 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class ServiceDecorationTest extends CanvasKernelTestBase {
 
   public function testServiceDecoration(): void {

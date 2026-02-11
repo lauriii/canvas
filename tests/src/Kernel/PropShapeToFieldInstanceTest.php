@@ -28,6 +28,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests matching prop shapes against field instances & adapters.
@@ -45,6 +46,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
  *
  * @phpstan-type ShapeMatchingResults array{'SDC props': non-empty-list<string>, 'static prop source': null|string, instances: string[], adapter_matches_field_type: string[], adapter_matches_instance: string[]}
  */
+#[RunTestsInSeparateProcesses]
 class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;

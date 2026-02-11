@@ -12,9 +12,11 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
 #[CoversClass(ComponentTreeInputExtractor::class)]
+#[RunTestsInSeparateProcesses]
 final class ComponentTreeInputExtractorTest extends CanvasKernelTestBase {
 
   use PageTrait;
@@ -171,7 +173,7 @@ final class ComponentTreeInputExtractorTest extends CanvasKernelTestBase {
           'component' => 'block.system_branding_block',
           'inputs' => [
             'label' => 'Site branding',
-            'label_display' => '',
+            'label_display' => '0',
             'use_site_logo' => TRUE,
             'use_site_name' => FALSE,
             'use_site_slogan' => FALSE,

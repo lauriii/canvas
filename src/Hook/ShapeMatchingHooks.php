@@ -142,7 +142,11 @@ class ShapeMatchingHooks {
     // @see \Drupal\user\Entity\User::baseFieldDefinitions()
     // @todo Remove when \Drupal\canvas\Plugin\Field\FieldTypeOverride\StringItemOverride is merged into core.
     if ($entity_type->id() === 'user') {
-      $fields['name']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::PROSE]);
+      $fields['name']->addPropertyConstraints('value', [
+        'StringSemantics' => [
+          'semantic' => StringSemanticsConstraint::PROSE,
+        ],
+      ]);
     }
 
     // The File entity type's `filename` and `filemime` base fields use the
@@ -152,8 +156,16 @@ class ShapeMatchingHooks {
     if ($entity_type->id() === 'file') {
       // Override the default string semantics of the "string" field type.
       // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\StringItemOverride::propertyDefinitions()
-      $fields['filename']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
-      $fields['filemime']->addPropertyConstraints('value', ['StringSemantics' => StringSemanticsConstraint::STRUCTURED]);
+      $fields['filename']->addPropertyConstraints('value', [
+        'StringSemantics' => [
+          'semantic' => StringSemanticsConstraint::STRUCTURED,
+        ],
+      ]);
+      $fields['filemime']->addPropertyConstraints('value', [
+        'StringSemantics' => [
+          'semantic' => StringSemanticsConstraint::STRUCTURED,
+        ],
+      ]);
       $fields['uri']->setRequired(\TRUE);
     }
   }

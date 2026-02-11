@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\FieldConfigInterface;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @covers canvas_post_update_0004_collapse_pattern_component_inputs()
@@ -18,6 +19,7 @@ use Drupal\field\FieldConfigInterface;
  * @covers canvas_post_update_0004_collapse_field_config_component_inputs()
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class CollapseComponentInputsUpdateTest extends CanvasUpdatePathTestBase {
 
   use ComponentTreeItemListInstantiatorTrait;

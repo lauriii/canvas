@@ -11,10 +11,12 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 final class PageViewBuilderTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
@@ -63,7 +65,7 @@ final class PageViewBuilderTest extends CanvasKernelTestBase {
             'use_site_logo' => TRUE,
             'use_site_name' => TRUE,
             'use_site_slogan' => TRUE,
-            'label_display' => FALSE,
+            'label_display' => '0',
             'label' => '',
           ],
         ],

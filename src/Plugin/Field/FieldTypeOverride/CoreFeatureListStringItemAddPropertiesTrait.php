@@ -33,7 +33,9 @@ trait CoreFeatureListStringItemAddPropertiesTrait {
       ->setComputed(TRUE)
       ->setReadOnly(TRUE)
       ->setRequired($definitions['value']->isRequired())
-      ->addConstraint('StringSemantics', StringSemanticsConstraint::PROSE)
+      ->addConstraint('StringSemantics', [
+        'semantic' => StringSemanticsConstraint::PROSE,
+      ])
       ->setClass(ListStringItemLabel::class);
     // The value property contains what is effectively a machine name: a
     // structured string, not prose. The challenge is it is impossible to know

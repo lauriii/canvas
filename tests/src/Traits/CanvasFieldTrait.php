@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\file\Entity\File;
@@ -42,11 +43,11 @@ trait CanvasFieldTrait {
         ],
       ],
       self::TEST_BLOCK => [
+        'label' => '',
+        'label_display' => '0',
+        'use_site_slogan' => FALSE,
         'use_site_logo' => TRUE,
         'use_site_name' => TRUE,
-        'use_site_slogan' => FALSE,
-        'label' => '',
-        'label_display' => FALSE,
       ],
     ];
   }
@@ -143,7 +144,7 @@ trait CanvasFieldTrait {
             [
               'nodeType' => 'component',
               'uuid' => self::TEST_BLOCK,
-              'type' => 'block.system_branding_block@247a23298360adb2',
+              'type' => 'block.system_branding_block@' . Component::load('block.system_branding_block')?->getActiveVersion(),
               'slots' => [],
             ],
           ],
@@ -189,7 +190,7 @@ trait CanvasFieldTrait {
               'use_site_slogan' => FALSE,
             ],
             'label' => '',
-            'label_display' => FALSE,
+            'label_display' => '0',
             // The 'provider' key is here to test that it is correctly removed.
             // @see BlockComponent::clientModelToInput()
             'provider' => 'system',

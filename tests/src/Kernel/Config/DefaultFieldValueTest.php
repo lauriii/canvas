@@ -11,11 +11,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+
 // cspell:ignore elink estring
 
 /**
  * @group canvas
  */
+#[RunTestsInSeparateProcesses]
 class DefaultFieldValueTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
