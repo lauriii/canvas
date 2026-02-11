@@ -1,8 +1,8 @@
 {
   "name": "@drupal-canvas/extensions",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "API for building extensions for Drupal Canvas",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://git.drupalcode.org/project/canvas.git"

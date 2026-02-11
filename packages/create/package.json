@@ -1,8 +1,8 @@
 {
   "name": "@drupal-canvas/create",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI to scaffold a codebase for working with Drupal Canvas Code Components",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://git.drupalcode.org/project/canvas.git"

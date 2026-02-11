@@ -1,8 +1,8 @@
 {
   "name": "@drupal-canvas/vite-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vite plugin for developing Drupal Canvas Code Components",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://git.drupalcode.org/project/canvas.git",
