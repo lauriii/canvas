@@ -1,6 +1,6 @@
 # Contributing
 
-For joining the development process of Drupal Canvas (Canvas for short) or trying the development process, we strongly recommend the use of [DDEV](https://ddev.com/get-started/) (version 1.24.0 or later), and the use of the [drupal-canvas/ddev-drupal-canvas-dev addon](https://github.com/drupal-canvas/ddev-drupal-canvas-dev).
+For joining the development process of Drupal Canvas (Canvas for short) or trying the development process, we strongly recommend the use of [DDEV](https://ddev.com/get-started/) (version 1.24.0 or later), and the use of the [drupal-canvas/ddev-drupal-xb-dev addon](https://github.com/drupal-canvas/ddev-drupal-xb-dev).
 
 ## Useful links
 1. [Issue queue](https://www.drupal.org/project/issues/canvas?categories=All)
@@ -9,16 +9,16 @@ For joining the development process of Drupal Canvas (Canvas for short) or tryin
 ## DDEV for your local environment
 
 ```shell
-# Extracted from the ddev-drupal-canvas-dev plugin
+# Extracted from the ddev-drupal-xb-dev plugin
 mkdir ~/Sites/canvas-dev
 cd ~/Sites/canvas-dev
 ddev config --project-type=drupal --php-version=8.3 --docroot=web
 # Canvas requires Drupal >= 11.2
 ddev composer create drupal/recommended-project:11.x@dev --no-install
-ddev add-on get drupal-canvas/ddev-drupal-canvas-dev
+ddev add-on get drupal-canvas/ddev-drupal-xb-dev
 # This will clone the 'canvas' repo under web/modules/contrib
-ddev canvas-setup
-ddev canvas-dev-extras
+ddev xb-setup
+ddev xb-dev-extras
 ```
 Additionally, you should add  `$settings['extension_discovery_scan_tests'] = TRUE;` to the end of the `sites/default/settings.php` file (this allows hidden modules to be installed).
 

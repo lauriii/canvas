@@ -8,7 +8,7 @@ There are two supported options for creating a local development environment: DD
 - **Native development** involves installing system dependencies directly on your machine (i.e., not inside a container). Its main drawbacks are lack of isolation and the amount of manual configuration required to set it up. It's main benefit may be the number of core contributors that already work this way. There's no reason to switch away from this approach if you prefer it.
 
 ### DDEV
-DDEV setup is fully automated through our custom add-on: https://github.com/TravisCarden/ddev-drupal-canvas-dev. Follow the instructions there to get started.
+DDEV setup is fully automated through our custom add-on: https://github.com/drupal-canvas/ddev-drupal-xb-dev. Follow the instructions there to get started.
 
 ### Native development
 
@@ -16,18 +16,18 @@ DDEV setup is fully automated through our custom add-on: https://github.com/Trav
 - Enable the Drupal Canvas module
 
 #### Build steps
-1. `npm install` from /modules/canvas/ui
-2. `npm run build`
+1. `npm install` from /modules/canvas
+2. `npm run build` from /modules/canvas/ui
 
 ##### Development mode
-1. `npm install` from /modules/canvas/ui
+1. `npm install` from /modules/canvas
 2. Next, you'll start a development server that runs at `http://localhost:5173` (ensure port is available)
     - To use a different URL (e.g., for DDEV containers), set `VITE_SERVER_ORIGIN` in `.env`
-      - Note: this is already handled if you use the Canvas DDEV add-on ([`TravisCarden/ddev-drupal-canvas-dev`](https://github.com/TravisCarden/ddev-drupal-canvas-dev))
+      - Note: this is already handled if you use the Canvas DDEV add-on ([`drupal-canvas/ddev-drupal-xb-dev`](https://github.com/drupal-canvas/ddev-drupal-xb-dev))
     - By default, the Vite dev server will allow cross-origin requests. To restrict cross-origin requests, set `VITE_SERVER_CORS_ALLOW_ORIGIN` in `.env`.
       - You may want to do this if you're developing in an environment where your Vite dev server is accessible on a public network, e.g. GitHub Codespaces.
       - See the [Vite docs](https://vite.dev/config/server-options#cors) for more information.
-3. `npm run drupaldev`
+3. `npm run drupaldev` from /modules/canvas/ui
 4. Enable the Drupal Canvas Vite Integration module (`canvas_vite`)
 5. Clear cache (`drush cr` or `/admin/config/development/performance`)
 6. Navigate to `/canvas` to view app

@@ -105,7 +105,7 @@ running `drupal.setupCanvasTestSite()` you can do so with the following commands
 drush site:install minimal
 drush recipe modules/contrib/canvas/tests/fixtures/recipes/base
 ```
-You will then need to allow test modules to be enabled, if you're using `ddev-drupal-canvas-dev` you can do this with:
+You will then need to allow test modules to be enabled, if you're using `ddev-drupal-xb-dev` you can do this with:
 ```
 ddev drupal test:extensions-enable
 ```
