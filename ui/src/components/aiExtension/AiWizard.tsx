@@ -378,6 +378,9 @@ const startPolling = (
   };
 
   const handlePollingComplete = () => {
+    // The final response message will be the orchestrator's message,
+    // so remove it here to prevent it from appearing twice.
+    itemStatuses.delete('canvas_ai_orchestrator');
     const finalContent = buildHtmlContent();
     if (finalContent) {
       historyStore.addMessage({ html: finalContent, role: 'ai' });
@@ -415,6 +418,15 @@ const startPolling = (
             generated_text: item.generated_text || '',
           });
         });
+
+        // Always place the polling message for the orchestrator agent at the end.
+        const orchestratorId = 'canvas_ai_orchestrator';
+        const orchestratorItem = itemStatuses.get(orchestratorId);
+        if (orchestratorItem) {
+          // Remove from the current position and set it again to move it to the end.
+          itemStatuses.delete(orchestratorId);
+          itemStatuses.set(orchestratorId, orchestratorItem);
+        }
       }
 
       updateChatDisplay();

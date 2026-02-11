@@ -4,7 +4,6 @@ namespace Drupal\canvas_ai\Controller;
 
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai_agents\Enum\AiAgentStatusItemTypes;
-use Drupal\ai_agents\Plugin\AiFunctionCall\AiAgentWrapper;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\GenericType\ImageFile;
@@ -261,17 +260,13 @@ final class CanvasBuilder extends ControllerBase {
           if ($tool instanceof BuilderResponseFunctionCallInterface) {
             $response = array_merge($response, $tool->getStructuredOutput());
           }
-          if ($tool instanceof AiAgentWrapper) {
-            $response['message'] = $tool->getReadableOutput();
-          }
           if ($tool->getPluginId() === 'ai_agents::ai_agent::canvas_page_builder_agent') {
             $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }
       }
-      else {
-        $response['message'] = $agent->solve();
-      }
+      // The final message seen by the user should be the one from the orchestrator agent.
+      $response['message'] = $agent->solve();
       return new JsonResponse(
         $response,
       );
