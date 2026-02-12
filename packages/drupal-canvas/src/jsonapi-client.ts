@@ -1,8 +1,8 @@
-// cspell:ignore Jsona jsona
-
-import { Jsona } from 'jsona';
 import { type BaseUrl } from '@drupal-api-client/api-client';
-import { JsonApiClient } from '@drupal-api-client/json-api-client';
+import {
+  DefaultSerializer,
+  JsonApiClient,
+} from '@drupal-api-client/json-api-client';
 
 import type { JsonApiClientOptions } from '@drupal-api-client/json-api-client';
 
@@ -28,7 +28,7 @@ class CanvasJsonApiClient extends JsonApiClient {
     const clientOptions = {
       apiPrefix:
         window.drupalSettings?.canvasData?.v0?.jsonapiSettings?.apiPrefix,
-      serializer: new Jsona(),
+      serializer: new DefaultSerializer(),
       ...options,
     };
     super(clientBaseUrl, clientOptions);
