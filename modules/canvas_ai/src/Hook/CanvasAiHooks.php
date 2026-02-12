@@ -79,6 +79,10 @@ class CanvasAiHooks {
             'name' => $this->t('JSON API Module status'),
             'description' => $this->t('Returns the status of JSON API module.'),
           ],
+          'available_regions' => [
+            'name' => $this->t('Available Regions'),
+            'description' => $this->t('Returns the available regions.'),
+          ],
           'verbose_context_for_orchestrator' => [
             'name' => $this->t('Verbose Context for Orchestrator'),
             'description' => $this->t('Returns a detailed context summary for the AI Orchestrator.'),
@@ -144,6 +148,10 @@ class CanvasAiHooks {
 
           case 'json_api_module_status':
             $replacements[$original] = $data['json_api_module_status'];
+            break;
+
+          case 'available_regions':
+            $replacements[$original] = !empty($data['available_regions']) ? $data['available_regions'] : NULL;
             break;
 
           case 'verbose_context_for_orchestrator':

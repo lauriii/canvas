@@ -37,11 +37,15 @@ final class VerifyTaskCompletionTest extends KernelTestBase {
 
     self::assertEquals(
       "Task completion verification checklist:\n\n" .
-      "✓ Confirm the following were completed:\n" .
-      "  - If canvas_page_builder_agent was used:\n" .
-      "    • Page components were added/modified\n" .
-      "    • Page title was generated using canvas_title_generation_agent (if title was empty or 'Untitled page')\n" .
-      "    • Page description was generated using canvas_metadata_generation_agent (if description was empty)",
+        "✓ Confirm the following were completed:\n" .
+        "  - If canvas_page_builder_agent was used:\n" .
+        "    • Page components were added/modified\n" .
+        "    • Page title was generated using canvas_title_generation_agent (if title was empty or 'Untitled page')\n" .
+        "    • Page description was generated using canvas_metadata_generation_agent (if description was empty)\n\n" .
+        "  - If canvas_template_builder_agent was used:\n" .
+        "    • Page was designed\n" .
+        "    • Page title was generated using canvas_title_generation_agent (if title was empty or 'Untitled page')\n" .
+        "    • Page description was generated using canvas_metadata_generation_agent (if description was empty)",
       $output
     );
   }

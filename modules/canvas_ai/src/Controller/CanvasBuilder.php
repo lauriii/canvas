@@ -227,6 +227,7 @@ final class CanvasBuilder extends ControllerBase {
       'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None',
       'menu_fetch_source' => $this->getMenuFetchSource(),
       'json_api_module_status' => $this->moduleHandler()->moduleExists('jsonapi') ? 'enabled' : 'disabled',
+      'available_regions' => Json::encode($this->canvasAiPageBuilderHelper->getAvailableRegions(Json::encode($prompt['current_layout']))) ?? NULL,
       'verbose_context_for_orchestrator' => $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt),
       'custom_libraries' => $this->getSupportedLibraries(),
     ]);
@@ -260,7 +261,7 @@ final class CanvasBuilder extends ControllerBase {
           if ($tool instanceof BuilderResponseFunctionCallInterface) {
             $response = array_merge($response, $tool->getStructuredOutput());
           }
-          if ($tool->getPluginId() === 'ai_agents::ai_agent::canvas_page_builder_agent') {
+          if (in_array($tool->getPluginId(), ['ai_agents::ai_agent::canvas_page_builder_agent', 'ai_agents::ai_agent::canvas_template_builder_agent'], TRUE)) {
             $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }
@@ -411,7 +412,8 @@ final class CanvasBuilder extends ControllerBase {
       'canvas_title_generation_agent' => $this->t('Generate a title'),
       'canvas_component_agent' => $this->t('Generate a component'),
       'canvas_metadata_generation_agent' => $this->t('Generate metadata'),
-      'canvas_page_builder_agent' => $this->t('Building the page'),
+      'canvas_page_builder_agent' => $this->t('Finding components to place'),
+      'canvas_template_builder_agent' => $this->t('Designing the page'),
     ];
     return $descriptions[$agent_id] ?? $this->t('@agentName working', ['@agentName' => $agent_name]);
   }

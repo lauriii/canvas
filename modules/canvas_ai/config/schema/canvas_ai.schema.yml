@@ -37,3 +37,24 @@ component_source_entry:
     data:
       type: text
       label: 'YAML string of components'
+
+canvas_ai.theme_region.settings:
+  type: config_object
+  label: 'Canvas AI Theme Region Settings'
+  mapping:
+    region_descriptions:
+      type: sequence
+      label: 'Region descriptions'
+      sequence:
+        type: sequence
+        label: 'Theme'
+        sequence:
+          type: mapping
+          label: 'Region'
+          mapping:
+            name:
+              type: label
+              label: 'Region name'
+            description:
+              type: text
+              label: 'Region description'
