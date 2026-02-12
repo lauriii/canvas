@@ -146,14 +146,15 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
   return (
     <DropdownMenu.Root onOpenChange={(open) => setLinkerOpen(open)}>
       <DropdownMenu.Trigger>
-        <span
+        <button
           className={clsx(styles.linker, {
             [styles.linkerOpen]: linkerOpen,
           })}
+          aria-label={`Link ${propName} to an other field`}
         >
           {linked && <Link1Icon className={styles.default} />}
           {!linked && <LinkNone1Icon className={styles.default} />}
-        </span>
+        </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Content align="end" side="bottom">
         {suggestions.map((suggestion, index) => {

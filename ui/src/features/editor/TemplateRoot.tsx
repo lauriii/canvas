@@ -29,9 +29,11 @@ const TemplateRoot = () => {
       const entityTemplates = templatesData[entityType];
       const bundleData = entityTemplates?.bundles?.[bundle];
       const viewModeData = bundleData?.viewModes?.[viewMode];
+      // If there's no template created for the specified view mode, show the no template error.
       if (!viewModeData) {
-        // If there's no template created for the specified view mode, show the no template error.
         setShowNoTemplateError(true);
+      } else {
+        setShowNoTemplateError(false);
       }
 
       const suggestedEntityId = viewModeData?.suggestedPreviewEntityId;

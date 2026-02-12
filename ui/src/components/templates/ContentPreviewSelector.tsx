@@ -61,7 +61,12 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
         <DropdownMenu.Root>
           <Tooltip content="Preview content" side="bottom">
             <DropdownMenu.Trigger>
-              <Button variant="soft" size="1" color="blue">
+              <Button
+                variant="soft"
+                size="1"
+                color="blue"
+                data-testid="select-content-preview-item"
+              >
                 {triggerContent}
               </Button>
             </DropdownMenu.Trigger>

@@ -60,3 +60,36 @@ export function setComponentInPathname(
   // Clean up double slashes and trailing slash
   return newPath.replace(/\/\//g, '/').replace(/\/$/, '');
 }
+
+// Utility to update the preview entity ID in template editor pathname leaving other route segments intact
+export function setPreviewEntityIdInPathname(
+  pathname: string,
+  entityId?: string | number,
+): string {
+  // Normalize pathname by removing trailing slash
+  const normalizedPathname = pathname.replace(/\/$/, '');
+
+  // Match /template/:entityType/:bundle/:viewMode with optional previewEntityId and any following segments
+  // Captures everything after viewMode in two groups: previewEntityId and remaining path segments
+  const templateRouteRegex =
+    /^\/template\/([^/]+)\/([^/]+)\/([^/]+)(\/[^/]+)?(.*)$/;
+  const match = normalizedPathname.match(templateRouteRegex);
+
+  if (!match) {
+    throw new Error(
+      `setPreviewEntityIdInPathname: Current route "${pathname}" is not a template editor route. Expected format: /template/:entityType/:bundle/:viewMode. Use navigateToTemplateEditor() instead.`,
+    );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [, entityType, bundle, viewMode, _existingEntityId, remainingPath] =
+    match;
+
+  // Build the new path
+  const baseRoute = `/template/${entityType}/${bundle}/${viewMode}`;
+  const entitySegment = entityId ? `/${entityId}` : '';
+  // Preserve any path segments that came after the previewEntityId (region, component, etc.)
+  const trailingSegments = remainingPath || '';
+
+  return `${baseRoute}${entitySegment}${trailingSegments}`;
+}

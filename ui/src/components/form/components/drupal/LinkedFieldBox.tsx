@@ -93,7 +93,7 @@ const LinkedFieldBox = ({
   };
 
   return (
-    <Box mb="4">
+    <Box mb="4" data-testid={`linked-field-box-${propName}`}>
       <InputDescription
         description={description}
         descriptionDisplay={descriptionDisplay}

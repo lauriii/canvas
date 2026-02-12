@@ -5,6 +5,7 @@ import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 import {
   removeComponentFromPathname,
+  setPreviewEntityIdInPathname,
   setRegionInPathname,
 } from '@/utils/route-utils';
 
@@ -49,6 +50,22 @@ export function useEditorNavigation() {
       const basePath = removeComponentFromPathname(location.pathname);
       // Use the utility to robustly set /region/:regionId
       const newPath = setRegionInPathname(basePath, regionId, DEFAULT_REGION);
+      navigate(newPath);
+    },
+    [navigate, location.pathname],
+  );
+
+  /**
+   * Updates the preview entity ID in the current template editor route.
+   * Preserves any existing component selection in the path.
+   * Only works for template editor routes (/template/:entityType/:bundle/:viewMode).
+   *
+   * @param entityId - The entity ID to set as the preview entity (optional)
+   * @throws {Error} If the current route is not a template editor route
+   */
+  const setTemplatePreviewEntityId = useCallback(
+    (entityId?: string | number) => {
+      const newPath = setPreviewEntityIdInPathname(location.pathname, entityId);
       navigate(newPath);
     },
     [navigate, location.pathname],
@@ -176,6 +193,7 @@ export function useEditorNavigation() {
    */
   const editorNavUtils = {
     setSelectedRegion,
+    setTemplatePreviewEntityId,
     urlForEditor,
     urlForTemplateEditor,
     urlForCodeEditor,

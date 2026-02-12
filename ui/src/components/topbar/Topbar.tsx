@@ -25,13 +25,13 @@ const PREVIOUS_URL_STORAGE_KEY = 'CanvasPreviousURL';
 const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { entityType, bundle, viewMode, previewEntityId } = useParams();
+  const { entityType, bundle, previewEntityId } = useParams();
   const isPreview = location.pathname.includes('/preview');
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isTemplateEditorContext =
     useAppSelector(selectEditorFrameContext) === 'template';
-  const { navigateToTemplateEditor } = useEditorNavigation();
+  const { setTemplatePreviewEntityId } = useEditorNavigation();
 
   let hasAiExtensionAvailable = false;
   let hasPersonalizeExtensionAvailable = false;
@@ -63,14 +63,7 @@ const Topbar = () => {
 
   // Handle preview entity selection change
   const handlePreviewEntityChange = (selectedEntityId: string) => {
-    if (entityType && bundle && viewMode) {
-      navigateToTemplateEditor({
-        entityType,
-        bundle,
-        viewMode,
-        suggestedPreviewEntityId: selectedEntityId,
-      });
-    }
+    setTemplatePreviewEntityId(selectedEntityId);
   };
 
   const backHref =
