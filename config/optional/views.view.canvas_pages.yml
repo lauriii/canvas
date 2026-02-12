@@ -4,6 +4,7 @@ dependencies:
   module:
     - canvas
     - user
+  # @todo This is missing a dependency on the `filter` module and the `filter.format.plain_text` config, due to a core bug: https://www.drupal.org/project/drupal/issues/2917817
   enforced:
     module:
       - canvas
@@ -383,7 +384,7 @@ display:
           empty: true
           content:
             value: 'You have not created any pages yet.'
-            format: content_format
+            format: plain_text
           tokenize: false
       sorts: {  }
       arguments: {  }
