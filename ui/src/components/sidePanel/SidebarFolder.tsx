@@ -10,7 +10,6 @@ import { useAppSelector } from '@/app/hooks';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { selectDragging } from '@/features/ui/uiSlice';
 import { usePermissionCheck } from '@/hooks/usePermissionCheck';
-import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -64,7 +63,6 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   const administerFolders = usePermissionCheck({
     hasPermission: 'folders',
   });
-  const canvasSettings = getCanvasSettings();
 
   // Draggable hook for folder reordering
   const {
@@ -82,16 +80,14 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
       name,
       weight,
     },
-    disabled: !canvasSettings.devMode || !administerFolders || !isDraggableProp,
+    disabled: !administerFolders || !isDraggableProp,
   });
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id,
     data: {
       destination: 'folder',
-      accepts: canvasSettings.devMode
-        ? ['library', 'code', 'folder']
-        : ['library', 'code'],
+      accepts: ['library', 'code', 'folder'],
       weight,
     },
     // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.

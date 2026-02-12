@@ -88,11 +88,7 @@ test.describe('Folder Management', () => {
       const drupal: Drupal = new Drupal({ page, drupalSite });
       await drupal.drush('cr');
 
-      await drupal.installModules([
-        'canvas',
-        'canvas_test_folders',
-        'canvas_dev_mode',
-      ]);
+      await drupal.installModules(['canvas', 'canvas_test_folders']);
 
       // @todo remove the cache clear once https://www.drupal.org/project/drupal/issues/3534825
       // is fixed.

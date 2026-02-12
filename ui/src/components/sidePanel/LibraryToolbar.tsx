@@ -13,7 +13,6 @@ import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButto
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { validateFolderNameClientSide } from '@/features/validation/validation';
 import { useCreateFolderMutation } from '@/services/componentAndLayout';
-import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type { FormEvent } from 'react';
 
@@ -39,7 +38,6 @@ const LibraryToolbar = ({
   const [validationError, setValidationError] = useState('');
   const [createFolder, { reset, isSuccess, isError, error, isLoading }] =
     useCreateFolderMutation();
-  const canvasSettings = getCanvasSettings();
   const textFieldRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
   const shouldFocusInputRef = useRef(false);
@@ -188,23 +186,21 @@ const LibraryToolbar = ({
                 <PermissionCheck hasPermission="codeComponents">
                   <AddCodeComponentButton />
                 </PermissionCheck>
-                {canvasSettings.devMode && (
-                  <PermissionCheck hasPermission="folders">
-                    <DropdownMenu.Item
-                      onClick={handleAddFolderClick}
-                      data-testid="canvas-library-new-folder-button"
-                    >
-                      <FolderIcon />
-                      Add folder
-                    </DropdownMenu.Item>
-                  </PermissionCheck>
-                )}
+                <PermissionCheck hasPermission="folders">
+                  <DropdownMenu.Item
+                    onClick={handleAddFolderClick}
+                    data-testid="canvas-library-new-folder-button"
+                  >
+                    <FolderIcon />
+                    Add folder
+                  </DropdownMenu.Item>
+                </PermissionCheck>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </PermissionCheck>
         )}
       </Flex>
-      {isCreatingFolder && canvasSettings.devMode && (
+      {isCreatingFolder && (
         <Flex
           align="center"
           gap="2"
