@@ -88,6 +88,8 @@
     [data-canvas-media-library-open-button] {
       position: relative;
       height: 32px;
+      /* Support for browsers that don't support @scope */
+      padding: revert;
       white-space: wrap;
       color: var(--blue-11);
       border-width: 1px;
