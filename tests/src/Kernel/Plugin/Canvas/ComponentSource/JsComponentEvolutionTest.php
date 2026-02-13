@@ -55,7 +55,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
   protected UuidInterface $uuid;
   protected string $originalVersion;
   protected string $childType;
-  protected array $expectedOriginalClientModel = [];
+  protected array $expectedClientModel = [];
   protected array $originalClientModel = [];
 
   /**
@@ -136,7 +136,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     // @todo Simplify the client-side model in https://www.drupal.org/i/3528043
     $this->originalClientModel = $items->getClientSideRepresentation();
 
-    $this->expectedOriginalClientModel = [
+    $this->expectedClientModel = [
       'layout' => [
         [
           'uuid' => self::COMPONENT_INSTANCE_UUID,
@@ -175,7 +175,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
         ],
       ],
     ];
-    self::assertEquals($this->expectedOriginalClientModel, $this->originalClientModel);
+    self::assertEquals($this->expectedClientModel, $this->originalClientModel);
   }
 
   protected function assertNewVersion(array $expectedFieldTypes, array $inputs, callable $expectedClientModelFunction, bool $canAutoUpdate, bool $withChild): ComponentTreeItemList {
@@ -223,7 +223,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     if ($canAutoUpdate) {
       // If we know an auto-update will happen, then the expected client model
       // will change accordingly.
-      $this->expectedOriginalClientModel['layout'][0]['type'] = \sprintf('%s@%s', self::COMPONENT_ID, $new_version);
+      $this->expectedClientModel['layout'][0]['type'] = \sprintf('%s@%s', self::COMPONENT_ID, $new_version);
     }
     // Create a new item list from this; always attempt to automatically update
     // just like \Drupal\canvas\Controller\ApiLayoutController::buildRegion()
@@ -236,7 +236,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     // Should still equal the original model, even though the field type is now
     // different data type prop for new component instances: existing
     // component instances remain unchanged.
-    self::assertEquals($this->expectedOriginalClientModel, $original_items->getClientSideRepresentation());
+    self::assertEquals($this->expectedClientModel, $original_items->getClientSideRepresentation());
 
     // Test can still edit the old component in a form, if no auto-update happened.
     // But if an auto-update happened, they will edit the active version.
@@ -563,7 +563,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
     ];
     // Adding a new slot will trigger auto-updating, so the expected model will
     // change accordingly.
-    $this->expectedOriginalClientModel['layout'][0]['slots'][] = [
+    $this->expectedClientModel['layout'][0]['slots'][] = [
       'id' => \sprintf('%s/intro', self::COMPONENT_INSTANCE_UUID),
       'name' => 'intro',
       'nodeType' => 'slot',
@@ -739,6 +739,10 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanRemoveProp(bool $usingHttpApi = FALSE): void {
     $this->removeNameProp($usingHttpApi);
+    // When a prop is removed and an update happens, the old instances get
+    // upgraded and their removed prop values are cleaned up. If all props are
+    // removed, the component instance is not included in the model at all.
+    unset($this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]);
     $expectedClientModelFunction = fn(string $version) => [
       'layout' => [
         [
@@ -766,7 +770,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
       ],
       'model' => [],
     ];
-    $this->assertNewVersion([], [], $expectedClientModelFunction, canAutoUpdate: FALSE, withChild: TRUE);
+    $this->assertNewVersion([], [], $expectedClientModelFunction, canAutoUpdate: TRUE, withChild: TRUE);
   }
 
   protected function modifyExamples(bool $usingHttpRequest = FALSE): void {
@@ -881,9 +885,12 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
         ],
       ],
     ];
+    // When a slot is removed and auto-update happens, the old instances get
+    // upgraded and their removed slots are cleaned up.
+    $this->expectedClientModel['layout'][0]['slots'] = [];
     $new_items = $this->assertNewVersion([
       'name' => 'string',
-    ], $inputs, $expectedClientModelFunction, canAutoUpdate: FALSE, withChild: FALSE);
+    ], $inputs, $expectedClientModelFunction, canAutoUpdate: TRUE, withChild: FALSE);
 
     // New version has no slots; adding a child should be rejected.
     $new_items->appendItem([

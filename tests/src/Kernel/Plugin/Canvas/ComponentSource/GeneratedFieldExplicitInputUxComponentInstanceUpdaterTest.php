@@ -12,10 +12,12 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdater;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -45,6 +47,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected const string COMPONENT_INSTANCE_UUID = '2c6e91ae-23ac-433d-9bb8-687144464b34';
   protected const string ORIGINAL_VERSION_HASH = '00706dc2aa3d68d1';
+  private const null EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED = NULL;
 
   /**
    * {@inheritdoc}
@@ -120,31 +123,56 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    *   editing the javascript component, so a new version is generated.
    * @param \Drupal\canvas\ComponentSource\ComponentInstanceUpdateAttemptResult $update_result
    *   Enum defining the result of the update attempt.
+   * @param ?callable $assertion_callback
+   *   Optional callback to run assertions on the component instance after update.
    * @return void
    */
   #[DataProvider('providerUpdate')]
-  public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result): void {
+  public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result, ?callable $assertion_callback): void {
     $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
     if ($setup_callback !== NULL) {
       call_user_func_array($setup_callback, []);
     }
     $component_instance_value = [
-      'uuid' => self::COMPONENT_INSTANCE_UUID,
-      'component_id' => 'js.test',
-      'component_version' => self::ORIGINAL_VERSION_HASH,
-      'parent_uuid' => NULL,
-      'inputs' => [
-        'required_text' => 'Canvas is large and in charge!',
-        'optional_text' => 'shouting',
+      // The test component to be updated.
+      [
+        'uuid' => self::COMPONENT_INSTANCE_UUID,
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'required_text' => 'Canvas is large and in charge!',
+          'optional_text' => 'shouting',
+        ],
+      ],
+      // The component in `test-slot` slot.
+      [
+        'uuid' => 'b1f6e1d4-B3c4-4d5e-8f6a-1234567890ab',
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => self::COMPONENT_INSTANCE_UUID,
+        'slot' => 'test-slot',
+        'inputs' => [
+          'required_text' => 'Slot instance text',
+        ],
       ],
     ];
     $component_instance = self::generateComponentInstance($component_instance_value);
+    $original_component_tree = $component_instance->getParent();
+    \assert($original_component_tree instanceof ComponentTreeItemList);
+    self::assertCount(2, $original_component_tree);
+
     $this->assertSame($update_result, $sut->update($component_instance));
     $this->assertSame($new_latest_version, $component_instance->getComponentVersion());
 
-    // Ensure we have the expected versions, as a validation of the test itself.
     $component = Component::load('js.test');
     self::assertNotNull($component);
+
+    if ($assertion_callback !== NULL) {
+      $assertion_callback($component_instance);
+    }
+
+    // Ensure we have the expected versions, as a validation of the test itself.
     $this->assertCount($setup_callback === NULL ? 1 : 2, $component->getVersions());
   }
 
@@ -157,18 +185,21 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       self::ORIGINAL_VERSION_HASH,
       NULL,
       ComponentInstanceUpdateAttemptResult::NotNeeded,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If a new optional prop was added, the component instance can be updated.
     yield "Component added a new optional prop" => [
       'b2d91be1e5b7cc1b',
       [self::class, 'addOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
-    // If an optional prop was removed, the component instance cannot be updated.
+    // If an optional prop was removed, the component instance can be updated.
     yield "Component removed an optional prop" => [
-      self::ORIGINAL_VERSION_HASH,
+      'db7edd520f2e5330',
       [self::class, 'removeOptionalProp'],
-      ComponentInstanceUpdateAttemptResult::NotAllowed,
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertOptionalPropRemoved'],
     ];
     // If a new required prop was added, the component instance cannot be updated.
     // @todo It should be updated in https://www.drupal.org/i/3568602.
@@ -176,18 +207,21 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       self::ORIGINAL_VERSION_HASH,
       [self::class, 'addRequiredProp'],
       ComponentInstanceUpdateAttemptResult::NotAllowed,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If a required prop was removed, the component instance can be updated.
     yield "Component removed a required prop" => [
-      self::ORIGINAL_VERSION_HASH,
+      '1ca71112dbd7f007',
       [self::class, 'removeRequiredProp'],
-      ComponentInstanceUpdateAttemptResult::NotAllowed,
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertRequiredPropRemoved'],
     ];
     // If a required prop became optional, the component instance can be updated.
     yield "Component required prop became optional" => [
       '0783eed5599a2bcb',
       [self::class, 'makeRequiredPropOptional'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If an optional prop became required, the component instance cannot be updated.
     // @todo It should be updated in https://www.drupal.org/i/3568602.
@@ -195,24 +229,28 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       self::ORIGINAL_VERSION_HASH,
       [self::class, 'makeOptionalPropRequired'],
       ComponentInstanceUpdateAttemptResult::NotAllowed,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component prop examples changed" => [
       '1f82522117964177',
       [self::class, 'changeExamplesFromProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If the type for a prop changed, the component instance cannot be updated.
     yield "Component prop type changed" => [
       self::ORIGINAL_VERSION_HASH,
       [self::class, 'changePropType'],
       ComponentInstanceUpdateAttemptResult::NotAllowed,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If the widget for a prop changed, the component instance can be updated.
     yield "Component prop shape changed its widget" => [
       '92adccfd864b2131',
       [self::class, 'changePropShapeWidget'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If the expression for a prop changed but the field data is compatible,
     // the component instance can be updated.
@@ -220,6 +258,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       'd3202d1ddae0284c',
       [self::class, 'changeExpression'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // TRICKY: deleting image media types is prevented by config dependencies,
     // so testing that is not needed: it is a situation that Drupal already
@@ -229,24 +268,28 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       'fb420688327035c2',
       [self::class, 'createNewImageMediaType'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
     // If a new slot was added, the component instance can be updated.
     yield "Component added a new slot" => [
       'cfbc878f8ec00bb1',
       [self::class, 'addSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
-    // If a slot was removed, the component instance cannot be updated.
+    // If a slot was removed, the component instance can be updated.
     yield "Component removed an existing slot" => [
-      self::ORIGINAL_VERSION_HASH,
+      'ac8ee428ed61cbd8',
       [self::class, 'removeSlot'],
-      ComponentInstanceUpdateAttemptResult::NotAllowed,
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertSlotRemoved'],
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component slot examples changed" => [
       '92034a6805921dd0',
       [self::class, 'changeExamplesFromSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
+      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
   }
 
@@ -546,6 +589,26 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     ];
     $this->jsComponent->set('slots', $slots)
       ->save();
+  }
+
+  protected static function assertOptionalPropRemoved(ComponentTreeItem $component_instance): void {
+    $inputs = Json::decode($component_instance->get('inputs')->getValue() ?? '[]');
+    self::assertArrayNotHasKey('optional_text', $inputs);
+    self::assertArrayHasKey('required_text', $inputs);
+  }
+
+  protected static function assertRequiredPropRemoved(ComponentTreeItem $component_instance): void {
+    $inputs = Json::decode($component_instance->get('inputs')->getValue() ?? '[]');
+    self::assertArrayNotHasKey('required_text', $inputs);
+    self::assertArrayHasKey('optional_text', $inputs);
+  }
+
+  protected static function assertSlotRemoved(ComponentTreeItem $component_instance): void {
+    $current_tree = $component_instance->getParent();
+    \assert($current_tree instanceof ComponentTreeItemList);
+    self::assertCount(1, $current_tree);
+    self::assertNull($current_tree->getComponentTreeItemByUuid('b1f6e1d4-B3c4-4d5e-8f6a-1234567890ab'));
+    self::assertNotNull($current_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID));
   }
 
 }

@@ -578,12 +578,12 @@ where such an update is possible without any risk are:
 - Changing a prop matched prop shape field widget (but only the widget!)
 - Changing default values in prop_field_definitions
 - Changing slot examples
+- Removing props (required or optional)
+- Removing slots
 
 Unsafe changes (that prevent auto-update) include:
 
 - Adding a new required prop. (@todo We should be able to auto-update when adding a new required prop. Fix it in https://www.drupal.org/i/3568602 and move to the safe changes section.)
-- Removing props (required or optional)
-- Removing slots
 - Changing props from optional to required
 - Changing prop shapes
 

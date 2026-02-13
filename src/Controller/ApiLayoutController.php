@@ -133,7 +133,19 @@ final class ApiLayoutController {
       // Auto-update component instances before serving them, which will make
       // the preview accurate with what the editor would see when editing the
       // component tree.
-      $this->componentSourceManager->updateComponentInstances($items);
+      $wasModified = $this->componentSourceManager->updateComponentInstances($items);
+
+      // If the tree was modified (e.g., orphaned children removed due to
+      // component evolution), create an auto-save so later PATCH requests
+      // load the updated tree instead of the published version.
+      if ($wasModified) {
+        $entity = $items->getParent()?->getValue();
+        \assert($entity instanceof ComponentTreeEntityInterface || $entity instanceof FieldableEntityInterface);
+        if ($entity instanceof ComponentTreeEntityInterface) {
+          $entity->setComponentTree($items->getValue());
+        }
+        $this->autoSaveManager->saveEntity($entity);
+      }
 
       $built = $items->getClientSideRepresentation($preview_entity);
       $model += $built['model'];

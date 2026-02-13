@@ -248,8 +248,12 @@ final class ComponentSourceManager extends DefaultPluginManager {
    *
    * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $component_tree
    *   The component tree containing instances to update.
+   *
+   * @return bool
+   *   TRUE if any component instance was updated, FALSE otherwise.
    */
-  public function updateComponentInstances(ComponentTreeItemList $component_tree): void {
+  public function updateComponentInstances(ComponentTreeItemList $component_tree): bool {
+    $wasModified = FALSE;
     foreach ($component_tree as $item) {
       \assert($item instanceof ComponentTreeItem);
       $component = $item->getComponent();
@@ -268,8 +272,10 @@ final class ComponentSourceManager extends DefaultPluginManager {
       if ($updater->isUpdateNeeded($item) && $updater->canUpdate($item)) {
         $update_result = $updater->update($item);
         \assert($update_result === ComponentInstanceUpdateAttemptResult::Latest);
+        $wasModified = TRUE;
       }
     }
+    return $wasModified;
   }
 
 }

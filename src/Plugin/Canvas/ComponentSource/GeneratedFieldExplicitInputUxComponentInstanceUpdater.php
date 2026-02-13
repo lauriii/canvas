@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 
 final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
 
@@ -37,7 +38,8 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
    * version to the active version involves only backward-compatible changes
    * (safe changes). Safe changes include:
    * - Adding optional props
-   * - Adding slots
+   * - Adding or removing slots
+   * - Removing props (required or optional)
    * - Changing props from required to optional
    * - Changing a prop matched prop shape field widget (but only the widget!)
    * - Changing default values in prop_field_definitions
@@ -45,10 +47,10 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
    *
    * Unsafe changes (that prevent auto-update) include:
    *
-   * @todo We should be able to auto-update when adding a new required prop. Fix it in https://www.drupal.org/i/3568602 and move to the safe changes section.
+   * @todo We should be able to auto-update when adding a new required prop.
+   *   Fix it in https://www.drupal.org/i/3568602 and move to the safe changes
+   *   section.
    * - Adding a new required prop.
-   * - Removing props (required or optional)
-   * - Removing slots
    * - Changing props from optional to required
    * - Changing prop shapes
    *
@@ -66,21 +68,7 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     $from_version = $component->getLoadedVersion();
     $to_version = $component->getActiveVersion();
 
-    $from_settings = $component->getSettings($from_version);
-    $from_slots = $component->getSlotDefinitions($from_version);
-
-    $to_settings = $component->getSettings($to_version);
-    $to_slots = $component->getSlotDefinitions($to_version);
-
-    $from_props = $from_settings['prop_field_definitions'];
-    $to_props = $to_settings['prop_field_definitions'];
-
-    // Check for removed props, as their props data would be deleted later on
-    // garbage collection, is UNSAFE
-    $removed_props = \array_diff(\array_keys($from_props), \array_keys($to_props));
-    if (count($removed_props) > 0) {
-      return FALSE;
-    }
+    [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
 
     // If there are new added required props, the update is UNSAFE.
     $new_props_names = \array_diff(\array_keys($to_props), \array_keys($from_props));
@@ -124,12 +112,6 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
       return FALSE;
     }
 
-    // Removing slots is UNSAFE.
-    $removed_slots = \array_diff(\array_keys($from_slots), \array_keys($to_slots));
-    if (count($removed_slots) > 0) {
-      return FALSE;
-    }
-
     return TRUE;
   }
 
@@ -148,11 +130,55 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     $from_version = $component_instance->getComponentVersion();
     $to_version = $component->getActiveVersion();
     \assert($from_version !== $to_version);
+
+    // @todo handle newly added required props in https://www.drupal.org/i/3568602
+    [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
+    // Remove prop values for props that no longer exist in the active version.
+    $removed_prop_names = \array_diff_key($from_props, $to_props);
+    if (count($removed_prop_names) > 0) {
+      $component_instance->setInput(
+        \array_diff_key($component_instance->getInputs() ?? [], $removed_prop_names)
+      );
+    }
+
+    $from_slots = $component->getSlotDefinitions($from_version);
+    $to_slots = $component->getSlotDefinitions($to_version);
+    $removed_slot_names = \array_keys(\array_diff_key($from_slots, $to_slots));
+    if (count($removed_slot_names) > 0) {
+      $component_tree_list = $component_instance->getParent();
+      \assert($component_tree_list instanceof ComponentTreeItemList);
+      $component_uuid = $component_instance->getUuid();
+      $component_tree_list->filter(static function (ComponentTreeItem $item) use ($component_uuid, $removed_slot_names): bool {
+        $slot = $item->getSlot();
+        return !($slot !== NULL && $item->getParentUuid() === $component_uuid && in_array($slot, $removed_slot_names, TRUE));
+      });
+    }
+
+    // Update the version to the active version.
     $component_instance->set(
       'component_version',
       $to_version
     );
     return ComponentInstanceUpdateAttemptResult::Latest;
+  }
+
+  /**
+   * Gets prop definitions from two versions of a Component config entity.
+   *
+   * @param \Drupal\canvas\Entity\ComponentInterface $component
+   *   The component.
+   * @param string $from_version
+   *   The version of the component to compare from.
+   * @param string $to_version
+   *   The version of the component to compare.
+   *
+   * @return array
+   *   An array containing the prop field definitions.
+   */
+  private static function getPropDefinitions(ComponentInterface $component, string $from_version, string $to_version): array {
+    $from_settings = $component->getSettings($from_version);
+    $to_settings = $component->getSettings($to_version);
+    return [$from_settings['prop_field_definitions'], $to_settings['prop_field_definitions']];
   }
 
 }
