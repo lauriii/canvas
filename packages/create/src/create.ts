@@ -5,6 +5,7 @@ import spawn from 'cross-spawn';
 import { rimraf } from 'rimraf';
 import * as p from '@clack/prompts';
 
+import { setupAgentSkills } from './lib/agent-skills-setup.js';
 import detectPackageManager from './lib/detect-package-manager.js';
 import { getName, getVersion } from './lib/meta-info.js';
 import useGit from './lib/use-git.js';
@@ -14,6 +15,7 @@ import type { Context } from './types/context.js';
 
 export default async function createApp(ctx: Context) {
   const { template, appName } = ctx;
+  const projectDir = `${process.cwd()}/${appName}`;
 
   try {
     // Step 1: Fetch initial codebase.
@@ -33,17 +35,17 @@ export default async function createApp(ctx: Context) {
     await git.clone(template.repository.url, appName, options);
 
     // Checkout commit if SHA is provided.
-    const gitAppDir = useGit(`${process.cwd()}/${appName}`);
+    const gitAppDir = useGit(projectDir);
     if (hasCommitSHARef) {
       await gitAppDir.fetch('origin', template.repository.ref);
       await gitAppDir.checkout(template.repository.ref);
     }
 
     // Delete .git directory.
-    await rimraf(`${process.cwd()}/${appName}/.git`);
+    await rimraf(`${projectDir}/.git`);
 
     // Update package.json name field.
-    const packageJsonPath = join(process.cwd(), appName, 'package.json');
+    const packageJsonPath = join(projectDir, 'package.json');
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson = JSON.parse(packageJsonContent);
     packageJson.name = appName;
@@ -53,6 +55,9 @@ export default async function createApp(ctx: Context) {
     );
 
     s1.stop(chalk.green('Fetched initial codebase'));
+
+    // Set up compatibility symlinks for agent-specific skills directories.
+    await setupAgentSkills(projectDir);
 
     // Step 2: Install dependencies.
     const s2 = p.spinner();

@@ -30,20 +30,25 @@
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "cross-spawn": "^7.0.6",
+    "picocolors": "^1.1.1",
     "rimraf": "^6.1.2",
     "simple-git": "^3.30.0",
+    "string-width": "^7.2.0",
     "validate-npm-package-name": "^7.0.0"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",
     "@types/validate-npm-package-name": "^4.0.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "scripts": {
     "start": "node dist/index.js",
     "build": "NODE_ENV=production tsup",
     "dev": "NODE_ENV=development tsup --watch",
-    "type-check": "tsc --noEmit --pretty"
+    "type-check": "tsc --noEmit --pretty",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
   }
 }
