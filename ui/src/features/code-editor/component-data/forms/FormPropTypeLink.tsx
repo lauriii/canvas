@@ -108,7 +108,6 @@ export default function FormPropTypeLink({
                 );
                 setIsExampleValueValid(isValidValue);
               }}
-              disabled={isDisabled}
               className={clsx({
                 [styles.error]: !isExampleValueValid,
               })}

@@ -1,4 +1,8 @@
-import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
+import { useMemo } from 'react';
+import {
+  InfoCircledIcon,
+  QuestionMarkCircledIcon,
+} from '@radix-ui/react-icons';
 import { Box, Callout, Flex, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -7,6 +11,7 @@ import {
   removeSlot,
   reorderSlots,
   selectCodeComponentProperty,
+  selectInitialSlotIds,
   updateSlot,
 } from '@/features/code-editor/codeEditorSlice';
 import {
@@ -22,6 +27,13 @@ export default function Slots() {
   const dispatch = useAppDispatch();
   const slots = useAppSelector(selectCodeComponentProperty('slots'));
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
+  const initialSlotIds = useAppSelector(selectInitialSlotIds);
+
+  // Memoized Set of slot IDs that need to be disabled from editing name.
+  const disabledSlotIds = useMemo(() => {
+    if (!componentStatus) return new Set<string>();
+    return new Set(initialSlotIds);
+  }, [componentStatus, initialSlotIds]);
 
   const handleAddSlot = () => {
     dispatch(addSlot());
@@ -54,15 +66,11 @@ export default function Slots() {
                 }),
               )
             }
-            disabled={componentStatus}
+            disabled={disabledSlotIds.has(slot.id)}
           />
         </FormElement>
       </Box>
-      <FormPropTypeSlot
-        id={slot.id}
-        example={slot.example}
-        isDisabled={componentStatus}
-      />
+      <FormPropTypeSlot id={slot.id} example={slot.example} />
     </Flex>
   );
 
@@ -78,6 +86,22 @@ export default function Slots() {
           </Callout.Text>
         </Callout.Root>
       </Box>
+      {/* Show a callout to inform the user the slot name is locked if there
+       are any slot ids disabled from editing. */}
+      {disabledSlotIds.size > 0 && (
+        <Box flexGrow="1" pt="4" maxWidth="500px" mx="auto">
+          <Callout.Root size="1" variant="surface">
+            <Callout.Icon>
+              <InfoCircledIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              Changing the name of an existing slot is not allowed when a
+              component is added to <b>Components</b> in the Library. Remove
+              slot and create a new one instead.
+            </Callout.Text>
+          </Callout.Root>
+        </Box>
+      )}
       <SortableList
         items={slots}
         onAdd={handleAddSlot}
@@ -88,7 +112,6 @@ export default function Slots() {
         data-testid="slot"
         moveAriaLabel="Move slot"
         removeAriaLabel="Remove slot"
-        isDisabled={componentStatus}
       />
     </>
   );

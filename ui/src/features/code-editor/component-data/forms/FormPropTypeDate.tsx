@@ -71,7 +71,6 @@ export default function FormPropTypeDate({
           id={`prop-example-${id}`}
           size="1"
           value={dateType === 'date' ? example : datetimeLocalForInput}
-          disabled={isDisabled}
           type={dateType === 'date' ? 'date' : 'datetime-local'}
           onChange={(e) => {
             const value = e.target.value;

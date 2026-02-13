@@ -43,7 +43,7 @@ export default function FormPropTypeEnum({
   example: string;
   required: boolean;
   type: 'string' | 'integer' | 'number';
-  isDisabled: boolean;
+  isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
   const [localRequired, setLocalRequired] = useState(required);

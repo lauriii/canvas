@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import {
   Box,
@@ -14,6 +15,7 @@ import {
   removeProp,
   reorderProps,
   selectCodeComponentProperty,
+  selectSavedPropIds,
   toggleRequired,
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
@@ -44,6 +46,13 @@ export default function Props() {
   const props = useAppSelector(selectCodeComponentProperty('props'));
   const required = useAppSelector(selectCodeComponentProperty('required'));
   const componentStatus = useAppSelector(selectCodeComponentProperty('status'));
+  const initialPropIds = useAppSelector(selectSavedPropIds);
+
+  // Memoized Set of prop IDs that need to be disabled from editing name and type.
+  const disabledPropIds = useMemo(() => {
+    if (!componentStatus) return new Set<string>();
+    return new Set(initialPropIds);
+  }, [componentStatus, initialPropIds]);
 
   const handleAddProp = () => {
     dispatch(addProp());
@@ -79,7 +88,7 @@ export default function Props() {
                     }),
                   )
                 }
-                disabled={componentStatus}
+                disabled={disabledPropIds.has(prop.id)}
               />
             </FormElement>
           </Box>
@@ -109,7 +118,8 @@ export default function Props() {
                     );
                   }
                 }}
-                disabled={componentStatus}
+                // Disable changing type if component is exposed and prop existed when loaded.
+                disabled={disabledPropIds.has(prop.id)}
               >
                 <Select.Trigger id={`prop-type-${prop.id}`} />
                 <Select.Content>
@@ -137,7 +147,6 @@ export default function Props() {
                   }),
                 )
               }
-              disabled={componentStatus}
             />
           </Flex>
         </Flex>
@@ -152,7 +161,6 @@ export default function Props() {
                   id={prop.id}
                   type={prop.type as 'string' | 'number' | 'integer'}
                   example={prop.example as string}
-                  isDisabled={componentStatus}
                 />
               );
             case 'formattedText':
@@ -160,7 +168,6 @@ export default function Props() {
                 <FormPropTypeFormattedText
                   id={prop.id}
                   example={prop.example}
-                  isDisabled={componentStatus}
                 />
               );
             case 'link':
@@ -169,7 +176,7 @@ export default function Props() {
                   id={prop.id}
                   example={prop.example as string}
                   format={prop.format as string}
-                  isDisabled={componentStatus}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
             case 'image':
@@ -177,7 +184,6 @@ export default function Props() {
                 <FormPropTypeImage
                   id={prop.id}
                   example={prop.example as CodeComponentPropImageExample}
-                  isDisabled={componentStatus}
                   required={required.includes(propName)}
                 />
               );
@@ -186,7 +192,6 @@ export default function Props() {
                 <FormPropTypeVideo
                   id={prop.id}
                   example={prop.example as CodeComponentPropVideoExample}
-                  isDisabled={componentStatus}
                   required={required.includes(propName)}
                 />
               );
@@ -195,7 +200,6 @@ export default function Props() {
                 <FormPropTypeBoolean
                   id={prop.id}
                   example={prop.example as string}
-                  isDisabled={componentStatus}
                 />
               );
             case 'listText':
@@ -207,7 +211,6 @@ export default function Props() {
                   required={required.includes(propName)}
                   enum={prop.enum || []}
                   example={prop.example as string}
-                  isDisabled={componentStatus}
                 />
               );
             case 'date':
@@ -216,8 +219,7 @@ export default function Props() {
                   id={prop.id}
                   example={prop.example as string}
                   format={prop.format as string}
-                  // @todo: Remove in https://drupal.org/i/3561912.
-                  isDisabled={componentStatus}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
           }
@@ -228,20 +230,18 @@ export default function Props() {
 
   return (
     <>
-      {/* If a component is exposed, show a callout to inform the user that props and slots are locked */}
-      {componentStatus && (
+      {/* Show a callout to inform the user the prop name and type is locked if there
+       are any prop ids disabled from editing. */}
+      {disabledPropIds.size > 0 && (
         <Box flexGrow="1" pt="4" maxWidth="500px" mx="auto">
           <Callout.Root size="1" variant="surface">
             <Callout.Icon>
               <InfoCircledIcon />
             </Callout.Icon>
             <Callout.Text>
-              Props and slots are locked when a component is added to{' '}
-              <b>Components</b>.
-              <br />
-              <br />
-              To modify props and slots, remove the component from{' '}
-              <b>Components</b>.
+              Changing the name and type of an existing prop is not allowed when
+              a component is added to <b>Components</b> in the Library. Remove
+              prop and create a new one instead.
             </Callout.Text>
           </Callout.Root>
         </Box>
@@ -256,7 +256,6 @@ export default function Props() {
         data-testid="prop"
         moveAriaLabel="Move prop"
         removeAriaLabel="Remove prop"
-        isDisabled={componentStatus}
       />
     </>
   );

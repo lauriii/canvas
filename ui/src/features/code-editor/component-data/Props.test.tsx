@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -13,7 +14,10 @@ import userEvent from '@testing-library/user-event';
 import AppWrapper from '@tests/vitest/components/AppWrapper';
 
 import { makeStore } from '@/app/store';
-import { selectCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
+import {
+  initialState,
+  selectCodeComponentProperty,
+} from '@/features/code-editor/codeEditorSlice';
 import { getPropMachineName } from '@/features/code-editor/utils/utils';
 import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
 
@@ -32,11 +36,6 @@ const Wrapper = ({ store }: { store: AppStore }) => (
     <Props />
   </AppWrapper>
 );
-
-beforeEach(() => {
-  store = makeStore({}); // Create a fresh store for each test
-  render(<Wrapper store={store} />);
-});
 
 /**
  * Helper function to add a new prop with a specified type and name.
@@ -73,6 +72,11 @@ const addProp = async (typeDisplayName: string, propName: string) => {
 };
 
 describe('props in code editor', () => {
+  beforeEach(() => {
+    store = makeStore({}); // Create a fresh store for each test
+    render(<Wrapper store={store} />);
+  });
+
   describe('props form', () => {
     it('renders empty', async () => {
       expect(
@@ -1212,6 +1216,99 @@ describe('props in code editor', () => {
       expect(example.src).toMatch(
         new RegExp(`${expectedSize.width}x${expectedSize.height}@3x\\.png`),
       );
+    });
+  });
+
+  describe('prop form for exposed component', () => {
+    const existingPropId = 'existing-prop-id';
+
+    // Clean up the render from the parent beforeEach
+    beforeEach(() => {
+      cleanup();
+    });
+
+    const createExposedComponentStore = () => {
+      return makeStore({
+        codeEditor: {
+          ...initialState,
+          codeComponent: {
+            ...initialState.codeComponent,
+            status: true, // Component is exposed
+            props: [
+              {
+                id: existingPropId,
+                name: 'Alpha',
+                type: 'string',
+                example: 'test value',
+                derivedType: 'text',
+              },
+            ],
+          },
+          initialPropIds: [existingPropId], // Mark as existing prop
+        },
+      });
+    };
+
+    it('disables name and type field for existing props on exposed component', async () => {
+      const exposedStore = createExposedComponentStore();
+      render(<Wrapper store={exposedStore} />);
+
+      const nameField = screen.getByRole('textbox', { name: 'Prop name' });
+      expect(nameField).toBeDisabled();
+      const typeSelect = screen.getByRole('combobox', { name: 'Type' });
+      expect(typeSelect).toBeDisabled();
+      const exampleField = screen.getByRole('textbox', {
+        name: 'Example value',
+      });
+      expect(exampleField).not.toBeDisabled();
+    });
+
+    it('allows editing name and type for newly added props on an exposed component', async () => {
+      const exposedStore = createExposedComponentStore();
+      render(<Wrapper store={exposedStore} />);
+
+      // Add a new prop
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByRole('textbox', { name: 'Prop name' }),
+        ).toHaveLength(2);
+      });
+
+      // The second prop name field (newly added) should not be disabled
+      const propNameFields = screen.getAllByRole('textbox', {
+        name: 'Prop name',
+      });
+      expect(propNameFields[0]).toBeDisabled(); // Existing prop
+      expect(propNameFields[1]).not.toBeDisabled(); // New prop
+      // The second type select (newly added) should not be disabled
+      const typeSelects = screen.getAllByRole('combobox', { name: 'Type' });
+      expect(typeSelects[0]).toBeDisabled(); // Existing prop
+      expect(typeSelects[1]).not.toBeDisabled(); // New prop
+    });
+
+    it('allows removing props on exposed component', async () => {
+      const exposedStore = createExposedComponentStore();
+      render(<Wrapper store={exposedStore} />);
+
+      // Verify initial state - one existing prop
+      expect(
+        selectCodeComponentProperty('props')(exposedStore.getState()),
+      ).toHaveLength(1);
+
+      // Remove the prop
+      await userEvent.click(
+        screen.getByRole('button', { name: /Remove prop/ }),
+      );
+
+      // Verify prop was removed
+      expect(
+        selectCodeComponentProperty('props')(exposedStore.getState()),
+      ).toHaveLength(0);
+      expect(
+        screen.queryByRole('textbox', { name: 'Prop name' }),
+      ).not.toBeInTheDocument();
     });
   });
 });

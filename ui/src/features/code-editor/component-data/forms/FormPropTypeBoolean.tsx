@@ -15,7 +15,7 @@ export default function FormPropTypeBoolean({
   example,
   isDisabled = false,
 }: Pick<CodeComponentProp, 'id' | 'example'> & {
-  isDisabled: boolean;
+  isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
 
