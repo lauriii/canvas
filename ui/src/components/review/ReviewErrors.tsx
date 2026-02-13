@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
+import { Link } from 'react-router-dom';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
   ExclamationTriangleIcon,
@@ -15,7 +16,6 @@ import {
 } from '@radix-ui/themes';
 
 import ChangeIcon from '@/components/review/changes/ChangeIcon';
-import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type { ErrorResponse } from '@/services/pendingChangesApi';
 
@@ -46,8 +46,6 @@ interface ErrorsByEntity {
 interface ErrorGroupProps {
   errorGroup: EntityError[];
 }
-
-const baseUrl = getBaseUrl();
 
 const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -81,7 +79,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
           let errorPath =
             error?.meta?.entity_type &&
             error?.meta?.entity_id &&
-            `${baseUrl}canvas/editor/${error.meta.entity_type}/${error.meta.entity_id}`;
+            `/editor/${error.meta.entity_type}/${error.meta.entity_id}`;
 
           if (typeof error?.source?.pointer === 'string') {
             const sourcePointerParts = error.source.pointer.split('.');
@@ -107,12 +105,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
               <Text size="1" data-testid="publish-error-detail">
                 {error.detail}{' '}
                 {errorPath && (
-                  <a
-                    data-testid="publish-error-link"
-                    href={errorPath}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <Link data-testid="publish-error-link" to={errorPath}>
                     {
                       <OpenInNewWindowIcon
                         color="blue"
@@ -121,7 +114,7 @@ const ErrorGroup: React.FC<ErrorGroupProps> = ({ errorGroup }) => {
                         style={{ position: 'relative', top: '4px' }}
                       />
                     }
-                  </a>
+                  </Link>
                 )}
               </Text>
             </Flex>

@@ -52,6 +52,10 @@ export interface ErrorResponse {
   errors: Array<ConflictError>;
 }
 
+type DiscardPendingChangeArg = PendingChange & {
+  pointer?: string;
+};
+
 export enum STATUS_CODE {
   CONFLICT = 409,
   UNPROCESSABLE_ENTITY = 422,
@@ -125,7 +129,7 @@ export const pendingChangesApi = createApi({
     }),
     discardPendingChange: builder.mutation<
       SuccessResponse | ErrorResponse,
-      PendingChange
+      DiscardPendingChangeArg
     >({
       query: (change: PendingChange) => ({
         url: `/canvas/api/v0/auto-saves/${change.entity_type}/${change.entity_id}`,
@@ -134,16 +138,26 @@ export const pendingChangesApi = createApi({
       async onQueryStarted(change, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-
-          // Given the nature of the discard operation, we need to
-          // reload the page here to ensure that the UI reflects the discarded
-          // changes if the operation was successful.
-          // This is a temporary solution to ensure the UI is in sync with the
-          // server state after publishing changes.
-          // A better solution will be implemented in the future.
-          window.location.reload();
+          if (change.pointer) {
+            dispatch(
+              pendingChangesApi.util.updateQueryData(
+                'getAllPendingChanges',
+                undefined,
+                (draft) => {
+                  delete draft[change.pointer as string];
+                },
+              ),
+            );
+          }
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
 
           // Reset errors
+          dispatch(setConflicts());
+          dispatch(setPreviousPendingChanges());
           dispatch(setErrors());
         } catch (error: any) {
           dispatch(

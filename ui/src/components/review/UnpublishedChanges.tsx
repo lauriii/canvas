@@ -193,14 +193,17 @@ const UnpublishedChanges = () => {
   const onDiscardClick = async (selectedChange: UnpublishedChange) => {
     if (!selectedChange) return;
 
-    await discardChange(selectedChange);
-
-    // The discardPendingChange mutation will automatically reload the page
-    // when it is successful, so there is nothing more to do here until a better
-    // solution is implemented.
-
-    // After discarding, refresh the list to ensure UI is up to date
-    refetch();
+    try {
+      await discardChange(selectedChange).unwrap();
+      // After discarding, refresh the editor state from canonical server data.
+      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+      dispatch(
+        contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+      );
+      refetch();
+    } catch {
+      // Error state is handled in pendingChangesApi.discardPendingChange.
+    }
   };
 
   if (!isFetching && conflicts && conflicts.length) {

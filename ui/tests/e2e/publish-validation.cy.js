@@ -122,12 +122,10 @@ describe('Publish review functionality', () => {
         ).to.be.true;
       });
     });
-    // Alter the link so it opens in the current tab.
-    cy.get('[data-testid="publish-error-detail"] a').invoke(
-      'attr',
-      'target',
-      '_self',
-    );
+    // Confirm this now navigates in-app (SPA) instead of opening a new tab.
+    cy.get('[data-testid="publish-error-detail"] a')
+      .first()
+      .should('not.have.attr', 'target');
     // Confirm clicking the link opens the UI of the erroring entity and the
     // component with the error is selected.
     cy.get('[data-testid="publish-error-detail"] a').first().click();
