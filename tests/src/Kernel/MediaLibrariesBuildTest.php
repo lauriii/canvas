@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\Component\Serialization\Yaml;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -97,7 +98,18 @@ final class MediaLibrariesBuildTest extends CanvasKernelTestBase {
     ];
     self::assertArrayHasKey('global-styling', $parsed);
     self::assertArrayHasKey('css', $parsed['global-styling']);
-    foreach ($parsed['global-styling']['css'] as $group_id => $group) {
+
+    // Drupal Core 11.3.4 moves `variables.css` to the `claro/variables` library
+    // which its `global-styling` library depends on. This is needed to support
+    // < 11.3.4 testing.
+    $grouped_items = $parsed['global-styling']['css'];
+    if (isset($parsed['variables'])) {
+      self::assertArrayHasKey('variables', $parsed);
+      self::assertArrayHasKey('css', $parsed['variables']);
+      $grouped_items = NestedArray::mergeDeep($grouped_items, $parsed['variables']['css']);
+    }
+
+    foreach ($grouped_items as $group_id => $group) {
       $expected = \array_map(static fn (string|int $path) => \sprintf('./%s/%s', $claro_path, $path), \array_keys($group));
       $group_items = \array_filter($discovered['canvas.scoped.admin.css']['css'], static fn(array $item) => $item['weight'] === $group_css_ids[$group_id]);
       $actual = \array_column($group_items, 'data');

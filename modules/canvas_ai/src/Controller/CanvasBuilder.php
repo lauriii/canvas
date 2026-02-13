@@ -468,6 +468,12 @@ final class CanvasBuilder extends ControllerBase {
         "description" => "A utility function to efficiently merge Tailwind CSS classes in JS without style conflicts.",
         "code" => "```js\nimport { twMerge } from 'tailwind-merge';\n\ntwMerge('px-2 py-1 bg-red hover:bg-dark-red', 'p-3 bg-[#B91C1C]');\n// → 'hover:bg-dark-red p-3 bg-[#B91C1C]'\n```",
       ],
+      [
+        "name" => 'tailwindcss_typography',
+        "type" => "Bundled npm package",
+        "description" => "A Tailwind CSS plugin that provides a set of pre-configured typography classes for consistent and readable text styles.",
+        "code" => "```js\n<FormattedText className=\"prose md:prose-lg lg:prose-xl\">\n  {body}\n</FormattedText>\n```",
+      ],
     ];
   }
 
