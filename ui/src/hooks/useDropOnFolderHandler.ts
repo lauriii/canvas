@@ -11,7 +11,8 @@ export function useDropOnFolderHandler() {
 
   const handleFolderDrop = async (e: DragEndEvent) => {
     const { active, over } = e;
-    if (over?.data?.current?.destination !== 'folder') {
+    const destination = over?.data?.current?.destination;
+    if (!['folder', 'uncategorized'].includes(destination)) {
       return;
     }
     if (!folders) {
@@ -23,8 +24,13 @@ export function useDropOnFolderHandler() {
     // Check if this is a folder being dragged (folder reordering).
     const activeData = active.data?.current;
     if (activeData?.type === 'folder') {
+      // Dragging folders to uncategorized is intentionally unsupported.
+      if (destination !== 'folder') {
+        return;
+      }
+
       const draggedFolderId = activeData.folderId;
-      const targetFolderId = over.id;
+      const targetFolderId = String(over?.id);
 
       if (draggedFolderId === targetFolderId) {
         // Folder was dropped on itself.
@@ -84,15 +90,15 @@ export function useDropOnFolderHandler() {
       return;
     }
 
-    // Handle component/code being dropped into folder
-    const componentId = active.id;
+    // Handle component/code being dropped into folder or uncategorized.
+    const componentId = String(active.id);
     const priorFolderId = folders.componentIndexedFolders?.[componentId];
     const priorFolder = folders.folders[priorFolderId];
-    const newFolderId = over?.id;
+    const newFolderId = destination === 'folder' ? String(over?.id) : null;
     const newFolder = newFolderId ? folders.folders[newFolderId] : null;
 
     if (priorFolderId === newFolderId) {
-      // Item was dropped back into the same folder
+      // Item was dropped back into the same folder.
       return;
     }
 
@@ -117,7 +123,7 @@ export function useDropOnFolderHandler() {
       const items = [...newFolder.items, componentId];
       try {
         await updateFolder({
-          id: newFolderId,
+          id: newFolder.id,
           changes: {
             name: newFolder.name,
             items,

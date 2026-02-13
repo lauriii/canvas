@@ -4,6 +4,7 @@ import { Callout, Flex, Skeleton } from '@radix-ui/themes';
 
 import FolderList, { folderfyComponents, sortFolderList } from './FolderList';
 import List from './List';
+import UncategorizedDropZone from './UncategorizedDropZone';
 
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
@@ -146,16 +147,21 @@ function LibraryItemList<T extends { id: string; name: string }>({
           </FolderList>
         ))}
       {/* Render top-level items not in folders */}
-      <List
-        items={filteredTopLevel as ComponentsList | PatternsList}
-        type={
-          layoutType as
-            | LayoutItemType.COMPONENT
-            | LayoutItemType.PATTERN
-            | LayoutItemType.DYNAMIC
-        }
-        renderItem={renderItem}
-      />
+      <UncategorizedDropZone
+        itemType={itemType}
+        hasItems={filteredTopLevelFilteredArray.length > 0}
+      >
+        <List
+          items={filteredTopLevel as ComponentsList | PatternsList}
+          type={
+            layoutType as
+              | LayoutItemType.COMPONENT
+              | LayoutItemType.PATTERN
+              | LayoutItemType.DYNAMIC
+          }
+          renderItem={renderItem}
+        />
+      </UncategorizedDropZone>
     </>
   );
 }

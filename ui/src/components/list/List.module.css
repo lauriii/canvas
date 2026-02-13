@@ -61,6 +61,10 @@
   cursor: grabbing;
 }
 
+.emptyDropZone {
+  min-height: var(--space-6);
+}
+
 .dropIndicatorAbove {
   position: relative;
 }

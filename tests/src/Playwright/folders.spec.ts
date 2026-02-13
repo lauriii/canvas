@@ -3,12 +3,71 @@ import { expect } from '@playwright/test';
 import { test } from './fixtures/DrupalSite';
 import { Drupal } from './objects/Drupal';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 /**
  * Tests folder management in Drupal Canvas.
  */
 test.describe('Folder Management', () => {
+  const ensureFolderExpanded = async (page: Page, folderName: string) => {
+    const folder = page.locator(`[data-canvas-folder-name="${folderName}"]`);
+    await expect(folder).toBeVisible();
+
+    // Ensure the row is on screen before trying to toggle collapse state.
+    await folder.scrollIntoViewIfNeeded();
+
+    const expandToggle = page.locator(
+      `[aria-label="Expand ${folderName} folder"]`,
+    );
+    if ((await expandToggle.count()) > 0) {
+      await expandToggle.first().click({ force: true });
+    }
+  };
+
+  const dragIntoDropZone = async (
+    page: Page,
+    source: Locator,
+    dropZone: Locator,
+  ): Promise<void> => {
+    const sourceBox = await source.boundingBox();
+    const zoneBox = await dropZone.boundingBox();
+    if (!sourceBox || !zoneBox) {
+      throw new Error('Could not get bounding boxes for drop zone drag');
+    }
+
+    const sourceX = sourceBox.x + sourceBox.width / 2;
+    const sourceY = sourceBox.y + sourceBox.height / 2;
+    // Aim near top-left of the zone to reduce overlap with nested list items.
+    const targetX = zoneBox.x + Math.min(12, zoneBox.width / 4);
+    const targetY = zoneBox.y + Math.min(12, zoneBox.height / 4);
+    const centerX = zoneBox.x + zoneBox.width / 2;
+    const centerY = zoneBox.y + zoneBox.height / 2;
+
+    await page.mouse.move(sourceX, sourceY);
+    await page.mouse.down();
+    await page.mouse.move(sourceX, sourceY + 10, { steps: 5 });
+    await page.mouse.move(targetX, targetY, { steps: 10 });
+
+    // Release only when this specific drop zone is active to avoid dropping on
+    // nearby nested drop zones, which is flaky in Firefox.
+    const waitForActiveDropZone = async () => {
+      await expect
+        .poll(async () => (await dropZone.getAttribute('class')) || '', {
+          timeout: 2000,
+        })
+        .toContain('isOver');
+    };
+
+    try {
+      await waitForActiveDropZone();
+    } catch {
+      await page.mouse.move(centerX, centerY, { steps: 8 });
+      await waitForActiveDropZone();
+    }
+
+    await page.mouse.up();
+  };
+
   // Helper to add folders and confirm they appear.
   const testAddFolder = async (
     page: Page,
@@ -532,5 +591,60 @@ test.describe('Folder Management', () => {
     const newOrder = await getFolderOrder();
     expect(newOrder[0]).toBe('Drag Test Folder A');
     expect(newOrder[1]).toBe('Drag Test Folder B');
+  });
+
+  test('Component drag and drop between folders and uncategorized list', async ({
+    page,
+    drupal,
+    canvasEditor,
+  }) => {
+    await drupal.loginAsAdmin();
+    await canvasEditor.goToCanvasRoot();
+    await canvasEditor.openCodePanel();
+
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('canvas-code-panel-content')).toBeVisible();
+
+    const untouchedFolderName = 'Proclaimers of With';
+    const sourceFolderName = 'Active Users of Using';
+    const componentId = 'canvas_test_code_components_using_imports';
+    const uncategorizedDropZone = page.getByTestId(
+      'canvas-uncategorized-drop-zone-js_component',
+    );
+
+    await ensureFolderExpanded(page, untouchedFolderName);
+    await ensureFolderExpanded(page, sourceFolderName);
+    await uncategorizedDropZone.scrollIntoViewIfNeeded();
+
+    const sourceItem = page.locator(
+      `[data-canvas-folder-name="${sourceFolderName}"] + * [data-canvas-component-id="${componentId}"]`,
+    );
+    await expect(sourceItem).toBeVisible();
+
+    await dragIntoDropZone(page, sourceItem.first(), uncategorizedDropZone);
+
+    await expect(async () => {
+      await expect(sourceItem).toHaveCount(0);
+    }).toPass({ timeout: 10000 });
+
+    const uncategorizedItem = uncategorizedDropZone.locator(
+      `[data-canvas-component-id="${componentId}"]`,
+    );
+    await expect(uncategorizedItem).toBeVisible();
+
+    // Re-dropping an already-uncategorized item on uncategorized is a no-op:
+    // it should remain exactly once in uncategorized and absent from source.
+    await expect(uncategorizedItem).toHaveCount(1);
+    await expect(sourceItem).toHaveCount(0);
+
+    await dragIntoDropZone(
+      page,
+      uncategorizedItem.first(),
+      uncategorizedDropZone,
+    );
+
+    await expect(uncategorizedItem).toHaveCount(1);
+    await expect(sourceItem).toHaveCount(0);
+    await expect(uncategorizedItem).toBeVisible();
   });
 });
