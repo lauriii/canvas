@@ -3,7 +3,7 @@
     "id": "acquia-nebula",
     "label": "acquia/nebula",
     "repository": {
-      "url": "git@github.com:acquia/nebula.git",
+      "url": "https://github.com/acquia/nebula.git",
       "ref": "main"
     }
   },
@@ -11,7 +11,7 @@
     "id": "balintbrews-canvas-starter",
     "label": "balintbrews/canvas-starter",
     "repository": {
-      "url": "git@github.com:balintbrews/canvas-starter.git",
+      "url": "https://github.com/balintbrews/canvas-starter.git",
       "ref": "main"
     }
   }
