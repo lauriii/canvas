@@ -214,6 +214,111 @@ button({ intent: 'secondary', size: 'small' });
   See data fetching
 </LinkButton>
 
+### @tailwindcss/typography
+
+<LinkButton
+  href="https://github.com/tailwindlabs/tailwindcss-typography"
+  variant="minimal"
+  icon="external"
+>
+  GitHub Project Page
+</LinkButton>
+
+The [@tailwindcss/typography](https://tailwindcss.com/docs/typography-plugin)
+plugin adds a set of `prose` classes that apply beautiful typographic defaults
+to vanilla HTML — perfect for rendering rich text from Drupal's text fields
+using the `FormattedText` component.
+
+To enable the plugin, add the `@plugin` directive to your **Global CSS**:
+
+```css
+@plugin "@tailwindcss/typography";
+```
+
+Then use the `prose` class on a `FormattedText` component to style the rendered
+HTML content:
+
+```jsx
+import { FormattedText } from 'drupal-canvas';
+
+export default function Article({ body }) {
+  return (
+    <FormattedText className="prose lg:prose-xl" as="div">
+      {body}
+    </FormattedText>
+  );
+}
+```
+
+#### Size modifiers
+
+Control the overall font size of prose content with size modifiers:
+
+- `prose-sm` — Smaller text (14px)
+- `prose-base` — Default size (16px)
+- `prose-lg` — Larger text (18px)
+- `prose-xl` — Extra large (20px)
+- `prose-2xl` — Largest (24px)
+
+These can be combined with responsive prefixes:
+
+```jsx
+<FormattedText className="prose md:prose-lg lg:prose-xl">
+  {body}
+</FormattedText>
+```
+
+#### Dark mode
+
+Use `prose-invert` to switch to an inverted color palette for dark backgrounds:
+
+```jsx
+<FormattedText className="prose dark:prose-invert">
+  {body}
+</FormattedText>
+```
+
+#### Element modifiers
+
+Override styles for specific HTML elements inside prose content using
+`prose-{element}:{utility}` modifiers:
+
+See the [Element modifiers
+documentation](https://github.com/tailwindlabs/tailwindcss-typography?tab=readme-ov-file#element-modifiers)
+for the full element list and examples.
+
+```jsx
+<FormattedText className="prose prose-headings:underline prose-a:text-blue-600 prose-img:rounded-xl">
+  {body}
+</FormattedText>
+```
+
+
+
+#### Undoing prose styles
+
+Use the `not-prose` class to exclude a block from prose styling:
+
+```jsx
+<article className="prose">
+  <h1>My Heading</h1>
+  <div className="not-prose">
+    {/* This content is not affected by prose styles. */}
+  </div>
+</article>
+```
+
+#### Removing the max-width
+
+Each prose size includes a built-in `max-width`. Add `max-w-none` to let
+content fill its container:
+
+```jsx
+<FormattedText className="prose max-w-none">
+  {body}
+</FormattedText>
+```
+
 ### tailwind-merge
 
 <LinkButton
