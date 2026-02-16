@@ -12,11 +12,11 @@ grant_types:
     status: true
     description: 'Client credentials access for JavaScript components'
   authorization_code:
-    status: false
-    description: ''
+    status: true
+    description: 'Authorization code access for JavaScript components'
   refresh_token:
-    status: false
-    description: ''
+    status: true
+    description: 'Refresh token access for JavaScript components'
 umbrella: false
 parent: null
 granularity_id: permission

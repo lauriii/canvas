@@ -12,11 +12,11 @@ grant_types:
     status: true
     description: 'Client credentials access for asset libraries'
   authorization_code:
-    status: false
-    description: ''
+    status: true
+    description: 'Authorization code access for asset libraries'
   refresh_token:
-    status: false
-    description: ''
+    status: true
+    description: 'Refresh token access for asset libraries'
 umbrella: false
 parent: null
 granularity_id: permission
