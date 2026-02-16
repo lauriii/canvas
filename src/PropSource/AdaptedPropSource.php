@@ -56,12 +56,12 @@ final class AdaptedPropSource extends PropSourceBase {
     return [
       'sourceType' => $this->getSourceType(),
       'adapterInputs' => array_combine(
-        array_keys($this->adapter_inputs),
+        \array_keys($this->adapter_inputs),
         \array_map(
           fn (PropSourceBase $source): array => $source->toArray(),
           \array_map(
             fn (string $input_name): PropSourceBase => $this->getInputPropSource($input_name),
-            array_keys($this->adapter_inputs)
+            \array_keys($this->adapter_inputs)
           )
         ),
       ),
@@ -79,7 +79,7 @@ final class AdaptedPropSource extends PropSourceBase {
     \assert($adapter_instance instanceof AdapterInterface);
 
     // `sourceType = adapter:*` requires adapterInputs to be specified.
-    $missing = array_diff(['adapterInputs'], array_keys($sdc_prop_source));
+    $missing = array_diff(['adapterInputs'], \array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }

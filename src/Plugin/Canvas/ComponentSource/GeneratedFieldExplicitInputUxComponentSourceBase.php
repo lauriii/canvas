@@ -262,7 +262,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     return [
       'required' => $required,
       'shapes' => array_combine(
-        \array_map(fn (string $cpe) => ComponentPropExpression::fromString($cpe)->propName, array_keys($prop_shapes)),
+        \array_map(fn (string $cpe) => ComponentPropExpression::fromString($cpe)->propName, \array_keys($prop_shapes)),
         \array_map(fn (PropShape $shape) => $shape->schema, $prop_shapes),
       ),
     ];
@@ -492,7 +492,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function getDefaultExplicitInput(): array {
     $inputs = [];
-    foreach (array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
+    foreach (\array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
       \assert(is_string($prop_name));
       $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->toArray();
     }

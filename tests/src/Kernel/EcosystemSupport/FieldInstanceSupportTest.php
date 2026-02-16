@@ -334,10 +334,10 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     // that list. That doubling expectation is what `$expected_supported_fields`
     // is for.
     // 💁‍♂️️ Debugging tip: put a breakpoint here and inspect $compatible_sdc_prop_shapes_per_field and $expected_supported_field_props.
-    $this->assertSame([], array_values(array_diff($expected_supported_fields, array_keys($compatible_sdc_prop_shapes_per_field))), 'The known supported field types are actually supported.');
+    $this->assertSame([], array_values(array_diff($expected_supported_fields, \array_keys($compatible_sdc_prop_shapes_per_field))), 'The known supported field types are actually supported.');
     self::assertSame([], \array_intersect(\array_keys($compatible_sdc_prop_shapes_per_field), $expected_unsupported_fields), 'The known supported field types are actually supported.');
-    $actually_supported_fields = array_intersect($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
-    $missing_fields = array_diff($expected_fields, array_keys($compatible_sdc_prop_shapes_per_field));
+    $actually_supported_fields = array_intersect($expected_fields, \array_keys($compatible_sdc_prop_shapes_per_field));
+    $missing_fields = array_diff($expected_fields, \array_keys($compatible_sdc_prop_shapes_per_field));
     self::assertSame([], $missing_fields, 'Additional field types encountered that are not yet explicitly tracked as unsupported.');
     $this->assertSame([], array_values(array_diff($expected_supported_fields, $actually_supported_fields)), 'Field types that were expected to be supported are NOT.');
     $this->assertSame([], array_values(array_diff($actually_supported_fields, $expected_supported_fields)), 'Field types that were NOT expected to be supported are.');
@@ -354,9 +354,9 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
     @trigger_error(\sprintf('Not yet supported: a JSON schema (prop shape) for the following fields: %s', implode(', ', $expected_unsupported_fields)), E_USER_DEPRECATED);
 
     // Verify that also at the field type props level, all expectations are met.
-    $this->assertSame([], array_values(array_diff($expected_supported_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop))), 'The known supported field types are actually supported, for all their field props.');
-    $actually_supported_field_props = array_intersect($expected_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop));
-    $missing_field_props = array_diff($expected_field_props, array_keys($compatible_sdc_prop_shapes_per_field_prop));
+    $this->assertSame([], array_values(array_diff($expected_supported_field_props, \array_keys($compatible_sdc_prop_shapes_per_field_prop))), 'The known supported field types are actually supported, for all their field props.');
+    $actually_supported_field_props = array_intersect($expected_field_props, \array_keys($compatible_sdc_prop_shapes_per_field_prop));
+    $missing_field_props = array_diff($expected_field_props, \array_keys($compatible_sdc_prop_shapes_per_field_prop));
     $this->assertSame([], array_values(array_diff($expected_supported_field_props, $actually_supported_field_props)), 'Field type props that were expected to be supported are NOT.');
     $this->assertSame([], array_values(array_diff($actually_supported_field_props, $expected_supported_field_props)), 'Field type props that were NOT expected to be supported are.');
     $this->assertSame(

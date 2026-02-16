@@ -113,7 +113,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         // preventing the preview to become unusable if the real time definition
         // is missing. So use the known slots at the time of the component
         // config entity creation.
-        TRUE => $item->getComponent() ? array_keys($item->getComponent()->getSlotDefinitions()) : [],
+        TRUE => $item->getComponent() ? \array_keys($item->getComponent()->getSlotDefinitions()) : [],
       };
       foreach ($known_slot_names_for_component as $slot_name) {
         $component_instance_slot = [
@@ -200,7 +200,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $renderable_component_tree = $this->getHydratedTree();
     $hydrated = $renderable_component_tree->getTree();
 
-    \assert(array_keys($hydrated) === [self::ROOT_UUID]);
+    \assert(\array_keys($hydrated) === [self::ROOT_UUID]);
     $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview);
 
     // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
@@ -430,7 +430,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       }
       // For each vertex (after the filtering above), all edges represent
       // child component instances placed in this slot.
-      foreach (array_keys($vertex['edges']) as $component_instance_uuid) {
+      foreach (\array_keys($vertex['edges']) as $component_instance_uuid) {
         \assert(is_string($component_instance_uuid));
         yield $parent_uuid => [
           'slot' => $slot_map[$component_instance_uuid],

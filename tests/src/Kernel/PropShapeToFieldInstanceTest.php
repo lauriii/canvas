@@ -76,7 +76,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
    * @dataProvider provider
    */
   public function test(array $modules, array $expected): void {
-    $missing_test_modules = array_diff($modules, array_keys(\Drupal::service('extension.list.module')->getList()));
+    $missing_test_modules = array_diff($modules, \array_keys(\Drupal::service('extension.list.module')->getList()));
     if (!empty($missing_test_modules)) {
       $this->markTestSkipped(\sprintf('The %s test modules are missing.', implode(',', $missing_test_modules)));
     }
@@ -311,7 +311,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
       if (!$entity_type->entityClassImplements(FieldableEntityInterface::class)) {
         continue;
       }
-      $bundles = array_keys($bundle_info->getBundleInfo($entity_type_id));
+      $bundles = \array_keys($bundle_info->getBundleInfo($entity_type_id));
       sort($bundles);
       foreach ($bundles as $bundle) {
         $entity_types_and_bundles[] = ['type' => $entity_type_id, 'bundle' => $bundle];
@@ -415,8 +415,8 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
     }
 
     ksort($matches);
-    self::assertSame(array_keys($expected), array_keys($matches));
-    foreach (array_keys($expected) as $key) {
+    self::assertSame(\array_keys($expected), \array_keys($matches));
+    foreach (\array_keys($expected) as $key) {
       $matches_instances_extraneous = array_diff($matches[$key]['instances'], $expected[$key]['instances']);
       $matches_instances_missing = array_diff($expected[$key]['instances'], $matches[$key]['instances']);
       self::assertSame([], $matches_instances_extraneous, "🐛 $key — either extraneous field instance matches found, or missing expectations");

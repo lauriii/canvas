@@ -259,7 +259,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertNotNull($contentRegion);
     $slot_and_component_comments = $this->getComponentInstances($contentRegion);
     $this->assertCount(8, $slot_and_component_comments);
-    $this->assertSame(array_keys($model), $slot_and_component_comments);
+    $this->assertSame(\array_keys($model), $slot_and_component_comments);
 
     // Add a new component to the content region.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';

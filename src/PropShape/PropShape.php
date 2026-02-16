@@ -197,12 +197,12 @@ final class PropShape {
       if (!is_array($json) || !array_key_exists('$defs', $json)) {
         continue;
       }
-      \assert(Inspector::assertAllStrings(array_keys($json['$defs'])));
+      \assert(Inspector::assertAllStrings(\array_keys($json['$defs'])));
       $extension_type = array_key_exists($extension_name, $installed_modules) ? 'module' : 'theme';
       $known_normalized += array_combine(
         \array_map(
           fn(string $def_name) => "json-schema-definitions://$extension_name.$extension_type/$def_name",
-          array_keys($json['$defs']),
+          \array_keys($json['$defs']),
         ),
         \array_map(
           fn(array $prop_schema) => self::normalizePropSchema(self::resolveSchemaReferences($prop_schema)),
@@ -219,7 +219,7 @@ final class PropShape {
     if (count($known_normalized) > count(array_unique($unique_keys_as_values))) {
       throw new \LogicException(\sprintf(
         '🐛 Duplicate $ref definitions detected: %s.',
-        implode(',', array_keys(array_diff_key($known_normalized, array_unique($unique_keys_as_values))))
+        implode(',', \array_keys(array_diff_key($known_normalized, array_unique($unique_keys_as_values))))
       ));
     }
     return $known_normalized;

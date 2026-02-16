@@ -32,7 +32,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
     public readonly array $objectPropsToFieldTypeProps,
   ) {
     \assert(!empty($this->objectPropsToFieldTypeProps));
-    \assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldTypeProps)));
+    \assert(Inspector::assertAllStrings(\array_keys($this->objectPropsToFieldTypeProps)));
     \assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldTypePropExpression || $expr instanceof ReferenceFieldTypePropExpression;
     }, $this->objectPropsToFieldTypeProps));
@@ -257,7 +257,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
             ? $expr->referencer->propName . self::PREFIX_ENTITY_LEVEL . self::withoutExpressionTypePrefix((string) $expr->referenced)
             : $expr->propName,
         ),
-        array_keys($this->objectPropsToFieldTypeProps),
+        \array_keys($this->objectPropsToFieldTypeProps),
         array_values($this->objectPropsToFieldTypeProps),
       ))
       . static::SUFFIX_OBJECT;

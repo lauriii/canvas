@@ -140,7 +140,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $componentTreeFields = array_keys($this->componentTreeFieldMap[$event->metadata['entity_type']]);
+    $componentTreeFields = \array_keys($this->componentTreeFieldMap[$event->metadata['entity_type']]);
     foreach ($event->data as &$translation_data) {
       foreach ($componentTreeFields as $field_name) {
         // Skip if field not present.

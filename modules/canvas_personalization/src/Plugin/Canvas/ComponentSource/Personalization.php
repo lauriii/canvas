@@ -399,7 +399,7 @@ final class Personalization extends ComponentSourceBase implements
 
   public function setSlots(array &$build, array $slots): void {
     // @see ::getSlotDefinitions()
-    \assert(array_keys($slots) === ['content']);
+    \assert(\array_keys($slots) === ['content']);
     $build += $slots;
   }
 

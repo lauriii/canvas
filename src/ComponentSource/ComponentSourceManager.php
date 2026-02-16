@@ -128,7 +128,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
   private function generateComponentsForSource(string $source_id, ComponentCandidatesDiscoveryInterface $discovery, array $existing_components, ?array $source_specific_ids = NULL): void {
     \assert($source_specific_ids === NULL || \array_is_list($source_specific_ids));
     // Discover and check requirements.
-    $component_ids = array_keys($discovery->discover());
+    $component_ids = \array_keys($discovery->discover());
     if ($source_specific_ids !== NULL) {
       // Filter the discovered component IDs down to just those that were asked
       // for, if any.

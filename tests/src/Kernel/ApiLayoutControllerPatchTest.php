@@ -360,7 +360,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
         'title[0][value]',
         'langcode[0][value]',
         'revision',
-      ], array_keys($data['entity_form_fields']));
+      ], \array_keys($data['entity_form_fields']));
     }
 
     $model = $data['model'];

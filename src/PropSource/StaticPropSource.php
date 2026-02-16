@@ -257,7 +257,7 @@ final class StaticPropSource extends PropSourceBase {
    */
   public static function parse(array $sdc_prop_source): static {
     // `sourceType = static` requires a value and an expression to be specified.
-    $missing = array_diff(['value', 'expression'], array_keys($sdc_prop_source));
+    $missing = array_diff(['value', 'expression'], \array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }

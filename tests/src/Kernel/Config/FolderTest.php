@@ -30,7 +30,7 @@ class FolderTest extends CanvasKernelTestBase {
   public function testFolderAutoCreationValidation(): void {
     $folders = Folder::loadMultiple();
     // 1. At the start, only the ::setUp()-created Folder exists.
-    $this->assertEquals([$this->entity->id()], array_keys($folders));
+    $this->assertEquals([$this->entity->id()], \array_keys($folders));
     $this->enableModules(['canvas_test_sdc']);
 
     // 2. Generate Component config entities, this will create additional Folder

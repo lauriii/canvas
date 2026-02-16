@@ -82,7 +82,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       }
     }
     if (!empty($missing_nested_options)) {
-      throw new MissingOptionsException(\sprintf('The options "%s" must be set for constraint "%s".', implode('", "', array_keys($missing_nested_options)), static::class), array_keys($missing_nested_options));
+      throw new MissingOptionsException(\sprintf('The options "%s" must be set for constraint "%s".', implode('", "', \array_keys($missing_nested_options)), static::class), \array_keys($missing_nested_options));
     }
 
     // Verify sensible values are present for $this->inputs: an array of source

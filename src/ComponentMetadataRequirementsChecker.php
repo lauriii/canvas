@@ -103,7 +103,7 @@ final class ComponentMetadataRequirementsChecker {
       if (isset($prop['enum'], $prop['meta:enum']) && !empty($forbidden_key_characters)) {
         foreach ($prop['meta:enum'] as $meta_key => $meta_value) {
           $meta_key_with_replacements = str_replace(
-            array_keys($forbidden_key_characters),
+            \array_keys($forbidden_key_characters),
             array_values($forbidden_key_characters),
             (string) $meta_key,
           );
@@ -114,7 +114,7 @@ final class ComponentMetadataRequirementsChecker {
 
         // Ensure we replace dots with underscores when checking meta:enums.
         $meta_enum_valid_keys = \array_map(fn($key) => str_replace(
-          array_keys($forbidden_key_characters),
+          \array_keys($forbidden_key_characters),
           array_values($forbidden_key_characters),
           (string) $key,
         ), $prop['enum']);

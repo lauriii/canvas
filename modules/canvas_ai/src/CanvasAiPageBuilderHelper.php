@@ -267,7 +267,7 @@ class CanvasAiPageBuilderHelper {
     }
 
     /** @var \Drupal\canvas\Entity\Component[] $component_entities */
-    $component_entities = $this->entityTypeManager->getStorage(Component::ENTITY_TYPE_ID)->loadMultiple(array_keys($available_components));
+    $component_entities = $this->entityTypeManager->getStorage(Component::ENTITY_TYPE_ID)->loadMultiple(\array_keys($available_components));
     $sdc_definitions = $this->componentPluginManager->getDefinitions();
 
     foreach ($component_entities as $component) {
@@ -385,7 +385,7 @@ class CanvasAiPageBuilderHelper {
         $previous_props = is_array($component_data['props']) ? $component_data['props'] : [];
         $current_props = is_array($latest_components_under_source[$component_id]['props']) ? $latest_components_under_source[$component_id]['props'] : [];
 
-        if (array_keys($previous_props) != array_keys($current_props)) {
+        if (\array_keys($previous_props) != \array_keys($current_props)) {
           // If the keys of the previous props and current props are different,
           // then there are changes.
           $has_changes = TRUE;
@@ -423,7 +423,7 @@ class CanvasAiPageBuilderHelper {
         $previous_slots = is_array($component_data['slots']) ? $component_data['slots'] : [];
         $current_slots = is_array($latest_components_under_source[$component_id]['slots']) ? $latest_components_under_source[$component_id]['slots'] : [];
 
-        if (array_keys($previous_slots) != array_keys($current_slots)) {
+        if (\array_keys($previous_slots) != \array_keys($current_slots)) {
           // If the keys of the previous slots and current slots are different,
           // then there are changes.
           $has_changes = TRUE;
@@ -585,7 +585,7 @@ class CanvasAiPageBuilderHelper {
 
     foreach ($component_context as $source_info) {
       if (isset($source_info['components'][$component_id]['slots'][$slot_name])) {
-        $index = array_search($slot_name, array_keys($source_info['components'][$component_id]['slots']), TRUE);
+        $index = array_search($slot_name, \array_keys($source_info['components'][$component_id]['slots']), TRUE);
         return ($index === FALSE) ? 0 : (int) $index;
       }
     }
@@ -997,7 +997,7 @@ class CanvasAiPageBuilderHelper {
 
     // Get the position of the reference component.
     $reference_key = end($path);
-    $keys = array_keys($reference);
+    $keys = \array_keys($reference);
     $reference_position = array_search($reference_key, $keys, TRUE);
 
     if ($reference_position !== FALSE) {
@@ -1104,7 +1104,7 @@ class CanvasAiPageBuilderHelper {
       }
       $path = $findPath($layout[$region], $uuid);
       if (!empty($path)) {
-        $regionIndex = array_search($region, array_keys($layout), TRUE);
+        $regionIndex = array_search($region, \array_keys($layout), TRUE);
         if ($regionIndex !== FALSE) {
           array_unshift($path, $regionIndex);
         }

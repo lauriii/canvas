@@ -38,19 +38,19 @@ final class RespectPropOrderUpdateTest extends CanvasUpdatePathTestBase {
     ];
 
     $before = [];
-    foreach (array_keys($component_ids) as $component_id) {
+    foreach (\array_keys($component_ids) as $component_id) {
       $component = Component::load($component_id);
       self::assertNotNull($component);
-      $before[$component_id] = array_keys($component->getSettings()['prop_field_definitions']);
+      $before[$component_id] = \array_keys($component->getSettings()['prop_field_definitions']);
     }
 
     $this->runUpdates();
 
     $after = [];
-    foreach (array_keys($component_ids) as $component_id) {
+    foreach (\array_keys($component_ids) as $component_id) {
       $component = Component::load($component_id);
       self::assertNotNull($component);
-      $after[$component_id] = array_keys($component->getSettings()['prop_field_definitions']);
+      $after[$component_id] = \array_keys($component->getSettings()['prop_field_definitions']);
     }
 
     foreach ($component_ids as $component_id => $expectation) {

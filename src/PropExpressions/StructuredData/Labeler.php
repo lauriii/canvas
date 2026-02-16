@@ -239,7 +239,7 @@ final class Labeler {
     return new TranslatableMarkup(
       // phpcs:ignore Drupal.Semantics.FunctionT.NotLiteralString
       str_replace(
-        array_keys($map_levels_to_characters),
+        \array_keys($map_levels_to_characters),
         array_values($map_levels_to_characters),
         $hierarchical_label->getUntranslatedString(),
       ),
@@ -315,7 +315,7 @@ final class Labeler {
         throw new \LogicException(\sprintf("Property `%s` does not exist on field type `%s`. The following field properties exist: `%s`.",
           $prop_name,
           $field_definition->getType(),
-          implode('`, `', array_keys($field_item_definition->getPropertyDefinitions())),
+          implode('`, `', \array_keys($field_item_definition->getPropertyDefinitions())),
         ));
       }
 

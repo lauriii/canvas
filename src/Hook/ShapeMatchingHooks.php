@@ -305,7 +305,7 @@ class ShapeMatchingHooks {
             new FieldPropExpression(BetterEntityDataDefinition::create('media', $media_type_id), $source_field_name, NULL, 'entity'),
             new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
           ),
-          array_keys($media_types),
+          \array_keys($media_types),
           $source_field_names,
         );
         $branches = array_combine($branch_names, $bundle_specific_expressions);
@@ -367,7 +367,7 @@ class ShapeMatchingHooks {
     }
 
     if (!empty($media_types)) {
-      $media_type_ids = array_keys($media_types);
+      $media_type_ids = \array_keys($media_types);
       $storable_prop_shape->fieldStorageSettings = ['target_type' => 'media'];
       $storable_prop_shape->fieldInstanceSettings = [
         'handler' => 'default:media',

@@ -155,7 +155,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
         ->condition('content_entity_type_id', $entity_type_id)
         ->condition('content_entity_type_view_mode', $view_mode)
         ->execute();
-      foreach (array_keys($bundle_info) as $bundle) {
+      foreach (\array_keys($bundle_info) as $bundle) {
         $template_id = "$entity_type_id.$bundle.$view_mode";
         $data[$entity_type_id][$bundle][$view_mode] = [
           'label' => $view_mode_label,

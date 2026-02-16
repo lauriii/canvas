@@ -49,7 +49,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
           $current_target_bundles,
         );
         sort($expected_branches);
-        $actual_branches = array_keys($referenced->bundleSpecificReferencedExpressions);
+        $actual_branches = \array_keys($referenced->bundleSpecificReferencedExpressions);
         if ($expected_branches !== $actual_branches) {
           // phpcs:ignore
           trigger_error(\sprintf(

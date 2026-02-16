@@ -505,10 +505,10 @@ class CanvasConfigUpdater {
 
     $settings = $component->getSettings();
     \assert(\array_key_exists('prop_field_definitions', $settings));
-    $stored_prop_order = array_keys($settings['prop_field_definitions']);
+    $stored_prop_order = \array_keys($settings['prop_field_definitions']);
 
     $metadata = $component_source->getMetadata();
-    $actual_prop_order = array_keys(ComponentMetadataHelper::getNonAttributeComponentProperties($metadata));
+    $actual_prop_order = \array_keys(ComponentMetadataHelper::getNonAttributeComponentProperties($metadata));
 
     // Avoid side effects: ensure the given Component still has the same version
     // loaded. (Not strictly necessary, just a precaution.)
@@ -524,7 +524,7 @@ class CanvasConfigUpdater {
     $component_source = $component->getComponentSource();
     \assert($component_source instanceof GeneratedFieldExplicitInputUxComponentSourceBase);
     $metadata = $component_source->getMetadata();
-    $actual_prop_order = array_keys(ComponentMetadataHelper::getNonAttributeComponentProperties($metadata));
+    $actual_prop_order = \array_keys(ComponentMetadataHelper::getNonAttributeComponentProperties($metadata));
 
     // Reorder the prop field definitions to match the actual prop order.
     $settings = $component->getSettings();

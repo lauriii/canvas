@@ -60,7 +60,7 @@ class AutoSaveConflictContentTemplateLayoutTest extends ApiLayoutControllerTestB
 
   protected function modifyJsonToSendAsAutoSave(array &$json, string $text): void {
     self::assertCount(1, $json['model']);
-    $uuid = array_keys($json['model'])[0];
+    $uuid = \array_keys($json['model'])[0];
     $json['model'][$uuid]['resolved']['heading'] = $text;
   }
 

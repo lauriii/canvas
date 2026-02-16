@@ -125,7 +125,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // ⚠️ It is impossible to create ineligible JavaScriptComponent config entities!
     // @see \Drupal\Tests\canvas\Kernel\Config\JavaScriptComponentValidationTest::providerTestEntityShapes()
     self::assertSame([], $this->findIneligibleComponents(JsComponent::SOURCE_PLUGIN_ID, 'canvas_test_code_components'));
-    $expected_js_component_ids = array_keys(self::getExpectedSettings());
+    $expected_js_component_ids = \array_keys(self::getExpectedSettings());
     $js_components = $this->findCreatedComponentConfigEntities(JsComponent::SOURCE_PLUGIN_ID, 'canvas_test_code_components');
 
     self::assertSame($expected_js_component_ids, $js_components);
@@ -167,7 +167,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       $source = $component->getComponentSource();
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);
-      foreach (array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
+      foreach (\array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
         $static_prop_source = $private_method->invoke($source, $prop, TRUE);
         $this->assertInstanceOf(StaticPropSource::class, $static_prop_source);
       }

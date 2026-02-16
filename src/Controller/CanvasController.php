@@ -339,7 +339,7 @@ HTML;
       if (!isset($definition['canvas']['transforms']) || !is_array($definition['canvas']['transforms'])) {
         continue;
       }
-      $transforms = [...$transforms, ...array_keys($definition['canvas']['transforms'])];
+      $transforms = [...$transforms, ...\array_keys($definition['canvas']['transforms'])];
     }
     $transforms = array_unique($transforms);
 

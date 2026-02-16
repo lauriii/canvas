@@ -188,7 +188,7 @@ enum JsonSchemaType: string {
         // Either min or max.
         array_key_exists('minimum', $schema) => new DataTypeShapeRequirement('Range', ['min' => $schema['minimum']], NULL),
         array_key_exists('maximum', $schema) => new DataTypeShapeRequirement('Range', ['max' => $schema['maximum']], NULL),
-        !empty(array_intersect(['multipleOf', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'], array_keys($schema))) => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
+        !empty(array_intersect(['multipleOf', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum'], \array_keys($schema))) => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
         // Otherwise, it's an unrestricted integer or number.
         // TRICKY: exclude UNIX timestamps, even though the JSON schema defined
         // no restrictions. Because UNIX timestamps never make sense to present
@@ -250,7 +250,7 @@ enum JsonSchemaType: string {
       // @see https://www.drupal.org/project/unlimited_field_settings
       // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
       // @see https://stackoverflow.com/a/49548055
-      if (!empty(array_diff(array_keys($schema), ['type', 'items', 'maxItems']))) {
+      if (!empty(array_diff(\array_keys($schema), ['type', 'items', 'maxItems']))) {
         return NULL;
       }
       \assert($schema['type'] === 'array');

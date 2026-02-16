@@ -358,7 +358,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     // Update the pages in reverse order to change their revision timestamps
     // This ensures page1 is most recently updated, followed by page2, then page3
-    $update_order = array_reverse(array_keys($pages_data));
+    $update_order = array_reverse(\array_keys($pages_data));
     foreach ($update_order as $key) {
       $this->pages[$key]->set('title', "{$pages_data[$key]} Updated");
       $this->pages[$key]->save();
@@ -372,7 +372,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
       return $item['id'];
     }, $data);
 
-    $result_ids = array_keys($result_ids);
+    $result_ids = \array_keys($result_ids);
 
     // Verify the order is by most recently updated (page1, page2, page3)
     self::assertSame($page_ids['page1'], $result_ids[2]);

@@ -84,7 +84,7 @@ final class EntityFieldPropSource extends PropSourceBase {
    */
   public static function parse(array $sdc_prop_source): static {
     // `sourceType = dynamic` requires an expression to be specified.
-    $missing = array_diff(['expression'], array_keys($sdc_prop_source));
+    $missing = array_diff(['expression'], \array_keys($sdc_prop_source));
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
@@ -117,7 +117,7 @@ final class EntityFieldPropSource extends PropSourceBase {
       // this is able to remain much simpler than AdaptedPropSource
       // @see ::__construct()
       // @see \Drupal\canvas\PropSource\AdaptedPropSource
-      $sole_input_name = array_keys($this->adapter->getInputs())[0];
+      $sole_input_name = \array_keys($this->adapter->getInputs())[0];
       $this->adapter->addInput($sole_input_name, $raw_result->value);
       $adapted_result = new EvaluationResult($this->adapter->adapt(), $raw_result);
       return $adapted_result;

@@ -82,7 +82,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
 
       // Ensure that the $fieldName ordering matches that of the bundles.
       // @see \Drupal\canvas\TypedData\BetterEntityDataDefinition::create()
-      if ($bundles !== array_keys($fieldName)) {
+      if ($bundles !== \array_keys($fieldName)) {
         throw new \InvalidArgumentException('A field name must be specified for every bundle, and in the same order.');
       }
     }
@@ -92,7 +92,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       // TRICKY: ⚠️ It is possible that the same field name occurs multiple
       // times (if different bundles use the same field).
       \assert(is_array($fieldName));
-      if (array_values(array_unique($fieldName)) !== array_keys($propName)) {
+      if (array_values(array_unique($fieldName)) !== \array_keys($propName)) {
         throw new \InvalidArgumentException('A field property name must be specified for every field name, and in the same order.');
       }
       if (array_values(array_unique($propName)) === [StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP]) {

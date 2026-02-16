@@ -386,7 +386,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     $config = \Drupal::configFactory()->loadMultiple(['core.extension', 'system.theme']);
     $installed_modules = [
       'core',
-      ...array_keys($config['core.extension']->get('module')),
+      ...\array_keys($config['core.extension']->get('module')),
     ];
     // @see \Drupal\Core\Extension\ThemeHandler::getDefault()
     $default_theme = $config['system.theme']->get('default');
@@ -444,7 +444,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
     $container = \Drupal::getContainer();
     $theme_handler = $container->get(ThemeHandlerInterface::class);
-    $installed_themes = array_keys($theme_handler->listInfo());
+    $installed_themes = \array_keys($theme_handler->listInfo());
     $default_theme = $theme_handler->getDefault();
 
     // We need to get the hierarchy of base themes from the current theme.
@@ -483,7 +483,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     $container = \Drupal::getContainer();
     $theme_initialization = $container->get(ThemeInitializationInterface::class);
     $theme_object = $theme_initialization->getActiveThemeByName($default_theme);
-    $theme_ancestors = array_keys($theme_object->getBaseThemeExtensions());
+    $theme_ancestors = \array_keys($theme_object->getBaseThemeExtensions());
     return [...$theme_ancestors, $default_theme];
   }
 

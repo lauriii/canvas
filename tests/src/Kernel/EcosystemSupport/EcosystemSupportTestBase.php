@@ -15,7 +15,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 abstract class EcosystemSupportTestBase extends CanvasKernelTestBase {
 
   public static function getUninstalledStableModulesWithPlugin(string $plugin_type_subdir): array {
-    return array_keys(array_filter(
+    return \array_keys(array_filter(
       \Drupal::service(ModuleExtensionList::class)->getList(),
       // Filter out contrib, hidden, testing, experimental, and deprecated
       // modules. We also don't need to enable modules that are already enabled.

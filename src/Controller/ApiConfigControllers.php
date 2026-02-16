@@ -232,7 +232,7 @@ final class ApiConfigControllers extends ApiControllerBase {
       // For bundleless content entity types, omit the label.
       // For example: the `User` content entity type does not have any bundles,
       // so listing "User" twice as the label is pointless.
-      if (array_keys($hierarchical_json[$entity_type_id]['bundles']) === [$entity_type_id]) {
+      if (\array_keys($hierarchical_json[$entity_type_id]['bundles']) === [$entity_type_id]) {
         $hierarchical_json[$entity_type_id]['bundles'][$entity_type_id]['label'] = NULL;
       }
       if ($bundle_entity_type_id) {

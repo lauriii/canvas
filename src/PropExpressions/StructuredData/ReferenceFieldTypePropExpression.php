@@ -173,7 +173,7 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
     \assert($this->referenced instanceof ReferencedBundleSpecificBranches);
     $existing_branches = $this->referenced->bundleSpecificReferencedExpressions;
     if (!$this->hasBranch($branch_to_remove)) {
-      throw new \InvalidArgumentException(\sprintf("The branch `%s` was not found. Existing branches: `%s`.", $branch_to_remove, implode('`, `', array_keys($existing_branches))));
+      throw new \InvalidArgumentException(\sprintf("The branch `%s` was not found. Existing branches: `%s`.", $branch_to_remove, implode('`, `', \array_keys($existing_branches))));
     }
 
     unset($existing_branches[$branch_to_remove]);

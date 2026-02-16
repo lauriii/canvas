@@ -38,7 +38,7 @@ class CanvasOauthRouteSubscriber extends RouteSubscriberBase {
     // module, which would be redundant with `canvas_oauth`.
     // @see \Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider
     $providers = array_filter(
-      array_keys($this->authenticationCollector->getSortedProviders()),
+      \array_keys($this->authenticationCollector->getSortedProviders()),
       fn($provider_id) => $this->authenticationCollector->isGlobal($provider_id) && $provider_id !== 'oauth2'
     );
 

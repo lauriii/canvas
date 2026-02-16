@@ -160,7 +160,7 @@ final class PropSourceSuggester {
       )->getComponents();
       uasort($expected_order, SortArray::sortByWeightElement(...));
       $bucketed_by_field = array_fill_keys(
-        array_keys($expected_order),
+        \array_keys($expected_order),
         [],
       );
       // Push each expression into the right (field) bucket, but only if
@@ -331,7 +331,7 @@ final class PropSourceSuggester {
       // Top-level keys: the prop names of the targeted component.
       \array_map(
         fn (string $key): string => ComponentPropExpression::fromString($key)->propName,
-        array_keys($suggestions),
+        \array_keys($suggestions),
       ),
       \array_map(
         // Second level keys: opaque identifiers for the suggestions to
@@ -354,7 +354,7 @@ final class PropSourceSuggester {
                 'source' => $prop_source->toArray(),
               ];
             },
-            array_keys($prop_sources),
+            \array_keys($prop_sources),
             array_values($prop_sources),
           ),
         ),

@@ -165,7 +165,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    */
   public function computeInitialComponentStatus(string $source_specific_id): bool {
     \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
-    $all_installed_core_extensions = array_keys(array_filter(
+    $all_installed_core_extensions = \array_keys(array_filter(
       $this->moduleExtensionList->getAllInstalledInfo(),
       fn (array $info): bool => ($info['package'] ?? NULL) === 'Core',
     ));

@@ -26,8 +26,8 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
 
     $expected_sequence_keys = $this->getSequenceKeys($constraint);
 
-    $missing_keys = array_diff($expected_sequence_keys, array_keys($value));
-    $invalid_keys = array_diff(array_keys($value), $expected_sequence_keys);
+    $missing_keys = array_diff($expected_sequence_keys, \array_keys($value));
+    $invalid_keys = array_diff(\array_keys($value), $expected_sequence_keys);
     if (empty($missing_keys) && empty($invalid_keys)) {
       return;
     }

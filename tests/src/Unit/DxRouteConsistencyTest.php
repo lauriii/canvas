@@ -20,7 +20,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
     \assert(is_array($routes));
 
     // All route definitions must be alphabetically ordered.
-    $actual_routes_order = array_keys($routes);
+    $actual_routes_order = \array_keys($routes);
     $expected_routers_order = $actual_routes_order;
     sort($expected_routers_order);
     $this->assertSame($expected_routers_order, $actual_routes_order);
@@ -72,7 +72,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
         }
       }
     }
-    $this->assertSame(array_keys($normalized_route_defined_canvas_api_operations), array_keys($normalized_openapi_defined_operations), 'OpenAPI path and operation specs exist for every Canvas API route, and appear in alphabetical order.');
+    $this->assertSame(\array_keys($normalized_route_defined_canvas_api_operations), \array_keys($normalized_openapi_defined_operations), 'OpenAPI path and operation specs exist for every Canvas API route, and appear in alphabetical order.');
   }
 
   private static function resolveRouteDefinitionsToOperations(array $routes_by_name): array {
@@ -92,7 +92,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       // need to be resolved, to account for e.g. different request/response
       // body schemas for each config entity type supported by a route.
       // @see https://symfony.com/doc/current/routing.html#route-parameters
-      $static_path_part_requirements = array_keys(array_filter(
+      $static_path_part_requirements = \array_keys(array_filter(
         $route['requirements'] ?? [],
           // Ignore special parameters.
           // @see https://symfony.com/doc/current/routing.html#special-parameters
@@ -109,7 +109,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
         continue;
       }
 
-      $operations_to_resolve = array_keys($operations_for_route);
+      $operations_to_resolve = \array_keys($operations_for_route);
       foreach ($static_path_part_requirements as $req_name) {
         $req_value = $route['requirements'][$req_name];
 
@@ -158,7 +158,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
       // @phpstan-ignore-next-line
       \array_map(
         fn (string $path) => preg_replace('/\{.*\}/', '{}', $path),
-        array_keys($array_with_paths_as_keys),
+        \array_keys($array_with_paths_as_keys),
       ),
       array_values($array_with_paths_as_keys)
     );

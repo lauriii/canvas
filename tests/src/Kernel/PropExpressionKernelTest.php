@@ -392,7 +392,7 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
             }
             else {
               \assert($expression->referenced instanceof ReferencedBundleSpecificBranches);
-              $first_branch = array_keys($expression->referenced->bundleSpecificReferencedExpressions)[0];
+              $first_branch = \array_keys($expression->referenced->bundleSpecificReferencedExpressions)[0];
               // TRICKY: the exact dependencies depend on the bundle of the
               // entity that is referenced. To be able to test this with a
               // single expectation rather than many, this test hardcodes the

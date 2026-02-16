@@ -60,7 +60,7 @@ final class CanvasResourceLink implements CacheableDependencyInterface {
    * @see https://tools.ietf.org/html/rfc8288#section-2.1
    */
   public function __construct(RefinableCacheableDependencyInterface $cacheability, Url $url, string $link_relation_type, array $target_attributes = []) {
-    \assert(Inspector::assertAllStrings(array_keys($target_attributes)));
+    \assert(Inspector::assertAllStrings(\array_keys($target_attributes)));
     \assert(Inspector::assertAll(function ($target_attribute_value) {
       return is_string($target_attribute_value) || is_array($target_attribute_value);
     }, array_values($target_attributes)));

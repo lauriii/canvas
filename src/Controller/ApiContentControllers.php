@@ -255,7 +255,7 @@ final class ApiContentControllers {
       self::MAX_SEARCH_RESULTS
     );
 
-    return array_keys(NestedArray::mergeDeepArray($matching_data, TRUE));
+    return \array_keys(NestedArray::mergeDeepArray($matching_data, TRUE));
   }
 
   /**

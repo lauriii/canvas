@@ -349,8 +349,8 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     // when failing. So we can check (UUID, entity type) pairs on test output.
     $all_uuids_debug_string = var_export(array_combine($all_uuids, array_column($exported_entity_info, 'entity_type')), TRUE);
     sort($all_uuids);
-    $actual_export_uuids = array_keys($finder->data);
-    $actual_export_uuids_debug_string = var_export(array_combine(array_keys($finder->data), \array_map(fn($data) => $data['_meta']['entity_type'], $finder->data)), TRUE);
+    $actual_export_uuids = \array_keys($finder->data);
+    $actual_export_uuids_debug_string = var_export(array_combine(\array_keys($finder->data), \array_map(fn($data) => $data['_meta']['entity_type'], $finder->data)), TRUE);
     sort($actual_export_uuids);
     self::assertEquals($all_uuids, $actual_export_uuids, $all_uuids_debug_string . ' vs ' . $actual_export_uuids_debug_string);
 

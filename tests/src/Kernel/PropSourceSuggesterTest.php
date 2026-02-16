@@ -208,7 +208,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
       );
 
     // All expectations that are present must be correct.
-    foreach (array_keys($expected) as $prop_name) {
+    foreach (\array_keys($expected) as $prop_name) {
       $this->assertSame(
         $expected[$prop_name],
         [
@@ -222,7 +222,7 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
     }
 
     // Finally, the set of expectations must be complete.
-    $this->assertSame(array_keys($expected), array_keys($suggestions));
+    $this->assertSame(\array_keys($expected), \array_keys($suggestions));
   }
 
   public static function provider(): \Generator {

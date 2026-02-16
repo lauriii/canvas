@@ -264,7 +264,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
 
     // Verify only English auto-save is in the list.
     $list = $auto_save_manager->getAllAutoSaveList();
-    self::assertEquals([$key_en], array_keys($list));
+    self::assertEquals([$key_en], \array_keys($list));
     self::assertEquals('Modified English title', $list[$key_en]['label']);
 
     // Make a change to the French page and save auto-save.
@@ -277,7 +277,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
 
     // Verify both auto-saves are in the list with correct labels.
     $list = $auto_save_manager->getAllAutoSaveList();
-    $keys = array_keys($list);
+    $keys = \array_keys($list);
     asort($keys);
     self::assertEquals([$key_en, $key_fr], $keys);
     self::assertEquals('Modified English title', $list[$key_en]['label']);
@@ -296,7 +296,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     self::assertFalse($auto_save_manager->getAutoSaveEntity($page_fr)->isEmpty());
 
     $list = $auto_save_manager->getAllAutoSaveList();
-    self::assertEquals([$key_fr], array_keys($list));
+    self::assertEquals([$key_fr], \array_keys($list));
 
     // Delete the French auto-save.
     $auto_save_manager->delete($page_fr);

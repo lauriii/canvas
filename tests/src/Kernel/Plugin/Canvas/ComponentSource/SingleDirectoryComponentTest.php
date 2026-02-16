@@ -270,7 +270,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       $source = $component->getComponentSource();
       $private_method = new \ReflectionMethod($source, 'getDefaultStaticPropSource');
       $private_method->setAccessible(TRUE);
-      foreach (array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
+      foreach (\array_keys($settings[$component_id]['prop_field_definitions']) as $prop) {
         $static_prop_source = $private_method->invoke($source, $prop, TRUE);
         $this->assertInstanceOf(StaticPropSource::class, $static_prop_source);
       }
@@ -1117,10 +1117,10 @@ HTML
 
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);
     $actual_props = array_combine(
-      array_keys($expected_props_for_uuids),
+      \array_keys($expected_props_for_uuids),
       \array_map(
         fn (string $uuid) => $canvas_field_item->getComponent()?->getComponentSource()->getExplicitInput($uuid, $canvas_field_item)['resolved'],
-        array_keys($expected_props_for_uuids)
+        \array_keys($expected_props_for_uuids)
       )
     );
     self::assertEquals($expected_props_for_uuids, $actual_props);

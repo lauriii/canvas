@@ -120,7 +120,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $listing_url, [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
     \assert(is_array($body));
     $this->assertCount(50, $body['data']);
-    $expected_usage = array_fill_keys(array_keys(Component::loadMultiple()), FALSE);
+    $expected_usage = array_fill_keys(\array_keys(Component::loadMultiple()), FALSE);
     $expected_usage['sdc.canvas_test_sdc.props-no-slots'] = TRUE;
     ksort($expected_usage);
     $this->assertSame($expected_usage, $body['data']);
@@ -167,7 +167,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     $this->assertNull($body['links']['next']);
     $this->assertCount(1, $body['data']);
     $this->assertSame([
-      array_keys($components)[ApiUsageControllers::MAX_PER_PAGE - 1] => FALSE,
+      \array_keys($components)[ApiUsageControllers::MAX_PER_PAGE - 1] => FALSE,
     ], $body['data']);
   }
 

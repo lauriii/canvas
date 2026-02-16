@@ -33,7 +33,7 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
     public readonly array $objectPropsToFieldProps,
   ) {
     \assert(!empty($this->objectPropsToFieldProps));
-    \assert(Inspector::assertAllStrings(array_keys($this->objectPropsToFieldProps)));
+    \assert(Inspector::assertAllStrings(\array_keys($this->objectPropsToFieldProps)));
     \assert(Inspector::assertAll(function ($expr) {
       return $expr instanceof FieldPropExpression || $expr instanceof ReferenceFieldPropExpression;
     }, $this->objectPropsToFieldProps));
@@ -75,7 +75,7 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
             $tail,
           );
         },
-        array_keys($this->objectPropsToFieldProps),
+        \array_keys($this->objectPropsToFieldProps),
         array_values($this->objectPropsToFieldProps),
       ))
       . static::SUFFIX_OBJECT;

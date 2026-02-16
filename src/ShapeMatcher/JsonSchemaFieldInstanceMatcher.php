@@ -209,7 +209,7 @@ final class JsonSchemaFieldInstanceMatcher {
       // @see https://www.drupal.org/project/unlimited_field_settings
       // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.6.4.2
       // @see https://stackoverflow.com/a/49548055
-      if (!empty(array_diff(array_keys($schema), ['type', 'items', 'maxItems']))) {
+      if (!empty(array_diff(\array_keys($schema), ['type', 'items', 'maxItems']))) {
         return [];
       }
       $cardinality = $schema['maxItems'] ?? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
@@ -243,7 +243,7 @@ final class JsonSchemaFieldInstanceMatcher {
   private function matchEntityPropsForObject(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, bool $is_required_in_json_schema, array $schema, int $cardinality_in_json_schema): array {
     // First, naïvely match using the scalars inside the `type: object`.
     $per_object_prop_scalar_matches = self::matchEntityPropsForObjectUsingScalars($entity_data_definition, $levels_to_recurse, $is_required_in_json_schema, $schema, $cardinality_in_json_schema);
-    $all_object_props = array_keys($per_object_prop_scalar_matches);
+    $all_object_props = \array_keys($per_object_prop_scalar_matches);
     $required_object_props = self::getRequiredObjectProps($schema);
 
     // The scalar matches traversed the entire Typed Data tree (up to a depth of
@@ -290,7 +290,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // best possible way to populate a `type: object` prop.
     // @todo These heuristics very likely need tweaking; it's not hard to find odd results in PropShapeToFieldInstanceTest…
     $inverted = [];
-    foreach (array_keys($per_object_prop_scalar_matches) as $object_prop_name) {
+    foreach (\array_keys($per_object_prop_scalar_matches) as $object_prop_name) {
       foreach ($per_object_prop_scalar_matches[$object_prop_name] as $field_prop_expr) {
         $field_name = $field_prop_expr->getFieldName();
         // The same field name prop should never be used multiple times; best
@@ -346,16 +346,16 @@ final class JsonSchemaFieldInstanceMatcher {
     // In other words: even an object populated by an overlapping scalar match
     // may be relevant, if it populates MORE object props.
     // @see ::determineReferencesWorthFollowingForObjectFromScalarMatches()
-    foreach (array_keys($flagged_for_omission) as $field_name) {
+    foreach (\array_keys($flagged_for_omission) as $field_name) {
       // How many object props does the possibly inferior scalar match populate?
       \assert(array_key_exists($field_name, $matches_references));
-      $scalar_match_object_props_populated = count(array_keys($inverted[$field_name]));
+      $scalar_match_object_props_populated = count(\array_keys($inverted[$field_name]));
 
       // How many object props do the possibly superior object matches populate?
       foreach ($matches_references[$field_name] as $reference_match) {
         $reference_leaf = $reference_match->getFinalTargetExpression();
         \assert($reference_leaf instanceof ObjectPropExpressionInterface);
-        $reference_match_object_props_populated = count(array_keys($reference_leaf->getObjectExpressions()));
+        $reference_match_object_props_populated = count(\array_keys($reference_leaf->getObjectExpressions()));
 
         // If the reference match is superior, omit the scalar match.
         if ($scalar_match_object_props_populated <= $reference_match_object_props_populated) {
@@ -373,14 +373,14 @@ final class JsonSchemaFieldInstanceMatcher {
     // The minimal match: all required object props are present.
     $matches_minimal = array_filter(
       $inverted,
-      fn ($supported_object_props) => empty(array_diff($required_object_props, array_keys($supported_object_props)))
+      fn ($supported_object_props) => empty(array_diff($required_object_props, \array_keys($supported_object_props)))
     );
     ksort($matches_minimal);
 
     // The complete match: the complete set of object props is present.
     $matches_complete = array_filter(
       $inverted,
-      fn ($supported_object_props) => array_keys($supported_object_props) == $all_object_props
+      fn ($supported_object_props) => \array_keys($supported_object_props) == $all_object_props
     );
     ksort($matches_complete);
 
@@ -444,7 +444,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // object props.
     $references_worth_following = array_filter(
       $required_object_props_fulfilled_by_references,
-      fn (array $info) => array_keys($info['props']) == $required_object_props,
+      fn (array $info) => \array_keys($info['props']) == $required_object_props,
     );
 
     return \array_map(
@@ -472,7 +472,7 @@ final class JsonSchemaFieldInstanceMatcher {
         $cardinality_in_json_schema,
       );
     }
-    \assert(array_keys($schema['properties'] ?? []) === array_keys($object_prop_matches));
+    \assert(\array_keys($schema['properties'] ?? []) === \array_keys($object_prop_matches));
     return $object_prop_matches;
   }
 
@@ -617,7 +617,7 @@ final class JsonSchemaFieldInstanceMatcher {
             // @see \Drupal\Core\Entity\TypedData\EntityDataDefinition::getPropertyDefinitions()
             $target_bundles = $field_definition->getItemDefinition()->getSettings()['handler_settings']['target_bundles'] ?? [];
             if (count($target_bundles) > 0) {
-              $base_field_names = array_keys($target->getPropertyDefinitions());
+              $base_field_names = \array_keys($target->getPropertyDefinitions());
               foreach ($target_bundles as $target_bundle) {
                 \assert($target->getBundles() === NULL);
                 $bundle_specific_target = clone $target;

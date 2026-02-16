@@ -110,7 +110,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
       // Once validated, convert this yml to JSON that will be processed by
       // the Canvas UI.
       $custom_yaml = $this->pageBuilderHelper->customYamlToArrayMapper($component_structure);
-      \assert(array_keys($custom_yaml) === ['operations']);
+      \assert(\array_keys($custom_yaml) === ['operations']);
       $this->setStructuredOutput($custom_yaml);
       $this->setOutput('Component structure processed successfully.');
     }

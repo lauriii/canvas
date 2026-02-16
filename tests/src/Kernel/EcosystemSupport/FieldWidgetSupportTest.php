@@ -64,11 +64,11 @@ final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
     $supported = array_filter($field_widget_definitions, fn (array $def): bool => array_key_exists('canvas', $def) && array_key_exists('transforms', $def['canvas']));
     $missing = array_diff_key($field_widget_definitions, $supported);
 
-    $this->assertSame(self::SUPPORTED, array_keys($supported));
+    $this->assertSame(self::SUPPORTED, \array_keys($supported));
     $this->assertSame(
       self::COMPLETION,
       count($supported) / count($field_widget_definitions),
-      \sprintf('Not yet supported: %s', implode(', ', array_keys($missing)))
+      \sprintf('Not yet supported: %s', implode(', ', \array_keys($missing)))
     );
   }
 

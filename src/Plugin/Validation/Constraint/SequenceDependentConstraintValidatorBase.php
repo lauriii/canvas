@@ -82,7 +82,7 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
         $target_sequence::class,
       ));
     }
-    return array_keys($target_sequence->getElements());
+    return \array_keys($target_sequence->getElements());
   }
 
 }

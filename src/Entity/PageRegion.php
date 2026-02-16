@@ -73,7 +73,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
    * {@inheritdoc}
    */
   public function __construct(array $values, $entity_type) {
-    $non_existent_properties = array_keys(array_diff_key($values, get_class_vars(__CLASS__)));
+    $non_existent_properties = \array_keys(array_diff_key($values, get_class_vars(__CLASS__)));
     if (!empty($non_existent_properties)) {
       throw new \LogicException(\sprintf(
         'Trying to set non-existent config entity properties: %s.',
@@ -224,7 +224,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
   public static function createFromBlockLayout(string $theme): array {
     $theme_info = \Drupal::service('theme_handler')->getTheme($theme);
     $region_names = array_filter(
-      array_keys($theme_info->info['regions']),
+      \array_keys($theme_info->info['regions']),
       // No PageRegion config entity is allowed for the `content` region.
       fn ($s) => $s !== CanvasPageVariant::MAIN_CONTENT_REGION,
     );

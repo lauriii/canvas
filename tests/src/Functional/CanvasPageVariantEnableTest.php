@@ -129,7 +129,7 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
     foreach ($regions as $region) {
       $regions_with_component_tree[$region->id()] = $region->getComponentTree()->getValue();
     }
-    $this->assertSame($expected_page_region_ids, array_keys($regions_with_component_tree));
+    $this->assertSame($expected_page_region_ids, \array_keys($regions_with_component_tree));
 
     foreach ($regions_with_component_tree as $tree) {
       foreach ($tree as $component) {

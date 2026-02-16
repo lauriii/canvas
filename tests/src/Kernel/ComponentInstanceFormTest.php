@@ -69,7 +69,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   #[DataProvider('providerOptionalImages')]
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);
-    foreach (array_keys($actual_form_canvas_props['resolved']) as $sdc_prop_name) {
+    foreach (\array_keys($actual_form_canvas_props['resolved']) as $sdc_prop_name) {
       if (array_key_exists($sdc_prop_name, $values_to_set)) {
         $actual_form_canvas_props['resolved'][$sdc_prop_name] = $values_to_set[$sdc_prop_name]['resolved'];
         $actual_form_canvas_props['source'][$sdc_prop_name]['value'] = $values_to_set[$sdc_prop_name]['source'];

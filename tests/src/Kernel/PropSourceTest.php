@@ -211,7 +211,7 @@ class PropSourceTest extends CanvasKernelTestBase {
       return $value;
     }
     return str_replace(
-      array_keys($string_replacements),
+      \array_keys($string_replacements),
       array_values($string_replacements),
       $value
     );
@@ -288,7 +288,7 @@ class PropSourceTest extends CanvasKernelTestBase {
       $expected_user_value['src'] = str_replace(UrlHelper::encodePath('::SITE_DIR_BASE_URL::'), UrlHelper::encodePath(\base_path() . $this->siteDirectory), $expected_user_value['src']);
     }
     if (is_array($expected_user_value) && array_is_list($expected_user_value)) {
-      foreach (array_keys($expected_user_value) as $i) {
+      foreach (\array_keys($expected_user_value) as $i) {
         if (isset($expected_user_value[$i]['src'])) {
           // Make it easier to write expectations containing root-relative URLs
           // pointing somewhere into the site-specific directory.

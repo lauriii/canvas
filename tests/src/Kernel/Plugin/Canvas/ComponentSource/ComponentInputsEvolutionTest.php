@@ -529,7 +529,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     self::assertSame([], $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]));
     // Only the old version has uses that need to be updated.
     $content_entity_revisions_to_update = $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]);
-    self::assertSame($expected_config_entities_to_update, array_keys($audit->getConfigEntityDependenciesUsingComponent($updated_component, Pattern::ENTITY_TYPE_ID)));
+    self::assertSame($expected_config_entities_to_update, \array_keys($audit->getConfigEntityDependenciesUsingComponent($updated_component, Pattern::ENTITY_TYPE_ID)));
     self::assertSame($expected_content_entity_revisions_to_update, \array_map(
       self::contentEntityRevisionObjectToString(...),
       $content_entity_revisions_to_update,

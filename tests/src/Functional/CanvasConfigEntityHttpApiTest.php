@@ -1660,7 +1660,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_cache_tags = \array_values(Cache::mergeTags($expected_cache_tags, \array_values($additional_expected_cache_tags)));
     $body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/component'), $request_options, 200, $expected_contexts, $expected_cache_tags, 'UNCACHEABLE (request policy)', $expected_dynamic_page_cache);
     self::assertNotNull($body);
-    $component_config_entity_ids = array_keys($body);
+    $component_config_entity_ids = \array_keys($body);
     self::assertSame(
       $expected,
       array_values(array_filter($component_config_entity_ids, fn (string $id) => str_starts_with($id, 'js.'))),
@@ -1801,7 +1801,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'sdc.canvas_broken_sdcs.invalid-filter',
       'sdc.canvas_broken_sdcs.malformed-image',
-    ], array_keys($broken_sdcs));
+    ], \array_keys($broken_sdcs));
   }
 
   private function assertDynamicPageCacheAccelerated(?string $maxAge = NULL): void {
@@ -1931,8 +1931,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     \assert(is_array($body));
     $this->assertCount(count($this->defaultFolders) + 3, $body);
-    $this->assertEquals($new_folder_id, array_keys($body)[0]);
-    $this->assertEquals($temp_folder->id(), array_keys($body)[count($body) - 1]);
+    $this->assertEquals($new_folder_id, \array_keys($body)[0]);
+    $this->assertEquals($temp_folder->id(), \array_keys($body)[count($body) - 1]);
     $temp_folder->delete();
 
     // Delete Folder via the Canvas HTTP API: 204.
@@ -1942,7 +1942,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Use the individual URL in the list response body.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertNotNull($body);
-    $this->assertEquals(array_keys(Folder::loadMultiple()), array_keys($body));
+    $this->assertEquals(\array_keys(Folder::loadMultiple()), \array_keys($body));
     $this->assertArrayHasKey($id, $body);
     $this->assertEquals($folder_to_send + ['id' => $id], $body[$id]);
     $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/folder/' . $id), [], 200, ['user.permissions'], ['config:canvas.folder.' . $id, 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
@@ -2006,7 +2006,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertNotNull($body);
-    $this->assertEquals(array_keys(Folder::loadMultiple()), array_keys($body));
+    $this->assertEquals(\array_keys(Folder::loadMultiple()), \array_keys($body));
     $this->assertArrayHasKey($id, $body);
     $this->assertEquals($folder_to_send + ['id' => $id], $body[$id]);
 

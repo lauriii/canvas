@@ -28,7 +28,7 @@ final class SequenceKeysMatchRegexConstraintValidator extends RegexValidator {
       throw new UnexpectedTypeException($value, 'associative array');
     }
 
-    foreach (array_keys($value) as $key) {
+    foreach (\array_keys($value) as $key) {
       parent::validate($key, $constraint);
     }
   }

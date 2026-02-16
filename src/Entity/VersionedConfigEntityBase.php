@@ -134,7 +134,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
   public function getVersions(): array {
     return [
       $this->active_version,
-      ...array_diff(array_keys($this->versioned_properties), [self::ACTIVE_VERSION]),
+      ...array_diff(\array_keys($this->versioned_properties), [self::ACTIVE_VERSION]),
     ];
   }
 

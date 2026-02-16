@@ -144,9 +144,9 @@ final class ReferencedBundleSpecificBranches {
     }
 
     // Validate rule 4: check the order of branches.
-    $expected_key_order = array_keys($this->bundleSpecificReferencedExpressions);
+    $expected_key_order = \array_keys($this->bundleSpecificReferencedExpressions);
     sort($expected_key_order);
-    if (array_keys($this->bundleSpecificReferencedExpressions) !== $expected_key_order) {
+    if (\array_keys($this->bundleSpecificReferencedExpressions) !== $expected_key_order) {
       throw new \InvalidArgumentException('Bundle-specific expressions are not in alphabetical order (by their keys).');
     }
     // Validate rule 5: ensure all branches evaluate to the same shape, which
