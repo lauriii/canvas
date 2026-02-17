@@ -142,6 +142,7 @@ final class ApiLayoutController {
         $entity = $items->getParent()?->getValue();
         \assert($entity instanceof ComponentTreeEntityInterface || $entity instanceof FieldableEntityInterface);
         if ($entity instanceof ComponentTreeEntityInterface) {
+          // @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types (aka FieldableEntityInterface)
           $entity->setComponentTree($items->getValue());
         }
         $this->autoSaveManager->saveEntity($entity);
