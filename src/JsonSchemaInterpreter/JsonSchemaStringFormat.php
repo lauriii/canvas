@@ -242,6 +242,18 @@ enum JsonSchemaStringFormat: string {
           // complicated needs, use hook_canvas_storable_prop_shape_alter().
           default => NULL,
         },
+        // Stream wrapper file URIs (non-image). Can only be `format: uri|iri`.
+        // @see json-schema-definitions://canvas.module/stream-wrapper-uri
+        !array_key_exists('contentMediaType', $shape->schema)
+        && in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
+        && ($this == static::Uri || $this == static::Iri) => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+          ),
+          fieldWidget: 'file_generic',
+        ),
         default => new StorablePropShape(
           shape: $shape,
           fieldTypeProp: new FieldTypePropExpression('link', 'url'),

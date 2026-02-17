@@ -878,6 +878,44 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           ],
           'host_entity_urls' => [],
         ],
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri_public_stream_wrapper' => [
+          'required' => FALSE,
+          'instances' => [
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            "Silly image 🤡 → URI" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+          ],
+          'adapters' => [],
+          'host_entity_urls' => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_string_format_uri_public_stream_wrapper_using_ref' => [
+          'required' => FALSE,
+          'instances' => [
+            'Authored by → User → Picture → URI' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            "Silly image 🤡 → URI" => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+            'Revision user → User → Picture → URI' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:foo␝revision_uid␞␟entity␜␜entity:user␝user_picture␞␟entity␜␜entity:file␝uri␞␟value',
+            ],
+          ],
+          'adapters' => [],
+          'host_entity_urls' => [],
+        ],
         '⿲sdc_test_all_props:all-props␟test_string_format_uri_reference' => [
           'required' => FALSE,
           'instances' => [

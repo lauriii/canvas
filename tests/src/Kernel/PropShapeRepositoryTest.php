@@ -171,6 +171,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://test_theme_base.theme/organization-logo-url']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html']),
       new PropShape(['type' => 'string', 'contentMediaType' => 'text/html', 'x-formatting-context' => 'block']),
@@ -289,6 +290,14 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
           referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
         ),
         fieldWidget: 'image_image',
+      ),
+      'type=string&$ref=json-schema-definitions://canvas.module/stream-wrapper-uri' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', 'format' => 'uri', 'x-allowed-schemes' => ['public']]),
+        fieldTypeProp: new ReferenceFieldTypePropExpression(
+          referencer: new FieldTypePropExpression('file', 'entity'),
+          referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'value'),
+        ),
+        fieldWidget: 'file_generic',
       ),
       'type=string&$ref=json-schema-definitions://test_theme_base.theme/organization-logo-url' => new StorablePropShape(
         shape: new PropShape([

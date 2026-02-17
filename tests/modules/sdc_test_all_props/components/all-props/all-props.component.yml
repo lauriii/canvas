@@ -192,6 +192,19 @@ props:
       # format: uri-reference
       # contentMediaType: image/*
       # x-allowed-schemes: [http, https]
+    test_string_format_uri_public_stream_wrapper:
+      title: 'String, format=uri, public:// stream wrapper only'
+      description: 'This is the description of String, format=uri, public:// stream wrapper only'
+      type: string
+      format: uri
+      # @see https://github.com/json-schema-org/json-schema-spec/issues/1557
+      x-allowed-schemes: [public]
+    test_string_format_uri_public_stream_wrapper_using_ref:
+      title: 'String, format=uri, public:// stream wrapper only — using $ref'
+      description: 'This is the description of String, format=uri, public:// stream wrapper only — using $ref'
+      $ref: json-schema-definitions://canvas.module/stream-wrapper-uri
+      # @todo Remove in https://www.drupal.org/project/drupal/issues/3352063 — should not be necessary, but removing this causes \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo() to generate `type = ['', 'object'] 🐛
+      type: string
     test_string_format_uri_reference:
       title: 'String, format=uri-reference'
       description: 'This is the description of String, format=uri-reference'
