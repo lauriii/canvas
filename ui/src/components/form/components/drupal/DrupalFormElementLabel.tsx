@@ -54,7 +54,10 @@ const DrupalFormElementLabel = ({
     // If there is prop link data, render the PropLinker next to the label.
     // We wrap the label in a div so they can appear next to each other without
     // the linker appearing inside the <label> tag.
-    if (attributes?.prop_link_data || directLinkerData) {
+    if (
+      titleDisplay !== 'invisible' &&
+      (attributes?.prop_link_data || directLinkerData)
+    ) {
       const propLinkData: PropLinkData = directLinkerData
         ? directLinkerData
         : (attributes.prop_link_data as PropLinkData);

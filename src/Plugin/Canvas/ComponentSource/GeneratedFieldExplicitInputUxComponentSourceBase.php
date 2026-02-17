@@ -824,6 +824,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $element['#label_attributes']['prop_link_data'] = $propLinkData;
     }
 
+    // Make the prop link data available to fieldsets.
+    $wrappers = $element['#theme_wrappers'] ?? [];
+    if (!empty($propLinkData) && in_array('fieldset', $wrappers, TRUE)) {
+      $element['#prop_link_data'] = $propLinkData;
+    }
+
     foreach (Element::children($element) as $key) {
       static::processElementTreeLinkerLabels($element[$key], $propLinkData);
     }

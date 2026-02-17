@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Default theme implementation for a fieldset element and its children.
+ * Canvas Stark theme override for a fieldset element and its children.
  *
  * Available variables:
  * - attributes: HTML attributes for the <fieldset> element.
@@ -23,7 +23,7 @@
  * - prefix: The content to add before the <fieldset> children.
  * - suffix: The content to add after the <fieldset> children.
  *
- * @see template_preprocess_fieldset()
+ * @see\Drupal\Core\Form\FormPreprocess::preprocessFieldset()
  *
  * @ingroup themeable
  */
@@ -37,6 +37,7 @@
   ]
 %}
 <fieldset{{ attributes.addClass(classes) }}>
+  {# @todo pass these classes to <canvas-drupal-label> #}
   {%
     set legend_span_classes = [
       'fieldset-legend',
@@ -46,7 +47,13 @@
   %}
   {# Always wrap fieldset legends in a <span> for CSS positioning. #}
   <legend{{ legend.attributes }}>
-    <span{{ legend_span.attributes.addClass(legend_span_classes) }}>{{ legend.title }}</span>
+    <canvas-drupal-label
+      title="{{ legend.title }}"
+      {% if prop_link_data %}
+        direct_linker_data="{{ prop_link_data }}"
+      {% endif  %}
+    >
+    </canvas-drupal-label>
   </legend>
   <div class="fieldset-wrapper">
     {% if description_display == 'before' and description.content %}
