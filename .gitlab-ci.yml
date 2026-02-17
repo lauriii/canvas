@@ -298,9 +298,7 @@ phpunit:
     # Auto-retry when random failures occur due to upstream bugs.
     # @see https://www.drupal.org/project/canvas/issues/3571997#comment-16458359
     # @todo Rewrite this after https://www.drupal.org/project/gitlab_templates/issues/3572371 lands
-    - 'grep "RecursiveDirectoryIterator::__construct(/builds/project/canvas/web/sites/simpletest/.*): Failed to open directory: No such file or directory" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
-    - 'grep "Warning: rmdir(sites/simpletest/.*): Directory not empty in .*/FileSystem.php" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
-    - 'grep "RecursiveDirectoryIterator::__construct(/builds/project/canvas/web/sites/simpletest/.*/files/php/twig/.*): Failed to open directory: No such file or directory" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true'
+    - grep "RecursiveDirectoryIterator" $CI_PROJECT_DIR/$_WEB_ROOT/sites/default/files/simpletest/phpunit-*.xml && exit 112 || true
     - exit $EXIT_CODE
   needs:
     - composer
