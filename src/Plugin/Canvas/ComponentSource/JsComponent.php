@@ -202,6 +202,9 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $valid_props = $component->getProps() ?? [];
 
     [$props, $props_cacheability] = self::getResolvedPropsAndCacheability(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props));
+    // Match SDC's developer-only validation of props.
+    // @see \Drupal\Core\Template\ComponentsTwigExtension::validateProps()
+    \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
     CacheableMetadata::createFromRenderArray($build)
       ->addCacheableDependency($component)
       ->addCacheableDependency($props_cacheability)

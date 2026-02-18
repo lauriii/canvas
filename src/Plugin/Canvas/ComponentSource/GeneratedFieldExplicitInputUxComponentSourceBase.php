@@ -106,7 +106,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     array $configuration,
     string $plugin_id,
     array $plugin_definition,
-    private readonly ComponentValidator $componentValidator,
+    protected readonly ComponentValidator $componentValidator,
     private readonly WidgetPluginManager $fieldWidgetPluginManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly PropSourceSuggester $propSourceSuggester,

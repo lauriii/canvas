@@ -6,8 +6,7 @@ dependencies:
 machineName: canvas_test_code_components_with_enums
 name: 'With enums'
 block_override: null
-required:
-  - name
+required: {  }
 props:
   favorite_color:
     title: Favorite color
