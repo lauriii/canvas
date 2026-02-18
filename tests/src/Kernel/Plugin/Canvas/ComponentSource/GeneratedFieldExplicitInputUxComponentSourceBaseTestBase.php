@@ -102,7 +102,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
 
     // Rendering MUST always succeed. It will only succeed if hydration is
     // smart enough to omit both optional props that are NULL(ish).
-    $hydrated = $source->hydrateComponent(['resolved' => $resolved], []);
+    // But we need to pass the required ones as our live components will do.
+    $active_required_explicit_inputs = $component_with_optional_image_object_shape
+      ->loadVersion($component_with_optional_image_object_shape->getActiveVersion())
+      ->getComponentSource()
+      ->getDefaultExplicitInput(only_required: TRUE);
+    // Avoid side effects.
+    $hydrated = $source->hydrateComponent(['resolved' => $resolved], [], $active_required_explicit_inputs);
     // @phpstan-ignore-next-line offsetAccess.notFound
     self::assertSame($is_object_prop_present_in_hydration, \array_key_exists('image', $hydrated[GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME]));
     $build = $source->renderComponent($hydrated, [], $this->randomString(), FALSE);

@@ -295,7 +295,8 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getDefaultExplicitInput(): array {
+  public function getDefaultExplicitInput(bool $only_required = FALSE): array {
+    // @todo implement $only_required handling after https://www.drupal.org/i/3521221.
     return $this->getBlockPlugin()->defaultConfiguration();
   }
 
@@ -318,7 +319,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions, array $active_required_explicit_inputs): array {
     return [self::EXPLICIT_INPUT_NAME => $explicit_input];
   }
 

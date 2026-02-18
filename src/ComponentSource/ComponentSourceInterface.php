@@ -142,7 +142,7 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    *   An array of prop sources to use for the inputs of this component, keyed
    *   by input name.
    */
-  public function getDefaultExplicitInput(): array;
+  public function getDefaultExplicitInput(bool $only_required = FALSE): array;
 
   /**
    * Retrieves the component instance's explicit (possibly empty) input.
@@ -164,11 +164,18 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
    * only handles a single component instance, not a component tree. Populating
    * slots with component instance happens later.
    *
+   * @param array $active_required_explicit_inputs
+   *   The required explicit inputs (e.g. props) for the active version of the
+   *   component. On hydration, we are always rendering the live implementation
+   *   of that component. If it defines required inputs, we need to include
+   *   those to ensure we don't have an error when rendering a component
+   *   instance on a live public-facing component tree.
+   *
    * @return array{'slots'?: array<string, string>}
    *
    * @see \Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface::setSlots()
    */
-  public function hydrateComponent(array $explicit_input, array $slot_definitions): array;
+  public function hydrateComponent(array $explicit_input, array $slot_definitions, array $active_required_explicit_inputs): array;
 
   /**
    * Converts (stored) explicit inputs to the data model expected by the client.

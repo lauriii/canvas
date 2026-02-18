@@ -11,15 +11,18 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Exception\SubtreeInjectionException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Uuid\Php;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -1720,6 +1723,167 @@ HTML,
     catch (SubtreeInjectionException $e) {
       $this->assertSame($expected_tree_or_exception, $e->getMessage());
     }
+  }
+
+  /**
+   * Test that hydration filters props/slots removed from the active version.
+   */
+  public function testHydrationFiltersUnsupportedPropsAndSlots(): void {
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
+
+    $test_code_component_id = 'evolution-test';
+    $test_component_id = JsComponent::componentIdFromJavascriptComponentId($test_code_component_id);
+    $js_component = JavaScriptComponent::create([
+      'machineName' => $test_code_component_id,
+      'name' => 'Evolution Test Component',
+      'status' => TRUE,
+      'props' => [
+        'required_text' => [
+          'title' => 'Required Text',
+          'type' => 'string',
+          'examples' => ['Required example'],
+        ],
+        'optional_text' => [
+          'title' => 'Optional Text',
+          'type' => 'string',
+          'examples' => ['Optional example'],
+        ],
+        'removable_prop' => [
+          'title' => 'Removable Prop',
+          'type' => 'string',
+          'examples' => ['Removable example'],
+        ],
+      ],
+      'required' => ['required_text'],
+      'slots' => [
+        'main_slot' => [
+          'title' => 'Main Slot',
+          'examples' => ['<p>Main content</p>'],
+        ],
+        'removable_slot' => [
+          'title' => 'Removable Slot',
+          'examples' => ['<p>Removable content</p>'],
+        ],
+      ],
+      'js' => [
+        'original' => 'export default function() { return null; }',
+        'compiled' => 'export default function() { return null; }',
+      ],
+      'css' => ['original' => '', 'compiled' => ''],
+    ]);
+    $js_component->save();
+
+    $component = Component::load($test_component_id);
+    $this->assertInstanceOf(ComponentInterface::class, $component);
+    $original_version = $component->getActiveVersion();
+
+    $item_list = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $parent_uuid = (new Php())->generate();
+    $main_slot_child_uuid = (new Php())->generate();
+    $removable_slot_child_uuid = (new Php())->generate();
+    $item_list->setValue([
+      [
+        'uuid' => $parent_uuid,
+        'component_id' => $test_component_id,
+        // `optional_text` omitted as it is optional, but will become required.
+        'inputs' => [
+          'required_text' => 'Required value',
+          'removable_prop' => 'This prop will be removed',
+        ],
+      ],
+      [
+        'uuid' => $main_slot_child_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'inputs' => [
+          'text' => 'Main slot child',
+          'href' => 'https://example.com/main',
+        ],
+        'parent_uuid' => $parent_uuid,
+        'slot' => 'main_slot',
+      ],
+      [
+        'uuid' => $removable_slot_child_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'inputs' => [
+          'text' => 'Removable slot child',
+          'href' => 'https://example.com/removable',
+        ],
+        'parent_uuid' => $parent_uuid,
+        'slot' => 'removable_slot',
+      ],
+    ]);
+    self::assertCount(0, $item_list->validate(), (string) $item_list->validate());
+    $stored_values = $item_list->getValue();
+    self::assertSame($original_version, $stored_values[0]['component_version']);
+
+    // Update the component: remove removable_prop and removable_slot and make
+    // optional_text required (it was never provided, so validation will fail).
+    $js_component = \Drupal::entityTypeManager()
+      ->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)
+      ->loadUnchanged($test_code_component_id);
+    self::assertInstanceOf(JavaScriptComponent::class, $js_component);
+    $js_component->setProps([
+      'required_text' => [
+        'title' => 'Required Text',
+        'type' => 'string',
+        'examples' => ['Required example'],
+      ],
+      'optional_text' => [
+        'title' => 'Optional Text',
+        'type' => 'string',
+        'examples' => ['Optional example'],
+      ],
+    ]);
+    $js_component->set('required', [
+      'required_text',
+      'optional_text',
+    ]);
+    $js_component->set('slots', [
+      'main_slot' => [
+        'title' => 'Main Slot',
+        'examples' => ['<p>Main content</p>'],
+      ],
+    ]);
+    $js_component->save();
+
+    $component = \Drupal::entityTypeManager()
+      ->getStorage(Component::ENTITY_TYPE_ID)
+      ->loadUnchanged($test_component_id);
+    $this->assertInstanceOf(ComponentInterface::class, $component);
+    $new_version = $component->getActiveVersion();
+    $this->assertNotSame($original_version, $new_version);
+
+    $hydrated_value = \Closure::bind(function () {
+      return $this->getHydratedTree();
+    }, $item_list, $item_list)();
+    $tree = $hydrated_value->getTree();
+
+    $this->assertArrayHasKey(ComponentTreeItemList::ROOT_UUID, $tree);
+    $this->assertArrayHasKey($parent_uuid, $tree[ComponentTreeItemList::ROOT_UUID]);
+    $hydrated_parent = $tree[ComponentTreeItemList::ROOT_UUID][$parent_uuid];
+    $this->assertSame($test_component_id, $hydrated_parent['component']);
+
+    $this->assertArrayHasKey('props', $hydrated_parent);
+    $props = $hydrated_parent['props'];
+    $this->assertArrayHasKey('required_text', $props);
+    $this->assertArrayHasKey('removable_prop', $props, 'Removed prop kept but will be ignored by the component');
+    // The optional_text prop has input and is the default value.
+    $this->assertArrayHasKey('optional_text', $props);
+
+    $this->assertArrayHasKey('slots', $hydrated_parent);
+    $slots = $hydrated_parent['slots'];
+    $this->assertArrayHasKey('main_slot', $slots);
+    $this->assertIsArray($slots['main_slot']);
+    $this->assertArrayHasKey($main_slot_child_uuid, $slots['main_slot']);
+    $this->assertArrayHasKey('removable_slot', $slots, 'Removed slot kept but will be ignored by the component');
+
+    $entity = Page::create([])->enforceIsNew(FALSE);
+    $build = $item_list->toRenderable($entity);
+    $this->render($build);
+
+    // Prop validation fails because optional_text is now required but missing.
+    // The error is caught by renderify and handled gracefully.
+    $this->assertNoText('[canvas:evolution-test/optional_text] The property optional_text is required.');
   }
 
 }

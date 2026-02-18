@@ -21,6 +21,11 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
  * default value (the first one in examples) for the new prop.
  * @todo Actually implement that in https://www.drupal.org/i/3568602
  *
+ * Affects only "edit time", should not be used at render time, because it:
+ * 1) is too heavy in terms of performance;
+ * 2) does more than the strictly required to be able to render the live version
+ *    of the component.
+ *
  * @see \Drupal\canvas\Attribute\ComponentSource::__construct(updater)
  * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface
  */

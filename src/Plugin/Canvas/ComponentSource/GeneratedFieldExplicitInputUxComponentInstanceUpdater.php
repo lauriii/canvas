@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentInstanceUpdateAttemptResult;
 use Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -40,18 +41,15 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
    * - Adding optional props
    * - Adding or removing slots
    * - Removing props (required or optional)
+   * - Adding required props
+   * - Changing props from optional to required
+   * - Adding slots
    * - Changing props from required to optional
    * - Changing a prop matched prop shape field widget (but only the widget!)
    * - Changing default values in prop_field_definitions
    * - Changing slot examples
    *
    * Unsafe changes (that prevent auto-update) include:
-   *
-   * @todo We should be able to auto-update when adding a new required prop.
-   *   Fix it in https://www.drupal.org/i/3568602 and move to the safe changes
-   *   section.
-   * - Adding a new required prop.
-   * - Changing props from optional to required
    * - Changing prop shapes
    *
    * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest::providerUpdate
@@ -68,42 +66,26 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     $from_version = $component->getLoadedVersion();
     $to_version = $component->getActiveVersion();
 
-    [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
-
-    // If there are new added required props, the update is UNSAFE.
-    $new_props_names = \array_diff(\array_keys($to_props), \array_keys($from_props));
-    $new_props = \array_intersect_key($to_props, \array_flip($new_props_names));
-    $all_new_props_are_optional = \array_all($new_props, fn(array $prop_field_definition): bool => $prop_field_definition['required'] === FALSE);
-    if (!$all_new_props_are_optional) {
-      return FALSE;
-    }
-
-    $common_props_names = \array_keys(\array_intersect_key($to_props, $from_props));
-    // For existing props, we allow changing a prop from required to optional,
-    // but an optional prop cannot become required - UNSAFE
-    $common_props_names_from_optional_to_required = \array_filter($common_props_names, fn(string $prop_name): bool =>
-      !$from_props[$prop_name]['required'] && $to_props[$prop_name]['required']);
-    if (!empty($common_props_names_from_optional_to_required)) {
-      return FALSE;
-    }
-
     // Props that are still present, need to allow the same field data to be
     // stored in the active version of the Component. If not
     // (If only the field widget or expression changes, it's SAFE to update.)
     $irrelevant_prop_shape = new PropShape(['type' => 'string']);
     $prop_field_definition_to_storable_prop_shape = static function (array $prop_field_definition) use ($irrelevant_prop_shape): StorablePropShape {
+      $field_type_prop = StructuredDataPropExpression::fromString($prop_field_definition['expression']);
+      \assert($field_type_prop instanceof FieldTypeBasedPropExpressionInterface);
       return new StorablePropShape(
         shape: $irrelevant_prop_shape,
-        // @phpstan-ignore argument.type
-        fieldTypeProp: StructuredDataPropExpression::fromString($prop_field_definition['expression']),
+        fieldTypeProp: $field_type_prop,
         fieldWidget: 'irrelevant',
         cardinality: $prop_field_definition['cardinality'] ?? NULL,
         fieldStorageSettings: $prop_field_definition['field_storage_settings'] ?? NULL,
         fieldInstanceSettings: $prop_field_definition['field_instance_settings'] ?? NULL,
       );
     };
+    [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
     $from_props = \array_map($prop_field_definition_to_storable_prop_shape, $from_props);
     $to_props = \array_map($prop_field_definition_to_storable_prop_shape, $to_props);
+    $common_props_names = \array_keys(\array_intersect_key($to_props, $from_props));
     $common_props_names_with_changed_definition = \array_any(
       $common_props_names,
       fn (string $prop_name): bool => !$from_props[$prop_name]->fieldDataFitsIn($to_props[$prop_name]),
@@ -131,14 +113,47 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
     $to_version = $component->getActiveVersion();
     \assert($from_version !== $to_version);
 
-    // @todo handle newly added required props in https://www.drupal.org/i/3568602
     [$from_props, $to_props] = self::getPropDefinitions($component, $from_version, $to_version);
+
+    $inputs = $component_instance->getInputs() ?? [];
+    $needs_input_update = FALSE;
+
     // Remove prop values for props that no longer exist in the active version.
     $removed_prop_names = \array_diff_key($from_props, $to_props);
     if (count($removed_prop_names) > 0) {
-      $component_instance->setInput(
-        \array_diff_key($component_instance->getInputs() ?? [], $removed_prop_names)
-      );
+      $inputs = \array_diff_key($inputs, $removed_prop_names);
+      $needs_input_update = TRUE;
+    }
+
+    // Add default prop values for required props that are new or now required
+    // in the active version, if they weren't already set.
+    foreach ($to_props as $prop_name => $def) {
+      if ($def['required'] !== TRUE) {
+        continue;
+      }
+      $default_explicit_input = $component->loadVersion($to_version)->getComponentSource()->getDefaultExplicitInput();
+      // Required props must have an example value and hence a value in this
+      // component's default explicit input.
+      // @see \Drupal\canvas\ComponentMetadataRequirementsChecker
+      \assert(\array_key_exists('value', $default_explicit_input[$prop_name]) && $default_explicit_input[$prop_name]['value'] !== NULL);
+      $value = $default_explicit_input[$prop_name]['value'];
+      // New required prop: always set to default_value.
+      if (!isset($from_props[$prop_name])) {
+        // The prop didn't exist before, so there cannot be an existing input.
+        \assert(!isset($inputs[$prop_name]));
+        $inputs[$prop_name] = $value;
+        $needs_input_update = TRUE;
+      }
+      // Optional→required prop: only set default_value if no input exists
+      // (respect user-provided values for props that already existed).
+      elseif ($from_props[$prop_name]['required'] !== TRUE && !isset($inputs[$prop_name])) {
+        $inputs[$prop_name] = $value;
+        $needs_input_update = TRUE;
+      }
+    }
+
+    if ($needs_input_update) {
+      $component_instance->setInput($inputs);
     }
 
     $from_slots = $component->getSlotDefinitions($from_version);

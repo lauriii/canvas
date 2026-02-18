@@ -247,7 +247,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
         'type' => \sprintf('%s@%s', self::COMPONENT_ID, $canAutoUpdate ? $new_version : $this->originalVersion),
         'uuid' => self::COMPONENT_INSTANCE_UUID,
       ], JSON_THROW_ON_ERROR),
-      'form_canvas_props' => \json_encode($this->originalClientModel['model'][self::COMPONENT_INSTANCE_UUID], JSON_THROW_ON_ERROR),
+      'form_canvas_props' => isset($this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]) ? \json_encode($this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID], JSON_THROW_ON_ERROR) : '[]',
       'form_canvas_selected' => self::COMPONENT_INSTANCE_UUID,
     ]));
 
@@ -409,6 +409,14 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
   public function testCodeComponentCanRemoveRequiredPropThenAddAnotherRequiredProp(bool $usingHttpApi = FALSE): void {
     $this->removeNamePropAndAddAgeProp($usingHttpApi, TRUE);
 
+    unset($this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['source']['name']);
+    unset($this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['resolved']['name']);
+    $this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['source']['age'] = [
+      'sourceType' => 'static:field_item:integer',
+      'expression' => 'ℹ︎integer␟value',
+    ];
+    $this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['resolved']['age'] = 27;
+
     $inputs = [
       // Populate the new prop.
       'age' => 27,
@@ -452,7 +460,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
           'resolved' => $inputs,
         ],
       ],
-    ], canAutoUpdate: FALSE, withChild: TRUE);
+    ], canAutoUpdate: TRUE, withChild: TRUE);
   }
 
   protected function removeNamePropAndAddAgeProp(bool $usingHttpRequest = FALSE, bool $required = FALSE): void {
@@ -491,6 +499,13 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
       // Populate the new prop.
       'age' => 27,
     ];
+
+    $this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['source']['age'] = [
+      'sourceType' => 'static:field_item:integer',
+      'expression' => 'ℹ︎integer␟value',
+    ];
+    $this->expectedClientModel['model'][self::COMPONENT_INSTANCE_UUID]['resolved']['age'] = 27;
+
     $this->assertNewVersion([
       'name' => 'string',
       'age' => 'integer',
@@ -534,7 +549,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
           'resolved' => $inputs,
         ],
       ],
-    ], canAutoUpdate: FALSE, withChild: TRUE);
+    ], canAutoUpdate: TRUE, withChild: TRUE);
   }
 
   protected function addSlot(bool $usingHttpRequest = FALSE): void {

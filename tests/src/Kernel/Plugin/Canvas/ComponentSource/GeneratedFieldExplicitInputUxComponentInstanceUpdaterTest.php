@@ -130,10 +130,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
   #[DataProvider('providerUpdate')]
   public function testUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result, ?callable $assertion_callback): void {
     $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
-    if ($setup_callback !== NULL) {
-      call_user_func_array($setup_callback, []);
-    }
-    $component_instance_value = [
+    $component_tree_value = [
       // The test component to be updated.
       [
         'uuid' => self::COMPONENT_INSTANCE_UUID,
@@ -157,10 +154,13 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
         ],
       ],
     ];
-    $component_instance = self::generateComponentInstance($component_instance_value);
-    $original_component_tree = $component_instance->getParent();
-    \assert($original_component_tree instanceof ComponentTreeItemList);
+    if ($setup_callback !== NULL) {
+      call_user_func_array($setup_callback, [&$component_tree_value]);
+    }
+    $original_component_tree = self::generateComponentTree($component_tree_value);
     self::assertCount(2, $original_component_tree);
+    $component_instance = $original_component_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($component_instance);
 
     $this->assertSame($update_result, $sut->update($component_instance));
     $this->assertSame($new_latest_version, $component_instance->getComponentVersion());
@@ -201,13 +201,13 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalPropRemoved'],
     ];
-    // If a new required prop was added, the component instance cannot be updated.
-    // @todo It should be updated in https://www.drupal.org/i/3568602.
+    // If a new required prop was added, the component instance can be updated
+    // with the default value from prop_field_definitions.
     yield "Component added a new required prop" => [
-      self::ORIGINAL_VERSION_HASH,
+      '336688757ffd5399',
       [self::class, 'addRequiredProp'],
-      ComponentInstanceUpdateAttemptResult::NotAllowed,
-      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertRequiredPropRequired'],
     ];
     // If a required prop was removed, the component instance can be updated.
     yield "Component removed a required prop" => [
@@ -223,13 +223,21 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
     ];
-    // If an optional prop became required, the component instance cannot be updated.
-    // @todo It should be updated in https://www.drupal.org/i/3568602.
+    // If an optional prop became required and the value was already set,
+    // the existing value should be preserved.
     yield "Component optional prop became required" => [
-      self::ORIGINAL_VERSION_HASH,
+      '3076958d04987543',
       [self::class, 'makeOptionalPropRequired'],
-      ComponentInstanceUpdateAttemptResult::NotAllowed,
-      self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertOptionalBecameRequiredValuePreserved'],
+    ];
+    // If an optional prop became required and the value was not set,
+    // the default value from prop_field_definitions should be populated.
+    yield "Component optional prop became required (default value populated)" => [
+      '3076958d04987543',
+      [self::class, 'makeOptionalPropRequiredWithMissingInput'],
+      ComponentInstanceUpdateAttemptResult::Latest,
+      [self::class, 'assertOptionalBecameRequiredWithDefault'],
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component prop examples changed" => [
@@ -293,6 +301,17 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     ];
   }
 
+  protected static function assertOptionalBecameRequiredWithDefault(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertArrayHasKey('optional_text', $inputs);
+    self::assertSame('Press', $inputs['optional_text']);
+  }
+
+  protected static function assertOptionalBecameRequiredValuePreserved(ComponentTreeItem $component_instance): void {
+    $inputs = $component_instance->getInputs() ?? [];
+    self::assertSame('shouting', $inputs['optional_text']);
+  }
+
   /**
    * @param string $new_latest_version
    *   The version hash after the update.
@@ -304,23 +323,29 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
    * @return void
    */
   #[DataProvider('providerUpdate')]
-  public function testCanUpdate(string $new_latest_version, ?callable $setup_callback, ComponentInstanceUpdateAttemptResult $update_result): void {
+  public function testCanUpdate(
+    string $new_latest_version,
+    ?callable $setup_callback,
+    ComponentInstanceUpdateAttemptResult $update_result,
+  ): void {
     $sut = new GeneratedFieldExplicitInputUxComponentInstanceUpdater();
-    if ($setup_callback !== NULL) {
-      call_user_func_array($setup_callback, []);
-    }
-
-    $component_instance_value = [
-      'uuid' => self::COMPONENT_INSTANCE_UUID,
-      'component_id' => 'js.test',
-      'component_version' => self::ORIGINAL_VERSION_HASH,
-      'parent_uuid' => NULL,
-      'inputs' => [
-        'required_text' => 'Canvas is large and in charge!',
-        'optional_text' => 'shouting',
+    $component_tree_value = [
+      [
+        'uuid' => self::COMPONENT_INSTANCE_UUID,
+        'component_id' => 'js.test',
+        'component_version' => self::ORIGINAL_VERSION_HASH,
+        'parent_uuid' => NULL,
+        'inputs' => [
+          'required_text' => 'Canvas is large and in charge!',
+          'optional_text' => 'shouting',
+        ],
       ],
     ];
-    $component_instance = self::generateComponentInstance($component_instance_value);
+    if ($setup_callback !== NULL) {
+      call_user_func_array($setup_callback, [&$component_tree_value]);
+    }
+    $component_instance = self::generateComponentTree($component_tree_value)->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($component_instance);
     $this->assertSame($update_result === ComponentInstanceUpdateAttemptResult::Latest, $sut->canUpdate($component_instance));
     // Ensure we have the expected versions, as a validation of the test itself.
     $component = Component::load('js.test');
@@ -328,13 +353,11 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $this->assertCount($setup_callback === NULL ? 1 : 2, $component->getVersions());
   }
 
-  private static function generateComponentInstance(array $component_instance_value): ComponentTreeItem {
+  private static function generateComponentTree(array $component_tree_value): ComponentTreeItemList {
     $component_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
-    $component_tree->setValue($component_instance_value);
+    $component_tree->setValue($component_tree_value);
     self::assertCount(0, $component_tree->validate(), (string) $component_tree->validate());
-    $component_instance = $component_tree->first();
-    \assert($component_instance instanceof ComponentTreeItem);
-    return $component_instance;
+    return $component_tree;
   }
 
   /**
@@ -448,6 +471,16 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $required_props[] = 'optional_text';
     $this->jsComponent->set('required', $required_props)
       ->save();
+  }
+
+  /**
+   * @see self::assertOptionalBecameRequiredWithDefault()
+   */
+  protected function makeOptionalPropRequiredWithMissingInput(array &$component_instance_value): void {
+    $this->makeOptionalPropRequired();
+    self::assertSame(['required_text', 'optional_text'], \array_keys($component_instance_value[0]['inputs']));
+    unset($component_instance_value[0]['inputs']['optional_text']);
+    self::assertSame(['required_text'], \array_keys($component_instance_value[0]['inputs']));
   }
 
   protected function addRequiredProp(): void {
@@ -601,6 +634,12 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
     $inputs = Json::decode($component_instance->get('inputs')->getValue() ?? '[]');
     self::assertArrayNotHasKey('required_text', $inputs);
     self::assertArrayHasKey('optional_text', $inputs);
+  }
+
+  protected static function assertRequiredPropRequired(ComponentTreeItem $component_instance): void {
+    $inputs = Json::decode($component_instance->get('inputs')->getValue() ?? '[]');
+    self::assertArrayHasKey('voice', $inputs);
+    self::assertEquals('polite', $inputs['voice']);
   }
 
   protected static function assertSlotRemoved(ComponentTreeItem $component_instance): void {

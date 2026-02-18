@@ -1340,17 +1340,16 @@ HTML
       'expected_output_selector' => NULL,
     ];
 
-    yield "SDC with missing prop, with exception" => [
+    // Missing required props from the live version will be assigned on
+    // hydration so no exception occurs.
+    yield "SDC with missing prop, validation error without exception" => [
       'component_id' => 'sdc.canvas_test_sdc.crash',
       'inputs' => [],
       'expected_validation_errors' => [
         \sprintf('2.inputs.%s.crash', self::UUID_CRASH_TEST_DUMMY) => 'The property crash is required.',
       ],
-      'expected_exception' => [
-        'class' => RuntimeError::class,
-        'message' => 'An exception has been thrown during the rendering of a template ("[canvas_test_sdc:crash/crash] The property crash is required.") in "canvas_test_sdc:crash" at line 1.',
-      ],
-      'expected_output_selector' => NULL,
+      'expected_exception' => NULL,
+      'expected_output_selector' => 'h1:contains("test")',
     ];
 
     yield "SDC with invalid Twig (due to filter)" => [

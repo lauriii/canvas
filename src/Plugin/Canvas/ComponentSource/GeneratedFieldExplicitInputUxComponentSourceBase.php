@@ -374,7 +374,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function hydrateComponent(array $explicit_input, array $slot_definitions): array {
+  public function hydrateComponent(array $explicit_input, array $slot_definitions, array $active_required_explicit_inputs): array {
     $hydrated[self::EXPLICIT_INPUT_NAME] = $explicit_input['resolved'];
     \assert(Inspector::assertAllObjects($explicit_input['resolved'], EvaluationResult::class));
 
@@ -402,6 +402,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
       }
     }
+    // The live implementation may have new required props; automatically
+    // populate those using their default values.
+    // This might look like a responsibility that
+    // ComponentInstanceUpdaterInterface::update(bc_breaks_only: TRUE) should
+    // take care of… but there is no point of complicating that interface:
+    // 1) this already provides everything we need,
+    // 2) and we always render the live version of a component.
+    // @see \Drupal\canvas\Entity\Component::ACTIVE_VERSION
+    $active_required_explicit_inputs = \array_map(fn(array $prop_source) => new EvaluationResult($prop_source['value']), $active_required_explicit_inputs);
+    $hydrated[self::EXPLICIT_INPUT_NAME] += $active_required_explicit_inputs;
 
     if (!empty($slot_definitions)) {
       // Use the first example defined in SDC metadata, if it exists. Otherwise,
@@ -490,9 +500,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   /**
    * {@inheritdoc}
    */
-  public function getDefaultExplicitInput(): array {
+  public function getDefaultExplicitInput(bool $only_required = FALSE): array {
     $inputs = [];
-    foreach (\array_keys($this->configuration['prop_field_definitions']) as $prop_name) {
+    foreach ($this->configuration['prop_field_definitions'] as $prop_name => $def) {
+      if ($def['required'] === FALSE && $only_required) {
+        continue;
+      }
       \assert(is_string($prop_name));
       $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->toArray();
     }

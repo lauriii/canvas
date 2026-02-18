@@ -1073,18 +1073,16 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'expected_output_selector' => NULL,
     ];
-
-    yield "JS Component with missing props, validation error" => [
+    // Missing required props from the live version will be assigned on
+    // hydration so no exception occurs.
+    yield "JS Component with missing required props, validation error without exception" => [
       'component_id' => $component_id,
       'inputs' => [],
       'expected_validation_errors' => [
         \sprintf('2.inputs.%s.name', self::UUID_CRASH_TEST_DUMMY) => 'The property name is required.',
       ],
-      'expected_exception' => [
-        'class' => InvalidComponentException::class,
-        'message' => 'The property name is required.',
-      ],
-      'expected_output_selector' => NULL,
+      'expected_exception' => NULL,
+      'expected_output_selector' => \sprintf('canvas-island[uid="%s"][props*="Canvas"]', self::UUID_CRASH_TEST_DUMMY),
     ];
   }
 

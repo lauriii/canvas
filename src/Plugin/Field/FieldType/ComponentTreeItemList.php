@@ -459,12 +459,22 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert($component instanceof Component);
       $component->loadVersion($item->getComponentVersion());
 
+      // Rendering always happens using the live implementation of a component,
+      // so load the active version to determine the required props.
+      $required_props_with_default_values_in_current_implementation = $component
+        ->loadVersion($component->getActiveVersion())
+        ->getComponentSource()
+        ->getDefaultExplicitInput(only_required: TRUE);
+      // Avoid side effects.
+      $component->loadVersion($item->getComponentVersion());
+
       $source = $component->getComponentSource();
       $hydrated[$uuid] = [
         'component' => $component_id,
       ] + $source->hydrateComponent(
         $source->getExplicitInput($uuid, $item),
         $component->getSlotDefinitions(),
+        $required_props_with_default_values_in_current_implementation,
       );
       \assert(!\array_key_exists('slots', $hydrated[$uuid]) || is_array($hydrated[$uuid]['slots']));
     }
