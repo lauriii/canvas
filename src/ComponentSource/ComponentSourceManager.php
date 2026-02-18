@@ -190,7 +190,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
       $current_metadata = $discovery->computeCurrentComponentMetadata($source_specific_component_id);
 
       // 1. Create a Component config entity if it does not exist yet.
-      if (!array_key_exists($component_id, $existing_components)) {
+      if (!\array_key_exists($component_id, $existing_components)) {
         // Only the initial `status` can be specified by the source: the site
         // owner can modify the status of Component config entities, so it must
         // remain unchanged. (Except if the component stops meeting the

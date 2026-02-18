@@ -70,7 +70,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);
     foreach (\array_keys($actual_form_canvas_props['resolved']) as $sdc_prop_name) {
-      if (array_key_exists($sdc_prop_name, $values_to_set)) {
+      if (\array_key_exists($sdc_prop_name, $values_to_set)) {
         $actual_form_canvas_props['resolved'][$sdc_prop_name] = $values_to_set[$sdc_prop_name]['resolved'];
         $actual_form_canvas_props['source'][$sdc_prop_name]['value'] = $values_to_set[$sdc_prop_name]['source'];
       }
@@ -300,14 +300,14 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $is_final_level = is_string($label) || count($label) === 1;
     $needle = is_array($label) ? reset($label) : $label;
     // When recursing, the $prop key won't exist.
-    $haystack = array_key_exists($prop, $suggestions) ? $suggestions[$prop] : $suggestions;
+    $haystack = \array_key_exists($prop, $suggestions) ? $suggestions[$prop] : $suggestions;
     \assert(array_is_list($haystack));
     foreach ($haystack as $suggestion) {
       if ($suggestion['label'] === $needle) {
         if ($is_final_level) {
-          \assert(array_key_exists('id', $suggestion));
-          \assert(array_key_exists('source', $suggestion));
-          \assert(array_key_exists('label', $suggestion));
+          \assert(\array_key_exists('id', $suggestion));
+          \assert(\array_key_exists('source', $suggestion));
+          \assert(\array_key_exists('label', $suggestion));
           return $suggestion;
         }
         return self::findSuggestionByLabel(array_slice($label, 1), $prop, $suggestion['items']);

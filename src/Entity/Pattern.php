@@ -74,7 +74,7 @@ final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpA
   }
 
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
-    if (!array_key_exists('id', $values)) {
+    if (!\array_key_exists('id', $values)) {
       $values['id'] = self::generateId($values['label']);
     }
     parent::preCreate($storage, $values);

@@ -67,7 +67,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
     $normalized_openapi_defined_operations = [];
     foreach ($normalized_openapi_paths as $path => $path_spec) {
       foreach (['DELETE', 'GET', 'PATCH', 'POST'] as $method) {
-        if (array_key_exists(strtolower($method), $path_spec)) {
+        if (\array_key_exists(strtolower($method), $path_spec)) {
           $normalized_openapi_defined_operations["$path $method"] = $path_spec[strtolower($method)];
         }
       }

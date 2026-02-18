@@ -37,7 +37,7 @@ trait DataProviderWithCoreSpecificComponentActiveVersionTrait {
   protected static function addMissingBlockComponentVersions(array &$component_tree): void {
     foreach ($component_tree as &$item) {
       if (str_starts_with($item['component_id'], 'block.')) {
-        if (!array_key_exists('component_version', $item) || empty($item['component_version'])) {
+        if (!\array_key_exists('component_version', $item) || empty($item['component_version'])) {
           throw new \LogicException('component_version must be set for block component instances in test data. Use `::ACTIVE_VERSION_IN_SUT::` to get the active version of the referenced Component config entity for testing purposes.');
         }
         if ($item['component_version'] === '::ACTIVE_VERSION_IN_SUT::') {

@@ -59,7 +59,7 @@ function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInt
  * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::prepare()
  */
 function canvas_preprocess_region(array &$variables):void {
-  if (!array_key_exists('#canvas_region_preview', $variables['elements'])) {
+  if (!\array_key_exists('#canvas_region_preview', $variables['elements'])) {
     // Nothing to do: this is a region being rendered outside of a Canvas
     // preview context.
     return;

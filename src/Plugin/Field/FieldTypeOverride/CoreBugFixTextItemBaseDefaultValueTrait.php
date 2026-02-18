@@ -26,17 +26,17 @@ trait CoreBugFixTextItemBaseDefaultValueTrait {
   public function setValue($values, $notify = TRUE): void {
     // If `format` is missing, fall back to the first allowed format from
     // settings if any.
-    if (!is_array($values) || !array_key_exists('format', $values)) {
+    if (!is_array($values) || !\array_key_exists('format', $values)) {
       $this->applyDefaultValue(FALSE);
       // Now `format` is guaranteed to be set, which is what is used below.
-      \assert(array_key_exists('format', $this->values));
+      \assert(\array_key_exists('format', $this->values));
       $values = is_array($values)
         ? $values + $this->values
         // TRICKY: Drupal allows passing the main property directly, in that
         // case $values won't be an array.
         : ['value' => $values] + $this->values;
     }
-    \assert(array_key_exists('format', $values));
+    \assert(\array_key_exists('format', $values));
 
     parent::setValue($values, FALSE);
 

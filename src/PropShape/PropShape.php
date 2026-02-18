@@ -70,7 +70,7 @@ final class PropShape {
 
     // If this is an array shape, try standardizing to an array of a well-known
     // shape. But make sure to keep `minItems`, `maxItems` etc!
-    if (JsonSchemaType::fromSdcPropJsonSchema($raw_sdc_prop_schema) === JsonSchemaType::Array && array_key_exists('items', $raw_sdc_prop_schema)) {
+    if (JsonSchemaType::fromSdcPropJsonSchema($raw_sdc_prop_schema) === JsonSchemaType::Array && \array_key_exists('items', $raw_sdc_prop_schema)) {
       $resolved_normalized_array_items = self::normalizePropSchema(self::resolveSchemaReferences($raw_sdc_prop_schema['items']));
       // TRICKY: specifically do NOT use strict comparisons here, because the
       // props of an object-shaped prop may be ordered differently.
@@ -123,7 +123,7 @@ final class PropShape {
 
     // Normalization is not (yet) possible when `$ref`s are still present.
     // @todo Once https://www.drupal.org/i/3352063 is fixed and Canvas requires it, convert this to a \LogicException instead, because it should not be possible to occur anymore.
-    if (!array_key_exists('type', $prop_schema) && array_key_exists('$ref', $prop_schema)) {
+    if (!\array_key_exists('type', $prop_schema) && \array_key_exists('$ref', $prop_schema)) {
       return $prop_schema;
     }
 
@@ -150,7 +150,7 @@ final class PropShape {
 
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
     // those too.
-    if ($normalized_prop_schema['type'] === JsonSchemaType::Object->value && array_key_exists('properties', $normalized_prop_schema)) {
+    if ($normalized_prop_schema['type'] === JsonSchemaType::Object->value && \array_key_exists('properties', $normalized_prop_schema)) {
       $normalized_prop_schema['properties'] = \array_map(
         fn (array $prop_schema) => self::normalizePropSchema($prop_schema),
         $normalized_prop_schema['properties'],
@@ -194,11 +194,11 @@ final class PropShape {
       }
       // @phpstan-ignore argument.type
       $json = json_decode(file_get_contents($schema_json_path), TRUE);
-      if (!is_array($json) || !array_key_exists('$defs', $json)) {
+      if (!is_array($json) || !\array_key_exists('$defs', $json)) {
         continue;
       }
       \assert(Inspector::assertAllStrings(\array_keys($json['$defs'])));
-      $extension_type = array_key_exists($extension_name, $installed_modules) ? 'module' : 'theme';
+      $extension_type = \array_key_exists($extension_name, $installed_modules) ? 'module' : 'theme';
       $known_normalized += array_combine(
         \array_map(
           fn(string $def_name) => "json-schema-definitions://$extension_name.$extension_type/$def_name",

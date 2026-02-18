@@ -45,7 +45,7 @@ final class ComponentMetadataRequirementsChecker {
 
     // Every slot must have a title.
     foreach ($metadata->slots as $slot_name => $slot_definition) {
-      if (!array_key_exists('title', $slot_definition)) {
+      if (!\array_key_exists('title', $slot_definition)) {
         $messages[] = \sprintf('Slot "%s" must have title', $slot_name);
       }
     }
@@ -58,7 +58,7 @@ final class ComponentMetadataRequirementsChecker {
       }
 
       // Enums must not have empty values.
-      if (array_key_exists('enum', $prop) && in_array('', $prop['enum'], TRUE)) {
+      if (\array_key_exists('enum', $prop) && in_array('', $prop['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value.', $prop_name);
         continue;
       }
@@ -89,7 +89,7 @@ final class ComponentMetadataRequirementsChecker {
       // Validation for the additional functionality overlaid on top of the SDC
       // JSON Schema.
       // @see docs/shape-matching-into-field-types.md#3.2
-      if (array_key_exists('contentMediaType', $prop) && $prop['contentMediaType'] === 'text/html' && isset($prop['x-formatting-context'])) {
+      if (\array_key_exists('contentMediaType', $prop) && $prop['contentMediaType'] === 'text/html' && isset($prop['x-formatting-context'])) {
         if (!in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
           $messages[] = \sprintf('Invalid value "%s" for "x-formatting-context". Valid values are "inline" and "block".', $prop['x-formatting-context']);
           continue;

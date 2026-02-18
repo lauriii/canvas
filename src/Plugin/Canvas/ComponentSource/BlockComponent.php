@@ -100,7 +100,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
     private readonly PluginFormFactoryInterface $pluginFormFactory,
     private readonly AutoSaveManager $autoSaveManager,
   ) {
-    \assert(array_key_exists('local_source_id', $configuration));
+    \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 

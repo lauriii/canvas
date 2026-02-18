@@ -86,7 +86,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function checkRequirements(string $source_specific_id): void {
-    \assert(in_array($source_specific_id, self::EXPLICITLY_IGNORED_BLOCKS, TRUE) || array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(in_array($source_specific_id, self::EXPLICITLY_IGNORED_BLOCKS, TRUE) || \array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
 
     // @todo is this not going to become a performance bottleneck on BlockPlugin heavy sites?
     $block = $this->blockManager->createInstance($source_specific_id);
@@ -127,7 +127,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function computeComponentSettings(string $source_specific_id): array {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $definition = $this->discover()[$source_specific_id];
     $block = $this->blockManager->createInstance($source_specific_id);
     \assert($block instanceof BlockPluginInterface);
@@ -156,7 +156,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function computeInitialComponentProvider(string $source_specific_id): ?string {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     return $this->blockManager->getDefinition($source_specific_id)['provider'];
   }
 
@@ -164,7 +164,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function computeInitialComponentStatus(string $source_specific_id): bool {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $all_installed_core_extensions = \array_keys(array_filter(
       $this->moduleExtensionList->getAllInstalledInfo(),
       fn (array $info): bool => ($info['package'] ?? NULL) === 'Core',
@@ -197,7 +197,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function computeCurrentComponentMetadata(string $source_specific_id): array {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $definition = $this->blockManager->getDefinition($source_specific_id);
     return [
       'label' => (string) $definition['admin_label'],

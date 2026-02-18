@@ -17,7 +17,7 @@ use JsonSchema\Validator;
 abstract class AdapterBase extends PluginBase implements AdapterInterface {
 
   public function addInput(string $input, mixed $value): AdapterBase {
-    if (array_key_exists($input, $this->getInputs())) {
+    if (\array_key_exists($input, $this->getInputs())) {
       $json_schema_type = $this->getInputs()[$input];
       // @see \Drupal\Core\Theme\Component\ComponentValidator
       if (!$this->validateConformanceToJsonSchemaType($json_schema_type, $value)) {
@@ -78,7 +78,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    */
   public function getOutputSchema(): array {
     \assert(is_array($this->getPluginDefinition()));
-    \assert(array_key_exists('output', $this->getPluginDefinition()));
+    \assert(\array_key_exists('output', $this->getPluginDefinition()));
     return PropShape::standardize($this->getPluginDefinition()['output'])->resolvedSchema;
   }
 
@@ -87,7 +87,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    */
   public function inputIsRequired(string $input): bool {
     \assert(is_array($this->getPluginDefinition()));
-    \assert(array_key_exists('requiredInputs', $this->getPluginDefinition()));
+    \assert(\array_key_exists('requiredInputs', $this->getPluginDefinition()));
     return in_array($input, $this->getPluginDefinition()['requiredInputs'], TRUE);
   }
 

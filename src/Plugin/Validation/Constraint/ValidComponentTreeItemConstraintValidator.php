@@ -59,9 +59,9 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     // infrastructure is available, so conjure one from $value if not already.
     $fieldable_host_entity = NULL;
     if (!$value instanceof ComponentTreeItem) {
-      \assert(array_key_exists('uuid', $value));
-      \assert(array_key_exists('component_id', $value));
-      \assert(array_key_exists('inputs', $value));
+      \assert(\array_key_exists('uuid', $value));
+      \assert(\array_key_exists('component_id', $value));
+      \assert(\array_key_exists('inputs', $value));
       $value = $this->conjureFieldItemObject($value);
     }
     else {
@@ -158,15 +158,15 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
    */
   private function validateRawStructure(array $raw_component_tree_values): bool {
     $is_valid = TRUE;
-    if (!array_key_exists('uuid', $raw_component_tree_values)) {
+    if (!\array_key_exists('uuid', $raw_component_tree_values)) {
       $this->context->addViolation('The array must contain a "uuid" key.');
       $is_valid = FALSE;
     }
-    if (!array_key_exists('component_id', $raw_component_tree_values)) {
+    if (!\array_key_exists('component_id', $raw_component_tree_values)) {
       $this->context->addViolation('The array must contain a "component_id" key.');
       $is_valid = FALSE;
     }
-    if (!array_key_exists('inputs', $raw_component_tree_values)) {
+    if (!\array_key_exists('inputs', $raw_component_tree_values)) {
       $this->context->addViolation('The array must contain an "inputs" key.');
       $is_valid = FALSE;
     }

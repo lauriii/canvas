@@ -49,7 +49,7 @@ final class ComponentTrackingRequiredPropsUpdateTest extends CanvasUpdatePathTes
     self::assertSame(\array_keys($expected_info), $before->getVersions(), $component_id);
     foreach ($before->getVersions() as $version) {
       $before->loadVersion($version);
-      $has_required_key = array_key_exists('required', $before->getSettings()['prop_field_definitions']['title']);
+      $has_required_key = \array_key_exists('required', $before->getSettings()['prop_field_definitions']['title']);
       self::assertSame($expected_info[$version], $has_required_key, $component_id);
     }
   }

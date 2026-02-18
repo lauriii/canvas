@@ -69,7 +69,7 @@ final class Personalization extends ComponentSourceBase implements
     array $plugin_definition,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
   ) {
-    \assert(array_key_exists('local_source_id', $configuration));
+    \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 

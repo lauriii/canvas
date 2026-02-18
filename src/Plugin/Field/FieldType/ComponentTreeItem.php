@@ -443,13 +443,13 @@ class ComponentTreeItem extends FieldItemBase {
       ];
       foreach ($pairs as $pair) {
         [$property1, $property2] = $pair;
-        if (array_key_exists($property1, $values) && !isset($values[$property2])) {
+        if (\array_key_exists($property1, $values) && !isset($values[$property2])) {
           $this->onChange($property1, FALSE);
         }
-        if (!array_key_exists($property1, $values) && isset($values[$property2])) {
+        if (!\array_key_exists($property1, $values) && isset($values[$property2])) {
           $this->onChange($property2, FALSE);
         }
-        if (array_key_exists($property1, $values) && isset($values[$property2])) {
+        if (\array_key_exists($property1, $values) && isset($values[$property2])) {
           // If both properties are passed, verify the passed values match.
           $reference = $this->get($property2);
           \assert($reference instanceof DataReferenceInterface);
@@ -472,7 +472,7 @@ class ComponentTreeItem extends FieldItemBase {
     // if there already is a validation error for a missing key, another
     // validation error for an invalid value is not helpful.
     // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
-    if (!is_array($values) || !array_key_exists('inputs', $values)) {
+    if (!is_array($values) || !\array_key_exists('inputs', $values)) {
       $this->getProperties()['inputs']->applyDefaultValue(FALSE);
     }
 

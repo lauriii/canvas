@@ -279,7 +279,7 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
     $violations = iterator_to_array($component->getTypedData()->validate());
     $property_paths = \array_map(fn (ConstraintViolationInterface $v) => $v->getPropertyPath(), $violations);
     $violations_by_property_path = array_combine($property_paths, $violations);
-    if (array_key_exists('active_version', $violations_by_property_path)) {
+    if (\array_key_exists('active_version', $violations_by_property_path)) {
       self::fail(\sprintf('The active version `%s` is invalid: %s',
         $component->getActiveVersion(),
         $violations_by_property_path['active_version']->getMessage(),

@@ -113,7 +113,7 @@ enum JsonSchemaStringFormat: string {
         // Custom: the targeted resource has `contentMediaType: image/*` or
         // `contentMediaType: video/*`.
         // @see https://github.com/json-schema-org/json-schema-spec/issues/1557
-        array_key_exists('contentMediaType', $schema) && in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
+        \array_key_exists('contentMediaType', $schema) && in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
           new DataTypeShapeRequirement(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => $schema['contentMediaType']]),
           new DataTypeShapeRequirement(UriConstraint::PLUGIN_ID, [
             'allowReferences' => $this === static::IriReference || $this === static::UriReference,
@@ -134,7 +134,7 @@ enum JsonSchemaStringFormat: string {
           // Allow `x-allowed-schemes`. This would ensure that field properties
           // storing Drupal-specific URIs (the `base`, `internal` and `entity`
           // URI schemes, for example) are not matched.
-          ...!array_key_exists('x-allowed-schemes', $schema)
+          ...!\array_key_exists('x-allowed-schemes', $schema)
             ? []
             : [new DataTypeShapeRequirement(UriSchemeConstraint::PLUGIN_ID, ['allowedSchemes' => $schema['x-allowed-schemes']])],
         ]),
@@ -142,7 +142,7 @@ enum JsonSchemaStringFormat: string {
 
       // Built-in formats: URI template.
       // @see https://json-schema.org/understanding-json-schema/reference/string#uri-template
-      static::UriTemplate => match(array_key_exists('x-required-variables', $schema)) {
+      static::UriTemplate => match(\array_key_exists('x-required-variables', $schema)) {
         TRUE => new DataTypeShapeRequirement(UriTemplateWithVariablesConstraint::PLUGIN_ID, ['requiredVariables' => $schema['x-required-variables']]),
         default => new DataTypeShapeRequirement('NOT YET SUPPORTED', []),
       },
@@ -215,7 +215,7 @@ enum JsonSchemaStringFormat: string {
       // @see \Drupal\link\Plugin\Field\FieldType\LinkItem::defaultFieldSettings()
       static::UriReference, static::Uri, static::IriReference, static::Iri => match (TRUE) {
         // Custom: the targeted resource has `contentMediaType: image/*`.
-        array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {
+        \array_key_exists('contentMediaType', $shape->schema) && $shape->schema['contentMediaType'] === 'image/*' => match (TRUE) {
           // Browser-accessible image URLs. Can be both:
           // - relative URLs (`format: uri-reference|iri-reference`)
           // - absolute URLs (`format: uri|iri`) with HTTP(S)
@@ -244,7 +244,7 @@ enum JsonSchemaStringFormat: string {
         },
         // Stream wrapper file URIs (non-image). Can only be `format: uri|iri`.
         // @see json-schema-definitions://canvas.module/stream-wrapper-uri
-        !array_key_exists('contentMediaType', $shape->schema)
+        !\array_key_exists('contentMediaType', $shape->schema)
         && in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
         && ($this == static::Uri || $this == static::Iri) => new StorablePropShape(
           shape: $shape,

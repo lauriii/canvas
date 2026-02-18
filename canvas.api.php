@@ -25,7 +25,7 @@ use Drupal\canvas\TypedData\BetterEntityDataDefinition;
  */
 function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $storable_prop_shape): void {
   // Override the default widget for prop shapes constrained by `enum`.
-  if (array_key_exists('enum', $storable_prop_shape->shape->schema)) {
+  if (\array_key_exists('enum', $storable_prop_shape->shape->schema)) {
     $storable_prop_shape->fieldWidget = 'options_buttons';
   }
 

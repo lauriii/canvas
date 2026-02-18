@@ -19,7 +19,7 @@ class UriOverride extends Uri {
     $components = parse_url($this->value);
     // Without at least a scheme and host, there's no hope of casting this to a
     // valid URI. Abort.
-    if (!is_array($components) || !array_key_exists('scheme', $components) || !array_key_exists('host', $components)) {
+    if (!is_array($components) || !\array_key_exists('scheme', $components) || !\array_key_exists('host', $components)) {
       return $this->value;
     }
 
@@ -27,10 +27,10 @@ class UriOverride extends Uri {
       . $components['host']
       . UrlHelper::encodePath($components['path'] ?? '');
 
-    if (array_key_exists('query', $components) && strlen($components['query'])) {
+    if (\array_key_exists('query', $components) && strlen($components['query'])) {
       $uri .= '?' . $components['query'];
     }
-    if (array_key_exists('fragment', $components)) {
+    if (\array_key_exists('fragment', $components)) {
       $uri .= '#' . $components['fragment'];
     }
 

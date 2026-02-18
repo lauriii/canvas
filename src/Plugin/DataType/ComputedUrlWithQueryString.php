@@ -60,10 +60,10 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
 
     // Gather instructions for this computed field property.
     $instructions = $this->getDataDefinition()->getSettings();
-    if (!array_key_exists('url', $instructions)) {
+    if (!\array_key_exists('url', $instructions)) {
       throw new \LogicException(\sprintf("No `url` setting specified for %s.", $this->getName()));
     }
-    if (!array_key_exists('query_parameters', $instructions)) {
+    if (!\array_key_exists('query_parameters', $instructions)) {
       throw new \LogicException(\sprintf("No `query_parameters` setting specified for %s.", $this->getName()));
     }
     $url_prop_expression = StructuredDataPropExpression::fromString($instructions['url']);
@@ -110,8 +110,8 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
     $field_item_list = $this->getParent()->getParent();
     \assert($field_item_list instanceof FieldItemListInterface);
     $instructions = $this->getDataDefinition()->getSettings();
-    \assert(array_key_exists('url', $instructions) && is_string($instructions['url']));
-    \assert(array_key_exists('query_parameters', $instructions) && is_array($instructions['query_parameters']));
+    \assert(\array_key_exists('url', $instructions) && is_string($instructions['url']));
+    \assert(\array_key_exists('query_parameters', $instructions) && is_array($instructions['query_parameters']));
 
     // Calculate the dependencies for this computed field property, by
     // calculating the dependencies of all structured data prop expressions this

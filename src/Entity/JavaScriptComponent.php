@@ -289,7 +289,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       $this->set($key, $value);
     }
 
-    if (array_key_exists('sourceCodeCss', $data) || array_key_exists('compiledCss', $data)) {
+    if (\array_key_exists('sourceCodeCss', $data) || \array_key_exists('compiledCss', $data)) {
       $this->set('css', [
         'original' => $data['sourceCodeCss'] ?? '',
         'compiled' => $data['compiledCss'] ?? '',
@@ -297,8 +297,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     }
 
     $violation_list = new EntityConstraintViolationList($this);
-    if (array_key_exists('sourceCodeJs', $data) || array_key_exists('compiledJs', $data)) {
-      if (!array_key_exists('importedJsComponents', $data)) {
+    if (\array_key_exists('sourceCodeJs', $data) || \array_key_exists('compiledJs', $data)) {
+      if (!\array_key_exists('importedJsComponents', $data)) {
         $violation_list->add(new ConstraintViolation(
           "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",
           "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",

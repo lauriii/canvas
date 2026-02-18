@@ -189,7 +189,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $dependencies = [];
 
     $property_definitions = $field_definition->getFieldStorageDefinition()->getPropertyDefinitions();
-    if (!array_key_exists($prop_name, $property_definitions)) {
+    if (!\array_key_exists($prop_name, $property_definitions)) {
       // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
       @trigger_error(\sprintf('Property %s does not exist', $prop_name), E_USER_DEPRECATED);
     }

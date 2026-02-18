@@ -88,13 +88,13 @@ final class EntityFieldPropSource extends PropSourceBase {
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    \assert(array_key_exists('expression', $sdc_prop_source));
+    \assert(\array_key_exists('expression', $sdc_prop_source));
 
     // @phpstan-ignore-next-line argument.type
     $instance = new self(StructuredDataPropExpression::fromString($sdc_prop_source['expression']));
 
     // Optionally, a single adapter plugin ID can be specified.
-    $has_adapter = array_key_exists('adapter', $sdc_prop_source);
+    $has_adapter = \array_key_exists('adapter', $sdc_prop_source);
     if (!$has_adapter) {
       return $instance;
     }

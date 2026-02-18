@@ -306,7 +306,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
           ->getClientSideInfo($component)['propSources'][$sdc_prop_name];
 
         // The prop might be optional without a default value.
-        if (!array_key_exists('default_values', $client_side_info_for_prop)) {
+        if (!\array_key_exists('default_values', $client_side_info_for_prop)) {
           continue;
         }
 
@@ -485,7 +485,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
 
     // Test `build` using `expected_output_selectors`.
     foreach ($component_ids as $component_id) {
-      if (!array_key_exists($component_id, $expected_client_side_info)) {
+      if (!\array_key_exists($component_id, $expected_client_side_info)) {
         throw new \OutOfRangeException(\sprintf('Test expectations missing for %s.', $component_id));
       }
       $expected_output_selectors = $expected_client_side_info[$component_id]['expected_output_selectors'];

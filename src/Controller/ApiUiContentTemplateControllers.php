@@ -92,7 +92,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       throw new NotFoundHttpException(\sprintf("The `%s` content entity type does not exist.", $content_entity_type_id));
     }
 
-    if (!array_key_exists($bundle, $this->entityTypeBundleInfo->getBundleInfo($content_entity_type_id))) {
+    if (!\array_key_exists($bundle, $this->entityTypeBundleInfo->getBundleInfo($content_entity_type_id))) {
       throw new NotFoundHttpException(\sprintf("The `%s` content entity type does not have a `%s` bundle.", $content_entity_type_id, $bundle));
     }
   }

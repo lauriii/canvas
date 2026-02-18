@@ -51,10 +51,10 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     \assert(is_string($contents));
     $json_schema = json_decode($contents, TRUE);
     // @todo validate this file is valid JSON schema.
-    if (!array_key_exists('$defs', $json_schema)) {
+    if (!\array_key_exists('$defs', $json_schema)) {
       throw new \InvalidArgumentException(\sprintf("%s does not contain any definitions.", $extension_path));
     }
-    if (!array_key_exists($definition_name, $json_schema['$defs'])) {
+    if (!\array_key_exists($definition_name, $json_schema['$defs'])) {
       throw new \InvalidArgumentException(\sprintf("%s does not contain a `%s` definition.", $extension_path, $definition_name));
     }
 
@@ -124,7 +124,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     \assert($extension_path_resolver instanceof ExtensionPathResolver);
 
     $url_components = parse_url($uri);
-    if ($url_components === FALSE || !array_key_exists('host', $url_components) || !array_key_exists('path', $url_components)) {
+    if ($url_components === FALSE || !\array_key_exists('host', $url_components) || !\array_key_exists('path', $url_components)) {
       throw new \InvalidArgumentException("$uri is not a valid JSON schema definition URI.");
     }
     ['host' => $host, 'path' => $extension_path] = $url_components;

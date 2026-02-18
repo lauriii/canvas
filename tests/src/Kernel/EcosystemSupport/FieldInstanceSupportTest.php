@@ -236,7 +236,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       }
       $expected_fields[] = $field_name;
       $field_type = $field_definition->getType();
-      if (array_key_exists($field_type, self::SUPPORTED)) {
+      if (\array_key_exists($field_type, self::SUPPORTED)) {
         $expected_supported_fields[] = $field_name;
       }
       if (\array_key_exists($field_type, self::INTENTIONALLY_UNSUPPORTED) && empty(self::INTENTIONALLY_UNSUPPORTED[$field_type]['exceptions'])) {
@@ -262,13 +262,13 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
         $all_field_props[] = "$field_name.$field_prop_name";
         // All field props are expected to be supported by Canvas, except the ones
         // that are for known core bugs.
-        if (!array_key_exists($field_type, self::SUPPORTED) || (self::SUPPORTED[$field_type][$field_prop_name] ?? TRUE) === TRUE) {
+        if (!\array_key_exists($field_type, self::SUPPORTED) || (self::SUPPORTED[$field_type][$field_prop_name] ?? TRUE) === TRUE) {
           $expected_field_props[] = "$field_name.$field_prop_name";
         }
         // All known-to-be-supported field types are expected to have all props
         // supported, except the ones known to not yet work, either due to a
         // core bug, or due to a Canvas bug.
-        if (array_key_exists($field_type, self::SUPPORTED) && !array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
+        if (\array_key_exists($field_type, self::SUPPORTED) && !\array_key_exists($field_prop_name, self::SUPPORTED[$field_type])) {
           $expected_supported_field_props[] = "$field_name.$field_prop_name";
         }
         else {

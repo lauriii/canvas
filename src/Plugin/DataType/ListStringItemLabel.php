@@ -63,7 +63,7 @@ final class ListStringItemLabel extends StringData implements DependentPluginInt
     $field_item_list = $this->getParent()->getParent();
     \assert($field_item_list instanceof FieldItemListInterface);
     $instructions = $this->getDataDefinition()->getSettings();
-    \assert(array_key_exists('value', $instructions) && is_string($instructions['value']));
+    \assert(\array_key_exists('value', $instructions) && is_string($instructions['value']));
     // Calculate the dependencies for this computed field property, by
     // calculating the dependencies of all structured data prop expressions this
     // (see ::getValue()) uses.

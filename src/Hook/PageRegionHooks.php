@@ -81,7 +81,7 @@ class PageRegionHooks {
 
         // Update existing PageRegion config entity's if it exists: mark
         // editable or not based on the checkbox value.
-        if (array_key_exists($key, $existing_page_regions)) {
+        if (\array_key_exists($key, $existing_page_regions)) {
           $existing_page_regions[$key]->setStatus((bool) $value)->save();
           continue;
         }

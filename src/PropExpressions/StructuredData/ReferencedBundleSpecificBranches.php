@@ -189,7 +189,7 @@ final class ReferencedBundleSpecificBranches {
    */
   public function hasBranch(string $branch_to_check): bool {
     $existing_branches = $this->bundleSpecificReferencedExpressions;
-    return array_key_exists($branch_to_check, $existing_branches);
+    return \array_key_exists($branch_to_check, $existing_branches);
   }
 
   /**
@@ -197,7 +197,7 @@ final class ReferencedBundleSpecificBranches {
    */
   public function getBranch(string $entity_type_id, string $bundle): EntityFieldBasedPropExpressionInterface {
     $data_type_id = "entity:$entity_type_id:$bundle";
-    if (!array_key_exists($data_type_id, $this->bundleSpecificReferencedExpressions)) {
+    if (!\array_key_exists($data_type_id, $this->bundleSpecificReferencedExpressions)) {
       throw new \OutOfRangeException(\sprintf("No branch found for entity type '%s' and bundle '%s'.", $entity_type_id, $bundle));
     }
     return $this->bundleSpecificReferencedExpressions[$data_type_id];
@@ -214,7 +214,7 @@ final class ReferencedBundleSpecificBranches {
 
     // Calculate dependencies for all other branches.
     foreach ($this->bundleSpecificReferencedExpressions as $branch_key => $expr) {
-      if (!array_key_exists($branch_key, $deps)) {
+      if (!\array_key_exists($branch_key, $deps)) {
         $deps[$branch_key] = $expr->calculateDependencies();
       }
     }

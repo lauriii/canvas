@@ -73,7 +73,7 @@ final class ApiLayoutController {
     );
     $this->regionsClientSideIds = array_combine($server_side_ids, \array_keys($theme_regions));
     $this->regions = array_combine($server_side_ids, $theme_regions);
-    \assert(array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $this->regions));
+    \assert(\array_key_exists(CanvasPageVariant::MAIN_CONTENT_REGION, $this->regions));
   }
 
   /**

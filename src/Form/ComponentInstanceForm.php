@@ -136,7 +136,7 @@ final class ComponentInstanceForm extends FormBase {
     else {
       $inputs_to_show = match(TRUE) {
         // Common case.
-        is_array($client_model) && array_key_exists('resolved', $client_model) => $client_model['resolved'],
+        is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
         // For robustness.
         // @see https://en.wikipedia.org/wiki/Robustness_principle
         is_array($client_model) => $client_model,

@@ -83,7 +83,7 @@ final class AdaptedPropSource extends PropSourceBase {
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    \assert(array_key_exists('adapterInputs', $sdc_prop_source));
+    \assert(\array_key_exists('adapterInputs', $sdc_prop_source));
 
     return new AdaptedPropSource($adapter_instance, $sdc_prop_source['adapterInputs']);
   }

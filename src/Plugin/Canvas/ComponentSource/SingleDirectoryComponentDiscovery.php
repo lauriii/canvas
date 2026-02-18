@@ -45,7 +45,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    * {@inheritdoc}
    */
   public function checkRequirements(string $source_specific_id): void {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
 
     // Special case exception for 'all-props' SDC.
     // (This is used to develop support for more prop shapes.)
@@ -83,7 +83,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    * {@inheritdoc}
    */
   public function computeComponentSettings(string $source_specific_id): array {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $component_plugin = $this->componentPluginManager->createInstance($source_specific_id);
     // @see `type: canvas.component_source_settings.sdc`
     return [
@@ -95,7 +95,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    * {@inheritdoc}
    */
   public function computeInitialComponentProvider(string $source_specific_id): ?string {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $definition = $this->componentPluginManager->getDefinition($source_specific_id);
     return $definition['provider'];
   }
@@ -104,7 +104,7 @@ final class SingleDirectoryComponentDiscovery implements ComponentCandidatesDisc
    * {@inheritdoc}
    */
   public function computeInitialComponentStatus(string $source_specific_id): bool {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $component_plugin = $this->componentPluginManager->createInstance($source_specific_id);
     // Disabled if obsolete or flagged with noUi.
     $initial_status = !(

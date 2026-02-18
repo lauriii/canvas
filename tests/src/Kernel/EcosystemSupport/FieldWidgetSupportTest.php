@@ -61,7 +61,7 @@ final class FieldWidgetSupportTest extends EcosystemSupportTestBase {
 
     $field_widget_definitions = $this->container->get('plugin.manager.field.widget')->getDefinitions();
     ksort($field_widget_definitions);
-    $supported = array_filter($field_widget_definitions, fn (array $def): bool => array_key_exists('canvas', $def) && array_key_exists('transforms', $def['canvas']));
+    $supported = array_filter($field_widget_definitions, fn (array $def): bool => \array_key_exists('canvas', $def) && \array_key_exists('transforms', $def['canvas']));
     $missing = array_diff_key($field_widget_definitions, $supported);
 
     $this->assertSame(self::SUPPORTED, \array_keys($supported));

@@ -281,7 +281,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
    * @todo Refactor after https://www.drupal.org/project/drupal/issues/3521221 is in.
    */
   private static function blockUpdatePathSampleForCoreIssue3521221(array $block_plugin_settings): array {
-    if (is_int($block_plugin_settings['foo']) || array_key_exists('change', $block_plugin_settings)) {
+    if (is_int($block_plugin_settings['foo']) || \array_key_exists('change', $block_plugin_settings)) {
       throw new \LogicException('Nothing to do; ideally this would then not be called at all.');
     }
 

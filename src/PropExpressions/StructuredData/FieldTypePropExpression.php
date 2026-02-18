@@ -58,7 +58,7 @@ final class FieldTypePropExpression implements FieldTypeBasedPropExpressionInter
         FALSE => $field_definition->getFieldStorageDefinition(),
       };
       $property_definitions = $field_storage_definition->getPropertyDefinitions();
-      if (!array_key_exists($this->propName, $property_definitions)) {
+      if (!\array_key_exists($this->propName, $property_definitions)) {
         // @phpcs:ignore Drupal.Semantics.FunctionTriggerError.TriggerErrorTextLayoutRelaxed
         @trigger_error(\sprintf('Property %s does not exist', $this->propName), E_USER_DEPRECATED);
       }

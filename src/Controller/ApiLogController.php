@@ -47,7 +47,7 @@ final class ApiLogController {
     if (empty($error_level)) {
       return new JsonResponse(['error' => 'Log level is required'], 400);
     }
-    if (!array_key_exists($error_level, $allowed_levels)) {
+    if (!\array_key_exists($error_level, $allowed_levels)) {
       return new JsonResponse(['error' => 'Invalid log level'], 400);
     }
 

@@ -223,7 +223,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
           // TRICKY: race condition: when creating the fallback version, the
           // `last_active_version` setting won't exist yet.
           // @see ::setSettings()
-          'slots' => array_key_exists('last_active_version', $this->getSettings())
+          'slots' => \array_key_exists('last_active_version', $this->getSettings())
             ? $this->versioned_properties[$this->getSettings()['last_active_version']]['fallback_metadata']['slot_definitions']
             : [],
           ...$this->getSettings(),
@@ -330,7 +330,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       // It is possible that despite ComponentSourceInterface::isBroken() saying
       // the Component is not broken, it still crashes during rendering.
       // Consider this another form of brokenness.
-      $info['broken'] = array_key_exists('#render_crashed', $build);
+      $info['broken'] = \array_key_exists('#render_crashed', $build);
     }
     // Ensure a broken Component cannot break the Canvas HTTP API.
     else {

@@ -75,9 +75,9 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    \assert(array_key_exists('value', $sdc_prop_source));
-    \assert(array_key_exists('jsonSchema', $sdc_prop_source));
-    \assert(array_key_exists('componentId', $sdc_prop_source));
+    \assert(\array_key_exists('value', $sdc_prop_source));
+    \assert(\array_key_exists('jsonSchema', $sdc_prop_source));
+    \assert(\array_key_exists('componentId', $sdc_prop_source));
 
     // @todo Make this far less clunky 🙈
     $minimal = PropShape::normalize(

@@ -68,7 +68,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
    * {@inheritdoc}
    */
   public function checkRequirements(string $source_specific_id): void {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
 
     $js_component = $this->discover()[$source_specific_id];
 
@@ -92,7 +92,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
    * {@inheritdoc}
    */
   public function computeComponentSettings(string $source_specific_id): array {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $js_component = $this->discover()[$source_specific_id];
     $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
     // @see `type: canvas.component_source_settings.sdc`
@@ -120,7 +120,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
    * {@inheritdoc}
    */
   public function computeCurrentComponentMetadata(string $source_specific_id): array {
-    \assert(array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $js_component = $this->discover()[$source_specific_id];
     return [
       'label' => (string) $js_component->label(),

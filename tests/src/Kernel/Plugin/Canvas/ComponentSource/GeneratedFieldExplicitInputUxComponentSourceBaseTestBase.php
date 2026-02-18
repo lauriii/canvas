@@ -104,7 +104,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     // smart enough to omit both optional props that are NULL(ish).
     $hydrated = $source->hydrateComponent(['resolved' => $resolved], []);
     // @phpstan-ignore-next-line offsetAccess.notFound
-    self::assertSame($is_object_prop_present_in_hydration, array_key_exists('image', $hydrated[GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME]));
+    self::assertSame($is_object_prop_present_in_hydration, \array_key_exists('image', $hydrated[GeneratedFieldExplicitInputUxComponentSourceBase::EXPLICIT_INPUT_NAME]));
     $build = $source->renderComponent($hydrated, [], $this->randomString(), FALSE);
     $html = (string) $this->renderer->renderInIsolation($build);
     if (str_starts_with($expected_html, '<')) {

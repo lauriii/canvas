@@ -76,7 +76,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
     $missing_nested_options = [];
     foreach (['tree', 'inputs'] as $option) {
       foreach (['absence', 'presence'] as $nested_option) {
-        if (!array_key_exists('absence', $this->$option)) {
+        if (!\array_key_exists('absence', $this->$option)) {
           $missing_nested_options[] = "$option.$nested_option";
         }
       }

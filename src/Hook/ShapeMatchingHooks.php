@@ -321,7 +321,7 @@ class ShapeMatchingHooks {
 
     if ($storable_prop_shape->shape->schema['type'] === 'object' &&
       isset($storable_prop_shape->shape->schema['$ref']) &&
-      array_key_exists($storable_prop_shape->shape->schema['$ref'], self::SCHEMA_TO_MEDIA_SOURCE)
+      \array_key_exists($storable_prop_shape->shape->schema['$ref'], self::SCHEMA_TO_MEDIA_SOURCE)
     ) {
       // This alter hook won't have any effect unless MediaTypes exist that use
       // a particular MediaSource plugin. So, whenever the list of MediaTypes

@@ -69,7 +69,7 @@ final class JsonSchemaObject extends Mapping {
           $definition['mapping'][$property_name]['constraints'][UriConstraint::PLUGIN_ID] = [
             'allowReferences' => in_array($detail['format'], [JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::UriReference->value], TRUE),
           ];
-          if (array_key_exists('x-allowed-schemes', $detail)) {
+          if (\array_key_exists('x-allowed-schemes', $detail)) {
             $definition['mapping'][$property_name]['constraints'][UriSchemeConstraint::PLUGIN_ID] = [
               'allowedSchemes' => $detail['x-allowed-schemes'],
             ];

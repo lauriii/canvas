@@ -194,7 +194,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
         try {
-          $parsed_default_prop_source = array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name]) && array_key_exists('sourceType', $default_prop_sources[$name])
+          $parsed_default_prop_source = \array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name]) && \array_key_exists('sourceType', $default_prop_sources[$name])
             ? PropSource::parse($default_prop_sources[$name])
             : NULL;
           // If it indeed was a collapsed StaticPropSource, un-collapse it.

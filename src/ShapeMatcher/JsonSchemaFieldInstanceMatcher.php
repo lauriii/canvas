@@ -348,7 +348,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // @see ::determineReferencesWorthFollowingForObjectFromScalarMatches()
     foreach (\array_keys($flagged_for_omission) as $field_name) {
       // How many object props does the possibly inferior scalar match populate?
-      \assert(array_key_exists($field_name, $matches_references));
+      \assert(\array_key_exists($field_name, $matches_references));
       $scalar_match_object_props_populated = count(\array_keys($inverted[$field_name]));
 
       // How many object props do the possibly superior object matches populate?
@@ -564,7 +564,7 @@ final class JsonSchemaFieldInstanceMatcher {
         }
         $field_property_is_source_for = $property_definition->getSetting('is source for');
         if ($field_property_is_source_for !== NULL) {
-          if (!array_key_exists($field_property_is_source_for, $properties)) {
+          if (!\array_key_exists($field_property_is_source_for, $properties)) {
             throw new \LogicException("The property `$property_name` is a source for a non-existent other property.");
           }
           if (!$properties[$field_property_is_source_for]->isComputed()) {
@@ -665,7 +665,7 @@ final class JsonSchemaFieldInstanceMatcher {
             // Transform an entity-level `FileExtension` constraint to
             // corresponding property-level constraint.
             // @see \Drupal\file\Plugin\Validation\Constraint\FileExtensionConstraintValidator
-            if (array_key_exists('FileExtension', $file_entity_constraints)) {
+            if (\array_key_exists('FileExtension', $file_entity_constraints)) {
               // Clone to avoid polluting any static caches.
               // @todo verify if truly necessary?
               try {

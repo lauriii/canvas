@@ -170,8 +170,8 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
     }
     \assert(is_array($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY]));
     $export_data = $prop_input[self::EXPORT_ENTITY_REFERENCE_KEY];
-    \assert(array_key_exists('target_uuid', $export_data));
-    \assert(array_key_exists('target_type', $export_data));
+    \assert(\array_key_exists('target_uuid', $export_data));
+    \assert(\array_key_exists('target_type', $export_data));
     $entity = $this->entityRepository->loadEntityByUuid($export_data['target_type'], $export_data['target_uuid']);
     \assert($entity instanceof EntityInterface);
     $prop_input['target_id'] = $entity->id();

@@ -110,7 +110,7 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
    *   TRUE if a link with the given key exist, FALSE otherwise.
    */
   public function hasLinkWithKey($key): bool {
-    return array_key_exists($key, $this->links);
+    return \array_key_exists($key, $this->links);
   }
 
   /**

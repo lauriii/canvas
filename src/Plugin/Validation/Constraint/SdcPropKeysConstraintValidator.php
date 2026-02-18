@@ -73,7 +73,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
     );
 
     foreach ($expected_keys as $expected_key) {
-      if (!array_key_exists($expected_key, $mapping)) {
+      if (!\array_key_exists($expected_key, $mapping)) {
         $this->context->buildViolation($constraint->message)
           // `title` is guaranteed to exist.
           // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()

@@ -149,7 +149,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   protected function getPluginRemovedDependencies(array $plugin_dependencies, array $removed_dependencies) {
     $intersect = [];
     foreach ($plugin_dependencies as $type => $dependencies) {
-      if (array_key_exists($type, $removed_dependencies) && $removed_dependencies[$type]) {
+      if (\array_key_exists($type, $removed_dependencies) && $removed_dependencies[$type]) {
         // Config and content entities have the dependency names as keys while
         // module and theme dependencies are indexed arrays of dependency names.
         // @see \Drupal\Core\Config\ConfigManager::callOnDependencyRemoval()

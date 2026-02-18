@@ -261,8 +261,8 @@ final class StaticPropSource extends PropSourceBase {
     if (!empty($missing)) {
       throw new \LogicException(\sprintf('Missing the keys %s.', implode(',', $missing)));
     }
-    \assert(array_key_exists('value', $sdc_prop_source));
-    \assert(array_key_exists('expression', $sdc_prop_source));
+    \assert(\array_key_exists('value', $sdc_prop_source));
+    \assert(\array_key_exists('expression', $sdc_prop_source));
 
     // First: construct an expression object from the expression string.
     $expression = StructuredDataPropExpression::fromString($sdc_prop_source['expression']);

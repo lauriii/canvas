@@ -32,7 +32,7 @@ final class MediaLibraryCanvasPropOpener extends MediaLibraryFieldWidgetOpener {
     // `field_widget_id` is necessary for the inherited, unaltered
     // `::getSelectionResponse()` method.
     $parameters = $state->getOpenerParameters();
-    if (!array_key_exists('field_widget_id', $parameters)) {
+    if (!\array_key_exists('field_widget_id', $parameters)) {
       return AccessResult::forbidden("field_widget_id parameter is missing.")->addCacheableDependency($state);
     }
 

@@ -48,7 +48,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
       function (string $schema_error_message, string $property_path) use ($expected_messages, $config_entity_prefix, &$nonsensical_subtrees): bool {
         $relative_property_path = substr($property_path, strlen($config_entity_prefix));
         // Ignore when there is a validation error for exactly this property.
-        if (array_key_exists($relative_property_path, $expected_messages)) {
+        if (\array_key_exists($relative_property_path, $expected_messages)) {
           return FALSE;
         }
         // Ignore when this is a validation error about typecasting, because the
@@ -67,7 +67,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
         $parts = explode('.', $relative_property_path);
         $popped = array_pop($parts);
         $parent_property_path = implode('.', $parts);
-        $validation_error_message = match (array_key_exists($parent_property_path, $expected_messages)) {
+        $validation_error_message = match (\array_key_exists($parent_property_path, $expected_messages)) {
           TRUE => is_array($expected_messages[$parent_property_path])
             ? reset($expected_messages[$parent_property_path])
             : $expected_messages[$parent_property_path],

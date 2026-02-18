@@ -69,7 +69,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    */
   protected function assertVersionExists(string $version): void {
     \assert(isset($this->versioned_properties));
-    if ($version !== $this->active_version && !array_key_exists($version, $this->versioned_properties)) {
+    if ($version !== $this->active_version && !\array_key_exists($version, $this->versioned_properties)) {
       throw new \OutOfRangeException(\sprintf('The requested version `%s` is not available. Available versions: %s.',
         (string) $version,
         implode(', ', \array_map(
@@ -108,7 +108,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
     if ($version === $this->active_version) {
       throw new \LogicException('Cannot delete the active version.');
     }
-    if (!array_key_exists($version, $this->versioned_properties)) {
+    if (!\array_key_exists($version, $this->versioned_properties)) {
       throw new \OutOfRangeException();
     }
     unset($this->versioned_properties[$version]);
@@ -119,7 +119,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
     if ($version === $this->active_version) {
       throw new \LogicException('Cannot delete the active version.');
     }
-    if (array_key_exists($version, $this->versioned_properties)) {
+    if (\array_key_exists($version, $this->versioned_properties)) {
       unset($this->versioned_properties[$version]);
     }
     return $this;
@@ -168,7 +168,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    */
   public function set($property_name, $value) {
     if (!$this->isLoadedVersionActiveVersion() && !$this->isSyncing()) {
-      if (array_key_exists($this->getLoadedVersion(), $this->versioned_properties)) {
+      if (\array_key_exists($this->getLoadedVersion(), $this->versioned_properties)) {
         throw new \LogicException('Can only set values on the active version');
       }
       else {
@@ -264,7 +264,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
    * {@inheritdoc}
    */
   public function isVersionedProperty(string $property_name): bool {
-    return array_key_exists($property_name, $this->versioned_properties);
+    return \array_key_exists($property_name, $this->versioned_properties);
   }
 
 }
