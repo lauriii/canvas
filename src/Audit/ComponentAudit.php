@@ -44,10 +44,7 @@ final class ComponentAudit {
       $field_names = \array_keys($detail);
       $storage = $this->entityTypeManager->getStorage($entity_type_id);
       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-      $query = $storage
-        ->getQuery()
-        ->sort((string) $entity_type->getKey('id'))
-        ->accessCheck(FALSE);
+      $query = $storage->getQuery()->accessCheck(FALSE);
       if ($entity_type->isRevisionable()) {
         // Only check the latest revision, this is the case for code components
         // as deletion can only happen when it is not used, checking all
@@ -71,6 +68,7 @@ final class ComponentAudit {
       }
       $query->condition($or_group);
       $ids = $query->execute();
+      ksort($ids);
       $dependencies[$entity_type_id] = $ids;
     }
     ksort($dependencies);
