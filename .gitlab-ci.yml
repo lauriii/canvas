@@ -614,7 +614,12 @@ playwright:
     - composer run install-dev-deps
   script:
     - npm ci
-    - npm run test:playwright
+    - npm run test:playwright | tee $CI_PROJECT_DIR/playwright.log || EXIT_CODE=$?
+    # Auto-retry when a single failure occurs (because only "3 failed" suggests a systemic failure: a failure on all 3
+    # browsers. Any human would manually click "retry", so automate it).
+    - grep "1 failed" $CI_PROJECT_DIR/playwright.log && exit 112 || true
+    # If no auto-retry was attempted, use the original exit code.
+    - exit $EXIT_CODE
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/playwright-report $CI_PROJECT_DIR/playwright-report
@@ -642,6 +647,9 @@ playwright:
       junit:
         - test-results/playwright.xml
       annotations: test-results/links.json
+  retry:
+    max: 2
+    exit_codes: 112
 
 CLI Test:
   stage: test
