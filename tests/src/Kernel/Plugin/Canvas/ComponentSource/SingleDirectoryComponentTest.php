@@ -1340,7 +1340,7 @@ HTML
       'expected_output_selector' => NULL,
     ];
 
-    // Missing required props from the live version will be assigned on
+    // Missing required props from the active version will be assigned on
     // hydration so no exception occurs.
     yield "SDC with missing prop, validation error without exception" => [
       'component_id' => 'sdc.canvas_test_sdc.crash',

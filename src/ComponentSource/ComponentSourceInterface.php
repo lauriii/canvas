@@ -137,6 +137,10 @@ interface ComponentSourceInterface extends PluginInspectionInterface, Derivative
   /**
    * Returns the default explicit input (prop sources) for this component.
    *
+   * @param bool $only_required
+   *   (Optional) If true, only required explicit inputs will be returned. False
+   *   by default.
+   *
    * @phpcs:ignore
    * @return SingleComponentInputArray
    *   An array of prop sources to use for the inputs of this component, keyed

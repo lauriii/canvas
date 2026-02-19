@@ -1726,9 +1726,14 @@ HTML,
   }
 
   /**
-   * Test that hydration filters props/slots removed from the active version.
+   * Tests that hydration doesn't break with component evolution.
+   *
+   * It must:
+   * - Filter out props/slots removed from the active version.
+   * - Provide the default value for props required in the active version that
+   *   didn't exist before, or were not required and did not yet have a stored value.
    */
-  public function testHydrationFiltersUnsupportedPropsAndSlots(): void {
+  public function testHydrationOnComponentEvolution(): void {
     $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
 
     $test_code_component_id = 'evolution-test';

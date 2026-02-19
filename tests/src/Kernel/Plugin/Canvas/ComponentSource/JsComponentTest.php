@@ -1073,7 +1073,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       ],
       'expected_output_selector' => NULL,
     ];
-    // Missing required props from the live version will be assigned on
+    // Missing required props from the active version will be assigned on
     // hydration so no exception occurs.
     yield "JS Component with missing required props, validation error without exception" => [
       'component_id' => $component_id,
