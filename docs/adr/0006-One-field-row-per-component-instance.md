@@ -50,7 +50,7 @@ disruption after [`1.0.0-beta1`](https://www.drupal.org/project/canvas/issues/35
 3. Must be able to track dependencies that content and config entities have on components for update safety, caching, and auditability
 4. Must be able to evolve input schemas over time for explicit inputs
 5. Must be able to have some of the inputs of a symmetric translations of _some_ component instances be untranslatable (e.g., an image field: one component instance with an image may need to be the same across all translations because it shows the CEO, but another component instance may need a different image per translation because it shows the local product name: "Lotus" in Belgium, "Biscoff" in the U.S.)
-6. Must be able to store one or multiple component trees per content entity: one per exposed slot from a content template, or a single tree if there is no content template
+6. Must be able to store one or multiple component trees per content entity: one per exposed slot from a content template, or a single tree if there is no content template. Exposed slots are places where component trees that are unique to and stored per content entity end up in the content template. This feature is similar to Layout Builder overrides but is more granular. 
 7. Must be compatible with the ability to utilize component tree and inputs via web APIs (e.g., JSON:API) for external systems
 8. Must be able to store variants of component trees for use cases such as personalization, and responsive design
 
@@ -62,7 +62,7 @@ disruption after [`1.0.0-beta1`](https://www.drupal.org/project/canvas/issues/35
 5. Must be able to support component instances with a large number of inputs (e.g., 150+)
 
 ### What is out of scope:
-1. Creating multiple view modes with each their own content templates and exposed slots using a single component tree and inputs — Canvas 1.x will be constrained to a single content template with exposed slots: for the canonical/full view mode. We may decide to add support for content templates for additional view modes, but if so, Canvas 1.x will not support exposed slots for them.
+1. Creating multiple view modes with each their own content templates and exposed slots using a single component tree and inputs — Canvas 1.x will be constrained to a single content template with exposed slots: for the canonical/full view mode. We may decide to add support for content templates for additional view modes, but if so, Canvas 1.x will not support exposed slots for them. In our research we did not discover any use cases where exposed slots in non-full view modules would be required and it is also not supported by Layout Builder.
 2. Using component props for structured data – Canvas components are designed to consume structured data, not vice versa.
 
 ## Decision
@@ -116,3 +116,7 @@ In order of importance, with the following markers:
   - `+TOB`This makes Canvas more in line with the rest of the Drupal ecosystem
   - `+TOB` This mitigates the risks associated with relying on per-database differences in their JSON support (see [#3343634](https://www.drupal.org/project/drupal/issues/3343634))
   - `+TO` This strikes a careful balance between making all relations between component instances and `Component` versions be queryable, but not the `inputs` for each component instance.
+
+## Amendments
+### 2026-02-19
+Two clarifications added after acceptance; no decisions were changed. Functional requirement #6 received a definition of "exposed slots" and a comparison to Layout Builder overrides. Out-of-scope item #1 received a rationale — no use cases were found for exposed slots in non-full view modes, and Layout Builder does not support it either.
