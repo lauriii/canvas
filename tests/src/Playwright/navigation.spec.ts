@@ -57,11 +57,12 @@ test.describe('Routing', () => {
 
     // Visit the component router URL directly
     await page.goto(currentURL);
+    await canvasEditor.waitForEditorUi();
 
-    // Verify the contextual panel exists for the component
+    // Verify the contextual panel exists for the component (sidebar mounts after load).
     await expect(
       page.getByTestId(`canvas-contextual-panel-${uuid}`),
-    ).toBeAttached();
+    ).toBeAttached({ timeout: 15_000 });
   });
 
   test('Visits a preview router URL directly', async ({ page }) => {

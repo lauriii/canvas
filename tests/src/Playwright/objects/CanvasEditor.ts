@@ -38,7 +38,8 @@ export class CanvasEditor {
 
   async waitForEditorUi() {
     await this.waitForCanvasUi();
-    await this.waitForContextualPanel();
+    // Right sidebar (contextual panel) is not in the DOM when the panel is hidden
+    // (e.g. template editor with no component selected). Wait only for frame.
     await this.waitForEditorFrame();
   }
 
@@ -79,13 +80,15 @@ export class CanvasEditor {
       this.page.locator(initializedReadyPreviewIframeSelector),
     ).toBeAttached();
 
-    const iframeElement = await this.page.$(
+    // Wait for the iframe to have a contentDocument (can be delayed in some browsers).
+    await this.page.waitForFunction(
+      (selector: string) => {
+        const el = document.querySelector(selector);
+        return el && !!(el as HTMLIFrameElement).contentDocument;
+      },
       initializedReadyPreviewIframeSelector,
+      { timeout: 15_000 },
     );
-    const contentDocumentExists = await iframeElement?.evaluate((el) => {
-      return !!(el as HTMLIFrameElement).contentDocument;
-    });
-    expect(contentDocumentExists).toBe(true);
   }
 
   async goToCanvasRoot() {
@@ -204,6 +207,13 @@ export class CanvasEditor {
       )
       .locator(`text="${title}"`)
       .click();
+    // Wait for the right sidebar to become visible after selection (Allotment
+    // pane visibility can take a moment when switching from hidden to visible).
+    await expect(
+      this.page
+        .getByTestId('canvas-contextual-panel')
+        .locator('[data-drupal-selector="component-instance-form"]'),
+    ).toBeVisible();
   }
 
   /**
@@ -480,10 +490,17 @@ export class CanvasEditor {
     await expect(
       this.page.locator('[data-testid="canvas-code-editor-container"]'),
     ).toBeVisible();
+    // Wait for the initial template content so we know the code component data
+    // has loaded and the editor has mounted (avoids timeout on the textbox).
+    await expect(
+      this.page
+        .getByTestId('canvas-code-editor-main-panel')
+        .getByText('for documentation on how to build a code component'),
+    ).toBeVisible({ timeout: 90_000 });
     const codeEditor = this.page.locator(
       '[data-testid="canvas-code-editor-main-panel"] div[role="textbox"]',
     );
-    await codeEditor.waitFor({ state: 'visible' });
+    await codeEditor.waitFor({ state: 'visible', timeout: 30_000 });
     await expect(codeEditor).toContainText(
       'for documentation on how to build a code component',
     );
@@ -575,6 +592,7 @@ export class CanvasEditor {
           .url()
           .includes('/canvas/api/v0/config/auto-save/js_component/') &&
         response.request().method() === 'PATCH',
+      { timeout: 60_000 },
     );
 
     await expect(this.getCodePreviewFrame()).toBeVisible();

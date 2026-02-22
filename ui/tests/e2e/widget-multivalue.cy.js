@@ -121,6 +121,9 @@ describe('Multivalue widget drag and drop', () => {
     cy.get(
       '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(3) [title="Change order"]',
     ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
+    // Wait for table drag AJAX to complete before asserting the new order.
+    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
+    cy.waitForAjax();
 
     confirmTextInputs([
       'Marshmallow Coast',
@@ -172,6 +175,8 @@ describe('Multivalue widget drag and drop', () => {
     cy.get(
       '[data-drupal-selector="edit-field-cvt-unlimited-text"] tr.draggable:nth-child(4) [title="Change order"]',
     ).realDnd('input[value="Neutral Milk Hotel"]', dndDefaults);
+    cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
+    cy.waitForAjax();
     cy.get('@unlimited-text')
       .findAllByRole('textbox')
       .eq(2)

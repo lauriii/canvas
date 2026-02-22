@@ -20,6 +20,7 @@ import type { FC, ReactHTMLElement } from 'react';
 import type { EnhancedStore } from '@reduxjs/toolkit';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 
+import 'allotment/dist/style.css';
 import '@/styles/radix-themes';
 import '@/styles/index.css';
 

@@ -63,6 +63,7 @@ test.describe('Components with Children Slots', () => {
 
     // Add the Hero component that uses Container internally
     await canvasEditor.addComponent({ name: 'Hero' });
+    await canvasEditor.waitForContextualPanel();
 
     // Verify the component appears in the preview frame
     const previewFrame = await canvasEditor.getActivePreviewFrame();

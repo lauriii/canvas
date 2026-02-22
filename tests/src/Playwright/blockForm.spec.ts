@@ -24,6 +24,7 @@ test.describe('Block form', () => {
       );
       await page.close();
     },
+    { timeout: 60_000 },
   );
 
   test('Block settings form with details element', async ({
@@ -36,6 +37,7 @@ test.describe('Block form', () => {
     await canvasEditor.goToEditor();
     await canvasEditor.openLayersPanel();
     await canvasEditor.openComponent('Administration');
+    await canvasEditor.waitForContextualPanel();
 
     // @todo
     // In the Cypress test it now goes on to verify that the two dropdowns
