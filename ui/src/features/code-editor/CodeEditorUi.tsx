@@ -144,7 +144,7 @@ const CodeEditorUi = () => {
           aria-label="Toggle button for code editor view"
           variant="ghost"
           color="gray"
-          mr="2"
+          mr="4"
         >
           <ViewVerticalIcon />
         </Button>
@@ -172,8 +172,8 @@ const CodeEditorUi = () => {
       </Flex>
       <TabGroup />
       <Flex
-        width="100%"
-        height="calc(100% - 38px)"
+        width="calc(100% - var(--space-4))"
+        height="calc(100% - 52px)"
         style={{ position: 'relative' }}
       >
         {activeTab === 'js' && <JavaScriptEditor isLoading={isLoading} />}
@@ -220,7 +220,7 @@ const CodeEditorUi = () => {
                 data-testid="canvas-code-editor-preview-panel"
                 px="4"
                 pt="4"
-                pb="2"
+                pb="4"
                 flexGrow="1"
                 direction="column"
                 height="100%"
