@@ -206,9 +206,9 @@ final class Labeler {
         '@field-label' => $field_definition->getLabel(),
         ...$label_item_delta_arguments,
         '@field-item-properties-labels' => implode(', ', \array_map(
-          // @phpstan-ignore-next-line method.nonObject
           fn (string $field_property_name): string => (string) $field_definition->getItemDefinition()
             ->getPropertyDefinition($field_property_name)
+            // @phpstan-ignore-next-line method.nonObject
             ->getLabel(),
           $used_field_properties,
         )),
