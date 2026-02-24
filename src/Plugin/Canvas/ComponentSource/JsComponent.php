@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -147,6 +149,19 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
     $component = $this->getJavaScriptComponent();
 
+    // Rendering will validate the props against the version that is published,
+    // but on preview the auto-saved version will be used for those components
+    // whose implementation lives in config entities (e.g. for JS Components,
+    // but not SDCs). This means that required props might be mismatched, so we
+    // need to ensure there are explicit inputs for the set of props that are
+    // required in any of those.
+    if ($isPreview) {
+      $published_required_props = $this->getDefaultExplicitInput(only_required: TRUE);
+      \assert(Inspector::assertAllHaveKey($published_required_props, 'value'));
+      $published_required_props = \array_map(fn(array $prop_source) => new EvaluationResult($prop_source['value']), $published_required_props);
+      [$published_required_props, $published_required_props_cacheability] = self::getResolvedPropsAndCacheability(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $published_required_props));
+    }
+
     $autoSave = $this->loadAutoSaveEntity($component, $isPreview);
     $component_url = $component->getComponentUrl($this->fileUrlGenerator, $isPreview);
 
@@ -203,6 +218,14 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
     $valid_props = $component->getProps() ?? [];
 
     [$props, $props_cacheability] = self::getResolvedPropsAndCacheability(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props));
+
+    // Explicit inputs for required props for both the auto-saved version and
+    // the live versions, including cacheability.
+    if ($isPreview) {
+      $props += $published_required_props;
+      $props_cacheability->merge($published_required_props_cacheability);
+    }
+
     // Match SDC's developer-only validation of props.
     // @see \Drupal\Core\Template\ComponentsTwigExtension::validateProps()
     \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
