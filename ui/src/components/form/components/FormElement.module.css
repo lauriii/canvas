@@ -18,6 +18,10 @@
 .checkbox {
   /* stylelint-disable-next-line value-keyword-case */
   composes: inline;
+  flex-wrap: wrap;
+  :global(.description) {
+    flex-basis: 100%;
+  }
 }
 
 .radio {
