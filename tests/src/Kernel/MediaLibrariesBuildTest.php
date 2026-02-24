@@ -13,7 +13,7 @@ use Drupal\Core\Theme\ThemeInitializationInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
+ * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

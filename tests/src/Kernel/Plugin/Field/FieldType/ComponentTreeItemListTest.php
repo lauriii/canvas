@@ -80,8 +80,8 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::getHydratedTree()
-   * @covers ::toRenderable()
+   * @covers ::getHydratedTree
+   * @covers ::toRenderable
    * @dataProvider provider
    */
   public function testHydrationAndRendering(string $host_entity_type_id, array $host_entity_values, array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {

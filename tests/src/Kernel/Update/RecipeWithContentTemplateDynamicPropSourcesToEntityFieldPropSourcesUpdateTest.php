@@ -15,8 +15,8 @@ use Drupal\Tests\canvas\Functional\Update\ContentTemplateDynamicPropSourcesToEnt
  * Proves that no update path is necessary for exported content templates.
  *
  * @group canvas
- * @covers \canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources()
- * @see \Drupal\Tests\canvas\Functional\Update\ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest())
+ * @covers \canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources
+ * @see \Drupal\Tests\canvas\Functional\Update\ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest()
  *
  * Note this cannot use CanvasKernelTestBase because that would pre-install the
  * Canvas module: this test is installing Canvas via a recipe.

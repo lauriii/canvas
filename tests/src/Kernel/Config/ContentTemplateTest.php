@@ -65,7 +65,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter()
+   * @covers \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter
    */
   public function testOnlyContentEntitiesCanUseTemplates(): void {
     $manager = \Drupal::entityTypeManager();

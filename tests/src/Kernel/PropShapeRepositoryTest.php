@@ -855,7 +855,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
    * @depends testStorablePropShapes
    * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
    *
-   * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+   * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter
    */
   public function testAllWidgetsForPropShapesHaveTransforms(array $storable_prop_shapes): void {
     self::assertNotEmpty($storable_prop_shapes);
@@ -875,8 +875,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveCacheMiss()
-   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::invalidateTags()
+   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveCacheMiss
+   * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::invalidateTags
    *
    * @see ::getExpectedUnstorablePropShapes()
    * @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()

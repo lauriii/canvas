@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Tests auto-save conflict handling for page regions.
  *
  * @see \Drupal\canvas\Entity\PageRegion
- * @covers \Drupal\canvas\Controller\ApiLayoutController::get()
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::get
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\canvas\Entity\ContentTemplate;
 
 /**
- * @covers \canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources()
+ * @covers \canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources
  * @group canvas
  * @group legacy
  * @see \Drupal\Tests\canvas\Kernel\Update\RecipeWithContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest

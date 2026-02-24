@@ -14,10 +14,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 require_once \dirname(__DIR__, 3) . '/fixtures/update/intermediate_component_dependencies/common-component-tree.php';
 
 /**
- * @covers canvas_post_update_0002_intermediate_component_dependencies_in_patterns()
- * @covers canvas_post_update_0002_intermediate_component_dependencies_in_page_regions()
- * @covers canvas_post_update_0002_intermediate_component_dependencies_in_content_templates()
- * @covers canvas_post_update_0002_intermediate_component_dependencies_in_field_config_component_trees()
+ * @covers \canvas_post_update_0002_intermediate_component_dependencies_in_patterns
+ * @covers \canvas_post_update_0002_intermediate_component_dependencies_in_page_regions
+ * @covers \canvas_post_update_0002_intermediate_component_dependencies_in_content_templates
+ * @covers \canvas_post_update_0002_intermediate_component_dependencies_in_field_config_component_trees
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

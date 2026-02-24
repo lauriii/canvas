@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Checks that all core field widgets have Canvas client-side transforms metadata.
  *
- * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter()
+ * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetInfoAlter
  * @see docs/redux-integrated-field-widgets.md#3.4
  * @group canvas
  */

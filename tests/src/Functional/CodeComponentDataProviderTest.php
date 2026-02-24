@@ -32,9 +32,8 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
   protected $defaultTheme = 'stark';
 
   /**
+   * @covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataBaseUrlV0
    * @covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataBrandingV0
-   * @covers \Drupal\canvas\CodeComponentDataProvider::getRequiredCanvasDataLibraries
-   * @covers \Drupal\canvas\CodeComponentDataProvider::getPartialCanvasDataFromSettingsV0
    */
   public function testV0UsingDrupalSettingsGetSiteData(): void {
     $page = Page::create([
@@ -68,8 +67,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\CodeComponentDataProvider::getRequiredCanvasDataLibraries
-   * @covers \Drupal\canvas\CodeComponentDataProvider::getPartialCanvasDataFromSettingsV0
+   * @covers \Drupal\canvas\CodeComponentDataProvider
    */
   public function testV0NotUsingDrupalSettings(): void {
     $page = Page::create([

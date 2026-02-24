@@ -136,7 +136,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   /**
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::getReferencedPluginClass()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getReferencedPluginClass
    * @depends testDiscovery
    */
   public function testGetReferencedPluginClass(array $component_ids): void {
@@ -371,7 +371,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   /**
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::renderComponent()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
@@ -909,7 +909,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   /**
-   * @covers ::calculateDependencies()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::calculateDependencies
    * @depends testDiscovery
    */
   public function testCalculateDependencies(array $component_ids): void {
@@ -1721,7 +1721,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
    * @param array<ComponentConfigEntityId> $component_ids
    *   The component IDs to test.
    *
-   * @covers ::getClientSideInfo()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getClientSideInfo
    * @depends testDiscovery
    */
   public function testGetClientSideInfo(array $component_ids): void {
@@ -2064,7 +2064,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
    * @param bool $auto_save_existing
    *   Whether an auto-save entry should exist for the test component.
    *
-   * @covers ::validateComponentInput
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::validateComponentInput
    * @testWith [false]
    *           [true]
    */

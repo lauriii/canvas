@@ -476,7 +476,6 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    * @param array<ComponentConfigEntityId> $component_ids
    *   The component IDs to test.
    *
-   * @covers ::getClientSideInfo()
    * @depends testDiscovery
    */
   public function testGetClientSideInfo(array $component_ids): void {

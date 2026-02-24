@@ -77,7 +77,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
   /**
    * Test our case and switch personalization Components are installed.
    *
-   * @covers ::checkRequirements()
+   * @covers ::checkRequirements
    */
   public function testDiscovery(): array {
     $provided_components = [
@@ -109,7 +109,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::getReferencedPluginClass()
+   * @covers ::getReferencedPluginClass
    * @depends testDiscovery
    */
   public function testGetReferencedPluginClass(array $component_ids): void {
@@ -125,7 +125,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent()
+   * @covers ::renderComponent
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
@@ -178,7 +178,7 @@ HTML,
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent()
+   * @covers ::renderComponent
    * @depends testDiscovery
    */
   public function testRenderComponentPreview(array $component_ids): void {
@@ -386,7 +386,7 @@ HTML,
   }
 
   /**
-   * @covers ::calculateDependencies()
+   * @covers ::calculateDependencies
    * @depends testDiscovery
    */
   public function testCalculateDependencies(array $component_ids): void {
@@ -441,8 +441,8 @@ HTML,
   }
 
   /**
-   * @covers ::inputToClientModel()
-   * @covers ::clientModelToInput()
+   * @covers ::inputToClientModel
+   * @covers ::clientModelToInput
    * @dataProvider explicitsInputsProvider
    */
   public function testInputToClientModel(string $component_id, array $explicit_input): void {

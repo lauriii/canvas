@@ -26,7 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @coversClass \Drupal\canvas\Form\ComponentInstanceForm
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildConfigurationForm()
+ * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::buildComponentInstanceForm
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

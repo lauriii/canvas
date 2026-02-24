@@ -10,8 +10,8 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * @group canvas.
  *
- * @covers canvas.routing.yml
- * @covers openapi.yml
+ * @see canvas.routing.yml
+ * @see openapi.yml
  */
 final class DxRouteConsistencyTest extends UnitTestCase {
 

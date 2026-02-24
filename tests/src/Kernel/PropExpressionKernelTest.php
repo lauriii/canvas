@@ -340,12 +340,12 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies()
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies()
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies()
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies()
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies()
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies
    */
   #[IgnoreDeprecations]
   public function testCalculateDependencies(): void {
@@ -481,7 +481,7 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
    * support, because they both use ReferencedBundleSpecificBranches in exactly
    * the same way.
    *
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct()
+   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
    * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
    * @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidReferencePropExpressionDueToMismatchedLeafExpressionCardinality()

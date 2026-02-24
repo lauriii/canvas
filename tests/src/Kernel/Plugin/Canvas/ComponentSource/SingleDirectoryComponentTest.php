@@ -123,8 +123,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   /**
    * All test module SDCs must either have a Component or a reason why not.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::discover()
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::discover
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements
    */
   public function testDiscovery(): array {
     // Nothing discovered initially.
@@ -282,7 +282,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::getReferencedPluginClass()
+   * @covers ::getReferencedPluginClass
    * @depends testDiscovery
    */
   public function testGetReferencedPluginClass(array $component_ids): void {
@@ -298,7 +298,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent()
+   * @covers ::renderComponent
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
@@ -1091,7 +1091,7 @@ HTML
   }
 
   /**
-   * @covers ::getExplicitInput()
+   * @covers ::getExplicitInput
    * @dataProvider providerComponentResolving
    */
   public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids, ?array $permissions = NULL): void {
@@ -2577,7 +2577,7 @@ HTML
   }
 
   /**
-   * @covers ::calculateDependencies()
+   * @covers ::calculateDependencies
    * @depends testDiscovery
    */
   public function testCalculateDependencies(array $component_ids): void {
@@ -5249,7 +5249,7 @@ HTML
   }
 
   /**
-   * @covers ::inputToClientModel()
+   * @covers ::inputToClientModel
    * @dataProvider explicitsInputsProvider
    */
   public function testInputToClientModel(string $component_id, array $explicit_input, array $expected_client_model):void {

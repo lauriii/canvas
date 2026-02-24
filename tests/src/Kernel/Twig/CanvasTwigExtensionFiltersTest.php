@@ -71,7 +71,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers       CanvasTwigExtension::toSrcSet
    * @dataProvider providerToSrcSet
    */
   public function testToSrcSet(string $src, ?int $intrinsicImageWidth, ?string $expected): void {

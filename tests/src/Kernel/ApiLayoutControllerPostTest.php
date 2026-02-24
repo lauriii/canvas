@@ -31,7 +31,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::post()
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::post
  * @group canvas
  * @group #slow
  */

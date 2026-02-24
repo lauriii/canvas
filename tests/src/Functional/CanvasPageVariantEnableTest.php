@@ -15,10 +15,10 @@ use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * @group canvas
- * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsAlter()
- * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsSubmit()
+ * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsAlter
+ * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsSubmit
  * @covers \Drupal\canvas\Controller\CanvasBlockListController
- * @covers \Drupal\canvas\Entity\PageRegion::createFromBlockLayout()
+ * @covers \Drupal\canvas\Entity\PageRegion::createFromBlockLayout
  */
 #[RunTestsInSeparateProcesses]
 class CanvasPageVariantEnableTest extends BrowserTestBase {

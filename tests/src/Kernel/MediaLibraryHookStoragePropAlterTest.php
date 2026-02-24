@@ -11,8 +11,8 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStoragePropShapeAlter()
- * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter()
+ * @covers \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter
+ * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::mediaLibraryFieldWidgetInfoAlter
  * @group canvas
  * @group canvas_data_model
  * @group canvas_data_model__prop_expressions

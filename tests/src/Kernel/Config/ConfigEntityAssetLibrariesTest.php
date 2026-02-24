@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
- * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
+ * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

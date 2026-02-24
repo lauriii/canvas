@@ -10,7 +10,7 @@ use Drupal\canvas\Entity\Component;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers canvas_post_update_0009_unset_category_property_on_components()
+ * @covers \canvas_post_update_0009_unset_category_property_on_components
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

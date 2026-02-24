@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 class AssetLibraryStorageTest extends CanvasKernelTestBase {
 
   /**
-   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
+   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
    */
   public function testGeneratedFiles(): void {
     $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);

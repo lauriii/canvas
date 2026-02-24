@@ -20,10 +20,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
+ * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  * @see \Drupal\Tests\canvas\Kernel\ApiAutoSaveControllerTest
  * @group canvas
  * @group canvas_personalization
- * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  *
  * Note this cannot use CanvasKernelTestBase because that would pre-install the
  * Canvas module: this test is installing Canvas via a recipe.

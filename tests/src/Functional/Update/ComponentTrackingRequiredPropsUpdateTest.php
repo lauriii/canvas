@@ -11,7 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers canvas_post_update_0001_track_props_have_required_flag_in_components()
+ * @covers \canvas_post_update_0001_track_props_have_required_flag_in_components
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

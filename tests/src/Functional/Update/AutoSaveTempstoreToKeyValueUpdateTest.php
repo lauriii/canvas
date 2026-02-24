@@ -14,7 +14,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 /**
  * Tests migration of auto-save data from tempstore to key-value store.
  *
- * @covers canvas_post_update_0010_migrate_auto_save()
+ * @covers \canvas_post_update_0010_migrate_auto_save
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

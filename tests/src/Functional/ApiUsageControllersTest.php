@@ -70,7 +70,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers ::component()
+   * @covers \Drupal\canvas\Controller\ApiUsageControllers::component
    */
   public function testComponentUsage(): void {
     $response = $this->makeApiRequest('GET', Url::fromUri('base:/canvas/api/v0/usage/component/sdc.canvas_test_sdc.card'), []);
@@ -84,7 +84,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers ::componentDetails()
+   * @covers \Drupal\canvas\Controller\ApiUsageControllers::componentDetails
    */
   public function testComponentDetailsUsage(): void {
     $json = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/usage/component/sdc.canvas_test_sdc.props-no-slots/details'), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
@@ -106,7 +106,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers ::componentsList()
+   * @covers \Drupal\canvas\Controller\ApiUsageControllers::componentsList
    */
   public function testComponentListUsage(): void {
     $components = Component::loadMultiple();

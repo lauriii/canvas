@@ -8,7 +8,7 @@ use Drupal\canvas\Entity\Component;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers canvas_post_update_0007_respect_prop_ordering()
+ * @covers \canvas_post_update_0007_respect_prop_ordering
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]

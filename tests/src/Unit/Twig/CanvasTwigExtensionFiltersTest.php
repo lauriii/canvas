@@ -42,7 +42,6 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
   }
 
   /**
-   * @covers CanvasTwigExtension::toSrcSet
    * @dataProvider providerToSrcSet
    */
   public function testToSrcSet(string $src, int $intrinsicImageWidth, ?string $expected): void {
@@ -134,7 +133,6 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
    * @param class-string<\Throwable> $expectedException
    *   The expected exception.
    *
-   * @covers CanvasTwigExtension::toSrcSet
    * @dataProvider invalidProviderToSrcSet
    */
   public function testToSrcSetWithInvalidWidth(string $src, int $intrinsicImageWidth, string $expectedException): void {

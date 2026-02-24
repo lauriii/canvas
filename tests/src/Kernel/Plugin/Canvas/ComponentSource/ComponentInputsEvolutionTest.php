@@ -76,8 +76,8 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
 
   /**
    * @see hook_canvas_storable_prop_shape_alter()
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::updateConfigEntity()
-   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
+   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
    */
   public function testStorablePropShapeChanges(): void {
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
@@ -316,8 +316,8 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
    * that changes the schema, we can simulate it with 2 modules, one with the v1
    * of the schema, and others with the v2 of the schema.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions()
-   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions
+   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
    *
    * @see \Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc::defaultConfiguration()
    * @see \Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block\SimulatedInputSchemaChangeBlock::defaultConfiguration()

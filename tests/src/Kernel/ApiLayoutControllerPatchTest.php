@@ -32,7 +32,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::patch()
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::patch
  * @group canvas
  * @group #slow
  */

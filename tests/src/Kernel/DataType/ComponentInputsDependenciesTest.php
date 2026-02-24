@@ -25,7 +25,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
+ * @covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies
  * @see \Drupal\Tests\canvas\Unit\DataType\ComponentInputsTest
  * @group canvas
  */

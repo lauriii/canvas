@@ -68,8 +68,8 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   /**
    * All test module blocks must either have a Component or a reason why not.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::discover()
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::discover
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements
    */
   public function testDiscovery(): array {
     $components = Component::loadMultiple();
@@ -184,7 +184,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
 
   /**
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::getReferencedPluginClass()
+   * @covers ::getReferencedPluginClass
    * @depends testDiscovery
    */
   public function testGetReferencedPluginClass(array $component_ids): void {
@@ -208,7 +208,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
 
   /**
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::renderComponent()
+   * @covers ::renderComponent
    * @depends testDiscovery
    */
   public function testRenderComponentLive(array $component_ids): void {
@@ -321,7 +321,7 @@ HTML,
   }
 
   /**
-   * @covers ::getExplicitInput()
+   * @covers ::getExplicitInput
    * @dataProvider getValidTreeTestCases
    */
   public function testGetExplicitInput(array $componentItemValue): void {
@@ -380,7 +380,7 @@ HTML,
   }
 
   /**
-   * @covers ::calculateDependencies()
+   * @covers ::calculateDependencies
    * @depends testDiscovery
    */
   public function testCalculateDependencies(array $component_ids): void {
@@ -438,7 +438,7 @@ HTML,
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::computeCurrentComponentMetadata()
+   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::computeCurrentComponentMetadata
    */
   public function testDependencyUpdate(): void {
     $this->generateComponentConfig();

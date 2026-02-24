@@ -197,11 +197,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @covers `type: canvas.component_source_settings.*`
-   * @covers `type: canvas.generated_field_explicit_input_ux`
-   * @covers `type: canvas.component_source_settings.sdc`
-   * @covers `type: canvas.component_source_settings.js`
-   * @covers `type: canvas.component_source_settings.block`
+   * Tests all ComponentSource plugin-specific settings.
    *
    * - `canvas.generated_field_explicit_input_ux` extends the
    * fallback `canvas.component_source_settings.*`
@@ -209,7 +205,12 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    *   `canvas.component_source_settings.*`
    * - The "block" one extends the fallback one.
    *
-   * This test method is aimed to test the ComponentSource-specific settings.
+   * See the base type (`type: canvas.component_source_settings.*`) and all
+   * source-specific subtypes:
+   * - `type: canvas.generated_field_explicit_input_ux`
+   * - `type: canvas.component_source_settings.sdc`
+   * - `type: canvas.component_source_settings.js`
+   * - `type: canvas.component_source_settings.block`
    *
    * @covers \Drupal\canvas\Plugin\Validation\Constraint\SdcPropKeysConstraintValidator
    */
@@ -644,7 +645,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+   * @covers \Drupal\canvas\ComponentMetadataRequirementsChecker::check
    */
   public function testUnmatchedEnumAndMetaEnum(): void {
     // In an SDC, periods are valid `meta:enum` keys.

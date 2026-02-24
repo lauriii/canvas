@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\image\Entity\ImageStyle;
 
 /**
- * @covers canvas_post_update_0012_canvas_image_style_avif()
+ * @covers \canvas_post_update_0012_canvas_image_style_avif
  * @group canvas
  */
 final class CanvasParametrizedWidthImageStyleAvifUpdateTest extends CanvasUpdatePathTestBase {

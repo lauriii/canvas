@@ -33,7 +33,6 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::validate
    * @dataProvider providerValidate
    */
   public function testValidate(mixed $slot_name, bool $is_invalid): void {
@@ -48,9 +47,6 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
     $this->validator->validate($slot_name, $constraint);
   }
 
-  /**
-   * @covers ::validate
-   */
   public function testValidateWithNullValue(): void {
     $constraint = new ValidSlotNameConstraint();
     $this->context->expects($this->never())
@@ -60,7 +56,6 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::validate
    * @dataProvider providerValidate
    */
   public function testValidateWithNonStringValue(mixed $slot_name, bool $is_invalid): void {

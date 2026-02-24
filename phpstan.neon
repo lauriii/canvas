@@ -48,15 +48,11 @@ parameters:
       identifier: attribute.notFound
       count: 1
       path: canvas.install
-    # Ignore invalid phpunit methods/covers
-    # @todo Remove in https://drupal.org/i/3533845
-    - identifier: phpunit.coversMethod
     # PHPStan finds many false positives for this, specifically when using the DIC or Typed Data.
     - identifier: varTag.type
     -
       identifier: deadCode.unreachable
       path: tests/src/Kernel/Plugin/Canvas/ComponentSource/JsComponentEvolutionTest.php
-    - identifier: phpunit.covers
     -
       message: '#^Access to an undefined property object\:\:\$data\.$#'
       identifier: property.notFound

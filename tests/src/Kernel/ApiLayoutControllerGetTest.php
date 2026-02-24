@@ -33,7 +33,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::get()
+ * @covers \Drupal\canvas\Controller\ApiLayoutController::get
  * @group canvas
  * @group #slow
  */
@@ -79,7 +79,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @covers ::get
    * @see \Drupal\canvas\Entity\ContentTemplate
    */
   public function testRenderDynamic(): void {

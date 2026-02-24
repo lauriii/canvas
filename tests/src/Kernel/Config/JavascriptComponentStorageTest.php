@@ -39,7 +39,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles()
+   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
    */
   public function testGeneratedFiles(): void {
     $js_component = JavaScriptComponent::create([
@@ -62,9 +62,6 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     $this->assertGeneratedFiles($js_component);
   }
 
-  /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::createConfigEntity()
-   */
   public function testComponentEntityCreation(): array {
     $js_component_id = $this->randomMachineName();
     $component_id = JsComponent::componentIdFromJavascriptComponentId($js_component_id);

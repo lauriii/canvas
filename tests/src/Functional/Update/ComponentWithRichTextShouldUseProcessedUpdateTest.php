@@ -8,7 +8,7 @@ use Drupal\canvas\Entity\Component;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers canvas_post_update_0005_use_processed_for_text_props_in_components()
+ * @covers \canvas_post_update_0005_use_processed_for_text_props_in_components
  * @group canvas
  */
 #[RunTestsInSeparateProcesses]
