@@ -41,6 +41,37 @@ import type {
   CodeComponentPropVideoExample,
 } from '@/types/CodeComponent';
 
+// Default example values when prop is required.
+export const DEFAULT_EXAMPLES: Record<string, string> = {
+  text: 'Example text',
+  integer: '0',
+  number: '0',
+  formattedText: '<p>Example text</p>',
+  link: 'example',
+  date: '2026-01-25',
+  listText: 'option_1',
+  listInteger: '1',
+};
+
+// Default enum options for list types when prop is required
+// Includes both derivedType keys (listText, listInteger) and type keys (string, integer, number)
+const TEXT_ENUM_OPTION = { value: 'option_1', label: 'Option 1' };
+const NUMBER_ENUM_OPTION = { value: '1', label: '1' };
+
+export const DEFAULT_ENUM_OPTIONS: Record<
+  string,
+  { value: string; label: string }
+> = {
+  listText: TEXT_ENUM_OPTION,
+  string: TEXT_ENUM_OPTION,
+  listInteger: NUMBER_ENUM_OPTION,
+  integer: NUMBER_ENUM_OPTION,
+  number: NUMBER_ENUM_OPTION,
+};
+
+export const REQUIRED_EXAMPLE_ERROR_MESSAGE =
+  'A required prop must have an example value.';
+
 export default function Props() {
   const dispatch = useAppDispatch();
   const props = useAppSelector(selectCodeComponentProperty('props'));
@@ -103,16 +134,31 @@ export default function Props() {
                     (item) => item.type === value,
                   );
                   if (selectedPropType) {
+                    const isRequired = required.includes(propName);
+                    const isImageOrVideo =
+                      value === 'image' || value === 'video';
+                    // Default examples for image and video are handled in their own components
+                    // regardless of required or not.
+                    // @see FormPropTypeImage and FormPropTypeVideo
+                    const defaultExample =
+                      isRequired && !isImageOrVideo
+                        ? DEFAULT_EXAMPLES[value]
+                        : '';
                     dispatch(
                       updateProp({
                         id: prop.id,
                         updates: {
                           derivedType: value,
-                          example: '',
-                          enum: undefined,
                           $ref: undefined,
                           format: undefined,
+                          example: defaultExample,
                           ...selectedPropType.init,
+                          // Override the enum value from ...selectedPropType.init if the prop is required
+                          // to have it prefilled with a default option.
+                          enum:
+                            isRequired && DEFAULT_ENUM_OPTIONS[value]
+                              ? [DEFAULT_ENUM_OPTIONS[value]]
+                              : selectedPropType.init.enum,
                         } as Partial<CodeComponentProp>,
                       }),
                     );
@@ -161,6 +207,7 @@ export default function Props() {
                   id={prop.id}
                   type={prop.type as 'string' | 'number' | 'integer'}
                   example={prop.example as string}
+                  required={required.includes(propName)}
                 />
               );
             case 'formattedText':
@@ -168,6 +215,7 @@ export default function Props() {
                 <FormPropTypeFormattedText
                   id={prop.id}
                   example={prop.example}
+                  required={required.includes(propName)}
                 />
               );
             case 'link':
@@ -177,6 +225,7 @@ export default function Props() {
                   example={prop.example as string}
                   format={prop.format as string}
                   isDisabled={disabledPropIds.has(prop.id)}
+                  required={required.includes(propName)}
                 />
               );
             case 'image':
@@ -220,6 +269,7 @@ export default function Props() {
                   example={prop.example as string}
                   format={prop.format as string}
                   isDisabled={disabledPropIds.has(prop.id)}
+                  required={required.includes(propName)}
                 />
               );
           }

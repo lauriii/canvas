@@ -1,6 +1,6 @@
 /* eslint-disable */
 // @ts-nocheck
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Box, Flex, Select, Text, TextField } from '@radix-ui/themes';
 
@@ -12,6 +12,8 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
+import { REQUIRED_EXAMPLE_ERROR_MESSAGE } from '@/features/code-editor/component-data/Props';
+import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 
 import type { CodeComponentProp } from '@/types/CodeComponent';
 
@@ -24,21 +26,44 @@ const linkFormatMap = {
   uri: 'full',
 };
 
+const DEFAULT_LINK_EXAMPLES = {
+  relative: 'example',
+  full: 'https://example.com',
+};
+
 export default function FormPropTypeLink({
   id,
   example,
   format,
   isDisabled = false,
+  required,
 }: Pick<CodeComponentProp, 'id'> & {
   example: string;
   format: string;
   isDisabled?: boolean;
+  required: boolean;
 }) {
   const dispatch = useAppDispatch();
   const [linkType, setLinkType] = useState<'relative' | 'full'>(
     format ? linkFormatMap[format] : 'relative',
   );
   const [isExampleValueValid, setIsExampleValueValid] = useState(true);
+  const { showRequiredError, setShowRequiredError } = useRequiredProp(
+    required,
+    example,
+    () => {
+      dispatch(
+        updateProp({
+          id,
+          updates: {
+            example: DEFAULT_LINK_EXAMPLES[linkType],
+            format: linkType === 'full' ? 'uri' : 'uri-reference',
+          },
+        }),
+      );
+    },
+    [dispatch, id, linkType],
+  );
 
   return (
     <Flex direction="column" gap="4" flexGrow="1">
@@ -84,6 +109,8 @@ export default function FormPropTypeLink({
               onChange={(e) => {
                 const input = e.target;
                 setIsExampleValueValid(true); // Reset validation state on change
+                // Show/hide error based on whether field is empty while required
+                setShowRequiredError(required && !input.value);
                 dispatch(
                   updateProp({
                     id,
@@ -109,14 +136,19 @@ export default function FormPropTypeLink({
                 setIsExampleValueValid(isValidValue);
               }}
               className={clsx({
-                [styles.error]: !isExampleValueValid,
+                [styles.error]: !isExampleValueValid || showRequiredError,
               })}
-              {...(!isExampleValueValid
+              {...(!isExampleValueValid || showRequiredError
                 ? { 'data-invalid-prop-value': true }
                 : {})}
             />
           </Box>
         </Flex>
+        {showRequiredError && (
+          <Text color="red" size="1">
+            {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+          </Text>
+        )}
       </FormElement>
     </Flex>
   );

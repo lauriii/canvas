@@ -9,6 +9,11 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
+import {
+  DEFAULT_ENUM_OPTIONS,
+  REQUIRED_EXAMPLE_ERROR_MESSAGE,
+} from '@/features/code-editor/component-data/Props';
+import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 
 import type {
   CodeComponentProp,
@@ -46,36 +51,48 @@ export default function FormPropTypeEnum({
   isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
-  const [localRequired, setLocalRequired] = useState(required);
 
   const validEnumValues = useMemo(() => {
     return enumValues.filter((item) => validateValue(item));
   }, [enumValues]);
 
-  useEffect(() => {
-    // Whether the prop is required is tracked in a local state, so we can update
-    // the default value when it changes.
-    setLocalRequired(required);
+  const { showRequiredError, setShowRequiredError } = useRequiredProp(
+    required,
+    defaultValue,
+    () => {
+      // If no valid enum values, prefill with a default option
+      if (validEnumValues.length === 0) {
+        const defaultOption = DEFAULT_ENUM_OPTIONS[type];
+        dispatch(
+          updateProp({
+            id,
+            updates: {
+              enum: [defaultOption],
+              example: String(defaultOption.value),
+            },
+          }),
+        );
+      } else if (!defaultValue) {
+        // If we have valid values but no default, set the first one
+        dispatch(
+          updateProp({
+            id,
+            updates: { example: String(validEnumValues[0].value) },
+          }),
+        );
+      }
+    },
+    [dispatch, id, type, validEnumValues],
+  );
 
-    // Update the default value when:
-    // 1. Required status has changed (required !== localRequired);
-    // 2. Prop is becoming required (required === true);
-    // 3. We have valid values;
-    // 4. No default value is set.
-    if (
-      required !== localRequired &&
-      required &&
-      validEnumValues.length > 0 &&
-      !defaultValue
-    ) {
-      dispatch(
-        updateProp({
-          id,
-          updates: { example: String(validEnumValues[0].value) },
-        }),
-      );
+  // Show error when required but no valid example or no options
+  useEffect(() => {
+    if (required && (validEnumValues.length === 0 || !defaultValue)) {
+      setShowRequiredError(true);
+    } else {
+      setShowRequiredError(false);
     }
-  }, [defaultValue, dispatch, id, localRequired, required, validEnumValues]);
+  }, [required, defaultValue, validEnumValues.length, setShowRequiredError]);
 
   const handleDefaultValueChange = (value: string | number) => {
     dispatch(
@@ -132,7 +149,11 @@ export default function FormPropTypeEnum({
             <Label htmlFor={`prop-enum-default-${id}`}>Default value</Label>
             <Select.Root
               value={defaultValue === '' ? NONE_VALUE : defaultValue}
-              onValueChange={handleDefaultValueChange}
+              onValueChange={(value) => {
+                handleDefaultValueChange(value);
+                // Show/hide error based on whether value is empty while required
+                setShowRequiredError(required && value === NONE_VALUE);
+              }}
               size="1"
               disabled={isDisabled}
             >
@@ -153,6 +174,11 @@ export default function FormPropTypeEnum({
             </Select.Root>
           </FormElement>
         </>
+      )}
+      {showRequiredError && (
+        <Text color="red" size="1">
+          {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+        </Text>
       )}
     </Flex>
   );

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Flex, Select, TextField } from '@radix-ui/themes';
+import { Flex, Select, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import { updateProp } from '@/features/code-editor/codeEditorSlice';
@@ -9,6 +9,11 @@ import {
   FormElement,
   Label,
 } from '@/features/code-editor/component-data/FormElement';
+import {
+  DEFAULT_EXAMPLES,
+  REQUIRED_EXAMPLE_ERROR_MESSAGE,
+} from '@/features/code-editor/component-data/Props';
+import { useRequiredProp } from '@/features/code-editor/hooks/useRequiredProp';
 import {
   localTimeToUtcConversion,
   utcToLocalTimeConversion,
@@ -23,10 +28,12 @@ export default function FormPropTypeDate({
   example,
   format,
   isDisabled = false,
+  required,
 }: Pick<CodeComponentProp, 'id'> & {
   example: string;
   format: string;
   isDisabled?: boolean;
+  required: boolean;
 }) {
   const dispatch = useAppDispatch();
   // @ts-ignore
@@ -36,6 +43,24 @@ export default function FormPropTypeDate({
   // requires a local datetime format. We need to convert between these two formats.
   const [datetimeLocalForInput, setDatetimeLocalForInput] = useState(
     utcToLocalTimeConversion(example),
+  );
+  const defaultValue = DEFAULT_EXAMPLES[dateType] as string;
+
+  const { showRequiredError, setShowRequiredError } = useRequiredProp(
+    required,
+    example,
+    () => {
+      dispatch(
+        updateProp({
+          id,
+          updates: { example: defaultValue, format: dateType },
+        }),
+      );
+      if (dateType === 'date-time') {
+        setDatetimeLocalForInput(utcToLocalTimeConversion(defaultValue));
+      }
+    },
+    [dispatch, id, dateType],
   );
 
   return (
@@ -74,6 +99,8 @@ export default function FormPropTypeDate({
           type={dateType === 'date' ? 'date' : 'datetime-local'}
           onChange={(e) => {
             const value = e.target.value;
+            // Show/hide error based on whether field is empty while required
+            setShowRequiredError(required && !value);
             // Convert the datetime-local value to UTC ISO string for the server.
             const convertedValue =
               dateType === 'date-time'
@@ -93,10 +120,17 @@ export default function FormPropTypeDate({
             setIsExampleValueValid(e.target.validity.valid);
           }}
           className={clsx({
-            [styles.error]: !isExampleValueValid,
+            [styles.error]: !isExampleValueValid || showRequiredError,
           })}
-          {...(!isExampleValueValid ? { 'data-invalid-prop-value': true } : {})}
+          {...(!isExampleValueValid || showRequiredError
+            ? { 'data-invalid-prop-value': true }
+            : {})}
         />
+        {showRequiredError && (
+          <Text color="red" size="1">
+            {REQUIRED_EXAMPLE_ERROR_MESSAGE}
+          </Text>
+        )}
       </FormElement>
     </Flex>
   );

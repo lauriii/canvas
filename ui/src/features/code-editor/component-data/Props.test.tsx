@@ -21,7 +21,7 @@ import {
 import { getPropMachineName } from '@/features/code-editor/utils/utils';
 import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
 
-import Props from './Props';
+import Props, { REQUIRED_EXAMPLE_ERROR_MESSAGE } from './Props';
 
 import type { AppStore } from '@/app/store';
 
@@ -1309,6 +1309,83 @@ describe('props in code editor', () => {
       expect(
         screen.queryByRole('textbox', { name: 'Prop name' }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('required prop example validation', () => {
+    it('prefills default example when required is toggled on and shows error when cleared', async () => {
+      await addProp('Text', 'Title');
+      // Verify example is initially empty
+      expect(
+        screen.getByRole('textbox', { name: 'Example value' }),
+      ).toHaveValue('');
+
+      // Toggle required
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+
+      // Verify default example is prefilled
+      await waitFor(() => {
+        expect(
+          screen.getByRole('textbox', { name: 'Example value' }),
+        ).toHaveValue('Example text');
+      });
+
+      // Clear the prefilled example
+      await userEvent.clear(
+        screen.getByRole('textbox', { name: 'Example value' }),
+      );
+
+      // Verify error message is shown
+      expect(
+        screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+      ).toBeInTheDocument();
+    });
+
+    it('clears validation error when required is toggled off', async () => {
+      await addProp('Text', 'Title');
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+      await userEvent.clear(
+        screen.getByRole('textbox', { name: 'Example value' }),
+      );
+
+      // Error should be visible
+      expect(
+        screen.getByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+      ).toBeInTheDocument();
+
+      // Toggle required off
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+
+      // Error should be cleared
+      expect(
+        screen.queryByText(REQUIRED_EXAMPLE_ERROR_MESSAGE),
+      ).not.toBeInTheDocument();
+    });
+
+    it('prefills default example when changing type on required prop', async () => {
+      await addProp('Text', 'MyProp');
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+
+      // Change type to Integer
+      await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+      await userEvent.click(screen.getByRole('option', { name: 'Integer' }));
+
+      // Verify default example for integer is set
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual('0');
+      });
+    });
+
+    it('prefills enum option when required is toggled on for list:text with no options', async () => {
+      await addProp('List: text', 'Tags');
+      await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.enum).toEqual([{ value: 'option_1', label: 'Option 1' }]);
+        expect(prop.example).toEqual('option_1');
+      });
     });
   });
 });
