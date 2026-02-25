@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Twig;
 
-// cspell:ignore itok
+// cspell:ignore itok MIOT
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
@@ -17,6 +17,8 @@ use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -25,11 +27,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Tests Twig filter functionality.
  *
  * @group canvas
- * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
- * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[CoversClass(CanvasTwigExtension::class)]
+#[CoversMethod(CanvasTwigExtension::class, 'toSrcSet')]
+#[CoversMethod(CanvasTwigExtension::class, 'applyImageStyle')]
+#[CoversMethod(CanvasTwigExtension::class, 'urlToStreamWrapperUri')]
 class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   use PredictableImageStyleItokTestTrait;
@@ -88,7 +92,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   public static function providerToSrcSet(): \Generator {
     $actual_width = 640;
     $expect_all_srcset_widths = self::generateExpectedSrcSet(
-      self::getWidthsIncludingNextLarger($actual_width)
+      array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, fn($w) => $w <= $actual_width)
     );
 
     yield 'public stream wrapper image' => [
@@ -113,23 +117,9 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'public://balloons.png',
       200,
       self::generateExpectedSrcSet(
-        self::getWidthsIncludingNextLarger(200)
+        array_filter(ParametrizedImageStyleConverter::ALLOWED_WIDTHS, fn($w) => $w <= 200)
       ),
     ];
-  }
-
-  /**
-   * Gets allowed widths up to the target width, plus the next larger width.
-   */
-  private static function getWidthsIncludingNextLarger(int $target_width): array {
-    $widths = [];
-    foreach (ParametrizedImageStyleConverter::ALLOWED_WIDTHS as $allowed_width) {
-      $widths[] = $allowed_width;
-      if ($allowed_width > $target_width) {
-        break;
-      }
-    }
-    return $widths;
   }
 
   /**
@@ -144,8 +134,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   /**
    * Tests the apply_image_style filter with stream wrapper URI.
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
    */
   public function testApplyImageStyleWithStreamWrapperUri(): void {
     // Create a test image style with a resize effect.
@@ -187,9 +175,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * When a URL contains encoded characters (e.g. %20 for space), the stream
    * wrapper URI must use the decoded path so that styled URLs are generated
    * with a single encoding (e.g. %20), not double-encoded (e.g. %2520).
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::urlToStreamWrapperUri
    */
   public function testApplyImageStyleWithEncodedCharactersInPath(): void {
     ImageStyle::create([
@@ -213,12 +198,12 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $this->assertStringContainsString('/styles/test_style/', $result['src']);
     // Styled URL must use single encoding (%20) so the browser requests the correct path.
     $this->assertStringContainsString('MIOT%20U-6_4.png', $result['src']);
+    // Must not be double-encoded (%2520), which would break image loading.
+    $this->assertStringNotContainsString('%2520', $result['src']);
   }
 
   /**
    * Tests the apply_image_style filter with local file URL.
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
    */
   public function testApplyImageStyleWithLocalFileUrl(): void {
     ImageStyle::create([
@@ -246,8 +231,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   /**
    * Tests the apply_image_style filter with external URL returns unchanged.
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
    */
   public function testApplyImageStyleWithExternalUrl(): void {
     ImageStyle::create([
@@ -275,8 +258,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   /**
    * Tests the apply_image_style filter with local file outside public path.
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
    */
   public function testApplyImageStyleWithLocalFileOutsidePublicPath(): void {
     ImageStyle::create([
@@ -304,8 +285,6 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
 
   /**
    * Tests the apply_image_style filter with invalid style name.
-   *
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
    */
   public function testApplyImageStyleWithInvalidStyleName(): void {
     $extension = $this->container->get(CanvasTwigExtension::class);

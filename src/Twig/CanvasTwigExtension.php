@@ -198,7 +198,8 @@ final class CanvasTwigExtension extends AbstractExtension {
    */
   private function urlToStreamWrapperUri(string $url): ?string {
     $publicBasePath = PublicStream::basePath();
-    $path = ltrim(parse_url($url, PHP_URL_PATH) ?? $url, '/');
+    $pathSegment = parse_url($url, PHP_URL_PATH);
+    $path = ltrim(is_string($pathSegment) ? $pathSegment : $url, '/');
 
     // Check if this is a public files URL.
     if (!str_starts_with($path, $publicBasePath . '/')) {
