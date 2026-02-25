@@ -999,6 +999,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
   #[DataProvider('providerTrueFalse')]
   public function testCodeComponentCanChangeThePropType(bool $usingHttpApi = FALSE): void {
     $this->markTestSkipped('To be fixed in https://www.drupal.org/project/canvas/issues/3557271');
+    // @phpstan-ignore deadCode.unreachable
     $this->modifyPropType($usingHttpApi);
     $inputs = [
       'name' => 'mike_watt',

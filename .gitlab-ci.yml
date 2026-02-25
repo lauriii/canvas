@@ -545,6 +545,11 @@ lint (php):
     - run_test "phpcs" "composer run phpcs"
     - run_test "phpstan" "composer run phpstan"
     - !reference [ .test_summary ]
+    # Regenerate the >=11.3 ignores from scratch — this ensures we avoid manual additions.
+    # (Manual additions belong in phpstan.neon; this file should be purely auto-generated ignores.)
+    - composer run phpstan-regenerate-ignores-for-11.3-and-higher
+    - cp phpstan-11.3-and-higher-ignores.neon test-results/
+    - git diff --quiet -- phpstan-11.3-and-higher-ignores.neon && echo "✅ phpstan-11.3-and-higher-ignores.neon in sync." || (echo "❌ phpstan-11.3-and-higher-ignores.neon out of sync." && echo "🙏 Please run composer run phpstan-regenerate-ignores-for-11.3-and-higher or download the file from the CI artifacts, and commit the result." && exit 1)
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/test-results $CI_PROJECT_DIR/test-results
   artifacts:

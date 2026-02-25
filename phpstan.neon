@@ -42,78 +42,16 @@ parameters:
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
-    # Impossible to make this pass on <=11.2.
-    -
-      message: '#^Attribute class Drupal\\Core\\Hook\\Attribute\\LegacyRequirementsHook does not exist\.$#'
-      identifier: attribute.notFound
-      count: 1
-      path: canvas.install
     # PHPStan finds many false positives for this, specifically when using the DIC or Typed Data.
     - identifier: varTag.type
-    -
-      identifier: deadCode.unreachable
-      path: tests/src/Kernel/Plugin/Canvas/ComponentSource/JsComponentEvolutionTest.php
-    -
-      message: '#^Access to an undefined property object\:\:\$data\.$#'
-      identifier: property.notFound
-      count: 1
-      path: canvas.post_update.php
-    -
-      message: '#^Access to an undefined property object\:\:\$owner\.$#'
-      identifier: property.notFound
-      count: 1
-      path: canvas.post_update.php
-    -
-      message: '#^Access to an undefined property object\:\:\$updated\.$#'
-      identifier: property.notFound
-      count: 1
-      path: canvas.post_update.php
     -
       message: "#^Class .* extends @internal class#"
       count: 1
       path: src/MediaLibraryCanvasPropOpener.php
     -
-      message: "#^Access to an undefined property#"
-      count: 1
-      path: src/PropSource/StaticPropSource.php
-    -
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php
-    # The following ignores can be removed when we depend on Drupal 11.3 or later.
-    -
-      message: "#^Class Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent not found\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Parameter \\$event of method Drupal\\\\canvas\\\\EventSubscriber\\\\DefaultContentSubscriber\\:\\:preExport\\(\\) has invalid type Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Call to method setCallback\\(\\) on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreExportEvent\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Parameter \\$metadata of anonymous function has invalid type Drupal\\\\Core\\\\DefaultContent\\\\ExportMetadata\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Call to method addDependency\\(\\) on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\ExportMetadata\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent not found\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Parameter \\$event of method Drupal\\\\canvas\\\\EventSubscriber\\\\DefaultContentSubscriber\\:\\:preEntityImport\\(\\) has invalid type Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Access to property \\$metadata on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
-      count: 4
-      path: src/EventSubscriber/DefaultContentSubscriber.php
-    -
-      message: "#^Access to property \\$data on an unknown class Drupal\\\\Core\\\\DefaultContent\\\\PreEntityImportEvent\\.$#"
-      count: 1
-      path: src/EventSubscriber/DefaultContentSubscriber.php
+# Run `composer run phpstan-regenerate-ignores-for-11.3-and-higher` to update this list of ignores for Drupal >=11.3.
+includes:
+  - phpstan-11.3-and-higher-ignores.neon

@@ -219,8 +219,11 @@ function canvas_post_update_0010_migrate_auto_save(): void {
     $tempstore_storage = $storage_property->getValue($tempstore);
 
     foreach ($tempstore_storage->getAll() as $key => $value) {
+      // @phpstan-ignore property.notFound
       if (is_object($value) && isset($value->data)) {
         $data = $value->data;
+        \assert(\property_exists($value, 'owner'));
+        \assert(\property_exists($value, 'updated'));
         if ($collection === AutoSaveManager::AUTO_SAVE_STORE && isset($value->owner, $value->updated)) {
           $data['owner'] = (int) ($value->owner ?? 0);
           $data['updated'] = (int) ($value->updated ?? 0);

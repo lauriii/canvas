@@ -1,0 +1,61 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Attribute class Drupal\\Core\\Hook\\Attribute\\LegacyRequirementsHook does not exist\.$#'
+			identifier: attribute.notFound
+			count: 1
+			path: canvas.install
+
+		-
+			message: '#^Access to property \$data on an unknown class Drupal\\Core\\DefaultContent\\PreEntityImportEvent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Access to property \$metadata on an unknown class Drupal\\Core\\DefaultContent\\PreEntityImportEvent\.$#'
+			identifier: class.notFound
+			count: 4
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Call to method addDependency\(\) on an unknown class Drupal\\Core\\DefaultContent\\ExportMetadata\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Call to method setCallback\(\) on an unknown class Drupal\\Core\\DefaultContent\\PreExportEvent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Class Drupal\\Core\\DefaultContent\\PreEntityImportEvent not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Class Drupal\\Core\\DefaultContent\\PreExportEvent not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Parameter \$event of method Drupal\\canvas\\EventSubscriber\\DefaultContentSubscriber\:\:preEntityImport\(\) has invalid type Drupal\\Core\\DefaultContent\\PreEntityImportEvent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Parameter \$event of method Drupal\\canvas\\EventSubscriber\\DefaultContentSubscriber\:\:preExport\(\) has invalid type Drupal\\Core\\DefaultContent\\PreExportEvent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
+
+		-
+			message: '#^Parameter \$metadata of anonymous function has invalid type Drupal\\Core\\DefaultContent\\ExportMetadata\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EventSubscriber/DefaultContentSubscriber.php
