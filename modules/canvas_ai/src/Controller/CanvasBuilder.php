@@ -168,10 +168,9 @@ final class CanvasBuilder extends ControllerBase {
       if (!empty($message['files'])) {
         $images = [];
         foreach ($message['files'] as $file_info) {
-          if (!empty($file_info['src'])) {
-            $binary = @file_get_contents($file_info['src']);
-            preg_match('/^data:(.*?);base64,/', $file_info['src'], $matches);
-            $mime_type = $matches[1] ?? '';
+          if (!empty($file_info['src']) && preg_match('/^data:(image\/(?:jpeg|png));base64,(.+)$/i', $file_info['src'], $matches)) {
+            $mime_type = $matches[1];
+            $binary = base64_decode($matches[2], TRUE);
             if ($binary !== FALSE) {
               $images[] = new ImageFile($binary, $mime_type, 'temp');
             }
