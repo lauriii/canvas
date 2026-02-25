@@ -144,6 +144,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $style->addImageEffect([
       'id' => 'image_scale',
       'data' => ['width' => 200, 'height' => NULL, 'upscale' => FALSE],
+      'weight' => 0,
     ]);
     $style->save();
 
