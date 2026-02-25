@@ -18,8 +18,8 @@ npm install -D @drupal-canvas/eslint-config
 
 ```js
 // eslint.config.js
-import { recommended as drupalCanvasRecommended } from "@drupal-canvas/eslint-config";
-import { defineConfig } from "eslint/config";
+import { defineConfig } from 'eslint/config';
+import { recommended as drupalCanvasRecommended } from '@drupal-canvas/eslint-config';
 
 export default defineConfig([
   ...drupalCanvasRecommended,

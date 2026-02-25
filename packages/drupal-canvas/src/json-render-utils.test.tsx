@@ -1,7 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { canvasTreeToSpec, specToCanvasTree } from './json-render-utils';
+import {
+  canvasTreeToSpec,
+  defineComponentCatalog,
+  defineComponentRegistry,
+  renderCanvasTree,
+  renderSpec,
+  specToCanvasTree,
+} from './json-render-utils';
 
+import type React from 'react';
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { Spec } from '@json-render/core';
 import type { CanvasComponentTree } from './json-render-utils';
 
@@ -517,6 +526,24 @@ describe('specToCanvasTree', () => {
 
     expect(new Set(uuids).size).toBe(uuids.length);
   });
+
+  it('should resolve $state prop expressions to literal values', () => {
+    const spec: Spec = {
+      root: 'heading',
+      elements: {
+        heading: {
+          type: 'Heading',
+          props: { text: { $state: '/title' }, level: 2 },
+        },
+      },
+      state: { title: 'Resolved Title' },
+    };
+
+    const result = specToCanvasTree(spec);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].inputs).toEqual({ text: 'Resolved Title', level: 2 });
+  });
 });
 
 describe('round-trip: canvasTreeToSpec → specToCanvasTree', () => {
@@ -612,5 +639,624 @@ describe('round-trip: canvasTreeToSpec → specToCanvasTree', () => {
     const text = result.find((n) => n.component_id === 'Text')!;
     expect(text.parent_uuid).toBeNull();
     expect(text.inputs).toEqual({ content: 'Info' });
+  });
+});
+
+describe('renderSpec', () => {
+  it('should render a single-root spec', () => {
+    const spec: Spec = {
+      root: 'btn',
+      elements: {
+        btn: {
+          type: 'Button',
+          props: { label: 'Go' },
+        },
+      },
+    };
+
+    const Button = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+    const result = renderSpec(spec, { Button });
+
+    expect((result as React.ReactElement).type).toBe(Button);
+    expect((result as React.ReactElement).props.label).toBe('Go');
+  });
+
+  it('should render a spec with children and slots', () => {
+    const spec: Spec = {
+      root: 'layout',
+      elements: {
+        layout: {
+          type: 'Layout',
+          props: {},
+          children: ['text'],
+          slots: { footer: ['btn'] },
+        },
+        text: {
+          type: 'Text',
+          props: { content: 'Hello' },
+        },
+        btn: {
+          type: 'Button',
+          props: { label: 'OK' },
+        },
+      },
+    };
+
+    const Layout = (props: Record<string, unknown>) => (
+      <div>
+        <main>{props.children as React.ReactNode}</main>
+        <footer>{props.footer as React.ReactNode}</footer>
+      </div>
+    );
+    const Text = (props: Record<string, unknown>) => (
+      <p>{props.content as string}</p>
+    );
+    const Button = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+    const result = renderSpec(spec, { Layout, Text, Button });
+
+    expect((result as React.ReactElement).type).toBe(Layout);
+    expect((result as React.ReactElement).props.children[0].type).toBe(Text);
+    expect((result as React.ReactElement).props.children[0].props.content).toBe(
+      'Hello',
+    );
+    expect((result as React.ReactElement).props.footer[0].type).toBe(Button);
+    expect((result as React.ReactElement).props.footer[0].props.label).toBe(
+      'OK',
+    );
+  });
+
+  it('should return null for unknown component types', () => {
+    const spec: Spec = {
+      root: 'x',
+      elements: {
+        x: { type: 'Missing', props: {} },
+      },
+    };
+
+    expect(renderSpec(spec, {})).toBeNull();
+  });
+
+  it('should render multi-root spec transparently', () => {
+    const spec: Spec = {
+      root: 'canvas:component-tree',
+      elements: {
+        'canvas:component-tree': {
+          type: 'canvas:component-tree',
+          props: {},
+          children: ['a', 'b'],
+        },
+        a: { type: 'Button', props: { label: 'A' } },
+        b: { type: 'Button', props: { label: 'B' } },
+      },
+    };
+
+    const Button = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+    const result = renderSpec(spec, { Button });
+    const children = (result as React.ReactElement).props
+      .children as React.ReactElement[];
+
+    expect(children).toHaveLength(2);
+    expect(children[0].type).toBe(Button);
+    expect(children[0].props.label).toBe('A');
+    expect(children[1].type).toBe(Button);
+    expect(children[1].props.label).toBe('B');
+  });
+});
+
+describe('renderSpec state resolving', () => {
+  it('should resolve $state prop expressions from spec.state', () => {
+    const spec: Spec = {
+      root: 'heading',
+      elements: {
+        heading: {
+          type: 'Heading',
+          props: { text: { $state: '/title' } },
+        },
+      },
+      state: { title: 'Hello from state' },
+    };
+
+    const Heading = (props: Record<string, unknown>) => (
+      <h1>{props.text as string}</h1>
+    );
+    const result = renderSpec(spec, { Heading });
+
+    expect((result as React.ReactElement).type).toBe(Heading);
+    expect((result as React.ReactElement).props.text).toBe('Hello from state');
+  });
+
+  it('should resolve $cond/$then/$else expressions', () => {
+    const spec: Spec = {
+      root: 'badge',
+      elements: {
+        badge: {
+          type: 'Badge',
+          props: {
+            variant: {
+              $cond: { $state: '/active' },
+              $then: 'success',
+              $else: 'muted',
+            },
+          },
+        },
+      },
+      state: { active: true },
+    };
+
+    const Badge = (_props: Record<string, unknown>) => <span />;
+    const resultActive = renderSpec(spec, { Badge });
+
+    expect((resultActive as React.ReactElement).type).toBe(Badge);
+    expect((resultActive as React.ReactElement).props.variant).toBe('success');
+
+    // With active = false, should resolve to $else.
+    const specInactive: Spec = { ...spec, state: { active: false } };
+    const resultInactive = renderSpec(specInactive, { Badge });
+    expect((resultInactive as React.ReactElement).props.variant).toBe('muted');
+  });
+
+  it('should work unchanged for specs without state', () => {
+    const spec: Spec = {
+      root: 'btn',
+      elements: {
+        btn: {
+          type: 'Button',
+          props: { label: 'Go' },
+        },
+      },
+    };
+
+    const Button = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+    const result = renderSpec(spec, { Button });
+
+    expect((result as React.ReactElement).type).toBe(Button);
+    expect((result as React.ReactElement).props.label).toBe('Go');
+  });
+});
+
+describe('renderCanvasTree', () => {
+  it('should call the component with props from inputs', () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: '69cb59d5-353f-43b0-9e90-a3e3c0960afe',
+        component_id: 'Button',
+        component_version: null,
+        inputs: { label: 'Click me', variant: 'primary' },
+        label: null,
+      },
+    ];
+
+    const Button = (props: Record<string, unknown>) => (
+      <button data-variant={props.variant as string}>
+        {props.label as string}
+      </button>
+    );
+    const result = renderCanvasTree(components, { Button });
+
+    expect(result).toEqual(<Button label="Click me" variant="primary" />);
+  });
+
+  it('should normalize rich text objects to plain string props', async () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: '91f69efe-3b49-4b74-82bf-ce70bb35f9c7',
+        component_id: 'Paragraph',
+        component_version: null,
+        inputs: {
+          text: {
+            value: '<p>Hello <em>world</em>.</p>',
+            format: 'canvas_html_block',
+          },
+        },
+        label: null,
+      },
+    ];
+
+    const Paragraph = (props: Record<string, unknown>) => (
+      <p>{props.text as string}</p>
+    );
+    const result = await renderCanvasTree(components, { Paragraph });
+
+    expect((result as React.ReactElement).type).toBe(Paragraph);
+    expect((result as React.ReactElement).props.text).toBe(
+      '<p>Hello <em>world</em>.</p>',
+    );
+  });
+
+  it('should normalize wrapped image objects to flattened image props', async () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: 'f770f017-7ec8-4f52-a259-4dcb9b1a0b6f',
+        component_id: 'Hero',
+        component_version: null,
+        inputs: {
+          image: {
+            sourceType: 'default-relative-url',
+            value: {
+              src: 'https://example.com/hero.jpg',
+              alt: 'Hero image',
+              width: 1200,
+              height: 800,
+            },
+            componentId: 'js.hero',
+          },
+        },
+        label: null,
+      },
+    ];
+
+    const Hero = (props: Record<string, unknown>) => (
+      <img src={(props.image as Record<string, unknown>).src as string} />
+    );
+    const result = await renderCanvasTree(components, { Hero });
+
+    expect((result as React.ReactElement).type).toBe(Hero);
+    expect((result as React.ReactElement).props.image).toEqual({
+      src: 'https://example.com/hero.jpg',
+      alt: 'Hero image',
+      width: 1200,
+      height: 800,
+    });
+  });
+
+  it('should return null for components not in the registry', () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: '69cb59d5-353f-43b0-9e90-a3e3c0960afe',
+        component_id: 'Unknown',
+        component_version: null,
+        inputs: {},
+        label: null,
+      },
+    ];
+
+    const result = renderCanvasTree(components, {});
+
+    expect(result).toBeNull();
+  });
+
+  it('should pass children as a prop', () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: 'f221b7d5-7e9d-47fe-a80e-f2a7f003729d',
+        component_id: 'Wrapper',
+        component_version: null,
+        inputs: {},
+        label: null,
+      },
+      {
+        parent_uuid: 'f221b7d5-7e9d-47fe-a80e-f2a7f003729d',
+        slot: 'children',
+        uuid: '84e5e54d-0ba2-4cb1-aa5c-abed4efdd501',
+        component_id: 'Text',
+        component_version: null,
+        inputs: { content: 'Hello' },
+        label: null,
+      },
+    ];
+
+    const Wrapper = (props: Record<string, unknown>) => (
+      <div>{props.children as React.ReactNode}</div>
+    );
+    const Text = (props: Record<string, unknown>) => (
+      <p>{props.content as string}</p>
+    );
+    const result = renderCanvasTree(components, { Wrapper, Text });
+
+    expect((result as React.ReactElement).type).toBe(Wrapper);
+    const children = (result as React.ReactElement).props
+      .children as React.ReactElement[];
+    expect(children).toHaveLength(1);
+    expect(children[0].type).toBe(Text);
+    expect(children[0].props.content).toBe('Hello');
+  });
+
+  it('should pass named slots as props', () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: '26fe2511-4808-40df-8d90-6164ec3b5ac5',
+        component_id: 'Layout',
+        component_version: null,
+        inputs: {},
+        label: null,
+      },
+      {
+        parent_uuid: '26fe2511-4808-40df-8d90-6164ec3b5ac5',
+        slot: 'header',
+        uuid: '8abe4e58-75aa-4ffc-94fd-c9cefaa2f37c',
+        component_id: 'Heading',
+        component_version: null,
+        inputs: { text: 'Title' },
+        label: null,
+      },
+    ];
+
+    const Layout = (props: Record<string, unknown>) => (
+      <div className="layout">
+        <header>{props.header as React.ReactNode}</header>
+      </div>
+    );
+    const Heading = (props: Record<string, unknown>) => (
+      <h1>{props.text as string}</h1>
+    );
+    const result = renderCanvasTree(components, { Layout, Heading });
+
+    expect((result as React.ReactElement).type).toBe(Layout);
+    const header = (result as React.ReactElement).props
+      .header as React.ReactElement[];
+    expect(header).toHaveLength(1);
+    expect(header[0].type).toBe(Heading);
+    expect(header[0].props.text).toBe('Title');
+  });
+
+  it('should render multiple root components wrapped transparently', () => {
+    const components: CanvasComponentTree = [
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: 'f2fe5384-762a-43ca-abcb-f3632fc6ed45',
+        component_id: 'Button',
+        component_version: null,
+        inputs: { label: 'A' },
+        label: null,
+      },
+      {
+        parent_uuid: null,
+        slot: null,
+        uuid: 'e0d22200-78bf-43c1-a1ea-a37f1eceadb6',
+        component_id: 'Button',
+        component_version: null,
+        inputs: { label: 'B' },
+        label: null,
+      },
+    ];
+
+    const Button = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+    const result = renderCanvasTree(components, { Button });
+
+    const fragmentChildren = (result as React.ReactElement).props
+      .children as React.ReactElement[];
+    expect(fragmentChildren).toHaveLength(2);
+    expect(fragmentChildren[0].type).toBe(Button);
+    expect(fragmentChildren[0].props.label).toBe('A');
+    expect(fragmentChildren[1].type).toBe(Button);
+    expect(fragmentChildren[1].props.label).toBe('B');
+  });
+});
+
+describe('defineComponentRegistry', () => {
+  it('should build a registry from components with JS entry paths', async () => {
+    const MyButton = (props: Record<string, unknown>) => (
+      <button>{props.label as string}</button>
+    );
+
+    vi.doMock('/fake/Button.js', () => ({ default: MyButton }));
+
+    const registry = await defineComponentRegistry([
+      { name: 'Button', jsEntryPath: '/fake/Button.js' },
+    ]);
+
+    expect(registry['js.button']).toBe(MyButton);
+
+    vi.doUnmock('/fake/Button.js');
+  });
+
+  it('should skip components with null jsEntryPath', async () => {
+    const registry = await defineComponentRegistry([
+      { name: 'NoEntry', jsEntryPath: null },
+    ]);
+
+    expect(registry).toEqual({});
+  });
+
+  it('should skip modules whose default export is not a function', async () => {
+    vi.doMock('/fake/NotAComponent.js', () => ({
+      default: 'not a function',
+    }));
+
+    const registry = await defineComponentRegistry([
+      { name: 'Bad', jsEntryPath: '/fake/NotAComponent.js' },
+    ]);
+
+    expect(registry).toEqual({});
+
+    vi.doUnmock('/fake/NotAComponent.js');
+  });
+
+  it('should handle a mix of valid and invalid components', async () => {
+    const ValidComp = () => <span>valid</span>;
+
+    vi.doMock('/fake/Valid.js', () => ({ default: ValidComp }));
+    vi.doMock('/fake/Invalid.js', () => ({ default: 42 }));
+
+    const registry = await defineComponentRegistry([
+      { name: 'Valid', jsEntryPath: '/fake/Valid.js' },
+      { name: 'Invalid', jsEntryPath: '/fake/Invalid.js' },
+      { name: 'NoPath', jsEntryPath: null },
+    ]);
+
+    expect(Object.keys(registry)).toEqual(['Valid', 'js.valid']);
+    expect(registry.Valid).toBe(ValidComp);
+    expect(registry['js.valid']).toBe(ValidComp);
+
+    vi.doUnmock('/fake/Valid.js');
+    vi.doUnmock('/fake/Invalid.js');
+  });
+});
+
+describe('defineComponentCatalog', () => {
+  it('should create a catalog from component metadata', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Button',
+        machineName: 'button',
+        status: true,
+        props: {
+          properties: {
+            label: { title: 'Label', type: 'string' },
+            variant: { title: 'Variant', type: 'string' },
+          },
+        },
+        required: ['label'],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    expect(catalog).toBeDefined();
+    expect(catalog.componentNames).toEqual(['js.button']);
+    expect(catalog.data.components['js.button']).toBeDefined();
+  });
+
+  it('should include slots in the catalog entry', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Card',
+        machineName: 'card',
+        status: true,
+        props: {
+          properties: {
+            title: { title: 'Title', type: 'string' },
+          },
+        },
+        required: [],
+        slots: {
+          header: { title: 'Header' },
+          body: { title: 'Body' },
+        },
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    expect(catalog.data.components['js.card']).toBeDefined();
+    expect(catalog.data.components['js.card'].slots).toEqual([
+      'header',
+      'body',
+    ]);
+  });
+
+  it('should handle metadata with no props or slots', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Divider',
+        machineName: 'divider',
+        status: true,
+        props: { properties: {} },
+        required: [],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    expect(catalog.componentNames).toEqual(['js.divider']);
+    expect(catalog.data.components['js.divider'].slots).toEqual([]);
+  });
+
+  it('should handle multiple components', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Button',
+        machineName: 'button',
+        status: true,
+        props: { properties: { label: { title: 'Label', type: 'string' } } },
+        required: [],
+        slots: {},
+      },
+      {
+        name: 'Text',
+        machineName: 'text',
+        status: true,
+        props: {
+          properties: { content: { title: 'Content', type: 'string' } },
+        },
+        required: ['content'],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    expect(catalog.componentNames).toEqual(['js.button', 'js.text']);
+  });
+
+  it('should produce a catalog that can generate a prompt', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Button',
+        machineName: 'button',
+        status: true,
+        props: { properties: { label: { title: 'Label', type: 'string' } } },
+        required: ['label'],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+    const prompt = catalog.prompt();
+
+    expect(prompt).toContain('js.button');
+  });
+
+  it('should produce a catalog that can validate a spec', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Button',
+        machineName: 'button',
+        status: true,
+        props: { properties: { label: { title: 'Label', type: 'string' } } },
+        required: [],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    const validSpec = {
+      root: 'btn',
+      elements: {
+        btn: {
+          type: 'js.button',
+          props: { label: 'Click me' },
+          children: [],
+          slots: {},
+        },
+      },
+    };
+    expect(catalog.validate(validSpec).success).toBe(true);
+
+    const invalidSpec = {
+      root: 'btn',
+      elements: {
+        btn: {
+          type: 'js.button',
+        },
+      },
+    };
+    expect(catalog.validate(invalidSpec).success).toBe(false);
   });
 });

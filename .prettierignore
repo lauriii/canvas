@@ -25,6 +25,7 @@ ui/dist
 !packages/**/*.js
 !packages/**/*.jsx
 !packages/**/*.tsx
+!packages/**/*.md
 
 # Ignore dist directories in packages.
 packages/*/dist

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@wb/*": ["./src/*"],
+      "@drupal-canvas/ui/*": ["../../ui/src/*"],
+      "@/*": ["../../ui/src/*"]
+    },
+    "types": ["node", "vite/client"],
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["src", "vite.config.ts"]
+}

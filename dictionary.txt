@@ -46,6 +46,7 @@ druplicon
 endapply
 entityviewdisplay
 extralight
+extensionless
 fieldtext
 folderfy
 gerbeaud
@@ -78,6 +79,7 @@ naïvely
 networkidle
 nodepath
 nodepaths
+nums
 Nygard
 Nygard's
 OPENCOLLECTIVE
@@ -86,6 +88,9 @@ personalizable
 phenaproxima
 placehold
 Postel
+Prebundle
+prebundling
+previewable
 propless
 propsify
 proptypes

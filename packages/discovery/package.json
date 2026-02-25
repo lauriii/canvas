@@ -1,0 +1,34 @@
+{
+  "name": "@drupal-canvas/discovery",
+  "version": "0.0.0",
+  "description": "Filesystem discovery for Drupal Canvas Code Components and pages",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "glob": "^13.0.1",
+    "ignore": "^7.0.5",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

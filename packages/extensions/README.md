@@ -52,7 +52,7 @@ Get the current preview HTML.
 **Returns:** `Promise<string>`
 
 ```typescript
-import { getPreviewHtml } from "@drupal-canvas/extensions";
+import { getPreviewHtml } from '@drupal-canvas/extensions';
 
 const html = await getPreviewHtml();
 console.log(html);
@@ -70,10 +70,10 @@ HTML updates.
 **Returns:** `() => void` - Unsubscribe function
 
 ```typescript
-import { subscribeToPreviewHtml } from "@drupal-canvas/extensions";
+import { subscribeToPreviewHtml } from '@drupal-canvas/extensions';
 
 const unsubscribe = subscribeToPreviewHtml((html) => {
-  console.log("Preview HTML updated:", html);
+  console.log('Preview HTML updated:', html);
 });
 
 // Later, when you want to stop listening:
@@ -87,13 +87,13 @@ Get the UUID of the currently selected component.
 **Returns:** `Promise<string | undefined>`
 
 ```typescript
-import { getSelectedComponentUuid } from "@drupal-canvas/extensions";
+import { getSelectedComponentUuid } from '@drupal-canvas/extensions';
 
 const uuid = await getSelectedComponentUuid();
 if (uuid) {
-  console.log("Selected component:", uuid);
+  console.log('Selected component:', uuid);
 } else {
-  console.log("No component selected");
+  console.log('No component selected');
 }
 ```
 
@@ -110,13 +110,13 @@ the user selects a different component.
 **Returns:** `() => void` - Unsubscribe function
 
 ```typescript
-import { subscribeToSelectedComponentUuid } from "@drupal-canvas/extensions";
+import { subscribeToSelectedComponentUuid } from '@drupal-canvas/extensions';
 
 const unsubscribe = subscribeToSelectedComponentUuid((uuid) => {
   if (uuid) {
-    console.log("Component selected:", uuid);
+    console.log('Component selected:', uuid);
   } else {
-    console.log("No component selected");
+    console.log('No component selected');
   }
 });
 
