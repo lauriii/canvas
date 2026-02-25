@@ -160,6 +160,98 @@ If working outside of Drupal Canvas, you can use the
 to automatically configure the base URL for you. Otherwise you must explicitly
 provide a base URL.
 
+### json-render Utils
+
+Utilities for working with [json-render](https://json-render.dev) specs and
+Drupal Canvas component trees.
+
+> **Note:** These utilities currently depend on named slots support proposed for json-render in <https://github.com/vercel-labs/json-render/pull/105>.
+
+#### `canvasTreeToSpec`
+
+Converts a flat Drupal Canvas component tree to a
+[json-render spec](https://json-render.dev/docs/specs). Canvas stores
+components as a flat array linked by `parent_uuid`; `@json-render/react` uses a
+spec object with a single root element and a flat map of elements linked by
+`children` and `slots`. This function builds the spec and, when there are
+multiple root components, wraps them in a synthetic `canvas:component-tree`
+element. Throws an error if the tree contains no root component.
+
+```js
+import { canvasTreeToSpec } from 'drupal-canvas';
+
+const components = [
+  {
+    uuid: '872cde09-809a-4f48-8bf5-88f37127cb55',
+    parent_uuid: null,
+    slot: null,
+    component_id: 'js.card',
+    component_version: 'a681ae184a8f6b7f',
+    inputs: { title: 'Hello' },
+    label: 'Card',
+  },
+  {
+    uuid: '87106237-b8d8-4e19-82f7-c780ad24feb5',
+    parent_uuid: '872cde09-809a-4f48-8bf5-88f37127cb55',
+    slot: 'body',
+    component_id: 'js.text',
+    component_version: 'b1e991f726a2a266',
+    inputs: { content: 'World' },
+    label: 'Text',
+  },
+];
+
+const jsonRenderSpec = canvasTreeToSpec(components);
+```
+
+#### `specToCanvasTree`
+
+Converts a json-render spec back to a flat Drupal Canvas component tree.
+Generates new UUIDs for each node. Strips the synthetic `canvas:component-tree`
+wrapper if present, so multi-root trees round-trip cleanly.
+
+```js
+import { specToCanvasTree } from 'drupal-canvas';
+
+const jsonRenderSpec = {
+  root: 'card',
+  elements: {
+    card: {
+      type: 'js.card',
+      props: { title: 'Hello' },
+      slots: { body: ['text'] },
+    },
+    text: {
+      type: 'js.text',
+      props: { content: 'World' },
+    },
+  },
+};
+
+const canvasComponentTree = specToCanvasTree(jsonRenderSpec);
+```
+
+#### `renderCanvasTree`
+
+Renders a flat Canvas component tree using `@json-render/react`. Requires a
+[`ComponentRegistry`](https://github.com/vercel-labs/json-render/tree/main/packages/react#usage)
+for mapping component IDs to React components. The synthetic
+`canvas:component-tree` wrapper used for multi-root trees is handled internally
+and renders transparently. Unknown component types log a warning and render
+nothing.
+
+```jsx
+import { JsonApiClient, renderCanvasTree } from 'drupal-canvas';
+import registry from './registry';
+
+const client = new JsonApiClient();
+
+export default async function Page({ id }) {
+  const page = await client.getResource('canvas_page--canvas_page', id);
+  return renderCanvasTree(page.components, registry);
+}
+```
+
 ## Base Components
 
 ### FormattedText

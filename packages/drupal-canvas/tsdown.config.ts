@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: [
     'src/index.ts',
+    'src/json-render-utils.tsx',
     // Backward compatibility entries for elements that were moved into drupal-canvas package.
     'src/drupal-utils.ts',
     'src/FormattedText.tsx',
@@ -13,6 +14,6 @@ export default defineConfig({
   ],
   sourcemap: process.env.NODE_ENV === 'development',
   platform: 'browser',
-  external: ['react/jsx-runtime'],
+  external: ['react', 'react/jsx-runtime'],
   dts: true,
 });
