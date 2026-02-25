@@ -205,8 +205,9 @@ final class CanvasTwigExtension extends AbstractExtension {
       return NULL;
     }
 
-    // Extract the path after the public files base.
-    $target = substr($path, strlen($publicBasePath) + 1);
+    // Decode the path so the URI uses actual characters, avoiding
+    // double-encoding when Drupal builds the styled URL.
+    $target = rawurldecode(substr($path, strlen($publicBasePath) + 1));
 
     // Return the stream wrapper URI.
     return 'public://' . $target;

@@ -182,6 +182,40 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that public file URLs with encoded path segments are not double-encoded.
+   *
+   * When a URL contains encoded characters (e.g. %20 for space), the stream
+   * wrapper URI must use the decoded path so that styled URLs are generated
+   * with a single encoding (e.g. %20), not double-encoded (e.g. %2520).
+   *
+   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
+   * @covers \Drupal\canvas\Twig\CanvasTwigExtension::urlToStreamWrapperUri
+   */
+  public function testApplyImageStyleWithEncodedCharactersInPath(): void {
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $extension = $this->container->get(CanvasTwigExtension::class);
+    \assert($extension instanceof CanvasTwigExtension);
+
+    $publicBasePath = PublicStream::basePath();
+    // URL with encoded space (%20) in filename, e.g. "MIOT U-6_4.png".
+    $image = [
+      'src' => '/' . $publicBasePath . '/litters/MIOT%20U-6_4.png',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $result = $extension->applyImageStyle($image, 'test_style');
+
+    $this->assertIsArray($result);
+    $this->assertStringContainsString('/styles/test_style/', $result['src']);
+    // Styled URL must use single encoding (%20) so the browser requests the correct path.
+    $this->assertStringContainsString('MIOT%20U-6_4.png', $result['src']);
+  }
+
+  /**
    * Tests the apply_image_style filter with local file URL.
    *
    * @covers \Drupal\canvas\Twig\CanvasTwigExtension::applyImageStyle
