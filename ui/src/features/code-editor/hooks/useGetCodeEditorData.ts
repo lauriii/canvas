@@ -67,6 +67,8 @@ const useGetCodeEditorData = (
   });
 
   // Get the code component data, but skip if auto-saved data exists.
+  // When forceRefresh is true (e.g. after discarding), do not skip so we refetch
+  // the canonical component and the editor can re-initialize.
   const {
     currentData: dataGetCodeComponent,
     error: errorGetCodeComponent,
@@ -74,7 +76,7 @@ const useGetCodeEditorData = (
     isSuccess: isSuccessGetCodeComponent,
   } = useGetCodeComponentQuery(currentComponentId, {
     skip:
-      skip ||
+      (skip && !forceRefresh) ||
       isLoadingGetAutoSaveCodeComponent ||
       (isSuccessGetAutoSaveCodeComponent &&
         dataGetAutoSaveCodeComponent &&

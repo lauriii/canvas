@@ -11,12 +11,24 @@ import {
   setConflicts,
   setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
-import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
+import {
+  resetCodeEditor,
+  setForceRefresh,
+} from '@/features/code-editor/codeEditorSlice';
+import { FORM_TYPES } from '@/features/form/constants';
+import { clearFieldValues } from '@/features/form/formStateSlice';
+import {
+  setInitialized,
+  setUpdatePreview,
+} from '@/features/layout/layoutModelSlice';
 import {
   selectPageData,
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import {
+  clearSelection,
+  selectSelectedComponentUuid,
+} from '@/features/ui/uiSlice';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
 import {
@@ -63,7 +75,7 @@ const UnpublishedChanges = () => {
     pollingInterval: pollingInterval,
     skipPollingIfUnfocused: true,
   });
-  const { entityType, entityId } = useParams();
+  const { entityType, entityId, codeComponentId } = useParams();
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
@@ -200,6 +212,37 @@ const UnpublishedChanges = () => {
       dispatch(
         contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
       );
+      if (selectedChange.entity_type === 'js_component') {
+        const discardedCodeComponentId = String(selectedChange.entity_id);
+        dispatch(
+          componentAndLayoutApi.util.invalidateTags([
+            { type: 'CodeComponents', id: discardedCodeComponentId },
+            { type: 'CodeComponentAutoSave', id: discardedCodeComponentId },
+          ]),
+        );
+        // If the code editor is open for this component, force it to refetch
+        // and re-initialize with the canonical (published) data.
+        if (codeComponentId && codeComponentId === discardedCodeComponentId) {
+          dispatch(setForceRefresh(true));
+          dispatch(resetCodeEditor());
+        }
+      }
+      // When the discarded change is for the current page, re-apply the
+      // refetched layout and model so the canvas, sidebar, and form fields
+      // show the published state instead of stale discarded values.
+      const isCurrentPage =
+        entityId &&
+        entityType &&
+        selectedChange.entity_type === entityType &&
+        String(selectedChange.entity_id) === entityId;
+      if (isCurrentPage) {
+        dispatch(setInitialized(false));
+        // Clear cached form values so the props and entity forms reflect the
+        // refetched layout and model.
+        dispatch(clearFieldValues(FORM_TYPES.COMPONENT_INSTANCE_FORM));
+        dispatch(clearFieldValues(FORM_TYPES.ENTITY_FORM));
+        dispatch(clearSelection());
+      }
       refetch();
     } catch {
       // Error state is handled in pendingChangesApi.discardPendingChange.
