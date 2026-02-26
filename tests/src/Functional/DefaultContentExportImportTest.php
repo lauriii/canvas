@@ -24,6 +24,7 @@ use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -36,6 +37,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 final class DefaultContentExportImportTest extends BrowserTestBase {
 
+  use EntityReferenceFieldCreationTrait;
   use MediaTypeCreationTrait;
   use RecipeTestTrait;
   use GenerateComponentConfigTrait;
@@ -48,6 +50,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     'media_library',
     'canvas_test_sdc',
     'canvas',
+    'node',
   ];
 
   /**
@@ -365,6 +368,27 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
       $imported_entities[$entity->uuid()] = $entity;
     }
     return $imported_entities;
+  }
+
+  public function testCanvasSpecificEntityReferencePropertiesAreRemoved(): void {
+    $node_type = $this->drupalCreateContentType()->id();
+    \assert(\is_string($node_type));
+    $this->createEntityReferenceField('node', $node_type, 'field_related', 'Related content', 'node');
+    $node1 = $this->drupalCreateNode(['type' => $node_type]);
+    $node2 = $this->drupalCreateNode([
+      'type' => $node_type,
+      'field_related' => $node1->id(),
+    ]);
+
+    // @phpstan-ignore class.notFound
+    $related = \Drupal::service(Exporter::class)->export($node2)->data['default']['field_related'];
+    $this->assertNotEmpty($related);
+    $this->assertArrayHasKey('entity', $related[0]);
+    // The `target_uuid` property should have been explicitly excluded from the
+    // exported field item.
+    $this->assertArrayNotHasKey('target_uuid', $related[0]);
+    // The `url` property is computed, and therefore should have been excluded.
+    $this->assertArrayNotHasKey('url', $related[0]);
   }
 
 }

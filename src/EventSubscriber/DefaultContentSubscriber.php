@@ -23,6 +23,19 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Subscribes to default content-related events.
+ *
+ * This has two major responsibilities:
+ * - When exporting component trees, component inputs which reference entities
+ *   need to be converted to store the referenced entity's type and UUID, then
+ *   converted back to serial IDs when the content is imported.
+ * - The `target_uuid` property added to plain entity reference field items
+ *   (NOT component inputs) needs to be removed from exported data, because
+ *   it breaks imports when it's present, since it's really meant to be read
+ *   not written. It's also unnecessary in default content, because core already
+ *   converts between UUIDs and serial IDs for entity reference field items.
+ *
+ * @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\CoreFeatureEntityReferenceItemAddPropertiesTrait
+ * @see \Drupal\Core\DefaultContent\Exporter::exportReference()
  */
 final class DefaultContentSubscriber implements EventSubscriberInterface {
 
@@ -122,6 +135,21 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
         return $values;
       },
     );
+
+    // Decorate the export callback for entity reference field items, so that
+    // we do not export the Canvas-specific `target_uuid` or `url` properties.
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\EntityReferenceItemOverride
+    $callbacks = $event->getCallbacks();
+    $original_entity_reference_callback = $callbacks['field_item:entity_reference'] ?? NULL;
+    if ($original_entity_reference_callback) {
+      $event->setCallback('field_item:entity_reference', function ($item, ExportMetadata $metadata) use ($original_entity_reference_callback): ?array {
+        $values = $original_entity_reference_callback($item, $metadata);
+        if (is_array($values)) {
+          unset($values['target_uuid']);
+        }
+        return $values;
+      });
+    }
   }
 
   public function preImport(): void {
