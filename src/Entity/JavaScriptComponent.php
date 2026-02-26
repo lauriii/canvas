@@ -209,18 +209,32 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     $autoSavedIfAny = self::$autoSaveManagerForPreviews->getAutoSaveEntity($this)->entity;
     \assert($autoSavedIfAny === NULL || $autoSavedIfAny instanceof JavaScriptComponent);
 
+    $existing_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($this->id()));
+    $existing_required_prop_definitions = [];
+    if ($existing_component) {
+      \assert($existing_component instanceof Component);
+      $published_settings = $existing_component->getSettings(Component::ACTIVE_VERSION);
+      \assert(\array_key_exists('prop_field_definitions', $published_settings));
+      $existing_required_prop_definitions = $published_settings['prop_field_definitions'] ?? [];
+      $existing_required_prop_definitions = \array_filter($existing_required_prop_definitions, fn(array $prop_field_definition) => $prop_field_definition['required'] === TRUE);
+    }
+
     // Instantiate a minimally viable JsComponent source plugin instance subset.
+    // This only needs required props if this component has ever been exposed.
     self::$componentSourceManagerForPreviews ??= \Drupal::service(ComponentSourceManager::class);
     $js_component_source = self::$componentSourceManagerForPreviews->createInstance(JsComponent::SOURCE_PLUGIN_ID, [
       'local_source_id' => $this->id(),
-      // 💡This is left empty because this code is instantiating the JS
-      // ComponentSource plugin to be able to call its `::renderComponent()`
-      // method, to provide an accurate preview of the code component, even if
-      // it's never been exposed (and hence has no `Component` config entity).
+      // 💡This code is instantiating the JS ComponentSource plugin to be able
+      // to call its `::renderComponent()` method, to provide an accurate
+      // preview of the code component, even if it might never have been exposed
+      // (and hence has no `Component` config entity). As rendering triggers
+      // validation, if it exists already we need to ensure the required props
+      // are present.
       // IOW: the sole purpose here is to render a preview of a code component,
       // so not specifying the field definitions to generate StaticPropSources
-      // is fine.
-      'prop_field_definitions' => [],
+      // is fine, unless it was exposed before, where we need to know the
+      // required props as validation will happen on preview.
+      'prop_field_definitions' => $existing_required_prop_definitions,
     ]);
     \assert($js_component_source instanceof JsComponent);
 
@@ -231,6 +245,26 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       fn (array $prop_definition) : null|bool|int|float|string|\Stringable|array => $prop_definition['examples'][0] ?? NULL,
       $autoSavedIfAny->props ?? $this->props,
     ));
+    $inputs = [
+      JsComponent::EXPLICIT_INPUT_NAME => \array_map(
+        fn (bool|int|float|string|\Stringable|array $v) => new EvaluationResult($v),
+        $example_inputs,
+      ),
+    ];
+    // If the component was published already, rendering the preview triggers
+    // validation of its props. If there were required props that we just
+    // deleted, we need to ensure those are present in the inputs to avoid a
+    // validation error.
+    if ($existing_component) {
+      $existing_required_inputs = $existing_component->getComponentSource()
+        ->getDefaultExplicitInput(only_required: TRUE);
+      foreach ($existing_required_inputs as $prop_name => $prop_source) {
+        if (!isset($inputs[JsComponent::EXPLICIT_INPUT_NAME][$prop_name])) {
+          \assert(\array_key_exists('value', $prop_source));
+          $inputs[JsComponent::EXPLICIT_INPUT_NAME][$prop_name] = new EvaluationResult($prop_source['value']);
+        }
+      }
+    }
 
     // TRICKY: unlike \Drupal\canvas\Entity\Component::normalizeForClientSide(),
     // this is not getting wrapped in a render-safe container, because the only
@@ -241,14 +275,10 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     //    core's `ComponentValidator` would then trigger an exception … except
     //    that JsComponent::renderComponent() does not perform validation.
     // So, no render-safe container is necessary here: the only crash that can
-    // happen is on the client side, or if there's a logic bug.
+    // happen is on the client side, a validation error because of a missing
+    // required prop now removed as described above, or if there's a logic bug.
     $build = $js_component_source->renderComponent(
-      inputs: [
-        JsComponent::EXPLICIT_INPUT_NAME => \array_map(
-          fn (bool|int|float|string|\Stringable|array $v) => new EvaluationResult($v),
-          $example_inputs,
-        ),
-      ],
+      inputs: $inputs,
       slot_definitions: $autoSavedIfAny->slots ?? $this->slots,
       componentUuid: $this->uuid,
       isPreview: TRUE,

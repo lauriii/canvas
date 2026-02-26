@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Controller\ApiConfigAutoSaveControllers;
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\Entity\Component;
@@ -483,6 +484,7 @@ final class JsComponentEvolutionTest extends CanvasKernelTestBase {
 
     // Component previews will still work.
     \Drupal::classResolver(ApiConfigControllers::class)->list(Component::ENTITY_TYPE_ID);
+    \Drupal::classResolver(ApiConfigAutoSaveControllers::class)->get($js_component);
   }
 
   protected function removeNamePropAndAddAgeProp(bool $usingHttpRequest = FALSE, bool $required = FALSE): void {
