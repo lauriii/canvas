@@ -125,7 +125,7 @@ class AiResponseValidator {
         $componentTreeData[] = $componentTreeItem;
 
         // Process slots recursively.
-        if (isset($componentData['slots']) && is_array($componentData['slots'])) {
+        if (isset($componentData['slots']) && \is_array($componentData['slots'])) {
           foreach ($componentData['slots'] as $slot => $slotComponentGroups) {
             $slotPath = \sprintf('%s.slots.%s', $componentPath, $slot);
             $componentTreeData = array_merge(

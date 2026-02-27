@@ -130,7 +130,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
 
   public function determineDefaultFolder(): string {
     $plugin_definition = $this->getBlockPlugin()->getPluginDefinition();
-    \assert(is_array($plugin_definition));
+    \assert(\is_array($plugin_definition));
     \assert(!empty($plugin_definition['category']));
 
     return (string) $plugin_definition['category'];
@@ -170,7 +170,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
    */
   public function getComponentDescription(): TranslatableMarkup {
     $pluginDefinition = $this->getBlockPlugin()->getPluginDefinition() ?? [];
-    \assert(is_array($pluginDefinition));
+    \assert(\is_array($pluginDefinition));
     return new TranslatableMarkup('Block: %name', [
       '%name' => $pluginDefinition['admin_label'] ?? new TranslatableMarkup('Invalid/broken'),
     ]);
@@ -277,7 +277,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       if ($key === 'label') {
         continue;
       }
-      if (is_array($value)) {
+      if (\is_array($value)) {
         $value = self::removeConfigSchemaLabels($value);
       }
       $normalized[$key] = $value;

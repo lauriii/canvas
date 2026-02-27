@@ -28,7 +28,7 @@ final class UriTemplateWithVariablesConstraintValidator extends ConstraintValida
     if ($value === NULL) {
       return;
     }
-    elseif (!is_string($value)) {
+    elseif (!\is_string($value)) {
       throw new UnexpectedValueException($value, 'string');
     }
 

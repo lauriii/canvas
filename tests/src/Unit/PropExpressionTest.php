@@ -88,7 +88,7 @@ class PropExpressionTest extends UnitTestCase {
           self::fail(\sprintf('Unexpected deprecation detected: %s', $message));
         }
         else {
-          if (is_string($expected_deprecation_message)) {
+          if (\is_string($expected_deprecation_message)) {
             self::assertSame($expected_deprecation_message, $message);
           }
           else {
@@ -149,7 +149,7 @@ class PropExpressionTest extends UnitTestCase {
     \Drupal::setContainer($container);
     $generate_meaningful_case_label = function (string $prefix, array $cases) : array {
       return array_combine(
-        \array_map(fn (int|string $key) => \sprintf("$prefix - %s", is_string($key) ? $key : "#$key"), \array_keys($cases)),
+        \array_map(fn (int|string $key) => \sprintf("$prefix - %s", \is_string($key) ? $key : "#$key"), \array_keys($cases)),
         $cases,
       );
     };

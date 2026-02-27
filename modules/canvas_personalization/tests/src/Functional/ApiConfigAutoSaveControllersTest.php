@@ -176,7 +176,7 @@ class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $original_entity = $storage->load($entity_id);
     \assert($original_entity instanceof SegmentInterface);
     $original_entity_array = $original_entity->toArray();
-    \assert(is_array($original_entity_array));
+    \assert(\is_array($original_entity_array));
 
     // Insufficient Permissions: 403.
     $this->drupalLogin($this->limitedPermissionsUser);

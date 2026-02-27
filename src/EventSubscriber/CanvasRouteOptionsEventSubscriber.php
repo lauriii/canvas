@@ -35,7 +35,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     // @see \Drupal\Core\EventSubscriber\MainContentViewSubscriber::WRAPPER_FORMAT
     // @see \Drupal\canvas\Render\MainContent\CanvasTemplateRenderer
     $route_object = $this->routeMatch->getRouteObject();
-    if (!is_null($route_object) && $wrapper_format = $route_object->getOption('_wrapper_format')) {
+    if (!\is_null($route_object) && $wrapper_format = $route_object->getOption('_wrapper_format')) {
       $event->getRequest()->query->set(MainContentViewSubscriber::WRAPPER_FORMAT, $wrapper_format);
     }
   }

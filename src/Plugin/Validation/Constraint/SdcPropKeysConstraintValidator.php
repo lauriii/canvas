@@ -48,7 +48,7 @@ final class SdcPropKeysConstraintValidator extends ConstraintValidator implement
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\SdcPropKeysConstraint');
     }
 
-    if (!is_array($mapping)) {
+    if (!\is_array($mapping)) {
       throw new UnexpectedValueException($mapping, 'mapping');
     }
 

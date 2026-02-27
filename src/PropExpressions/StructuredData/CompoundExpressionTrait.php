@@ -70,7 +70,7 @@ trait CompoundExpressionTrait {
       // If both a prefix and suffix are found, pick the one with the earliest
       // position in the string, let the other be handled in a subsequent
       // iteration.
-      if (is_int($next_open) && is_int($next_close)) {
+      if (\is_int($next_open) && \is_int($next_close)) {
         if ($next_open < $next_close) {
           $next_close = FALSE;
         }
@@ -170,7 +170,7 @@ trait CompoundExpressionTrait {
   private static function parseRootExpression(string $expression_representation): string {
     // Every expression representation MUST contains a property prefix (`␟`).
     $property_prefix_pos = mb_strpos($expression_representation, StructuredDataPropExpressionInterface::PREFIX_PROPERTY_LEVEL);
-    \assert(is_int($property_prefix_pos) && $property_prefix_pos < mb_strlen($expression_representation) - 1);
+    \assert(\is_int($property_prefix_pos) && $property_prefix_pos < mb_strlen($expression_representation) - 1);
 
     // In case of an *ObjectProps expression, the first character after the
     // property prefix (`␟`) will be an open curly brace (`{`). Consequently

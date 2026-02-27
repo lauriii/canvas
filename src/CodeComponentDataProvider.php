@@ -133,7 +133,7 @@ readonly final class CodeComponentDataProvider {
       ];
     }
     $jsonapi_base_path = $this->container->getParameter('jsonapi.base_path');
-    \assert(is_string($jsonapi_base_path));
+    \assert(\is_string($jsonapi_base_path));
     return [
       self::V0 => [
         'jsonapiSettings' => [

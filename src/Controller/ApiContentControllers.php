@@ -149,7 +149,7 @@ final class ApiContentControllers {
       \assert($content_entity_type instanceof ContentEntityTypeInterface);
       $revision_created_field_name = $content_entity_type->getRevisionMetadataKey('revision_created');
       // @todo Ensure this is one of the required characteristics in https://www.drupal.org/project/canvas/issues/3498525.
-      \assert(is_string($revision_created_field_name));
+      \assert(\is_string($revision_created_field_name));
 
       $entity_query = $storage->getQuery()
         ->accessCheck(TRUE)
@@ -161,7 +161,7 @@ final class ApiContentControllers {
     // - with a search term: get the N best matches using the entity reference
     //   selection plugin, get all auto-save matches, and combine both
     else {
-      \assert(is_string($search));
+      \assert(\is_string($search));
       $search = trim($search);
       $ids = $this->filterAndMergeIds(
         // TRICKY: covered by the "list cacheability" at the top.

@@ -198,7 +198,7 @@ final class JsonSchemaFieldInstanceMatcher {
    */
   private function matchEntityProps(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, JsonSchemaType $primitive_type, bool $is_required_in_json_schema, ?array $schema): array {
     if ($primitive_type === JsonSchemaType::Array) {
-      \assert(is_array($schema));
+      \assert(\is_array($schema));
       // Drupal core's Field API only supports specifying "required or not",
       // and required means ">=1 value". There's no (native) ability to
       // configure a minimum number of values for a field. Plus, JSON schema
@@ -1016,12 +1016,12 @@ final class JsonSchemaFieldInstanceMatcher {
         }
         \assert($dd->getClass() === EntityAdapter::class);
         $entity_type_id = $dd->getEntityTypeId();
-        \assert(is_string($entity_type_id));
+        \assert(\is_string($entity_type_id));
         // If no bundles or multiple bundles are specified, inspect the base
         // fields. Otherwise (if a single bundle is specified, or if it is a
         // bundleless entity type), inspect all fields.
         $bundles = $dd->getBundles();
-        $specific_bundle = (is_array($bundles) && count($bundles) == 1) ? reset($bundles) : NULL;
+        $specific_bundle = (\is_array($bundles) && count($bundles) == 1) ? reset($bundles) : NULL;
         if ($specific_bundle === NULL && !$this->entityTypeManager->getDefinition($entity_type_id)->hasKey('bundle')) {
           $specific_bundle = $entity_type_id;
         }
@@ -1128,7 +1128,7 @@ final class JsonSchemaFieldInstanceMatcher {
     $settings = $data_definition->getSettings();
     $found_expressions = [];
     array_walk_recursive($settings, function ($current) use (&$found_expressions) {
-      if (is_string($current) && StructuredDataPropExpression::isA($current)) {
+      if (\is_string($current) && StructuredDataPropExpression::isA($current)) {
         $found_expressions[] = $current;
       }
     });

@@ -42,13 +42,13 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     public readonly string|array $propName,
   ) {
     $bundles = $entityType->getBundles();
-    if (is_array($bundles) && count($bundles) > 1) {
+    if (\is_array($bundles) && count($bundles) > 1) {
       @trigger_error('Creating ' . __CLASS__ . ' that targets multiple bundles is deprecated in canvas:1.1.0 and will be removed from canvas:2.0.0. See https://www.drupal.org/node/3563451', E_USER_DEPRECATED);
     }
-    if (($bundles === NULL || count($bundles) <= 1) && is_array($fieldName) && count($fieldName) > 1) {
+    if (($bundles === NULL || count($bundles) <= 1) && \is_array($fieldName) && count($fieldName) > 1) {
       throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field name can be specified.');
     }
-    if (($bundles === NULL || count($bundles) <= 1) && is_array($this->propName) && count($this->propName) > 1) {
+    if (($bundles === NULL || count($bundles) <= 1) && \is_array($this->propName) && count($this->propName) > 1) {
       throw new \InvalidArgumentException('When targeting a (single bundle of) an entity type, only a single field property name can be specified.');
     }
     // When targeting >1 bundle, it's possible to target either:
@@ -72,7 +72,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     // only a subset of the bundle-specific fields with different field types
     // are able to populate any of those.
     // @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
-    if (is_array($fieldName)) {
+    if (\is_array($fieldName)) {
       $bundles = $entityType->getBundles();
       \assert($bundles !== NULL && count($bundles) >= 1);
 
@@ -86,12 +86,12 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
         throw new \InvalidArgumentException('A field name must be specified for every bundle, and in the same order.');
       }
     }
-    if (is_array($propName)) {
+    if (\is_array($propName)) {
       // If propName is an array, fieldName must be too: a field property name
       // MUST be specified for every field name.
       // TRICKY: ⚠️ It is possible that the same field name occurs multiple
       // times (if different bundles use the same field).
-      \assert(is_array($fieldName));
+      \assert(\is_array($fieldName));
       if (array_values(array_unique($fieldName)) !== \array_keys($propName)) {
         throw new \InvalidArgumentException('A field property name must be specified for every field name, and in the same order.');
       }
@@ -111,7 +111,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       . static::PREFIX_FIELD_ITEM_LEVEL . ($this->delta ?? '')
       // See the above remark: the same is true for an array of field property
       // names.
-      . static::PREFIX_PROPERTY_LEVEL . match (is_array($this->propName)) {
+      . static::PREFIX_PROPERTY_LEVEL . match (\is_array($this->propName)) {
         // phpcs:ignore Drupal.WhiteSpace.ScopeIndent.IncorrectExact
         FALSE => $this->propName,
         // ⚠️ TRICKY: it is possible that the same field name occurs multiple
@@ -146,7 +146,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     $possible_bundles = $this->entityType->getBundles();
     if ($possible_bundles !== NULL && $entity_type->getBundleEntityType()) {
       $possible_bundles = $this->entityType->getBundles();
-      \assert(is_array($possible_bundles));
+      \assert(\is_array($possible_bundles));
       foreach ($possible_bundles as $bundle) {
         $bundle_config_dependency = $entity_type->getBundleConfigDependency($bundle);
         $dependencies[$bundle_config_dependency['type']][] = $bundle_config_dependency['name'];
@@ -154,8 +154,8 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     }
 
     // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
-    \assert(is_string($this->fieldName));
-    \assert(is_string($this->propName));
+    \assert(\is_string($this->fieldName));
+    \assert(\is_string($this->propName));
     $field_definitions = $this->entityType->getPropertyDefinitions();
     if (!isset($field_definitions[$this->fieldName])) {
       throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
@@ -163,7 +163,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     // Determine the bundle to use during dependency calculation:
     $bundle = match (TRUE) {
       // - an array with a single value: a single bundle is targeted
-      is_array($possible_bundles) && count($possible_bundles) === 1 => reset($possible_bundles),
+      \is_array($possible_bundles) && count($possible_bundles) === 1 => reset($possible_bundles),
       // - no bundle: the entity type is targeted
       default => NULL,
     };
@@ -218,7 +218,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     // Otherwise, this must be a non-base field definition, and additional
     // dependencies are necessary.
     $target_bundle = $field_definition->getTargetBundle();
-    \assert(is_string($target_bundle));
+    \assert(\is_string($target_bundle));
     $config = $field_definition->getConfig($target_bundle);
     \assert($config instanceof BaseFieldOverride || $config instanceof FieldConfigInterface);
     // Ignore config auto-generated by ::getConfig().
@@ -303,7 +303,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
    */
   public function getFieldName(): string {
     // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
-    \assert(is_string($this->fieldName));
+    \assert(\is_string($this->fieldName));
     return $this->fieldName;
   }
 
@@ -312,7 +312,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
    */
   public function getFieldPropertyName(): string {
     // @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
-    \assert(is_string($this->propName));
+    \assert(\is_string($this->propName));
     return $this->propName;
   }
 

@@ -281,7 +281,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   private function getUnchangedHash(EntityInterface $entity): ?string {
-    \assert(!is_null($entity->id()));
+    \assert(!\is_null($entity->id()));
     $original = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     if ($original === NULL) {
       return NULL;
@@ -388,7 +388,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   private static function recursiveKsort(array &$array): void {
     ksort($array);
     foreach ($array as &$value) {
-      if (is_array($value)) {
+      if (\is_array($value)) {
         self::recursiveKsort($value);
       }
     }
@@ -423,7 +423,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $auto_save_update_needed = FALSE;
     \assert($entity->getEntityType() instanceof ConfigEntityTypeInterface);
     $properties_to_assess = $entity->getEntityType()->getPropertiesToExport();
-    \assert(is_array($properties_to_assess));
+    \assert(\is_array($properties_to_assess));
     $auto_save_updatable_properties = \array_intersect_key($entity->getEntityType()->getKeys(), \array_flip(['status', 'label']));
 
     // Ensure that no properties other than `status` and `label` were modified;

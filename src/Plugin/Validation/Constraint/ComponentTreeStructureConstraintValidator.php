@@ -98,7 +98,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         $base_property_path = (string) $parent->getName();
       }
     }
-    if (!is_array($value)) {
+    if (!\is_array($value)) {
       throw new \UnexpectedValueException(\sprintf('The value must be a valid array, found %s.', \gettype($value)));
     }
     // TRICKY: The existing validator and execution context cannot be reused

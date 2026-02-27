@@ -248,7 +248,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $original_entity = $storage->load($entity_id);
     \assert($original_entity instanceof CanvasAssetInterface);
     $original_entity_array = $original_entity->toArray();
-    \assert(is_array($original_entity_array));
+    \assert(\is_array($original_entity_array));
 
     // Now the entity exists, these should serve a 200 response containing the
     // non-draft CSS/JS, and NOT redirect to the non-draft. Otherwise, a race

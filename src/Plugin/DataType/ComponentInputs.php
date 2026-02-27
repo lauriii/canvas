@@ -97,7 +97,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
    * {@inheritdoc}
    */
   public function setValue($value, $notify = TRUE): void {
-    if (is_string($value)) {
+    if (\is_string($value)) {
       // If there are no inputs, an empty array is a valid value.
       \assert(str_starts_with($value, '{') || $value === '[]');
       // @todo Delete next line; update this code to ONLY do the JSON-to-PHP-object parsing after https://www.drupal.org/project/drupal/issues/2232427 lands — that will allow specifying the "json" serialization strategy rather than only PHP's serialize().
@@ -105,7 +105,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
       $this->inputs = Json::decode($value);
     }
     else {
-      \assert(is_array($value));
+      \assert(\is_array($value));
       $this->inputs = $value;
       $this->value = Json::encode($value);
     }
@@ -194,7 +194,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::collapse()
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::uncollapse()
         try {
-          $parsed_default_prop_source = \array_key_exists($name, $default_prop_sources) && is_array($default_prop_sources[$name]) && \array_key_exists('sourceType', $default_prop_sources[$name])
+          $parsed_default_prop_source = \array_key_exists($name, $default_prop_sources) && \is_array($default_prop_sources[$name]) && \array_key_exists('sourceType', $default_prop_sources[$name])
             ? PropSource::parse($default_prop_sources[$name])
             : NULL;
           // If it indeed was a collapsed StaticPropSource, un-collapse it.

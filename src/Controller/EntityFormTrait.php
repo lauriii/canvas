@@ -126,7 +126,7 @@ trait EntityFormTrait {
     // 2. those that are internal to Drupal's Form API infrastructure
     if ($is_root_call) {
       // @see \Drupal\Core\Render\Element\VerticalTabs::processVerticalTabs()
-      $active_tab_elements = \array_filter(\array_keys($values), static fn (string|int $key): bool => is_string($key) && \str_ends_with($key, '__active_tab'));
+      $active_tab_elements = \array_filter(\array_keys($values), static fn (string|int $key): bool => \is_string($key) && \str_ends_with($key, '__active_tab'));
       // @see \Drupal\Core\Form\FormBuilder
       $values = array_diff_key($values, \array_flip(\array_merge($active_tab_elements, [
         'form_build_id',

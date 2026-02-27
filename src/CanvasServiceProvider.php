@@ -27,7 +27,7 @@ class CanvasServiceProvider extends ServiceProviderBase {
    */
   public function register(ContainerBuilder $container): void {
     $modules = $container->getParameter('container.modules');
-    \assert(is_array($modules));
+    \assert(\is_array($modules));
     if (\array_key_exists('media_library', $modules)) {
       $container->register('canvas.media_library.opener', MediaLibraryCanvasPropOpener::class)
         ->addArgument(new Reference(CanvasUiAccessCheck::class))

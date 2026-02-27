@@ -220,7 +220,7 @@ function canvas_post_update_0010_migrate_auto_save(): void {
 
     foreach ($tempstore_storage->getAll() as $key => $value) {
       // @phpstan-ignore property.notFound
-      if (is_object($value) && isset($value->data)) {
+      if (\is_object($value) && isset($value->data)) {
         $data = $value->data;
         \assert(\property_exists($value, 'owner'));
         \assert(\property_exists($value, 'updated'));

@@ -45,7 +45,7 @@ final class EvaluationResult implements CacheableDependencyInterface {
     CacheableDependencyInterface $cacheability = new CacheableMetadata(),
   ) {
     if (!$value instanceof self && !self::hasNestedInstances($value)) {
-      \assert((is_array($value) && !static::hasNestedInstances($value)) || $value instanceof EntityInterface || is_string($value) || $value instanceof \Stringable || is_int($value) || is_float($value) || is_bool($value) || is_null($value));
+      \assert((\is_array($value) && !static::hasNestedInstances($value)) || $value instanceof EntityInterface || \is_string($value) || $value instanceof \Stringable || \is_int($value) || \is_float($value) || \is_bool($value) || \is_null($value));
       // @phpstan-ignore-next-line assign.propertyType
       $this->value = $value;
       $this->setCacheability($cacheability);
@@ -95,7 +95,7 @@ final class EvaluationResult implements CacheableDependencyInterface {
    *   Whether the given value contains EvaluationResult instances.
    */
   private static function hasNestedInstances(mixed $value): bool {
-    if (!is_array($value)) {
+    if (!\is_array($value)) {
       return FALSE;
     }
 
@@ -121,7 +121,7 @@ final class EvaluationResult implements CacheableDependencyInterface {
     foreach ($value as $k => $v) {
       // An evaluation result may contain an arbitrarily complex nested array,
       // with EvaluationResult objects deeply nested. Hoist them up.
-      if (is_array($v) && self::hasNestedInstances($v)) {
+      if (\is_array($v) && self::hasNestedInstances($v)) {
         $v = self::hoistFromArray($v);
       }
       if (!$v instanceof EvaluationResult) {

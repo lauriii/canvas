@@ -297,8 +297,8 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
   }
 
   private static function findSuggestionByLabel(string|array $label, string $prop, array $suggestions): array {
-    $is_final_level = is_string($label) || count($label) === 1;
-    $needle = is_array($label) ? reset($label) : $label;
+    $is_final_level = \is_string($label) || count($label) === 1;
+    $needle = \is_array($label) ? reset($label) : $label;
     // When recursing, the $prop key won't exist.
     $haystack = \array_key_exists($prop, $suggestions) ? $suggestions[$prop] : $suggestions;
     \assert(array_is_list($haystack));

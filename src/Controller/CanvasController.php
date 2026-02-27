@@ -336,7 +336,7 @@ HTML;
     // Find all used client-side transforms.
     $transforms = [];
     foreach ($this->fieldWidgetPluginManager->getDefinitions() as $definition) {
-      if (!isset($definition['canvas']['transforms']) || !is_array($definition['canvas']['transforms'])) {
+      if (!isset($definition['canvas']['transforms']) || !\is_array($definition['canvas']['transforms'])) {
         continue;
       }
       $transforms = [...$transforms, ...\array_keys($definition['canvas']['transforms'])];

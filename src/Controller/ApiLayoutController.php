@@ -80,7 +80,7 @@ final class ApiLayoutController {
    * Returns JSON for the entity layout and fields that the user can edit.
    */
   public function get((ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    \assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
+    \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $regions = PageRegion::loadForActiveTheme();
 
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
@@ -230,7 +230,7 @@ final class ApiLayoutController {
    * Updates single component instance's auto-save entry and returns a preview.
    */
   public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    \assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
+    \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
       throw new BadRequestHttpException('Missing componentInstanceUuid');
@@ -316,7 +316,7 @@ final class ApiLayoutController {
    * @todo Remove this in https://drupal.org/i/3492065
    */
   public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
-    \assert(!$entity instanceof ContentTemplate || !is_null($preview_entity));
+    \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = json_decode($request->getContent(), TRUE);
     if (!\array_key_exists('model', $body)) {
       throw new BadRequestHttpException('Missing model');
@@ -453,7 +453,7 @@ final class ApiLayoutController {
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
     $data['layout'] = [$this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $data['model'], $preview_entity)];
-    \assert(is_array($data['model']));
+    \assert(\is_array($data['model']));
     $this->addGlobalRegions($regions, $data['model'], $data['layout'], includeAllRegions: TRUE);
     $layout_keyed_by_region = array_combine(\array_map(static fn($region) => $region['id'], $data['layout']), $data['layout']);
     // Reorder the layout to match theme order.
@@ -581,7 +581,7 @@ final class ApiLayoutController {
    */
   private function updateEntity(ContentTemplate|FieldableEntityInterface $entity, array $layout, array $model, ?array $entity_form_fields, ?FieldableEntityInterface $preview_entity): void {
     if ($entity instanceof FieldableEntityInterface) {
-      \assert(!is_null($entity_form_fields));
+      \assert(!\is_null($entity_form_fields));
       // If we are not auto-saving there is no reason to convert the
       // 'entity_form_fields'. This can cause access issue for just viewing the
       // preview. This runs the conversion as if the user had no access to edit
@@ -594,8 +594,8 @@ final class ApiLayoutController {
       ], $entity, validate: FALSE);
     }
     else {
-      \assert(is_null($entity_form_fields));
-      \assert(!is_null($preview_entity));
+      \assert(\is_null($entity_form_fields));
+      \assert(!\is_null($preview_entity));
       // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
       //   as well in https://drupal.org/i/3543197.
       // @todo Remove php-stan-ignore in https://drupal.org/i/3548273.

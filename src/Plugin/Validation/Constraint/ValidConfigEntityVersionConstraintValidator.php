@@ -39,7 +39,7 @@ final class ValidConfigEntityVersionConstraintValidator extends ConstraintValida
     if (!$constraint instanceof ValidConfigEntityVersionConstraint) {
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\ValidConfigEntityVersionConstraint');
     }
-    if (!is_string($version)) {
+    if (!\is_string($version)) {
       throw new UnexpectedValueException($version, 'string');
     }
 

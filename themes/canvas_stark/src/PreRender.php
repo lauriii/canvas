@@ -13,7 +13,7 @@ class PreRender implements TrustedCallbackInterface {
     // Inspired by Claro, so items can be identified as vertical tab items and
     // in some cases, items within an accordion.
     $group_type_is_details = isset($element['group']['#type']) && $element['group']['#type'] === 'details';
-    $groups_are_present = isset($element['group']['#groups']) && is_array($element['group']['#groups']);
+    $groups_are_present = isset($element['group']['#groups']) && \is_array($element['group']['#groups']);
 
     if ($group_type_is_details && $groups_are_present) {
       $group_keys = Element::children($element['group']['#groups'], TRUE);

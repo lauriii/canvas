@@ -435,7 +435,7 @@ class ComponentTreeItem extends FieldItemBase {
    */
   // @phpstan-ignore-next-line method.childParameterType
   public function setValue($values, $notify = TRUE): void {
-    if (is_array($values)) {
+    if (\is_array($values)) {
       parent::setValue($values, FALSE);
       $pairs = [
         ['component_id', 'component'],
@@ -472,7 +472,7 @@ class ComponentTreeItem extends FieldItemBase {
     // if there already is a validation error for a missing key, another
     // validation error for an invalid value is not helpful.
     // @see \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
-    if (!is_array($values) || !\array_key_exists('inputs', $values)) {
+    if (!\is_array($values) || !\array_key_exists('inputs', $values)) {
       $this->getProperties()['inputs']->applyDefaultValue(FALSE);
     }
 

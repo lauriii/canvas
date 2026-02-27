@@ -71,7 +71,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
   protected static function recursiveKsort(array &$array): void {
     ksort($array);
     foreach ($array as &$value) {
-      if (is_array($value)) {
+      if (\is_array($value)) {
         self::recursiveKsort($value);
       }
     }
@@ -119,7 +119,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    */
   public function getPluginDefinition(): array {
     $definition = parent::getPluginDefinition();
-    \assert(is_array($definition));
+    \assert(\is_array($definition));
     return $definition;
   }
 

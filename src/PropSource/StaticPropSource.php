@@ -330,7 +330,7 @@ final class StaticPropSource extends PropSourceBase {
     // Multiple-cardinality StaticPropSources MUST store a list of minimal
     // representations.
     else {
-      if (!is_array($stored_value) || !array_is_list($stored_value)) {
+      if (!\is_array($stored_value) || !array_is_list($stored_value)) {
         throw new \LogicException('Multiple-cardinality prop source expects a list of values.');
       }
       // The deltas can be assumed to be 0-based and sequential.

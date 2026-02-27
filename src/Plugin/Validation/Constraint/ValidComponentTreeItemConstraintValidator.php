@@ -42,7 +42,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
       return;
     }
 
-    if (!$value instanceof ComponentTreeItem && !is_array($value)) {
+    if (!$value instanceof ComponentTreeItem && !\is_array($value)) {
       throw new \UnexpectedValueException(\sprintf('The value must be a ComponentTreeItem object or an array, found %s.', gettype($value)));
     }
 
@@ -50,7 +50,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
     // - if this is a `canvas.component_tree`, that is the received value
     // - if this is a `field_item:component_tree`, that is the array
     //   representation of the field item object
-    if (!$this->validateRawStructure(is_array($value) ? $value : $value->toArray())) {
+    if (!$this->validateRawStructure(\is_array($value) ? $value : $value->toArray())) {
       // ::validateRawStructure()'s validation errors should be fixed first.
       return;
     }
@@ -128,7 +128,7 @@ final class ValidComponentTreeItemConstraintValidator extends ConstraintValidato
         ->addViolation();
     }
 
-    \assert(is_array($stored_explicit_input));
+    \assert(\is_array($stored_explicit_input));
     $component_violations = $this->translateConstraintPropertyPathsAndRoot(
       ['' => $this->context->getPropertyPath() . '.'],
       $component_source->validateComponentInput(

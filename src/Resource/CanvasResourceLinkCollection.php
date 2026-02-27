@@ -169,7 +169,7 @@ final class CanvasResourceLinkCollection implements \IteratorAggregate, Cacheabl
    *   TRUE if the key is valid, FALSE otherwise.
    */
   protected static function validKey(string $key): bool {
-    return !is_numeric($key);
+    return !\is_numeric($key);
   }
 
   /**

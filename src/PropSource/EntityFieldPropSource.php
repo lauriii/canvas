@@ -146,7 +146,7 @@ final class EntityFieldPropSource extends PropSourceBase {
       $plugin_definition = $this->adapter->getPluginDefinition();
       $deps['module'][] = match (TRUE) {
         $plugin_definition instanceof PluginDefinitionInterface => $plugin_definition->getProvider(),
-        is_array($plugin_definition) => $plugin_definition['provider'],
+        \is_array($plugin_definition) => $plugin_definition['provider'],
         default => NULL,
       };
     }

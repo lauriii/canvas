@@ -62,7 +62,7 @@ final class Evaluator {
       $expr->fieldType === 'datetime' &&
       $entity_or_field instanceof FieldItemInterface &&
       $entity_or_field->getFieldDefinition()->getFieldStorageDefinition()->getSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATETIME &&
-      is_string($result->value) &&
+      \is_string($result->value) &&
       // Don't intervene if the result is already in iso8601 format: this
       // includes a trailing offset, or using the Z flag.
       !\preg_match('/(Z|[+-](?:2[0-3]|[01][0-9])(?::?[0-5][0-9])?)$/', $result->value)) {
@@ -246,7 +246,7 @@ final class Evaluator {
 
           // - Single-cardinality or delta requested ⇒ single value.
           // - Multiple-cardinality and no delta requested ⇒ multiple values.
-          if ($cardinality === 1 || is_int($expr->delta)) {
+          if ($cardinality === 1 || \is_int($expr->delta)) {
             $result = $result[$expr->delta ?? 0] ?? NULL;
             $raw_result = $raw_result[$expr->delta ?? 0] ?? NULL;
           }
@@ -263,7 +263,7 @@ final class Evaluator {
           // properties are computed and access checks prevent them from
           // returning the actual underlying value, to prevent information
           // disclosure vulnerabilities.
-          $required_yet_empty = match(is_array($result)) {
+          $required_yet_empty = match(\is_array($result)) {
             // Multiple-cardinality and no delta requested.
             TRUE => array_all($result, fn ($prop_value) => $prop_value === NULL),
             // Single-cardinality or delta requested
@@ -277,7 +277,7 @@ final class Evaluator {
 
           // Required and empty: evaluation failed; infer access was forbidden.
           $access_error_cache = new CacheableMetadata();
-          if (!is_array($result)) {
+          if (!\is_array($result)) {
             $access_error_cache->addCacheableDependency($raw_result);
           }
           else {
@@ -323,7 +323,7 @@ final class Evaluator {
           \assert(($cardinality > 1 || $cardinality === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) && $expr->getDelta() === NULL);
           $evaluated_references = [];
           $referenced_entities = $referencer_result->value;
-          \assert(is_array($referenced_entities));
+          \assert(\is_array($referenced_entities));
           foreach ($referenced_entities as $delta => $referenced_entity) {
             \assert($referenced_entity instanceof FieldableEntityInterface);
             $referenced_expression = $expr->getTargetExpression(

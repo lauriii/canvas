@@ -108,7 +108,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     $entity_storage = $this->entityTypeManager->getStorage($entity_type_id);
 
     $entity_ids = $entity_query->execute();
-    \assert(is_array($entity_ids));
+    \assert(\is_array($entity_ids));
     $entity_query_cacheability = (new CacheableMetadata())
       ->addCacheTags($entity_definition->getBundleListCacheTags($bundle))
       ->addCacheContexts($entity_storage->getEntityType()->getListCacheContexts());

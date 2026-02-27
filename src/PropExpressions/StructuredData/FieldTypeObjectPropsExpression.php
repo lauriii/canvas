@@ -163,7 +163,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
     $multi_bundle = $first_object_key_expr->referenced->getHostEntityDataDefinition()->getBundles();
     // TRICKY: the same update path is used to fix both multi-bundle references
     // inside object shapes, and also to lift references out of object shapes.
-    \assert(is_array($multi_bundle) && count($multi_bundle) >= 1);
+    \assert(\is_array($multi_bundle) && count($multi_bundle) >= 1);
     // Introduced by https://www.drupal.org/i/3530521. Mistake in hindsight.
     \assert(!$first_object_key_expr->referenced instanceof ObjectPropExpressionInterface);
     \assert($first_object_key_expr->referenced instanceof FieldPropExpression || $first_object_key_expr->referenced instanceof ReferenceFieldPropExpression);
@@ -176,7 +176,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
       $entity_type_and_bundle = BetterEntityDataDefinition::create($entity_type_id, $bundle);
       // Get the right field name for this branch (bundle), applies to all
       // expressions inside the object expression.
-      $field_name = is_string($multi_field_name) ? $multi_field_name : $multi_field_name[$bundle];
+      $field_name = \is_string($multi_field_name) ? $multi_field_name : $multi_field_name[$bundle];
       $object_props = [];
       foreach ($this->objectPropsToFieldTypeProps as $key => $obj_expr) {
         // Introduced by https://www.drupal.org/i/3530533. Mistake in hindsight.
@@ -191,7 +191,7 @@ final class FieldTypeObjectPropsExpression implements FieldTypeBasedPropExpressi
         };
 
         // Get the right prop name for this branch (bundle) and object key.
-        $prop_name_for_bundle = is_string($multi_prop_name) ? $multi_prop_name : $multi_prop_name[$field_name];
+        $prop_name_for_bundle = \is_string($multi_prop_name) ? $multi_prop_name : $multi_prop_name[$field_name];
 
         // An optional prop that does not exist on this bundle can simply be
         // omitted from the bundle-specific expression branch.

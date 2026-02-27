@@ -86,7 +86,7 @@ trait CanvasFieldTrait {
 
   private function assertNodeValues(Node $node, array $expected_component_ids, array $expected_inputs, array $expected_field_values): void {
     $nid = $node->id();
-    \assert(is_string($nid));
+    \assert(\is_string($nid));
     // Reset the node to ensure we're not getting a cached version.
     $this->container->get('entity_type.manager')
       ->getStorage('node')
@@ -115,7 +115,7 @@ trait CanvasFieldTrait {
   private static function recursiveKsort(array &$array): void {
     ksort($array);
     foreach ($array as &$value) {
-      if (is_array($value)) {
+      if (\is_array($value)) {
         self::recursiveKsort($value);
       }
     }
@@ -264,7 +264,7 @@ trait CanvasFieldTrait {
 
   private static function getSrcPropertyFromFile(File $file): string {
     $src = str_replace(base_path(), '/', $file->createFileUrl());
-    \assert(is_string($src));
+    \assert(\is_string($src));
     return $src;
   }
 

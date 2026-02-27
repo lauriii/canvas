@@ -21,7 +21,7 @@ final class SequenceKeysMatchRegexConstraintValidator extends RegexValidator {
     if ($value === NULL) {
       return;
     }
-    if (!is_array($value)) {
+    if (!\is_array($value)) {
       throw new UnexpectedTypeException($value, 'array');
     }
     if ($value && array_is_list($value)) {

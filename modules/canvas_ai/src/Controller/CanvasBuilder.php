@@ -88,7 +88,7 @@ final class CanvasBuilder extends ControllerBase {
     // by scanning for keys named 'message <number>', and
     // assembling them into an ordered 'messages' array, while cleaning up old keys
     // as we use $prompt['messages'] for further processing .
-    if (!isset($prompt['messages']) || !is_array($prompt['messages'])) {
+    if (!isset($prompt['messages']) || !\is_array($prompt['messages'])) {
       $messages = [];
       $keys_to_remove = [];
       foreach ($prompt as $key => $value) {
@@ -196,7 +196,7 @@ final class CanvasBuilder extends ControllerBase {
       AiAgentStatusItemTypes::Finished,
     ]);
     $default = $this->providerService->getDefaultProviderForOperationType('chat');
-    if (!is_array($default) || empty($default['provider_id']) || empty($default['model_id'])) {
+    if (!\is_array($default) || empty($default['provider_id']) || empty($default['model_id'])) {
       return new JsonResponse([
         'status' => FALSE,
         'message' => 'No default provider found.',

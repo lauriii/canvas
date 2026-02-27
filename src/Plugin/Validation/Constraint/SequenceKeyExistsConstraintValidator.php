@@ -20,7 +20,7 @@ final class SequenceKeyExistsConstraintValidator extends SequenceDependentConstr
       // This should be enforced by other validation.
       return;
     }
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       throw new UnexpectedTypeException($value, 'string');
     }
     if (!$constraint instanceof SequenceKeyExistsConstraint) {

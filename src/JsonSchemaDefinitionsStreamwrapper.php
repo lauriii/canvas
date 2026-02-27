@@ -48,7 +48,7 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
 
     $contents = file_get_contents($extension_path . DIRECTORY_SEPARATOR . 'schema.json');
-    \assert(is_string($contents));
+    \assert(\is_string($contents));
     $json_schema = json_decode($contents, TRUE);
     // @todo validate this file is valid JSON schema.
     if (!\array_key_exists('$defs', $json_schema)) {
@@ -59,12 +59,12 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
     }
 
     $stream = fopen('php://memory', 'r+');
-    if (!is_resource($stream)) {
+    if (!\is_resource($stream)) {
       return FALSE;
     }
 
     $json = json_encode($json_schema['$defs'][$definition_name]);
-    \assert(is_string($json));
+    \assert(\is_string($json));
     fwrite($stream, $json);
     rewind($stream);
     $this->handle = $stream;

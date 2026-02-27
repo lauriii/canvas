@@ -200,14 +200,14 @@ class PropSourceTest extends CanvasKernelTestBase {
 
   private function recursivelyReplaceStrings(mixed $value, array $string_replacements): mixed {
     // Recurse.
-    if (is_array($value)) {
+    if (\is_array($value)) {
       return \array_map(
         fn (mixed $v) => $this->recursivelyReplaceStrings($v, $string_replacements),
         $value,
       );
     }
     // Nothing to do.
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       return $value;
     }
     return str_replace(
@@ -257,7 +257,7 @@ class PropSourceTest extends CanvasKernelTestBase {
     // - generate a widget to edit the stored value — using the default widget
     //   or a specified widget.
     // @see \Drupal\canvas\Entity\Component::$defaults
-    \assert(is_array($field_widgets));
+    \assert(\is_array($field_widgets));
     // Ensure we always test the default widget.
     \assert(isset($field_widgets[NULL]));
     // Ensure an unknown widget type is handled gracefully.
@@ -287,7 +287,7 @@ class PropSourceTest extends CanvasKernelTestBase {
       $expected_user_value['src'] = str_replace('::SITE_DIR_BASE_URL::', \base_path() . $this->siteDirectory, $expected_user_value['src']);
       $expected_user_value['src'] = str_replace(UrlHelper::encodePath('::SITE_DIR_BASE_URL::'), UrlHelper::encodePath(\base_path() . $this->siteDirectory), $expected_user_value['src']);
     }
-    if (is_array($expected_user_value) && array_is_list($expected_user_value)) {
+    if (\is_array($expected_user_value) && array_is_list($expected_user_value)) {
       foreach (\array_keys($expected_user_value) as $i) {
         if (isset($expected_user_value[$i]['src'])) {
           // Make it easier to write expectations containing root-relative URLs

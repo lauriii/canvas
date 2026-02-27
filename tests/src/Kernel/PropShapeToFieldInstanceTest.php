@@ -379,7 +379,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
 
             $input_schema = $match->getInputSchema($input_name);
             $input_primitive_type = JsonSchemaType::from(
-              is_array($input_schema['type']) ? $input_schema['type'][0] : $input_schema['type']
+              \is_array($input_schema['type']) ? $input_schema['type'][0] : $input_schema['type']
             );
 
             $input_is_required = $match->inputIsRequired($input_name);

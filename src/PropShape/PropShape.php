@@ -145,7 +145,7 @@ final class PropShape {
     $normalized_prop_schema['type'] = JsonSchemaType::from(
     // TRICKY: SDC always allowed `object` for Twig integration reasons.
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
-      is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
+      \is_array($prop_schema['type']) ? $prop_schema['type'][0] : $prop_schema['type']
     )->value;
 
     // If this is a `type: object` with not a `$ref` but `properties`, normalize
@@ -187,14 +187,14 @@ final class PropShape {
     \assert(empty(array_intersect_key($installed_modules, $installed_themes)));
     $installed_extensions = $installed_modules + $installed_themes;
     foreach ($installed_extensions as $extension_name => $extension) {
-      \assert(is_string($extension_name));
+      \assert(\is_string($extension_name));
       $schema_json_path = $extension->getPath() . '/schema.json';
       if (!file_exists($schema_json_path)) {
         continue;
       }
       // @phpstan-ignore argument.type
       $json = json_decode(file_get_contents($schema_json_path), TRUE);
-      if (!is_array($json) || !\array_key_exists('$defs', $json)) {
+      if (!\is_array($json) || !\array_key_exists('$defs', $json)) {
         continue;
       }
       \assert(Inspector::assertAllStrings(\array_keys($json['$defs'])));

@@ -56,13 +56,13 @@ final class ComponentTreeMeetsRequirementsConstraintValidator extends Constraint
         return $list;
       },
       // A multi-value config-defined component tree.
-      is_array($value) && $this->context->getObject() instanceof Sequence => function ($value): ComponentTreeItemList {
+      \is_array($value) && $this->context->getObject() instanceof Sequence => function ($value): ComponentTreeItemList {
         $list = $this->createDanglingComponentTreeItemList();
         $list->setValue($value);
         return $list;
       },
       // A single config-defined component tree.
-      is_array($value) => function ($value): ComponentTreeItemList {
+      \is_array($value) => function ($value): ComponentTreeItemList {
         $list = $this->createDanglingComponentTreeItemList();
         $list->setValue([$value]);
         return $list;

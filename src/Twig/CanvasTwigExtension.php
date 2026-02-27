@@ -88,14 +88,14 @@ final class CanvasTwigExtension extends AbstractExtension {
       parse_str($query, $params);
       if (!empty($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM])) {
         // We only expect 1 `alternateWidths` query parameter.
-        \assert(is_string($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM]));
+        \assert(\is_string($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM]));
         $template = urldecode($params[ImageItemOverride::ALT_WIDTHS_QUERY_PARAM]);
       }
     }
     // Stream wrappers.
     elseif ($this->streamWrapperManager->isValidUri($src)) {
       $template = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate($src);
-      if (is_string($template)) {
+      if (\is_string($template)) {
         $template = $this->fileUrlGenerator->transformRelative($template);
       }
       // Respect the specified width, if any, but ensure that it's never bigger
@@ -104,7 +104,7 @@ final class CanvasTwigExtension extends AbstractExtension {
       $intrinsicImageWidth = $intrinsicImageWidth === NULL
         ? $actual_intrinsic_image_width
         : min($intrinsicImageWidth, $actual_intrinsic_image_width);
-      if (is_null($intrinsicImageWidth)) {
+      if (\is_null($intrinsicImageWidth)) {
         $intrinsicImageWidth = $this->getWidth($src);
       }
     }

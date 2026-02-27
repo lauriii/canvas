@@ -270,7 +270,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             foreach ($component_instance['slots'] as $slot => $slot_value) {
               // Handle default slot value: convert to renderable using either
               // #plain_text or `#markup`.
-              if (!$isPreview && is_string($slot_value)) {
+              if (!$isPreview && \is_string($slot_value)) {
                 $slots[$slot] = !str_starts_with($slot_value, '<')
                   // Match how Drupal core handles string values for components.
                   // @see https://www.drupal.org/node/3398039
@@ -283,7 +283,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
               }
               // When previewing and the slot value is a default: omit the
               // default in favor of a placeholder div.
-              elseif ($isPreview && is_string($slot_value)) {
+              elseif ($isPreview && \is_string($slot_value)) {
                 $slots[$slot] = ['#markup' => Markup::create('<div class="canvas--slot-empty-placeholder"></div>')];
               }
               // Explicit slot value: renderify, just like the rest of the
@@ -431,7 +431,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       // For each vertex (after the filtering above), all edges represent
       // child component instances placed in this slot.
       foreach (\array_keys($vertex['edges']) as $component_instance_uuid) {
-        \assert(is_string($component_instance_uuid));
+        \assert(\is_string($component_instance_uuid));
         yield $parent_uuid => [
           'slot' => $slot_map[$component_instance_uuid],
           'uuid' => $component_instance_uuid,
@@ -476,7 +476,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $component->getSlotDefinitions(),
         $required_props_with_default_values_in_current_implementation,
       );
-      \assert(!\array_key_exists('slots', $hydrated[$uuid]) || is_array($hydrated[$uuid]['slots']));
+      \assert(!\array_key_exists('slots', $hydrated[$uuid]) || \is_array($hydrated[$uuid]['slots']));
     }
 
     // Transform the flat list of hydrated components into a hydrated component
@@ -487,7 +487,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($parent_uuid === self::ROOT_UUID) {
         continue;
       }
-      \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && is_array($hydrated[$parent_uuid]['slots']));
+      \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && \is_array($hydrated[$parent_uuid]['slots']));
 
       // Remove default slot value: this slot is populated.
       if (\array_key_exists($slot, $hydrated[$parent_uuid]['slots']) && \is_string($hydrated[$parent_uuid]['slots'][$slot])) {

@@ -58,7 +58,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     \assert(count(array_intersect(['nodeType', 'id', 'name', 'components'], \array_keys($content_region))) === 4);
     \assert($content_region['nodeType'] === 'region');
     \assert($content_region['id'] === 'content');
-    \assert(is_array($content_region['components']));
+    \assert(\is_array($content_region['components']));
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,

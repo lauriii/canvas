@@ -72,7 +72,7 @@ final class OpenApiSpecValidationTest extends UnitTestCase {
     $file = file_get_contents(__DIR__ . '/../../../openapi.yml');
     \assert(!empty($file));
     $encoded = json_encode(Yaml::decode($file));
-    \assert(is_string($encoded));
+    \assert(\is_string($encoded));
     // Check the encoded string to allow 'patternProperties' in comments.
     $this->assertFalse(str_contains($encoded, 'patternProperties'), '`patternProperties` in the the openapi.yml file is not supported use `additionalProperties` instead.');
   }

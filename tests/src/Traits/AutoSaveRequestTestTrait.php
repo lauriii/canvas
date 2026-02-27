@@ -18,7 +18,7 @@ trait AutoSaveRequestTestTrait {
     $response = $auto_save_controller->get();
     \assert($response instanceof JsonResponse);
     $content = $response->getContent();
-    \assert(is_string($content));
+    \assert(\is_string($content));
     $auto_saves = json_decode($content, TRUE);
     return $auto_saves;
   }
@@ -31,7 +31,7 @@ trait AutoSaveRequestTestTrait {
   }
 
   protected function makePublishAllRequest(?array $data = NULL): JsonResponse {
-    if (is_null($data)) {
+    if (\is_null($data)) {
       $data = $this->getAutoSaveStatesFromServer();
     }
     $request = Request::create(

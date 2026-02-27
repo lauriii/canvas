@@ -42,7 +42,7 @@ final class Labeler {
 
     // To generate a label, the target entity type and bundle must be known.
     $actual_bundles = $actual_entity_type_and_bundle->getBundles();
-    if (is_array($actual_bundles) && count($actual_bundles) > 1) {
+    if (\is_array($actual_bundles) && count($actual_bundles) > 1) {
       throw new \LogicException(\sprintf('Multi-bundle entity definition given (`%s`), not allowed.', implode('`, `', $actual_bundles)));
     }
 
@@ -78,7 +78,7 @@ final class Labeler {
     // - props explicitly marked as internal
     // @see \Drupal\Core\TypedData\DataDefinition::isInternal
     $main_property = $field_definition->getItemDefinition()->getMainPropertyName();
-    \assert(is_string($main_property));
+    \assert(\is_string($main_property));
 
     // When an expression targets a specific field item, generate an ordinal
     // suffix for the label.
@@ -271,7 +271,7 @@ final class Labeler {
     };
 
     // An array of props can only be returned for object expressions.
-    \assert(is_string($props) || ($expr instanceof ObjectPropExpressionInterface && !array_is_list($props)));
+    \assert(\is_string($props) || ($expr instanceof ObjectPropExpressionInterface && !array_is_list($props)));
     return $props;
   }
 
@@ -285,7 +285,7 @@ final class Labeler {
     $field_item_definition = $field_definition->getItemDefinition();
     \assert($field_item_definition instanceof FieldItemDataDefinitionInterface);
     $main_property = $field_item_definition->getMainPropertyName();
-    \assert(is_string($main_property));
+    \assert(\is_string($main_property));
 
     $used_props = (array) self::getUsedFieldProps($expr, $actual_entity_type_and_bundle);
     \assert(count($used_props) >= 1);

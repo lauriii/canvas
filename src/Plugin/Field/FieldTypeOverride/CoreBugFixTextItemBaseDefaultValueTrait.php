@@ -15,10 +15,10 @@ trait CoreBugFixTextItemBaseDefaultValueTrait {
   public function applyDefaultValue($notify = TRUE) {
     $allowed_formats = $this->getDataDefinition()->getSetting('allowed_formats');
     $default_format = match (TRUE) {
-      is_array($allowed_formats) && !empty($allowed_formats) => reset($allowed_formats),
+      \is_array($allowed_formats) && !empty($allowed_formats) => reset($allowed_formats),
       default => NULL,
     };
-    \assert(is_null($default_format) || is_string($default_format));
+    \assert(\is_null($default_format) || \is_string($default_format));
     $this->setValue(['format' => $default_format], $notify);
     return $this;
   }
@@ -26,11 +26,11 @@ trait CoreBugFixTextItemBaseDefaultValueTrait {
   public function setValue($values, $notify = TRUE): void {
     // If `format` is missing, fall back to the first allowed format from
     // settings if any.
-    if (!is_array($values) || !\array_key_exists('format', $values)) {
+    if (!\is_array($values) || !\array_key_exists('format', $values)) {
       $this->applyDefaultValue(FALSE);
       // Now `format` is guaranteed to be set, which is what is used below.
       \assert(\array_key_exists('format', $this->values));
-      $values = is_array($values)
+      $values = \is_array($values)
         ? $values + $this->values
         // TRICKY: Drupal allows passing the main property directly, in that
         // case $values won't be an array.

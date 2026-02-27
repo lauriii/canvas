@@ -59,17 +59,17 @@ trait OpenApiSpecTrait {
     $validator = new SchemaValidator();
     try {
       $specification = $this->getSpecification();
-      \assert(!is_null($specification->components));
+      \assert(!\is_null($specification->components));
       \assert($specification->components->schemas[$schemaType] instanceof Schema);
       $validator->validate($data, $specification->components->schemas[$schemaType]);
       $this->addToAssertionCount(1);
     }
     catch (KeywordMismatch $e) {
-      \assert(!is_null($e->dataBreadCrumb()));
+      \assert(!\is_null($e->dataBreadCrumb()));
       $this->fail(\sprintf('%s:%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->keyword(), $e->getMessage()));
     }
     catch (SchemaMismatch $e) {
-      \assert(!is_null($e->dataBreadCrumb()));
+      \assert(!\is_null($e->dataBreadCrumb()));
       $this->fail(\sprintf('%s %s', implode('➡', $e->dataBreadCrumb()->buildChain()), $e->getMessage()));
     }
   }

@@ -211,7 +211,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * Returns the source plugin collection.
    */
   private function sourcePluginCollection(): VersionedConfigurationSubsetSingleLazyPluginCollection {
-    if (is_null($this->sourcePluginCollection)) {
+    if (\is_null($this->sourcePluginCollection)) {
       $source_plugin_id = $this->getComponentSourcePluginId();
       $source_plugin_configuration = match ($source_plugin_id) {
         ComponentInterface::FALLBACK_VERSION => [
@@ -266,7 +266,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    * @see https://www.drupal.org/node/3353397
    */
   public static function providerExists(?string $provider): bool {
-    if (is_null($provider)) {
+    if (\is_null($provider)) {
       return TRUE;
     }
     $container = \Drupal::getContainer();

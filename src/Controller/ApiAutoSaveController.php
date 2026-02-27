@@ -265,7 +265,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         $fields = $entity->getFieldDefinitions();
         $entity_definition = $entity->getEntityType();
         \assert($entity_definition instanceof ContentEntityTypeInterface);
-        \assert(!is_null($entity->id()));
+        \assert(!\is_null($entity->id()));
         $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
         \assert($original_entity instanceof FieldableEntityInterface);
         foreach ($fields as $field_name => $field) {
@@ -318,7 +318,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // published before in Drupal Canvas.
         // @see \Drupal\canvas\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
         if ($revision_user = $entity_definition->getRevisionMetadataKey('revision_user')) {
-          \assert(is_string($revision_user));
+          \assert(\is_string($revision_user));
           $entity->set($revision_user, $this->currentUser->id());
         }
         // Even though we will validate each entity individually before it is

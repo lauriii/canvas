@@ -36,7 +36,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @return array<string, JsonSchema>
    */
   public function getInputs(): array {
-    return is_array($this->getPluginDefinition()) ? (array) $this->getPluginDefinition()['inputs'] : [];
+    return \is_array($this->getPluginDefinition()) ? (array) $this->getPluginDefinition()['inputs'] : [];
   }
 
   /**
@@ -77,7 +77,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @return JsonSchema
    */
   public function getOutputSchema(): array {
-    \assert(is_array($this->getPluginDefinition()));
+    \assert(\is_array($this->getPluginDefinition()));
     \assert(\array_key_exists('output', $this->getPluginDefinition()));
     return PropShape::standardize($this->getPluginDefinition()['output'])->resolvedSchema;
   }
@@ -86,7 +86,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
    * @todo Determine whether there is a better way.
    */
   public function inputIsRequired(string $input): bool {
-    \assert(is_array($this->getPluginDefinition()));
+    \assert(\is_array($this->getPluginDefinition()));
     \assert(\array_key_exists('requiredInputs', $this->getPluginDefinition()));
     return in_array($input, $this->getPluginDefinition()['requiredInputs'], TRUE);
   }

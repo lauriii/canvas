@@ -238,7 +238,7 @@ HTML,
       $html = (string) $this->renderer->renderInIsolation($build);
       // Strip trailing whitespace to make heredocs easier to write.
       $html = preg_replace('/ +$/m', '', $html);
-      \assert(is_string($html));
+      \assert(\is_string($html));
       // Make it easier to write expectations containing root-relative URLs
       // pointing somewhere into the site-specific directory.
       $html = str_replace(base_path() . $this->siteDirectory, '::SITE_DIR_BASE_URL::', $html);

@@ -262,7 +262,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
       $html = (string) $this->renderer->renderInIsolation($build);
       // Strip trailing whitespace to make heredocs easier to write.
       $html = preg_replace('/ +$/m', '', $html);
-      \assert(is_string($html));
+      \assert(\is_string($html));
       // Make it easier to write expectations containing root-relative URLs
       // pointing somewhere into the site-specific directory.
       $html = str_replace(base_path() . $this->siteDirectory, '::SITE_DIR_BASE_URL::', $html);
@@ -434,7 +434,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
       // Make sure we don't get incremented IDs when rendering blocks.
       Html::resetSeenIds();
       $build = $component_tree->toRenderable($page, $isPreview);
-      if (is_array($expected_exception)) {
+      if (\is_array($expected_exception)) {
         $crawler = $this->crawlerForRenderArray($build);
         self::assertCount(1, $this->logMessages, \implode(',', $this->logMessages));
         $message = \reset($this->logMessages);
@@ -501,7 +501,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
         if ($value instanceof MarkupInterface) {
           $value = (string) $value;
         }
-        if (is_array($value)) {
+        if (\is_array($value)) {
           $filteredMarkupAsString($value);
         }
       }

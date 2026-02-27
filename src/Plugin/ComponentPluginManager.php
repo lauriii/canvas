@@ -31,7 +31,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
    */
   public function processDefinition(&$definition, $plugin_id): void {
     parent::processDefinition($definition, $plugin_id);
-    if (isset($definition['props']['properties']) && is_array($definition['props']['properties']) && !empty($definition['props']['properties'])) {
+    if (isset($definition['props']['properties']) && \is_array($definition['props']['properties']) && !empty($definition['props']['properties'])) {
       $definition['props'] = $this->resolveJsonSchemaReferences($definition['props'], 0);
     }
   }
@@ -66,7 +66,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
 
     // Recursively resolve nested objects.
     foreach ($schema as $key => $value) {
-      if (is_object($value)) {
+      if (\is_object($value)) {
         $schema[$key] = $this->resolveJsonSchemaReferences((array) $value, $depth);
       }
     }
@@ -75,7 +75,7 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     // but it is exactly the inverse of what
     // BaseConstraint::arrayToObjectRecursive() is doing.
     $json = json_encode($schema);
-    \assert(is_string($json));
+    \assert(\is_string($json));
     return json_decode($json, TRUE);
   }
 

@@ -544,7 +544,7 @@ HTML,
       'multiplier' => 3,
     ], $input);
     // @todo This is wrong (it does not conform to `type: block.settings.canvas_test_block_form`) and will be fixed in https://www.drupal.org/project/canvas/issues/3541125
-    self::assertFalse(is_int($input['canvas_page']));
+    self::assertFalse(\is_int($input['canvas_page']));
 
     // Confirm that validation errors from submitting the block plugin are
     // stored in the auto-save manager for a subsequent validation step.

@@ -50,10 +50,10 @@ final class ComponentSource extends Plugin {
     public readonly array $discoveryCacheTags = [],
     public readonly string|false $updater = FALSE,
   ) {
-    if (is_string($discovery)) {
+    if (\is_string($discovery)) {
       \assert(class_exists($discovery));
     }
-    if (is_string($this->updater)) {
+    if (\is_string($this->updater)) {
       \assert(class_exists($this->updater));
     }
   }

@@ -35,16 +35,16 @@ final class UriSchemeAwareFormatConstraint extends FormatConstraint {
     // `x-allowed-schemes`, if specified.
     // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::toDataTypeShapeRequirements()
     if ($after === $before && in_array($schema->format, [JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value], TRUE)) {
-      \assert(is_string($element));
+      \assert(\is_string($element));
       if (!property_exists($schema, 'x-allowed-schemes')) {
         return;
       }
       $allowed_schemes = $schema->{'x-allowed-schemes'};
-      \assert(is_array($allowed_schemes));
+      \assert(\is_array($allowed_schemes));
       // If an absolute URL was given, also validate the scheme.
       // @see \Drupal\canvas\Plugin\Validation\Constraint\UriConstraintValidator
       $scheme = parse_url($element, PHP_URL_SCHEME);
-      if (!is_null($scheme) && !in_array($scheme, $allowed_schemes, TRUE)) {
+      if (!\is_null($scheme) && !in_array($scheme, $allowed_schemes, TRUE)) {
         // @phpstan-ignore-next-line staticMethod.notFound
         $this->addError(CustomConstraintError::X_ALLOWED_SCHEMES(), $path, ['scheme' => $scheme]);
       }

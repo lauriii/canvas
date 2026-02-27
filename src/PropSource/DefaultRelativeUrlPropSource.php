@@ -106,7 +106,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
   private static function recursiveKsort(array &$array): void {
     ksort($array);
     foreach ($array as &$value) {
-      if (is_array($value)) {
+      if (\is_array($value)) {
         self::recursiveKsort($value);
       }
     }
@@ -116,7 +116,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
    * {@inheritdoc}
    */
   public function evaluate(?FieldableEntityInterface $host_entity, bool $is_required): EvaluationResult {
-    if (is_string($this->value)) {
+    if (\is_string($this->value)) {
       \assert(self::isUrlJsonSchema($this->jsonSchema));
       $generated_url = $this->componentSource->rewriteExampleUrl($this->value);
       return new EvaluationResult(
@@ -149,7 +149,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
       }
       return $evaluated;
     }
-    elseif (is_string($value) && self::isUrlJsonSchema($json_schema)) {
+    elseif (\is_string($value) && self::isUrlJsonSchema($json_schema)) {
       $generated_url = $component_source->rewriteExampleUrl($value);
       return new EvaluationResult(
         $generated_url->getGeneratedUrl(),

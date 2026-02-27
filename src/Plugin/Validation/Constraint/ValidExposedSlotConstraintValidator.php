@@ -39,7 +39,7 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
   public function validate(mixed $value, Constraint $constraint): void {
     \assert($constraint instanceof ValidExposedSlotConstraint);
 
-    \assert(is_array($value), new UnexpectedTypeException($value, 'array'));
+    \assert(\is_array($value), new UnexpectedTypeException($value, 'array'));
     $root = $this->context->getRoot();
     if ($root instanceof EntityAdapter) {
       $template = $root->getEntity();

@@ -74,7 +74,7 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
     $this->cacheability = new CacheableMetadata();
     $url = Evaluator::evaluate($field_item, $url_prop_expression, is_required: TRUE);
     $url_with_query_string->addCacheableDependency($url);
-    \assert(is_string($url->value));
+    \assert(\is_string($url->value));
     $url_components = UrlHelper::parse($url->value);
     foreach ($instructions['query_parameters'] as $query_parameter_name => $query_parameter_instruction) {
       $query_parameter = Evaluator::evaluate(
@@ -110,8 +110,8 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
     $field_item_list = $this->getParent()->getParent();
     \assert($field_item_list instanceof FieldItemListInterface);
     $instructions = $this->getDataDefinition()->getSettings();
-    \assert(\array_key_exists('url', $instructions) && is_string($instructions['url']));
-    \assert(\array_key_exists('query_parameters', $instructions) && is_array($instructions['query_parameters']));
+    \assert(\array_key_exists('url', $instructions) && \is_string($instructions['url']));
+    \assert(\array_key_exists('query_parameters', $instructions) && \is_array($instructions['query_parameters']));
 
     // Calculate the dependencies for this computed field property, by
     // calculating the dependencies of all structured data prop expressions this

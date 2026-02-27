@@ -45,7 +45,7 @@ final class ComponentStatusController {
           continue;
         }
         $items = [];
-        $component_reasons = is_string($component_reasons) ? [$component_reasons] : $component_reasons;
+        $component_reasons = \is_string($component_reasons) ? [$component_reasons] : $component_reasons;
         foreach ($component_reasons as $item) {
           $items[] = Markup::create($item);
         }

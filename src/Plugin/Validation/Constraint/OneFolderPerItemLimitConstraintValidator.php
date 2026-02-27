@@ -23,7 +23,7 @@ final class OneFolderPerItemLimitConstraintValidator extends ConstraintValidator
       throw new UnexpectedTypeException($constraint, UnexpectedTypeException::class);
     }
 
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       throw new UnexpectedValueException($value, 'string');
     }
 

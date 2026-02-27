@@ -25,7 +25,7 @@ final class MatchesComponentPropRequirednessConstraintValidator extends Constrai
       throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\MatchesComponentPropRequirednessConstraint');
     }
 
-    if (!is_bool($value)) {
+    if (!\is_bool($value)) {
       throw new UnexpectedValueException($value, 'bool');
     }
 

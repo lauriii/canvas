@@ -125,7 +125,7 @@ final class AdaptedPropSource extends PropSourceBase {
     $plugin_definition = $this->adapter_instance->getPluginDefinition();
     $dependencies['module'][] = match (TRUE) {
       $plugin_definition instanceof PluginDefinitionInterface => $plugin_definition->getProvider(),
-      is_array($plugin_definition) => $plugin_definition['provider'],
+      \is_array($plugin_definition) => $plugin_definition['provider'],
       default => NULL,
     };
     foreach ($this->adapter_inputs as $input_name => $input) {

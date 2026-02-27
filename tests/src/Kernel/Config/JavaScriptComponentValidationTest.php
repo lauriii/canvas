@@ -345,7 +345,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         'examples' => [$example],
       ],
     ]);
-    $expected_validation_errors = is_null($validation_error)
+    $expected_validation_errors = \is_null($validation_error)
       ? []
       : ['' => 'Prop "beep" has invalid example value: [] ' . $validation_error];
     $this->assertValidationErrors($expected_validation_errors);

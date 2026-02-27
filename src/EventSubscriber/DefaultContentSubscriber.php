@@ -144,7 +144,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
     if ($original_entity_reference_callback) {
       $event->setCallback('field_item:entity_reference', function ($item, ExportMetadata $metadata) use ($original_entity_reference_callback): ?array {
         $values = $original_entity_reference_callback($item, $metadata);
-        if (is_array($values)) {
+        if (\is_array($values)) {
           unset($values['target_uuid']);
         }
         return $values;
@@ -160,7 +160,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
 
   public function preEntityImport(PreEntityImportEvent $event): void {
     \assert(isset($event->metadata['entity_type']));
-    \assert(is_string($event->metadata['entity_type']));
+    \assert(\is_string($event->metadata['entity_type']));
 
     if (!isset($this->componentTreeFieldMap[$event->metadata['entity_type']])) {
       // If the entity type does not have any component tree fields then no
@@ -183,7 +183,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
           }
 
           foreach ($item_data['inputs'] as &$prop_input) {
-            if (is_array($prop_input)) {
+            if (\is_array($prop_input)) {
               $prop_input = $this->processComponentInputOnImport($prop_input);
             }
           }
@@ -196,7 +196,7 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
     if (!isset($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY])) {
       return $prop_input;
     }
-    \assert(is_array($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY]));
+    \assert(\is_array($prop_input[self::EXPORT_ENTITY_REFERENCE_KEY]));
     $export_data = $prop_input[self::EXPORT_ENTITY_REFERENCE_KEY];
     \assert(\array_key_exists('target_uuid', $export_data));
     \assert(\array_key_exists('target_type', $export_data));

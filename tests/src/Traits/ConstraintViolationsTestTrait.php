@@ -27,7 +27,7 @@ trait ConstraintViolationsTestTrait {
       }
       else {
         // Transform value from string to array.
-        if (is_string($actual_violations[$violation->getPropertyPath()])) {
+        if (\is_string($actual_violations[$violation->getPropertyPath()])) {
           $actual_violations[$violation->getPropertyPath()] = (array) $actual_violations[$violation->getPropertyPath()];
         }
         // And append.

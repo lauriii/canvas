@@ -85,7 +85,7 @@ final class ParentComponentReference extends DataReferenceBase {
       $this->doNotify($notify);
       return;
     }
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       throw new \InvalidArgumentException('Value is not a valid parent component tree item.');
     }
     $this->parentUuid = $value;

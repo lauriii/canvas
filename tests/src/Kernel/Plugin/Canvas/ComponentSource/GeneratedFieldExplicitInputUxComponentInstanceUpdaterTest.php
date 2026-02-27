@@ -434,7 +434,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected function addOptionalProp(): void {
     $props = $this->jsComponent->getProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     $props['voice'] = [
       'type' => 'string',
       'title' => 'Voice',
@@ -446,7 +446,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected function removeOptionalProp(): void {
     $props = $this->jsComponent->getProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     unset($props['optional_text']);
     $this->jsComponent->setProps($props)
       ->save();
@@ -454,7 +454,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected function removeRequiredProp(): void {
     $props = $this->jsComponent->getProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     unset($props['required_text']);
     $this->jsComponent->setProps($props)
       ->save();
@@ -486,7 +486,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
   protected function addRequiredProp(): void {
     $props = $this->jsComponent->getProps();
     $required_props = $this->jsComponent->getRequiredProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     $props['voice'] = [
       'type' => 'string',
       'title' => 'Voice',
@@ -501,7 +501,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected function changePropType(): void {
     $props = $this->jsComponent->getProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     $props['optional_text']['enum'] = [
       'polite',
       'shouting',
@@ -516,7 +516,7 @@ class GeneratedFieldExplicitInputUxComponentInstanceUpdaterTest extends CanvasKe
 
   protected function changeExamplesFromProp(): void {
     $props = $this->jsComponent->getProps();
-    \assert(!is_null($props));
+    \assert(!\is_null($props));
     $props['required_text']['examples'] = [
       'A brand new example for a prop',
     ];

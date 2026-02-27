@@ -49,7 +49,7 @@ final class ThemeRegionExistsConstraintValidator extends ConstraintValidator imp
     if ($region === NULL) {
       return;
     }
-    elseif (!is_string($region)) {
+    elseif (!\is_string($region)) {
       throw new UnexpectedValueException($region, 'string');
     }
 

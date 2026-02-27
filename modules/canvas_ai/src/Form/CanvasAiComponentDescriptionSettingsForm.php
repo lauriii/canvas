@@ -73,7 +73,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
     // Validate that at least one source is enabled.
     $component_context = $form_state->getValue('component_context');
     $any_enabled = FALSE;
-    if (is_array($component_context)) {
+    if (\is_array($component_context)) {
       foreach ($component_context as $components) {
         if (!empty($components['enabled'])) {
           $any_enabled = TRUE;
@@ -101,14 +101,14 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
           $available_components[$source]['components'][$component_id]['description'] = $component_data_from_form['description'];
 
           // Replace the props descriptions.
-          if (isset($available_components[$source]['components'][$component_id]['props']) && is_array($available_components[$source]['components'][$component_id]['props'])) {
+          if (isset($available_components[$source]['components'][$component_id]['props']) && \is_array($available_components[$source]['components'][$component_id]['props'])) {
             foreach ($available_components[$source]['components'][$component_id]['props'] as $prop_id => $prop_data) {
               $available_components[$source]['components'][$component_id]['props'][$prop_id]['description'] = $component_data_from_form['props'][$prop_id]['description'];
             }
           }
 
           // Replace the slots descriptions.
-          if (isset($available_components[$source]['components'][$component_id]['slots']) && is_array($available_components[$source]['components'][$component_id]['slots'])) {
+          if (isset($available_components[$source]['components'][$component_id]['slots']) && \is_array($available_components[$source]['components'][$component_id]['slots'])) {
             foreach ($available_components[$source]['components'][$component_id]['slots'] as $slot_id => $slot_data) {
               $available_components[$source]['components'][$component_id]['slots'][$slot_id]['description'] = $component_data_from_form['slots'][$slot_id]['description'];
             }
@@ -164,7 +164,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
         ];
 
         // Description elements for each prop.
-        if (isset($component_data['props']) && is_array($component_data['props'])) {
+        if (isset($component_data['props']) && \is_array($component_data['props'])) {
 
           $form[$source]['components'][$component_id]['props'] = [
             '#type' => 'details',
@@ -182,7 +182,7 @@ final class CanvasAiComponentDescriptionSettingsForm extends ConfigFormBase {
         }
 
         // Description elements for each slot.
-        if (isset($component_data['slots']) && is_array($component_data['slots'])) {
+        if (isset($component_data['slots']) && \is_array($component_data['slots'])) {
           $form[$source]['components'][$component_id]['slots'] = [
             '#type' => 'details',
             '#title' => $this->t('Slots'),

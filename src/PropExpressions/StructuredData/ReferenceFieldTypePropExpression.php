@@ -233,10 +233,10 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
     if ($is_branching) {
       // Find opening of first branch
       $opening_first_branch = mb_strpos($representation, self::PREFIX_BRANCH);
-      \assert(is_int($opening_first_branch));
+      \assert(\is_int($opening_first_branch));
       // Find closing of last branch.
       $closing_last_branch = mb_strrpos($representation, self::SUFFIX_BRANCH);
-      \assert(is_int($closing_last_branch));
+      \assert(\is_int($closing_last_branch));
       $branches = self::parseBranches(mb_substr($representation, $opening_first_branch, $closing_last_branch));
       $referenced_branches = \array_map(
         // Each of the branch expressions MUST be starting with an entity field,
@@ -399,8 +399,8 @@ final class ReferenceFieldTypePropExpression implements FieldTypeBasedPropExpres
     // Introduced by https://www.drupal.org/i/3530533. Mistake in hindsight.
     $multi_prop_name = $deprecated_multi_bundle_field_prop_expression->propName;
     foreach ($multi_bundle as $bundle) {
-      $field_name = is_string($multi_field_name) ? $multi_field_name : $multi_field_name[$bundle];
-      $prop_name = is_string($multi_prop_name) ? $multi_prop_name : $multi_prop_name[$field_name];
+      $field_name = \is_string($multi_field_name) ? $multi_field_name : $multi_field_name[$bundle];
+      $prop_name = \is_string($multi_prop_name) ? $multi_prop_name : $multi_prop_name[$field_name];
       $entity_and_bundle = BetterEntityDataDefinition::create($entity_type_id, $bundle);
       $branches[$entity_and_bundle->getDataType()] = new ReferenceFieldPropExpression(
         referencer: new FieldPropExpression(

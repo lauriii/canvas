@@ -26,7 +26,7 @@ final class UniqueNamePerFolderTypeConstraintValidator extends ConstraintValidat
       throw new UnexpectedTypeException($constraint, UnexpectedTypeException::class);
     }
 
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       throw new UnexpectedValueException($value, 'string');
     }
 

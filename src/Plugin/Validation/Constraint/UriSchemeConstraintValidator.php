@@ -24,14 +24,14 @@ final class UriSchemeConstraintValidator extends ConstraintValidator {
 
     // If an absolute URL was given, also validate the scheme.
     $scheme = parse_url($value, PHP_URL_SCHEME);
-    if (!is_null($scheme) && !in_array($scheme, $constraint->allowedSchemes, TRUE)) {
+    if (!\is_null($scheme) && !in_array($scheme, $constraint->allowedSchemes, TRUE)) {
       // Never complain about `temporary://`: this is used while uploading a
       // file, and is never a permanently stored value.
       // @see \Drupal\Core\StreamWrapper\TemporaryStream
       if ($scheme === 'temporary') {
         return;
       }
-      \assert(is_string($scheme));
+      \assert(\is_string($scheme));
       $this->context->buildViolation($constraint->messageInvalidUriScheme)
         ->setParameter('@scheme', $scheme)
         ->setParameter('@allowed-schemes', implode(', ', $constraint->allowedSchemes))

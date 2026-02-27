@@ -73,7 +73,7 @@ final class ComponentMetadataRequirementsChecker {
       // the prop.
       if (isset($prop['examples'][0])) {
         $example = $prop['examples'][0];
-        if (is_array($example)) {
+        if (\is_array($example)) {
           $example = (object) $example;
         }
         $validator->reset();

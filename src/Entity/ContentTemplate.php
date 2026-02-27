@@ -502,13 +502,13 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $entity_definition = $entity_type_manager->getDefinition($entity_type_id);
 
     $id_key = $entity_definition->getKey('id');
-    \assert(is_string($id_key));
+    \assert(\is_string($id_key));
     $entity_query = $entity_type_manager->getStorage($entity_type_id)->getQuery()
       ->accessCheck(TRUE)
       ->range(0, $limit);
     if ($entity_definition->hasKey('bundle')) {
       $bundle_key = $entity_definition->getKey('bundle');
-      \assert(is_string($bundle_key));
+      \assert(\is_string($bundle_key));
       $entity_query->condition($bundle_key, $bundle);
     }
 
@@ -531,7 +531,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       1
     );
     $results = $query->execute();
-    \assert(is_array($results));
+    \assert(\is_array($results));
 
     if (empty($results)) {
       return NULL;

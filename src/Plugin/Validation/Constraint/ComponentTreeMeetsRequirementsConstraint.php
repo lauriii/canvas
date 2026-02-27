@@ -92,7 +92,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       if ($this->inputs[$nested_option] === NULL) {
         continue;
       }
-      if (!is_array($this->inputs[$nested_option])) {
+      if (!\is_array($this->inputs[$nested_option])) {
         throw new InvalidArgumentException(\sprintf(
           'The option "%s" must be an array of source type prefixes. Supported source type prefixes are: "%s".',
           "inputs.$nested_option",
@@ -116,7 +116,7 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       if ($this->tree[$nested_option] === NULL) {
         continue;
       }
-      if (!is_array($this->tree[$nested_option])) {
+      if (!\is_array($this->tree[$nested_option])) {
         throw new InvalidArgumentException(\sprintf(
           'The option "%s" must be an array of Component config entity IDs and/or Component (plugin) interfaces.',
           "tree.$nested_option",

@@ -58,7 +58,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
       $data = array_reverse($data, TRUE);
     }
     foreach ($data as $key => $value) {
-      if (is_array($value)) {
+      if (\is_array($value)) {
         $data[$key] = self::recursiveReverseSort($value);
       }
     }

@@ -164,7 +164,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function calculateDependencies(): array {
     \assert(\array_key_exists('prop_field_definitions', $this->configuration));
-    \assert(is_array($this->configuration['prop_field_definitions']));
+    \assert(\is_array($this->configuration['prop_field_definitions']));
     $dependencies = [];
     foreach ($this->configuration['prop_field_definitions'] as $prop_name => ['field_type' => $field_type, 'field_widget' => $field_widget]) {
       $field_widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget);
@@ -205,7 +205,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     \assert(isset($this->configuration['prop_field_definitions']));
     $propFieldDefinitions = $this->configuration['prop_field_definitions'];
-    \assert(is_array($propFieldDefinitions));
+    \assert(\is_array($propFieldDefinitions));
     if (!\array_key_exists($prop_name, $propFieldDefinitions)) {
       throw new \OutOfRangeException(\sprintf("'%s' is not a prop on this version of the Component '%s'.", $prop_name, $this->getComponentDescription()));
     }
@@ -447,7 +447,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
   public function inputToClientModel(array $explicit_input): array {
     // @see PropSourceComponent type-script definition.
     // @see EvaluatedComponentModel type-script definition.
-    \assert(is_array($explicit_input['resolved']));
+    \assert(\is_array($explicit_input['resolved']));
     \assert(Inspector::assertAllObjects($explicit_input['resolved'], EvaluationResult::class));
     $model = [
       'source' => $explicit_input['source'],
@@ -506,7 +506,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       if ($def['required'] === FALSE && $only_required) {
         continue;
       }
-      \assert(is_string($prop_name));
+      \assert(\is_string($prop_name));
       $inputs[$prop_name] = $this->getDefaultStaticPropSource($prop_name, validate_prop_name: FALSE)->toArray();
     }
     return $inputs;
@@ -677,7 +677,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // @todo Uncomment this once it is guaranteed that the POST request to add
     // the component instance happens first.
     // phpcs:disable Drupal.Files.LineLength.TooLong
-    // \assert(!is_null(\Drupal::service(ComponentTreeLoader::class)->load($entity)->getComponentTreeItemByUuid($component_instance_uuid)), 'The passed $entity does not contain the component instance being edited.');
+    // \assert(!\is_null(\Drupal::service(ComponentTreeLoader::class)->load($entity)->getComponentTreeItemByUuid($component_instance_uuid)), 'The passed $entity does not contain the component instance being edited.');
     // phpcs:enable
     // Some field widgets need an entity object. Provide such a "parent" entity.
     // @see \Drupal\Core\Field\FieldItemListInterface::getEntity()
@@ -1031,7 +1031,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $cpe = ComponentPropExpression::fromString($cpe_string);
 
       $storable_prop_shape = $prop_shape_repository->getStorablePropShape($prop_shape);
-      if (is_null($storable_prop_shape)) {
+      if (\is_null($storable_prop_shape)) {
         continue;
       }
 
@@ -1062,7 +1062,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       return [];
     }
 
-    \assert(is_array($sdc_metadata->schema));
+    \assert(\is_array($sdc_metadata->schema));
     // @see https://json-schema.org/understanding-json-schema/reference/object#required
     // @see https://json-schema.org/learn/getting-started-step-by-step#required
     $is_required = in_array($sdc_prop_name, $sdc_metadata->schema['required'] ?? [], TRUE);

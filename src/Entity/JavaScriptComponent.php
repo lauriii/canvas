@@ -159,8 +159,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // TRICKY: config entity properties may allow NULL, but only valid, saved
     // config entities are ever normalized: those that have passed validation
     // against config schema.
-    \assert(is_array($this->js));
-    \assert(is_array($this->css));
+    \assert(\is_array($this->js));
+    \assert(\is_array($this->css));
     $linkCollection = $this->getEntityOperations();
     return ClientSideRepresentation::create(
       values: [
@@ -197,9 +197,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // TRICKY: config entity properties may allow NULL, but only valid, saved
     // config entities are ever normalized: those that have passed validation
     // against config schema.
-    \assert(is_array($this->props));
-    \assert(is_array($this->slots));
-    \assert(is_string($this->uuid));
+    \assert(\is_array($this->props));
+    \assert(\is_array($this->slots));
+    \assert(\is_string($this->uuid));
 
     // If there's an auto-saved version of this code component, load that
     // instead to generate the preview. JsComponent::renderComponent() *already*
@@ -438,7 +438,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     $this->props = $props;
     // If a required prop was removed, we need to remove it from the list of
     // required props.
-    if (!is_null($this->required)) {
+    if (!\is_null($this->required)) {
       $this->required = \array_intersect(\array_keys($props), $this->required);
     }
     return $this;

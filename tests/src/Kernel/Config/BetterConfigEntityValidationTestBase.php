@@ -68,12 +68,12 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
         $popped = array_pop($parts);
         $parent_property_path = implode('.', $parts);
         $validation_error_message = match (\array_key_exists($parent_property_path, $expected_messages)) {
-          TRUE => is_array($expected_messages[$parent_property_path])
+          TRUE => \is_array($expected_messages[$parent_property_path])
             ? reset($expected_messages[$parent_property_path])
             : $expected_messages[$parent_property_path],
           FALSE => '',
         };
-        \assert(is_string($validation_error_message));
+        \assert(\is_string($validation_error_message));
         if (str_starts_with($validation_error_message, \sprintf("'%s' is an unknown key because %s.type is", $popped, $parent_property_path))) {
           NestedArray::setValue($nonsensical_subtrees, $parts, TRUE);
           return FALSE;

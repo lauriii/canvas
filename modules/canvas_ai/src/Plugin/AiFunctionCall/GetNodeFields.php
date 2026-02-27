@@ -86,7 +86,7 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
     $node_type = $this->getContextValue('node_type');
 
     // Check if node type exists.
-    if (is_null($this->entityTypeManager->getStorage('node_type')->load($node_type))) {
+    if (\is_null($this->entityTypeManager->getStorage('node_type')->load($node_type))) {
       $this->setOutput('Node type with name "' . $node_type . '" does not exist.');
       return;
     }

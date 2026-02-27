@@ -219,7 +219,7 @@ abstract class VersionedConfigEntityBase extends ConfigEntityBase implements Ver
         // Not all plugin configuration key-value pairs may be needed in the
         // versioned property.
         if ($plugin_instance instanceof VersionedConfigurationSubsetSingleLazyPluginCollection) {
-          \assert(is_array($value));
+          \assert(\is_array($value));
           $value = array_diff_key($value, array_flip($plugin_instance->omittedKeys));
         }
       }

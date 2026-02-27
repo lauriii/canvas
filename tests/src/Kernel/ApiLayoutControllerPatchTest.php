@@ -406,7 +406,7 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     $file = $media->get('field_media_image')->entity;
     \assert($file instanceof FileInterface);
     $fileUri = $file->getFileUri();
-    \assert(is_string($fileUri));
+    \assert(\is_string($fileUri));
     $image = $media->get('field_media_image')->get(0);
     \assert($image instanceof ImageItemOverride);
     $image_url = $image->get('src_with_alternate_widths');

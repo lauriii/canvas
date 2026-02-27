@@ -1885,7 +1885,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $folder_to_send['items'] = [];
     $request_options[RequestOptions::JSON] = $folder_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    \assert(is_array($body));
+    \assert(\is_array($body));
     ksort($folder_to_send);
     ksort($body);
     $new_folder = Folder::loadByNameAndConfigEntityTypeId($folder_to_send['name'], $folder_to_send['type']);
@@ -1912,7 +1912,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $new_folder_to_send['weight'] = -1;
     $request_options[RequestOptions::JSON] = $new_folder_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    \assert(is_array($body));
+    \assert(\is_array($body));
     $this->assertArrayHasKey('id', $body);
     $this->assertNotEquals($body['id'], $id);
     $this->assertTrue(Uuid::isValid($body['id']));
@@ -1929,7 +1929,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Fetch list of Folders to verify correct they are sorted correctly.
     $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:folder_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    \assert(is_array($body));
+    \assert(\is_array($body));
     $this->assertCount(count($this->defaultFolders) + 3, $body);
     $this->assertEquals($new_folder_id, \array_keys($body)[0]);
     $this->assertEquals($temp_folder->id(), \array_keys($body)[count($body) - 1]);

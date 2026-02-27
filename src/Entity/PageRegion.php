@@ -87,7 +87,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
    * {@inheritdoc}
    */
   public function label(): TranslatableMarkup {
-    \assert(is_string($this->theme));
+    \assert(\is_string($this->theme));
     $regions = system_region_list($this->theme);
     return new TranslatableMarkup('@region region', [
       '@region' => $regions[$this->get('region')],
@@ -133,7 +133,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase {
    * {@inheritdoc}
    */
   public function getComponentTree(): ComponentTreeItemList {
-    \assert(is_array($this->component_tree));
+    \assert(\is_array($this->component_tree));
 
     $field_items = $this->createDanglingComponentTreeItemList($this);
     $field_items->setValue(\array_values($this->component_tree ?? []));

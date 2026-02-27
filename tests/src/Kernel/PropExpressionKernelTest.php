@@ -369,7 +369,7 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
       // content-unaware ones, just with the `content` key-value pair omitted,
       // if any.
       $expected_content_unaware_dependencies = $case[5] ?? (
-        is_array($expected_dependencies)
+        \is_array($expected_dependencies)
           ? array_diff_key($expected_dependencies, array_flip(['content']))
           : NULL
       );

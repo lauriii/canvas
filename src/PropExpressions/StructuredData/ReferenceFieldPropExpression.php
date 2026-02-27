@@ -192,10 +192,10 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
     if ($is_branching) {
       // Find opening of first branch
       $opening_first_branch = mb_strpos($representation, self::PREFIX_BRANCH);
-      \assert(is_int($opening_first_branch));
+      \assert(\is_int($opening_first_branch));
       // Find closing of last branch.
       $closing_last_branch = mb_strrpos($representation, self::SUFFIX_BRANCH);
-      \assert(is_int($closing_last_branch));
+      \assert(\is_int($closing_last_branch));
       $branches = self::parseBranches(mb_substr($representation, $opening_first_branch, $closing_last_branch));
       $referenced_branches = \array_map(
       // Each of the branch expressions MUST be starting with an entity field,

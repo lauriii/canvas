@@ -28,7 +28,7 @@ readonly class Messenger implements MessengerInterface {
    */
   public function addMessage($message, $type = MessengerInterface::TYPE_STATUS, $repeat = FALSE): MessengerInterface {
     $routeName = $this->currentRouteMatch->getRouteName();
-    if (!is_string($routeName) || !str_starts_with($routeName, 'canvas.api.')) {
+    if (!\is_string($routeName) || !str_starts_with($routeName, 'canvas.api.')) {
       $this->messenger->addMessage($message, $type, $repeat);
     }
     return $this;

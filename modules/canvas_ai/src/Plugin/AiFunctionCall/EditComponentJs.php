@@ -104,7 +104,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
       $transformed_props = [];
       $required_props = [];
       $explicitly_marked_required_props = [];
-      if (is_array($props_array)) {
+      if (\is_array($props_array)) {
         foreach ($props_array as $prop) {
           if (!empty($prop['id']) && !empty($prop['name']) && !empty($prop['type']) && !empty($prop['example'])) {
             $transformed = [

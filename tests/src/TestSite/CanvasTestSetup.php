@@ -89,7 +89,7 @@ class CanvasTestSetup implements TestSetupInterface {
     // CreateTestJsComponentTrait requires having the $root set.
     $container = \Drupal::getContainer();
     $root = $container && $container->hasParameter('app.root') ? $container->getParameter('app.root') : DRUPAL_ROOT;
-    \assert(is_string($root));
+    \assert(\is_string($root));
     $this->root = $root;
 
     // TRICKY: this runs in TestSiteInstallCommand, which has no way for either
@@ -109,12 +109,12 @@ class CanvasTestSetup implements TestSetupInterface {
     // those will pick up the proper $configSchemaCheckerExclusions from the
     // test itself.
     $site_path = $container->getParameter('site.path');
-    \assert(is_string($site_path));
+    \assert(\is_string($site_path));
     $services_yml = $site_path . '/services.yml';
     if (file_exists($services_yml)) {
       $yaml = new SymfonyYaml();
       $content = file_get_contents($services_yml);
-      \assert(is_string($content));
+      \assert(\is_string($content));
       $services = $yaml->parse($content);
       // @see \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings
       // for the`testing.config_schema_checker` service definition.

@@ -109,7 +109,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     }
 
     $plugin_definition = $block->getPluginDefinition();
-    \assert(is_array($plugin_definition));
+    \assert(\is_array($plugin_definition));
     $required_contexts = array_filter(
       $plugin_definition['context_definitions'],
       fn (ContextDefinitionInterface $definition): bool => $definition->isRequired(),
@@ -183,7 +183,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
           if (str_starts_with($dependency, 'views.view.')) {
             $config_id = substr($dependency, strlen('views.view.'));
             $view = View::load($config_id);
-            \assert(!is_null($view));
+            \assert(!\is_null($view));
             $status = !in_array('default', \array_map('trim', explode(',', $view->get('tag'))), TRUE);
           }
         }

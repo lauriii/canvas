@@ -17,7 +17,7 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    if (!is_array($value)) {
+    if (!\is_array($value)) {
       throw new UnexpectedTypeException($value, 'sequence');
     }
     if (!$constraint instanceof SequenceKeysMustMatchConstraint) {

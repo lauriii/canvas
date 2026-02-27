@@ -26,7 +26,7 @@ final class ValidStructuredDataPropExpressionConstraintValidator extends ChoiceV
       return;
     }
 
-    if (!is_string($value)) {
+    if (!\is_string($value)) {
       throw new UnexpectedValueException($value, 'string');
     }
 

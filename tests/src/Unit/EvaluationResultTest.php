@@ -175,7 +175,7 @@ class EvaluationResultTest extends UnitTestCase {
 
       // Tests object result shape being constructed from two scalar result
       // shapes.
-      \assert(!is_array($r));
+      \assert(!\is_array($r));
       $cases["node 42-invalidated & to-be-hoisted object (3 distinct cacheabilities): $label"] = [
         $node_42_cacheability,
         [

@@ -53,7 +53,7 @@ final class StagedConfigUpdateStorage extends ConfigEntityStorage {
    * @return \Drupal\canvas\Entity\StagedConfigUpdate|null
    */
   public function load($id) {
-    \assert(is_string($id));
+    \assert(\is_string($id));
     $stub = StagedConfigUpdate::createFromClientSide([
       'id' => $id,
       'label' => '',

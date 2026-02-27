@@ -120,7 +120,7 @@ final class ThemeSettingsDiscovery {
       if (isset($definitions[$theme])) {
         $theme_config = $definitions[$theme];
         // Validate and filter viewport settings if present.
-        if (isset($theme_config['viewports']) && is_array($theme_config['viewports'])) {
+        if (isset($theme_config['viewports']) && \is_array($theme_config['viewports'])) {
           $theme_config['viewports'] = $this->validateViewports($theme_config['viewports']);
         }
         $merged_settings = NestedArray::mergeDeepArray(
@@ -168,11 +168,11 @@ final class ThemeSettingsDiscovery {
     $validated = [];
     foreach ($viewports as $id => $width) {
       // Only accept positive integers.
-      if (is_int($width) && $width > 0) {
+      if (\is_int($width) && $width > 0) {
         $validated[$id] = $width;
       }
       // Also accept numeric strings that represent positive integers.
-      elseif (is_string($width) && ctype_digit($width) && (int) $width > 0) {
+      elseif (\is_string($width) && ctype_digit($width) && (int) $width > 0) {
         $validated[$id] = (int) $width;
       }
     }

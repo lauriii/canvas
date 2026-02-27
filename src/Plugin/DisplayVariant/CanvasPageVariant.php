@@ -132,7 +132,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     if (empty($regions)) {
       throw new \LogicException('This page display variant needs Drupal Canvas PageRegion config entities.');
     }
-    \assert(is_bool($this->configuration[self::PREVIEW_KEY]) || is_null($this->configuration[self::PREVIEW_KEY]));
+    \assert(\is_bool($this->configuration[self::PREVIEW_KEY]) || \is_null($this->configuration[self::PREVIEW_KEY]));
     $is_preview = $this->configuration[self::PREVIEW_KEY] === TRUE;
 
     \assert(!empty($this->title));

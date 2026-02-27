@@ -153,7 +153,7 @@ final class ComponentAudit {
     $dependencies = [];
     foreach ($this->autoSaveManager->getAllAutoSaveList(TRUE) as $autoSave) {
       $entity = $autoSave['entity'];
-      \assert(!is_null($entity));
+      \assert(!\is_null($entity));
       if (!$entity instanceof ComponentTreeEntityInterface) {
         // @todo Post-1.0, the restrictions that https://www.drupal.org/i/3520487 added will be lifted, meaning node component trees can be edited again. This will then need to be expanded to use the ComponentTreeLoader when appropriate.
         if ($entity instanceof FieldableEntityInterface) {

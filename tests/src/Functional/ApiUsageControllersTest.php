@@ -118,14 +118,14 @@ class ApiUsageControllersTest extends HttpApiTestBase {
 
     $listing_url = Url::fromRoute('canvas.api.usage.component.list')->setOption('absolute', FALSE);
     $body = $this->assertExpectedResponse('GET', $listing_url, [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
-    \assert(is_array($body));
+    \assert(\is_array($body));
     $this->assertCount(50, $body['data']);
     $expected_usage = array_fill_keys(\array_keys(Component::loadMultiple()), FALSE);
     $expected_usage['sdc.canvas_test_sdc.props-no-slots'] = TRUE;
     ksort($expected_usage);
     $this->assertSame($expected_usage, $body['data']);
 
-    \assert(is_array($body['links']));
+    \assert(\is_array($body['links']));
     $this->assertNull($body['links']['prev']);
     $this->assertNull($body['links']['next']);
 
@@ -151,7 +151,7 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     \array_map(fn (Component $c) => $c->delete(), array_slice($components, ApiUsageControllers::MAX_PER_PAGE));
 
     $body = $this->assertExpectedResponse('GET', $listing_url, [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
-    \assert(is_array($body));
+    \assert(\is_array($body));
     $this->assertNull($body['links']['prev']);
     $this->assertSame($listing_url->setRouteParameters(['page' => 1])->setOption('absolute', FALSE)->toString(), $body['links']['next']);
     // This is just for test purposes which will stop double prefixing in the URL.
@@ -160,9 +160,9 @@ class ApiUsageControllersTest extends HttpApiTestBase {
     if (base_path() !== '/') {
       $next_url = preg_replace('#^/[^/]+#', '', $next_url);
     }
-    \assert(is_string($next_url));
+    \assert(\is_string($next_url));
     $body = $this->assertExpectedResponse('GET', Url::fromUserInput($next_url), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
-    \assert(is_array($body));
+    \assert(\is_array($body));
     $this->assertSame($listing_url->setRouteParameters(['page' => 0])->setOption('absolute', FALSE)->toString(), $body['links']['prev']);
     $this->assertNull($body['links']['next']);
     $this->assertCount(1, $body['data']);

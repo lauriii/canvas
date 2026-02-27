@@ -67,7 +67,7 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     $file = $entity->getTarget()?->getValue();
     \assert($file instanceof File);
 
-    \assert(is_string($file->getFileUri()));
+    \assert(\is_string($file->getFileUri()));
     $parametrized_image_style = $this->getParametrizedImageStyle();
     $url_template = $parametrized_image_style->buildUrlTemplate($file->getFileUri());
     \assert(str_contains($url_template, '{width}'));

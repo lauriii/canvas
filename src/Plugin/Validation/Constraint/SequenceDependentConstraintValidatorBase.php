@@ -46,7 +46,7 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
   }
 
   protected function getTargetConfigObject(SequenceDependentConstraintBase $constraint): Mapping {
-    \assert(!is_null($constraint->configName));
+    \assert(!\is_null($constraint->configName));
     \assert($this->context->getObject() instanceof TypedDataInterface);
     $resolved_config_name = TypeResolver::resolveExpression(
       $constraint->configName,

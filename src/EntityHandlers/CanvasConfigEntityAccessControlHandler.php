@@ -51,7 +51,7 @@ class CanvasConfigEntityAccessControlHandler extends EntityAccessControlHandler 
       return parent::checkAccess($entity, $operation, $account);
     }
     $adminPermission = $this->entityType->getAdminPermission();
-    \assert(is_string($adminPermission));
+    \assert(\is_string($adminPermission));
     // There are dependent entities, but we want to exclude any Component
     // entities from consideration here. Component implements
     // ::onDependencyRemoval and can react to this entity being deleted.

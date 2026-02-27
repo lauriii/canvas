@@ -146,8 +146,8 @@ final class CanvasTemplateRenderer implements MainContentRendererInterface {
     // The first time (and perhaps other times?) this renderer runs, the
     // libraries query parameter is compressed. We decompress anything requiring
     // it here.
-    if (isset($ajax_page_state['libraries']) && !is_array($ajax_page_state['libraries'])) {
-      if (is_array($ajax_page_state['libraries'])) {
+    if (isset($ajax_page_state['libraries']) && !\is_array($ajax_page_state['libraries'])) {
+      if (\is_array($ajax_page_state['libraries'])) {
         $ajax_page_state['libraries'] = \array_map(
           fn($item) => str_contains($item, '/') ? $item : UrlHelper::uncompressQueryParameter($item),
           $ajax_page_state['libraries'],

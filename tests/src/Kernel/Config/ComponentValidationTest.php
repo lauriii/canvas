@@ -726,7 +726,7 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
    * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
    */
   public function testInvalidPropFieldDefinitionExpression(string $expression, ?string $expected_message): void {
-    $expected_validation_errors = is_string($expected_message)
+    $expected_validation_errors = \is_string($expected_message)
       ? ['versioned_properties.active.settings.prop_field_definitions.text.expression' => $expected_message]
       : [];
 

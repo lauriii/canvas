@@ -68,7 +68,7 @@ final class ComponentInstanceForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, ?EntityInterface $entity = NULL, ?FieldableEntityInterface $preview_entity = NULL): array {
     // ⚠️ This is HORRIBLY HACKY and will go away! ☺️
     // @see \Drupal\canvas\Controller\ApiLayoutController
-    if (is_null($entity)) {
+    if (\is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
     \assert($entity instanceof FieldableEntityInterface || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
@@ -136,10 +136,10 @@ final class ComponentInstanceForm extends FormBase {
     else {
       $inputs_to_show = match(TRUE) {
         // Common case.
-        is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
+        \is_array($client_model) && \array_key_exists('resolved', $client_model) => $client_model['resolved'],
         // For robustness.
         // @see https://en.wikipedia.org/wiki/Robustness_principle
-        is_array($client_model) => $client_model,
+        \is_array($client_model) => $client_model,
         // Worst case: fall back to stored data, if this component instance had
         // previously been saved. If none, fall back to the empty array.
         default => $this->componentTreeLoader->load($entity)

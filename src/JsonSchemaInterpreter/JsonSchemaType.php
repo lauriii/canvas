@@ -105,7 +105,7 @@ enum JsonSchemaType: string {
    * @see \Drupal\Core\Theme\Component\ComponentMetadata::parseSchemaInfo
    */
   public static function fromSdcPropJsonSchema(array $schema) : static {
-    $type = is_array($schema['type'])
+    $type = \is_array($schema['type'])
       ? $schema['type'][0]
       : $schema['type'];
     return JsonSchemaType::from($type);
