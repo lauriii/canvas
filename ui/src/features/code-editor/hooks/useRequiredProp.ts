@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
  * and handling validation errors.
  *
  * @param required - Whether the prop is currently marked as required.
- * @param example - Current example value for the prop.
+ * @param example - Current example value for the prop (string for single, array for multi).
  * @param callback - Called to prefill a default example.
  * @param dependencies - Additional dependencies to include
  * @returns An object containing:
@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
  */
 export const useRequiredProp = (
   required: boolean,
-  example: string,
+  example: string | string[],
   callback: () => void,
   dependencies: unknown[],
 ) => {

@@ -1,0 +1,19 @@
+.props-select-trigger.props-select-trigger {
+  width: 50%;
+}
+
+.props-limited-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 50%;
+}
+
+.props-textfield-root {
+  width: 100%;
+}
+
+.props-divider {
+  border-left: 1px solid var(--gray-6);
+  height: 24px;
+}

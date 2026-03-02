@@ -1388,4 +1388,1078 @@ describe('props in code editor', () => {
       });
     });
   });
+
+  describe('allow multiple values', () => {
+    it('shows allow multiple checkbox for text prop type', async () => {
+      await addProp('Text', 'Tags');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('does not show allow multiple checkbox for boolean prop type', async () => {
+      await addProp('Boolean', 'IsActive');
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('checkbox', { name: 'Allow multiple values' }),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not show allow multiple checkbox for formatted text prop type', async () => {
+      await addProp('Formatted text', 'Description');
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('checkbox', { name: 'Allow multiple values' }),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('enables multiple values for text prop', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.items).toEqual({ type: 'string' });
+        expect(prop.example).toEqual([]);
+        expect(prop.valueMode).toBe('unlimited');
+        expect(prop.limitedCount).toBe(1);
+      });
+    });
+
+    it('enables multiple values for integer prop', async () => {
+      await addProp('Integer', 'Quantities');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.items).toEqual({ type: 'integer' });
+        expect(prop.example).toEqual([]);
+        expect(prop.valueMode).toBe('unlimited');
+        expect(prop.limitedCount).toBe(1);
+      });
+    });
+
+    it('enables multiple values for number prop', async () => {
+      await addProp('Number', 'Prices');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.items).toEqual({ type: 'number' });
+        expect(prop.example).toEqual([]);
+        expect(prop.valueMode).toBe('unlimited');
+        expect(prop.limitedCount).toBe(1);
+      });
+    });
+
+    it('shows allow multiple checkbox for link prop type', async () => {
+      await addProp('Link', 'Links');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows allow multiple checkbox for image prop type', async () => {
+      await addProp('Image', 'Gallery');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows allow multiple checkbox for video prop type', async () => {
+      await addProp('Video', 'Videos');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows allow multiple checkbox for text list prop type', async () => {
+      await addProp('List: text', 'Categories');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await userEvent.type(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+        'Option1',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows allow multiple checkbox for integer list prop type', async () => {
+      await addProp('List: integer', 'Ratings');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await userEvent.type(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+        '1',
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('disables multiple values when unchecked', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+
+      // Enable multiple values.
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      // Disable multiple values.
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(false);
+        expect(prop.items).toBeUndefined();
+        expect(prop.example).toBe('');
+        expect(prop.valueMode).toBeUndefined();
+        expect(prop.limitedCount).toBeUndefined();
+      });
+    });
+
+    it('shows unlimited/limited value mode dropdown when multiple values is enabled', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-value-mode-${propId}`),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('switches between unlimited and limited value modes', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-value-mode-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      // Default should be unlimited.
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.valueMode).toBe('unlimited');
+      });
+
+      // Switch to limited mode.
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.valueMode).toBe('limited');
+      });
+    });
+
+    it('adds multiple example values in unlimited mode', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Add value' }),
+        ).toBeInTheDocument();
+      });
+
+      // Verify that unlimited mode starts with one empty input field.
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(1);
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'first value');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-1`),
+        ).toBeInTheDocument();
+      });
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, 'second value');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-2`),
+        ).toBeInTheDocument();
+      });
+      const thirdInput = screen.getByTestId(`array-prop-value-${propId}-2`);
+      await userEvent.type(thirdInput, 'third value');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([
+          'first value',
+          'second value',
+          'third value',
+        ]);
+      });
+    });
+
+    it('deletes example values in unlimited mode', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'first value');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const secondInput = await screen.findByTestId(
+        `array-prop-value-${propId}-1`,
+      );
+      await userEvent.type(secondInput, 'second value');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const thirdInput = await screen.findByTestId(
+        `array-prop-value-${propId}-2`,
+      );
+      await userEvent.type(thirdInput, 'third value');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([
+          'first value',
+          'second value',
+          'third value',
+        ]);
+      });
+
+      const removeButtons = screen.getAllByRole('button', {
+        name: 'Remove value',
+      });
+      await userEvent.click(removeButtons[1]);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['first value', 'third value']);
+      });
+
+      const updatedRemoveButtons = screen.getAllByRole('button', {
+        name: 'Remove value',
+      });
+      await userEvent.click(updatedRemoveButtons[0]);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['third value']);
+      });
+    });
+
+    it('adds and deletes integer values in unlimited mode', async () => {
+      await addProp('Integer', 'Scores');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.clear(firstInput);
+      await userEvent.type(firstInput, '100');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const secondInput = await screen.findByTestId(
+        `array-prop-value-${propId}-1`,
+      );
+      await userEvent.type(secondInput, '200');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const thirdInput = await screen.findByTestId(
+        `array-prop-value-${propId}-2`,
+      );
+      await userEvent.type(thirdInput, '300');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([100, 200, 300]);
+      });
+
+      const removeButtons = screen.getAllByRole('button', {
+        name: 'Remove value',
+      });
+      await userEvent.click(removeButtons[1]);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([100, 300]);
+      });
+    });
+
+    it('sets limited count and creates fixed number of input fields', async () => {
+      await addProp('Text', 'TopTags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+
+      // Select all text and type new value to avoid race condition with clear().
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('3');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(3);
+      });
+
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(3);
+      });
+    });
+
+    it('updates example array when changing limited count', async () => {
+      await addProp('Text', 'TopTags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('2');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(2);
+      });
+
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(2);
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'First');
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, 'Second');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['First', 'Second']);
+      });
+
+      // Increase count to 4 - existing values should be preserved and empty values added.
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('4');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(4);
+      });
+
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(4);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['First', 'Second', '', '']);
+      });
+
+      // Decrease count to 1 - only the first value should be kept.
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('1');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(1);
+      });
+
+      await waitFor(() => {
+        const inputs = screen.getAllByTestId(
+          new RegExp(`array-prop-value-${propId}-\\d+`),
+        );
+        expect(inputs.length).toBe(1);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['First']);
+      });
+    });
+
+    it('allows drag handles to be visible in limited mode', async () => {
+      await addProp('Text', 'TopTags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+      await userEvent.clear(countInput);
+      await userEvent.type(countInput, '3');
+
+      await waitFor(() => {
+        const container = document.querySelector(
+          `[data-testid="array-prop-value-${propId}-0"]`,
+        )?.parentElement?.parentElement;
+        expect(container).toBeInTheDocument();
+      });
+    });
+
+    it('allows drag handles to be visible in unlimited mode', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'React');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const secondInput = await screen.findByTestId(
+        `array-prop-value-${propId}-1`,
+      );
+      await userEvent.type(secondInput, 'Vue');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const thirdInput = await screen.findByTestId(
+        `array-prop-value-${propId}-2`,
+      );
+      await userEvent.type(thirdInput, 'Angular');
+
+      await waitFor(() => {
+        const container = document.querySelector(
+          `[data-testid="array-prop-value-${propId}-0"]`,
+        )?.parentElement?.parentElement;
+        expect(container).toBeInTheDocument();
+      });
+    });
+
+    it('clears values when disabling allow multiple checkbox', async () => {
+      await addProp('Text', 'Tags');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'React');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const secondInput = await screen.findByTestId(
+        `array-prop-value-${propId}-1`,
+      );
+      await userEvent.type(secondInput, 'Vue');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['React', 'Vue']);
+        expect(prop.allowMultiple).toBe(true);
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(false);
+        expect(prop.example).toBe('');
+        expect(prop.valueMode).toBeUndefined();
+        expect(prop.limitedCount).toBeUndefined();
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('textbox', { name: 'Example value' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('reorders example values in unlimited mode via drag and drop', async () => {
+      await addProp('Text', 'Frameworks');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, 'React');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const secondInput = await screen.findByTestId(
+        `array-prop-value-${propId}-1`,
+      );
+      await userEvent.type(secondInput, 'Vue');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const thirdInput = await screen.findByTestId(
+        `array-prop-value-${propId}-2`,
+      );
+      await userEvent.type(thirdInput, 'Angular');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['React', 'Vue', 'Angular']);
+      });
+
+      // Navigate up the DOM tree to find the row containing the drag handle.
+      // Structure: input -> TextField.Root -> Box wrapper -> Flex row.
+      const textFieldRoot = secondInput.parentElement;
+      const boxWrapper = textFieldRoot?.parentElement;
+      const rowFlex = boxWrapper?.parentElement;
+
+      expect(rowFlex).toBeInTheDocument();
+
+      // The drag handle has role="button" added by dnd-kit.
+      const dragHandle = rowFlex!.querySelector('[role="button"]');
+      expect(dragHandle).toBeInTheDocument();
+
+      // Use keyboard navigation for reliable drag and drop testing.
+      (dragHandle as HTMLElement).focus();
+      await userEvent.keyboard('[Space]');
+
+      await waitFor(() => {
+        expect(dragHandle).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      // Move the second item (Vue) up one position.
+      await userEvent.keyboard('[ArrowUp]');
+
+      // Commit the drag operation.
+      await userEvent.keyboard('[Space]');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['Vue', 'React', 'Angular']);
+      });
+    });
+
+    it('reorders example values in limited mode via drag and drop', async () => {
+      await addProp('Integer', 'TopScores');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('3');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(3);
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.clear(firstInput);
+      await userEvent.type(firstInput, '100');
+
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.clear(secondInput);
+      await userEvent.type(secondInput, '200');
+
+      const thirdInput = screen.getByTestId(`array-prop-value-${propId}-2`);
+      await userEvent.clear(thirdInput);
+      await userEvent.type(thirdInput, '300');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([100, 200, 300]);
+      });
+
+      // Navigate up the DOM tree to find the row containing the drag handle.
+      const textFieldRoot = thirdInput.parentElement;
+      const boxWrapper = textFieldRoot?.parentElement;
+      const rowFlex = boxWrapper?.parentElement;
+
+      expect(rowFlex).toBeInTheDocument();
+
+      const dragHandle = rowFlex!.querySelector('[role="button"]');
+      expect(dragHandle).toBeInTheDocument();
+
+      (dragHandle as HTMLElement).focus();
+      await userEvent.keyboard('[Space]');
+
+      await waitFor(() => {
+        expect(dragHandle).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      // Move the third item (300) up two positions to make it first.
+      await userEvent.keyboard('[ArrowUp]');
+      await userEvent.keyboard('[ArrowUp]');
+
+      await userEvent.keyboard('[Space]');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([300, 100, 200]);
+      });
+    });
+
+    it('shows allow multiple checkbox for date prop type', async () => {
+      await addProp('Date and time', 'EventDates');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('enables multiple values for date prop type and sets items property with format', async () => {
+      await addProp('Date and time', 'EventDates');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.format).toBe('date');
+      });
+
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.items).toEqual({ type: 'string', format: 'date' });
+        expect(prop.example).toEqual([]);
+        expect(prop.valueMode).toBe('unlimited');
+        expect(prop.limitedCount).toBe(1);
+      });
+    });
+
+    it('adds multiple date values in unlimited mode', async () => {
+      await addProp('Date and time', 'EventDates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Add value' }),
+        ).toBeInTheDocument();
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, '2024-01-15');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-1`),
+        ).toBeInTheDocument();
+      });
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, '2024-02-20');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-2`),
+        ).toBeInTheDocument();
+      });
+      const thirdInput = screen.getByTestId(`array-prop-value-${propId}-2`);
+      await userEvent.type(thirdInput, '2024-03-10');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([
+          '2024-01-15',
+          '2024-02-20',
+          '2024-03-10',
+        ]);
+      });
+    });
+
+    it('removes date values in unlimited mode', async () => {
+      await addProp('Date and time', 'EventDates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, '2024-01-15');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-1`),
+        ).toBeInTheDocument();
+      });
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, '2024-02-20');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-2`),
+        ).toBeInTheDocument();
+      });
+      const thirdInput = screen.getByTestId(`array-prop-value-${propId}-2`);
+      await userEvent.type(thirdInput, '2024-03-10');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual([
+          '2024-01-15',
+          '2024-02-20',
+          '2024-03-10',
+        ]);
+      });
+
+      const removeButtons = screen.getAllByRole('button', {
+        name: 'Remove value',
+      });
+      await userEvent.click(removeButtons[1]);
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['2024-01-15', '2024-03-10']);
+      });
+    });
+
+    it('switches date prop to limited mode and sets fixed count', async () => {
+      await addProp('Date and time', 'ImportantDates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('3');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(3);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-0`),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-1`),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId(`array-prop-value-${propId}-2`),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('updates date values in limited mode', async () => {
+      await addProp('Date and time', 'ImportantDates');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      const valueModeSelect = document.getElementById(
+        `prop-value-mode-${propId}`,
+      );
+      await userEvent.click(valueModeSelect!);
+      const limitedOption = await screen.findByRole('option', {
+        name: 'Limited',
+      });
+      await userEvent.click(limitedOption);
+
+      await waitFor(() => {
+        expect(
+          document.getElementById(`prop-limited-count-${propId}`),
+        ).toBeInTheDocument();
+      });
+
+      const countInput = document.getElementById(
+        `prop-limited-count-${propId}`,
+      ) as HTMLInputElement;
+      await userEvent.tripleClick(countInput);
+      await userEvent.keyboard('2');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.limitedCount).toBe(2);
+      });
+
+      const firstInput = screen.getByTestId(`array-prop-value-${propId}-0`);
+      await userEvent.type(firstInput, '2024-05-01');
+
+      const secondInput = screen.getByTestId(`array-prop-value-${propId}-1`);
+      await userEvent.type(secondInput, '2024-06-15');
+
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.example).toEqual(['2024-05-01', '2024-06-15']);
+      });
+    });
+  });
 });

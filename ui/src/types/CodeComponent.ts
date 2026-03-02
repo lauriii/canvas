@@ -39,6 +39,19 @@ export interface CodeComponentSerialized extends Omit<
   links?: Record<string, string>;
 }
 
+/**
+ * Constants for ValueMode.
+ */
+export const VALUE_MODE_LIMITED = 'limited';
+export const VALUE_MODE_UNLIMITED = 'unlimited';
+
+/**
+ * Mode for handling multiple values in array props.
+ * - VALUE_MODE_LIMITED: Fixed number of values (defined by limitedCount)
+ * - VALUE_MODE_UNLIMITED: Dynamic number of values with add/remove capabilities
+ */
+export type ValueMode = typeof VALUE_MODE_LIMITED | typeof VALUE_MODE_UNLIMITED;
+
 export interface CodeComponentPropEnumItem {
   label: string;
   value: string | number;
@@ -47,11 +60,13 @@ export interface CodeComponentPropEnumItem {
 export interface CodeComponentProp {
   id: string;
   name: string;
-  type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'object' | 'array';
   enum?: CodeComponentPropEnumItem[];
   example?:
     | string
     | boolean
+    | string[]
+    | number[]
     | CodeComponentPropImageExample
     | CodeComponentPropVideoExample;
   $ref?: string;
@@ -59,6 +74,16 @@ export interface CodeComponentProp {
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  allowMultiple?: boolean;
+  valueMode?: ValueMode;
+  limitedCount?: number;
+  items?: {
+    type: 'string' | 'integer' | 'number' | 'boolean';
+    format?: string;
+    contentMediaType?: string;
+    'x-formatting-context'?: string;
+    $ref?: string;
+  };
 }
 
 export interface CodeComponentPropImageExample {
@@ -70,7 +95,7 @@ export interface CodeComponentPropImageExample {
 
 export interface CodeComponentPropSerialized {
   title: string;
-  type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'object' | 'array';
   enum?: (string | number)[];
   'meta:enum'?: Record<
     CodeComponentPropEnumItem['value'],
@@ -80,6 +105,8 @@ export interface CodeComponentPropSerialized {
     | string
     | number
     | boolean
+    | string[]
+    | number[]
     | CodeComponentPropImageExample
     | CodeComponentPropVideoExample
   )[];
@@ -87,6 +114,13 @@ export interface CodeComponentPropSerialized {
   format?: string;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  items?: {
+    type: 'string' | 'integer' | 'number' | 'boolean';
+    format?: string;
+    contentMediaType?: string;
+    'x-formatting-context'?: string;
+    $ref?: string;
+  };
 }
 
 export interface CodeComponentSlot {

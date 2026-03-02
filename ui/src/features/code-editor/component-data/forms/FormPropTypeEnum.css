@@ -1,0 +1,22 @@
+button.fpe-btn-popover-trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.fpe-btn-popover-trigger,
+.fpe-btn-popover-trigger .rt-Text,
+.fpe-btn-popover-trigger svg {
+  color: #1c2024;
+  fill: #1c2024;
+}
+
+.fpe-popover-content {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.fpe-divider {
+  height: 1px;
+  background-color: var(--gray-6);
+  margin: 4px 0;
+}
