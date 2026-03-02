@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_oauth\Kernel;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Folder;
@@ -17,10 +20,9 @@ use Symfony\Component\Routing\Route;
 
 /**
  * Tests the Canvas OAuth authentication provider.
- *
- * @coversDefaultClass \Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider
- * @group canvas_oauth
  */
+#[CoversClass(CanvasOauthAuthenticationProvider::class)]
+#[Group('canvas_oauth')]
 class CanvasOauthAuthenticationProviderTest extends KernelTestBase {
 
   /**
@@ -113,9 +115,9 @@ class CanvasOauthAuthenticationProviderTest extends KernelTestBase {
   /**
    * Tests whether the authentication provider applies to a route.
    *
-   * @dataProvider dataProviderRoutes
-   * @covers ::applies
+   * @legacy-covers ::applies
    */
+  #[DataProvider('dataProviderRoutes')]
   public function testApplies(string $route_name, array $parameters, bool $expected_apply): void {
     $route = new Route($this->container->get('router.route_provider')->getRouteByName($route_name)->getPath());
     $request = new Request();

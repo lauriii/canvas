@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Access;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -13,9 +16,10 @@ use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck
- * @group canvas
+ * Tests Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck.
  */
+#[CoversClass(CanvasHttpApiEligibleConfigEntityAccessCheck::class)]
+#[Group('canvas')]
 class CanvasHttpApiEligibleConfigEntityAccessCheckTest extends UnitTestCase {
 
   protected RouteMatchInterface $routeMatch;
@@ -33,9 +37,9 @@ class CanvasHttpApiEligibleConfigEntityAccessCheckTest extends UnitTestCase {
    * @param class-string $className
    * @param bool $accessGranted
    *
-   * @covers ::access
-   * @dataProvider provider
+   * @legacy-covers ::access
    */
+  #[DataProvider('provider')]
   public function testAccess(string $className, bool $accessGranted): void {
     $entityType = $this->prophesize($className);
     $entityType->willImplement(ConfigEntityTypeInterface::class);

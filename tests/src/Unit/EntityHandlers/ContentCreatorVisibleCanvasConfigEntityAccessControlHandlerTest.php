@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Access\AccessResultNeutral;
@@ -30,15 +33,18 @@ use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessCo
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler
- * @group canvas
+ * Tests Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler.
  */
+#[CoversClass(ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class)]
+#[Group('canvas')]
 final class ContentCreatorVisibleCanvasConfigEntityAccessControlHandlerTest extends UnitTestCase {
 
   /**
-   * @covers ::checkAccess
-   * @dataProvider viewPermissionProvider
+   * Tests can view without checking permissions.
+   *
+   * @legacy-covers ::checkAccess
    */
+  #[DataProvider('viewPermissionProvider')]
   public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $hasAccessToCanvas, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);
@@ -98,9 +104,11 @@ final class ContentCreatorVisibleCanvasConfigEntityAccessControlHandlerTest exte
   }
 
   /**
-   * @covers ::checkAccess
-   * @dataProvider dependentsProvider
+   * Tests cannot delete when there are dependents.
+   *
+   * @legacy-covers ::checkAccess
    */
+  #[DataProvider('dependentsProvider')]
   public function testCannotDeleteWhenThereAreDependents(string $entityTypeId, string $entityTypeLabel, bool $hasDependents, string $expectedAccessResult, ?string $expectedErrorReason): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
-
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
@@ -49,14 +51,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests JsComponent.
  *
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
- * @group canvas
- * @group canvas_component_sources
- * @group JavaScriptComponents
- *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
+ * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
+#[Group('JavaScriptComponents')]
 final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use CiModulePathTrait;
@@ -135,10 +136,13 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   /**
+   * Tests get referenced plugin class.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getReferencedPluginClass
-   * @depends testDiscovery
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getReferencedPluginClass
    */
+  #[Depends('testDiscovery')]
   public function testGetReferencedPluginClass(array $component_ids): void {
     self::assertSame(
       // Code components are not plugins, but config entities!
@@ -149,9 +153,8 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   /**
    * Tests the shape-matched `prop_field_definitions` for all code components.
-   *
-   * @depends testDiscovery
    */
+  #[Depends('testDiscovery')]
   public function testSettings(array $component_ids): void {
     $settings = $this->getAllSettings($component_ids);
     self::assertSame(self::getExpectedSettings(), $settings);
@@ -370,10 +373,13 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   /**
+   * Tests render component live.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent
-   * @depends testDiscovery
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent
    */
+  #[Depends('testDiscovery')]
   public function testRenderComponentLive(array $component_ids): void {
     $this->assertNotEmpty($component_ids);
 
@@ -705,13 +711,12 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   /**
    * For JavaScript components, auto-saves create an extra testing dimension!
-   *
-   * @depends testDiscovery
-   * @testWith [false, false, "live", []]
-   *           [false, true, "live", []]
-   *           [true, false, "draft", ["canvas__auto_save"]]
-   *           [true, true, "draft", ["canvas__auto_save"]]
    */
+  #[Depends('testDiscovery')]
+  #[TestWith([FALSE, FALSE, "live", []])]
+  #[TestWith([FALSE, TRUE, "live", []])]
+  #[TestWith([TRUE, FALSE, "draft", ["canvas__auto_save"]])]
+  #[TestWith([TRUE, TRUE, "draft", ["canvas__auto_save"]])]
   public function testRenderJsComponent(bool $preview_requested, bool $auto_save_exists, string $expected_result, array $additional_expected_cache_tags, array $component_ids): void {
     // We need to force the cache busting query to ensure we use it correctly.
     $this->setCacheBustingQueryString($this->container, '2.1.0-alpha3');
@@ -909,9 +914,11 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::calculateDependencies
-   * @depends testDiscovery
+   * Tests calculate dependencies.
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::calculateDependencies
    */
+  #[Depends('testDiscovery')]
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
       'js.canvas_test_code_components_captioned_video' => [
@@ -1088,16 +1095,15 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
 
   /**
    * Tests that component dependencies are properly added to import maps.
-   *
-   * @testWith [false, false, false, "live"]
-   *           [false, false, true, "live"]
-   *           [false, true, false, "live"]
-   *           [false, true, true, "live"]
-   *           [true, false, false, "draft"]
-   *           [true, false, true, "draft"]
-   *           [true, true, false, "draft"]
-   *           [true, true, true, "draft"]
    */
+  #[TestWith([FALSE, FALSE, FALSE, "live"])]
+  #[TestWith([FALSE, FALSE, TRUE, "live"])]
+  #[TestWith([FALSE, TRUE, FALSE, "live"])]
+  #[TestWith([FALSE, TRUE, TRUE, "live"])]
+  #[TestWith([TRUE, FALSE, FALSE, "draft"])]
+  #[TestWith([TRUE, FALSE, TRUE, "draft"])]
+  #[TestWith([TRUE, TRUE, FALSE, "draft"])]
+  #[TestWith([TRUE, TRUE, TRUE, "draft"])]
   public function testImportMaps(bool $preview, bool $create_auto_save, bool $create_dependency_auto_save, string $dependencies_expected_result): void {
     \assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
     $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
@@ -1120,7 +1126,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
       'dataDependencies' => [],
     ]);
     $nested_dependency_js_component->save();
-    // Create a dependency component first
+    // Create a dependency component first.
     $dependency_js_component = JavaScriptComponent::create([
       'machineName' => 'dependency_component',
       'name' => 'Dependency Component',
@@ -1718,12 +1724,14 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   }
 
   /**
+   * Tests get client side info.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
    *   The component IDs to test.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getClientSideInfo
-   * @depends testDiscovery
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getClientSideInfo
    */
+  #[Depends('testDiscovery')]
   public function testGetClientSideInfo(array $component_ids): void {
     parent::testGetClientSideInfo($component_ids);
 
@@ -2064,10 +2072,10 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
    * @param bool $auto_save_existing
    *   Whether an auto-save entry should exist for the test component.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::validateComponentInput
-   * @testWith [false]
-   *           [true]
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::validateComponentInput
    */
+  #[TestWith([FALSE])]
+  #[TestWith([TRUE])]
   public function testValidateComponentInput(bool $auto_save_existing): void {
     // Create a JavaScript component with initial props.
     $js_component = JavaScriptComponent::create([
@@ -2155,7 +2163,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
     // The 'newProp' should be rejected in BOTH cases:
     // - When no auto-save exists: obvious - prop doesn't exist in published version
     // - When auto-save exists with 'newProp': still rejected because validation
-    //   uses the published version, not the auto-save version
+    //   uses the published version, not the auto-save version.
     $this->assertCount(1, $violations, 'Unexpected prop should be rejected regardless of auto-save existence');
     $this->assertSame("Component `$uuid`: the `newProp` prop is not defined.", $violations->get(0)->getMessage());
   }

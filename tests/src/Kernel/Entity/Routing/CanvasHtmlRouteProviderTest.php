@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity\Routing;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
@@ -14,9 +15,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * @group canvas
+ * Tests Canvas Html Route Provider.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class CanvasHtmlRouteProviderTest extends CanvasKernelTestBase {
 
   use PageTrait;

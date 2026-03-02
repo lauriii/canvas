@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\LibraryDiscoveryParser;
@@ -13,10 +14,12 @@ use Drupal\Core\Theme\ThemeInitializationInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
- * @group canvas
+ * Tests Media Libraries Build.
+ *
+ * @legacy-covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class MediaLibrariesBuildTest extends CanvasKernelTestBase {
 
   /**

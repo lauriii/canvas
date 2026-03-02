@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
 use Drupal\canvas\Entity\Component;
@@ -18,12 +20,12 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests JavascriptComponentStorage.
  *
- * @covers \Drupal\canvas\EntityHandlers\JavascriptComponentStorage
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery
- * @group JavaScriptComponents
- * @group canvas
+ * @legacy-covers \Drupal\canvas\EntityHandlers\JavascriptComponentStorage
+ * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery
  */
 #[RunTestsInSeparateProcesses]
+#[Group('JavaScriptComponents')]
+#[Group('canvas')]
 final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
 
   use UserCreationTrait;
@@ -39,7 +41,9 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
-   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
+   * Tests generated files.
+   *
+   * @legacy-covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
    */
   public function testGeneratedFiles(): void {
     $js_component = JavaScriptComponent::create([
@@ -169,9 +173,11 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
   }
 
   /**
+   * Tests component entity update.
+   *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery::computeCurrentComponentMetadata()
-   * @depends testComponentEntityCreation
    */
+  #[Depends('testComponentEntityCreation')]
   public function testComponentEntityUpdate(array $js_component_values): void {
     $js_component = JavaScriptComponent::create($js_component_values);
     $js_component->save();

@@ -5,6 +5,9 @@ declare(strict_types=1);
 // cspell:ignore vlaquxuup
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -42,10 +45,11 @@ use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList
- * @group canvas
+ * Tests Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ComponentTreeItemList::class)]
+#[Group('canvas')]
 class ComponentTreeItemListTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
@@ -80,10 +84,12 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::getHydratedTree
-   * @covers ::toRenderable
-   * @dataProvider provider
+   * Tests hydration and rendering.
+   *
+   * @legacy-covers ::getHydratedTree
+   * @legacy-covers ::toRenderable
    */
+  #[DataProvider('provider')]
   public function testHydrationAndRendering(string $host_entity_type_id, array $host_entity_values, array $value, array $expected_value, array $expected_renderable, string $expected_html, array $expected_cache_tags, bool $isPreview): void {
     // Some test cases may contain StaticPropSources referencing Users.
     $this->setUpCurrentUser(permissions: ['access user profiles']);
@@ -1695,10 +1701,11 @@ HTML,
   }
 
   /**
-   * @covers ::injectSubTreeItemList
+   * Tests inject sub tree item list.
    *
-   * @dataProvider providerInjectSubTreeItemList
+   * @legacy-covers ::injectSubTreeItemList
    */
+  #[DataProvider('providerInjectSubTreeItemList')]
   public function testInjectSubTreeItemList(array $initial_value, array $exposed_slot_info, array $subtrees, array|string $expected_tree_or_exception): void {
     $target_tree = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
     $target_tree->setValue($initial_value);

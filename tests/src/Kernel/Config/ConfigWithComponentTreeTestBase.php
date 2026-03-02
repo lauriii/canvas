@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -13,8 +14,9 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
- * @group canvas
+ * Tests Config With Component Tree Test Base.
  */
+#[Group('canvas')]
 abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;

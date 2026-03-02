@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
@@ -14,10 +16,11 @@ use Drupal\Tests\TestFileCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Entity\ParametrizedImageStyle
- * @group canvas
+ * Tests Drupal\canvas\Entity\ParametrizedImageStyle.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ParametrizedImageStyle::class)]
+#[Group('canvas')]
 class ParametrizedImageStyleTest extends CanvasKernelTestBase {
 
   use TestFileCreationTrait {
@@ -41,7 +44,9 @@ class ParametrizedImageStyleTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::buildUrlTemplate
+   * Tests build url template.
+   *
+   * @legacy-covers ::buildUrlTemplate
    */
   public function testBuildUrlTemplate(): void {
     // ::buildUrlTemplate() returns an absolute URL, just like ::buildUrl().
@@ -62,7 +67,9 @@ class ParametrizedImageStyleTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::flush
+   * Tests flush.
+   *
+   * @legacy-covers ::flush
    */
   public function testFlush(): void {
     $this->installEntitySchema('file');

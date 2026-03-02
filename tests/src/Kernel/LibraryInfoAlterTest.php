@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
@@ -13,10 +14,12 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter
- * @group canvas
+ * Tests Library Info Alter.
+ *
+ * @legacy-covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::transformsLibraryInfoAlter
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class LibraryInfoAlterTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

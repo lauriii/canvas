@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageViewBuilder;
@@ -14,9 +15,10 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Page View Builder.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class PageViewBuilderTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;

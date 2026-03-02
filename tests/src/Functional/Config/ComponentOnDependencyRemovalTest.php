@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -16,11 +17,12 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Entity\Component::onDependencyRemoval
+ * Tests Component On Dependency Removal.
  *
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Entity\Component::onDependencyRemoval
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ComponentOnDependencyRemovalTest extends FunctionalTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

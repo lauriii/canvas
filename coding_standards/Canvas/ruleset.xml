@@ -5,4 +5,7 @@
   <rule ref="Canvas.Tests.KernelTestBase">
     <include-pattern>tests/src/Kernel/*</include-pattern>
   </rule>
+  <rule ref="Canvas.Tests.PhpunitAnnotations">
+    <include-pattern>tests/src/*</include-pattern>
+  </rule>
 </ruleset>

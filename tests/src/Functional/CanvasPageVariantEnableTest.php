@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\block\Entity\Block;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Url;
@@ -14,13 +15,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
- * @group canvas
- * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsAlter
- * @covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsSubmit
- * @covers \Drupal\canvas\Controller\CanvasBlockListController
- * @covers \Drupal\canvas\Entity\PageRegion::createFromBlockLayout
+ * Tests Canvas Page Variant Enable.
+ *
+ * @legacy-covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsAlter
+ * @legacy-covers \Drupal\canvas\Hook\PageRegionHooks::formSystemThemeSettingsSubmit
+ * @legacy-covers \Drupal\canvas\Controller\CanvasBlockListController
+ * @legacy-covers \Drupal\canvas\Entity\PageRegion::createFromBlockLayout
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class CanvasPageVariantEnableTest extends BrowserTestBase {
 
   use GenerateComponentConfigTrait;

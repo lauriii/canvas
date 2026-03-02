@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -20,9 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Base class for functional tests of Canvas's internal HTTP API.
  *
  * Provides helper methods for making API requests and asserting response cacheability.
- *
- * @group canvas
  */
+#[Group('canvas')]
 abstract class HttpApiTestBase extends FunctionalTestBase {
 
   use ApiRequestTrait;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RequiresFunction;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\UnitTestCase;
@@ -12,13 +14,11 @@ use JsonSchema\Validator;
 
 /**
  * Validates this Drupal module's OpenAPI spec against the OpenAPI JSON schema.
- *
- * @group canvas.
- *
- * @requires function \cebe\openapi\Reader::readFromYamlFile
- * @requires function \DrupalFinder\DrupalFinderComposerRuntime::getVendorDir
- * @requires function \League\OpenAPIValidation\Schema\SchemaValidator::validate
  */
+#[RequiresFunction('cebe\\openapi\\Reader::readFromYamlFile')]
+#[RequiresFunction('DrupalFinder\\DrupalFinderComposerRuntime::getVendorDir')]
+#[RequiresFunction('League\\OpenAPIValidation\\Schema\\SchemaValidator::validate')]
+#[Group('canvas')]
 final class OpenApiSpecValidationTest extends UnitTestCase {
 
   use OpenApiSpecTrait;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
 use Drupal\Tests\canvas\Doubles\TestVerboseException;
@@ -17,16 +19,16 @@ use Symfony\Component\Routing\Route;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Api Exception Subscriber.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ApiExceptionSubscriberTest extends CanvasKernelTestBase {
 
   /**
    * Tests the response for an HTTP 500 error.
-   *
-   * @dataProvider providerTest500Response
    */
+  #[DataProvider('providerTest500Response')]
   public function test500Response(string $exception_class, array $exception_arguments, string $expected_message): void {
     $sut = new ApiExceptionSubscriber(
       new RouteMatch('canvas.api.test', new Route('/test-path')),

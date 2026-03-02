@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 // cspell:ignore Druplicons
-
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Depends;
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -63,7 +64,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
  * - the source-specific settings that were generated for the discovered
  *   Component config entity
  * - calculating of source-specific dependencies
- * - et cetera
+ * - et cetera.
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
@@ -337,7 +338,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    * - nested (not in the root level), to be able to assert that a parent
    *   component instance still renders
    * - with a component instance in an adjacent slot
-   * - with a component instance both immediately before and after it
+   * - with a component instance both immediately before and after it.
    *
    * The containing component is always the "two-column" SDC. All the other non-
    * crash component instances are the "Druplicon" SDCs.
@@ -404,12 +405,12 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
   }
 
   /**
-   * @dataProvider providerRenderComponentFailure
+   * Tests render component failure.
    *
    * @phpstan-param array{'class': string, 'message': string}|NULL $expected_exception
-   *
    * @see ::alterEnvironmentForCrashTestDummyComponentTree()
    */
+  #[DataProvider('providerRenderComponentFailure')]
   public function testRenderComponentFailure(string $component_id, array $inputs, array $expected_validation_errors, ?array $expected_exception, ?string $expected_output_selector): void {
     $this->setUpCurrentUser(permissions: ['view media']);
     $component_tree = $this->generateCrashTestDummyComponentTree($component_id, $inputs);
@@ -473,11 +474,12 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
   abstract public static function providerRenderComponentFailure(): \Generator;
 
   /**
+   * Tests get client side info.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
    *   The component IDs to test.
-   *
-   * @depends testDiscovery
    */
+  #[Depends('testDiscovery')]
   public function testGetClientSideInfo(array $component_ids): void {
     $expected_client_side_info = static::getExpectedClientSideInfo();
     $actual_client_side_info = $this->callSourceMethodForEach('getClientSideInfo', $component_ids);

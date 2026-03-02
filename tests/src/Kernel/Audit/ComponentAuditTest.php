@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Audit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
@@ -19,16 +22,20 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\node\Entity\NodeType;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Audit\ComponentAudit
- * @group canvas
+ * Tests Drupal\canvas\Audit\ComponentAudit.
+ *
  * @todo Improve in
  *   https://www.drupal.org/project/canvas/issues/3522953
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ComponentAudit::class)]
+#[Group('canvas')]
 class ComponentAuditTest extends ComponentAuditTestBase {
 
   /**
-   * @covers ::getContentRevisionsUsingComponent
+   * Tests get content revisions using component.
+   *
+   * @legacy-covers ::getContentRevisionsUsingComponent
    */
   public function testGetContentRevisionsUsingComponent(): void {
     $audit = $this->container->get(ComponentAudit::class);
@@ -121,9 +128,11 @@ class ComponentAuditTest extends ComponentAuditTestBase {
   }
 
   /**
-   * @covers ::getConfigEntityDependenciesUsingComponent
-   * @dataProvider configProvider
+   * Tests get config entity dependencies using component.
+   *
+   * @legacy-covers ::getConfigEntityDependenciesUsingComponent
    */
+  #[DataProvider('configProvider')]
   public function testGetConfigEntityDependenciesUsingComponent(string $config_entity_type_id): void {
     $audit = $this->container->get(ComponentAudit::class);
     $component = Component::load('sdc.canvas_test_sdc.my-cta');

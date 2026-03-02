@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Entity\Routing;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer;
 use Drupal\Tests\UnitTestCase;
@@ -12,17 +15,19 @@ use Symfony\Component\Routing\Route;
 use Drupal\canvas\Controller\CanvasController;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer
- * @group canvas
+ * Tests Drupal\canvas\Entity\Routing\CanvasHtmlRouteEnhancer.
  */
+#[CoversClass(CanvasHtmlRouteEnhancer::class)]
+#[Group('canvas')]
 final class RouteEnhancerTest extends UnitTestCase {
 
   /**
-   * @covers ::enhance
-   * @covers ::applies
+   * Tests enhance.
    *
-   * @dataProvider data
+   * @legacy-covers ::enhance
+   * @legacy-covers ::applies
    */
+  #[DataProvider('data')]
   public function testEnhance(array $original, array $enhanced): void {
     $sut = new CanvasHtmlRouteEnhancer();
     $route = new Route('/');

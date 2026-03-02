@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -14,10 +15,12 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
- * @covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
- * @group canvas
+ * Tests Config Entity Asset Libraries.
+ *
+ * @legacy-covers \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ConfigEntityAssetLibrariesTest extends CanvasKernelTestBase {
 
   /**

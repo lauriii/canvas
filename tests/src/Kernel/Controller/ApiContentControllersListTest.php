@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
 // cspell:ignore Gábor Hojtsy uniquesearchterm gàbor autosave searchterm
-
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -20,11 +21,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the ApiContentControllers::list() method.
- *
- * @group canvas
- * @coversDefaultClass \Drupal\canvas\Controller\ApiContentControllers
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ApiContentControllers::class)]
+#[Group('canvas')]
 class ApiContentControllersListTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
@@ -207,7 +207,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   /**
    * Tests basic list functionality with no search parameter.
    *
-   * @covers ::list
+   * @legacy-covers ::list
    */
   public function testBasicList(): void {
     $response = $this->apiContentController->list('canvas_page', Request::create(self::API_BASE_PATH, 'GET'));
@@ -251,7 +251,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   /**
    * Tests list method with search parameter.
    *
-   * @covers ::list
+   * @legacy-covers ::list
    */
   public function testListWithSearch(): void {
     $data = $this->executeListRequest(['search' => 'UniqueSearchTerm']);
@@ -291,7 +291,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   /**
    * Tests search when no searchable content entities (currently only pages) exist yet.
    *
-   * @covers ::list
+   * @legacy-covers ::list
    */
   public function testEmptyEntityList(): void {
     foreach ($this->pages as $page) {
@@ -333,8 +333,8 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   /**
    * Tests that search results are sorted by most recently updated first.
    *
-   * @covers ::list
-   * @covers ::filterAndMergeIds
+   * @legacy-covers ::list
+   * @legacy-covers ::filterAndMergeIds
    */
   public function testSearchSortOrder(): void {
     // Create test pages with the same search term but different titles
@@ -383,8 +383,8 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
   /**
    * Tests auto-save entries in search results.
    *
-   * @covers ::list
-   * @covers ::filterAndMergeIds
+   * @legacy-covers ::list
+   * @legacy-covers ::filterAndMergeIds
    */
   public function testSearchWithAutoSave(): void {
     $page = Page::create([

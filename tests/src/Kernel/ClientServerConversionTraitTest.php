@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -28,10 +29,12 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 
 /**
- * @group canvas
+ * Tests Client Server Conversion Trait.
+ *
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ClientServerConversionTraitTest extends KernelTestBase {
 
   private const TOP_LEVEL_SLOT_COMPONENT_UUID = '8caf6e23-8fb4-4524-bdb6-f57a2a6e7858';

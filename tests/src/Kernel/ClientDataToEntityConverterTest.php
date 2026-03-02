@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\Component\Datetime\Time;
 use Drupal\content_moderation\Permissions;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -50,11 +52,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @group canvas
- * @group #slow
+ * Tests Client Data To Entity Converter.
+ *
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('#slow')]
 class ClientDataToEntityConverterTest extends KernelTestBase {
 
   use CanvasFieldTrait {
@@ -103,9 +107,10 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
   }
 
   /**
-   * @testWith [false]
-   *           [true]
-   */
+ * Tests convert.
+ */
+  #[TestWith([FALSE])]
+  #[TestWith([TRUE])]
   public function testConvert(bool $with_content_moderation = FALSE): void {
     if ($with_content_moderation) {
       $this->container->get(ModuleInstallerInterface::class)->install(['content_moderation']);
@@ -362,7 +367,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     self::assertEquals($date->modify('+2 days')->format('H:i:s'), $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[1][value][time]', $date_field)]);
     // Submit with an invalid value for time in the second item/delta.
     $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[1][value][time]', $date_field)] = '';
-    // But a valid value in the first item/delta
+    // But a valid value in the first item/delta.
     $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[0][value][time]', $date_field)] = $date->modify('+2 hours')->format('H:i:s');
     // And a third (new) item/delta.
     $invalid_form_callback_client_json['entity_form_fields'][\sprintf('%s[2][value][date]', $date_field)] = $date->modify('+5 hours')->format('Y-m-d');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Drupal\canvas\Entity\Component;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -11,15 +13,17 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * @covers \canvas_post_update_0011_multi_bundle_reference_prop_expressions
- * @covers \Drupal\canvas\CanvasConfigUpdater::expressionUsesDeprecatedReference
- * @covers \Drupal\canvas\CanvasConfigUpdater::needsMultiBundleReferencePropExpressionUpdate
- * @covers \Drupal\canvas\CanvasConfigUpdater::updateMultiBundleReferencePropExpressionToMultiBranch
- * @group canvas
- * @group canvas_data_model__prop_expressions
- * @group legacy
+ * Tests Component Multi Bundle Reference Prop Expressions Update.
+ *
+ * @legacy-covers \canvas_post_update_0011_multi_bundle_reference_prop_expressions
+ * @legacy-covers \Drupal\canvas\CanvasConfigUpdater::expressionUsesDeprecatedReference
+ * @legacy-covers \Drupal\canvas\CanvasConfigUpdater::needsMultiBundleReferencePropExpressionUpdate
+ * @legacy-covers \Drupal\canvas\CanvasConfigUpdater::updateMultiBundleReferencePropExpressionToMultiBranch
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_data_model__prop_expressions')]
+#[IgnoreDeprecations]
 final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends CanvasUpdatePathTestBase {
 
   use MediaTypeCreationTrait;
@@ -59,8 +63,8 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::needsLiftedReferencePropExpressionUpdate
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
+   * Tests single image media type.
+   *
    * @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testUpdatePathFor356345
    *
    * The scenario where an "image" shape is populated by a single media type.
@@ -70,6 +74,8 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
    * Tests the 3rd case described in
    *
    * @see \Drupal\canvas\CanvasConfigUpdater::expressionUsesDeprecatedReference()
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::needsLiftedReferencePropExpressionUpdate
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
    */
   public function testSingleImageMediaType(): void {
     $this->doTest([
@@ -119,8 +125,8 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::needsMultiBundleReferencePropExpressionUpdate
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
+   * Tests multiple image media types.
+   *
    * @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testUpdatePathFor356345
    *
    * The scenario where an "image" shape is populated by a single media type.
@@ -135,6 +141,8 @@ final class ComponentMultiBundleReferencePropExpressionsUpdateTest extends Canva
    * obsoleteness of SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP is not possible,
    * because the Media Library module's hook_canvas_storable_prop_shape_alter()
    * implementation would undo it. Hence that must be tested in a unit test.
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::needsMultiBundleReferencePropExpressionUpdate
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
    */
   public function testMultipleImageMediaTypes(): void {
     // The database test fixture can only simulate one reality. It simulates the

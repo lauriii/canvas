@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\ai\Service\FunctionCalling\FunctionCallPluginManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\Core\Session\AccountInterface;
@@ -18,9 +21,10 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * @coversDefaultClass \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData
- * @group canvas_ai
+ * Tests Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData.
  */
+#[CoversClass(SetAIGeneratedTemplateData::class)]
+#[Group('canvas_ai')]
 final class SetAIGeneratedTemplateDataTest extends KernelTestBase {
 
   use FunctionalCallTestTrait;
@@ -72,9 +76,8 @@ final class SetAIGeneratedTemplateDataTest extends KernelTestBase {
 
   /**
    * Tests the tool output with valid component structure.
-   *
-   * @dataProvider templateDataToolDataProvider
    */
+  #[DataProvider('templateDataToolDataProvider')]
   public function testSetTemplateDataTool(string $component_structure_yaml, array $current_layout, array $expected_output): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
 

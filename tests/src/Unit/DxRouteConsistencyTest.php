@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * @group canvas.
+ * Tests Dx Route Consistency.
  *
  * @see canvas.routing.yml
  * @see openapi.yml
  */
+#[Group('canvas')]
 final class DxRouteConsistencyTest extends UnitTestCase {
 
   public function testRoutingYmlDx(): array {
@@ -27,7 +30,7 @@ final class DxRouteConsistencyTest extends UnitTestCase {
 
     // All Canvas API routes must:
     // - have a `path` that starts with '/canvas/api/v0/'
-    // - specify `methods`
+    // - specify `methods`.
     $canvas_api_routes = array_filter($routes, fn ($k) => str_starts_with($k, 'canvas.api.'), ARRAY_FILTER_USE_KEY);
     foreach ($canvas_api_routes as $canvas_api_route_name => $canvas_api_route) {
       $this->assertStringStartsWith('/canvas/api/v0/', $canvas_api_route['path'], "`$canvas_api_route_name` route path starts with '/canvas/api/v0/'." . print_r($canvas_api_route, TRUE));
@@ -38,8 +41,9 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   }
 
   /**
-   * @depends testRoutingYmlDx
-   */
+ * Tests authentication required permission.
+ */
+  #[Depends('testRoutingYmlDx')]
   public function testAuthenticationRequiredPermission(array $canvas_api_routes): void {
     foreach ($canvas_api_routes as $canvas_api_route_name => $canvas_api_route) {
       $this->assertArrayHasKey('_canvas_authentication_required', $canvas_api_route['requirements'], "`$canvas_api_route_name` needs to include the _canvas_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated.");
@@ -47,8 +51,9 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   }
 
   /**
-   * @depends testRoutingYmlDx
-   */
+ * Tests open api completeness.
+ */
+  #[Depends('testRoutingYmlDx')]
   public function testOpenApiCompleteness(array $canvas_api_routes): void {
     // Map Canvas API route definitions keyed by route name to being keyed by path
     // and method, with the path resolved where possible.

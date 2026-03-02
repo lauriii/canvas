@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Plugin\Validation\Constraint;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraintValidator;
@@ -14,6 +15,9 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Violation\ConstraintViolationBuilderInterface;
 
+/**
+ * Tests Valid Slot Name Constraint Validator.
+ */
 #[Group('canvas')]
 #[CoversClass(ValidSlotNameConstraintValidator::class)]
 class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
@@ -33,8 +37,9 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
   }
 
   /**
-   * @dataProvider providerValidate
-   */
+ * Tests validate.
+ */
+  #[DataProvider('providerValidate')]
   public function testValidate(mixed $slot_name, bool $is_invalid): void {
     $constraint = new ValidSlotNameConstraint();
 
@@ -56,8 +61,9 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
   }
 
   /**
-   * @dataProvider providerValidate
-   */
+ * Tests validate with non string value.
+ */
+  #[DataProvider('providerValidate')]
   public function testValidateWithNonStringValue(mixed $slot_name, bool $is_invalid): void {
     $constraint = new ValidSlotNameConstraint();
     $value = new \stdClass();
@@ -77,7 +83,6 @@ class ValidSlotNameConstraintValidatorTest extends UnitTestCase {
       ->with($this->anything())
       ->willReturn($violation_builder);
     // We do not assert setParameter() or addViolation() to remain compatible with different validator implementations.
-
     $this->validator->validate($value, $constraint);
   }
 

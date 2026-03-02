@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -16,6 +17,9 @@ use Drupal\TestTools\Random;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
+/**
+ * Tests Page Region Validation.
+ */
 #[Group('canvas')]
 #[RunTestsInSeparateProcesses]
 class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
@@ -205,8 +209,9 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @dataProvider providerInvalidComponentTree
-   */
+ * Tests invalid component tree.
+ */
+  #[DataProvider('providerInvalidComponentTree')]
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
     \assert($this->entity instanceof PageRegion);
     $this->entity->setComponentTree($component_tree);
@@ -401,8 +406,9 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @dataProvider providerForAutoSaveData
-   */
+ * Tests for auto save data.
+ */
+  #[DataProvider('providerForAutoSaveData')]
   public function testForAutoSaveData(array $autoSaveData, array $expected_errors): void {
     // Block component versions may vary due to upstream changes in core, so
     // load the current version dynamically.

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\StreamWrapper\PublicStream;
@@ -28,12 +32,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Tests that the fallback plugin retains recoverable user input.
- *
- * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback
- * @group canvas
- * @group canvas_component_sources
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(Fallback::class)]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
   use MediaTypeCreationTrait;
@@ -107,14 +110,15 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @covers ::requiresExplicitInput
-   * @covers ::getExplicitInput
-   * @covers ::inputToClientModel
-   * @covers ::clientModelToInput
+   * Tests fallback input can be recovered.
    *
-   * @testWith [true]
-   *           [false]
+   * @legacy-covers ::requiresExplicitInput
+   * @legacy-covers ::getExplicitInput
+   * @legacy-covers ::inputToClientModel
+   * @legacy-covers ::clientModelToInput
    */
+  #[TestWith([TRUE])]
+  #[TestWith([FALSE])]
   public function testFallbackInputCanBeRecovered(bool $publish = FALSE): void {
     $this->setUpCurrentUser(permissions: ['view media', 'access content', Page::EDIT_PERMISSION]);
     $component_to_recover = Component::load('sdc.canvas_test_sdc.image');

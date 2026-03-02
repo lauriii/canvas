@@ -2,9 +2,15 @@
 
 declare(strict_types=1);
 
+// cspell:ignore elink estring
+
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
+use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -13,11 +19,8 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-// cspell:ignore elink estring
-
-/**
- * @group canvas
- */
+#[CoversClass(ValidComponentTreeItemConstraintValidator::class)]
+#[Group('canvas')]
 #[RunTestsInSeparateProcesses]
 class DefaultFieldValueTest extends CanvasKernelTestBase {
 
@@ -112,16 +115,15 @@ class DefaultFieldValueTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
+   * Tests default field value.
    *
    * @param array $field_values
    *   The component tree that will be set at the default value for a
    *   `component_tree` field.
    * @param ?class-string<\Throwable> $expected_exception
    * @param ?string $exception_message
-   *
-   * @dataProvider providerDefaultFieldValue
    */
+  #[DataProvider('providerDefaultFieldValue')]
   public function testDefaultFieldValue(array $field_values, ?string $expected_exception, ?string $exception_message): void {
     $field_config = FieldConfig::loadByName('node', 'article', 'field_canvas_test');
     $this->assertInstanceOf(FieldConfig::class, $field_config);

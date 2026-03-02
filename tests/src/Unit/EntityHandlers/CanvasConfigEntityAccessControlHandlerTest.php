@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Access\AccessResultReasonInterface;
@@ -25,15 +28,18 @@ use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
- * @group canvas
+ * Tests Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler.
  */
+#[CoversClass(CanvasConfigEntityAccessControlHandler::class)]
+#[Group('canvas')]
 final class CanvasConfigEntityAccessControlHandlerTest extends UnitTestCase {
 
   /**
-   * @covers ::checkAccess
-   * @dataProvider dependentsProvider
+   * Tests cannot delete when there are dependents.
+   *
+   * @legacy-covers ::checkAccess
    */
+  #[DataProvider('dependentsProvider')]
   public function testCannotDeleteWhenThereAreDependents(string $entityTypeId, string $entityTypeLabel, bool $hasDependents, string $expectedAccessResult, ?string $expectedErrorReason): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);

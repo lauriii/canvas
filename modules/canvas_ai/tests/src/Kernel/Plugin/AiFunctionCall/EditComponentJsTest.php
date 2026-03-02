@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\Component\Serialization\Json;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -13,9 +14,8 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the EditComponentJs function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class EditComponentJsTest extends KernelTestBase {
 
   use FunctionalCallTestTrait;

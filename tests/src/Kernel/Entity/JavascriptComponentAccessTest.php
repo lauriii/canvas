@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -22,11 +23,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests JavascriptComponent access.
  *
- * @group canvas
- * @covers \Drupal\canvas\Entity\JavaScriptComponent
- * @covers \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
+ * @legacy-covers \Drupal\canvas\Entity\JavaScriptComponent
+ * @legacy-covers \Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

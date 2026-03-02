@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
@@ -16,10 +17,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests that auto-saved changes are deleted when reverting a page revision.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class AutoSaveRevertTest extends BrowserTestBase {
 
   use ContentTypeCreationTrait;

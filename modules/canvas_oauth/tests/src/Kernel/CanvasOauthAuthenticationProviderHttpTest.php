@@ -18,14 +18,15 @@ use Drupal\consumers\Entity\Consumer;
 use Drupal\simple_oauth\Entity\Oauth2Scope;
 use Drupal\simple_oauth\Exception\OAuthUnauthorizedHttpException;
 use Drupal\simple_oauth\Oauth2ScopeInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Tests API endpoints where the Canvas OAuth authentication provider is applied.
- *
- * @group canvas_oauth
  */
+#[Group('canvas_oauth')]
 class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   use CreateTestJsComponentTrait;
@@ -137,9 +138,8 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    *
    * This verifies that cookie-based authentication keeps working as expected
    * when the request doesn't contain an OAuth2 access token.
-   *
-   * @dataProvider dataProviderRoutes
    */
+  #[DataProvider('dataProviderRoutes')]
   public function testRouteWithUserWithNoPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     // Create a user with the minimum permissions: we use Page:CREATE_PERMISSION
     // for allowing `$user` to use Canvas, but not altering the
@@ -166,9 +166,8 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    *
    * This verifies that cookie-based authentication keeps working as expected
    * when the request doesn't contain an OAuth2 access token.
-   *
-   * @dataProvider dataProviderRoutes
    */
+  #[DataProvider('dataProviderRoutes')]
   public function testRouteWithUserWithPermissions(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     /** @var \Drupal\Core\Session\AccountInterface $user */
     // We need some Canvas-enabled content permission in every case for accessing
@@ -183,9 +182,8 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   /**
    * Tests a route with an invalid access token.
-   *
-   * @dataProvider dataProviderRoutes
    */
+  #[DataProvider('dataProviderRoutes')]
   public function testRouteWithInvalidToken(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     $request = $this->createRequest($route_name, $parameter_values, $method, $data);
     $this->expectException(OAuthUnauthorizedHttpException::class);
@@ -248,9 +246,8 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   /**
    * Tests a route that is not covered by this module's auth provider.
-   *
-   * @dataProvider dataProviderRoutesNotCovered
    */
+  #[DataProvider('dataProviderRoutesNotCovered')]
   public function testNotCoveredRoute(string $route_name, array $parameter_values, array $required_permissions, string $method, array $data): void {
     // Request an access token for scopes that get created with the required
     // permissions.

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Drupal\canvas\Controller\ApiAutoSaveController;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\dynamic_page_cache\EventSubscriber\DynamicPageCacheSubscriber;
@@ -24,10 +27,10 @@ use Symfony\Component\HttpFoundation\Response;
  * prevents caching as the request is seen as coming from the command line.
  *
  * @see \Drupal\Core\PageCache\RequestPolicy\CommandLineOrUnsafeMethod
- * @coversDefaultClass \Drupal\canvas\Controller\ApiAutoSaveController
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ApiAutoSaveController::class)]
+#[Group('canvas')]
 final class ApiAutoSaveControllerCacheabilityTest extends FunctionalTestBase {
 
   use ApiRequestTrait;

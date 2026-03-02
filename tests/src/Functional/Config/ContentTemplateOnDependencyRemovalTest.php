@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -14,11 +15,12 @@ use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Entity\ContentTemplate::onDependencyRemoval
+ * Tests Content Template On Dependency Removal.
  *
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::onDependencyRemoval
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ContentTemplateOnDependencyRemovalTest extends FunctionalTestBase {
 
   /**

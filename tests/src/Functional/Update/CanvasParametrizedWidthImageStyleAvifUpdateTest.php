@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\image\Entity\ImageStyle;
 
 /**
- * @covers \canvas_post_update_0012_canvas_image_style_avif
- * @group canvas
+ * Tests Canvas Parametrized Width Image Style Avif Update.
+ *
+ * @legacy-covers \canvas_post_update_0012_canvas_image_style_avif
  */
+#[Group('canvas')]
 final class CanvasParametrizedWidthImageStyleAvifUpdateTest extends CanvasUpdatePathTestBase {
 
   protected $defaultTheme = 'stark';

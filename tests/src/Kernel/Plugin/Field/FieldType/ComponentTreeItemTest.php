@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -22,12 +25,12 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
-/**
- * @coversDefaultClass \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
- * @group canvas
- */
+#[CoversClass(ComponentTreeItem::class)]
+#[CoversClass(ValidComponentTreeItemConstraintValidator::class)]
+#[Group('canvas')]
 #[RunTestsInSeparateProcesses]
 class ComponentTreeItemTest extends CanvasKernelTestBase {
 
@@ -63,8 +66,8 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::setValue
-   * @covers ::onChange
+   * @legacy-covers ::setValue
+   * @legacy-covers ::onChange
    */
   public function testSetValue(): void {
     $this->generateComponentConfig();
@@ -128,7 +131,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   /**
    * @testWith ["not-a-uuid", {"0.parent_uuid": "This is not a valid UUID."}]
    *           ["", {"0.parent_uuid": "This value should not be blank."}]
-   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
   public function testInvalidParentUuid(string $parent_uuid, array $expected_violations): void {
     $this->generateComponentConfig();
@@ -159,7 +162,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
    *           ["invalid_", {"1.slot": "<em class=\"placeholder\">&quot;invalid_&quot;</em> is not a valid slot name."}]
    *           [null, {"1.slot": "Invalid component tree item with UUID <em class=\"placeholder\">8b6b47ec-1167-433b-975d-e2d97739f5a6</em>. A slot name must be present if a parent uuid is provided."}]
    *           ["the_body", {}]
-   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
   public function testInvalidSlot(?string $slot, array $expected_violations): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
@@ -191,7 +194,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ValidConfigEntityVersionConstraintValidator
+   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ValidConfigEntityVersionConstraintValidator
    */
   public function testInvalidVersion(): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
@@ -228,12 +231,12 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::getParentUuid
-   * @covers ::getParentComponentTreeItem
-   * @covers ::getSlot
-   * @covers ::getComponentId
-   * @covers ::getComponent
-   * @covers ::getUuid
+   * @legacy-covers ::getParentUuid
+   * @legacy-covers ::getParentComponentTreeItem
+   * @legacy-covers ::getSlot
+   * @legacy-covers ::getComponentId
+   * @legacy-covers ::getComponent
+   * @legacy-covers ::getUuid
    */
   public function testConvenienceMethods(): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
@@ -527,15 +530,13 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @coversClass \Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator
    * @param array $field_values
    * @param array $expected_violations
    * @param list<string> $permissions
    * @param ?class-string<\Throwable> $expected_exception
    * @param ?string $exception_message
-   *
-   * @dataProvider providerInvalidField
    */
+  #[DataProvider('providerInvalidField')]
   public function testInvalidField(array $field_values, array $expected_violations, array $permissions = [], ?string $expected_exception = NULL, ?string $exception_message = NULL): void {
     $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: $permissions);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -11,12 +13,14 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\PropShape\PersistentPropShapeRepository
- * @group canvas
- * @group canvas_data_model
- * @group canvas_data_model__prop_expressions
+ * Tests Hook Canvas Storable Prop Alter.
+ *
+ * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_data_model')]
+#[Group('canvas_data_model__prop_expressions')]
 class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
 
   /**
@@ -83,9 +87,11 @@ class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
   }
 
   /**
-   * @depends testStorablePropShapes
+   * Tests all widgets for prop shapes have transforms.
+   *
    * @todo Remove this method override by making the `daterange_default` widget actually work in component instance forms in https://www.drupal.org/project/canvas/issues/3523379
    */
+  #[Depends('testStorablePropShapes')]
   public function testAllWidgetsForPropShapesHaveTransforms(array $storable_prop_shapes): void {
     unset($storable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/date-range']);
     parent::testAllWidgetsForPropShapesHaveTransforms($storable_prop_shapes);

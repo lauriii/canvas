@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Tests\canvas\Kernel\Config\BetterConfigEntityValidationTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
@@ -14,9 +16,10 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\canvas_personalization\Entity\Segment;
 
 /**
- * @group canvas
- * @group canvas_personalization
+ * Tests Segment Validation.
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
@@ -82,8 +85,9 @@ class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
   ];
 
   /**
-   * @dataProvider providerSegmentsDependencies
-   */
+ * Tests calculate dependencies.
+ */
+  #[DataProvider('providerSegmentsDependencies')]
   public function testCalculateDependencies(array $rules, array $expectedDependencies): void {
     $entity = Segment::create([
       'id' => $this->randomMachineName(),
@@ -117,8 +121,9 @@ class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * @dataProvider providerMissingConditions
-   */
+ * Tests condition plugins.
+ */
+  #[DataProvider('providerMissingConditions')]
   public function testConditionPlugins(array $rules, string $exceptionMessage): void {
     $this->expectException(PluginNotFoundException::class);
     $this->expectExceptionMessage($exceptionMessage);

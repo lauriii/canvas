@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\TypedData;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Url;
@@ -12,16 +16,20 @@ use Drupal\link\LinkItemInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * Tests Drupal\canvas\Plugin\DataType\ComponentInputs.
+ *
  * @see \Drupal\Tests\canvas\Kernel\DataType\ComponentInputsDependenciesTest
- * @group canvas
  */
+#[CoversClass(ComponentInputs::class)]
+#[Group('canvas')]
 class LinkUrlTest extends UnitTestCase {
 
   /**
-   * @covers ::getValue
-   * @dataProvider providerValues
+   * Tests get value.
+   *
+   * @legacy-covers ::getValue
    */
+  #[DataProvider('providerValues')]
   public function testGetValue(string $uri, string $expected): void {
     $data = $this->createMock(TypedDataInterface::class);
     $data->expects($this->once())

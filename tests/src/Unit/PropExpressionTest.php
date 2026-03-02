@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -23,22 +26,24 @@ use PHPUnit\Framework\Attributes\TestWith;
 use Prophecy\Prophet;
 
 /**
- * @coversDefaultClass \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression
- * @coversClass \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches
+ * Tests Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression.
+ *
  * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testLabel()
  * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()
- * @group canvas
- * @group canvas_data_model
- * @group canvas_data_model__prop_expressions
  *
  * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
  */
+#[CoversClass(StructuredDataPropExpression::class)]
+#[CoversClass(FieldPropExpression::class)]
+#[CoversClass(ReferenceFieldPropExpression::class)]
+#[CoversClass(FieldObjectPropsExpression::class)]
+#[CoversClass(FieldTypePropExpression::class)]
+#[CoversClass(ReferenceFieldTypePropExpression::class)]
+#[CoversClass(FieldTypeObjectPropsExpression::class)]
+#[CoversClass(ReferencedBundleSpecificBranches::class)]
+#[Group('canvas')]
+#[Group('canvas_data_model')]
+#[Group('canvas_data_model__prop_expressions')]
 class PropExpressionTest extends UnitTestCase {
 
   private const EXPECT_NO_DEPRECATION = NULL;
@@ -68,15 +73,17 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @dataProvider provider
-   */
+ * Tests to string.
+ */
+  #[DataProvider('provider')]
   public function testToString(string $string_representation, StructuredDataPropExpressionInterface $expression): void {
     $this->assertSame($string_representation, (string) $expression);
   }
 
   /**
-   * @dataProvider provider
-   */
+ * Tests from string.
+ */
+  #[DataProvider('provider')]
   public function testFromString(string $string_representation, StructuredDataPropExpressionInterface $expression, null|string|array $expected_deprecation_message): void {
     // TRICKY: work around PHPUnit limitations. ::expectDeprecation() does not
     // work here.
@@ -122,9 +129,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::getReferenceChainPrefixes
-   * @dataProvider providerReferenceFieldPropExpression
+   * Tests get reference chain prefixes.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::getReferenceChainPrefixes
    */
+  #[DataProvider('providerReferenceFieldPropExpression')]
   public function testGetReferenceChainPrefixes(string $string_representation, StructuredDataPropExpressionInterface $expression, ?string $irrelevant_here_one, string|\Exception $irrelevant_here_two, array|\Exception $irrelevant_here_three, null|array $irrelevant_here_four, array $expected_reference_chain_prefixes): void {
     $reconstructed = call_user_func([get_class($expression), 'fromString'], $string_representation);
     self::assertInstanceOf(ReferenceFieldPropExpression::class, $reconstructed);
@@ -960,7 +969,7 @@ class PropExpressionTest extends UnitTestCase {
         'ℹ︎␜entity:node:article␝field_image␞␟{src↝entity␜␜entity:file␝uri␞␟url,width↠width}',
         new FieldObjectPropsExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, [
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
-          // 1. one (non-leaf) field property that follows an entity reference
+          // 1. one (non-leaf) field property that follows an entity reference.
           'src' => new ReferenceFieldPropExpression(
             referencer: new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'entity'),
             referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
@@ -988,7 +997,7 @@ class PropExpressionTest extends UnitTestCase {
         new FieldObjectPropsExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, [
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
           // 1. one (leaf) field property that is computed and has its own
-          // dependencies
+          // dependencies.
           'src' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'src_with_alternate_widths'),
           // 2. one (leaf) field property
           'width' => new FieldPropExpression(BetterEntityDataDefinition::create('node', 'article'), 'field_image', NULL, 'width'),
@@ -1390,7 +1399,7 @@ class PropExpressionTest extends UnitTestCase {
         'ℹ︎image␟{src↝entity␜␜entity:file␝uri␞␟url,width↠width}',
         new FieldTypeObjectPropsExpression('image', [
           // SDC prop accepting an object, with >=1 mapped key-value pairs:
-          // 1. one (non-leaf) field property that follows an entity reference
+          // 1. one (non-leaf) field property that follows an entity reference.
           'src' => new ReferenceFieldTypePropExpression(
             referencer: new FieldTypePropExpression('image', 'entity'),
             referenced: new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
@@ -1442,9 +1451,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to multiple field names without multiple bundles.
+   *
    * @testWith [null]
    *           ["article"]
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
   public function testInvalidFieldPropExpressionDueToMultipleFieldNamesWithoutMultipleBundles(?string $bundle): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1461,9 +1472,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to multiple field prop names without multiple bundles.
+   *
    * @testWith [null]
    *           ["article"]
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
   public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleBundles(?string $bundle): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1480,9 +1493,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @group legacy
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to multiple field prop names without multiple field names.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames(): void {
     $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
     $this->expectException(\InvalidArgumentException::class);
@@ -1503,9 +1518,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @group legacy
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to only null field prop names.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToOnlyNullFieldPropNames(): void {
     $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
     $this->expectException(\InvalidArgumentException::class);
@@ -1525,9 +1542,11 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @group legacy
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to duplicate bundles.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToDuplicateBundles(): void {
     $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
     $this->expectException(\InvalidArgumentException::class);
@@ -1541,13 +1560,15 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @group legacy
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
+   * Tests invalid field prop expression due to field name mismatch.
+   *
    * @testWith [{"foo": "field_media_image", "bar": "field_media_image_1", "baz": "field_media_image_2"}]
    *           [{"foo": "field_media_image", "baz": "field_media_image_2"}]
    *           [{}]
    *           [{"foo": "field_media_image", "bar": "field_media_image_1"}]
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToFieldNameMismatch(array $field_name): void {
     $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
     $this->expectException(\InvalidArgumentException::class);
@@ -1561,7 +1582,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
+   * Tests invalid field object props expression due to prop name.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
    */
   public function testInvalidFieldObjectPropsExpressionDueToPropName(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1572,7 +1595,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
+   * Tests invalid field object props expression due to delta.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
    */
   public function testInvalidFieldObjectPropsExpressionDueToDelta(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1583,7 +1608,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
+   * Tests invalid field object props expression inside reference field type expression.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::__construct
    */
   public function testInvalidFieldObjectPropsExpressionInsideReferenceFieldTypeExpression(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1603,7 +1630,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to single branch.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testInvalidReferenceFieldTypePropExpressionDueToSingleBranch(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1618,7 +1647,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to bundleless field prop expression.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testInvalidReferenceFieldTypePropExpressionDueToBundlelessFieldPropExpression(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1634,7 +1665,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to unsupported branch expression.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testInvalidReferenceFieldTypePropExpressionDueToUnsupportedBranchExpression(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1650,7 +1683,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to incorrect order.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testInvalidReferenceFieldTypePropExpressionDueToIncorrectOrder(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1672,7 +1707,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to mismatched leaf expression classes.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testInvalidReferenceFieldTypePropExpressionDueToMismatchedLeafExpressionClasses(): void {
     $this->expectException(\InvalidArgumentException::class);
@@ -1702,7 +1739,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests invalid reference field type prop expression due to inconsistent leaf expression deltas.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   #[TestWith([NULL, NULL, NULL])]
   #[TestWith([0, 0, NULL])]
@@ -1732,7 +1771,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests closing unopened branch exception.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testClosingUnopenedBranchException(): void {
     $this->expectException(\LogicException::class);
@@ -1741,7 +1782,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests unclosed branch exception.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testUnclosedBranchException(): void {
     $this->expectException(\LogicException::class);
@@ -1750,7 +1793,9 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * Tests nested branch exception.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
    */
   public function testNestedBranchException(): void {
     $this->expectException(\LogicException::class);
@@ -1759,10 +1804,12 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::hasBranch
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withAdditionalBranch
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withoutBranch
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::generateBundleSpecificBranches
+   * Tests add and remove bundle specific expressions.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::hasBranch
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withAdditionalBranch
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::withoutBranch
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::generateBundleSpecificBranches
    */
   public function testAddAndRemoveBundleSpecificExpressions(): void {
     $alphabetically_first = new FieldPropExpression(BetterEntityDataDefinition::create('media', ['alphabetically_first']), 'whatever', NULL, 'something');
@@ -1857,6 +1904,8 @@ class PropExpressionTest extends UnitTestCase {
   }
 
   /**
+   * Tests update path for 3563451.
+   *
    * @param string $original
    *   The original expression string.
    * @param string|null $updated
@@ -1864,9 +1913,9 @@ class PropExpressionTest extends UnitTestCase {
    *
    * @see \canvas_post_update_0011_multi_bundle_reference_prop_expressions()
    * @see https://www.drupal.org/node/3563451
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::generateBundleSpecificBranches
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
    * @see \Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface::SYMBOL_OBJECT_MAPPED_OPTIONAL_PROP
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::generateBundleSpecificBranches
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::liftReferenceAndCreateBranchesIfNeeded
    */
   #[TestWith([
     'ℹ︎entity_reference␟entity␜␜entity:media:baby_photos|vacation_photos␝field_media_image_1|field_media_image_2␞␟entity␜␜entity:file␝uri␞␟value',

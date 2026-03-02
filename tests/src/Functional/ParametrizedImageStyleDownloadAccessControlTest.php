@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\image\Entity\ImageStyle;
@@ -12,11 +13,13 @@ use Drupal\Tests\image\Functional\ImageStyleDownloadAccessControlTest;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
- * @covers \Drupal\canvas\Routing\ParametrizedImageStyleConverter
- * @covers \Drupal\canvas\Entity\ParametrizedImageStyle
+ * Tests Parametrized Image Style Download Access Control.
+ *
+ * @legacy-covers \Drupal\canvas\Routing\ParametrizedImageStyleConverter
+ * @legacy-covers \Drupal\canvas\Entity\ParametrizedImageStyle
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ParametrizedImageStyleDownloadAccessControlTest extends ImageStyleDownloadAccessControlTest {
 
   use ContribStrictConfigSchemaTestTrait;

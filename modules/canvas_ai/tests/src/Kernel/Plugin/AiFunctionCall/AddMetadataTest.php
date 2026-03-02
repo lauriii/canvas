@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
  * Tests for the AddMetadata function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 class AddMetadataTest extends KernelTestBase {
 
   /**

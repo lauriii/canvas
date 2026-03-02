@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Render;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Session\AccountInterface;
@@ -19,10 +20,9 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests rendering of live and preview component tree is consistent.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ComponentTreeFieldRenderingTest extends CanvasKernelTestBase {
 
   use RequestTrait;

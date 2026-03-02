@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\canvas\Entity\Page;
@@ -12,9 +14,10 @@ use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Page Access Control Handler.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
 
   use PageTrait;
@@ -37,9 +40,8 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
    *   Whether the page should be published.
    * @param bool $expected_result
    *   The expected result.
-   *
-   * @dataProvider accessCheckProvider
    */
+  #[DataProvider('accessCheckProvider')]
   public function testAccess(array $permissions, string $op, bool $published, bool $expected_result): void {
     $this->installPageEntitySchema();
 
@@ -113,9 +115,8 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
    *   The operation to check access for.
    * @param bool $expected_result
    *   The expected result.
-   *
-   * @dataProvider revertAccessProvider
    */
+  #[DataProvider('revertAccessProvider')]
   public function testRevertPermissionOnNonDefaultRevision(array $permissions, string $op, bool $expected_result): void {
     $this->installPageEntitySchema();
 

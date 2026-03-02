@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -18,10 +19,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests the details of auto-saving Staged Config Update entities.
  *
- * @covers \Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Controller\ApiStagedConfigUpdateAutoSaveController
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ApiStagedConfigUpdateAutoSaveControllerTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

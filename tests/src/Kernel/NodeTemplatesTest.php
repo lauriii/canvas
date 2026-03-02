@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use ColinODell\PsrTestLogger\TestLogger;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Cache\Cache;
@@ -24,10 +25,12 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
- * @covers \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder
- * @group canvas
+ * Tests Node Templates.
+ *
+ * @legacy-covers \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class NodeTemplatesTest extends CanvasKernelTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;
@@ -288,8 +291,10 @@ HTML;
   }
 
   /**
-   * @covers \Drupal\canvas\Entity\ContentTemplate::build
-   * @covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
+   * Tests exposed slots are filled by entity.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
+   * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
   public function testExposedSlotsAreFilledByEntity(): void {
     $this->createComponentTreeField('node', 'article', 'field_component_tree');

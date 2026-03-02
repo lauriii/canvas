@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -36,12 +37,14 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiConfigControllers
- * @covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
- * @group canvas
+ * Tests Canvas Config Entity Http Api.
+ *
  * @internal
+ * @legacy-covers \Drupal\canvas\Controller\ApiConfigControllers
+ * @legacy-covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

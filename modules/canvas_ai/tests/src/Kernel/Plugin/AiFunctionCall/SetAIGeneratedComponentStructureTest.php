@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
@@ -19,9 +21,8 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the SetAIGeneratedComponentStructure function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 
   use FunctionalCallTestTrait;
@@ -87,9 +88,8 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 
   /**
    * Tests setting component structure with proper permissions and valid data.
-   *
-   * @dataProvider componentStructureDataProvider
    */
+  #[DataProvider('componentStructureDataProvider')]
   public function testSetComponentStructureWithPermissionsAndValidData(string $layout_type, string $yaml_input, array $expected_output): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
@@ -121,9 +121,8 @@ final class SetAIGeneratedComponentStructureTest extends KernelTestBase {
 
   /**
    * Tests setting component structure with invalid YAML.
-   *
-   * @dataProvider invalidComponentStructureDataProvider
    */
+  #[DataProvider('invalidComponentStructureDataProvider')]
   public function testSetComponentStructureWithInvalidYaml(string $layout_type, string $yaml_input, array $expected_error): void {
     $this->container->get('current_user')->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.

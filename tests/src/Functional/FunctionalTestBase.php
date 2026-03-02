@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
@@ -15,9 +16,8 @@ use Drupal\Tests\TestFileCreationTrait;
  * Base class for functional tests of Canvas, ensures OpenAPI validation is active.
  *
  * Provides common setup and helper methods for functional tests.
- *
- * @group canvas
  */
+#[Group('canvas')]
 abstract class FunctionalTestBase extends BrowserTestBase {
 
   use TestFileCreationTrait;

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
  * Test to ensure the Canvas packages doc file has not changed.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 class CanvasPackagesDocsFileHashTest extends KernelTestBase {
 
   /**

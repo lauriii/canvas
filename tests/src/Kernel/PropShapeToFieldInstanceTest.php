@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
@@ -42,11 +44,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * @see docs/data-model.md
  * @see \Drupal\Tests\canvas\Kernel\PropShapeRepositoryTest
- * @group canvas
  *
  * @phpstan-type ShapeMatchingResults array{'SDC props': non-empty-list<string>, 'static prop source': null|string, instances: string[], adapter_matches_field_type: string[], adapter_matches_instance: string[]}
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;
@@ -72,9 +74,8 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
 
   /**
    * Tests matches for \Drupal\Core\Theme\Component\ComponentMetadata props.
-   *
-   * @dataProvider provider
    */
+  #[DataProvider('provider')]
   public function test(array $modules, array $expected): void {
     $missing_test_modules = array_diff($modules, \array_keys(\Drupal::service('extension.list.module')->getList()));
     if (!empty($missing_test_modules)) {

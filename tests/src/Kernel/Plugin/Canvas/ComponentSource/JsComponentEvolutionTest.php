@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiConfigAutoSaveControllers;
@@ -36,10 +37,9 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * Test JS Components can evolve over time.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class JsComponentEvolutionTest extends CanvasKernelTestBase {
 
   use CiModulePathTrait;

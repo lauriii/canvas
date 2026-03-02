@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -22,9 +24,10 @@ use Drupal\canvas_test_validation\Plugin\Canvas\ComponentSource\InvalidSlots;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Content Template Validation.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
@@ -232,8 +235,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   /**
-   * @dataProvider providerInvalidComponentTree
-   */
+ * Tests invalid component tree.
+ */
+  #[DataProvider('providerInvalidComponentTree')]
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
     self::addMissingBlockComponentVersions($component_tree);
     \assert($this->entity instanceof ContentTemplate);
@@ -650,8 +654,9 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   /**
-   * @dataProvider providerInvalidExposedSlot
-   */
+ * Tests invalid exposed slot.
+ */
+  #[DataProvider('providerInvalidExposedSlot')]
   public function testInvalidExposedSlot(array $exposed_slots, array $expected_errors): void {
     $this->entity->set('exposed_slots', $exposed_slots);
     $this->assertValidationErrors($expected_errors);

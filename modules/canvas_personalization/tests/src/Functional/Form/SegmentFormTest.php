@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Functional\Form;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
@@ -17,10 +18,9 @@ use Symfony\Component\HttpFoundation\Response;
  * ⚠️ This is highly experimental and *will* be refactored or even removed.
  *
  * @todo Revisit in https://www.drupal.org/i/3527086
- *
- * @group canvas
- * @group canvas_personalization
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 final class SegmentFormTest extends BrowserTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

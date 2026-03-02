@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
@@ -13,8 +15,9 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase
+ * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
  */
+#[CoversClass(GeneratedFieldExplicitInputUxComponentSourceBase::class)]
 abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
 
   use GenerateComponentConfigTrait;
@@ -63,10 +66,12 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
   }
 
   /**
-   * @covers ::hydrateComponent
-   * @covers ::renderComponent
-   * @dataProvider providerHydrationAndRenderingEdgeCases
+   * Tests hydration and rendering edge cases.
+   *
+   * @legacy-covers ::hydrateComponent
+   * @legacy-covers ::renderComponent
    */
+  #[DataProvider('providerHydrationAndRenderingEdgeCases')]
   public function testHydrationAndRenderingEdgeCases(?array $resolved_explicit_input_values_for_object_prop, bool $is_object_prop_present_in_hydration, string $expected_html): void {
     $this->generateComponentConfig();
     // @phpstan-ignore-next-line property.notFound
@@ -137,9 +142,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
   /**
    * Tests that validateComponentInput() rejects unexpected props (garbage values).
    *
-   * @covers ::validateComponentInput
-   * @dataProvider providerComponentForValidateInputRejectsUnexpectedProps
+   * @legacy-covers ::validateComponentInput
    */
+  #[DataProvider('providerComponentForValidateInputRejectsUnexpectedProps')]
   public function testValidateComponentInputRejectsUnexpectedProps(string $source_id, string $source_specific_id, string $valid_prop_name, array $valid_prop_input): void {
     $this->generateComponentConfig();
 

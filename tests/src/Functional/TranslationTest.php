@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Url;
@@ -18,14 +20,16 @@ use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
+ * Tests Translation.
+ *
  * @todo Add test coverage for entity field prop sources used in the content
  *   templates in https://drupal.org/i/3455629. This will most likely require
  *   adding back `canvas_entity_prepare_view()` which was removed in
  *   https://www.drupal.org/i/3481720.
  * @see https://www.drupal.org/project/canvas/issues/3455629#comment-15831060
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class TranslationTest extends FunctionalTestBase {
 
   use ApiRequestTrait;
@@ -161,9 +165,8 @@ class TranslationTest extends FunctionalTestBase {
    *   Whether the last component in Canvas tree is expected to be removed from the
    *   translation. The component is always removed from the default
    *   translation.
-   *
-   * @dataProvider translationDataProvider
    */
+  #[DataProvider('translationDataProvider')]
   public function testTranslation(array $translatable_properties, bool $expect_component_removed_on_translation): void {
     $page = $this->getSession()->getPage();
     $assert_session = $this->assertSession();

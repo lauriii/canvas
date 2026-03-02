@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Render;
 
 // cspell:ignore razzler
-
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
@@ -17,11 +18,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests ImportMapResponseAttachmentsProcessor.
- *
- * @coversDefaultClass \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ImportMapResponseAttachmentsProcessor::class)]
+#[Group('canvas')]
 final class ImportMapResponseAttachmentsProcessorTest extends CanvasKernelTestBase {
 
   /**

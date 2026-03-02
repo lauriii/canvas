@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\TestWith;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
@@ -34,13 +39,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery
- * @group canvas
- * @group canvas_component_sources
+ * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent.
+ *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
+ * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(BlockComponent::class)]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
 final class BlockComponentTest extends ComponentSourceTestBase {
 
   use BlockComponentTreeTestTrait;
@@ -61,15 +68,15 @@ final class BlockComponentTest extends ComponentSourceTestBase {
    */
   public function setUp(): void {
     parent::setUp();
-    // Set up a test user "bob"
+    // Set up a test user "bob".
     $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2]);
   }
 
   /**
    * All test module blocks must either have a Component or a reason why not.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::discover
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::discover
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::checkRequirements
    */
   public function testDiscovery(): array {
     $components = Component::loadMultiple();
@@ -128,9 +135,8 @@ final class BlockComponentTest extends ComponentSourceTestBase {
 
   /**
    * Tests the 'default_settings' generated for the eligible Block plugins.
-   *
-   * @depends testDiscovery
    */
+  #[Depends('testDiscovery')]
   public function testSettings(array $component_ids): void {
     self::assertSame([
       'block.canvas_test_block_input_none' => [
@@ -183,10 +189,13 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   }
 
   /**
+   * Tests get referenced plugin class.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::getReferencedPluginClass
-   * @depends testDiscovery
+   *
+   * @legacy-covers ::getReferencedPluginClass
    */
+  #[Depends('testDiscovery')]
   public function testGetReferencedPluginClass(array $component_ids): void {
     self::assertSame([
       'block.canvas_test_block_input_none' => CanvasTestBlockInputNone::class,
@@ -198,19 +207,24 @@ final class BlockComponentTest extends ComponentSourceTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::getComponentConfigEntityId
-   * @testWith ["foo", "block.foo"]
-   *           ["system_menu_block:footer", "block.system_menu_block.footer"]
+   * Tests component id from block plugin id.
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::getComponentConfigEntityId
    */
+  #[TestWith(["foo", "block.foo"])]
+  #[TestWith(["system_menu_block:footer", "block.system_menu_block.footer"])]
   public function testComponentIdFromBlockPluginId(string $input, string $expected_output): void {
     self::assertSame($expected_output, BlockComponentDiscovery::getComponentConfigEntityId($input));
   }
 
   /**
+   * Tests render component live.
+   *
    * @param array<ComponentConfigEntityId> $component_ids
-   * @covers ::renderComponent
-   * @depends testDiscovery
+   *
+   * @legacy-covers ::renderComponent
    */
+  #[Depends('testDiscovery')]
   public function testRenderComponentLive(array $component_ids): void {
     $this->assertNotEmpty($component_ids);
     $rendered = $this->renderComponentsLive(
@@ -321,9 +335,11 @@ HTML,
   }
 
   /**
-   * @covers ::getExplicitInput
-   * @dataProvider getValidTreeTestCases
+   * Tests get explicit input.
+   *
+   * @legacy-covers ::getExplicitInput
    */
+  #[DataProvider('getValidTreeTestCases')]
   public function testGetExplicitInput(array $componentItemValue): void {
     $this->generateComponentConfig();
 
@@ -380,9 +396,11 @@ HTML,
   }
 
   /**
-   * @covers ::calculateDependencies
-   * @depends testDiscovery
+   * Tests calculate dependencies.
+   *
+   * @legacy-covers ::calculateDependencies
    */
+  #[Depends('testDiscovery')]
   public function testCalculateDependencies(array $component_ids): void {
     // Note: the module providing the Block plugin is depended upon directly.
     // @see \Drupal\canvas\Entity\Component::$provider
@@ -438,7 +456,9 @@ HTML,
   }
 
   /**
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::computeCurrentComponentMetadata
+   * Tests dependency update.
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery::computeCurrentComponentMetadata
    */
   public function testDependencyUpdate(): void {
     $this->generateComponentConfig();

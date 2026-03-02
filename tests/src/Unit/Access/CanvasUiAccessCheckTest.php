@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Access;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -17,9 +20,10 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Access\CanvasUiAccessCheck
- * @group canvas
+ * Tests Drupal\canvas\Access\CanvasUiAccessCheck.
  */
+#[CoversClass(CanvasUiAccessCheck::class)]
+#[Group('canvas')]
 class CanvasUiAccessCheckTest extends UnitTestCase {
 
   /**
@@ -28,9 +32,9 @@ class CanvasUiAccessCheckTest extends UnitTestCase {
    * @param ?string $permission
    * @param bool $accessGranted
    *
-   * @covers ::access
-   * @dataProvider provider
+   * @legacy-covers ::access
    */
+  #[DataProvider('provider')]
   public function testAccess(?string $permission, bool $accessGranted): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.permissions'])->willReturn(TRUE);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -14,10 +15,11 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
- * @group canvas_component_sources
+ * Tests Component.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
 class ComponentTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;

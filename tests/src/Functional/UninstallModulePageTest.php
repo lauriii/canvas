@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Database\Database;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -12,10 +13,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the uninstalling module page is loaded.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class UninstallModulePageTest extends InstallerTestBase {
 
   /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Condition\ConditionManager;
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -12,9 +14,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 
 /**
- * @group canvas
- * @group canvas_personalization
+ * Tests Utm Parameters.
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 class UtmParametersTest extends CanvasKernelTestBase {
 
   protected static $modules = [
@@ -22,8 +25,9 @@ class UtmParametersTest extends CanvasKernelTestBase {
   ];
 
   /**
-   * @dataProvider providerSegments
-   */
+ * Tests condition applies.
+ */
+  #[DataProvider('providerSegments')]
   public function testConditionApplies(array $configuration, bool $matches): void {
     // Apparently we need a session for creating a request.
     $request = new Request(['utm_id' => 'chocolate', 'utm_campaign' => 'HALLOWEEN', 'custom_param' => 'Jim+Morrison']);

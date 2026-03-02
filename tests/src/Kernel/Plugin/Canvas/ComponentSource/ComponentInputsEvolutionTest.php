@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Config\Schema\Mapping;
@@ -36,11 +38,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Test explicit inputs can evolve as input schema & shape matching change.
- *
- * @group canvas
- * @group canvas_component_sources
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
 final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
 
   use BlockComponentTreeSchemaUpdateTestTrait;
@@ -70,14 +71,16 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $this->installSchema('user', 'users_data');
     $this->generateComponentConfig();
-    // Set up a test user "bob"
+    // Set up a test user "bob".
     $this->setUpCurrentUser(['name' => 'bob', 'uid' => 2]);
   }
 
   /**
+   * Tests storable prop shape changes.
+   *
    * @see hook_canvas_storable_prop_shape_alter()
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
-   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
+   * @legacy-covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
    */
   public function testStorablePropShapeChanges(): void {
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
@@ -316,12 +319,11 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
    * that changes the schema, we can simulate it with 2 modules, one with the v1
    * of the schema, and others with the v2 of the schema.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions
-   * @covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
-   *
    * @see \Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputSchemaChangePoc::defaultConfiguration()
    * @see \Drupal\canvas_test_block_simulate_input_schema_change\Plugin\Block\SimulatedInputSchemaChangeBlock::defaultConfiguration()
    * @see \Drupal\canvas_test_block_simulate_input_schema_change\Hook\SimulatedInputSchemaChangeHooks
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions
+   * @legacy-covers \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash
    */
   public function testBlockPluginUpdateConsequences(): void {
     // @see `type: block_settings`
@@ -335,21 +337,21 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // above. So we need to hardcode these per version.
     // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
     $active_version = match(TRUE) {
-      // The 11.3.x version
+      // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "dbe845f73dc45b04",
-      // The 11.2.10 version
+      // The 11.2.10 version.
       default => "88c370526c14d185",
     };
     $existing_versions = match(TRUE) {
-      // The 11.3.x versions
+      // The 11.3.x versions.
       version_compare(\Drupal::VERSION, "11.3", '>=') => [$active_version, '0b5af0d270d99618'],
-      // The 11.2.10 versions
+      // The 11.2.10 versions.
       default => [$active_version, '7cc894b85e93a7d8'],
     };
     $expected_version = match(TRUE) {
-      // The 11.3.x version
+      // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "ecbfb3dfb7ce5717",
-      // The 11.2.10 version
+      // The 11.2.10 version.
       default => "ec03b64ff4f992b9",
     };
 
@@ -369,7 +371,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
 
     // After the update:
     // 1. new version
-    // 2. updated default settings
+    // 2. updated default settings.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent::getExplicitInputDefinitions()
     $after = Component::load($before->id());
     \assert($after instanceof Component);
@@ -401,15 +403,15 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // changed between 11.2 and 11.3, that means there is no single block where we can have the same hash on 11.2.x and
     // above. So we need to hardcode these per version.
     $active_version = match(TRUE) {
-      // The 11.3.x version
+      // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "ecbfb3dfb7ce5717",
-      // The 11.2.10 version
+      // The 11.2.10 version.
       default => "ec03b64ff4f992b9",
     };
     $expected_version = match(TRUE) {
-      // The 11.3.x version
+      // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "7d5753e9157ece58",
-      // The 11.2.10 version
+      // The 11.2.10 version.
       default => "af78995aa8d4160e",
     };
 
@@ -450,11 +452,10 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
    * worst case it should fall back to a fallback message informing the user of
    * render failure.
    *
-   * @dataProvider getValidTreesForASchemaUpdate
-   *
    * @see \Drupal\canvas_test_block_simulate_input_schema_change\Hook\SimulatedInputSchemaChangeHooks
    * @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
    */
+  #[DataProvider('getValidTreesForASchemaUpdate')]
   public function testBlockPluginUpdatePath(
     array $component_tree,
     array $expected_pre_update_markup,
@@ -513,7 +514,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
 
     // Determine which component trees to update:
     // - which content entity revisions' component trees
-    // - which config entities' component trees
+    // - which config entities' component trees.
     // @todo Move more of this logic into the ComponentAudit service in https://www.drupal.org/project/canvas/issues/3524751
     // @todo Add explicit support for component revisions to the ComponentAudit service in https://www.drupal.org/project/canvas/issues/3524751
     $expected_content_entity_revisions_to_update = !empty($expected_post_update_violations)
@@ -553,7 +554,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // AFTER the update, the content-defined component tree:
     // 1. is valid
     // 2. contains exactly the expected values
-    // 3. renders the expected markup
+    // 3. renders the expected markup.
     self::assertSame([], self::violationsToArray($page->validate()));
     self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
@@ -589,9 +590,9 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     );
     $raw_component_tree = $pattern->get('component_tree');
     $active_version = match(TRUE) {
-      // The 11.3.x version
+      // The 11.3.x version.
       version_compare(\Drupal::VERSION, "11.3", '>=') => "dbe845f73dc45b04",
-      // The 11.2.10 version
+      // The 11.2.10 version.
       default => "88c370526c14d185",
     };
     foreach ($raw_component_tree as $key => $component_instance) {
@@ -605,7 +606,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // AFTER the update, the config-defined component tree:
     // 1. is valid
     // 2. contains exactly the expected values
-    // 3. renders the expected markup
+    // 3. renders the expected markup.
     self::assertSame([], self::violationsToArray($pattern->getTypedData()->validate()));
     self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {

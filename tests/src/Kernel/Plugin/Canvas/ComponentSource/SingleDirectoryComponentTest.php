@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Cache\Cache;
@@ -50,14 +54,16 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Twig\Error\SyntaxError;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
- * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
- * @group canvas
- * @group canvas_component_sources
+ * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent.
+ *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-import-type SingleComponentInputArray from \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(SingleDirectoryComponent::class)]
+#[Group('canvas')]
+#[Group('canvas_component_sources')]
 final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
   use ConstraintViolationsTestTrait;
@@ -111,8 +117,9 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   }
 
   /**
-   * @depends testDiscovery
-   */
+ * Tests get client side info.
+ */
+  #[Depends('testDiscovery')]
   public function testGetClientSideInfo(array $component_ids): void {
     $this->installEntitySchema('node');
     $this->installConfig('node');
@@ -123,8 +130,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   /**
    * All test module SDCs must either have a Component or a reason why not.
    *
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::discover
-   * @covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::discover
+   * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponentDiscovery::checkRequirements
    */
   public function testDiscovery(): array {
     // Nothing discovered initially.
@@ -251,9 +258,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
 
   /**
    * Tests the shape-matched `prop_field_definitions` for the eligible SDCs.
-   *
-   * @depends testDiscovery
    */
+  #[Depends('testDiscovery')]
   public function testSettings(array $component_ids): void {
     $settings = $this->getAllSettings($component_ids);
     self::assertSame(self::getExpectedSettings(), $settings);
@@ -282,9 +288,9 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::getReferencedPluginClass
-   * @depends testDiscovery
+   * @legacy-covers ::getReferencedPluginClass
    */
+  #[Depends('testDiscovery')]
   public function testGetReferencedPluginClass(array $component_ids): void {
     self::assertSame(
       // All SDCs use the same plugin class!
@@ -298,9 +304,9 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent
-   * @depends testDiscovery
+   * @legacy-covers ::renderComponent
    */
+  #[Depends('testDiscovery')]
   public function testRenderComponentLive(array $component_ids): void {
     $this->installEntitySchema('node');
     $this->installConfig('node');
@@ -1091,9 +1097,11 @@ HTML
   }
 
   /**
-   * @covers ::getExplicitInput
-   * @dataProvider providerComponentResolving
+   * Tests get explicit input.
+   *
+   * @legacy-covers ::getExplicitInput
    */
+  #[DataProvider('providerComponentResolving')]
   public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids, ?array $permissions = NULL): void {
     $this->generateComponentConfig();
     $this->installEntitySchema('node');
@@ -2577,9 +2585,11 @@ HTML
   }
 
   /**
-   * @covers ::calculateDependencies
-   * @depends testDiscovery
+   * Tests calculate dependencies.
+   *
+   * @legacy-covers ::calculateDependencies
    */
+  #[Depends('testDiscovery')]
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
       'sdc.canvas_test_sdc.attributes' => [
@@ -5249,9 +5259,11 @@ HTML
   }
 
   /**
-   * @covers ::inputToClientModel
-   * @dataProvider explicitsInputsProvider
+   * Tests input to client model.
+   *
+   * @legacy-covers ::inputToClientModel
    */
+  #[DataProvider('explicitsInputsProvider')]
   public function testInputToClientModel(string $component_id, array $explicit_input, array $expected_client_model):void {
     $this->generateComponentConfig();
 
@@ -5272,15 +5284,17 @@ HTML
   }
 
   /**
+   * Tests client model to input.
+   *
    * @param array{source: SingleComponentInputArray, resolved: array<string, mixed>} $clientModel
    * @param ?array $nodeValues
    * @param ?array $expectedInput
    * @param ?class-string<\Throwable> $expectedExceptionClass
    * @param ?string $expectedExceptionMessage
    *
-   * @covers ::clientModelToInput
-   * @dataProvider providerClientModelToInput
+   * @legacy-covers ::clientModelToInput
    */
+  #[DataProvider('providerClientModelToInput')]
   public function testClientModelToInput(array $clientModel, ?array $nodeValues, ?array $expectedInput, ?string $expectedExceptionClass, ?string $expectedExceptionMessage): void {
     $this->generateComponentConfig();
     $component = Component::load('sdc.canvas_test_sdc.my-hero');

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Validation;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
@@ -13,10 +17,11 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
- * @group canvas
+ * Tests Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ComponentTreeStructureConstraintValidator::class)]
+#[Group('canvas')]
 final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
@@ -24,8 +29,9 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
   use ComponentTreeItemListInstantiatorTrait;
 
   /**
-   * @dataProvider providerValidation
-   */
+ * Tests validation.
+ */
+  #[DataProvider('providerValidation')]
   public function testValidation(array $items, array $expected_violations): void {
     $this->generateComponentConfig();
     $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
@@ -34,8 +40,9 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
   }
 
   /**
-   * @dataProvider providerValidationItemList
-   */
+ * Tests validation item list.
+ */
+  #[DataProvider('providerValidationItemList')]
   public function testValidationItemList(array $items, array $expected_violations): void {
     $this->generateComponentConfig();
     $item_list = $this->createDanglingComponentTreeItemList();

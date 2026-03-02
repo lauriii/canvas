@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Theme\ComponentPluginManager as CoreComponentPluginManager;
 use Drupal\canvas\Plugin\ComponentPluginManager as CanvasComponentPluginManager;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Service Decoration.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ServiceDecorationTest extends CanvasKernelTestBase {
 
   public function testServiceDecoration(): void {

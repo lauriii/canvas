@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
@@ -20,10 +22,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.
  *
- * @covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
@@ -186,8 +188,9 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @dataProvider providerTest
-   */
+ * Tests .
+ */
+  #[DataProvider('providerTest')]
   public function test(
     string $entity_type_id,
     array $initial_entity,

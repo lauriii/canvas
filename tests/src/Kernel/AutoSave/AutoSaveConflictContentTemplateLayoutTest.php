@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\AutoSave;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -17,10 +18,10 @@ use Symfony\Component\HttpFoundation\Request;
  * Tests auto-save conflict handling for content templates.
  *
  * @see \Drupal\canvas\Entity\PageRegion
- * @covers \Drupal\canvas\Controller\ApiLayoutController::get
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::get
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class AutoSaveConflictContentTemplateLayoutTest extends ApiLayoutControllerTestBase {
 
   use AutoSaveConflictTestTrait;

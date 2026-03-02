@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -18,11 +20,13 @@ use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiContentControllers
- * @group canvas
+ * Tests Canvas Content Entity Http Api.
+ *
  * @internal
+ * @legacy-covers \Drupal\canvas\Controller\ApiContentControllers
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
 
   /**
@@ -242,10 +246,12 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
+   * Tests list meta operations.
+   *
    * @param list<string> $extraCacheContexts
    * @param list<string> $extraCacheTags
-   * @dataProvider metaOperationsProvider
    */
+  #[DataProvider('metaOperationsProvider')]
   public function testListMetaOperations(array $permissions, array $expectedLinks, array $extraCacheContexts = [], array $extraCacheTags = []): void {
     $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page');
     array_walk($expectedLinks, fn(&$value) => $value = Url::fromUri($value)->toString());

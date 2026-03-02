@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
@@ -22,12 +25,13 @@ use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @coversClass \Drupal\canvas\ShapeMatcher\PropSourceSuggester
- * @group canvas
+ * Tests Prop Source Suggester.
  *
  * @phpstan-import-type HostEntityUrlPropSourceArray from \Drupal\canvas\PropSource\PropSourceBase
  */
+#[CoversClass(PropSourceSuggester::class)]
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class PropSourceSuggesterTest extends CanvasKernelTestBase {
 
   use EntityReferenceFieldCreationTrait;
@@ -193,10 +197,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @param array<string, array{'required': bool, 'instances': array<string, string>, 'adapters': array<string, string>, 'host_entity_urls': array<string, HostEntityUrlPropSourceArray>}> $expected
+   * Tests .
    *
-   * @dataProvider provider
+   * @param array<string, array{'required': bool, 'instances': array<string, string>, 'adapters': array<string, string>, 'host_entity_urls': array<string, HostEntityUrlPropSourceArray>}> $expected
    */
+  #[DataProvider('provider')]
   public function test(string $component_plugin_id, string $data_type_context, array $expected): void {
     $component = \Drupal::service(ComponentPluginManager::class)->find($component_plugin_id);
     \assert($component instanceof Component);

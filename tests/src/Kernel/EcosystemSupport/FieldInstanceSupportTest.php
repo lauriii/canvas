@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
@@ -40,14 +41,14 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * @todo Also test non-default FieldStorageConfig setting in https://www.drupal.org/project/canvas/issues/3512848
  *
- * @covers \Drupal\canvas\ShapeMatcher\PropSourceSuggester
  * @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
- * @covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  * @see \Drupal\Tests\canvas\Kernel\PropShapeToFieldInstanceTest
  * @see docs/shape-matching.md#3.1.2.a
- * @group canvas
+ * @legacy-covers \Drupal\canvas\ShapeMatcher\PropSourceSuggester
+ * @legacy-covers \Drupal\canvas\ShapeMatcher\JsonSchemaFieldInstanceMatcher
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
   /**

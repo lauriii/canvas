@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
@@ -31,10 +33,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::post
- * @group canvas
- * @group #slow
+ * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
  */
+#[Group('canvas')]
+#[Group('#slow')]
 #[RunTestsInSeparateProcesses]
 final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
@@ -59,9 +61,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     ]);
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testEntityAccessRequired(string $entity_type): void {
     $this->setUpCurrentUser([], [
       'administer url aliases',
@@ -134,9 +134,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame('Updated title', $entityFromAutoSave->label());
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testEmpty(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -158,9 +156,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertEquals('<div class="canvas--region-empty-placeholder"></div>', $root);
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testMissingSlot(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -214,9 +210,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments);
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function test(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -326,9 +320,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertArrayHasKey($uuid, $json['model']);
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testWithGlobal(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser(
@@ -386,9 +378,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     }
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testWithoutPageRegionPermission(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [
@@ -446,9 +436,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
   }
 
-  /**
-   * @dataProvider providerEntityTypes
-   */
+  #[DataProvider('providerEntityTypes')]
   public function testWithCodeComponent(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);

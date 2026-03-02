@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Url;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Functional\HttpApiTestBase;
@@ -13,13 +14,15 @@ use Drupal\canvas_personalization\Entity\Segment;
 use GuzzleHttp\RequestOptions;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiConfigControllers
- * @covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
+ * Tests Segment Http Api.
+ *
  * @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest
- * @group canvas
- * @group canvas_personalization
  * @internal
+ * @legacy-covers \Drupal\canvas\Controller\ApiConfigControllers
+ * @legacy-covers \Drupal\canvas\Controller\ApiConfigAutoSaveControllers
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 class SegmentHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

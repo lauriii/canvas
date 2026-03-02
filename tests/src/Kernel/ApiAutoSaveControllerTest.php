@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
@@ -46,12 +50,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Controller\ApiAutoSaveController
- * @group canvas
- * @group #slow
+ * Tests Drupal\canvas\Controller\ApiAutoSaveController.
+ *
  * @todo Refactor this to start using CanvasKernelTestBase and stop using CanvasTestSetup in https://www.drupal.org/project/canvas/issues/3531679
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ApiAutoSaveController::class)]
+#[Group('canvas')]
+#[Group('#slow')]
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
@@ -469,9 +475,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
-   * @covers ::post
-   * @dataProvider providerCases
+   * Tests post.
+   *
+   * @legacy-covers ::post
    */
+  #[DataProvider('providerCases')]
   public function testPost(bool $authorized, bool $withGlobal, ?string $expected_403_message): void {
     $this->setUpImages();
     $this->assertSiteHomepage('/user/login');
@@ -1118,7 +1126,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
-   * @covers ::delete
+   * Tests delete.
+   *
+   * @legacy-covers ::delete
    */
   public function testDelete(): void {
     $auto_save_data = $this->getAutoSaveStatesFromServer();
@@ -1191,7 +1201,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       );
     }
 
-    // Nonsense CSRF header
+    // Nonsense CSRF header.
     $request = Request::create($url->toString(), 'DELETE', server: ['CONTENT_TYPE' => 'application/json']);
     $session_configuration = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
     $request->cookies->set($session_configuration['name'], 'ABCD');
@@ -1252,12 +1262,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   /**
    * Tests enforcement of global asset library publishing with code components.
    *
-   * @covers ::validateExpectedAutoSaves
-   * @testWith [true, ["js_component:test-enforce-component", "asset_library:global"], 200, "Successfully published 2 items."]
-   *           [true, ["js_component:test-enforce-component"], 424]
-   *           [false, ["js_component:test-enforce-component"], 200, "Successfully published 1 item."]
    * @todo Adjust this in https://www.drupal.org/project/canvas/issues/3535038
+   * @legacy-covers ::validateExpectedAutoSaves
    */
+  #[TestWith([TRUE, ["js_component:test-enforce-component", "asset_library:global"], 200, "Successfully published 2 items."])]
+  #[TestWith([TRUE, ["js_component:test-enforce-component"], 424])]
+  #[TestWith([FALSE, ["js_component:test-enforce-component"], 200, "Successfully published 1 item."])]
   public function testEnforceGlobalAssetPublish(bool $global_asset_library_auto_save_exists, array $auto_save_keys_to_publish, int $expected_status_code, ?string $expected_message = NULL): void {
     $this->setUpCurrentUser(permissions: [
       PageRegion::ADMIN_PERMISSION,

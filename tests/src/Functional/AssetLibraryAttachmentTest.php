@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -16,10 +17,9 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Tests AssetLibrary config entities' generated assets load successfully.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class AssetLibraryAttachmentTest extends FunctionalTestBase {
 
   /**
@@ -33,7 +33,9 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * @covers \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments
+   * Tests .
+   *
+   * @legacy-covers \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments
    */
   public function test(): void {
     // We need to disable CSS/JS aggregation to test the raw assets.

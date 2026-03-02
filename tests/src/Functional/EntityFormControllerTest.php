@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Drupal\canvas\Controller\EntityFormController;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Controller\EntityFormController
- * @group canvas
+ * Tests Drupal\canvas\Controller\EntityFormController.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(EntityFormController::class)]
+#[Group('canvas')]
 class EntityFormControllerTest extends FunctionalTestBase {
 
   /**
@@ -36,8 +40,10 @@ class EntityFormControllerTest extends FunctionalTestBase {
   }
 
   /**
-   * @covers ::form
-   * @covers \Drupal\canvas\Hook\ContentTemplateHooks::entityFormDisplayAlter
+   * Tests form.
+   *
+   * @legacy-covers ::form
+   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityFormDisplayAlter
    */
   public function testForm(): void {
     $assert = $this->assertSession();

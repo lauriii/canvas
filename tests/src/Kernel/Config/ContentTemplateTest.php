@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -19,10 +22,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Entity\ContentTemplate
- * @group canvas
+ * Tests Drupal\canvas\Entity\ContentTemplate.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(ContentTemplate::class)]
+#[Group('canvas')]
 final class ContentTemplateTest extends CanvasKernelTestBase {
 
   use ContentTypeCreationTrait;
@@ -47,11 +51,12 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers ::label
+   * Tests label.
    *
-   * @testWith ["node.helpful.full", "Helpful content items — Full content view"]
-   *           ["user.user.compact", "Users — Compact view"]
+   * @legacy-covers ::label
    */
+  #[TestWith(["node.helpful.full", "Helpful content items — Full content view"])]
+  #[TestWith(["user.user.compact", "Users — Compact view"])]
   public function testLabel(string $id, string $expected_label): void {
     [$entity_type_id, $bundle, $view_mode] = explode('.', $id, 3);
 
@@ -65,7 +70,9 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter
+   * Tests only content entities can use templates.
+   *
+   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter
    */
   public function testOnlyContentEntitiesCanUseTemplates(): void {
     $manager = \Drupal::entityTypeManager();

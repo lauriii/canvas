@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -33,11 +35,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::get
- * @group canvas
- * @group #slow
+ * Tests Api Layout Controller Get.
+ *
+ * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::get
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('#slow')]
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   /**
@@ -60,8 +64,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @dataProvider providerEntityTypes
-   */
+ * Tests empty.
+ */
+  #[DataProvider('providerEntityTypes')]
   public function testEmpty(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -124,7 +129,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Local helper to check these are in sync/contain the expected title:
     // - entity label
     // - `model` in API response
-    // - `html` in API
+    // - `html` in API.
     $title_matches_resolved_and_html = function (string $expected_title, JsonResponse $response) use ($top_level_component_uuid, $nested_component_uuid) {
       // Current preview entity label MUST match the expected title.
       self::assertSame($expected_title, $this->previewEntity?->label());
@@ -155,8 +160,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @dataProvider providerEntityTypes
-   */
+ * Tests .
+ */
+  #[DataProvider('providerEntityTypes')]
   public function test(string $entity_type): void {
     // By default, there is only the "content" region in the client-side
     // representation.
@@ -260,7 +266,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
 
-    // Extract HTML from JSON response for title assertion
+    // Extract HTML from JSON response for title assertion.
     $expected_title = match(TRUE) {
       ContentTemplate::ENTITY_TYPE_ID === $entity_type && $this->previewEntity instanceof ContentEntityInterface => $this->previewEntity->label(),
       default => $original_entity->label(),
@@ -541,7 +547,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   /**
    * Tests that auto-save entries with inaccessible fields do not cause errors.
    *
-   * @covers \Drupal\canvas\Controller\ApiLayoutController::buildPreviewRenderable
+   * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::buildPreviewRenderable
    */
   public function testInaccessibleFieldsInAutoSave(): void {
     // Create a node to work with.
@@ -661,9 +667,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
   /**
    * Tests field access for the Drupal Canvas API layout.
-   *
-   * @dataProvider fieldAccessProvider
    */
+  #[DataProvider('fieldAccessProvider')]
   public function testFieldAccess(array $permissions, ?string $exception_message): void {
     $this->container->get('module_installer')->install(['canvas_test_field_access']);
     $this->setUpCurrentUser([], $permissions);
@@ -706,7 +711,9 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
+   * Tests preview entity validation.
+   *
+   * @legacy-covers \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
    */
   public function testPreviewEntityValidation(): void {
     $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION]);

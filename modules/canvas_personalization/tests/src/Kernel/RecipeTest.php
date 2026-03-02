@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Recipe\Recipe;
@@ -18,14 +19,14 @@ use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\canvas_personalization\Entity\Segment;
 
 /**
- * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
+ * @legacy-covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  * @see \Drupal\Tests\canvas\Kernel\ApiAutoSaveControllerTest
- * @group canvas
- * @group canvas_personalization
  *
  * Note this cannot use CanvasKernelTestBase because that would pre-install the
  * Canvas module: this test is installing Canvas via a recipe.
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 final class RecipeTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

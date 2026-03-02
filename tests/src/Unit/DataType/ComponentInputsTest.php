@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\DataType;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
@@ -14,14 +16,18 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Plugin\DataType\ComponentInputs
+ * Tests Drupal\canvas\Plugin\DataType\ComponentInputs.
+ *
  * @see \Drupal\Tests\canvas\Kernel\DataType\ComponentInputsDependenciesTest
- * @group canvas
  */
+#[CoversClass(ComponentInputs::class)]
+#[Group('canvas')]
 class ComponentInputsTest extends UnitTestCase {
 
   /**
-   * @covers ::getValues
+   * Tests get values.
+   *
+   * @legacy-covers ::getValues
    */
   public function testGetValues(): void {
     // Create test data.

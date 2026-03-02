@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\Twig;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
@@ -12,13 +14,12 @@ use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Tests\UnitTestCase;
 
 // cspell:ignore fitok itok Bwidth
-
 /**
  * Tests Twig filter functionality.
  *
- * @group canvas
- * @covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
+ * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::toSrcSet
  */
+#[Group('canvas')]
 class CanvasTwigExtensionFiltersTest extends UnitTestCase {
 
   /**
@@ -32,18 +33,19 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
   protected function setUp(): void {
     parent::setUp();
 
-    // Mock the required dependencies
+    // Mock the required dependencies.
     $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
     $imageFactory = $this->createMock(ImageFactory::class);
     $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
 
-    // Create the extension instance
+    // Create the extension instance.
     $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager);
   }
 
   /**
-   * @dataProvider providerToSrcSet
-   */
+ * Tests to src set.
+ */
+  #[DataProvider('providerToSrcSet')]
   public function testToSrcSet(string $src, int $intrinsicImageWidth, ?string $expected): void {
     $actual = $this->canvasTwigExtension->toSrcSet($src, $intrinsicImageWidth);
     $this->assertSame($expected, $actual);
@@ -132,9 +134,8 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
    *   The intrinsic width of the image in $src.
    * @param class-string<\Throwable> $expectedException
    *   The expected exception.
-   *
-   * @dataProvider invalidProviderToSrcSet
    */
+  #[DataProvider('invalidProviderToSrcSet')]
   public function testToSrcSetWithInvalidWidth(string $src, int $intrinsicImageWidth, string $expectedException): void {
     $this->expectException($expectedException);
     $this->canvasTwigExtension->toSrcSet($src, $intrinsicImageWidth);

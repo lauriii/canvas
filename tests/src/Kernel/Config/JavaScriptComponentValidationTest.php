@@ -6,6 +6,8 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore sofie componente extraño
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
@@ -13,10 +15,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests validation of JavaScriptComponent entities.
- *
- * @group canvas
- * @group JavaScriptComponents
  */
+#[Group('canvas')]
+#[Group('JavaScriptComponents')]
 #[RunTestsInSeparateProcesses]
 class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTestBase {
 
@@ -162,9 +163,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     yield 'integer' => ["integer", [42, 1988, 1992, 2024], ["42" => "42", "1988" => "1988", "1992" => "1992", "2024" => "2024"], NULL];
   }
 
-  /**
-   * @dataProvider providerValidEnumsAndExamples
-   */
+  #[DataProvider('providerValidEnumsAndExamples')]
   public function testValidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, array $meta_enum, ?array $expected_typecasting): void {
     $this->entity->set('props', [
       'tested_enum_prop' => [
@@ -188,9 +187,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     $this->assertSame($expected, $this->entity->get('props')['tested_enum_prop']['examples']);
   }
 
-  /**
-   * @dataProvider providerInvalidEnumsAndExamples
-   */
+  #[DataProvider('providerInvalidEnumsAndExamples')]
   public function testInvalidEnumsAndExamples(string $json_schema_type, array $enum_and_examples_both, ?array $meta_enum, array $indexed_validation_errors, array $expected_validation_errors = []): void {
     $this->entity->set('props', [
       'tested_enum_prop' => array_merge([
@@ -421,9 +418,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
    *   Array of entity values.
    * @param array $expected_errors
    *   Expected validation errors.
-   *
-   * @dataProvider providerTestEntityShapes
    */
+  #[DataProvider('providerTestEntityShapes')]
   public function testEntityShapes(array $shape, array $expected_errors): void {
     $this->entity = JavaScriptComponent::create($shape);
     // Strip out the prefix added by https://www.drupal.org/node/3549909. This

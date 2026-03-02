@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\DataType;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\canvas\Entity\Page;
@@ -25,11 +26,13 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies
+ * Tests Component Inputs Dependencies.
+ *
  * @see \Drupal\Tests\canvas\Unit\DataType\ComponentInputsTest
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
 
   use ComponentTreeItemListInstantiatorTrait;

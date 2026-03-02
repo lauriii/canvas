@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
@@ -23,10 +24,9 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the Component Audit Controller UI.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ComponentAuditControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;

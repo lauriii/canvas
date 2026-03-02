@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Canvas\ComponentSource;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\BubbleableMetadata;
@@ -23,10 +27,12 @@ use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
 
 /**
- * @coversDefaultClass \Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization
- * @group canvas_personalization
+ * Tests Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization.
+ *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  */
+#[CoversClass(Personalization::class)]
+#[Group('canvas_personalization')]
 final class PersonalizationTest extends ComponentSourceTestBase {
 
   use ConstraintViolationsTestTrait;
@@ -77,7 +83,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
   /**
    * Test our case and switch personalization Components are installed.
    *
-   * @covers ::checkRequirements
+   * @legacy-covers ::checkRequirements
    */
   public function testDiscovery(): array {
     $provided_components = [
@@ -96,9 +102,8 @@ final class PersonalizationTest extends ComponentSourceTestBase {
 
   /**
    * Tests settings for the personalization components.
-   *
-   * @depends testDiscovery
    */
+  #[Depends('testDiscovery')]
   public function testSettings(array $component_ids): void {
     $settings = $this->getAllSettings($component_ids);
     self::assertSame(self::getExpectedSettings(), $settings);
@@ -109,9 +114,9 @@ final class PersonalizationTest extends ComponentSourceTestBase {
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::getReferencedPluginClass
-   * @depends testDiscovery
+   * @legacy-covers ::getReferencedPluginClass
    */
+  #[Depends('testDiscovery')]
   public function testGetReferencedPluginClass(array $component_ids): void {
     self::assertSame(
       // No personalization components define a plugin class.
@@ -125,9 +130,9 @@ final class PersonalizationTest extends ComponentSourceTestBase {
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent
-   * @depends testDiscovery
+   * @legacy-covers ::renderComponent
    */
+  #[Depends('testDiscovery')]
   public function testRenderComponentLive(array $component_ids): void {
     $this->assertNotEmpty($component_ids);
 
@@ -178,9 +183,9 @@ HTML,
    *
    * @param array<ComponentConfigEntityId> $component_ids
    *
-   * @covers ::renderComponent
-   * @depends testDiscovery
+   * @legacy-covers ::renderComponent
    */
+  #[Depends('testDiscovery')]
   public function testRenderComponentPreview(array $component_ids): void {
     $this->assertNotEmpty($component_ids);
 
@@ -386,9 +391,11 @@ HTML,
   }
 
   /**
-   * @covers ::calculateDependencies
-   * @depends testDiscovery
+   * Tests calculate dependencies.
+   *
+   * @legacy-covers ::calculateDependencies
    */
+  #[Depends('testDiscovery')]
   public function testCalculateDependencies(array $component_ids): void {
     self::assertSame([
       'p13n.case' => [
@@ -441,10 +448,12 @@ HTML,
   }
 
   /**
-   * @covers ::inputToClientModel
-   * @covers ::clientModelToInput
-   * @dataProvider explicitsInputsProvider
+   * Tests input to client model.
+   *
+   * @legacy-covers ::inputToClientModel
+   * @legacy-covers ::clientModelToInput
    */
+  #[DataProvider('explicitsInputsProvider')]
   public function testInputToClientModel(string $component_id, array $explicit_input): void {
     $this->generateComponentConfig();
 

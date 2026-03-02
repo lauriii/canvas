@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -32,11 +34,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiLayoutController::patch
- * @group canvas
- * @group #slow
+ * Tests Api Layout Controller Patch.
+ *
+ * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::patch
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('#slow')]
 final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   use CanvasFieldTrait;
@@ -60,8 +64,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @dataProvider providerEntityTypes
-   */
+ * Tests entity access required.
+ */
+  #[DataProvider('providerEntityTypes')]
   public function testEntityAccessRequired(string $entity_type): void {
     $this->setUpCurrentUser([], [
       'administer url aliases',
@@ -200,9 +205,11 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Tests invalid.
+   *
    * @param class-string<\Throwable> $exception
-   * @dataProvider providerInvalid
    */
+  #[DataProvider('providerInvalid')]
   public function testInvalid(string $message, string $exception, array $content): void {
     $this->expectException($exception);
     $this->expectExceptionMessage($message);
@@ -284,8 +291,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @dataProvider providerValid
-   */
+ * Tests .
+ */
+  #[DataProvider('providerValid')]
   public function test(string $entity_type, bool $withAutoSave = FALSE, bool $withGlobal = FALSE): void {
     $entity = $this->getTestEntity($entity_type);
     $url = $this->getLayoutUrl($entity)->toString();
@@ -512,8 +520,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @dataProvider providerEntityTypes
-   */
+ * Tests without page region permission.
+ */
+  #[DataProvider('providerEntityTypes')]
   public function testWithoutPageRegionPermission(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [

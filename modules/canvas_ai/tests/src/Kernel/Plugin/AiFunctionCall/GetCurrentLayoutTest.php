@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -14,9 +15,8 @@ use Drupal\canvas_ai\CanvasAiPermissions;
 
 /**
  * Tests for the GetCurrentLayout function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class GetCurrentLayoutTest extends KernelTestBase {
 
   use UserCreationTrait;

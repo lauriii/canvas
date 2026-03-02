@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\Yaml\Yaml;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 
 /**
  * Tests for the GetEntityInformation function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class GetEntityInformationTest extends KernelTestBase {
 
   /**

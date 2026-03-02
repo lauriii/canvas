@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
 use Drupal\Core\Render\HtmlResponse;
@@ -20,14 +21,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
+ * @legacy-covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
  * @see \Drupal\Tests\canvas\Kernel\ApiAutoSaveControllerTest
- * @group canvas
- * @group canvas_personalization
  *
  * Note this cannot use CanvasKernelTestBase because that would pre-install the
  * Canvas module: this test is installing Canvas via a recipe.
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 #[RunTestsInSeparateProcesses]
 final class PersonalizationTest extends KernelTestBase {
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
@@ -17,9 +20,10 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @group canvas
+ * Tests Api Ui Content Template Controllers.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
   use GenerateComponentConfigTrait;
@@ -137,9 +141,11 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @dataProvider providerSuggestPropSources
+   * Tests suggest prop sources.
+   *
    * @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
    */
+  #[DataProvider('providerSuggestPropSources')]
   public function testSuggestPropSources(string $component_config_entity_id, string $content_entity_type_id, string $bundle, array $expected): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',
@@ -608,11 +614,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @testWith ["a/b/c", 404, "The component c does not exist."]
-   *           ["a/b/sdc.canvas_test_sdc.image", 404, "The `a` content entity type does not exist."]
-   *           ["node/b/sdc.canvas_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."]
-   *           ["node/article/block.user_login_block", 400, "Only components that define their inputs using JSON Schema and use fields to populate their inputs are currently supported."]
-   */
+ * Tests suggest prop sources client errors.
+ */
+  #[TestWith(["a/b/c", 404, "The component c does not exist."])]
+  #[TestWith(["a/b/sdc.canvas_test_sdc.image", 404, "The `a` content entity type does not exist."])]
+  #[TestWith(["node/b/sdc.canvas_test_sdc.image", 404, "The `node` content entity type does not have a `b` bundle."])]
+  #[TestWith(["node/article/block.user_login_block", 400, "Only components that define their inputs using JSON Schema and use fields to populate their inputs are currently supported."])]
   public function testSuggestPropSourcesClientErrors(string $trail, int $expected_status_code, string $expected_error_message): void {
     $json = $this->assertExpectedResponse(
       method: 'GET',

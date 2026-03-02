@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Element;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\DeprecationHelper;
@@ -21,11 +22,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 /**
  * Tests Island.
  *
- * @covers \Drupal\canvas\Element\AstroIsland
- * @group JavaScriptComponents
- * @group canvas
+ * @legacy-covers \Drupal\canvas\Element\AstroIsland
  */
 #[RunTestsInSeparateProcesses]
+#[Group('JavaScriptComponents')]
+#[Group('canvas')]
 final class AstroIslandTest extends CanvasKernelTestBase {
 
   use CrawlerTrait;

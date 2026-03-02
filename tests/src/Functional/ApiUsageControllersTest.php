@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Controller\ApiUsageControllers;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -14,11 +15,13 @@ use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\Controller\ApiUsageControllers
- * @group canvas
+ * Tests Api Usage Controllers.
+ *
  * @internal
+ * @legacy-covers \Drupal\canvas\Controller\ApiUsageControllers
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class ApiUsageControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
@@ -70,7 +73,9 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Controller\ApiUsageControllers::component
+   * Tests component usage.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiUsageControllers::component
    */
   public function testComponentUsage(): void {
     $response = $this->makeApiRequest('GET', Url::fromUri('base:/canvas/api/v0/usage/component/sdc.canvas_test_sdc.card'), []);
@@ -84,7 +89,9 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Controller\ApiUsageControllers::componentDetails
+   * Tests component details usage.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiUsageControllers::componentDetails
    */
   public function testComponentDetailsUsage(): void {
     $json = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/usage/component/sdc.canvas_test_sdc.props-no-slots/details'), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
@@ -106,7 +113,9 @@ class ApiUsageControllersTest extends HttpApiTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Controller\ApiUsageControllers::componentsList
+   * Tests component list usage.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiUsageControllers::componentsList
    */
   public function testComponentListUsage(): void {
     $components = Component::loadMultiple();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInterface;
@@ -44,11 +45,11 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * test coverage.
  *
  * @see \Drupal\Tests\canvas\Unit\PropExpressionTest
- * @group canvas
- * @group canvas_data_model
- * @group canvas_data_model__prop_expressions
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('canvas_data_model')]
+#[Group('canvas_data_model__prop_expressions')]
 class PropExpressionKernelTest extends CanvasKernelTestBase {
 
   use EntityReferenceFieldCreationTrait;
@@ -289,7 +290,9 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\Labeler
+   * Tests label.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\Labeler
    */
   #[IgnoreDeprecations]
   public function testLabel(): void {
@@ -340,12 +343,14 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies
+   * Tests calculate dependencies.
+   *
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::calculateDependencies
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression::calculateDependencies
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression::calculateDependencies
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression::calculateDependencies
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression::calculateDependencies
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression::calculateDependencies
    */
   #[IgnoreDeprecations]
   public function testCalculateDependencies(): void {
@@ -481,10 +486,10 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
    * support, because they both use ReferencedBundleSpecificBranches in exactly
    * the same way.
    *
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
-   * @covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
    * @see \Drupal\Tests\canvas\Unit\PropExpressionTest::testInvalidReferencePropExpressionDueToMismatchedLeafExpressionCardinality()
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches::__construct
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression
    */
   public function testInvalidReferencePropExpressionDueToMismatchedLeafExpressionCardinality(): void {
     // @phpstan-ignore method.nonObject

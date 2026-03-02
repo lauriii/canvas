@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
@@ -13,9 +15,8 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the GetJsComponent function call plugin.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class GetJsComponentTest extends KernelTestBase {
 
   use UserCreationTrait;
@@ -53,10 +54,9 @@ final class GetJsComponentTest extends KernelTestBase {
 
   /**
    * Test getting JS component returns expected JS and CSS.
-   *
-   * @testWith [false]
-   *            [true]
    */
+  #[TestWith([FALSE])]
+  #[TestWith([TRUE])]
   public function testGetJsComponent(bool $with_auto_save = FALSE): void {
     $tool = $this->functionCallManager->createInstance('ai_agent:get_js_component');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
@@ -11,15 +13,18 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Entity\JavaScriptComponent
- * @group canvas
+ * Tests Drupal\canvas\Entity\JavaScriptComponent.
  */
 #[RunTestsInSeparateProcesses]
+#[CoversClass(JavaScriptComponent::class)]
+#[Group('canvas')]
 class JavascriptComponentTest extends CanvasKernelTestBase {
 
   /**
-   * @covers ::createFromClientSide
-   * @covers ::updateFromClientSide
+   * Tests adding imported component dependencies.
+   *
+   * @legacy-covers ::createFromClientSide
+   * @legacy-covers ::updateFromClientSide
    */
   public function testAddingImportedComponentDependencies(): void {
     $client_data = [

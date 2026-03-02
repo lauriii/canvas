@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -30,10 +31,9 @@ use PHPUnit\Framework\Attributes\TestWith;
  * coverage to keep the kernel tests "honest".
  *
  * @see \Drupal\Tests\canvas\Kernel\PropExpressionKernelTest::testCalculateDependencies()
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class PropExpressionDependenciesTest extends FunctionalTestBase {
 
   use EntityReferenceFieldCreationTrait;

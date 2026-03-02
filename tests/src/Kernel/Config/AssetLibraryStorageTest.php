@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage
- * @covers \Drupal\canvas\Entity\AssetLibrary
- * @group canvas
+ * Tests Asset Library Storage.
+ *
  * @internal
+ * @legacy-covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage
+ * @legacy-covers \Drupal\canvas\Entity\AssetLibrary
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class AssetLibraryStorageTest extends CanvasKernelTestBase {
 
   /**
-   * @covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
+   * Tests generated files.
+   *
+   * @legacy-covers \Drupal\canvas\EntityHandlers\CanvasAssetStorage::generateFiles
    */
   public function testGeneratedFiles(): void {
     $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\TestWith;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -26,10 +28,12 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
+ * Tests Api Auto Save Controller.
+ *
  * @see \Drupal\Tests\canvas\Kernel\ApiAutoSaveControllerTest
- * @group canvas
- * @group canvas_personalization
  */
+#[Group('canvas')]
+#[Group('canvas_personalization')]
 final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
@@ -163,9 +167,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
-   * @testWith [false, "The 'publish auto-saves' permission is required."]
-   *           [true, null]
-   */
+ * Tests post.
+ */
+  #[TestWith([FALSE, "The 'publish auto-saves' permission is required."])]
+  #[TestWith([TRUE, NULL])]
   public function testPost(bool $authorized, ?string $expected_403_message): void {
     $this->setUpImages();
     $entity_type_manager = $this->container->get('entity_type.manager');

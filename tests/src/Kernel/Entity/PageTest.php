@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -14,9 +15,10 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Page.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class PageTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
@@ -161,7 +163,7 @@ final class PageTest extends CanvasKernelTestBase {
     );
     // See \Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType\ComponentTreeItemTest and
     // \Drupal\Tests\canvas\Unit\PropExpressionTest for extended test coverage,
-    // which combined with \Drupal\Tests\canvas\Kernel\PropSourceTest::testEntityFieldPropSource,
+    // which combined with \Drupal\Tests\canvas\Kernel\PropSource\EntityFieldPropSourceTest,
     // does already prove that this will work correctly for EVERYTHING.
     $dependencies = $components->calculateDependencies();
     $this->assertSame([

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\ErrorHandler\BufferingLogger;
 use Symfony\Component\HttpFoundation\Request;
@@ -11,9 +14,10 @@ use Drupal\canvas\Controller\ApiLogController;
 use Drupal\Core\Logger\RfcLogLevel;
 
 /**
- * @coversDefaultClass \Drupal\canvas\Controller\ApiLogController
- * @group canvas
+ * Tests Drupal\canvas\Controller\ApiLogController.
  */
+#[CoversClass(ApiLogController::class)]
+#[Group('canvas')]
 class ApiLogControllerTest extends TestCase {
 
   private const LOG_LEVEL_MAP = [
@@ -53,8 +57,9 @@ class ApiLogControllerTest extends TestCase {
   }
 
   /**
-   * @dataProvider providerApiLogController
-   */
+ * Tests api log controller.
+ */
+  #[DataProvider('providerApiLogController')]
   public function testApiLogController(array $payload, int $expectedStatus, string $expectedMessage): void {
     $logger = $this->getLogger();
     $controller = $this->getController($logger);

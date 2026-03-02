@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Twig;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\canvas\Element\AstroIsland;
@@ -15,11 +17,10 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Tests CanvasTwigExtension.
- *
- * @group canvas
- * @group Twig
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
+#[Group('Twig')]
 final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
@@ -33,10 +34,12 @@ final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @covers \Drupal\canvas\Twig\CanvasTwigExtension
-   * @covers \Drupal\canvas\Twig\CanvasPropVisitor
-   * @dataProvider providerComponents
+   * Tests extension.
+   *
+   * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension
+   * @legacy-covers \Drupal\canvas\Twig\CanvasPropVisitor
    */
+  #[DataProvider('providerComponents')]
   public function testExtension(
     string $type,
     string $component_id,

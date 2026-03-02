@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Session\AccountInterface;
@@ -13,9 +14,10 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @group canvas
+ * Tests Homepage Node Deletion.
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 class HomepageNodeDeletionTest extends CanvasKernelTestBase {
 
   use NodeCreationTrait;

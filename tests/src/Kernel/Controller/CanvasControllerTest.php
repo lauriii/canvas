@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -26,10 +28,9 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the Drupal Canvas UI mount for various entity types.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class CanvasControllerTest extends CanvasKernelTestBase {
 
   use PageTrait;
@@ -82,9 +83,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
    *   The values.
    * @param null|string $expected_exception_message
    *   Consider removing in https://www.drupal.org/i/3498525.
-   *
-   * @dataProvider entityData
    */
+  #[DataProvider('entityData')]
   public function testController(string $entity_type, array $permissions, array $values, ?string $expected_exception_message = NULL): void {
     $this->installEntitySchema($entity_type);
 
@@ -154,9 +154,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
    *   The permissions.
    * @param array $expectedPermissionFlags
    *   The expected flags.
-   *
-   * @dataProvider permissionsData
    */
+  #[DataProvider('permissionsData')]
   public function testControllerExposedPermissions(array $permissions, array $expectedPermissionFlags): void {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
@@ -285,9 +284,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
    *   The permissions.
    * @param array $expectedCreateOperations
    *   The expected create operations array.
-   *
-   * @dataProvider createOperationsData
    */
+  #[DataProvider('createOperationsData')]
   public function testControllerExposedContentEntityCreateOperations(array $permissions, array $expectedCreateOperations): void {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
@@ -356,9 +354,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
    *   The modules to enable.
    * @param array $expectedFeatureFlags
    *   The expected feature flags values.
-   *
-   * @dataProvider featureFlagsData
    */
+  #[DataProvider('featureFlagsData')]
   public function testControllerExposedFeatureFlags(array $modules, array $expectedFeatureFlags): void {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
     $permissions = [

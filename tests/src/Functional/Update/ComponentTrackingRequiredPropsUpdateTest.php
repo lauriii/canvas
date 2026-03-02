@@ -6,15 +6,18 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional\Update;
 
+use PHPUnit\Framework\Attributes\Group;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * @covers \canvas_post_update_0001_track_props_have_required_flag_in_components
- * @group canvas
+ * Tests Component Tracking Required Props Update.
+ *
+ * @legacy-covers \canvas_post_update_0001_track_props_have_required_flag_in_components
  */
 #[RunTestsInSeparateProcesses]
+#[Group('canvas')]
 final class ComponentTrackingRequiredPropsUpdateTest extends CanvasUpdatePathTestBase {
 
   use ComponentTreeItemListInstantiatorTrait;

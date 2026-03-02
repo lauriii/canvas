@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the CanvasAiPageBuilderHelper.
- *
- * @group canvas_ai
  */
+#[Group('canvas_ai')]
 final class CanvasAiPageBuilderHelperTest extends KernelTestBase {
 
   /**
@@ -303,9 +304,8 @@ YAML;
 
   /**
    * Tests the generateVerboseContextForOrchestrator method.
-   *
-   * @dataProvider generateVerboseContextProvider
    */
+  #[DataProvider('generateVerboseContextProvider')]
   public function testGenerateVerboseContextForOrchestrator(array $prompt, string $expected): void {
     $result = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt);
     $this->assertEquals($expected, $result);

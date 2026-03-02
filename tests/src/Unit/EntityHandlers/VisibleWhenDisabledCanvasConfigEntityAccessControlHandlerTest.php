@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -27,15 +30,18 @@ use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessCont
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler
- * @group canvas
+ * Tests Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler.
  */
+#[CoversClass(VisibleWhenDisabledCanvasConfigEntityAccessControlHandler::class)]
+#[Group('canvas')]
 final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandlerTest extends UnitTestCase {
 
   /**
-   * @covers ::checkAccess
-   * @dataProvider viewPermissionProvider
+   * Tests can view without checking permissions.
+   *
+   * @legacy-covers ::checkAccess
    */
+  #[DataProvider('viewPermissionProvider')]
   public function testCanViewWithoutCheckingPermissions(string $entityTypeId, string $entityTypeLabel, bool $status, bool $hasAccessToCanvas, string $permission, string $expectedAccessResult): void {
     $cacheContextsManager = $this->prophesize(CacheContextsManager::class);
     $cacheContextsManager->assertValidTokens(['user.roles:authenticated'])->willReturn(TRUE);
