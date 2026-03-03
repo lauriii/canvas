@@ -29,14 +29,16 @@ final class ConfigEntityQuery extends Query {
   protected function recursiveCmp(array $a, array $b, $index = 0) {
     $direction = $this->sort[$index]['direction'] == 'ASC' ? -1 : 1;
     $field = $this->sort[$index]['field'];
-    if ($a[$field] == $b[$field]) {
+    $a_value = $a[$field] ?? NULL;
+    $b_value = $b[$field] ?? NULL;
+    if ($a_value == $b_value) {
       $index++;
       if (isset($this->sort[$index])) {
         return $this->recursiveCmp($a, $b, $index);
       }
       return 0;
     }
-    return ($a[$field] < $b[$field]) ? $direction : -$direction;
+    return ($a_value < $b_value) ? $direction : -$direction;
   }
 
   /**
