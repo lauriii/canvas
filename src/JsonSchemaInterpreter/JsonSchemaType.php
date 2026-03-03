@@ -266,7 +266,10 @@ enum JsonSchemaType: string {
       }
 
       if (\array_key_exists('maxItems', $schema) && $schema['maxItems'] < 2) {
-        throw new \InvalidArgumentException('Nonsensical array size limit specified.');
+        throw new \InvalidArgumentException(\sprintf(
+          'The "maxItems" value must be at least 2 for array types, but got %d. Use a non-array type for single-value props.',
+          $schema['maxItems'],
+        ));
       }
       return new StorablePropShape(
         // The original shape, not the item shape.

@@ -155,6 +155,9 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.html-invalid-format' => [
         'Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".',
       ],
+      'sdc.canvas_test_sdc.image-gallery-nonsensical' => [
+        'The "maxItems" restriction on arrays (if set) must be at least 2, but got 1 on prop "images". Use a non-array type for single-value props.',
+      ],
       'sdc.canvas_test_sdc.image-required-with-invalid-example' => [
         'Prop "image" has invalid example value: [src] The property src is required',
       ],
