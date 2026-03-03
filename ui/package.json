@@ -51,6 +51,7 @@
     "@swc/wasm-web": "^1.10.14",
     "@uiw/codemirror-theme-github": "^4.23.7",
     "@uiw/react-codemirror": "^4.23.7",
+    "@use-gesture/react": "^10.3.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-formats-draft2019": "^1.6.1",

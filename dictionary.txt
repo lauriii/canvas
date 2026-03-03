@@ -50,6 +50,9 @@ extensionless
 fieldtext
 folderfy
 gerbeaud
+gesturechange
+gestureend
+gesturestart
 greppable
 heredocs
 herobanner
@@ -125,6 +128,7 @@ SVAY
 testid
 toolset
 topbar
+trackpad
 tsconfigs
 tseslint
 ultrawide

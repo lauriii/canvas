@@ -169,31 +169,40 @@ describe('Drupal Canvas editor frame controls/navigation', () => {
     cy.findByTestId('canvas-editor-frame-scaling').should(
       'have.css',
       'transform',
-      'matrix(1.1, 0, 0, 1.1, 0, 0)',
+      'matrix(1.02, 0, 0, 1.02, 0, 0)',
     );
-    cy.findByTestId('canvas-editor-frame-controls').findByText('110%');
+    cy.findByTestId('canvas-editor-frame-controls').findByText('102%');
 
     cy.log(
       'Zoom out (twice) by holding ctrl and using the mousewheel (or pinch on track pad)',
     );
 
+    // Wait to ensure the wheel event doesn't have acceleration applied from the previous zoom event.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(200);
+
     cy.findByTestId('canvas-editor-frame').click({ force: true });
     // Zoom once, back to 100%.
     cy.findByTestId('canvas-editor-frame').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll with ctrl.
 
-    // wait here because the scroll event is throttled to 50ms. Waiting 200ms just to give some extra headroom.
-    // See handleWheel and wheelEventBufferTimeMs in EditorFrame.ts.
+    // Wait to ensure the wheel event doesn't have acceleration applied from the previous zoom event.
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(200);
 
-    // Zoom out second time, to 90%.
+    // Zoom out second time, should be close to 98%
     cy.findByTestId('canvas-editor-frame').triggerMouseWheelWithCtrl(20); // Simulate mouse wheel roll with ctrl.
 
-    cy.findByTestId('canvas-editor-frame-scaling').should(
-      'have.css',
-      'transform',
-      'matrix(0.9, 0, 0, 0.9, 0, 0)',
-    );
-    cy.findByTestId('canvas-editor-frame-controls').findByText('90%');
+    // With logarithmic zoom, the scale compounds, so we need tolerance
+    // 1.02 → ~1.00 → ~0.98 (actual: 0.979608 due to compounding)
+    cy.findByTestId('canvas-editor-frame-scaling').should(($el) => {
+      const transform = $el.css('transform');
+      const match = /matrix\(([\d.-]+), 0, 0, ([\d.-]+), 0, 0\)/.exec(
+        transform,
+      );
+      expect(match).to.not.be.null;
+      const scale = parseFloat(match[1]);
+      expect(scale).to.be.closeTo(0.98, 0.01); // Allow 1% tolerance
+    });
+    cy.findByTestId('canvas-editor-frame-controls').findByText('98%');
   });
 });

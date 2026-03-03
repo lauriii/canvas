@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useParams } from 'react-router';
 import { useDebouncedCallback } from 'use-debounce';
+import { useGesture } from '@use-gesture/react';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -18,6 +19,7 @@ import PreviewOverlay from '@/features/layout/previewOverlay/PreviewOverlay';
 import {
   editorViewPortZoomIn,
   editorViewPortZoomOut,
+  scaleValues,
   selectDragging,
   selectEditorViewPort,
   selectFirstLoadComplete,
@@ -42,6 +44,10 @@ import type React from 'react';
 
 import styles from './EditorFrame.module.css';
 
+// Zoom sensitivity settings - picked based on how they feel during testing
+const WHEEL_ZOOM_SENSITIVITY = 0.001; // Using a mouse wheel (or trackpad two finger up/down while holding ctrl/cmd)
+const PINCH_ZOOM_SENSITIVITY = 0.01; // Using a trackpad pinch gesture
+
 const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
@@ -49,7 +55,6 @@ const EditorFrame: React.FC = () => {
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameScrollRef = useRef<number | null>(null);
-  const animFrameScaleRef = useRef<number | null>(null);
   const scalingContainerRef = useRef<HTMLDivElement | null>(null);
   // Use a ref for panningStart to ensure immediate access in event handlers
   const panningStartRef = useRef<{
@@ -137,15 +142,14 @@ const EditorFrame: React.FC = () => {
     pasteAfterSelectedComponent();
   });
 
-  // Update the width/height of the editorFrame to accommodate the scaled viewport (scalingContainerRef).
+  // Update the width/height of the editorFrame to accommodate the scaled viewport.
+  // CSS transforms don't affect layout, so we manually sync the parent's dimensions.
   const updateEditorFrameSize = useCallback(() => {
     if (!scalingContainerRef.current || !editorFrameRef.current) {
       return;
     }
 
-    // because the editorFrame is scaled with CSS transform, we need to get/set the width/height of the parent manually
-    const rect = scalingContainerRef.current?.getBoundingClientRect();
-
+    const rect = scalingContainerRef.current.getBoundingClientRect();
     editorFrameRef.current.style.width = rect.width ? `${rect.width}px` : '';
     editorFrameRef.current.style.height = rect.height ? `${rect.height}px` : '';
   }, []);
@@ -267,9 +271,6 @@ const EditorFrame: React.FC = () => {
         }
 
         animFrameScrollRef.current = requestAnimationFrame(() => {
-          if (scalingContainerRef.current) {
-            scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
-          }
           if (editorPaneRef.current) {
             editorPaneRef.current.scrollLeft = newScrollLeft;
             editorPaneRef.current.scrollTop = newScrollTop;
@@ -278,7 +279,7 @@ const EditorFrame: React.FC = () => {
         });
       }
     },
-    [editorViewPort.scale, debouncedScrollPosUpdate],
+    [debouncedScrollPosUpdate],
   );
 
   const handleDocumentMouseUp = useCallback(() => {
@@ -289,34 +290,127 @@ const EditorFrame: React.FC = () => {
     document.removeEventListener('mouseup', handleDocumentMouseUp);
   }, [debouncedIsPanningUpdate, handleDocumentMouseMove]);
 
-  // Track the last time we processed a wheel event.
-  const lastWheelEventTimeRef = useRef<number>(0);
-  const wheelEventBufferTimeMs = 50; // Only process wheel events every 50ms.
+  const minScale = scaleValues[0].scale;
+  const maxScale = scaleValues[scaleValues.length - 1].scale;
 
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
+  const clampScale = useCallback(
+    (scale: number) => Math.max(minScale, Math.min(maxScale, scale)),
+    [minScale, maxScale],
+  );
 
-        // Throttle wheel events to avoid too rapid scaling.
-        const now = Date.now();
-        if (now - lastWheelEventTimeRef.current > wheelEventBufferTimeMs) {
+  // Pinch gesture tracking refs
+  const isPinchingRef = useRef(false); // True during any pinch gesture (used for zoom sensitivity in onWheel)
+  const isSafariGestureActiveRef = useRef(false); // True during Safari GestureEvents (blocks onWheel)
+  const pinchStartScaleRef = useRef(1); // Scale at gesture start (Safari only)
+  const pinchMovementBaselineRef = useRef(0); // Initial movement[0] value to normalize Safari gesture deltas
+
+  /**
+   * Configure gesture handling for smooth free-form panning and precise zooming.
+   * - Track pad scroll: Free X/Y panning
+   * - Cmd/Ctrl + wheel: Continuous zoom based on scroll delta
+   * - Pinch: Multi-touch zoom gesture
+   *
+   * Browser behavior note:
+   * - Chrome/Firefox: trackpad pinch fires wheel events with ctrlKey=true and large dy values.
+   *   onWheel handles zoom for these browsers. onPinch fires too but is ignored via the
+   *   event.type guard below to avoid double-zooming.
+   * - Safari: pinch fires native GestureEvents (gesturestart/gesturechange/gestureend) which
+   *   @use-gesture routes through onPinch. Safari does NOT fire wheel events during the pinch,
+   *   so onWheel never runs. The zoom logic in onPinch handles Safari exclusively, guarded by
+   *   checking that the event type starts with "gesture".
+   */
+  useGesture(
+    {
+      onWheel: ({ event, delta: [dx, dy], ctrlKey, metaKey }) => {
+        event.preventDefault();
+
+        if (ctrlKey || metaKey) {
+          // Skip if Safari is handling pinch via GestureEvents
+          if (isSafariGestureActiveRef.current) return;
+
           dispatch(setIsZooming(true));
-          lastWheelEventTimeRef.current = now;
-          // Only care about the direction, not the magnitude.
-          if (e.deltaY > 0) {
-            dispatch(editorViewPortZoomOut());
-          } else {
-            dispatch(editorViewPortZoomIn());
+
+          // Use higher sensitivity for trackpad pinch (isPinchingRef) vs mouse wheel.
+          // Scale proportionally to current scale for a logarithmic zoom feel.
+          const sensitivity = isPinchingRef.current
+            ? PINCH_ZOOM_SENSITIVITY
+            : WHEEL_ZOOM_SENSITIVITY;
+          const scaleDelta = -dy * sensitivity * editorViewPort.scale;
+          const newScale = clampScale(editorViewPort.scale + scaleDelta);
+
+          dispatch(setEditorFrameViewPort({ scale: newScale }));
+          debouncedIsZoomingUpdate();
+        } else {
+          // Free-form panning mode
+          if (editorPaneRef.current) {
+            dispatch(setIsPanning(true));
+            editorPaneRef.current.scrollLeft += dx;
+            editorPaneRef.current.scrollTop += dy;
+            debouncedScrollPosUpdate();
+            debouncedIsPanningUpdate();
           }
+        }
+      },
+      onPinch: ({ first, last, movement, event }) => {
+        const eventType = (event as Event)?.type ?? '';
+        const isSafariGesture = eventType.startsWith('gesture');
+
+        // Track pinch state for all browsers (used by onWheel for sensitivity selection)
+        if (first) {
+          isPinchingRef.current = true;
+        }
+        if (last) {
+          isPinchingRef.current = false;
+        }
+
+        // Chrome/Firefox handle pinch via onWheel; only Safari uses GestureEvents here
+        if (!isSafariGesture) {
+          return;
+        }
+
+        if (first) {
+          isSafariGestureActiveRef.current = true;
+          pinchStartScaleRef.current = editorViewPort.scale;
+          // Safari's gesturestart fires with movement[0] ~= 1.0, not 0. Capture as
+          // a baseline so all subsequent deltas are relative to the true gesture start.
+          pinchMovementBaselineRef.current = movement[0];
+          dispatch(setIsZooming(true));
+        }
+
+        const relativeDelta = movement[0] - pinchMovementBaselineRef.current;
+        const newScale = clampScale(
+          pinchStartScaleRef.current * (1 + relativeDelta),
+        );
+
+        // Write scale directly to DOM for smooth 60fps updates, bypassing Redux
+        // until gesture ends. Also update frame size since ResizeObserver doesn't
+        // fire for transform changes.
+        if (scalingContainerRef.current) {
+          scalingContainerRef.current.style.transform = `scale(${newScale})`;
+          updateEditorFrameSize();
+        }
+
+        if (last) {
+          // Sync final scale to Redux
+          if (scalingContainerRef.current) {
+            scalingContainerRef.current.style.transform = `scale(${newScale})`;
+          }
+          dispatch(setEditorFrameViewPort({ scale: newScale }));
+
+          // Clear Safari gesture flag after dispatching
+          isSafariGestureActiveRef.current = false;
 
           debouncedIsZoomingUpdate();
         }
-      }
+      },
     },
-    [debouncedIsZoomingUpdate, dispatch],
+    {
+      target: editorPaneRef,
+      eventOptions: { passive: false },
+    },
   );
 
+  // Sync scroll position from Redux to DOM
   useEffect(() => {
     if (animFrameScrollRef.current) {
       cancelAnimationFrame(animFrameScrollRef.current);
@@ -330,28 +424,23 @@ const EditorFrame: React.FC = () => {
     });
   }, [editorViewPort.x, editorViewPort.y]);
 
-  useEffect(() => {
-    if (animFrameScaleRef.current) {
-      cancelAnimationFrame(animFrameScaleRef.current);
-    }
+  // Sync scale from Redux to DOM. Skip during Safari pinch gestures since
+  // onPinch owns the DOM transform during the gesture for smooth 60fps updates.
+  useLayoutEffect(() => {
+    if (isSafariGestureActiveRef.current) return;
 
-    animFrameScaleRef.current = requestAnimationFrame(() => {
-      if (scalingContainerRef.current) {
-        scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
-      }
-    });
+    if (scalingContainerRef.current) {
+      scalingContainerRef.current.style.transform = `scale(${editorViewPort.scale})`;
+    }
   }, [editorViewPort.scale]);
 
   useEffect(() => {
-    window.addEventListener('wheel', handleWheel, { passive: false });
-
     return () => {
       // Cleanup on unmount in case any listeners are still attached.
-      window.removeEventListener('wheel', handleWheel);
       document.removeEventListener('mousemove', handleDocumentMouseMove);
       document.removeEventListener('mouseup', handleDocumentMouseUp);
     };
-  }, [handleWheel, handleDocumentMouseMove, handleDocumentMouseUp]);
+  }, [handleDocumentMouseMove, handleDocumentMouseUp]);
 
   // Update the editorFrame size when the scale changes or on initial render.
   useLayoutEffect(() => {
@@ -387,9 +476,6 @@ const EditorFrame: React.FC = () => {
                 styles.canvasEditorFrameScalingContainer,
               )}
               data-testid="canvas-editor-frame-scaling"
-              style={{
-                transform: `scale(${editorViewPort.scale})`,
-              }}
               ref={scalingContainerRef}
             >
               <ErrorBoundary
