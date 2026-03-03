@@ -112,6 +112,7 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
       'body' => [['value' => 'My test node body', 'summary' => 'Body Summary', 'format' => 'plain_text']],
       'field_hero' => $image_field_sample_value,
     ]);
+    self::assertEntityIsValid($node);
     $node->save();
 
     $this->generateComponentConfig();

@@ -24,6 +24,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -54,18 +55,23 @@ if (!\class_exists(TestSetupInterface::class)) {
 
 class CanvasTestSetup implements TestSetupInterface {
 
-  // Fixed IDs for testing sake
+  use ConstraintViolationsTestTrait;
+
+  // Fixed component instance UUIDs for testing sake.
   public const string UUID_EMPTY_COMPONENT = 'cea4c5b3-7921-4c6f-b388-da921bd1496d';
   public const string UUID_TWO_COLUMN_UUID = '16176e0b-8197-40e3-ad49-48f1b6e9a7f9';
   public const string UUID_STATIC_IMAGE = '8f6780cd-7b64-499e-9545-321a14951a0d';
+  public const string UUID_STATIC_IMAGE2 = '8f6780cd-7b64-499e-9545-321a14951a0e';
   public const string UUID_STATIC_CARD1 = '208452de-10d6-4fb8-89a1-10e340b3744c';
   public const string UUID_CODE_COMPONENT = '5fc4de04-f59c-4f56-b576-4673433381a4';
   public const string UUID_ALL_SLOTS_EMPTY = 'b8fd639d-f1df-413a-8926-8d2c7a3d6493';
   public const string UUID_STATIC_CARD2 = '4d866c38-7261-45c6-9b1e-0b94096d51e8';
   public const string UUID_STATIC_CARD3 = '5944ef12-4a3d-4f3a-8e67-086661be9ffc';
-  public const string UUID_ADAPTED_IMAGE = 'd8afcb97-c2ba-426e-b2da-94600afd484b';
   public const string UUID_COMPONENT_SDC = '2c6e91ae-23ac-433d-9bb8-687144464b34';
   public const string UUID_COMPONENT_BLOCK = '78c73c1d-4988-4f9b-ad17-f7e337d40c29';
+
+  // Fixed (referenced) entity UUIDs for testing sake.
+  public const string UUID_MEDIA_IMAGE4 = '1cbbacfa-8c9b-4a3e-9c8d-5f0e5b2c8f3a';
 
   use MediaTypeCreationTrait;
   use RandomGeneratorTrait;
@@ -191,14 +197,20 @@ class CanvasTestSetup implements TestSetupInterface {
       // @phpstan-ignore-next-line
       'uri' => $first_image_file->uri,
     ]);
+    $file1->setPermanent();
+    $violations = self::violationsToArray($file1->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $file1->save();
     $second_image_file = $test_image_files[1];
     $file2 = File::create([
       // @phpstan-ignore-next-line
       'uri' => $second_image_file->uri,
     ]);
+    $file2->setPermanent();
+    $violations = self::violationsToArray($file2->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $file2->save();
-    Media::create([
+    $media1 = Media::create([
       'bundle' => 'image',
       'name' => 'The bones are their money',
       'field_media_image' => [
@@ -208,8 +220,11 @@ class CanvasTestSetup implements TestSetupInterface {
           'title' => 'Bones are the skeletons money',
         ],
       ],
-    ])->save();
-    Media::create([
+    ]);
+    $violations = self::violationsToArray($media1->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
+    $media1->save();
+    $media2 = Media::create([
       'bundle' => 'image',
       'name' => 'Sorry I resemble a dog',
       'field_media_image' => [
@@ -219,7 +234,10 @@ class CanvasTestSetup implements TestSetupInterface {
           'title' => 'When he gave me this haircut',
         ],
       ],
-    ])->save();
+    ]);
+    $violations = self::violationsToArray($media2->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
+    $media2->save();
     $module_installer->install([
       'canvas',
       // Enabling Canvas OAuth to ensure that we don't break any routes for
@@ -253,7 +271,19 @@ class CanvasTestSetup implements TestSetupInterface {
       'name' => 'Hero image',
       'field_media_image' => $image_field_sample_value,
     ]);
+    $violations = self::violationsToArray($hero_reference->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $hero_reference->save();
+    $image_media_source_field_definition = \Drupal::service('entity_field.manager')->getFieldDefinitions('media', 'image')['field_media_image'];
+    $media4 = Media::create([
+      'uuid' => self::UUID_MEDIA_IMAGE4,
+      'bundle' => 'image',
+      'name' => 'The fourth image media item',
+      'field_media_image' => ImageItem::generateSampleValue($image_media_source_field_definition),
+    ]);
+    $violations = self::violationsToArray($media4->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
+    $media4->save();
     // @todo Add a component without props in https://drupal.org/i/3511447.
 
     // @phpstan-ignore-next-line
@@ -358,27 +388,12 @@ class CanvasTestSetup implements TestSetupInterface {
       [
         'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
         'slot' => 'column_two',
-        'uuid' => self::UUID_ADAPTED_IMAGE,
+        'uuid' => self::UUID_STATIC_IMAGE2,
         'component_id' => 'sdc.canvas_test_sdc.image',
         'inputs' => [
-          'image' => [
-            'sourceType' => 'adapter:image_apply_style',
-            'adapterInputs' => [
-              // This expression resolves `src` to the image's stream wrapper
-              // URI.
-              // Rely on `StaticPropSource::toArray()` (just like at runtime!)
-              // to ensure consistent key order, enabling deterministic
-              // auto-save hashing.
-              'image' => StaticPropSource::parse([
-                'expression' => 'ℹ︎entity_reference␟{src↝entity␜␜entity:media:image␝field_media_image␞␟entity␜␜entity:file␝uri␞␟value,alt↝entity␜␜entity:media:image␝field_media_image␞␟alt,width↝entity␜␜entity:media:image␝field_media_image␞␟width,height↝entity␜␜entity:media:image␝field_media_image␞␟height}',
-              ] + $static_image_prop_source)->toArray(),
-              'imageStyle' => [
-                'sourceType' => 'static:field_item:string',
-                'value' => 'thumbnail',
-                'expression' => 'ℹ︎string␟value',
-              ],
-            ],
-          ],
+          'image' => ['target_id' => 4],
+          // @todo Remove the line above in favor of the one below in https://www.drupal.org/project/canvas/issues/3576701
+          // 'image' => ['target_uuid' => self::UUID_MEDIA_IMAGE4],
         ],
         'label' => 'Magnificent image!',
       ],
@@ -420,11 +435,10 @@ class CanvasTestSetup implements TestSetupInterface {
       'type' => 'article',
       'title' => 'Canvas Needs This For The Time Being',
       'field_hero' => $image_field_sample_value,
-      // @todo Add E2E test coverage for starting with an empty canvas in
-      //   https://drupal.org/i/3474257.
       'field_canvas_demo' => $items,
     ]);
-
+    $violations = self::violationsToArray($node->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $node->save();
 
     if ($createContentTemplate) {
@@ -443,6 +457,8 @@ class CanvasTestSetup implements TestSetupInterface {
       'path' => ['alias' => '/i-am-an-empty-node'],
       'field_hero' => $image_field_sample_value,
     ]);
+    $violations = self::violationsToArray($empty_node->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $empty_node->save();
     $items[] = [
       'parent_uuid' => self::UUID_TWO_COLUMN_UUID,
@@ -466,6 +482,8 @@ class CanvasTestSetup implements TestSetupInterface {
       //   https://drupal.org/i/3474257.
       'field_canvas_demo' => $items,
     ]);
+    $violations = self::violationsToArray($node->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $node->save();
 
     $page = Page::create([
@@ -493,6 +511,8 @@ class CanvasTestSetup implements TestSetupInterface {
         ],
       ],
     ]);
+    $violations = self::violationsToArray($page->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $page->save();
 
     $empty_page = Page::create([
@@ -500,12 +520,16 @@ class CanvasTestSetup implements TestSetupInterface {
       'description' => 'This is an empty page',
       'path' => ['alias' => '/test-page'],
     ]);
+    $violations = self::violationsToArray($empty_page->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $empty_page->save();
 
     $page_without_path = Page::create([
       'title' => 'Page without a path',
       'description' => 'This is a page without a path',
     ]);
+    $violations = self::violationsToArray($page_without_path->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $page_without_path->save();
 
     $canvas_role = Role::create([
@@ -544,6 +568,8 @@ class CanvasTestSetup implements TestSetupInterface {
     $canvas_user->addRole((string) $canvas_role->id());
     $canvas_user->enforceIsNew();
     $canvas_user->activate();
+    $violations = self::violationsToArray($canvas_user->validate());
+    \assert([] === $violations, print_r($violations, TRUE));
     $canvas_user->save();
 
     if (getenv('CANVAS_EXTRA_MODULES')) {

@@ -40,6 +40,7 @@ use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -62,6 +63,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
 
   use AutoSaveManagerTestTrait;
   use AutoSaveRequestTestTrait;
+  use ConstraintViolationsTestTrait;
   use UserCreationTrait;
   use OpenApiSpecTrait;
   use BlockCreationTrait;
@@ -562,6 +564,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'alt' => 'A man and a women high five each other in a creepy fashion after finding a use for an old toothbrush',
       ],
     ]);
+    self::assertSame([], self::violationsToArray($node1->validate()));
     $node1_original_title = (string) $node1->getTitle();
     self::assertSame(SAVED_NEW, $node1->save());
     // The 'status' field is expected as `0` and not FALSE because the boolean

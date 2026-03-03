@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -43,6 +42,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 #[Group('canvas')]
 #[Group('#slow')]
 class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
+
+  use ConstraintViolationsTestTrait;
 
   /**
    * {@inheritdoc}
@@ -243,26 +244,15 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     $original_entity = $entity::load($entity->id());
     \assert($original_entity instanceof $entity);
-    // Remove the adapted image.
-    $tree_loader = $this->container->get(ComponentTreeLoader::class);
-    \assert($tree_loader instanceof ComponentTreeLoader);
-    $tree = $tree_loader->load($original_entity);
-    $delta = $tree->getComponentTreeDeltaByUuid(CanvasTestSetup::UUID_ADAPTED_IMAGE);
-    \assert($delta !== NULL);
-    $tree->removeItem($delta);
     // Update the title.
     if ($original_entity instanceof Node) {
       $new_title = $this->getRandomGenerator()->sentences(10);
       $original_entity->setTitle($new_title);
       // Note we use a string here.
       $original_entity->set('status', '1');
-    }
-    else {
-      \assert($original_entity instanceof ComponentTreeEntityInterface);
-      $original_entity->setComponentTree($tree->getValue());
+      $autoSave->saveEntity($original_entity);
     }
 
-    $autoSave->saveEntity($original_entity);
     $response = $this->request(Request::create($url->toString()));
     $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
 
@@ -459,7 +449,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
                   'slots' => [],
                 ],
                 [
-                  'uuid' => CanvasTestSetup::UUID_ADAPTED_IMAGE,
+                  'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE2,
                   'nodeType' => 'component',
                   'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
                   'name' => 'Magnificent image!',
@@ -487,7 +477,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
         'heading' => [
           'sourceType' => 'static:field_item:string',
           'expression' => 'ℹ︎string␟value',
-
         ],
         'cta1href' => [
           'sourceType' => 'static:field_item:link',
@@ -683,15 +672,12 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
           'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Welcome to the site!',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'Welcome to the site!',
           ],
         ],
       ],
     ]);
+    self::assertSame([], self::violationsToArray($page->validate()));
     $page->save();
 
     $url = Url::fromRoute('canvas.api.layout.get', [

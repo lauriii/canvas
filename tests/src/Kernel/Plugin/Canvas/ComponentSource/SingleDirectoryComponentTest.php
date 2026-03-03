@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\canvas\Entity\ContentTemplate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Depends;
@@ -74,6 +75,8 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
   use TestFileCreationTrait;
   use ContentTypeCreationTrait;
   use UserCreationTrait;
+
+  protected const string UUID_PARTLY_DYNAMIC_HERO = '6eda12fa-c990-4292-8399-31491fae4a52';
 
   /**
    * {@inheritdoc}
@@ -1102,32 +1105,41 @@ HTML
    * @legacy-covers ::getExplicitInput
    */
   #[DataProvider('providerComponentResolving')]
-  public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids, ?array $permissions = NULL): void {
+  public function testGetExplicitInput(array $component_item_value, array $expected_props_for_uuids, array $permissions): void {
     $this->generateComponentConfig();
     $this->installEntitySchema('node');
-    $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
-    $node = Node::create([
-      'title' => 'Test node',
-      'type' => 'article',
-      'field_canvas_test' => $component_item_value,
-    ]);
-    $canvas_field_item = $node->field_canvas_test[0];
-    if ($permissions !== NULL) {
-      // If we are setting permissions to check access, we need to save the node,
-      // but we cannot use $permissions for the user saving the node because we
-      // may be testing insufficient permissions. So we temporarily set a user with
-      // 'access content' permission to save the node, then use the permissions
-      // we are testing with.
-      $this->setUpCurrentUser(permissions: ['access content']);
-      $node->save();
-      $this->setUpCurrentUser(permissions: $permissions);
-    }
+    $this->installConfig(['node']);
+    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
 
+    // Create a sample "article" node.
+    $node = Node::create(['title' => 'Test node', 'type' => 'article']);
+    self::assertEntityIsValid($node);
+    $node->save();
+
+    // Create a template for "article" nodes, to allow populating it using
+    // entity field data.
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => $component_item_value,
+    ]);
+    self::assertEntityIsValid($template);
+    $template->save();
+
+    // Resolve the inputs for the first component instance aka first field item.
+    $canvas_field_item = $template->getComponentTree()[0];
+    // Test as a visitor with the specified permissions.
+    $this->setUpCurrentUser(permissions: $permissions);
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);
     $actual_props = array_combine(
       \array_keys($expected_props_for_uuids),
       \array_map(
-        fn (string $uuid) => $canvas_field_item->getComponent()?->getComponentSource()->getExplicitInput($uuid, $canvas_field_item)['resolved'],
+        fn (string $uuid) => $canvas_field_item->getComponent()?->getComponentSource()->getExplicitInput(
+          uuid: $uuid,
+          item: $canvas_field_item,
+          host_entity: $node,
+        )['resolved'],
         \array_keys($expected_props_for_uuids)
       )
     );
@@ -1136,20 +1148,20 @@ HTML
 
   public static function providerComponentResolving(): array {
     $test_cases = static::getValidTreeTestCases();
-    $invalid_test_cases = static::getInvalidTreeTestCases();
-    // Only 1 invalid case will allow to call
-    // \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::resolveComponentProps()
-    // without an exception.
-    $test_cases['invalid UUID, missing component_id key'] = $invalid_test_cases['invalid UUID, missing component_id key'];
-    $test_cases['invalid UUID, missing component_id key'][] = [];
     $test_cases['valid values using static inputs'][] = [
       'dynamic-static-card2df' => [
         'heading' => new EvaluationResult('They say I am static, but I want to believe I can change!'),
       ],
     ];
+    // No permissions needed.
+    $test_cases['valid values using static inputs'][] = [];
+
     $test_cases['valid values for propless component'][] = [
       'propless-component-uuid' => [],
     ];
+    // No permissions needed.
+    $test_cases['valid values for propless component'][] = [];
+
     $test_cases['valid value for optional explicit input using an URL prop shape, with default value'][] = [
       'optional-url-with-default-value' => [
         'heading' => new EvaluationResult('Gracie says hi!'),
@@ -1164,8 +1176,11 @@ HTML
         ),
       ],
     ];
+    // No permissions needed.
+    $test_cases['valid value for optional explicit input using an URL prop shape, with default value'][] = [];
+
     $hero_with_dynamic_sources = [
-      'uuid' => 'partly-dynamic-hero',
+      'uuid' => self::UUID_PARTLY_DYNAMIC_HERO,
       'component_id' => 'sdc.canvas_test_sdc.my-hero',
       'component_version' => 'a681ae184a8f6b7f',
       'inputs' => [
@@ -1186,7 +1201,7 @@ HTML
         $hero_with_dynamic_sources,
       ],
       [
-        'partly-dynamic-hero' => [
+        self::UUID_PARTLY_DYNAMIC_HERO => [
           // Permanent cacheability because populated by StaticPropSource
           // without references.
           'heading' => new EvaluationResult('hello, world!'),
@@ -1216,7 +1231,7 @@ HTML
         $hero_with_dynamic_sources,
       ],
       [
-        'partly-dynamic-hero' => [
+        self::UUID_PARTLY_DYNAMIC_HERO => [
           'heading' => new EvaluationResult('hello, world!'),
           // Node access-dependent cacheability because DynamicPropSource.
           'subheading' => new EvaluationResult(
@@ -5584,20 +5599,9 @@ HTML
     $image->save();
     return [
       'image' => [
-        'sourceType' => 'static:field_item:entity_reference',
-        'value' => ['target_id' => $image->id()],
         // This expression resolves `src` to the image's public URL.
         // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
-        'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-        'sourceTypeSettings' => [
-          'storage' => ['target_type' => 'media'],
-          'instance' => [
-            'handler' => 'default:media',
-            'handler_settings' => [
-              'target_bundles' => ['image' => 'image'],
-            ],
-          ],
-        ],
+        ['target_id' => $image->id()],
       ],
     ];
   }

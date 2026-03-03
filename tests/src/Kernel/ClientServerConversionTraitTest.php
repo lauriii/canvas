@@ -177,7 +177,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       'title' => '5 amazing uses for old toothbrushes',
       'field_canvas_demo' => $converted_items,
     ]);
-    $node1->validate();
+    self::assertSame([], self::violationsToArray($node1->validate()));
     $node1->save();
     // Ensure the field has been updated.
     $this->assertNodeValues(

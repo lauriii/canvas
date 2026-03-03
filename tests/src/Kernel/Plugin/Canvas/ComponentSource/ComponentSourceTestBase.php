@@ -596,6 +596,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
       'title' => $this->randomMachineName(),
       'components' => self::generateFallbackOrUninstallValidationComponentTree($used_component, $slots, static::getPropsForComponentFallbackTesting()),
     ]);
+    self::assertEntityIsValid($entity);
     // Save this so the usage can be queried.
     $entity->save();
     $renderable = $entity->getComponentTree()->toRenderable($entity, TRUE);
@@ -706,6 +707,7 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
       'title' => $this->randomMachineName(),
       'components' => self::generateFallbackOrUninstallValidationComponentTree($used_component, $slots, static::getPropsForUninstallValidationTesting()),
     ]);
+    self::assertEntityIsValid($entity);
     // Save this so the usage can be queried.
     $entity->save();
 

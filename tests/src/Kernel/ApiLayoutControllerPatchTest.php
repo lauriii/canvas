@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\media\Entity\Media;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -18,8 +19,6 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\file\FileInterface;
-use Drupal\image\Entity\ImageStyle;
-use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
@@ -446,17 +445,16 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       self::assertSame(\array_keys($model), \array_merge($contentElements, $globalElements));
     }
 
-    // There should be two images, one should reference the media item direct
-    // (static-image-udf7d) and one should reference the thumbnail style
-    // (static-image-static-imageStyle-something7d) because it uses an adapter.
-    // @see \Drupal\canvas\Plugin\Adapter\ImageAndStyleAdapter
+    // There should be two images originating from media items.
     $images = (new Crawler($data['html']))->filter('img')->extract(['src']);
-    $thumbnail = ImageStyle::load('thumbnail');
-    \assert($thumbnail instanceof ImageStyleInterface);
-    self::assertCount(2, $images);
     self::assertEquals([
-      $image_url->getValue()->getGeneratedUrl(),
-      $thumbnail->buildUrl($fileUri),
+      // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_STATIC_IMAGE
+      // @phpstan-ignore property.notFound
+      Media::load(3)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
+      // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_STATIC_IMAGE2
+      // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_MEDIA_IMAGE4
+      // @phpstan-ignore property.notFound
+      Media::load(4)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
     ], $images);
 
     unset($updateImageClientData['clientInstanceId']);

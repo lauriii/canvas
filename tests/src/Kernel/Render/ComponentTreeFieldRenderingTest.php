@@ -67,15 +67,12 @@ final class ComponentTreeFieldRenderingTest extends CanvasKernelTestBase {
           'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
           'inputs' => [
-            'heading' => [
-              'sourceType' => 'static:field_item:string',
-              'value' => 'Welcome to the site!',
-              'expression' => 'ℹ︎string␟value',
-            ],
+            'heading' => 'Welcome to the site!',
           ],
         ],
       ],
     ]);
+    self::assertEntityIsValid($page);
     $page->save();
 
     $live_url = Url::fromRoute('entity.canvas_page.canonical', [

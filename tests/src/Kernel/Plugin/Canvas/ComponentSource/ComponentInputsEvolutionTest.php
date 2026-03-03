@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Config\TypedConfigManagerInterface;
@@ -470,6 +471,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
       'title' => $this->randomString(),
       'components' => $component_tree,
     ]);
+    self::assertEntityIsValid($page);
     $page->save();
 
     // A config-defined component tree.
@@ -480,6 +482,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $pattern->save();
 
     // Component instances work well BEFORE the module update.
+    // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
     self::assertSame([], self::violationsToArray($page->getComponentTree()->validate()));
     self::assertSame($expected_pre_update_markup, self::getTextOfAllRenderedBlockComponentInstances($page));
 
@@ -489,6 +492,8 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     self::assertCount(1, Component::load('block.canvas_test_block_input_schema_change_poc')?->getVersions() ?? []);
     $old_version = Component::load('block.canvas_test_block_input_schema_change_poc')?->getActiveVersion();
     \Drupal::state()->set('canvas_test_block.allow_hook_block_alter', TRUE);
+    $original_service_cache_config = $this->container->get('cache.config');
+    $original_service_config_factory = $this->container->get(ConfigFactoryInterface::class);
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_block_simulate_input_schema_change']);
     self::assertCount(2, Component::load('block.canvas_test_block_input_schema_change_poc')?->getVersions());
     $new_version = Component::load('block.canvas_test_block_input_schema_change_poc')->getActiveVersion();
@@ -548,14 +553,21 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
       self::assertNotEmpty(self::violationsToArray($component_tree_item->validate()));
       $component_tree_item->set('component_version', $new_version);
       self::assertEquals($new_version, $component_tree_item->getComponent()->getLoadedVersion());
+      // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
       self::assertSame([], self::violationsToArray($component_tree_item->validate()));
     }
+
+    // This is a kernel test. In reality, this would span multiple requests.
+    // Simulate that by wiping the (MULTIPLE LAYERS!!!) of static caches that
+    // interfere with testing this in a kernel test.
+    $original_service_cache_config->deleteAll();
+    $original_service_config_factory->reset();
 
     // AFTER the update, the content-defined component tree:
     // 1. is valid
     // 2. contains exactly the expected values
     // 3. renders the expected markup.
-    self::assertSame([], self::violationsToArray($page->validate()));
+    self::assertEntityIsValid($page);
     self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());
@@ -607,7 +619,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // 1. is valid
     // 2. contains exactly the expected values
     // 3. renders the expected markup.
-    self::assertSame([], self::violationsToArray($pattern->getTypedData()->validate()));
+    self::assertEntityIsValid($pattern);
     self::assertSame($expected_post_update_component_tree, \array_map(
       function (ComponentTreeItem $item): array {
         $array = array_filter($item->toArray());

@@ -21,12 +21,6 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   ];
 
   cy.drupalLogin('canvasUser', 'canvasUser');
-  // Node 1 includes prop sources that make use of adapters, we need to
-  // make sure there are no auto-save entries for that node before we attempt
-  // to publish. This test interacts with that node in the "Can open the media
-  // library widget in an article props form" case which causes an invalid entry
-  // in auto-save that prevents publishing.
-  cy.clearAutoSave('node', 1);
 
   cy.loadURLandWaitForCanvasLoaded(loadOptions);
 

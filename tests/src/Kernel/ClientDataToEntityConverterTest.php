@@ -563,12 +563,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'uid' => $this->otherUser->id(),
       'type' => 'article',
       'title' => 'The original title.',
-      'field_canvas_demo' => [
-        'tree' => [
-          ComponentTreeItemList::ROOT_UUID => [],
-        ],
-        'inputs' => [],
-      ],
+      'field_canvas_demo' => [],
       'revision_log' => [
         [
           'value' => 'Initial revision.',
@@ -576,6 +571,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       ],
     ] + $values);
     \assert($node instanceof Node);
+    self::assertSame([], self::violationsToArray($node->validate()));
     $this->assertSame(SAVED_NEW, $node->save());
     return $node;
   }

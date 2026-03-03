@@ -11,7 +11,7 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
-use Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait;
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\TestTools\Random;
 use PHPUnit\Framework\Attributes\Group;
@@ -25,7 +25,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 class PatternValidationTest extends BetterConfigEntityValidationTestBase {
 
   use BetterConfigDependencyManagerTrait;
-  use DataProviderWithCoreSpecificComponentActiveVersionTrait;
+  use DataProviderWithComponentTreeTrait;
   use GenerateComponentConfigTrait;
 
   /**
@@ -190,7 +190,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   #[DataProvider('providerInvalidComponentTree')]
   public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
     \assert($this->entity instanceof Pattern);
-    self::addMissingBlockComponentVersions($component_tree);
+    self::populateActiveComponentVersionPlaceholders($component_tree);
     \assert($this->entity instanceof ComponentTreeEntityInterface);
     $this->entity->setComponentTree($component_tree);
     $this->assertValidationErrors($expected_messages);

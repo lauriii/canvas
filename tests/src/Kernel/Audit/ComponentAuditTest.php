@@ -50,6 +50,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
       'title' => $this->randomMachineName(),
       'components' => $this->tree,
     ]);
+    self::assertEntityIsValid($page);
     $page->save();
     $revisionId1 = $page->getRevisionId();
     $page->setNewRevision();

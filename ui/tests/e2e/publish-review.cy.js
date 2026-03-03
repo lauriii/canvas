@@ -33,12 +33,6 @@ describe('Publish review functionality', () => {
 
       cy.findByText('Review 1 change').click();
 
-      // Delete the image that uses an adapted source. This node (1) includes prop
-      // sources that make use of adapters, we need to delete the adapted source
-      // image in order to publish.
-      cy.clickComponentInPreview('Test SDC Image', 1);
-      cy.realType('{del}');
-
       cy.visit('/node/1');
 
       cy.findByText('hello, world! updated').should('not.exist');

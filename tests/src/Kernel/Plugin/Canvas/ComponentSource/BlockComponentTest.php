@@ -350,6 +350,7 @@ HTML,
       'type' => 'article',
       'field_canvas_test' => $componentItemValue,
     ]);
+    self::assertEntityIsValid($node);
     $node->save();
     $canvas_field_item = $node->field_canvas_test[0];
     $this->assertInstanceOf(ComponentTreeItem::class, $canvas_field_item);

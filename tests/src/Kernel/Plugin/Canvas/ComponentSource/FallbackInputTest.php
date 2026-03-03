@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use PHPUnit\Framework\Attributes\Group;
@@ -42,6 +43,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
   use MediaTypeCreationTrait;
   use AutoSaveManagerTestTrait;
   use CanvasFieldTrait;
+  use ConstraintViolationsTestTrait;
   use UserCreationTrait;
 
   protected static $modules = [
@@ -157,21 +159,10 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
         'uuid' => $component_to_recover_uuid,
         'component_id' => $component_to_recover->id(),
         'inputs' => [
+          // This expression resolves `src` to the image's public URL.
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
           'image' => [
-            'sourceType' => 'static:field_item:entity_reference',
-            'value' => ['target_id' => $image->id()],
-            // This expression resolves `src` to the image's public URL.
-            // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
-            'expression' => 'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
-            'sourceTypeSettings' => [
-              'storage' => ['target_type' => 'media'],
-              'instance' => [
-                'handler' => 'default:media',
-                'handler_settings' => [
-                  'target_bundles' => ['image' => 'image'],
-                ],
-              ],
-            ],
+            ['target_id' => $image->id()],
           ],
         ],
       ],
@@ -179,31 +170,9 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
         'uuid' => $component_to_edit_uuid,
         'component_id' => $component_to_edit->id(),
         'inputs' => [
-          'text' => [
-            'sourceType' => 'static:field_item:string',
-            'expression' => 'ℹ︎string␟value',
-            'value' => 'Original heading text',
-          ],
-          'style' => [
-            'value' => 'primary',
-            'sourceType' => 'static:field_item:list_string',
-            'expression' => 'ℹ︎list_string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-              ],
-            ],
-          ],
-          'element' => [
-            'value' => 'h2',
-            'sourceType' => 'static:field_item:list_string',
-            'expression' => 'ℹ︎list_string␟value',
-            'sourceTypeSettings' => [
-              'storage' => [
-                'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
-              ],
-            ],
-          ],
+          'text' => 'Original heading text',
+          'style' => 'primary',
+          'element' => 'h2',
         ],
       ],
     ];
@@ -212,6 +181,7 @@ final class FallbackInputTest extends ApiLayoutControllerTestBase {
       'title' => $this->randomMachineName(),
       'components' => $tree,
     ]);
+    self::assertSame([], self::violationsToArray($page->validate()));
     $page->save();
     $api_endpoint_uri = \sprintf('/canvas/api/v0/layout/%s/%d', Page::ENTITY_TYPE_ID, $page->id());
     // Load the original data.

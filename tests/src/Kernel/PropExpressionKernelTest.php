@@ -89,6 +89,8 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
     $this->installEntitySchema('user');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('media');
+    // @see core/modules/filter/config/install/filter.format.plain_text.yml
+    $this->installConfig(['filter']);
 
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
     $this->createMediaType('image', ['id' => 'baby_photos', 'label' => 'Baby photos']);
@@ -241,7 +243,7 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
       'uuid' => 'baby-photos-media-uuid',
     ]);
     $baby_photos_media->save();
-    Node::create([
+    $node = Node::create([
       'uuid' => self::NODE_1_UUID,
       'title' => 'dummy_title',
       'type' => 'article',
@@ -266,7 +268,10 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
       'yo_ho' => [
         'target_id' => $image_media->id(),
       ],
-    ])->save();
+    ]);
+    $this->setUpCurrentUser(permissions: ['access content', 'view media', 'access user profiles']);
+    self::assertEntityIsValid($node);
+    $node->save();
 
     // `xyz` node type.
     NodeType::create([
@@ -285,8 +290,6 @@ class PropExpressionKernelTest extends CanvasKernelTestBase {
       'bundle' => 'xyz',
       'label' => 'The XYZ map field',
     ])->save();
-
-    $this->setUpCurrentUser(permissions: ['access content', 'view media', 'access user profiles']);
   }
 
   /**

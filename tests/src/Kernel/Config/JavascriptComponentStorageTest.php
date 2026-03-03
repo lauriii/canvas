@@ -108,7 +108,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
     // Make it pass validation by adding the missing `examples`, and save it.
     $props['title']['examples'] = ['Title'];
     $js_component->setProps($props);
-    $this->assertSame([], self::violationsToArray($js_component->getTypedData()->validate()));
+    self::assertEntityIsValid($js_component);
     $js_component->save();
 
     // No Component config entity is ever created for JavaScript Components not

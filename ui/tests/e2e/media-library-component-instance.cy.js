@@ -159,8 +159,8 @@ describe('Media Library component instance', () => {
       'active',
     );
 
-    // There are two images here, the second one is making use of an image
-    // adapter which we don't support yet. We have to use the first one instead.
+    // There are two images here. Test the first.
+    // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::UUID_STATIC_IMAGE
     cy.clickComponentInPreview('Test SDC Image', 0);
 
     cy.findByTestId('canvas-contextual-panel--settings').should(

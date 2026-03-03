@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 
 /**
  * Base class for Canvas kernel tests.
@@ -29,6 +32,8 @@ use Drupal\KernelTests\KernelTestBase;
  * @see \Canvas\Sniffs\Tests\KernelTestBaseSniff
  */
 abstract class CanvasKernelTestBase extends KernelTestBase {
+
+  use ConstraintViolationsTestTrait;
 
   /**
    * {@inheritdoc}
@@ -99,6 +104,23 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
       // Opt in to config validation, despite this being contrib.
       $container->getDefinition('testing.config_schema_checker')->setArgument(2, TRUE);
     }
+  }
+
+  /**
+   * Asserts that an entity is valid, with helpful output if it is not.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface|\Drupal\Core\Config\Entity\ConfigEntityInterface $entity
+   *
+   * @return void
+   *
+   * @see \Canvas\Sniffs\Tests\KernelTestBaseSniff::requireAssertEntityIsValid()
+   */
+  protected static function assertEntityIsValid(ContentEntityInterface|ConfigEntityInterface $entity): void {
+    $violations = match(TRUE) {
+      $entity instanceof ConfigEntityInterface => $entity->getTypedData()->validate(),
+      default => $entity->validate(),
+    };
+    self::assertSame([], self::violationsToArray($violations), $entity->getConfigTarget());
   }
 
 }

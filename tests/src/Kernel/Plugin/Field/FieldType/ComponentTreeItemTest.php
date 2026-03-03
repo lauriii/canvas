@@ -81,8 +81,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     $component->createVersion('bcf3fbf52a2b169b')
       ->setSettings($settings)
       ->save();
-    $violations = $component->getTypedData()->validate();
-    self::assertSame([], self::violationsToArray($violations));
+    self::assertEntityIsValid($component);
     self::assertCount(2, $component->getVersions());
 
     // A helper method to set 2 instances of the exact same component to two
@@ -106,6 +105,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
         ],
       ]);
       $violations = $item_list->validate();
+      // @phpcs:ignore Canvas.Tests.KernelTestBase.RequireAssertEntityIsValid
       self::assertSame([], self::violationsToArray($violations));
       self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(0));
       self::assertInstanceOf(ComponentTreeItem::class, $item_list->get(1));

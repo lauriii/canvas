@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use Drupal\Tests\canvas\Traits\DataProviderWithCoreSpecificComponentActiveVersionTrait;
+use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -20,7 +20,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
-  use DataProviderWithCoreSpecificComponentActiveVersionTrait;
+  use DataProviderWithComponentTreeTrait;
   use GenerateComponentConfigTrait;
 
   /**
@@ -639,8 +639,8 @@ abstract class ConfigWithComponentTreeTestBase extends CanvasKernelTestBase {
     ],
   ], 'It is possible to list the deepest-in-the-tree component instances first; all that should matter is the order within each level (each parent_uuid + slot pair)')]
   public function testComponentTreeKeyOrder(array $tree_input, array $expected_sorted_output): void {
-    self::addMissingBlockComponentVersions($tree_input);
-    self::addMissingBlockComponentVersions($expected_sorted_output);
+    self::populateActiveComponentVersionPlaceholders($tree_input);
+    self::populateActiveComponentVersionPlaceholders($expected_sorted_output);
     $this->entity->setComponentTree($tree_input);
     $tree_output = $this->entity->get('component_tree');
     self::assertEquals(\count($tree_input), \count($tree_output));

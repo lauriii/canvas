@@ -547,6 +547,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
         ],
       ],
     ]);
+    self::assertEntityIsValid($page);
     $auto_save_manager->delete($page);
     $violations = $auto_save_manager->getComponentInstanceFormViolations($uuid);
     self::assertCount(0, $violations);
