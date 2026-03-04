@@ -22,6 +22,8 @@ parameters:
     - tests/src/Traits/ContribStrictConfigSchemaTestTrait.php
     # PHPCS rules are not executed in production, no need to comply.
     - coding_standards/**
+    # PHPStan rules are not Drupal module code; only scanned for autoloading.
+    - phpstan_rules/**
   treatPhpDocTypesAsCertain: false
   drupal:
     entityMapping:
@@ -52,6 +54,9 @@ parameters:
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\Pattern\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       count: 1
       path: src/Entity/Pattern.php
+# Canvas' custom PHPStan rules.
+rules:
+  - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
 # Run `composer run phpstan-regenerate-ignores-for-11.3-and-higher` to update this list of ignores for Drupal >=11.3.
 includes:
   - phpstan-11.3-and-higher-ignores.neon

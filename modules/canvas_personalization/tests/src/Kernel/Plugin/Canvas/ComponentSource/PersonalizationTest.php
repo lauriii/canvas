@@ -15,11 +15,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\ComponentSourceTestBase;
-use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
-use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
@@ -35,11 +31,7 @@ use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
 #[Group('canvas_personalization')]
 final class PersonalizationTest extends ComponentSourceTestBase {
 
-  use ConstraintViolationsTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
-  use GenerateComponentConfigTrait;
-  use CiModulePathTrait;
-  use CrawlerTrait;
   use MediaTypeCreationTrait;
   use TestFileCreationTrait;
   use ContentTypeCreationTrait;

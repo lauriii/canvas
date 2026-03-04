@@ -9,7 +9,6 @@ use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
@@ -31,7 +30,6 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   use CreateTestJsComponentTrait;
   use RequestTrait;
-  use UserCreationTrait;
 
   /**
    * {@inheritdoc}

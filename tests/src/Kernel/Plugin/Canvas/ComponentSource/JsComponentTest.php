@@ -32,9 +32,6 @@ use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
-use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\canvas\Traits\CrawlerTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -60,9 +57,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('JavaScriptComponents')]
 final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
-  use CiModulePathTrait;
-  use UserCreationTrait;
-  use CrawlerTrait;
   use CacheBustingTrait;
 
   protected readonly AssetResolverInterface $assetResolver;

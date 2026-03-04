@@ -12,7 +12,6 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -21,8 +20,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
 class AutoSaveRevertTest extends BrowserTestBase {
-
-  use ContentTypeCreationTrait;
 
   /**
    * {@inheritdoc}

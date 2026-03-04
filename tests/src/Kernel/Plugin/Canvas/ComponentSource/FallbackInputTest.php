@@ -22,10 +22,8 @@ use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
-use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -41,10 +39,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class FallbackInputTest extends ApiLayoutControllerTestBase {
 
   use MediaTypeCreationTrait;
-  use AutoSaveManagerTestTrait;
   use CanvasFieldTrait;
   use ConstraintViolationsTestTrait;
-  use UserCreationTrait;
 
   protected static $modules = [
     // Required modules.

@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Functional\HttpApiTestBase;
-use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use Drupal\canvas_personalization\Entity\Segment;
@@ -27,7 +26,6 @@ use GuzzleHttp\RequestOptions;
 class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
-  use AutoSaveManagerTestTrait;
 
   /**
    * {@inheritdoc}

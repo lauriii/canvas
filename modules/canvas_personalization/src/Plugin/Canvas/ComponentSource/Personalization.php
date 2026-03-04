@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\canvas\Attribute\ComponentSource;
@@ -55,7 +54,6 @@ final class Personalization extends ComponentSourceBase implements
   ComponentSourceWithSwitchCasesInterface,
   ContainerFactoryPluginInterface {
 
-  use ContextAwarePluginTrait;
   use ConstraintPropertyPathTranslatorTrait;
 
   public const string SOURCE_PLUGIN_ID = 'p13n';

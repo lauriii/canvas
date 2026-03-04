@@ -13,7 +13,6 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\CanvasAssetInterface;
-use Drupal\Tests\canvas\Traits\AutoSaveManagerTestTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
@@ -29,7 +28,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;
-  use AutoSaveManagerTestTrait;
 
   /**
    * {@inheritdoc}

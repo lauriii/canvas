@@ -12,15 +12,12 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\PropSource;
-use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
  */
 #[CoversClass(GeneratedFieldExplicitInputUxComponentSourceBase::class)]
 abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
-
-  use GenerateComponentConfigTrait;
 
   /**
    * Data provider for ::testHydrationAndRenderingEdgeCases().

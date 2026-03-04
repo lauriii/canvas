@@ -41,14 +41,10 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
-use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\TestFileCreationTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Twig\Error\Error;
 use Twig\Error\RuntimeError;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -67,14 +63,10 @@ use Twig\Error\SyntaxError;
 #[Group('canvas_component_sources')]
 final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxComponentSourceBaseTestBase {
 
-  use ConstraintViolationsTestTrait;
   use SingleDirectoryComponentTreeTestTrait;
-  use CiModulePathTrait;
-  use CrawlerTrait;
   use MediaTypeCreationTrait;
   use TestFileCreationTrait;
   use ContentTypeCreationTrait;
-  use UserCreationTrait;
 
   protected const string UUID_PARTLY_DYNAMIC_HERO = '6eda12fa-c990-4292-8399-31491fae4a52';
 

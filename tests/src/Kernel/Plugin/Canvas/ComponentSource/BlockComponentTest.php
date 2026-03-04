@@ -30,9 +30,6 @@ use Drupal\system\Entity\Menu;
 use Drupal\Tests\canvas\Kernel\BrokenBlockManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\BlockComponentTreeTestTrait;
-use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
-use Drupal\Tests\canvas\Traits\CrawlerTrait;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\views\Entity\View;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -51,9 +48,6 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
 final class BlockComponentTest extends ComponentSourceTestBase {
 
   use BlockComponentTreeTestTrait;
-  use ConstraintViolationsTestTrait;
-  use CrawlerTrait;
-  use UserCreationTrait;
 
   /**
    * {@inheritdoc}
