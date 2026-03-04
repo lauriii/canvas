@@ -3,6 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import * as p from '@clack/prompts';
 
+import { loadCanvasConfig } from './canvas-config';
+
 // Load environment variables.
 export function loadEnvFiles() {
   // Load from the user's home directory (for global settings).
@@ -28,18 +30,30 @@ export interface Config {
   clientId: string;
   clientSecret: string;
   scope: string;
-  componentDir: string;
   userAgent: string;
   all?: boolean;
+  // The following properties are loaded from canvas.config.json.
+  aliasBaseDir: string;
+  outputDir: string;
+  componentDir: string;
+  deprecatedComponentDir: string;
 }
+
+const { aliasBaseDir, outputDir, componentDir, deprecatedComponentDir } =
+  loadCanvasConfig();
 
 let config: Config = {
   siteUrl: process.env.CANVAS_SITE_URL || '',
   clientId: process.env.CANVAS_CLIENT_ID || '',
   clientSecret: process.env.CANVAS_CLIENT_SECRET || '',
   scope: process.env.CANVAS_SCOPE || 'canvas:js_component canvas:asset_library',
-  componentDir: process.env.CANVAS_COMPONENT_DIR || './components',
   userAgent: process.env.CANVAS_USER_AGENT || '',
+  aliasBaseDir: aliasBaseDir,
+  outputDir: outputDir,
+  componentDir: componentDir,
+  // We need this because the old commands use './components' as a default
+  // but the new componentDir that supports flexible codebases defaults to process.cwd().
+  deprecatedComponentDir: deprecatedComponentDir,
 };
 
 export function getConfig(): Config {

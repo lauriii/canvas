@@ -4,6 +4,8 @@ import path from 'path';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 
+import type { DiscoveredComponent } from '@drupal-canvas/discovery';
+
 export const CANVAS_CACHE_DIR = path.join(os.homedir(), '.canvas');
 
 // Download the JS source of all code components into a local directory: ~/.canvas
@@ -57,6 +59,33 @@ export async function copyLocalJsSource(
         const targetFile = path.join(targetPath, 'index.jsx');
         await fs.copyFile(sourceFile, targetFile);
       }
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      p.note(chalk.red(`Error: ${error.message}`));
+    } else {
+      p.note(chalk.red(`Unknown error: ${String(error)}`));
+    }
+  }
+}
+
+// Copy local JS sources from the CLI components directory to  ~/.canvas
+export async function copyLocalJsSourceNext(
+  componentsToCopy: DiscoveredComponent[],
+): Promise<void> {
+  try {
+    // Ensure the target directory exists
+    await fs.mkdir(CANVAS_CACHE_DIR, { recursive: true });
+    // Copy each component to the target directory
+    for (const component of componentsToCopy) {
+      if (!component.jsEntryPath) continue;
+      const targetPath = path.join(CANVAS_CACHE_DIR, component.name);
+      // Create the component directory in the target
+      await fs.mkdir(targetPath, { recursive: true });
+      // Use jsEntryPath directly — it's already the absolute path to the correct file
+      const jsFileName = path.basename(component.jsEntryPath);
+      const targetFile = path.join(targetPath, jsFileName);
+      await fs.copyFile(component.jsEntryPath, targetFile);
     }
   } catch (error) {
     if (error instanceof Error) {

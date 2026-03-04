@@ -4,6 +4,7 @@ import { Command } from 'commander';
 
 import packageJson from '../package.json';
 import { buildCommand } from './commands/build';
+import { buildDeprecatedCommand } from './commands/build-deprecated';
 import { downloadCommand } from './commands/download';
 import { scaffoldCommand } from './commands/scaffold';
 import { uploadCommand } from './commands/upload';
@@ -21,8 +22,9 @@ program
 downloadCommand(program);
 scaffoldCommand(program);
 uploadCommand(program);
-buildCommand(program);
+buildDeprecatedCommand(program);
 validateCommand(program);
+buildCommand(program);
 
 // Handle errors
 program.showHelpAfterError();

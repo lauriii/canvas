@@ -78,7 +78,7 @@ export function downloadCommand(program: Command): void {
           'clientId',
           'clientSecret',
           'scope',
-          'componentDir',
+          'deprecatedComponentDir',
         ]);
 
         const config = getConfig();
@@ -131,7 +131,7 @@ export function downloadCommand(program: Command): void {
             includeGlobalCss: !options.skipCss,
             globalCssDefault: true,
             selectMessage: 'Select items to download',
-            confirmMessage: `Download to ${config.componentDir}?`,
+            confirmMessage: `Download to ${config.deprecatedComponentDir}?`,
           });
 
         // Handle singular/plural cases for console messages.
@@ -155,7 +155,7 @@ export function downloadCommand(program: Command): void {
           try {
             // Create component directory structure
             const componentDir = path.join(
-              config.componentDir,
+              config.deprecatedComponentDir,
               component.machineName,
             );
             // Check if the directory exists and is non-empty

@@ -1,5 +1,5 @@
 export { discoverCodeComponents } from './discover';
-export { loadComponentsMetadata } from './metadata';
+export { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
 export type {
   ComponentMetadata,
   DiscoveredComponent,

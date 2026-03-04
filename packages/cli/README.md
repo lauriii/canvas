@@ -22,29 +22,102 @@ npm install @drupal-canvas/cli
 
 ### Configuration
 
-Settings can be configured using:
+The Canvas CLI uses two types of configuration:
 
-1. Command-line arguments;
-1. Environment variables;
-1. A project `.env` file;
-1. A global `.canvasrc` file in your home directory.
+- **canvas.config.json** - Repository-committed configuration for values tied to
+  your codebase structure (where files are stored, build output locations)
+- **.env** - Environmental configuration and secrets that should not be tracked
+  in version control (site URLs, OAuth credentials)
 
-These are applied in order of precedence from highest to lowest. You can copy
-the
+#### canvas.config.json (Optional)
+
+This file is an optional configuration file that contains values tied to how
+your codebase is structured and should be the same for all developers working on
+the project. These values are committed to version control.
+
+Create a `canvas.config.json` file in your project root with any of these
+properties:
+
+```json
+{
+  "componentDir": "./components",
+  "aliasBaseDir": "src",
+  "outputDir": "dist"
+}
+```
+
+**Properties:**
+
+| Property       | Default         | Description                                                                                                               |
+| -------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `componentDir` | `process.cwd()` | Directory where Code Components are stored in the filesystem.                                                             |
+| `aliasBaseDir` | `"src"`         | Base directory for module resolution when using path aliases in your components. Tied to your project's import structure. |
+| `outputDir`    | `"dist"`        | Build output directory (similar to Vite's `build.outDir`). Defines where compiled assets are generated.                   |
+
+If `canvas.config.json` is not present, the CLI will use the default values
+shown above.
+
+#### .env
+
+This file contains environmental configuration that varies between environments
+(local development, staging, production) and secrets that must never be
+committed to version control.
+
+Configuration sources are applied in order of precedence from highest to lowest:
+
+1. Command-line arguments
+2. Environment variables
+3. Project `.env` file
+4. Global `.canvasrc` file in your home directory
+
+You can copy the
 [`.env.example` file](https://git.drupalcode.org/project/canvas/-/blob/1.x/cli/.env.example)
 to get started.
 
-| CLI argument      | Environment variable   | Description                                                   |
-| ----------------- | ---------------------- | ------------------------------------------------------------- |
-| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site.                                 |
-| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID.                                              |
-| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret.                                          |
-| `--dir`           | `CANVAS_COMPONENT_DIR` | Directory where code components are stored in the filesystem. |
-| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request.   |
+| CLI argument      | Environment variable   | Description                                                                                                                                       |
+| ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--site-url`      | `CANVAS_SITE_URL`      | Base URL of your Drupal site. Can point to different environments (local dev, staging, production).                                               |
+| `--client-id`     | `CANVAS_CLIENT_ID`     | OAuth client ID. Different environments may have different OAuth clients with different permissions.                                              |
+| `--client-secret` | `CANVAS_CLIENT_SECRET` | OAuth client secret. This is a secret credential that must never be committed to version control.                                                 |
+| `--scope`         | `CANVAS_SCOPE`         | (Optional) Space-separated list of OAuth scopes to request. Tied to your specific Drupal site's OAuth configuration. Defaults to standard scopes. |
 
 **Note:** The `--scope` parameter defaults to
 `"canvas:js_component canvas:asset_library"`, which are the default scopes
 provided by the Drupal Canvas OAuth module (`canvas_oauth`).
+
+#### Configuration Precedence
+
+The CLI uses different precedence rules depending on the type of configuration:
+
+**For canvas.config.json properties** (`componentDir`, `aliasBaseDir`,
+`outputDir`):
+
+Configuration sources are applied in order of precedence from highest to lowest:
+
+1. **Command-line arguments** (e.g., `--dir`, `--alias-base-dir`,
+   `--output-dir`) - Highest priority
+2. **canvas.config.json** - Values defined in your project's config file
+3. **Default values** - Built-in defaults if nothing else is specified
+
+Example: If you have `"componentDir": "./components"` in `canvas.config.json`
+but run `npx canvas build --dir ./my-components`, the CLI will use
+`./my-components`.
+
+**For .env properties** (`siteUrl`, `clientId`, `clientSecret`, `scope`):
+
+Configuration sources are applied in order of precedence from highest to lowest:
+
+1. **Command-line arguments** (e.g., `--site-url`, `--client-id`) - Highest
+   priority
+2. **Environment variables** (e.g., `CANVAS_SITE_URL`, `CANVAS_CLIENT_ID`) - Set
+   in your shell or CI/CD environment
+3. **Project `.env` file** - Values defined in your project's `.env` file
+4. **Global `.canvasrc` file** - Values in your home directory's `.canvasrc`
+5. **Default values** - Built-in defaults if nothing else is specified
+
+Example: If you have `CANVAS_SITE_URL=https://dev.example.com` in your `.env`
+file but run `npx canvas download --site-url https://prod.example.com`, the CLI
+will use `https://prod.example.com`.
 
 ## Commands
 
@@ -163,12 +236,103 @@ Creates a new component directory with example files (`component.yml`,
 
 ### `build`
 
-Build local components and Tailwind CSS assets.
+Build local components, vendor dependencies, and Tailwind CSS assets using
+automatic component discovery.
 
 **Usage:**
 
 ```bash
 npx canvas build [options]
+```
+
+**Options:**
+
+- `-d, --dir <directory>`: Directory to scan for components (defaults to
+  `componentDir` from `canvas.config.json` or current working directory)
+- `--alias-base-dir <directory>`: Base directory for module resolution (defaults
+  to `"src"` from `canvas.config.json`)
+- `--output-dir <directory>`: Build output directory (defaults to `"dist"` from
+  `canvas.config.json`)
+- `--no-tailwind`: Skip Tailwind CSS build
+- `-y, --yes`: Skip confirmation prompts (non-interactive mode)
+
+**Examples:**
+
+Build all discovered components:
+
+```bash
+npx canvas build
+```
+
+Build components in a specific directory:
+
+```bash
+npx canvas build --dir ./my-components
+```
+
+Build with custom output directory:
+
+```bash
+npx canvas build --output-dir ./build
+```
+
+Build with custom alias base directory:
+
+```bash
+npx canvas build --alias-base-dir lib
+```
+
+Build without Tailwind CSS:
+
+```bash
+npx canvas build --no-tailwind
+```
+
+Non-interactive mode for CI/CD:
+
+```bash
+npx canvas build --yes
+```
+
+CI/CD without Tailwind:
+
+```bash
+npx canvas build --yes --no-tailwind
+```
+
+This command automatically discovers all components in the specified directory
+(or `componentDir` from `canvas.config.json`) and builds them with Vite-powered
+optimized bundling:
+
+1. **Component Discovery** - Automatically finds all valid components using the
+   discovery package
+2. **Component Build** For each component, a `dist` directory will be created
+   containing the compiled output. Additionally, a top-level `dist` directory
+   (or configured `outputDir`) will be created, which will be used for the
+   generated Tailwind CSS assets.
+3. **Import Analysis** - Analyzes and categorizes third-party packages and local
+   alias imports
+4. **Vendor Bundling** - Uses Vite to create optimized bundles for third-party
+   dependencies in `dist/vendor/` with proper code splitting and minification
+5. **Local Import Bundling** - Uses Vite to bundle local alias imports (e.g.,
+   `@/utils`) into `dist/local/`
+6. **Tailwind CSS** - Generates Tailwind CSS for all components
+7. **Manifest Generation** - Creates `canvas-manifest.json` with import maps for
+   all bundled dependencies
+
+The build output is optimized for production use with Vite's code splitting,
+tree-shaking, and dependency management.
+
+---
+
+### @deprecated `build-d`
+
+Build local components and Tailwind CSS assets.
+
+**Usage:**
+
+```bash
+npx canvas build-d [options]
 ```
 
 **Options:**

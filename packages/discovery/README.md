@@ -59,6 +59,7 @@ Warning codes:
 - `missing_js_entry`
 - `duplicate_definition`
 - `conflicting_metadata`
+- `duplicate_machine_name`
 
 ## Scripts
 

@@ -29,6 +29,8 @@ export function updateConfigFromOptions(options: {
   dir?: string;
   scope?: string;
   all?: boolean;
+  aliasBaseDir?: string;
+  outputDir?: string;
 }): void {
   if (options.clientId) setConfig({ clientId: options.clientId });
   if (options.clientSecret) setConfig({ clientSecret: options.clientSecret });
@@ -36,6 +38,8 @@ export function updateConfigFromOptions(options: {
   if (options.dir) setConfig({ componentDir: options.dir });
   if (options.scope) setConfig({ scope: options.scope });
   if (options.all) setConfig({ all: options.all });
+  if (options.aliasBaseDir) setConfig({ aliasBaseDir: options.aliasBaseDir });
+  if (options.outputDir) setConfig({ outputDir: options.outputDir });
 }
 
 /**
@@ -43,4 +47,12 @@ export function updateConfigFromOptions(options: {
  */
 export function pluralizeComponent(count: number): string {
   return count === 1 ? 'component' : 'components';
+}
+
+export function pluralize(
+  count: number,
+  singular: string,
+  plural?: string,
+): string {
+  return count === 1 ? singular : (plural ?? `${singular}s`);
 }

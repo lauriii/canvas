@@ -233,4 +233,33 @@ describe('discoverCodeComponents', () => {
       ),
     ).toBe(true);
   });
+
+  it('emits warning when multiple components share the same machineName', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    await writeFile(
+      path.join(root, 'src/card/component.yml'),
+      'machineName: shared-name',
+    );
+    await writeFile(path.join(root, 'src/card/index.ts'), 'export default {};');
+
+    await writeFile(
+      path.join(root, 'src/button/component.yml'),
+      'machineName: shared-name',
+    );
+    await writeFile(
+      path.join(root, 'src/button/index.ts'),
+      'export default {};',
+    );
+
+    const result = await discoverCodeComponents({ scanRoot: root });
+
+    expect(result.components).toHaveLength(2);
+    expect(
+      result.warnings.some(
+        (warning) => warning.code === 'duplicate_machine_name',
+      ),
+    ).toBe(true);
+  });
 });

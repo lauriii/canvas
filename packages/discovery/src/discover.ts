@@ -4,6 +4,8 @@ import path from 'node:path';
 import { glob } from 'glob';
 import ignore from 'ignore';
 
+import { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
+
 import type {
   DiscoveredComponent,
   DiscoveredPage,
@@ -256,7 +258,7 @@ export async function discoverCodeComponents(
   components.sort((a, b) => a.metadataPath.localeCompare(b.metadataPath));
   pages.sort((a, b) => a.path.localeCompare(b.path));
 
-  return {
+  const result: DiscoveryResult = {
     scanRoot,
     components,
     pages,
@@ -266,4 +268,11 @@ export async function discoverCodeComponents(
       ignoredFiles,
     },
   };
+
+  // Check for duplicate machine names across components.
+  const metadata = await loadComponentsMetadata(result);
+  const duplicateWarnings = findDuplicateMachineNames(components, metadata);
+  warnings.push(...duplicateWarnings);
+
+  return result;
 }

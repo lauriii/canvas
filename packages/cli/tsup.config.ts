@@ -9,7 +9,11 @@ export default defineConfig({
   treeshake: true,
   minify: false,
   publicDir: 'assets',
-  noExternal: ['tailwindcss-in-browser'],
+  noExternal: [
+    'tailwindcss-in-browser',
+    '@drupal-canvas/discovery',
+    '@drupal-canvas/vite-compat',
+  ],
   loader: {
     '.wasm': 'file',
   },

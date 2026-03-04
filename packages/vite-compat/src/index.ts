@@ -3,7 +3,7 @@ import path from 'node:path';
 import * as yaml from 'js-yaml';
 import svgr from 'vite-plugin-svgr';
 
-import { isSupportedPreviewModulePath, toViteFsUrl } from './runtime.ts';
+import { isSupportedPreviewModulePath, toViteFsUrl } from './runtime';
 
 import type { Plugin } from 'vite';
 

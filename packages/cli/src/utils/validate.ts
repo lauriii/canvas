@@ -1,17 +1,21 @@
 import path from 'path';
 import { basename } from 'path/win32';
 import { ESLint } from 'eslint';
-import { required as drupalCanvasRequired } from '@drupal-canvas/eslint-config';
+import {
+  next as drupalCanvasNext,
+  required as drupalCanvasRequired,
+} from '@drupal-canvas/eslint-config';
 
 import type { Result } from '../types/Result';
 
 export async function validateComponent(
   componentDir: string,
   fix: boolean = false,
+  next?: boolean,
 ): Promise<Result> {
   const eslint = new ESLint({
     overrideConfigFile: true,
-    overrideConfig: drupalCanvasRequired,
+    overrideConfig: next ? drupalCanvasNext : drupalCanvasRequired,
     fix,
   });
   const eslintResults = await eslint.lintFiles(componentDir + '/**/*');

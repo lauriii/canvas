@@ -17,7 +17,9 @@ export function reportResults(
 
   const successful = results.filter((r) => r.success).length;
   const failed = results.filter((r) => !r.success).length;
-  const hasDetails = results.some((r) => (r.details?.length ?? 0) > 0);
+  const hasDetails = results.some(
+    (r) => (r.details?.length ?? 0) > 0 || (r.warnings?.length ?? 0) > 0,
+  );
 
   const succeededText =
     failed === 0
@@ -31,24 +33,38 @@ export function reportResults(
     const tableData = [
       hasDetails ? [chalk.bold(title), '', ''] : [chalk.bold(title), ''],
       hasDetails ? [itemLabel, 'Status', 'Details'] : [itemLabel, 'Status'],
-      ...results.map((r) =>
-        hasDetails
+      ...results.map((r) => {
+        const hasWarnings = (r.warnings?.length ?? 0) > 0;
+        const itemDisplay = hasWarnings
+          ? `${r.itemName} ${chalk.yellow('⚠')}`
+          : r.itemName;
+
+        const warningDetails = hasWarnings ? r.warnings?.join('\n') : '';
+
+        const detailsContent =
+          r.details
+            ?.map((d) =>
+              d.heading
+                ? `${chalk.underline(d.heading)}:\n${d.content}`
+                : d.content,
+            )
+            .join('\n\n') ?? '';
+
+        const fullDetails = [warningDetails, detailsContent]
+          .filter(Boolean)
+          .join('\n\n');
+
+        return hasDetails
           ? [
-              r.itemName,
+              itemDisplay,
               r.success ? chalk.green('Success') : chalk.red('Failed'),
-              r.details
-                ?.map((d) =>
-                  d.heading
-                    ? `${chalk.underline(d.heading)}:\n${d.content}`
-                    : d.content,
-                )
-                .join('\n\n') ?? '',
+              fullDetails,
             ]
           : [
-              r.itemName,
+              itemDisplay,
               r.success ? chalk.green('Success') : chalk.red('Failed'),
-            ],
-      ),
+            ];
+      }),
       hasDetails ? ['SUMMARY', '', summary] : ['SUMMARY', summary],
     ];
     p.log.info(

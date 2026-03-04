@@ -3,7 +3,8 @@ import type { CodeComponentSerialized } from '@drupal-canvas/ui/types/CodeCompon
 export type DiscoveryWarningCode =
   | 'missing_js_entry'
   | 'duplicate_definition'
-  | 'conflicting_metadata';
+  | 'conflicting_metadata'
+  | 'duplicate_machine_name';
 
 export interface DiscoveryOptions {
   scanRoot?: string;

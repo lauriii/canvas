@@ -1,5 +1,5 @@
 name: Hello World
-machineName: hello_world
+machineName: hello-world
 status: false
 required: []
 props:

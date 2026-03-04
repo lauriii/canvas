@@ -71,7 +71,7 @@ export async function selectLocalComponents(
   options: ComponentSelectorOptions,
 ): Promise<LocalSelectorResult> {
   const config = getConfig();
-  const componentDir = options.componentDir || config.componentDir;
+  const componentDir = options.componentDir || config.deprecatedComponentDir;
 
   // Determine global CSS selection
   const globalCssSelection = determineGlobalCssSelection(options);

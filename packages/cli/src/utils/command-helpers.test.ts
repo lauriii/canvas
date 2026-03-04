@@ -18,6 +18,8 @@ describe('command-helpers', () => {
       scope: '',
       componentDir: './components',
       userAgent: '',
+      aliasBaseDir: '',
+      outputDir: '',
     });
   });
 
@@ -72,6 +74,20 @@ describe('command-helpers', () => {
 
       const config = getConfig();
       expect(config.componentDir).toBe('./my-components');
+    });
+
+    it('should update aliasBaseDir when provided', () => {
+      updateConfigFromOptions({ aliasBaseDir: 'src/components' });
+
+      const config = getConfig();
+      expect(config.aliasBaseDir).toBe('src/components');
+    });
+
+    it('should update outputDir when provided', () => {
+      updateConfigFromOptions({ outputDir: 'output' });
+
+      const config = getConfig();
+      expect(config.outputDir).toBe('output');
     });
 
     it('should update scope when provided', () => {

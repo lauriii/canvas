@@ -6,8 +6,8 @@ import type { Options as SwcOptions } from '@swc/wasm';
 const SWC_OPTIONS: SwcOptions = {
   jsc: {
     parser: {
-      syntax: 'ecmascript',
-      jsx: true,
+      syntax: 'typescript',
+      tsx: true,
     },
     target: 'es2015',
     transform: {

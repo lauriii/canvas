@@ -4,7 +4,7 @@ import { compilePartialCss } from 'tailwindcss-in-browser';
 
 import { compileJS } from '../lib/compile-js';
 import { transformCss } from '../lib/transform-css';
-import { getGlobalCss } from './build-tailwind';
+import { getGlobalCss } from './build-tailwind-deprecated';
 import { fileExists } from './utils';
 import { validateComponent } from './validate';
 

@@ -32,11 +32,14 @@ describe('config', () => {
     it('should return default config values', () => {
       const config = getConfig();
       expect(config).toEqual({
-        siteUrl: '',
+        aliasBaseDir: 'src',
         clientId: '',
         clientSecret: '',
-        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './components',
+        deprecatedComponentDir: './components',
+        outputDir: 'dist',
+        scope: 'canvas:js_component canvas:asset_library',
+        siteUrl: '',
         userAgent: '',
       });
     });
@@ -47,11 +50,14 @@ describe('config', () => {
         clientId: 'test-client',
       });
       expect(getConfig()).toEqual({
-        siteUrl: 'https://example.com',
+        aliasBaseDir: 'src',
         clientId: 'test-client',
         clientSecret: '',
-        scope: 'canvas:js_component canvas:asset_library',
         componentDir: './components',
+        deprecatedComponentDir: './components',
+        outputDir: 'dist',
+        scope: 'canvas:js_component canvas:asset_library',
+        siteUrl: 'https://example.com',
         userAgent: '',
       });
     });
@@ -222,18 +228,20 @@ describe('config', () => {
       vi.stubEnv('CANVAS_CLIENT_ID', 'test-client');
       vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
       vi.stubEnv('CANVAS_SCOPE', 'canvas:js_component canvas:asset_library');
-      vi.stubEnv('CANVAS_COMPONENT_DIR', './test-components');
       vi.stubEnv('CANVAS_USER_AGENT', 'simpletest123456');
 
       // Re-import config to trigger initialization
       const { getConfig } = await import('./config');
 
       expect(getConfig()).toEqual({
-        siteUrl: 'https://test.example.com',
+        aliasBaseDir: 'src',
         clientId: 'test-client',
         clientSecret: 'test-secret',
+        componentDir: process.cwd(),
+        deprecatedComponentDir: './components',
+        outputDir: 'dist',
         scope: 'canvas:js_component canvas:asset_library',
-        componentDir: './test-components',
+        siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
     });
@@ -245,11 +253,14 @@ describe('config', () => {
       const { getConfig } = await import('./config');
 
       expect(getConfig()).toEqual({
+        aliasBaseDir: 'src',
         siteUrl: '',
         clientId: '',
         clientSecret: '',
         scope: 'canvas:js_component canvas:asset_library',
-        componentDir: './components',
+        componentDir: process.cwd(),
+        deprecatedComponentDir: './components',
+        outputDir: 'dist',
         userAgent: '',
       });
     });

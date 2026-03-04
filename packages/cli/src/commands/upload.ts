@@ -10,11 +10,11 @@ import {
 
 import { ensureConfig, getConfig } from '../config.js';
 import { createApiService } from '../services/api.js';
-import { buildComponent } from '../utils/build';
+import { buildComponent } from '../utils/build-deprecated';
 import {
   buildTailwindForComponents,
   getGlobalCss,
-} from '../utils/build-tailwind.js';
+} from '../utils/build-tailwind-deprecated';
 import {
   pluralizeComponent,
   updateConfigFromOptions,
@@ -244,7 +244,7 @@ export function uploadCommand(program: Command): void {
           'clientId',
           'clientSecret',
           'scope',
-          'componentDir',
+          'deprecatedComponentDir',
         ]);
         const config = getConfig();
 
@@ -259,6 +259,7 @@ export function uploadCommand(program: Command): void {
             includeGlobalCss: !options.skipCss,
             globalCssDefault: true,
             selectMessage: 'Select items to upload',
+            componentDir: options.dir,
           });
 
         // Create API service
@@ -319,7 +320,7 @@ export function uploadCommand(program: Command): void {
             if (includeGlobalCss) {
               const globalCssResult = await uploadGlobalAssetLibrary(
                 apiService,
-                config.componentDir,
+                config.deprecatedComponentDir,
               );
               reportResults([globalCssResult], 'Uploaded assets', 'Asset');
             } else {
