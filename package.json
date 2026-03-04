@@ -55,6 +55,10 @@
     "yaml-lint": "^1.7.0"
   },
   "overrides": {
-    "glob": "^13.0.1"
+    "glob": "^13.0.1",
+    "@drupal-canvas/ui": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    }
   }
 }

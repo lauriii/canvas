@@ -419,6 +419,13 @@ vitest:
         - ui/tsconfig.json
         - ui/tsconfig.node.json
         - ui/tests/vitest/**/*
+        - ui/vitest.config.js
+        - ui/vite.config.ts
+        - ui/package.json
+        - package.json
+        - package-lock.json
+        # Workspace packages can affect dependency hoisting to the root node_modules.
+        - packages/*/package.json
     - *UI-fixtures-files-change-rule
     - *manual-rule
   script:
