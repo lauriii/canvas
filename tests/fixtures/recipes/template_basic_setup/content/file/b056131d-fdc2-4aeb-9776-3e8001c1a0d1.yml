@@ -1,0 +1,27 @@
+_meta:
+  version: '1.0'
+  entity_type: file
+  uuid: b056131d-fdc2-4aeb-9776-3e8001c1a0d1
+  default_langcode: en
+default:
+  uid:
+    -
+      target_id: 1
+  filename:
+    -
+      value: secret-plans_2.jpg
+  uri:
+    -
+      value: 'public://2025-10/secret-plans_2.jpg'
+  filemime:
+    -
+      value: image/jpeg
+  filesize:
+    -
+      value: 318082
+  status:
+    -
+      value: true
+  created:
+    -
+      value: 1760098357

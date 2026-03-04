@@ -1,0 +1,35 @@
+_meta:
+  version: '1.0'
+  entity_type: media
+  uuid: 5cd8f890-a1b8-4a9f-980d-a9ddadeaec81
+  bundle: image
+  default_langcode: en
+  depends:
+    31dc1fff-06d2-4170-8ea6-503e59960e99: file
+default:
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  name:
+    -
+      value: treehouse.jpeg
+  created:
+    -
+      value: 1760098240
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  field_media_image:
+    -
+      alt: 'tree house'
+      title: ''
+      width: 1024
+      height: 665
+      entity: 31dc1fff-06d2-4170-8ea6-503e59960e99

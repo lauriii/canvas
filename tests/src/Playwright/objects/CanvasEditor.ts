@@ -43,6 +43,11 @@ export class CanvasEditor {
     await this.waitForEditorFrame();
   }
 
+  async waitForEditorUINoContextualPanel() {
+    await this.waitForCanvasUi();
+    await this.waitForEditorFrame();
+  }
+
   async waitForPrimaryPanel() {
     await expect(this.page.getByTestId('canvas-primary-panel')).toBeAttached();
 
@@ -115,7 +120,7 @@ export class CanvasEditor {
   }
 
   async getActivePreviewFrame() {
-    await this.waitForEditorUi();
+    await this.waitForEditorUINoContextualPanel();
     return this.page
       .locator(
         '[data-testid="canvas-editor-frame-scaling"] iframe[data-canvas-swap-active="true"]',

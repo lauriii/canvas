@@ -1,0 +1,27 @@
+_meta:
+  version: '1.0'
+  entity_type: file
+  uuid: 31dc1fff-06d2-4170-8ea6-503e59960e99
+  default_langcode: en
+default:
+  uid:
+    -
+      target_id: 1
+  filename:
+    -
+      value: treehouse.jpeg
+  uri:
+    -
+      value: 'public://2025-10/treehouse_0.jpeg'
+  filemime:
+    -
+      value: image/jpeg
+  filesize:
+    -
+      value: 153964
+  status:
+    -
+      value: true
+  created:
+    -
+      value: 1760098240

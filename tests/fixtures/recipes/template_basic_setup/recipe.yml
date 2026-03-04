@@ -1,0 +1,84 @@
+name: 'Template test setup'
+description: 'A basic setup for testing templates.'
+type: 'Canvas'
+install:
+  - canvas_test_linkable_props
+recipes:
+  - ./core/recipes/tags_taxonomy
+  - ./core/recipes/basic_html_format_editor
+config:
+  strict: false
+  import:
+    canvas:
+      - canvas.content_template.node.article.full
+      - canvas.content_template.node.page.full
+  actions:
+    core.entity_form_display.node.page.default:
+      setComponents:
+        - name: field_date
+          options:
+            type: datetime_default
+            weight: 126
+            region: content
+        - name: field_date_only
+          options:
+            type: datetime_default
+            weight: 127
+            region: content
+        - name: field_image_media
+          options:
+            type: media_library_widget
+            weight: 123
+            region: content
+        - name: field_image_upload
+          options:
+            type: image_image
+            weight: 124
+            region: content
+            settings:
+              progress_indicator: throbber
+              preview_image_style: thumbnail
+        - name: field_number_list
+          options:
+            type: options_select
+            weight: 125
+            region: content
+        - name: field_one_tag
+          options:
+            type: entity_reference_autocomplete
+            weight: 122
+            region: content
+            settings:
+              match_operator: CONTAINS
+              match_limit: 10
+              size: 60
+        - name: field_the_boolean
+          options:
+            type: boolean_checkbox
+            weight: 128
+            region: content
+            settings:
+              display_label: true
+        - name: field_the_email
+          options:
+            type: email_default
+            weight: 129
+            region: content
+            settings:
+              placeholder: ''
+              size: 60
+        - name: field_the_link
+          options:
+            type: link_default
+            weight: 130
+            region: content
+            settings:
+              placeholder_url: ''
+              placeholder_title: ''
+        - name: field_the_number
+          options:
+            type: number
+            weight: 121
+            region: content
+            settings:
+              placeholder: ''

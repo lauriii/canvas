@@ -704,6 +704,18 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // does not include props that Canvas does not yet know to store. For any
     // other component, not knowing how to store >=1 prop would result in no
     // Component config entity being created!)
+
+    // Get suggested non-static prop sources for component instances on
+    // content templates.
+    $suggestions = NULL;
+    if ($entity instanceof ContentTemplate) {
+      $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
+        $this->getSourceSpecificComponentId(),
+        $this->getMetadata(),
+        $entity->getTargetEntityDataDefinition(),
+      ));
+    }
+
     foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
       // Uncollapse if set; otherwise fall back to the default static prop
       // source, but *made empty* instead of the default value.
@@ -755,11 +767,6 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
       if ($entity instanceof ContentTemplate) {
-        $suggestions = PropSourceSuggester::structureSuggestionsForHierarchicalResponse($this->propSourceSuggester->suggest(
-          $this->getSourceSpecificComponentId(),
-          $this->getMetadata(),
-          $entity->getTargetEntityDataDefinition(),
-        ));
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
 
         // If the prop is already linked, replace the widget entirely. The
@@ -773,6 +780,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
             '#sdc_prop_name' => $sdc_prop_name,
             '#sdc_prop_label' => $label,
             '#linked_prop_source' => $linked_prop_source,
+            '#entity_data_definition' => $entity->getTargetEntityDataDefinition(),
             '#field_link_suggestions' => $suggestions[$sdc_prop_name],
             '#description' => $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL,
             '#is_required' => $is_required,

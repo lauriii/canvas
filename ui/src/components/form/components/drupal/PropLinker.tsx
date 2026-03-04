@@ -87,9 +87,11 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
   const DropdownMenuItem = ({
     item,
     isActive,
+    childOf,
   }: {
     item: LinkSuggestion;
     isActive: boolean;
+    childOf?: string;
   }) => {
     return (
       <DropdownMenu.Item
@@ -98,6 +100,8 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
         className={clsx({
           [styles.disabled]: isActive,
         })}
+        data-link-suggestion-option={item.label}
+        data-child-of={childOf}
       >
         {isActive && <CheckIcon />}
         {item.label}
@@ -105,7 +109,13 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
     );
   };
 
-  const NestedDropdownItem = ({ item }: { item: LinkSuggestion }) => {
+  const NestedDropdownItem = ({
+    item,
+    parent,
+  }: {
+    item: LinkSuggestion;
+    parent?: string;
+  }) => {
     const isActive = JSON.stringify(item.source) === selectedSourceAsString;
 
     if (item.items && item.items.length > 0) {
@@ -115,6 +125,8 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
             className={clsx(styles.subTrigger, {
               [styles.disabled]: isActive && item.source,
             })}
+            data-link-suggestion-option={item.label}
+            data-child-of={parent}
           >
             {item.label}
           </DropdownMenu.SubTrigger>
@@ -127,21 +139,67 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
                   key={item.id}
                   item={item}
                   isActive={isActive}
+                  childOf="myself"
                 />
                 <Separator orientation="horizontal" size="4" my="2" />
               </>
             )}
 
             {item.items.map((sub, index) => (
-              <NestedDropdownItem key={sub.id || index} item={sub} />
+              <NestedDropdownItem
+                key={sub.id || index}
+                item={sub}
+                parent={item.label}
+              />
             ))}
           </DropdownMenu.SubContent>
         </DropdownMenu.Sub>
       );
     }
 
-    return <DropdownMenuItem key={item.id} item={item} isActive={isActive} />;
+    return (
+      <DropdownMenuItem
+        key={item.id}
+        item={item}
+        isActive={isActive}
+        childOf={parent}
+      />
+    );
   };
+
+  // Flatten the suggestions to a list of linkable items with their full path as
+  // the label for testing purposes.
+  const flatSuggestions = suggestions
+    .reduce((acc: LinkSuggestion[], suggestion) => {
+      const addSuggestionWithPath = (
+        item: LinkSuggestion,
+        path: string = '',
+      ): void => {
+        const currentPath = path ? `${path} > ${item.label}` : item.label;
+        // Only add items that have a 'source' property (linkable items)
+        if (item.source) {
+          // If this item has both a source AND children, it appears ONLY in its own submenu
+          // as "myself" (see line 135), NOT as a standalone item.
+          if (item.items && item.items.length > 0) {
+            const myselfPath = `${currentPath} > ${item.label}`;
+            acc.push({ ...item, label: myselfPath });
+          } else {
+            // No children, add normally as a standalone item
+            acc.push({ ...item, label: currentPath });
+          }
+        }
+
+        // Recursively process sub-items
+        if (item.items && item.items.length > 0) {
+          item.items.forEach((subItem) =>
+            addSuggestionWithPath(subItem, currentPath),
+          );
+        }
+      };
+      addSuggestionWithPath(suggestion);
+      return acc;
+    }, [])
+    .map((item) => item.label);
 
   return (
     <DropdownMenu.Root onOpenChange={(open) => setLinkerOpen(open)}>
@@ -151,6 +209,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
             [styles.linkerOpen]: linkerOpen,
           })}
           aria-label={`Link ${propName} to an other field`}
+          data-canvas-link-suggestions={JSON.stringify(flatSuggestions)}
         >
           {linked && <Link1Icon className={styles.default} />}
           {!linked && <LinkNone1Icon className={styles.default} />}
@@ -163,6 +222,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               <NestedDropdownItem
                 key={suggestion.id || index}
                 item={suggestion}
+                parent={'root'}
               />
             );
           }
@@ -173,6 +233,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
               key={suggestion.id}
               item={suggestion}
               isActive={isActive}
+              childOf="root"
             />
           );
         })}

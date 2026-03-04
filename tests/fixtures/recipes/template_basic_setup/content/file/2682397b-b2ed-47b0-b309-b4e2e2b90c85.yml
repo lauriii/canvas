@@ -1,0 +1,27 @@
+_meta:
+  version: '1.0'
+  entity_type: file
+  uuid: 2682397b-b2ed-47b0-b309-b4e2e2b90c85
+  default_langcode: en
+default:
+  uid:
+    -
+      target_id: 1
+  filename:
+    -
+      value: cool-cat.jpg
+  uri:
+    -
+      value: 'public://2025-10/cool-cat_2.jpg'
+  filemime:
+    -
+      value: image/jpeg
+  filesize:
+    -
+      value: 276380
+  status:
+    -
+      value: true
+  created:
+    -
+      value: 1760098449

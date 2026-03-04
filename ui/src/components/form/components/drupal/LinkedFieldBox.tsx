@@ -30,6 +30,9 @@ import type {
 
 import styles from './LinkedFieldBox.module.css';
 
+const ARROW_SEPARATOR = ' → ';
+const SLASH_SEPARATOR = ' / ';
+
 const LinkedFieldBox = ({
   title,
   propName,
@@ -41,6 +44,12 @@ const LinkedFieldBox = ({
   description: string;
   descriptionDisplay?: 'before' | 'after' | 'invisible';
 }) => {
+  // Convert arrows to slashes for the full label display
+  const fullLabel = title.replaceAll(ARROW_SEPARATOR, SLASH_SEPARATOR);
+  // Extract just the last segment for the short title
+  const parts = fullLabel.split(SLASH_SEPARATOR);
+  const shortTitle = parts[parts.length - 1];
+
   const { data: components } = useGetComponentsQuery();
   const model = useAppSelector(selectModel);
   const layout = useAppSelector(selectLayout);
@@ -98,11 +107,16 @@ const LinkedFieldBox = ({
         description={description}
         descriptionDisplay={descriptionDisplay}
       >
-        <Flex className={styles.wrapper} mb="2">
+        <Flex className={styles.wrapper} mb="2" title={fullLabel}>
           <Text className={clsx(styles.linkIcon, styles.iconBox)}>
             <TextIcon />
           </Text>
-          <Text className={styles.text}>{title}</Text>
+          <Text
+            data-testid={`linked-field-label-${propName}`}
+            className={styles.text}
+          >
+            {shortTitle}
+          </Text>
           <button
             className={clsx(styles.iconBox, styles.closeIcon)}
             onClick={unlinkField}

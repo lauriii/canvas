@@ -1,0 +1,23 @@
+uuid: 71024ebd-bc92-4495-af35-d2b3c1a30be6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_the_number
+    - node.type.page
+id: node.page.field_the_number
+field_name: field_the_number
+entity_type: node
+bundle: page
+label: 'The Number'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

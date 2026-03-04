@@ -1,0 +1,21 @@
+uuid: 6d220708-61ef-4f3c-aa13-ef42cb22967e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_the_boolean
+    - node.type.page
+id: node.page.field_the_boolean
+field_name: field_the_boolean
+entity_type: node
+bundle: page
+label: 'The Boolean'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

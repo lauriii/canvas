@@ -1,0 +1,40 @@
+canvas.component.sdc.sdc_test_all_props.all-props:
+  type: config_object
+  label: 'All-Props SDC Component Configuration'
+  mapping:
+    id:
+      type: string
+    label:
+      type: string
+    status:
+      type: boolean
+    uuid:
+      type: string
+    langcode:
+      type: string
+    dependencies:
+      type: ignore
+    source:
+      type: ignore
+    source_local_id:
+      type: ignore
+    provider:
+      type: ignore
+    active_version:
+      type: ignore
+    versioned_properties:
+      type: mapping
+      label: 'Versioned Properties'
+      mapping:
+        active:
+          type: mapping
+          label: 'Active Properties'
+          mapping:
+            settings:
+              type: mapping
+              label: 'Settings'
+              mapping:
+                prop_field_definitions:
+                  type: ignore
+            fallback_metadata:
+              type: ignore

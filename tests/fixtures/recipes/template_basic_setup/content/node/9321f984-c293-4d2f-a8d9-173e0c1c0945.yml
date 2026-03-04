@@ -1,0 +1,82 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 9321f984-c293-4d2f-a8d9-173e0c1c0945
+  bundle: page
+  default_langcode: en
+  depends:
+    707319dc-23e8-4974-b019-e0ea0f4ec731: media
+    811ced3c-81e9-49b9-a82d-ef4da8772e9f: file
+    4f797556-f1bd-4bf2-a034-2550afa55c5d: taxonomy_term
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Followup Page'
+  created:
+    -
+      value: 1760098377
+  promote:
+    -
+      value: false
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  body:
+    -
+      value: '<p>This is the followup page. <strong>It was equally unremarkable.</strong></p>'
+      format: basic_html
+      summary: ''
+  field_date:
+    -
+      value: '2008-08-08T08:08:08'
+  field_date_only:
+    -
+      value: '2007-07-07'
+  field_image_media:
+    -
+      target_uuid: ''
+      entity: 707319dc-23e8-4974-b019-e0ea0f4ec731
+  field_image_upload:
+    -
+      alt: 'hi everybody'
+      title: ''
+      width: 800
+      height: 600
+      entity: 811ced3c-81e9-49b9-a82d-ef4da8772e9f
+  field_number_list:
+    -
+      value: 2
+  field_one_tag:
+    -
+      target_uuid: ''
+      entity: 4f797556-f1bd-4bf2-a034-2550afa55c5d
+  field_the_boolean:
+    -
+      value: false
+  field_the_email:
+    -
+      value: another@another.com
+  field_the_link:
+    -
+      uri: 'https://drupal.org'
+      title: 'Some guy made a blog'
+      options: {  }
+  field_the_number:
+    -
+      value: 44

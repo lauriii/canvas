@@ -1,0 +1,19 @@
+uuid: 02079d5b-4b0c-421c-bf98-bb2f8bb5cbbb
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_the_email
+    - node.type.page
+id: node.page.field_the_email
+field_name: field_the_email
+entity_type: node
+bundle: page
+label: 'The Email'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: email

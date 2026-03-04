@@ -1,0 +1,85 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 3770d0c8-4cab-4a77-b8cc-1f76fcdafa00
+  bundle: page
+  default_langcode: en
+  depends:
+    5cd8f890-a1b8-4a9f-980d-a9ddadeaec81: media
+    b056131d-fdc2-4aeb-9776-3e8001c1a0d1: file
+    ad0f8699-9c47-4d2c-93a2-59729c2e70c1: taxonomy_term
+default:
+  revision_uid:
+    -
+      target_id: 1
+  revision_log:
+    -
+      value: 'A page that was made'
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Debut Page'
+  created:
+    -
+      value: 1760098151
+  promote:
+    -
+      value: false
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  body:
+    -
+      value: '<p>This page emerged on the scene.<strong> This page was met with indifference</strong>.</p>'
+      format: basic_html
+      summary: ''
+  field_date:
+    -
+      value: '2010-10-10T10:10:10'
+  field_date_only:
+    -
+      value: '2011-11-11'
+  field_image_media:
+    -
+      target_uuid: ''
+      entity: 5cd8f890-a1b8-4a9f-980d-a9ddadeaec81
+  field_image_upload:
+    -
+      alt: 'secret plans'
+      title: ''
+      width: 1000
+      height: 1333
+      entity: b056131d-fdc2-4aeb-9776-3e8001c1a0d1
+  field_number_list:
+    -
+      value: 1
+  field_one_tag:
+    -
+      target_uuid: ''
+      entity: ad0f8699-9c47-4d2c-93a2-59729c2e70c1
+  field_the_boolean:
+    -
+      value: true
+  field_the_email:
+    -
+      value: one@one.com
+  field_the_link:
+    -
+      uri: 'https://qwantz.com'
+      title: 'Dinosaur Comics'
+      options: {  }
+  field_the_number:
+    -
+      value: 33
