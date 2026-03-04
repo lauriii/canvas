@@ -19,6 +19,7 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\image\Entity\ImageStyle;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -43,12 +44,15 @@ final class CanvasTwigExtension extends AbstractExtension {
    *   The file URL generator.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack.
    */
   public function __construct(
     private readonly StreamWrapperManagerInterface $streamWrapperManager,
     private readonly ImageFactory $imageFactory,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly RendererInterface $renderer,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -153,11 +157,11 @@ final class CanvasTwigExtension extends AbstractExtension {
       $uri = $this->urlToStreamWrapperUri($src);
       if ($uri) {
         $template = ParametrizedImageStyle::load('canvas_parametrized_width')?->buildUrlTemplate($uri);
-        if (is_string($template)) {
+        if (\is_string($template)) {
           $template = $this->fileUrlGenerator->transformRelative($template);
         }
         // Trust the passed width if available, otherwise try to read from file.
-        if (is_null($intrinsicImageWidth)) {
+        if (\is_null($intrinsicImageWidth)) {
           $intrinsicImageWidth = $this->getWidth($uri);
         }
       }
@@ -200,8 +204,8 @@ final class CanvasTwigExtension extends AbstractExtension {
   private function urlToStreamWrapperUri(string $url): ?string {
     $publicBasePath = PublicStream::basePath();
     $pathSegment = parse_url($url, PHP_URL_PATH);
-    $path = ltrim(is_string($pathSegment) ? $pathSegment : $url, '/');
-    $basePath = trim(\Drupal::request()->getBasePath(), '/');
+    $path = ltrim(\is_string($pathSegment) ? $pathSegment : $url, '/');
+    $basePath = trim($this->requestStack->getCurrentRequest()?->getBasePath() ?? '', '/');
     $prefix = $publicBasePath . '/';
 
     if (str_starts_with($path, $prefix)) {
@@ -307,7 +311,7 @@ final class CanvasTwigExtension extends AbstractExtension {
         'height' => $image['height'],
       ];
       \assert(Inspector::assertAllNumeric($dimensions));
-      $dimensions = array_map('intval', $dimensions);
+      $dimensions = \array_map('intval', $dimensions);
       $style->transformDimensions($dimensions, $uri);
       $result['width'] = $dimensions['width'];
       $result['height'] = $dimensions['height'];

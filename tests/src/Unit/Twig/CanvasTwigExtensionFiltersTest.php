@@ -15,6 +15,7 @@ use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Tests Twig filter functionality.
@@ -40,9 +41,10 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
     $imageFactory = $this->createMock(ImageFactory::class);
     $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
     $renderer = $this->createMock(RendererInterface::class);
+    $requestStack = $this->createMock(RequestStack::class);
 
-    // Create the extension instance
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager, $renderer);
+    // Create the extension instance.
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager, $renderer, $requestStack);
   }
 
   /**

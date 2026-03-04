@@ -26,8 +26,6 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests Twig filter functionality.
- *
- * @group canvas
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
@@ -71,9 +69,10 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $streamWrapperManager->method('isValidUri')->willReturn(TRUE);
     $fileUrlGenerator = $this->container->get(FileUrlGeneratorInterface::class);
     $renderer = $this->container->get('renderer');
+    $requestStack = $this->container->get('request_stack');
 
-    // Create the extension instance
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator, $renderer);
+    // Create the extension instance.
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator, $renderer, $requestStack);
     $test_base_url = 'http://localhost/sites/default/files';
     $this->setSetting('file_public_base_url', $test_base_url);
   }
