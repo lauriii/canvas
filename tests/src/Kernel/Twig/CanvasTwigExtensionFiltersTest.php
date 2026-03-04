@@ -22,6 +22,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests Twig filter functionality.
@@ -228,6 +229,101 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     // Should return a URL for the styled derivative.
     $this->assertStringContainsString('/styles/test_style/', $result['src']);
     $this->assertStringContainsString('test-image.jpg', $result['src']);
+  }
+
+  /**
+   * Tests the apply_image_style filter with local file URL in subdirectory.
+   */
+  public function testApplyImageStyleWithLocalFileUrlInSubdirectory(): void {
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $extension = $this->container->get(CanvasTwigExtension::class);
+    \assert($extension instanceof CanvasTwigExtension);
+
+    $publicBasePath = PublicStream::basePath();
+    $subdirectoryBaseUrl = '/subdirectory';
+    $request = Request::create(
+      $subdirectoryBaseUrl . '/node/1',
+      'GET',
+      [],
+      [],
+      [],
+      [
+        'SCRIPT_FILENAME' => '/var/www/html' . $subdirectoryBaseUrl . '/index.php',
+        'SCRIPT_NAME' => $subdirectoryBaseUrl . '/index.php',
+        'PHP_SELF' => $subdirectoryBaseUrl . '/index.php',
+      ],
+    );
+    $requestStack = $this->container->get('request_stack');
+    $requestStack->push($request);
+
+    try {
+      $image = [
+        'src' => $subdirectoryBaseUrl . '/' . $publicBasePath . '/test-image.jpg',
+        'width' => 400,
+        'height' => 300,
+      ];
+      $result = $extension->applyImageStyle($image, 'test_style');
+    }
+    finally {
+      $requestStack->pop();
+    }
+
+    $this->assertIsArray($result);
+    // Should return a URL for the styled derivative.
+    $this->assertStringContainsString('/styles/test_style/', $result['src']);
+    $this->assertStringContainsString('test-image.jpg', $result['src']);
+  }
+
+  /**
+   * Tests prefixed paths outside base path are not treated as public files.
+   */
+  public function testApplyImageStyleWithUnexpectedPrefixedPublicPath(): void {
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $extension = $this->container->get(CanvasTwigExtension::class);
+    \assert($extension instanceof CanvasTwigExtension);
+
+    $publicBasePath = PublicStream::basePath();
+    $subdirectoryBaseUrl = '/subdirectory';
+    $request = Request::create(
+      $subdirectoryBaseUrl . '/node/1',
+      'GET',
+      [],
+      [],
+      [],
+      [
+        'SCRIPT_FILENAME' => '/var/www/html' . $subdirectoryBaseUrl . '/index.php',
+        'SCRIPT_NAME' => $subdirectoryBaseUrl . '/index.php',
+        'PHP_SELF' => $subdirectoryBaseUrl . '/index.php',
+      ],
+    );
+    $requestStack = $this->container->get('request_stack');
+    $requestStack->push($request);
+
+    try {
+      $image = [
+        'src' => '/other/' . $publicBasePath . '/test-image.jpg',
+        'width' => 400,
+        'height' => 300,
+      ];
+      $result = $extension->applyImageStyle($image, 'test_style');
+    }
+    finally {
+      $requestStack->pop();
+    }
+
+    // Paths outside the detected base path should remain unchanged.
+    $this->assertIsArray($result);
+    $this->assertSame('/other/' . $publicBasePath . '/test-image.jpg', $result['src']);
+    $this->assertSame(400, $result['width']);
+    $this->assertSame(300, $result['height']);
   }
 
   /**
