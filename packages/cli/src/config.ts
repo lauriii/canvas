@@ -64,6 +64,112 @@ export function setConfig(newConfig: Partial<Config>): void {
   config = { ...config, ...newConfig };
 }
 
+let legacyComponentDirMigrationHandled = false;
+
+interface LegacyMigrationOptions {
+  skipPrompt?: boolean;
+}
+
+/**
+ * Detects legacy CANVAS_COMPONENT_DIR usage and helps users migrate to
+ * canvas.config.json.
+ */
+export async function handleLegacyComponentDirMigration(
+  options: LegacyMigrationOptions = {},
+): Promise<void> {
+  if (legacyComponentDirMigrationHandled) {
+    return;
+  }
+  legacyComponentDirMigrationHandled = true;
+
+  const legacyComponentDir = process.env.CANVAS_COMPONENT_DIR?.trim();
+  if (!legacyComponentDir) {
+    return;
+  }
+
+  const configPath = path.resolve(process.cwd(), 'canvas.config.json');
+  const hasConfigFile = fs.existsSync(configPath);
+
+  let parsedConfig: Record<string, unknown> | null = null;
+  let configParseError = false;
+
+  if (hasConfigFile) {
+    try {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        parsedConfig = parsed as Record<string, unknown>;
+      } else {
+        configParseError = true;
+      }
+    } catch {
+      configParseError = true;
+    }
+  }
+
+  const hasComponentDirConfig =
+    typeof parsedConfig?.componentDir === 'string' &&
+    parsedConfig.componentDir.trim().length > 0;
+
+  if (hasComponentDirConfig) {
+    return;
+  }
+
+  p.log.warn(
+    'CANVAS_COMPONENT_DIR is deprecated for component directory configuration. Use componentDir in canvas.config.json instead.',
+  );
+
+  // Preserve behavior for the current run while migration is in progress.
+  setConfig({
+    componentDir: legacyComponentDir,
+    deprecatedComponentDir: legacyComponentDir,
+  });
+
+  if (configParseError) {
+    p.log.warn(
+      'canvas.config.json exists but is invalid. Update it manually by adding a componentDir key.',
+    );
+    return;
+  }
+
+  if (options.skipPrompt) {
+    p.log.info(
+      `Add "componentDir": "${legacyComponentDir}" to canvas.config.json to persist this setting.`,
+    );
+    return;
+  }
+
+  const shouldWriteConfig = await p.confirm({
+    message: hasConfigFile
+      ? `Add "componentDir": "${legacyComponentDir}" to canvas.config.json?`
+      : `Create canvas.config.json with "componentDir": "${legacyComponentDir}"?`,
+    initialValue: true,
+  });
+
+  if (p.isCancel(shouldWriteConfig) || !shouldWriteConfig) {
+    p.log.info(
+      `Skipped config update. You can set "componentDir": "${legacyComponentDir}" in canvas.config.json later.`,
+    );
+    return;
+  }
+
+  const nextConfig = hasConfigFile
+    ? { ...(parsedConfig ?? {}), componentDir: legacyComponentDir }
+    : { componentDir: legacyComponentDir };
+
+  fs.writeFileSync(
+    configPath,
+    `${JSON.stringify(nextConfig, null, 2)}\n`,
+    'utf-8',
+  );
+  p.log.info('Updated canvas.config.json with componentDir.');
+}
+
+export function resetLegacyComponentDirMigrationForTests(): void {
+  legacyComponentDirMigrationHandled = false;
+}
+
 export type ConfigKey = keyof Config;
 
 export async function ensureConfig(requiredKeys: ConfigKey[]): Promise<void> {

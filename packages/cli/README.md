@@ -57,6 +57,10 @@ properties:
 If `canvas.config.json` is not present, the CLI will use the default values
 shown above.
 
+If you still have `CANVAS_COMPONENT_DIR` set in your shell, `.env`, or
+`.canvasrc`, the CLI will warn you and offer to create or update
+`canvas.config.json` with `componentDir`.
+
 #### .env
 
 This file contains environmental configuration that varies between environments

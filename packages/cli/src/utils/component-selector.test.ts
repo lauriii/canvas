@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as p from '@clack/prompts';
 
+import { setConfig } from '../config';
 import { ALL_COMPONENTS_SELECTOR } from './command-helpers';
 import {
   selectLocalComponents,
@@ -36,6 +37,10 @@ function createMockComponent(machineName: string, name: string): Component {
 describe('component-selector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setConfig({
+      componentDir: process.cwd(),
+      deprecatedComponentDir: './components',
+    });
   });
 
   afterEach(() => {
