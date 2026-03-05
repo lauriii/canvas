@@ -42,7 +42,7 @@ export function scaffoldCommand(program: Command): void {
         if (!componentName) {
           const name = await p.text({
             message: 'Enter the component name',
-            placeholder: 'my-component',
+            placeholder: 'hello-world',
             validate: (value) => {
               if (!value) return 'Component name is required';
               if (!/^[a-zA-Z0-9-_]+$/.test(value))
