@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for a 'checkbox' #type  form element in a boolean widget.
+ *
+ * Available variables:
+ * - attributes: A list of HTML attributes for the input element.
+ * - children: Optional additional rendered elements.
+ * - element: The form element array.
+ *
+ * @see template_preprocess_input()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-input--checkbox--inwidget-boolean-checkbox
+    attributes="{{ attributes }}"
+    default_value="{{ element['#default_value'] }}"
+    current_value="{{ element['#value'] }}"
+>
+</drupal-canvas-input--checkbox--inwidget-boolean-checkbox>

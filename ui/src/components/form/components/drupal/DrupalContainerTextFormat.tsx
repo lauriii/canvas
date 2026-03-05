@@ -9,7 +9,7 @@ import styles from './DrupalContainerTextFormat.module.css';
 
 interface DrupalContainerTextFormatFilterProps {
   attributes?: Attributes;
-  renderChildren?: JSX.Element | null;
+  children?: JSX.Element | null;
   hasParent?: boolean;
 }
 
@@ -19,7 +19,7 @@ interface DrupalContainerTextFormatFilterProps {
  */
 const DrupalContainerTextFormatFilterGuidelines = ({
   attributes = {},
-  renderChildren = null,
+  children = null,
   hasParent = false,
 }: DrupalContainerTextFormatFilterProps) => {
   return (
@@ -31,7 +31,7 @@ const DrupalContainerTextFormatFilterGuidelines = ({
         ),
       })}
     >
-      {renderChildren}
+      {children}
     </Box>
   );
 };
@@ -42,7 +42,7 @@ const DrupalContainerTextFormatFilterGuidelines = ({
  */
 const DrupalContainerTextFormatFilterHelp = ({
   attributes = {},
-  renderChildren = null,
+  children = null,
   hasParent = false,
 }: DrupalContainerTextFormatFilterProps) => {
   return (
@@ -55,7 +55,7 @@ const DrupalContainerTextFormatFilterHelp = ({
       })}
       mb="2"
     >
-      {renderChildren}
+      {children}
     </Box>
   );
 };

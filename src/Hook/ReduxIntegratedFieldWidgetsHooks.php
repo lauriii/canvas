@@ -216,20 +216,31 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    */
   #[Hook('field_widget_complete_form_alter')]
   public function fieldWidgetCompleteFormAlter(array &$widget, FormStateInterface $form_state, array $context): void {
-    // Only apply custom multivalue form behavior if canvas_dev_mode is enabled.
-    if (!$this->moduleHandler->moduleExists('canvas_dev_mode')) {
-      return;
+    // Provide additional context to be used by
+    // canvas_theme_suggestions_alter().
+    $widget['#widget-type'] = $context['widget']->getPluginId();
+    if (isset($widget['widget']) && \is_array($widget["widget"])) {
+      $widget["widget"]['#widget-type'] = $context['widget']->getPluginId();
+      foreach (Element::children($widget['widget']) as $key) {
+        $widget['widget'][$key]['#widget-type'] = $context['widget']->getPluginId();
+        foreach (Element::children($widget['widget'][$key]) as $child_key) {
+          $widget['widget'][$key][$child_key]['#widget-type'] = $context['widget']->getPluginId();
+        }
+      }
     }
 
-    // Check if this is a multivalue field.
-    $field_definition = $context['items']->getFieldDefinition();
-    $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
+    if ($this->moduleHandler->moduleExists('canvas_dev_mode')) {
+      // Check if this is a multivalue field.
+      $field_definition = $context['items']->getFieldDefinition();
+      $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
 
-    if ($is_multiple && $this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
-      // Get the field label to add to all input elements.
-      $field_label = $field_definition->getLabel();
-      // Mark all input elements within multivalue widgets and add field title.
-      $this->markMultivalueFormElements($widget, $field_label);
+      if ($is_multiple && $this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
+        // Get the field label to add to all input elements.
+        $field_label = $field_definition->getLabel();
+        // Mark all input elements within multivalue widgets and add field
+        // title.
+        $this->markMultivalueFormElements($widget, $field_label);
+      }
     }
   }
 

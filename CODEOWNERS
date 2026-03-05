@@ -26,12 +26,8 @@
 /tests/src/Unit/OpenApiSpecValidationTest.php
 /tests/src/Unit/UiFixturesValidationTest.php
 
-^[Semi-coupled theme engine] @bnjmnm @effulgentsia @hooroomoo
-# Issues: https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine
-/src/Hook/SemiCoupledThemeEngineHooks.php
-/src/Hook/SemiCoupledThemeEngineForceTwigHooks.php
+[Component & Page Data forms] @bnjmnm @hooroomoo @effulgentsia
 /src/Theme/CanvasThemeNegotiator.php
-/themes/engines/semi_coupled/
 /ui/src/components/form/*.tsx
 /ui/src/components/form/twig-to-jsx-component-map.js
 

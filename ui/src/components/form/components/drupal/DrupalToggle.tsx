@@ -6,29 +6,24 @@ import { a2p } from '@/local_packages/utils.js';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
-interface DrupalElement {
-  '#default_value'?: string | number;
-  '#value'?: string | number;
-  [key: string]: any;
-}
 const DrupalToggle = ({
   attributes = {},
-  element = {},
+  defaultValue,
+  currentValue,
 }: {
   attributes?: Attributes & {
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   };
-  element?: DrupalElement;
+  defaultValue?: string | number;
+  currentValue?: string | number;
 }) => {
   const [isChecked, setIsChecked] = useState(
-    Object.prototype.hasOwnProperty.call(Object(element), '#value')
-      ? element['#value']
-      : element?.['#default_value'] || false,
+    !!defaultValue || !!currentValue || false,
   );
 
   return (
     <Toggle
-      checked={!!isChecked}
+      checked={isChecked}
       onCheckedChange={(value: boolean) => {
         const syntheticEvent = {
           target: {

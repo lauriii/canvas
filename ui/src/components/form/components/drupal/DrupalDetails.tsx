@@ -16,7 +16,7 @@ const DrupalDetails = ({
   title = '',
   summaryAttributes = {},
   description = null,
-  renderChildren = null,
+  children = null,
   value = null,
   required = false,
   element = {},
@@ -26,7 +26,7 @@ const DrupalDetails = ({
   title: string;
   summaryAttributes?: Attributes;
   description: ReactNode;
-  renderChildren?: ReactNode;
+  children?: ReactNode;
   value: ReactNode;
   required: boolean;
   element: { [key: string]: any };
@@ -43,7 +43,7 @@ const DrupalDetails = ({
       >
         {errors && <Box>{errors}</Box>}
         {description && <Box className={descriptionClasses}>{description}</Box>}
-        <Box>{renderChildren}</Box>
+        <Box>{children}</Box>
         {value && <Box>{value}</Box>}
       </AccordionDetails>
     );
@@ -54,7 +54,7 @@ const DrupalDetails = ({
         attributes={a2p(attributes, {}, { skipAttributes: ['class'] })}
         summaryAttributes={a2p(summaryAttributes)}
       >
-        {renderChildren}
+        {children}
       </Details>
     );
   }

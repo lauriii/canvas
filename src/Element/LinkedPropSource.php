@@ -94,8 +94,6 @@ class LinkedPropSource extends RenderElementBase {
       'post_label' => [
         // @see ui/src/components/form/components/drupal/PropLinker.tsx, the
         // template that renders `prop_linker`.
-        // @see docs/semi-coupled-theme-engine.md for information about the
-        // underlying logic that makes this renderable with JSX.
         '#theme' => 'prop_linker',
         '#linked' => TRUE,
         '#prop_name' => $sdc_prop_name,
@@ -106,8 +104,6 @@ class LinkedPropSource extends RenderElementBase {
     $element['badge'] = [
       // @see ui/src/components/form/components/drupal/LinkedFieldBox.tsx,
       // the template that renders `linked_field_box`.
-      // @see docs/semi-coupled-theme-engine.md for information about the
-      // underlying logic that makes this renderable with JSX.
       '#theme' => 'linked_field_box',
       '#title' => $title,
       '#prop_name' => $sdc_prop_name,

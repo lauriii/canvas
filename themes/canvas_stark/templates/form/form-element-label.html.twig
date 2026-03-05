@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for a form element label.
+ *
+ * Available variables:
+ * - title: The label's text.
+ * - title_display: Elements title_display setting.
+ * - required: An indicator for whether the associated form element is required.
+ * - attributes: A list of HTML attributes for the label.
+ *
+ * @see template_preprocess_form_element_label()
+ *
+ * @ingroup themeable
+ */
+#}
+
+<drupal-canvas-form-element-label
+    required="{{ required }}"
+    title-display="{{ title_display }}"
+    attributes="{{ attributes }}"
+    title="{{ render_var(title) }}"
+>
+</drupal-canvas-form-element-label>

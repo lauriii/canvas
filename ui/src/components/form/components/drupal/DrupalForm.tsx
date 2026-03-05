@@ -8,17 +8,17 @@ import type { Attributes } from '@/types/DrupalAttribute';
 
 const DrupalForm = ({
   attributes = {},
-  renderChildren = null,
+  children,
 }: {
   attributes: Attributes;
-  renderChildren: ReactNode;
+  children: ReactNode;
 }) => {
   return (
     <Form
       attributes={{ ...a2p(attributes, {}, { skipAttributes: ['class'] }) }}
       className={clsx(attributes.class)}
     >
-      {renderChildren}
+      {children}
     </Form>
   );
 };

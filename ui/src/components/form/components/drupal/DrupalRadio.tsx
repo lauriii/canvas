@@ -11,26 +11,21 @@ interface RadioContextType {
   updateSelected: (value: string | number | undefined) => void;
 }
 
-interface DrupalElement {
-  '#default_value'?: string | number;
-  [key: string]: any;
-}
-
 const RadioContext = createContext<RadioContextType>({
   selected: null,
   updateSelected: () => {},
 });
 const DrupalRadioGroup = ({
   attributes = {},
-  renderChildren,
-  element = {},
+  children,
 }: {
   attributes?: Attributes;
-  renderChildren?: React.ReactNode;
-  element?: DrupalElement;
+  children?: React.ReactNode;
 }) => {
   const [selected, setSelected] = useState<string | number | null>(
-    element['#default_value'] ?? null,
+    (attributes.value as string | null) ||
+      (attributes['data-canvas-radio-default-value'] as string | null) ||
+      null,
   );
 
   // Callback provided to each radio item in the group, which will update the
@@ -55,7 +50,7 @@ const DrupalRadioGroup = ({
       <RadioGroup
         attributes={a2p(attributes, {}, { skipAttributes: ['onChange'] })}
       >
-        {renderChildren}
+        {children}
       </RadioGroup>
     </RadioContext.Provider>
   );
@@ -80,7 +75,10 @@ const DrupalRadioItem = ({ attributes = {} }: { attributes?: Attributes }) => {
       ? attributes.value
       : undefined,
   );
-
+  console.log(
+    `${attributes.name} Selected ${selected}, value ${valueRef.current}`,
+    attributes,
+  );
   return (
     <RadioItem
       attributes={{

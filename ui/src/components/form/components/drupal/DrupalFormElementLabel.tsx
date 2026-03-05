@@ -13,17 +13,13 @@ interface PropLinkData extends Omit<PropLinkerProps, 'propName'> {
 }
 
 const DrupalFormElementLabel = ({
-  title = { '#markup': '' },
+  title = '',
   titleDisplay = '',
   required = '',
   attributes = {},
   directLinkerData = undefined,
 }: {
-  title:
-    | {
-        '#markup': string;
-      }
-    | string;
+  title: string;
   titleDisplay?: string;
   required?: string;
   attributes?: Attributes;
@@ -47,7 +43,7 @@ const DrupalFormElementLabel = ({
       )}
       className={classes}
     >
-      {typeof title === 'string' ? title : title['#markup']}
+      {title}
     </FormElementLabel>
   );
   const getTheLabel = () => {

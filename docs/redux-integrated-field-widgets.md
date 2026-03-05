@@ -5,8 +5,7 @@ In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 ## Finding issues 🐛, code 🤖 & people 👯‍♀️
 Related Canvas issue queue components:
 1. [Redux-integrated field widgets](https://www.drupal.org/project/issues/canvas?component=Redux-integrated+field+widgets)
-2. [Semi-Coupled theme engine](https://www.drupal.org/project/issues/canvas?component=Semi-Coupled+theme+engine)
-3. [Shape matching](https://www.drupal.org/project/issues/canvas?component=Shape+matching)
+2. [Shape matching](https://www.drupal.org/project/issues/canvas?component=Shape+matching)
 
 ## 1. Terminology
 
@@ -24,7 +23,6 @@ Related Canvas issue queue components:
 This uses _most_ of the Canvas terminology in the:
 - [`Canvas Components` doc](components.md)
 - [`Canvas Shape Matching into Field Types` doc](shape-matching-into-field-types.md)
-- [`Canvas Semi-Coupled theme engine` doc](semi-coupled-theme-engine.md)
 
 ## 2. Product requirements
 
@@ -68,7 +66,7 @@ intermediary concepts (`field widget`, `field type`, `field prop`, etc.) into a 
  previews.**
 
 ### 3.2 How?
-The `Semi-Coupled theme engine` makes it possible to process Drupal `render element`s with `React component`s  instead of `Twig`. See the [`Canvas Semi-Coupled theme engine` doc](semi-coupled-theme-engine.md) for more details.
+The forms use Drupal's Form API but ultimately render `React component`s  instead of `Twig`. See the [`Twig to React in the Canvas_Stark theme` doc](twig-to-react-in-canvas-stark.md) for more details.
 
 To redux-sync a `React`-rendered `HTML form control element`, it should be wrapped by `inputBehaviors`:
 
@@ -363,11 +361,11 @@ function hook_field_widget_info_alter(array &$info): void {
 We've already established this system makes it possible to render Drupal render arrays with React. This makes it possible to use existing Drupal core functionality as if it were rendered by Twig. As powerful as this is, this isn't a 100% seamless solution. There are some limitations to be aware of:
 
 #### 3.5.1 CKEditor 5 (and perhaps anything with existing support for use in React.)
-CKSource maintains a  [CKEditor 5 React component](https://www.npmjs.com/package/@ckeditor/ckeditor5-react). While it is _possible_ to leverage Drupal core's Vanilla JS implementation of CKEditor 5, we have opted to use the version explicitly built to work in React. To accomplish this without considerable front end complexity, some theme-level extensibility was sacrificed. Most notably, the `text_format` _render element_ never makes it to the Drupal Canvas UI. The information necessary to render the text format `<select>` is instead passed to (and rendered by) the text area itself. 
+CKSource maintains a  [CKEditor 5 React component](https://www.npmjs.com/package/@ckeditor/ckeditor5-react). While it is _possible_ to leverage Drupal core's Vanilla JS implementation of CKEditor 5, we have opted to use the version explicitly built to work in React. To accomplish this without considerable front end complexity, some theme-level extensibility was sacrificed. Most notably, the `text_format` _render element_ never makes it to the Drupal Canvas UI. The information necessary to render the text format `<select>` is instead passed to (and rendered by) the text area itself.
 
 In other words, we surrender a bit of render array purity to take advantage of some well maintained open source software specifically created for use in this context. It also eliminates the need for complex workarounds to get the core approach working with Radix.
 
-When React optimized alternatives to core functionality are available, the tradeoffs of using them will be evaluated on a case by case basis. The CKEditor 5 example is a good one because it is a well maintained open source project that is already built to work in React. The CKEditor 5 example above may or may not be representative of how similar situations will be approached in the future. 
+When React optimized alternatives to core functionality are available, the tradeoffs of using them will be evaluated on a case by case basis. The CKEditor 5 example is a good one because it is a well maintained open source project that is already built to work in React. The CKEditor 5 example above may or may not be representative of how similar situations will be approached in the future.
 
 #### 3.5.2 Vanilla JS that causes reflows or has perceptible load times
 As to be expected with React, there is a great deal of re-rendering happening, much of the time occurring invisible. At minimum, a React-controlled form element will re-render any time its value changes, and in the case of Canvas managed forms, these elements rerender when *any* element in the form has a value change.

@@ -6,8 +6,119 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 use Drupal\canvas_stark\PreRender;
 use Drupal\Component\Serialization\Json;
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Forces rendering with Twig for media library forms.
+ */
+function canvas_stark_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $ml_widget = isset($form['#id']) && \str_contains($form['#id'], 'views-exposed-form-media-library-widget');
+  $ml_form = \str_contains($form_id, 'media');
+  if ($ml_widget || $ml_form) {
+    _canvas_stark_mark_media_library($form, 'media_library');
+  }
+}
+
+/**
+ * Attaches form id to all form elements.
+ *
+ * @param array $form
+ *   The form or form element which children should have form id attached.
+ * @param string $form_id
+ *   The form id attached to form elements.
+ */
+function _canvas_stark_mark_media_library(array &$form, string $form_id): void {
+  foreach (Element::children($form) as $child) {
+    if (!isset($form[$child]['#form_id'])) {
+      $form[$child]['#form_id'] = $form_id;
+    }
+    _canvas_stark_mark_media_library($form[$child], $form_id);
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_element_label_alter().
+ */
+function canvas_stark_theme_suggestions_form_element_label_alter(array &$suggestions, array $variables): void {
+  if (isset($variables['element']['#form_id']) && \str_contains($variables['element']['#form_id'], 'media_library')) {
+    $suggestions[] = 'form_element_label__media_library';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_element_alter().
+ */
+function canvas_stark_theme_suggestions_form_element_alter(array &$suggestions, array $variables): void {
+  if (isset($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library')) {
+    $suggestions[] = 'form_element__media_library';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_alter().
+ */
+function canvas_stark_theme_suggestions_form_alter(array &$suggestions, array $variables): void {
+  $ml_view = isset($variables['element']['#id']) && str_contains($variables['element']['#id'], 'views-exposed-form-media-library-widget');
+  $ml_form = !empty($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');
+  if ($ml_view || $ml_form) {
+    $suggestions[] = 'form__media_library';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_select_alter().
+ */
+function canvas_stark_theme_suggestions_select_alter(array &$suggestions, array $variables): void {
+  $ml_view = isset($variables['element']['#id']) && str_contains($variables['element']['#id'], 'views-exposed-form-media-library-widget');
+  $ml_form = !empty($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');
+  if ($ml_view || $ml_form) {
+    $suggestions[] = 'select__media_library';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_input_alter().
+ */
+function canvas_stark_theme_suggestions_input_alter(array &$suggestions, array $variables): void {
+  $ml_ajax = isset($variables['element']['#ajax']['wrapper']) && $variables['element']['#ajax']['wrapper'] === 'media-library-wrapper';
+  $ml_form = isset($variables['element']['#form_id']) && str_contains($variables['element']['#form_id'], 'media_library');
+  if ($ml_ajax || $ml_form) {
+    $suggestions[] = 'input__media_library';
+  }
+  // Only apply multivalue form input suggestion if canvas_dev_mode is
+  // enabled.
+  if (\Drupal::moduleHandler()->moduleExists('canvas_dev_mode') &&
+    isset($variables['element']['#is_multivalue_form']) &&
+    $variables['element']['#is_multivalue_form']) {
+    $suggestions[] = 'input__multivalue_form';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_alter().
+ */
+function canvas_stark_theme_suggestions_alter(array &$suggestions, array $variables): void {
+  // Add widget type to theme suggestions.
+  if (\in_array($variables["theme_hook_original"], [
+    'container',
+    'field_multiple_value_form',
+    'fieldset',
+  ], TRUE) && !empty($variables["element"]["#widget-type"])) {
+    if ($variables["theme_hook_original"] === 'fieldset') {
+      $suggestions[] = $variables["theme_hook_original"] . '__widget_' . \str_replace('-', '_', $variables["element"]["#widget-type"]);
+    }
+    else {
+      $suggestions[] = $variables["theme_hook_original"] . '__' . \str_replace('-', '_', $variables["element"]["#widget-type"]);
+    }
+  }
+  elseif (!empty($variables["element"]["#widget-type"])) {
+    $suggestions[] = $variables["theme_hook_original"] . '__inwidget_' . \str_replace('-', '_', $variables["element"]["#widget-type"]);
+  }
+}
 
 function canvas_stark_library_info_alter(array &$libraries, string $extension): void {
   if ($extension === 'core' && isset($libraries['drupal.autocomplete'])) {
@@ -33,7 +144,7 @@ function canvas_stark_theme(array $existing, string $type, string $theme, string
         'prop_name' => NULL,
         'suggestions' => [],
       ],
-      'template' => 'process_as_jsx/form/prop-linker',
+      'template' => 'form/prop-linker',
     ],
     // Results in a box that represents a linked prop, replacing a form input.
     'linked_field_box' => [
@@ -43,7 +154,7 @@ function canvas_stark_theme(array $existing, string $type, string $theme, string
         'description_display' => NULL,
         'description' => NULL,
       ],
-      'template' => 'process_as_jsx/form/linked-field-box',
+      'template' => 'form/linked-field-box',
     ],
   ];
 }
@@ -60,6 +171,7 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
 
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-canvas-multiple-values'] = 'true';
+  $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 }
 
 /**
@@ -84,12 +196,14 @@ function canvas_stark_preprocess_radios(array &$vars): void {
   $vars['attributes']['data-canvas-type'] = 'radios';
   // @todo Rename to canvas-data-form-id in https://drupal.org/i//3517029.
   $vars['attributes']['data-form-id'] = $vars['element']['#attributes']['data-form-id'] ?? '';
+  $vars['attributes']['data-canvas-radio-default-value'] = $vars['element']['#default_value'] ?? '';
 }
 
 function canvas_stark_preprocess_form_element(array &$variables): void {
   if (isset($variables['element']['#theme']) && $variables['element']['#theme'] === 'input__number__media_library_item_weight') {
     $variables['attributes']['data-canvas-media-library-item-weight-wrapper'] = 'true';
   }
+  $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 }
 
 function canvas_stark_preprocess_fieldset__media_library_widget(array &$variables): void {

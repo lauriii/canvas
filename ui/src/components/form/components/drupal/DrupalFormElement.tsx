@@ -16,6 +16,7 @@ export type Description = {
 
 interface FormElementProps {
   attributes?: Attributes;
+  descriptionAttributes?: Attributes;
   errors: string | null;
   prefix: string | null;
   suffix: string | null;
@@ -29,7 +30,6 @@ interface FormElementProps {
   disabled: string | null;
   titleDisplay: string;
   children: string | null;
-  renderChildren: string | any[] | null;
 }
 
 const DrupalFormElement = ({
@@ -44,10 +44,10 @@ const DrupalFormElement = ({
   labelDisplay = '',
   description = '',
   descriptionDisplay = 'after',
+  descriptionAttributes = {},
   disabled = '',
   titleDisplay = '',
   children = '',
-  renderChildren = '',
 }: FormElementProps) => {
   const classes = clsx(
     'js-form-item',
@@ -77,8 +77,9 @@ const DrupalFormElement = ({
       <InputDescription
         description={description}
         descriptionDisplay={descriptionDisplay}
+        descriptionAttributes={descriptionAttributes}
       >
-        {renderChildren}
+        {children}
         {suffix && suffix.length > 0 && (
           <span className="field-suffix">{suffix}</span>
         )}

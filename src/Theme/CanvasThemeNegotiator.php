@@ -22,7 +22,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Drupal Canvas: `stark` defines no templates, and hence relies on all
  * default templates only.
  *
- * @see themes/engines/semi_coupled/README.md
  * @see ui/src/components/form/twig-to-jsx-component-map.js
  * @see ui/src/components/form/inputBehaviors.tsx
  */

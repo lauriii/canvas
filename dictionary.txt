@@ -114,7 +114,6 @@ scriptification
 scriptified
 scriptify
 sdcs
-semicoupled
 shadcn
 sonner
 sparkline

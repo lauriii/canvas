@@ -5,10 +5,10 @@ import type { Attributes } from '@/types/DrupalAttribute';
 
 const DrupalVerticalTabs = ({
   attributes = {},
-  renderChildren = null,
+  children,
 }: {
   attributes?: Attributes;
-  renderChildren?: JSX.Element | null;
+  children?: JSX.Element | null;
 }) => {
   return (
     <AccordionRoot
@@ -18,7 +18,7 @@ const DrupalVerticalTabs = ({
         { skipAttributes: ['data-vertical-tabs-panes'] },
       )}
     >
-      {renderChildren}
+      {children}
     </AccordionRoot>
   );
 };

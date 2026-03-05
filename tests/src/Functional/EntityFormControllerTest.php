@@ -92,7 +92,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
 
     $crawler = new Crawler($html);
     self::assertCount(1, $crawler->filter('template[data-hyperscriptify]'));
-    $form = $crawler->filter('drupal-form');
+    $form = $crawler->filter('drupal-canvas-form');
     self::assertCount(1, $form);
 
     $attributes = \json_decode($form->attr('attributes') ?? '{}', TRUE, flags: JSON_THROW_ON_ERROR);
@@ -100,7 +100,7 @@ class EntityFormControllerTest extends FunctionalTestBase {
     self::assertEquals('node-article-form', $attributes['data-drupal-selector']);
     self::assertEquals('multipart/form-data', $attributes['enctype']);
 
-    self::assertGreaterThanOrEqual($expected_menu_element ? 1 : 0, $crawler->filter('div[data-drupal-selector="edit-menu"] drupal-input[attributes*="edit-menu-title"]')->count());
+    self::assertGreaterThanOrEqual($expected_menu_element ? 1 : 0, $crawler->filter('div[data-drupal-selector="edit-menu"] drupal-canvas-input[attributes*="edit-menu-title"]')->count());
   }
 
 }

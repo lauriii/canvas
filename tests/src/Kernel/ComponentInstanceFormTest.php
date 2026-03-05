@@ -381,8 +381,10 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertNull(Evaluator::evaluate($node, expr: StructuredDataPropExpression::fromString($form_canvas_props['source']['subheading']['expression']), is_required: FALSE)->value);
     $crawler = $this->getCrawlerForFormRequest($form_url, $component_entity, $form_canvas_props);
     // Confirm the linked prop fields are rendered.
-    self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));
-    self::assertCount(2, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-subheading-"]'));
+    self::assertCount(1, $crawler->filter('.canvas-linked-prop-label-wrapper[data-drupal-selector*="-heading-"]'));
+    self::assertCount(1, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-heading-"]'));
+    self::assertCount(1, $crawler->filter('.canvas-linked-prop-label-wrapper[data-drupal-selector*="-subheading-"]'));
+    self::assertCount(1, $crawler->filter('.canvas-linked-prop-wrapper[data-drupal-selector*="-subheading-"]'));
 
     // Third request: with an invalid expression in EntityFieldPropSource.
     // ⚠️ This cannot happen in the UI, but component trees could be manipulated

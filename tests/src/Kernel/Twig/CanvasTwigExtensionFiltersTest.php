@@ -63,10 +63,10 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
     $streamWrapperManager->method('isValidUri')->willReturn(TRUE);
     $fileUrlGenerator = $this->container->get('file_url_generator');
+    $renderer = $this->container->get('renderer');
 
-    // Create the extension instance.
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator);
-
+    // Create the extension instance
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator, $renderer);
     $test_base_url = 'http://localhost/sites/default/files';
     $this->setSetting('file_public_base_url', $test_base_url);
   }

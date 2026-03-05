@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Twig;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\Core\Template\Attribute;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 /**
  * Defines a Twig extension to support Drupal Canvas.
@@ -32,11 +38,14 @@ final class CanvasTwigExtension extends AbstractExtension {
    *   The image factory service.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file URL generator.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer service.
    */
   public function __construct(
     private readonly StreamWrapperManagerInterface $streamWrapperManager,
     private readonly ImageFactory $imageFactory,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly RendererInterface $renderer,
   ) {}
 
   /**
@@ -64,6 +73,23 @@ final class CanvasTwigExtension extends AbstractExtension {
       new TwigFilter(
         'getHeight',
         [$this, 'getHeight'],
+      ),
+      new TwigFilter(
+        'jsx_attributes',
+        [$this, 'jsxAttributes'],
+      ),
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFunctions(): array {
+    return [
+      new TwigFunction(
+        'slot',
+        [$this, 'slot'],
+        ['is_safe' => ['html']],
       ),
     ];
   }
@@ -164,6 +190,101 @@ final class CanvasTwigExtension extends AbstractExtension {
       }
     }
     return NULL;
+  }
+
+  /**
+   * Converts an Attribute object to a JSON-encoded array.
+   *
+   * For Attribute objects and arrays, this filter converts them to JSON.
+   * For all other types (strings, numbers, etc.), the value is returned as-is.
+   *
+   * @param mixed $attribute
+   *   The attributes object, array, or other value.
+   *
+   * @return mixed
+   *   JSON-encoded array for compound types, or the original value for other
+   *   types.
+   */
+  public function jsxAttributes(mixed $attribute): mixed {
+    if ($attribute instanceof Attribute || \is_object($attribute) && method_exists($attribute, 'toArray')) {
+      return Json::encode($attribute->toArray());
+    }
+    if (\is_array($attribute) || \is_object($attribute)) {
+      return Json::encode($attribute);
+    }
+
+    // Return the value unchanged for non-compound types.
+    return $attribute;
+  }
+
+  /**
+   * Wraps an element to make it available as an element prop in JSX.
+   *
+   * This is used for passing HTML elements from Twig templates to its
+   * corresponding JSX component. This is necessary as elements can't be
+   * passed as attribute values without them being converted to strings.
+   *
+   * For example, if your twig template has a variable fooElement, which is an
+   * HTML element - not a string - you can send
+   * it to your JSX component as a slot like this:
+   * @code
+   * {{ slot('foo', fooElement) }}
+   * @endcode
+   *
+   * The JSX component will receive the element as a `foo` prop.
+   *
+   * Behind the scenes, this function generates a custom element with a slot
+   * attribute, leveraging the Web Components slots API.
+   * See https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_templates_and_slots
+   *
+   * @param string $slot_name
+   *   The name of the slot.
+   * @param mixed $content
+   *   The content to render in the slot.
+   *
+   * @return \Drupal\Component\Render\MarkupInterface|null
+   *   The rendered slot markup, or NULL if content is empty.
+   */
+  public function slot(string $slot_name, mixed $content): ?MarkupInterface {
+    // If content is empty (empty string, NULL, empty array), return NULL.
+    if ($content === NULL || $content === '' || (\is_array($content) && $content === [])) {
+      return NULL;
+    }
+
+    // Convert content to string based on its type.
+    if ($content instanceof MarkupInterface || \is_scalar($content)) {
+      // MarkupInterface objects and scalars can be cast directly.
+      $rendered_content = (string) $content;
+    }
+    elseif (\is_array($content)) {
+      // Arrays are treated as render arrays.
+      $rendered_content = (string) $this->renderer->render($content);
+    }
+    else {
+      // For other objects, attempt string conversion.
+      $rendered_content = (string) $content;
+    }
+
+    // If rendered content is still empty, return NULL.
+    if ($rendered_content === '') {
+      return NULL;
+    }
+
+    // Generate the element-prop markup and return MarkupInterface.
+    // There is nothing significant about the <element-prop> tag name, any tag
+    // not part of the HTML spec would work. The important part is the slot
+    // attribute, which allows the contents to be passed as an element to JSX.
+    // (as opposed to if they were passed via an attribute, which would cast
+    // them to a string).
+    $markup = \sprintf(
+      '<element-prop slot="%s">%s</element-prop>',
+      htmlspecialchars($slot_name, ENT_QUOTES, 'UTF-8'),
+      $rendered_content,
+    );
+
+    $safe_markup = Markup::create($markup);
+    /** @var \Drupal\Component\Render\MarkupInterface $safe_markup */
+    return $safe_markup;
   }
 
 }

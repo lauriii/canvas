@@ -7,6 +7,9 @@ namespace Drupal\canvas\Twig;
 use Drupal\Core\Template\TwigNodeTrans;
 use Masterminds\HTML5;
 use Twig\Environment;
+use Twig\Error\SyntaxError;
+use Twig\Node\Expression\FilterExpression;
+use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\NameExpression;
 use Twig\Node\ModuleNode;
 use Twig\Node\Node;
@@ -112,10 +115,45 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
       if (!$expr instanceof NameExpression || !$expr->hasAttribute('name')) {
         return $node;
       }
+
+      $buffer = $this->buffer[$node->getSourceContext()->getName()];
+
+      // Check if we're in an attribute value of a Canvas custom element.
+      // This will determine if the element is to ultimately be rendered by JSX.
+      if (self::isInCustomElementAttribute($buffer)) {
+        // Check if there's a 'children' attribute within the custom element.
+        if (self::hasChildrenAttribute($buffer)) {
+          throw new SyntaxError(
+            'The attribute name "children" is reserved for React components and cannot be used in Canvas custom elements. Please use a different attribute name.',
+            $node->getTemplateLine(),
+            $node->getSourceContext()
+          );
+        }
+
+        $line_number = $node->getTemplateLine();
+
+        // Wrap the expression with the jsx_attributes filter, which will
+        // convert the Attribute object and arrays / object to a JSON-encoded
+        // string. This allows the value to be received as a prop by the
+        // corresponding React component.
+        $filtered = new FilterExpression(
+          $expr,
+          new ConstantExpression('jsx_attributes', $line_number),
+          new Node(),
+          $line_number
+        );
+
+        $filtered->setAttribute('twig_callable', $env->getFilter('jsx_attributes'));
+        // Prevent recursive replacement when Twig traverses into the replaced
+        // node.
+        $this->replacingFilter = TRUE;
+        return new PrintNode($filtered, $line_number);
+      }
+
       // Try to parse the current buffer to ascertain if we're in a context
       // where HTML comments are allowed.
       $html5 = new HTML5(['disable_html_ns' => TRUE, 'encoding' => 'UTF-8']);
-      $html5->loadHTMLFragment($this->buffer[$node->getSourceContext()->getName()]);
+      $html5->loadHTMLFragment($buffer);
       if (!$html5->hasErrors()) {
         // We have valid HTML5 in the buffer.
         $name = $expr->getAttribute('name');
@@ -166,6 +204,126 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
   public function getPriority(): int {
     // Runs before the EscapeNodeVisitor, which has priority 0.
     return -1;
+  }
+
+  /**
+   * Determines if we're in an attribute value of a Canvas custom element.
+   *
+   * @param string $buffer
+   *   The current HTML buffer.
+   *
+   * @return bool
+   *   TRUE if in an attribute value of a custom element tag, FALSE otherwise.
+   */
+  protected static function isInCustomElementAttribute(string $buffer): bool {
+    // Find last unclosed tag.
+    $last_gt = strrpos($buffer, '>');
+    $last_lt = strrpos($buffer, '<');
+
+    // Not in a tag if < doesn't come after >.
+    if ($last_lt === FALSE || ($last_gt !== FALSE && $last_lt < $last_gt)) {
+      return FALSE;
+    }
+
+    // Extract tag content after the last <.
+    $tag_content = substr($buffer, $last_lt + 1);
+
+    // Check if it's a custom element opening tag (drupal-canvas* or canvas-*).
+    if (!preg_match('/^(drupal-canvas-|canvas-)[a-z0-9-]+/i', $tag_content)) {
+      return FALSE;
+    }
+
+    // Check if we're in an attribute value by counting quotes.
+    // An odd number of quotes means we're inside a quoted value.
+    // If there are any backslashes, account for escaped quotes.
+    if (str_contains($tag_content, "\\")) {
+      $double_quotes = $single_quotes = 0;
+      $i = 0;
+      $len = strlen($tag_content);
+
+      while ($i < $len) {
+        $char = $tag_content[$i];
+
+        if ($char === "\\") {
+          // Backslash escapes the next character, so skip both.
+          $i += 2;
+        }
+        elseif ($char === '"') {
+          $double_quotes++;
+          $i++;
+        }
+        elseif ($char === "'") {
+          $single_quotes++;
+          $i++;
+        }
+        else {
+          $i++;
+        }
+      }
+    }
+    else {
+      // If no backslashes, we can simply count quotes.
+      $double_quotes = substr_count($tag_content, '"');
+      $single_quotes = substr_count($tag_content, "'");
+    }
+
+    return ($double_quotes % 2 === 1) || ($single_quotes % 2 === 1);
+  }
+
+  /**
+   * Extracts the current attribute name from the buffer.
+   *
+   * @param string $buffer
+   *   The current HTML buffer.
+   *
+   * @return string|null
+   *   The attribute name, or NULL if not found.
+   */
+  protected static function extractAttributeName(string $buffer): ?string {
+    // Find last unclosed tag.
+    $last_lt = strrpos($buffer, '<');
+    if ($last_lt === FALSE) {
+      return NULL;
+    }
+
+    // Extract tag content after the last <.
+    $tag_content = substr($buffer, $last_lt + 1);
+
+    // Find the last attribute name before the current position.
+    // Look for pattern: attribute-name="
+    if (preg_match('/([a-z0-9_-]+)\s*=\s*["\'](?:[^"\']*)?$/i', $tag_content, $matches)) {
+      return $matches[1];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Checks if there's a 'children' attribute within a custom element tag.
+   *
+   * This is important because 'children' is a reserved prop name in React.
+   *
+   * @param string $buffer
+   *   The current HTML buffer.
+   *
+   * @return bool
+   *   TRUE if a 'children' attribute is found in the current tag.
+   */
+  protected static function hasChildrenAttribute(string $buffer): bool {
+    // Find last unclosed tag.
+    $last_lt = strrpos($buffer, '<');
+
+    // If there's no unclosed tag, or if the buffer doesn't contain 'children'
+    // at all, return early.
+    if ($last_lt === FALSE || !str_contains($buffer, 'children')) {
+      return FALSE;
+    }
+
+    // Extract tag content after the last <.
+    $tag_content = substr($buffer, $last_lt + 1);
+
+    // Check for 'children' attribute only as a complete attribute name.
+    return preg_match('/(?:^|\s)children\s*=\s*["\']/', $tag_content) === 1;
   }
 
 }

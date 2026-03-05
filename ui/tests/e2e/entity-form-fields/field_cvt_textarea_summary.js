@@ -13,9 +13,9 @@ export const edit = (cy) => {
     'Melting in a pot of thieves',
   );
   // Get the summary input.
-  cy.get('@textarea-summary-wrapper')
-    .findByRole('textbox', { name: 'Summary(Hide summary)' })
-    .as('textarea-summary-input');
+  cy.get('#edit-field-cvt-textarea-summary-0-summary').as(
+    'textarea-summary-input',
+  );
   // Check the default value in the summary element.
   cy.get('@textarea-summary-input').should(
     'have.value',

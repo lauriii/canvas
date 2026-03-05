@@ -41,14 +41,19 @@ describe('Copy and paste a node using keyboard shortcuts', () => {
     cy.log(
       'Delete all the heroes including the one we just copied to ensure you can still paste it.',
     );
-    cy.getComponentInPreview('Hero', 2).trigger('contextmenu');
+    cy.get('[aria-label="Draggable component Hero"]')
+      .last()
+      .rightclick({ force: true });
+    cy.findByText('Delete').click();
+    cy.get('[aria-label="Draggable component Hero"]')
+      .last()
+      .rightclick({ force: true });
+    cy.findByText('Delete').click();
+    cy.get('[aria-label="Draggable component Hero"]')
+      .last()
+      .rightclick({ force: true });
     cy.findByText('Delete').click();
 
-    cy.getComponentInPreview('Hero', 1).trigger('contextmenu');
-    cy.findByText('Delete').click();
-
-    cy.getComponentInPreview('Hero', 0).trigger('contextmenu');
-    cy.findByText('Delete').click();
     cy.waitForElementContentNotInIframe('div', 'hello, world!');
     cy.getIframeBody()
       .findAllByText('Canvas Needs This For The Time Being')

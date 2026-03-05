@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
@@ -37,9 +38,10 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
     $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
     $imageFactory = $this->createMock(ImageFactory::class);
     $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
+    $renderer = $this->createMock(RendererInterface::class);
 
-    // Create the extension instance.
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager);
+    // Create the extension instance
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager, $renderer);
   }
 
   /**

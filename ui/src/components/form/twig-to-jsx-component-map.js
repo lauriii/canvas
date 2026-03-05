@@ -21,37 +21,33 @@ import LinkedFieldBox from '@/components/form/components/drupal/LinkedFieldBox.j
 import PropLinker from '@/components/form/components/drupal/PropLinker.js';
 import DrupalMediaLibraryWidgetContainer from '@/components/form/components/MediaLibraryWidgetContainer';
 
-// This is where we map the Drupal Twig templates to the corresponding JSX component.
-// @see \Drupal\canvas\Hook\SemiCoupledThemeEngineHooks::themeSuggestionsAlter()
-// @see docs/semi-coupled-theme-engine.md
-// @see themes/engines/semi_coupled/README.md
-// @see themes/canvas_stark/templates/process_as_jsx/
-
+// This is where we map the <drupal- tags to the corresponding JSX component.
 const twigToJSXComponentMap = {
-  'drupal-container--text-format-filter-guidelines':
+  'drupal-canvas-container--text-format-filter-guidelines':
     DrupalContainerTextFormatFilterGuidelines,
-  'drupal-container--text-format-filter-help':
+  'drupal-canvas-container--text-format-filter-help':
     DrupalContainerTextFormatFilterHelp,
-  'drupal-details': DrupalDetails,
-  'drupal-form': DrupalForm,
-  'drupal-form-element': DrupalFormElement,
-  'drupal-form-element-label': DrupalFormElementLabel,
-  'drupal-input': DrupalInput,
-  'drupal-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
-  'drupal-input--url': DrupalInput,
-  'drupal-input--textfield--inwidget-path': DrupalPathWidget,
-  'drupal-input--multivalue-form': DrupalInputMultivalueForm,
-  'drupal-radios': DrupalRadioGroup,
-  'drupal-select': DrupalSelect,
-  'drupal-textarea': DrupalTextArea,
-  'drupal-vertical-tabs': DrupalVerticalTabs,
-  'drupal-container--media-library-widget': DrupalMediaLibraryWidgetContainer,
+  'drupal-canvas-details': DrupalDetails,
+  'drupal-canvas-form': DrupalForm,
+  'drupal-canvas-form-element': DrupalFormElement,
+  'drupal-canvas-form-element-label': DrupalFormElementLabel,
+  'drupal-canvas-input': DrupalInput,
+  'drupal-canvas-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
+  'drupal-canvas-input--url': DrupalInput,
+  'drupal-canvas-input--textfield--inwidget-path': DrupalPathWidget,
+  'drupal-canvas-input--multivalue-form': DrupalInputMultivalueForm,
+  'drupal-canvas-radios': DrupalRadioGroup,
+  'drupal-canvas-select': DrupalSelect,
+  'drupal-canvas-textarea': DrupalTextArea,
+  'drupal-canvas-vertical-tabs': DrupalVerticalTabs,
+  'drupal-canvas-container--media-library-widget':
+    DrupalMediaLibraryWidgetContainer,
   'canvas-text': CanvasText,
   'canvas-box': CanvasBox,
   'canvas-description': InputDescription,
   'canvas-drupal-label': DrupalFormElementLabel,
-  'drupal-linked-field-box': LinkedFieldBox,
-  'drupal-prop-linker': PropLinker,
+  'drupal-canvas-linked-field-box': LinkedFieldBox,
+  'drupal-canvas-prop-linker': PropLinker,
 };
 
 export default twigToJSXComponentMap;

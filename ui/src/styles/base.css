@@ -32,7 +32,7 @@ a.tabledrag-handle .handle.handle {
   max-width: unset;
 }
 
-/* This fragment is used only for wrapping and should not impact layouts. */
-drupal-html-fragment {
+/* These fragments are used only for wrapping and should not impact layouts. */
+drupal-html-fragment, element-prop {
   display: contents;
 }

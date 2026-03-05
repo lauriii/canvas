@@ -14,7 +14,7 @@ function canvas_install(bool $is_syncing): void {
     // Don't perform any actions if config is being synced.
     return;
   }
-  // Ensure canvas_stark is installed for the semi-coupled theme engine.
+  // Ensure canvas_stark is installed.
   // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
   // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
   \Drupal::service(ThemeInstallerInterface::class)->install(['canvas_stark']);

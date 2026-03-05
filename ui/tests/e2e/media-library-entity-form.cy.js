@@ -76,7 +76,6 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     cy.get('@entityForm')
       .findByRole('button', { name: step.removeAriaLabel })
       .should('exist');
-    cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     cy.log(`Iteration ${ix + 1}: Adding ${step.expectedAlt} complete`);
   });
 

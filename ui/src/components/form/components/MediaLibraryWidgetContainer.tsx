@@ -9,11 +9,11 @@ interface MediaLibraryWidgetContainerProps {
     class?: string;
     [key: string]: any;
   };
-  renderChildren: React.ReactNode;
+  children: React.ReactNode;
 }
 const MediaLibraryWidgetContainer = ({
   attributes,
-  renderChildren,
+  children,
 }: MediaLibraryWidgetContainerProps) => {
   const classes = clsx(attributes.class, styles.container);
   return (
@@ -21,7 +21,7 @@ const MediaLibraryWidgetContainer = ({
       {...a2p(attributes, {}, { skipAttributes: ['class'] })}
       className={classes}
     >
-      {renderChildren}
+      {children}
     </div>
   );
 };
