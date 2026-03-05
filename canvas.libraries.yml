@@ -221,4 +221,15 @@ canvasData.v0.jsonapiSettings:
   drupalSettings:
     canvasData:
       v0:
-        jsonapiSettings: null
+        jsonapiSettings: null 
+
+multivalue-form:
+  css:
+    theme:
+      css/multivalue-form.css: {}
+  js:
+    js/tabledrag.theme.js: { }
+  dependencies:
+    - core/drupal
+    - core/drupal.tabledrag
+

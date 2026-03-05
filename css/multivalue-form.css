@@ -1,0 +1,196 @@
+/* Multivalue Form Styles */
+.multivalue-container {
+  overflow: visible;
+  margin-bottom: 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.multivalue-container .field-label {
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+
+.multivalue-container table {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-collapse: collapse;
+}
+
+/* Hide table header */
+.multivalue-container table thead,
+.multivalue-container table caption {
+  margin: 0;
+  padding: 0;
+}
+
+.multivalue-container table thead tr {
+  margin: 0;
+  padding: 0;
+}
+
+.multivalue-container table thead tr th.field-label {
+  width: 100%;
+  margin: 0;
+  padding: 8px 0;
+  text-align: left;
+  border: none;
+  background: white;
+}
+
+.multivalue-container table thead tr th.field-label h4.label {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Apply border only to tbody */
+.multivalue-container table tbody {
+  border-top: 1px solid #CDCED6;
+  border-right: 1px solid #CDCED6;
+  border-left: 1px solid #CDCED6;
+}
+
+.multivalue-container table tbody tr {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.multivalue-container table tr {
+  border-bottom: 1px solid #CDCED6;
+}
+
+.multivalue-container table td {
+  height: 40px;
+  gap: 4px;
+}
+
+/* Hide weight column and tabledrag elements */
+.multivalue-container .tabledrag-toggle-weight-wrapper,
+.multivalue-container .tabledrag-toggle-weight,
+.multivalue-container td.tabledrag-hide,
+.multivalue-container .field-weight {
+  display: none;
+}
+
+/* Position form-item container for absolute positioning of toggle */
+.form-item {
+  position: relative;
+}
+
+/* Add new button wrapper */
+.add-new-wrapper {
+  overflow: hidden;
+  border-right: 1px solid #CDCED6;
+  border-bottom: 1px solid #CDCED6;
+  border-left: 1px solid #CDCED6;
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.add-new-wrapper button,
+.add-new-wrapper input[type="submit"] {
+  width: 100%;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  color: #0090FF;
+  border: none;
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 4px;
+  background-color: #F3F4F6;
+  font-size: 14px;
+}
+
+.add-new-wrapper button:focus,
+.add-new-wrapper input[type="submit"]:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: -2px;
+}
+
+.add-new-wrapper button::before,
+.add-new-wrapper input[type="submit"]::before {
+  content: "+";
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.field-multiple-table td .js-form-type-textfield {
+  margin-bottom: 0;
+}
+
+/* Style the drag handle cell */
+.multivalue-container .canvas-drag-handle {
+  width: 10%;
+  padding: 0 0 0 8px;
+}
+
+.multivalue-container .tabledrag-changed {
+  display: none;
+}
+
+/* Hide the "You have unsaved changes" warning message for multivalue forms. */
+.multivalue-container .tabledrag-changed-warning {
+  display: none !important;
+}
+
+/* Style the tabledrag anchor to display the custom SVG icon */
+.multivalue-container .canvas-drag-handle a.tabledrag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  cursor: grab;
+  color: #0090FF;
+}
+
+.multivalue-container .canvas-drag-handle a.tabledrag-handle:active {
+  cursor: grabbing;
+}
+
+
+/* Style the custom SVG icon inside the anchor */
+.multivalue-container .canvas-drag-handle a.tabledrag-handle .drag-handle-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Style the custom trash/remove action column */
+.multivalue-container .canvas-remove-action {
+  width: 10%;
+}
+
+.multivalue-container .canvas-remove-action .canvas-trash-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.multivalue-container .canvas-remove-action .trash-icon {
+  width: 15px;
+  height: 15px;
+  transition: color 0.15s ease;
+  color: #E5484D;
+}
+
+/* Hide original Drupal remove buttons and their parent cells.
+ * The buttons are kept in the DOM for AJAX functionality but hidden from view.
+ * The popover's Remove button triggers these hidden buttons. */
+.multivalue-container .canvas-remove-action input[type="submit"][name*="remove"],
+.multivalue-container .canvas-remove-action button[name*="remove"],
+.multivalue-container .canvas-remove-action .remove-button,
+.multivalue-container .canvas-remove-action [data-drupal-selector*="remove-button"] {
+  display: none;
+}
+
+/* Hide the entire cell to prevent empty columns from showing */
+.multivalue-container .canvas-remove-action:has(input[type="submit"][name*="remove"]),
+.multivalue-container .canvas-remove-action:has(button[name*="remove"]),
+.multivalue-container .canvas-remove-action:has(.remove-button),
+.multivalue-container .canvas-remove-action:has([data-drupal-selector*="remove-button"]) {
+  display: none;
+}

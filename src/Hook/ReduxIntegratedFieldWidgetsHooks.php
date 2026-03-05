@@ -176,6 +176,87 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
   }
 
   /**
+   * Implements hook_preprocess_field_multiple_value_form().
+   */
+  #[Hook('preprocess_field_multiple_value_form')]
+  public static function canvasStarkPreprocessFieldMultipleValueForm(array &$variables): void {
+    // Only apply custom multivalue form styling if canvas_dev_mode is enabled.
+    $module_handler = \Drupal::moduleHandler();
+    if (!$module_handler->moduleExists('canvas_dev_mode')) {
+      return;
+    }
+
+    // Add classes to table columns to enable Canvas-specific styling.
+    if (isset($variables['table']['#rows'])) {
+      foreach ($variables['table']['#rows'] as &$row) {
+        // Add class to column 0 (drag handle).
+        if (isset($row['data'][0])) {
+          $row['data'][0]['class'] = ['field-multiple-drag', 'canvas-drag-handle'];
+        }
+        // Add class to column 2 (actions/remove button).
+        if (isset($row['data'][2])) {
+          $row['data'][2]['class'] = ['canvas-remove-action'];
+        }
+      }
+
+      // Attach the library for multivalue form styles.
+      $variables['table']['#attached']['library'][] = 'canvas/multivalue-form';
+    }
+    if (isset($variables['button']['#value'])) {
+      $variables['button']['#value'] = t('+ Add new');
+    }
+  }
+
+  /**
+   * Implements hook_field_widget_complete_form_alter().
+   *
+   * Marks elements within multivalue forms to enable specialized rendering.
+   * This allows the DrupalInputMultivalueForm component to handle inputs
+   * specifically within multivalue widgets.
+   */
+  #[Hook('field_widget_complete_form_alter')]
+  public function fieldWidgetCompleteFormAlter(array &$widget, FormStateInterface $form_state, array $context): void {
+    // Only apply custom multivalue form behavior if canvas_dev_mode is enabled.
+    if (!$this->moduleHandler->moduleExists('canvas_dev_mode')) {
+      return;
+    }
+
+    // Check if this is a multivalue field.
+    $field_definition = $context['items']->getFieldDefinition();
+    $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
+
+    if ($is_multiple && $this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
+      // Get the field label to add to all input elements.
+      $field_label = $field_definition->getLabel();
+      // Mark all input elements within multivalue widgets and add field title.
+      $this->markMultivalueFormElements($widget, $field_label);
+    }
+  }
+
+  /**
+   * Recursively marks form elements as part of a multivalue form.
+   *
+   * @param array &$element
+   *   The form element to process.
+   * @param string $field_label
+   *   The field label to add to input elements.
+   */
+  private function markMultivalueFormElements(array &$element, string $field_label): void {
+    foreach (Element::children($element) as $key) {
+      // Mark input elements.
+      if (isset($element[$key]['#type']) &&
+          in_array($element[$key]['#type'], ['textfield'], TRUE)) {
+        $element[$key]['#is_multivalue_form'] = TRUE;
+        $element[$key]['#attributes']['data-field-label'] = $field_label;
+      }
+      // Recursively process child elements.
+      if (\is_array($element[$key])) {
+        $this->markMultivalueFormElements($element[$key], $field_label);
+      }
+    }
+  }
+
+  /**
    * Implements hook_field_widget_info_alter().
    */
   #[Hook('field_widget_info_alter')]

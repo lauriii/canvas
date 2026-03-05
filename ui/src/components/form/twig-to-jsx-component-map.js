@@ -9,6 +9,7 @@ import DrupalForm from '@/components/form/components/drupal/DrupalForm';
 import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
 import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
+import DrupalInputMultivalueForm from '@/components/form/components/drupal/DrupalInputMultivalueForm';
 import DrupalPathWidget from '@/components/form/components/drupal/DrupalPathWidget';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
@@ -39,6 +40,7 @@ const twigToJSXComponentMap = {
   'drupal-input--checkbox--inwidget-boolean-checkbox': DrupalToggle,
   'drupal-input--url': DrupalInput,
   'drupal-input--textfield--inwidget-path': DrupalPathWidget,
+  'drupal-input--multivalue-form': DrupalInputMultivalueForm,
   'drupal-radios': DrupalRadioGroup,
   'drupal-select': DrupalSelect,
   'drupal-textarea': DrupalTextArea,

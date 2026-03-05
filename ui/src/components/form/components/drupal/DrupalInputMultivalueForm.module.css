@@ -1,0 +1,73 @@
+.itemRow {
+  gap: 0 !important;
+}
+
+/* List Item Styles - Clean list style matching design */
+.listItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: var(--space-3) var(--space-3);
+  background-color: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.listItem:hover {
+  background-color: var(--blue-2);
+}
+
+.listItem:hover .arrowIcon {
+  opacity: 1;
+}
+
+.listItem:focus {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+.arrowIcon {
+  opacity: 0;
+  color: var(--gray-11);
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+  position: absolute;
+  right: var(--space-3);
+  margin-top: 5px;
+}
+
+
+.itemText {
+  color: #1C2024;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Popover Styles */
+.popoverContent {
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid var(--gray-6);
+  box-shadow: var(--shadow-4);
+  padding: 8px;
+  width: 235px;
+  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-30px);
+}
+
+.popoverHeader {
+  margin-bottom: 0;
+}
+
+.popoverLabel {
+  color: var(--gray-11);
+}

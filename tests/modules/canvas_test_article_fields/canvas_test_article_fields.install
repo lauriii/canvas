@@ -327,7 +327,7 @@ function canvas_test_article_fields_install(): void {
       'settings' => [],
       'cardinality' => -1,
       'widget' => [
-        'type' => 'text_textfield',
+        'type' => 'string_textfield',
         // Ensure this is at the top of the form to increase drag and drop reliability in e2e test.
         'weight' => -1000,
         'settings' => [
@@ -549,6 +549,30 @@ function canvas_test_article_fields_install(): void {
     }
     $node->save();
   }
+
+  if (!FieldStorageConfig::loadByName('node', 'field_canvas_demo')) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_canvas_demo',
+      'entity_type' => 'node',
+      'type' => 'component_tree',
+      'settings' => [],
+    ]);
+    $field_storage->save();
+    FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'article',
+    ])->save();
+  }
+
+  // View display config for the component field.
+  \Drupal::service('entity_display.repository')
+    ->getViewDisplay('node', 'article')
+    ->setComponent('field_canvas_demo', [
+      'label' => 'hidden',
+      'type' => 'canvas_naive_render_sdc_tree',
+      'weight' => -2,
+    ])
+    ->save();
 }
 
 /**
