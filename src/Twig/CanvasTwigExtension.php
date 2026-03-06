@@ -33,20 +33,6 @@ use Twig\TwigFunction;
  */
 final class CanvasTwigExtension extends AbstractExtension {
 
-  /**
-   * Constructs a new CanvasTwigExtension object.
-   *
-   * @param \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $streamWrapperManager
-   *   The stream wrapper manager service.
-   * @param \Drupal\Core\Image\ImageFactory $imageFactory
-   *   The image factory service.
-   * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
-   *   The file URL generator.
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The renderer service.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
-   *   The request stack.
-   */
   public function __construct(
     private readonly StreamWrapperManagerInterface $streamWrapperManager,
     private readonly ImageFactory $imageFactory,
@@ -161,9 +147,7 @@ final class CanvasTwigExtension extends AbstractExtension {
           $template = $this->fileUrlGenerator->transformRelative($template);
         }
         // Trust the passed width if available, otherwise try to read from file.
-        if (\is_null($intrinsicImageWidth)) {
-          $intrinsicImageWidth = $this->getWidth($uri);
-        }
+        $intrinsicImageWidth ??= $this->getWidth($uri);
       }
     }
 
