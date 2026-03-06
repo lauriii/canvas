@@ -1,5 +1,6 @@
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import { defineConfig } from 'eslint/config';
+import tseslint from 'typescript-eslint';
 
 import recommended from './recommended.js';
 
@@ -13,6 +14,7 @@ const strict: Config[] = defineConfig([
       ...jsxA11y.flatConfigs.strict.rules,
     },
   },
+  ...tseslint.configs.strict,
 ]);
 
 export default strict;

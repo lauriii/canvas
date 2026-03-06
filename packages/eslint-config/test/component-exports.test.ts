@@ -1,10 +1,12 @@
 import { RuleTester } from 'eslint';
+import tseslint from 'typescript-eslint';
 import { vi } from 'vitest';
 
 import rule from '../src/rules/component-exports.js';
 
 const testRunner = new RuleTester({
   languageOptions: {
+    parser: tseslint.parser,
     ecmaVersion: 2022,
     sourceType: 'module',
     parserOptions: {
@@ -23,6 +25,7 @@ vi.mock('node:fs', () => ({
       '/components/button': ['component.yml', 'index.jsx', 'index.css'],
       '/components/card': ['card.component.yml', 'index.jsx'],
       '/components/heading': ['component.yml', 'index.tsx'],
+      '/components/alert': ['alert.component.yml', 'alert.tsx'],
       '/src/utils': ['utils.js'],
     };
     return dirs[dir] ?? [];
@@ -89,6 +92,19 @@ testRunner.run('component-exports rule', rule, {
         export default Heading;
       `,
       filename: '/components/heading/index.tsx',
+    },
+    {
+      name: 'named-style: should pass when tsx component has default export',
+      code: `
+        interface AlertProps {
+          message: string;
+        }
+        const Alert = ({ message }: AlertProps) => {
+          return <div role="alert">{message}</div>;
+        };
+        export default Alert;
+      `,
+      filename: '/components/alert/alert.tsx',
     },
     {
       name: 'should not apply to scripts outside components',

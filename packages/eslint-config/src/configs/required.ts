@@ -1,6 +1,7 @@
 import eslintPluginYml from 'eslint-plugin-yml';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
@@ -13,6 +14,7 @@ const required: Config[] = defineConfig([
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
+      parser: tseslint.parser,
       ecmaVersion: 2020,
       globals: globals.browser,
       parserOptions: {
