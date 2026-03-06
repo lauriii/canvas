@@ -1468,6 +1468,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'label' => NULL,
       'css' => NULL,
       'js' => NULL,
+      'fonts' => NULL,
     ];
     $request_options[RequestOptions::JSON] = $asset_library_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);

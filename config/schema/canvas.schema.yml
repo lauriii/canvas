@@ -701,6 +701,20 @@ canvas.asset_library.*:
       label: 'JS'
       # The asset library may contain only CSS, no JS.
       nullable: true
+    fonts:
+      type: sequence
+      label: 'Font entries'
+      nullable: true
+      sequence:
+        type: mapping
+        label: 'Font CSS file'
+        mapping:
+          name:
+            type: string
+            label: 'Name'
+          uri:
+            type: string
+            label: 'Managed file URI'
 
 canvas.compilable_code:
   type: mapping

@@ -36,6 +36,7 @@ use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
     'label',
     'css',
     'js',
+    'fonts',
   ],
 )]
 final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterface {
@@ -55,6 +56,11 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
   protected ?string $label;
 
   /**
+   * @var list<array{name: string, uri: string}>|null
+   */
+  protected ?array $fonts = NULL;
+
+  /**
    * {@inheritdoc}
    *
    * This corresponds to `AssetLibrary` in openapi.yml.
@@ -68,6 +74,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'label' => $this->label,
         'css' => $this->css,
         'js' => $this->js,
+        'fonts' => $this->fonts,
       ],
       preview: NULL
     );
@@ -119,6 +126,20 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
     //    be recalculated.
     // @see \canvas_library_info_build()
     Cache::invalidateTags(['library_info']);
+  }
+
+  /**
+   * @return list<array{name: string, uri: string}>
+   */
+  public function getFonts(): array {
+    return $this->fonts ?? [];
+  }
+
+  /**
+   * @param list<array{name: string, uri: string}>|null $entries
+   */
+  public function setFonts(?array $entries): void {
+    $this->fonts = $entries;
   }
 
   /**

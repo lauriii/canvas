@@ -159,6 +159,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             'original' => 'console.log("Test")',
             'compiled' => 'console.log("Test")',
           ],
+          'fonts' => NULL,
         ],
         [
           'css' => [
@@ -177,6 +178,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
             'original' => 'console.log("Test")',
             'compiled' => 'console.log("Test")',
           ],
+          'fonts' => NULL,
         ],
         ['js', 'compiled'],
         ['css', 'compiled'],

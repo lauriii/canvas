@@ -9,6 +9,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -33,6 +34,7 @@ final class LibraryHooks {
     private readonly ThemeHandlerInterface $themeHandler,
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly Version $version,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
   }
 
@@ -113,6 +115,10 @@ final class LibraryHooks {
       }
       if ($library->hasJs()) {
         $libraries[$library_name]['js'][$library->getJsPath()] = [];
+      }
+      foreach ($library->getFonts() as $fontEntry) {
+        $fontCssUrl = $this->fileUrlGenerator->generate($fontEntry['uri'])->toString();
+        $libraries[$library_name]['css']['theme'][$fontCssUrl] = [];
       }
       \assert(empty($library->getAssetLibraryDependencies()));
       // Draft.
