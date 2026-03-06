@@ -7,6 +7,7 @@ namespace Drupal\canvas;
 use Drupal\canvas\Access\ViewModeAccessCheck;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
+use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\Core\DefaultContent\Exporter;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -89,6 +90,11 @@ class CanvasServiceProvider extends ServiceProviderBase {
     // @todo Remove this once Canvas relies on a Drupal core version that includes https://www.drupal.org/i/2862699.
     $container->getDefinition('entity.query.config')
       ->setClass(ConfigEntityQueryFactory::class);
+
+    // Alter the typed config manager to fix a cache pollution bug.
+    // @todo Remove this once Canvas relies on a Drupal core version that includes https://www.drupal.org/i/3400181.
+    $container->getDefinition('config.typed')
+      ->setClass(TypedConfigManagerWithCachePollutionFix::class);
 
     parent::alter($container);
   }

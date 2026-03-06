@@ -73,8 +73,17 @@ final class ComponentMetadataRequirementsChecker {
       // the prop.
       if (isset($prop['examples'][0])) {
         $example = $prop['examples'][0];
-        if (\is_array($example)) {
+        // PHP's "associative arrays" are JSON's "objects". The JSON Schema
+        // validator expects such "objects" to be \stdClass objects.
+        if ($prop['type'] === ['object'] && \is_array($example)) {
           $example = (object) $example;
+        }
+        // Similarly, for `type: array, items: {type: object}`.
+        if ($prop['type'][0] === 'array' && $prop['items']['type'] === 'object' && \is_array($example)) {
+          $example = \array_map(
+            fn (array|object $item) => (object) $item,
+            $example,
+          );
         }
         $validator->reset();
         $validator->validate($example, $prop);

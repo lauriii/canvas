@@ -7,25 +7,84 @@
 # @see \Drupal\canvas\Entity\JavaScriptComponent::toSdcDefinition()
 # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
 #
+# This file defines 3 (wildcard) base types:
+# 1. `canvas.json_schema.prop.*` is the base type for prop definitions. Only a single such type is needed, because it
+#    relies on dynamic typing.
+# 2. `canvas.json_schema.prop_shape.*` is the base type for prop shape definitions (i.e. the prop definition's `type`
+#    key + type-specific constraints such as `format` for `type: string`, `enum`, `$ref, etc.). There are 6 of these:
+#    5 for the basic "prop types" (boolean|integer|number|string|object), and 1 for `array`, which is a special case
+#    because it has an `items` key that reuses the base type.
+# 3. `canvas.json_schema.prop_examples.*.*` is the base type for prop examples definitions, which are dynamic based on
+#    the prop's `type` and `items.type`. Hence there are 10 of these: 5 basic "prop types", 2 for each: single and
+#    multiple cardinality (array).
+#
 # Caveats:
 # 1. Canvas does not (yet) have a field type+widget for every possible JSON Schema (string) format. So `format` is an
-#    optional key in `canvas.json_schema.prop.string`, and lists only those formats that Canvas can actually
+#    optional key in `canvas.json_schema.prop_shape.string`, and lists only those formats that Canvas can actually
 #    generate an input UX for.
 #    Note: the official JSON Schema spec only defines formats for `type: string`, but formats for other types are
 #    possible in principle.
-# 2. Defining _arbitrary_ `type: object` shapes is not yet supported. Currently only one `type: object` is supported:
-#    images, by specifying `$ref: json-schema-definitions://canvas.module/image`. Consequently, `$ref` is
+# 2. Defining _arbitrary_ `type: object` shapes is not yet supported. Currently only two `type: object`s are supported:
+#    images, by specifying `$ref: json-schema-definitions://canvas.module/image`, and videos. Consequently, `$ref` is
 #    required for only this JSON schema type.
 
 canvas.json_schema.prop.*:
-  type: mapping
+  type: canvas.json_schema.prop_shape.[type]
   mapping:
     title:
       type: required_label
       label: 'Name'
+    description:
+      requiredKey: false
+      type: label
+      label: 'Human readable description for the component'
+    examples:
+      # This is NOT optional for required props. Rather than repeating that validation logic here, let the
+      # JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.
+      requiredKey: false
+      type: sequence
+      # TRICKY: this is probably the most complex and dynamic `type: sequence` in all of Drupal: the type of each
+      # item can be any of the 5 supported JSON Schema-based prop shapes (boolean|integer|number|string|object),
+      # but also an array of any of those 5.
+      # The easy solution would be to use `type: ignore` for sequence items, and rely entirely on SDCS's own JSON
+      # Schema-based validation. But it is feasible to ensure at least basic conformity to data types, so Canvas
+      # should, because `type: ignore` is heavily advised against.
+      # A reasonable minimum to ensure good DX: validate the *primitives* (from a config schema POV).
+      # Unfortunately, this cannot be expressed using the typical dynamic typing in config schema, because the correct
+      # config schema definition for a prop's examples must be:
+      # - if `type` is not `array`: a single value: `type: boolean|integer|float|string|canvas.json_schema.object`
+      # - otherwise: a sequence of items: `type: sequence, sequence: { type: boolean|integer|float|string|canvas.json_schema.object }
+      # So BOTH "array or not" and "which JSON Schema type" must be taken into account, which means that the examples'
+      # config schema definition must have access to both the prop's `type` and the `type` of its items (if the prop's
+      # type is `array`). This is supported by config schema!
+      # @see https://www.drupal.org/project/drupal/issues/2392057#comment-10806802
+      sequence:
+        type: canvas.json_schema.prop_examples.[%parent.%parent.type].[%parent.%parent.items.type]
+    type:
+      constraints:
+        Choice:
+          choices:
+            # These correspond to a single field item, or a field item list with cardinality 1.
+            # @see \Drupal\Core\Field\FieldItemInterface
+            - 'string'
+            - 'number'
+            - 'integer'
+            - 'boolean'
+            - 'object'
+            # This corresponds to a field item list (of one of the above types) with cardinality >1.
+            # @see \Drupal\Core\Field\FieldItemListInterface
+            - 'array'
+
+# Note that this is a wildcard base type (it ends in `.*`) instead of a single base type, to allow for helpful
+# validation errors: its `type` key is required and is constrained by a Choice constraint.
+# Result: if a developer tries to use a non-existent JSON Schema type or an unsupported one (e.g. `null`), they will get
+# a helpful error.
+canvas.json_schema.prop_shape.*:
+  type: mapping
+  mapping:
     type:
       type: string
-      label: 'Type'
+      label: 'JSON Schema Type'
       constraints:
         Choice:
           # Not all JSON Schema basic types make sense (for example: `null`).
@@ -36,34 +95,13 @@ canvas.json_schema.prop.*:
             - 'integer'
             - 'boolean'
             - 'object'
-            # @todo Consider adding `array` after https://www.drupal.org/i/3467870 is fixed.
-    description:
-      requiredKey: false
-      type: label
-      label: 'Human readable description for the component'
-    examples:
-      # This is NOT optional for required props. Rather than repeating that validation logic here, let the
-      # JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.
-      requiredKey: false
-      type: sequence
-      label: 'Examples'
-      sequence:
-        # Each of the 5 concrete config schema subtypes (one for each of the JSON Schema types allowed by the `Choice`
-        # constraint above) must define this.
-        type: undefined
 
 # @see https://json-schema.org/understanding-json-schema/reference/strings
-canvas.json_schema.prop.string:
-  type: canvas.json_schema.prop.*
+canvas.json_schema.prop_shape.string:
+  type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
   mapping:
-    examples:
-      sequence:
-        type: string
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
     enum:
       requiredKey: false
       type: sequence
@@ -122,18 +160,11 @@ canvas.json_schema.prop.string:
             # - 'inline'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#integer
-canvas.json_schema.prop.integer:
-  type: canvas.json_schema.prop.*
+canvas.json_schema.prop_shape.integer:
+  type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
   mapping:
-    examples:
-      sequence:
-        # ⚠️ Pure coincidence that JSON Schema's `integer` matches Config Schema's `integer`.
-        type: integer
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
     enum:
       requiredKey: false
       type: sequence
@@ -156,50 +187,26 @@ canvas.json_schema.prop.integer:
       label: 'Translation context'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#number
-canvas.json_schema.prop.number:
-  type: canvas.json_schema.prop.*
+canvas.json_schema.prop_shape.number:
+  type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
-  mapping:
-    examples:
-      sequence:
-        # ⚠️ JSON Schema's `number` corresponds to Config Schema's `float`.
-        type: float
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
     # ⚠️ For now, Canvas does not support `enum` on `type: float` to match core and for better usability.
     # @see https://www.drupal.org/project/canvas/issues/3534758
 
 # @see https://json-schema.org/understanding-json-schema/reference/boolean
 # ⚠️ No `enum` here, because that would make little sense: it would always be `enum: [true, false]`.
-canvas.json_schema.prop.boolean:
-  type: canvas.json_schema.prop.*
+canvas.json_schema.prop_shape.boolean:
+  type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
-  mapping:
-    examples:
-      sequence:
-        # ⚠️ Pure coincidence that JSON Schema's `boolean` matches Config Schema's `boolean`.
-        type: boolean
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
 
 # @see https://json-schema.org/understanding-json-schema/reference/object
-canvas.json_schema.prop.object:
-  type: canvas.json_schema.prop.*
+canvas.json_schema.prop_shape.object:
+  type: canvas.json_schema.prop_shape.*
   constraints:
     FullyValidatable: ~
   mapping:
-    examples:
-      sequence:
-        type: canvas.json_schema.object
-        # Do not allow NULL.
-        constraints:
-          NotNull: ~
-          NotBlank:
-            allowNull: true
     enum:
       requiredKey: false
       # Same remark as for `examples` above.
@@ -234,5 +241,75 @@ canvas.json_schema.object:
   class: '\Drupal\canvas\Config\Schema\JsonSchemaObject'
   label: JSON Schema object
   type: mapping
+  constraints:
+    # Forbid empty object (`{}` in JSON), or an empty associative array in PHP (`[]`).
+    NotBlank:
+      allowNull: true
+    FullyValidatable: ~
+
+# @see https://json-schema.org/understanding-json-schema/reference/array
+canvas.json_schema.prop_shape.array:
+  type: canvas.json_schema.prop_shape.*
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    items:
+      type: canvas.json_schema.prop_shape.[type]
+      label: 'Type of array items'
+    # Determines:
+    # - the configured cardinality for StaticPropSources
+    # - the exact cardinality for matching EntityFieldPropSources
+    # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+    # @see \Drupal\canvas\PropSource\StaticPropSource::__construct(cardinality).
+    # @todo Consider not requiring an exact cardinality match when matching EntityFieldPropSources against array props in https://www.drupal.org/i/3522718
+    maxItems:
+      # Optional, because when omitted, unlimited cardinality is assumed.
+      # @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+      requiredKey: false
+      type: integer
+      label: 'Maximum number of array items'
+      constraints:
+        Range:
+          min: 2
+
+canvas.json_schema.prop_examples.*.*:
+  # Trigger a helpful error if a developer tries to define an example for a non-existent or unsupported JSON Schema type.
+  type: undefined
+  constraints:
+    NotNull: ~
+# Examples for single-cardinality component props: conform to config schema primitives.
+canvas.json_schema.prop_examples.boolean.*:
+  type: boolean
+canvas.json_schema.prop_examples.integer.*:
+  type: integer
+canvas.json_schema.prop_examples.number.*:
+  type: float
+canvas.json_schema.prop_examples.string.*:
+  type: string
+canvas.json_schema.prop_examples.object.*:
+  type: canvas.json_schema.object
+# Examples for multiple-cardinality component props: conform to config schema primitives.
+canvas.json_schema.prop_examples.array.boolean:
+  type: sequence
+  sequence:
+    type: boolean
+canvas.json_schema.prop_examples.array.integer:
+  type: sequence
+  sequence:
+    type: integer
+canvas.json_schema.prop_examples.array.number:
+  type: sequence
+  sequence:
+    type: float
+canvas.json_schema.prop_examples.array.string:
+  type: sequence
+  sequence:
+    type: string
+canvas.json_schema.prop_examples.array.object:
+  type: sequence
+  sequence:
+    type: canvas.json_schema.object
+  # Mark this fully validatable to generate validation errors for missing required keys.
+  # @see \Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraintValidator
   constraints:
     FullyValidatable: ~

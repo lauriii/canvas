@@ -62,7 +62,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
         // For example, schema error for `props.some_boolean.enum` but a
         // validation error for `props.some_boolean` like:
         // @code
-        // 'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type canvas.json_schema.prop.boolean).
+        // 'enum' is an unknown key because props.some_boolean.type is boolean (see config schema type canvas.json_schema.prop_shape.boolean).
         // @endcode
         $parts = explode('.', $relative_property_path);
         $popped = array_pop($parts);

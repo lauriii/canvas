@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config\Schema;
 
+use Drupal\canvas\Config\Schema\JsonSchemaObject;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -11,49 +13,31 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
-/**
- * Tests Json Schema Object.
- *
- * @legacy-covers \Drupal\canvas\Config\Schema\JsonSchemaObject
- */
+#[CoversClass(JsonSchemaObject::class)]
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
+#[Group('JavaScriptComponents')]
 final class JsonSchemaObjectTest extends CanvasKernelTestBase {
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-  }
-
-  /**
    * @phpcs:ignore Drupal.Commenting.FunctionComment.SeeAdditionalText
-   * @see `type: canvas.json_schema.prop.object`
+   * @see `type: canvas.json_schema.prop_shape.object`
    */
   public function testSchemaDerivation(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop_shape.object', [
       'type' => 'object',
       '$ref' => 'json-schema-definitions://canvas.module/heading',
-      'title' => $this->randomString(),
-      'examples' => [
-        [
-          'text' => $this->randomString(),
-          'element' => 'bobby',
-        ],
-      ],
     ]);
     self::assertViolations([
       // We only allow image at this point, but we can still derive schema.
       '$ref' => 'The value you selected is not a valid choice.',
-      'examples.0.element' => 'The value you selected is not a valid choice.',
     ], $config->validate());
   }
 
   public function testInvalidRef(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.*', [
       'type' => 'object',
       '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/pony-ballast',
       'title' => $this->randomString(),
@@ -64,13 +48,13 @@ final class JsonSchemaObjectTest extends CanvasKernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property should resolve to an object definition");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.*.examples` is invalid: the parent '\$ref' property should resolve to an object definition");
     $config->validate();
   }
 
   public function testInvalidDataType(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.*', [
       'type' => 'object',
       '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/chip-nozzle',
       'title' => $this->randomString(),
@@ -81,13 +65,13 @@ final class JsonSchemaObjectTest extends CanvasKernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'special' property that uses an unsupported config schema type 'bonanza'. This is not supported.");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.*.examples` is invalid: the parent '\$ref' property contains a 'special' property that uses an unsupported config schema type 'bonanza'. This is not supported.");
     $config->validate();
   }
 
   public function testInvalidDataTypeResolution(): void {
     $typed_config = $this->container->get(TypedConfigManagerInterface::class);
-    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.object', [
+    $config = $typed_config->createFromNameAndData('canvas.json_schema.prop.*', [
       'type' => 'object',
       '$ref' => 'json-schema-definitions://canvas_config_schema_test.module/escape-goat',
       'title' => $this->randomString(),
@@ -98,7 +82,7 @@ final class JsonSchemaObjectTest extends CanvasKernelTestBase {
       ],
     ]);
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.object.examples` is invalid: the parent '\$ref' property contains a 'nesting' property that uses an unsupported config schema type 'object'. This is not supported.");
+    $this->expectExceptionMessage("The schema definition at `canvas.json_schema.prop.*.examples` is invalid: the parent '\$ref' property contains a 'nesting' property that uses an unsupported config schema type 'object'. This is not supported.");
     $config->validate();
   }
 

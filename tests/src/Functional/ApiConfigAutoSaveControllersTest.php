@@ -73,23 +73,23 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           ],
           'props' => [
             'string' => [
-              'title' => 'Title',
               'type' => 'string',
+              'title' => 'Title',
               'examples' => ['Press', 'Submit now'],
             ],
             'boolean' => [
-              'title' => 'Truth',
               'type' => 'boolean',
+              'title' => 'Truth',
               'examples' => [TRUE, FALSE],
             ],
             'integer' => [
-              'title' => 'Integer',
               'type' => 'integer',
+              'title' => 'Integer',
               'examples' => [23, 10, 2024],
             ],
             'number' => [
-              'title' => 'Number',
               'type' => 'number',
+              'title' => 'Number',
               'examples' => [3.14],
             ],
           ],
@@ -111,23 +111,23 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'status' => FALSE,
           'props' => [
             'string' => [
-              'title' => 'Title',
               'type' => 'string',
+              'title' => 'Title',
               'examples' => ['Press', 'Submit now'],
             ],
             'boolean' => [
-              'title' => 'Truth',
               'type' => 'boolean',
+              'title' => 'Truth',
               'examples' => [TRUE, FALSE],
             ],
             'integer' => [
-              'title' => 'Integer',
               'type' => 'integer',
+              'title' => 'Integer',
               'examples' => [23, 10, 2024],
             ],
             'number' => [
-              'title' => 'Number',
               'type' => 'number',
+              'title' => 'Number',
               'examples' => [3.14],
             ],
           ],

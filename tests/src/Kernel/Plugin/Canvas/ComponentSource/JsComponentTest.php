@@ -24,6 +24,7 @@ use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
@@ -250,6 +251,68 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
           'image' => [
             'required' => FALSE,
             'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+      ],
+      'js.canvas_test_code_components_with_array_props' => [
+        'prop_field_definitions' => [
+          'tags' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [
+              ['value' => 'Tag A'],
+              ['value' => 'Tag B'],
+              ['value' => 'Tag C'],
+              ['value' => 'Tag D'],
+            ],
+            'expression' => 'ℹ︎string␟value',
+          ],
+          'links' => [
+            'required' => FALSE,
+            'field_type' => 'link',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'title' => 0,
+              'link_type' => LinkItemInterface::LINK_GENERIC,
+            ],
+            'field_widget' => 'link_default',
+            'default_value' => [
+              ['uri' => '/foo', 'options' => []],
+              ['uri' => '/bar', 'options' => []],
+            ],
+            'expression' => 'ℹ︎link␟url',
+          ],
+          'scores' => [
+            'required' => FALSE,
+            'field_type' => 'integer',
+            'cardinality' => 5,
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'number',
+            'default_value' => [
+              ['value' => 1],
+              ['value' => 1],
+              ['value' => 2],
+              ['value' => 6],
+            ],
+            'expression' => 'ℹ︎integer␟value',
+          ],
+          'images' => [
+            'required' => FALSE,
+            'field_type' => 'image',
+            'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
             'field_storage_settings' => [],
             'field_instance_settings' => [],
             'field_widget' => 'image_image',
@@ -545,6 +608,27 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                 'rel' => 'modulepreload',
                 'fetchpriority' => 'high',
                 'href' => \sprintf('/%s/files/astro-island/Ej9H8EwYfANZUT_jL84bUAXkK8F_p9-yZyj4Sxnz7C8.js', $site_path),
+              ],
+            ],
+          ],
+          'import_maps' => $default_imports,
+        ],
+      ],
+      'js.canvas_test_code_components_with_array_props' => [
+        'cacheability' => (clone $default_cacheability)
+          ->setCacheTags(['config:canvas.js_component.canvas_test_code_components_with_array_props']),
+        'attachments' => [
+          'library' => [
+            'canvas/astro_island.canvas_test_code_components_with_array_props',
+            ...$default_libraries,
+          ],
+          'html_head_link' => [
+            ...$default_html_head_links,
+            [
+              [
+                'rel' => 'modulepreload',
+                'fetchpriority' => 'high',
+                'href' => \sprintf('/%s/files/astro-island/WPurQ1t5_bM2yeCu0KfbCrlAMkNzHx5g0hsXoF88Ey0.js', $site_path),
               ],
             ],
           ],
@@ -961,6 +1045,18 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
         'module' => [
           'file',
           'image',
+        ],
+      ],
+      'js.canvas_test_code_components_with_array_props' => [
+        'config' => [
+          'image.style.canvas_parametrized_width',
+          'canvas.js_component.canvas_test_code_components_with_array_props',
+        ],
+        'module' => [
+          'core',
+          'file',
+          'image',
+          'link',
         ],
       ],
       'js.canvas_test_code_components_with_enums' => [
@@ -1513,6 +1609,148 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
                 'width' => 1200,
                 'height' => 900,
                 'alt' => 'Example image placeholder',
+              ],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'js.canvas_test_code_components_with_array_props' => [
+        'expected_output_selectors' => [
+          'canvas-island[opts*="With array props"][props*="tags"]',
+          'script[blocking="render"][src*="/packages/astro-hydration/dist/client.js"]',
+        ],
+        'source' => 'Code component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'tags' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+              ],
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'sourceTypeSettings' => [
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                ['value' => 'Tag A'],
+                ['value' => 'Tag B'],
+                ['value' => 'Tag C'],
+                ['value' => 'Tag D'],
+              ],
+              'resolved' => ['Tag A', 'Tag B', 'Tag C', 'Tag D'],
+            ],
+          ],
+          'links' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'string',
+                'format' => 'uri-reference',
+              ],
+            ],
+            'sourceType' => 'static:field_item:link',
+            'expression' => 'ℹ︎link␟url',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'title' => \DRUPAL_DISABLED,
+                'link_type' => LinkItemInterface::LINK_GENERIC,
+              ],
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [
+                ['uri' => '/foo', 'options' => []],
+                ['uri' => '/bar', 'options' => []],
+              ],
+              'resolved' => ['/foo', '/bar'],
+            ],
+          ],
+          'scores' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'integer',
+              ],
+              'maxItems' => 5,
+            ],
+            'sourceType' => 'static:field_item:integer',
+            'expression' => 'ℹ︎integer␟value',
+            'sourceTypeSettings' => [
+              'cardinality' => 5,
+            ],
+            'default_values' => [
+              'source' => [
+                ['value' => 1],
+                ['value' => 1],
+                ['value' => 2],
+                ['value' => 6],
+              ],
+              'resolved' => [1, 1, 2, 6],
+            ],
+          ],
+          'images' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'array',
+              'items' => [
+                'type' => 'object',
+                'title' => 'image',
+                'required' => [
+                  0 => 'src',
+                ],
+                'properties' => [
+                  'src' => [
+                    'title' => 'Image URL',
+                    'type' => 'string',
+                    'format' => 'uri-reference',
+                    'contentMediaType' => 'image/*',
+                    'x-allowed-schemes' => ['http', 'https'],
+                    'id' => 'json-schema-definitions://canvas.module/image-uri',
+                  ],
+                  'alt' => [
+                    'title' => 'Alternative text',
+                    'type' => 'string',
+                  ],
+                  'width' => [
+                    'title' => 'Image width',
+                    'type' => 'integer',
+                  ],
+                  'height' => [
+                    'title' => 'Image height',
+                    'type' => 'integer',
+                  ],
+                ],
+                'id' => 'json-schema-definitions://canvas.module/image',
+              ],
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'sourceTypeSettings' => [
+              'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                [
+                  'src' => 'https://placehold.co/1200x900@2x.png',
+                  'width' => 1200,
+                  'height' => 900,
+                  'alt' => 'First example image',
+                ],
+                [
+                  'src' => 'https://placehold.co/800x600@2x.png',
+                  'width' => 800,
+                  'height' => 600,
+                  'alt' => 'Second example image',
+                ],
               ],
             ],
           ],

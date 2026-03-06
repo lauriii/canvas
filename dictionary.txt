@@ -121,6 +121,7 @@ Starshot
 subcontent
 subroute
 subtrigger
+subtyping
 supersets
 superstrongpassword
 SVAY

@@ -797,7 +797,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       $errors[$index]['detail'] = substr($errors[$index]['detail'], 36);
     }
     $errors[] = [
-      'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*).",
+      'detail' => "'enum' is an unknown key because props.mixed_up_prop.type is unknown (see config schema type canvas.json_schema.prop.*||canvas.json_schema.prop_shape.*).",
       'source' => [
         'pointer' => 'props.mixed_up_prop',
       ],

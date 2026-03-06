@@ -157,7 +157,8 @@ See:
 - `\Drupal\canvas\Plugin\Validation\Constraint\JsComponentHasValidAndSupportedSdcMetadataConstraintValidator`
 - `\Drupal\canvas\Plugin\Validation\Constraint\IsStorablePropShapeConstraintValidator`
 - `type: canvas.js_component.*`
-- `type: canvas.json_schema.prop.*`
+- `type: canvas.json_schema.prop.*
+- `type: canvas.json_schema.prop_shape.(boolean|integer|number|string|object|array)`
 
 A `JavaScriptComponent config entity` (UI label: _code components_) can be created by Ambitious Site Builders to create
 so-called components in the browser, without the need for learning how to create `SDC`s, and most importantly: without
