@@ -132,6 +132,15 @@ variants that also have the style's effects applied:
 This is powerful because it lets you combine server-side effects (like cropping
 with focal point) with Canvas's automatic responsive image generation.
 
+### Portability note
+
+Image styles are site configuration meaning that they are not shipped with the component.
+If you want your components to be transferable between sites, prefer client-side
+image transforms (such as CSS `object-fit` and `aspect-ratio`) over
+`apply_image_style`. Reserve this filter for cases where server-side processing
+is necessary, such as focal-point cropping that cannot be
+achieved in the browser.
+
 ## Best practices
 
 - Always provide meaningful `alt` text for accessibility
