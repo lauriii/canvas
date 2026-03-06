@@ -41,6 +41,7 @@ const rule: EslintRule.RuleModule = {
       description:
         'Validates that all component directories are at the same level with no nesting hierarchy',
     },
+    deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isComponentYmlFile(context)) {

@@ -190,6 +190,7 @@ const rule: EslintRule.RuleModule = {
         'Validates that component imports only from supported import sources and patterns',
     },
     fixable: 'code',
+    deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isInComponentDir(context)) {

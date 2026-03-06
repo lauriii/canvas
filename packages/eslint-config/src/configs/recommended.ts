@@ -13,7 +13,7 @@ import type { ESLint } from 'eslint';
 const recommended: Config[] = defineConfig([
   required,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx,js,jsx}'],
     plugins: {
       react,
       'react-hooks': reactHooks as ESLint.Plugin,

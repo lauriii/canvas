@@ -51,21 +51,7 @@ testRunner.run('component-prop-names rule', rule, {
       filename: '/components/button/component.yml',
     },
     {
-      name: 'should only be applied to component.yml files',
-      code: `
-        name: Button
-        machineName: button
-        props:
-          type: object
-          properties:
-            title:
-              type: string
-              title: Button Title
-      `,
-      filename: '/components/button/button.component.yml',
-    },
-    {
-      name: 'should only be applied to component.yml files',
+      name: 'should not be applied to non-component yml files',
       code: `
         name: Button
         machineName: button
@@ -80,6 +66,27 @@ testRunner.run('component-prop-names rule', rule, {
     },
   ],
   invalid: [
+    {
+      name: 'should validate named component metadata files',
+      code: `
+        name: Button
+        machineName: button
+        props:
+          type: object
+          properties:
+            title:
+              type: string
+              title: Button Title
+      `,
+      filename: '/components/button/button.component.yml',
+      errors: [
+        {
+          message:
+            'Prop machine name "title" should be the camelCase version of its title. Expected: "buttonTitle". https://drupal.org/i/3524675',
+          line: 7,
+        },
+      ],
+    },
     {
       name: 'should fail when prop id is not a camelCase version of Title',
       code: `

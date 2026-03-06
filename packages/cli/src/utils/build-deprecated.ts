@@ -22,7 +22,7 @@ export async function buildComponent(
   };
 
   // Validate component before building.
-  const validationResult = await validateComponent(componentDir);
+  const validationResult = await validateComponent(componentDir, false, true);
   if (!validationResult.success) {
     result.success = false;
     result.details = validationResult.details;

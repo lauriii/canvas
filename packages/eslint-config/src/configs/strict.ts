@@ -8,7 +8,7 @@ import type { Config } from '@eslint/config-helpers';
 const strict: Config[] = defineConfig([
   recommended,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx,js,jsx}'],
     rules: {
       ...jsxA11y.flatConfigs.strict.rules,
     },

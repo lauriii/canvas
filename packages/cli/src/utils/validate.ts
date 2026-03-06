@@ -2,8 +2,8 @@ import path from 'path';
 import { basename } from 'path/win32';
 import { ESLint } from 'eslint';
 import {
-  next as drupalCanvasNext,
   required as drupalCanvasRequired,
+  requiredDeprecated as drupalCanvasRequiredDeprecated,
 } from '@drupal-canvas/eslint-config';
 
 import type { Result } from '../types/Result';
@@ -11,11 +11,13 @@ import type { Result } from '../types/Result';
 export async function validateComponent(
   componentDir: string,
   fix: boolean = false,
-  next?: boolean,
+  deprecated?: boolean,
 ): Promise<Result> {
   const eslint = new ESLint({
     overrideConfigFile: true,
-    overrideConfig: next ? drupalCanvasNext : drupalCanvasRequired,
+    overrideConfig: deprecated
+      ? drupalCanvasRequiredDeprecated
+      : drupalCanvasRequired,
     fix,
   });
   const eslintResults = await eslint.lintFiles(componentDir + '/**/*');

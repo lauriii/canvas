@@ -1,4 +1,4 @@
-import { isInComponentDir } from '../utils/components.js';
+import { isComponentEntrypoint } from '../utils/components.js';
 
 import type { Rule as EslintRule } from 'eslint';
 
@@ -10,13 +10,7 @@ const rule: EslintRule.RuleModule = {
     },
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
-    if (
-      !context.filename.endsWith('.jsx') &&
-      !context.filename.endsWith('.js')
-    ) {
-      return {};
-    }
-    if (!isInComponentDir(context)) {
+    if (!isComponentEntrypoint(context)) {
       return {};
     }
 

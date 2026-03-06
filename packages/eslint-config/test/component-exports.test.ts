@@ -21,6 +21,8 @@ vi.mock('node:fs', () => ({
   readdirSync: vi.fn((dir) => {
     const dirs: Record<string, string[]> = {
       '/components/button': ['component.yml', 'index.jsx', 'index.css'],
+      '/components/card': ['card.component.yml', 'index.jsx'],
+      '/components/heading': ['component.yml', 'index.tsx'],
       '/src/utils': ['utils.js'],
     };
     return dirs[dir] ?? [];
@@ -69,6 +71,26 @@ testRunner.run('component-exports rule', rule, {
       filename: '/components/button/index.jsx',
     },
     {
+      name: 'named-style: should pass when component has default export',
+      code: `
+        const Card = ({ title }) => {
+          return <div>{title}</div>;
+        };
+        export default Card;
+      `,
+      filename: '/components/card/index.jsx',
+    },
+    {
+      name: 'should pass when tsx component has default export',
+      code: `
+        const Heading = ({ title }) => {
+          return <h1>{title}</h1>;
+        };
+        export default Heading;
+      `,
+      filename: '/components/heading/index.tsx',
+    },
+    {
       name: 'should not apply to scripts outside components',
       code: `
         import { clsx } from "clsx";
@@ -106,6 +128,36 @@ testRunner.run('component-exports rule', rule, {
         };
       `,
       filename: '/components/button/index.jsx',
+      errors: [
+        {
+          message: 'Component must have a default export',
+          line: 2,
+        },
+      ],
+    },
+    {
+      name: 'should fail when tsx component has no default export',
+      code: `
+        export const Heading = ({ title }) => {
+          return <h1>{title}</h1>;
+        };
+      `,
+      filename: '/components/heading/index.tsx',
+      errors: [
+        {
+          message: 'Component must have a default export',
+          line: 2,
+        },
+      ],
+    },
+    {
+      name: 'named-style: should fail for component with no default export',
+      code: `
+        export const Card = ({ title }) => {
+          return <div>{title}</div>;
+        };
+      `,
+      filename: '/components/card/card.jsx',
       errors: [
         {
           message: 'Component must have a default export',

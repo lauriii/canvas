@@ -24,6 +24,7 @@ const rule: EslintRule.RuleModule = {
       description:
         'Validates that component directory contains only allowed files',
     },
+    deprecated: true,
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
     if (!isComponentYmlFile(context)) {

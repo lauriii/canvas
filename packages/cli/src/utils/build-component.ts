@@ -30,11 +30,7 @@ export async function buildComponent(
   // Validate component before building.
   // Use absolute path from metadataPath since relativeDirectory is relative to scanRoot, not cwd
   const componentAbsoluteDir = path.dirname(component.metadataPath);
-  const validationResult = await validateComponent(
-    componentAbsoluteDir,
-    false,
-    true,
-  );
+  const validationResult = await validateComponent(componentAbsoluteDir);
   if (!validationResult.success) {
     result.success = false;
     result.details = validationResult.details;

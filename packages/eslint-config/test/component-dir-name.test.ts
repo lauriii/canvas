@@ -12,7 +12,7 @@ const testRunner = new RuleTester({
 testRunner.run('component-dir-name rule', rule, {
   valid: [
     {
-      name: 'should pass when directory name matches machineName',
+      name: 'index-style: should pass when directory name matches machineName',
       code: `
         name: Button
         machineName: button
@@ -20,7 +20,15 @@ testRunner.run('component-dir-name rule', rule, {
       filename: '/components/button/component.yml',
     },
     {
-      name: 'should only be applied to component.yml files',
+      name: 'named-style: should pass when filename prefix matches machineName',
+      code: `
+        name: Button
+        machineName: button
+      `,
+      filename: '/components/shared/button.component.yml',
+    },
+    {
+      name: 'named-style: should pass when filename prefix matches machineName in same-name dir',
       code: `
         name: Button
         machineName: button
@@ -38,7 +46,7 @@ testRunner.run('component-dir-name rule', rule, {
   ],
   invalid: [
     {
-      name: 'should fail when directory name does not match machineName',
+      name: 'index-style: should fail when directory name does not match machineName',
       code: `
         name: Button
         machineName: button
@@ -46,14 +54,13 @@ testRunner.run('component-dir-name rule', rule, {
       filename: '/components/card/component.yml',
       errors: [
         {
-          message:
-            'Component directory name "card" does not match machineName "button" from component.yml.',
+          message: 'Directory name "card" does not match machineName "button".',
           line: 3,
         },
       ],
     },
     {
-      name: 'should fail when directory name casing does not match machineName',
+      name: 'index-style: should fail when directory name casing does not match machineName',
       code: `
         name: Button
         machineName: Button
@@ -62,7 +69,22 @@ testRunner.run('component-dir-name rule', rule, {
       errors: [
         {
           message:
-            'Component directory name "button" does not match machineName "Button" from component.yml.',
+            'Directory name "button" does not match machineName "Button".',
+          line: 3,
+        },
+      ],
+    },
+    {
+      name: 'named-style: should fail when filename prefix does not match machineName',
+      code: `
+        name: Card
+        machineName: card
+      `,
+      filename: '/components/shared/button.component.yml',
+      errors: [
+        {
+          message:
+            'Metadata filename "button.component.yml" does not match machineName "card".',
           line: 3,
         },
       ],
@@ -82,13 +104,25 @@ testRunner.run('component-dir-name rule', rule, {
       ],
     },
     {
-      name: 'should fail when machineName key is missing',
+      name: 'index-style: should fail when machineName key is missing',
       code: `name: Button`,
       filename: '/components/button/component.yml',
       errors: [
         {
           message:
-            'machineName key is missing. Its value should match the directory name: "button".',
+            'machineName key is missing. Its value should be "button" based on directory name "button".',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'named-style: should fail when machineName key is missing',
+      code: `name: Button`,
+      filename: '/components/shared/button.component.yml',
+      errors: [
+        {
+          message:
+            'machineName key is missing. Its value should be "button" based on metadata filename "button.component.yml".',
           line: 1,
         },
       ],

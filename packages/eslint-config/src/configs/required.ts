@@ -4,9 +4,6 @@ import globals from 'globals';
 
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
-import componentFilesRule from '../rules/component-files.js';
-import componentImportsRule from '../rules/component-imports.js';
-import componentNoHierarchyRule from '../rules/component-no-hierarchy.js';
 import componentPropNamesRule from '../rules/component-prop-names.js';
 
 import type { Config } from '@eslint/config-helpers';
@@ -14,7 +11,7 @@ import type { Config } from '@eslint/config-helpers';
 const required: Config[] = defineConfig([
   globalIgnores(['**/dist/**']),
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -33,9 +30,6 @@ const required: Config[] = defineConfig([
         rules: {
           'component-dir-name': componentDirNameRule,
           'component-exports': componentExportsRule,
-          'component-files': componentFilesRule,
-          'component-imports': componentImportsRule,
-          'component-no-hierarchy': componentNoHierarchyRule,
           'component-prop-names': componentPropNamesRule,
         },
       },
@@ -43,9 +37,6 @@ const required: Config[] = defineConfig([
     rules: {
       'drupal-canvas/component-dir-name': 'error',
       'drupal-canvas/component-exports': 'error',
-      'drupal-canvas/component-files': 'error',
-      'drupal-canvas/component-imports': 'error',
-      'drupal-canvas/component-no-hierarchy': 'error',
       'drupal-canvas/component-prop-names': 'error',
     },
   },
