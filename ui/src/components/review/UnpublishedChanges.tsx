@@ -30,7 +30,7 @@ import {
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
-import { contentApi } from '@/services/content';
+import { contentApi, useGetContentListQuery } from '@/services/content';
 import {
   CONFLICT_CODE,
   pendingChangesApi,
@@ -79,6 +79,10 @@ const UnpublishedChanges = () => {
   const dispatch = useAppDispatch();
   const { showBoundary } = useErrorBoundary();
   const entity_form_fields = useAppSelector(selectPageData);
+  // Fetch content list to get status information for all pages
+  const { data: pageItems } = useGetContentListQuery({
+    entityType: 'canvas_page',
+  });
 
   // If either the selected component or the preview layout is being updated, disable the Publish button.
   const isUpdating = isUpdatingComponent || isUpdatingPreview;
@@ -287,6 +291,23 @@ const UnpublishedChanges = () => {
     }, 100);
   }
 
+  // Create a map of entity_id -> { status, isNew, hasUnsavedStatusChange } for quick lookup
+  const pageStatusMap = useMemo(() => {
+    if (!pageItems) return {};
+    const map: Record<
+      string,
+      { status: boolean; isNew?: boolean; hasUnsavedStatusChange?: boolean }
+    > = {};
+    pageItems.forEach((page) => {
+      map[String(page.id)] = {
+        status: page.status,
+        isNew: page.isNew,
+        hasUnsavedStatusChange: page.hasUnsavedStatusChange,
+      };
+    });
+    return map;
+  }, [pageItems]);
+
   return (
     <PublishReview
       isUpdating={isUpdating}
@@ -298,6 +319,7 @@ const UnpublishedChanges = () => {
       onDiscardClick={onDiscardClick}
       isPublishing={isPublishing}
       isDiscarding={isDiscarding}
+      pageStatusMap={pageStatusMap}
     />
   );
 };

@@ -14,17 +14,34 @@ export interface PageStatusBadgeProps {
   isNew: boolean;
   hasAutoSave: boolean;
   isPublished: boolean;
+  hasUnsavedStatusChange?: boolean;
 }
 
 export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
   isNew,
   hasAutoSave,
   isPublished,
+  hasUnsavedStatusChange,
 }) => {
-  if (isNew) {
+  // Show "Draft" only if the page is new (draft) AND unpublished
+  if (isNew && !isPublished) {
     return (
       <Badge size="1" variant="solid" color="blue">
         Draft
+      </Badge>
+    );
+  }
+
+  // Show "Changed" if there's an unsaved status change to unpublished
+  // Show "Unpublished" if the page is unpublished (but not a new draft) and no unsaved changes
+  if (!isPublished) {
+    return hasUnsavedStatusChange ? (
+      <Badge size="1" variant="solid" color="amber">
+        Changed
+      </Badge>
+    ) : (
+      <Badge size="1" variant="solid" color="gray">
+        Unpublished
       </Badge>
     );
   }
@@ -37,17 +54,9 @@ export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
     );
   }
 
-  if (isPublished) {
-    return (
-      <Badge size="1" variant="solid" color="green">
-        Published
-      </Badge>
-    );
-  }
-
   return (
-    <Badge size="1" variant="solid" color="gray">
-      Archived
+    <Badge size="1" variant="solid" color="green">
+      Published
     </Badge>
   );
 };
@@ -83,13 +92,14 @@ const PageStatus = () => {
   }, [changes, dispatch, isGetPendingChangesSuccess]);
 
   if (fetchedLayout && !isError) {
-    const { isNew, isPublished } = fetchedLayout;
+    const { isNew, isPublished, hasUnsavedStatusChange } = fetchedLayout;
 
     return (
       <PageStatusBadge
         isPublished={isPublished}
         isNew={isNew}
         hasAutoSave={hasAutoSave}
+        hasUnsavedStatusChange={hasUnsavedStatusChange}
       />
     );
   }

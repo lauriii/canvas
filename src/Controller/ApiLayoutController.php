@@ -83,6 +83,8 @@ final class ApiLayoutController {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $regions = PageRegion::loadForActiveTheme();
 
+    // Store the original entity for comparison purposes.
+    $original_entity = $entity;
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($entity);
     if (!$autoSaveData->isEmpty()) {
       $entity = $autoSaveData->entity;
@@ -94,7 +96,10 @@ final class ApiLayoutController {
     $tree = $this->componentTreeLoader->load($entity);
     $content_layout = $this->buildRegion(CanvasPageVariant::MAIN_CONTENT_REGION, $tree, $model, $preview_entity);
     $layout = [$content_layout];
-    $is_new = AutoSaveManager::entityIsConsideredNew($entity);
+    // Determine if entity is a draft based on the original entity,
+    // not auto-save, because draft status is an intrinsic property
+    // of the stored entity.
+    $is_new = AutoSaveManager::entityIsConsideredNew($original_entity);
 
     if ($regions) {
       \assert($model !== NULL);
@@ -124,6 +129,14 @@ final class ApiLayoutController {
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
+
+      // Determine if there's an unsaved status change by comparing the current
+      // entity (which may be autosaved) with the original stored entity.
+      $data['hasUnsavedStatusChange'] = FALSE;
+      if ($original_entity instanceof EntityPublishedInterface
+        && $entity !== $original_entity) {
+        $data['hasUnsavedStatusChange'] = $entity->isPublished() !== $original_entity->isPublished();
+      }
     }
     return new PreviewEnvelope($this->buildPreviewRenderable($entity, $preview_entity), $data);
   }

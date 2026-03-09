@@ -39,8 +39,8 @@ Published.args = {
   isPublished: true,
 };
 
-export const Archived = Template.bind({});
-Archived.args = {
+export const Unpublished = Template.bind({});
+Unpublished.args = {
   isNew: false,
   hasAutoSave: false,
   isPublished: false,

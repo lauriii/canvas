@@ -17,6 +17,10 @@ interface ChangeGroupProps {
   setSelectedChanges: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  pageStatusMap?: Record<
+    string,
+    { status: boolean; isNew?: boolean; hasUnsavedStatusChange?: boolean }
+  >;
 }
 
 const ChangeGroup = ({
@@ -27,6 +31,7 @@ const ChangeGroup = ({
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
+  pageStatusMap,
 }: ChangeGroupProps) => {
   const isGroupSelected = useMemo(() => {
     const groupSelectionCount = changes.filter((change) =>
@@ -89,6 +94,7 @@ const ChangeGroup = ({
             setSelectedChanges={setSelectedChanges}
             onDiscardClick={onDiscardClick}
             onViewClick={onViewClick}
+            pageStatusMap={pageStatusMap}
           />
         ))}
       </ul>

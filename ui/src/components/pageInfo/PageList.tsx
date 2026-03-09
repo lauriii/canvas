@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ChevronDownIcon,
+  ClockIcon,
   FileTextIcon,
   InfoCircledIcon,
   MagnifyingGlassIcon,
@@ -8,6 +9,7 @@ import {
 } from '@radix-ui/react-icons';
 import {
   AlertDialog,
+  Badge,
   Box,
   Button,
   Callout,
@@ -16,6 +18,7 @@ import {
   Flex,
   Skeleton,
   TextField,
+  Tooltip,
 } from '@radix-ui/themes';
 
 import ErrorCard from '@/components/error/ErrorCard';
@@ -26,7 +29,13 @@ import type { FormEvent } from 'react';
 import type { ContentStub } from '@/types/Content';
 
 const hasPermission = (
-  permission: 'edit' | 'duplicate' | 'homepage' | 'delete',
+  permission:
+    | 'edit'
+    | 'duplicate'
+    | 'homepage'
+    | 'delete'
+    | 'unpublish'
+    | 'publish',
   item: ContentStub,
 ) => {
   const links = item.links || {};
@@ -41,6 +50,10 @@ const hasPermission = (
       ];
     case 'delete':
       return !!links['delete-form'];
+    case 'unpublish':
+      return !!links['disable'];
+    case 'publish':
+      return !!links['enable'];
     default:
       return false;
   }
@@ -51,16 +64,26 @@ const createPageMenuContent = (
   item: ContentStub,
   onDuplicate?: (page: ContentStub) => void,
   onSetHomepage?: (page: ContentStub) => void,
+  onUnpublish?: (page: ContentStub) => void,
+  onPublish?: (page: ContentStub) => void,
   onDelete?: (page: ContentStub) => void,
   homepagePath?: string,
 ) => {
   const hasDuplicate = hasPermission('duplicate', item);
   const hasHomepage =
     hasPermission('homepage', item) && item.internalPath !== homepagePath;
+  const hasUnpublish = hasPermission('unpublish', item);
+  const hasPublish = hasPermission('publish', item);
   const hasDelete = hasPermission('delete', item);
 
   // If no permissions, don't render dropdown
-  if (!hasDuplicate && !hasHomepage && !hasDelete) {
+  if (
+    !hasDuplicate &&
+    !hasHomepage &&
+    !hasUnpublish &&
+    !hasPublish &&
+    !hasDelete
+  ) {
     return null;
   }
 
@@ -87,9 +110,35 @@ const createPageMenuContent = (
           </UnifiedMenu.Item>
         </>
       )}
-      {hasDelete && (
+      {hasUnpublish && (
         <>
           {(hasDuplicate || hasHomepage) && <UnifiedMenu.Separator />}
+          <UnifiedMenu.Item
+            onClick={(event) => event.stopPropagation()}
+            onSelect={onUnpublish ? () => onUnpublish(item) : undefined}
+          >
+            Unpublish page
+          </UnifiedMenu.Item>
+        </>
+      )}
+      {hasPublish && (
+        <>
+          {(hasDuplicate || hasHomepage || hasUnpublish) && (
+            <UnifiedMenu.Separator />
+          )}
+          <UnifiedMenu.Item
+            onClick={(event) => event.stopPropagation()}
+            onSelect={onPublish ? () => onPublish(item) : undefined}
+          >
+            Publish page
+          </UnifiedMenu.Item>
+        </>
+      )}
+      {hasDelete && (
+        <>
+          {(hasDuplicate || hasHomepage || hasUnpublish || hasPublish) && (
+            <UnifiedMenu.Separator />
+          )}
           <AlertDialog.Root>
             <AlertDialog.Trigger>
               <UnifiedMenu.Item
@@ -130,6 +179,105 @@ const createPageMenuContent = (
   );
 };
 
+// Component for individual page item to manage menu state
+const PageListItem = ({
+  item,
+  isSelected,
+  isHomepage,
+  homepagePath,
+  onSelect,
+  onDuplicate,
+  onSetHomepage,
+  onUnpublish,
+  onPublish,
+  onDelete,
+}: {
+  item: ContentStub;
+  isSelected: boolean;
+  isHomepage: boolean;
+  homepagePath?: string;
+  onSelect?: (value: ContentStub) => void;
+  onDuplicate?: (page: ContentStub) => void;
+  onSetHomepage?: (page: ContentStub) => void;
+  onUnpublish?: (page: ContentStub) => void;
+  onPublish?: (page: ContentStub) => void;
+  onDelete?: (page: ContentStub) => void;
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const title = `${item.autoSaveLabel || item.title} ${item.autoSavePath || item.path}`;
+  const dropdownMenuContent = createPageMenuContent(
+    item,
+    onDuplicate,
+    onSetHomepage,
+    onUnpublish,
+    onPublish,
+    onDelete,
+    homepagePath,
+  );
+
+  // Determine unpublished status:
+  // - Show "Clock icon + Unpublish" if there's an unsaved status change to unpublished
+  // - Show "Unpublished" if page is unpublished (but not a new draft) and no unsaved changes
+  // - Draft pages (never published) should not show any unpublished badge
+  const isUnpublished =
+    !item.status && !item.isNew && !item.hasUnsavedStatusChange;
+  const willBeUnpublished =
+    !item.status && !item.isNew && item.hasUnsavedStatusChange;
+
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        <div>
+          <SidebarNode
+            title={title}
+            variant={isHomepage ? 'homepage' : 'page'}
+            selected={isSelected}
+            trailingContent={
+              !isMenuOpen && (isUnpublished || willBeUnpublished) ? (
+                willBeUnpublished ? (
+                  <Tooltip content="Applies on next publish">
+                    <Badge
+                      size="1"
+                      variant="solid"
+                      color={isSelected ? 'blue' : 'gray'}
+                    >
+                      <Flex align="center" gap="1">
+                        <ClockIcon width="11" height="11" />
+                        Unpublish
+                      </Flex>
+                    </Badge>
+                  </Tooltip>
+                ) : (
+                  <Badge
+                    size="1"
+                    variant="solid"
+                    color={isSelected ? 'blue' : 'gray'}
+                  >
+                    Unpublished
+                  </Badge>
+                )
+              ) : undefined
+            }
+            dropdownMenuContent={
+              dropdownMenuContent ? (
+                <UnifiedMenu.Content menuType="dropdown">
+                  {dropdownMenuContent}
+                </UnifiedMenu.Content>
+              ) : null
+            }
+            onMenuOpenChange={setIsMenuOpen}
+            onClick={onSelect ? () => onSelect(item) : undefined}
+            data-canvas-page-id={item.id}
+          />
+        </div>
+      </ContextMenu.Trigger>
+      <UnifiedMenu.Content menuType="context" align="start" side="right">
+        {dropdownMenuContent}
+      </UnifiedMenu.Content>
+    </ContextMenu.Root>
+  );
+};
+
 const ContentGroup = ({
   items,
   homepagePath,
@@ -137,6 +285,8 @@ const ContentGroup = ({
   onSelect,
   onDuplicate,
   onSetHomepage,
+  onUnpublish,
+  onPublish,
   onDelete,
 }: {
   items: ContentStub[];
@@ -145,6 +295,8 @@ const ContentGroup = ({
   onSelect?: (value: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
   onSetHomepage?: (page: ContentStub) => void;
+  onUnpublish?: (page: ContentStub) => void;
+  onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
 }) => {
   if (items.length === 0) {
@@ -164,39 +316,22 @@ const ContentGroup = ({
         const isSelected =
           selectedPageId !== undefined &&
           String(selectedPageId) === String(item.id);
-
-        const title = `${item.autoSaveLabel || item.title} ${item.autoSavePath || item.path}`;
         const isHomepage = item.internalPath === homepagePath;
-        const dropdownMenuContent = createPageMenuContent(
-          item,
-          onDuplicate,
-          onSetHomepage,
-          onDelete,
-          homepagePath,
-        );
 
         return (
-          <ContextMenu.Root key={item.id}>
-            <ContextMenu.Trigger>
-              <SidebarNode
-                title={title}
-                variant={isHomepage ? 'homepage' : 'page'}
-                selected={isSelected}
-                dropdownMenuContent={
-                  dropdownMenuContent ? (
-                    <UnifiedMenu.Content menuType="dropdown">
-                      {dropdownMenuContent}
-                    </UnifiedMenu.Content>
-                  ) : null
-                }
-                onClick={onSelect ? () => onSelect(item) : undefined}
-                data-canvas-page-id={item.id}
-              />
-            </ContextMenu.Trigger>
-            <UnifiedMenu.Content menuType="context" align="start" side="right">
-              {dropdownMenuContent}
-            </UnifiedMenu.Content>
-          </ContextMenu.Root>
+          <PageListItem
+            key={`${item.id}-${item.status}`}
+            item={item}
+            isSelected={isSelected}
+            isHomepage={isHomepage}
+            homepagePath={homepagePath}
+            onSelect={onSelect}
+            onDuplicate={onDuplicate}
+            onSetHomepage={onSetHomepage}
+            onUnpublish={onUnpublish}
+            onPublish={onPublish}
+            onDelete={onDelete}
+          />
         );
       })}
     </Flex>
@@ -218,6 +353,8 @@ interface PageListProps {
   onDuplicatePage?: (item: ContentStub) => void;
   onSelectPage?: (item: ContentStub) => void;
   onSetHomepage?: (item: ContentStub) => void;
+  onUnpublishPage?: (item: ContentStub) => void;
+  onPublishPage?: (item: ContentStub) => void;
   onSearch?: (value: string) => void;
 }
 
@@ -233,6 +370,8 @@ const PageList = ({
   onDuplicatePage,
   onSelectPage,
   onSetHomepage,
+  onUnpublishPage,
+  onPublishPage,
   onSearch,
 }: PageListProps) => {
   // Reset search when the component unmounts
@@ -314,6 +453,8 @@ const PageList = ({
               onSelect={onSelectPage}
               onDuplicate={onDuplicatePage}
               onSetHomepage={onSetHomepage}
+              onUnpublish={onUnpublishPage}
+              onPublish={onPublishPage}
               onDelete={onDeletePage}
             />
           )}

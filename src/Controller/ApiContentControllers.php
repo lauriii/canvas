@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -25,14 +26,15 @@ use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\CanvasUriDefinitions;
-use http\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -61,8 +63,10 @@ final class ApiContentControllers {
     private readonly SelectionPluginManagerInterface $selectionManager,
     private readonly RouteProviderInterface $routeProvider,
     private readonly LanguageManagerInterface $languageManager,
+    private readonly AccountProxyInterface $currentUser,
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   public function post(Request $request, string $entity_type): JsonResponse {
@@ -115,6 +119,75 @@ final class ApiContentControllers {
    */
   public function delete(ContentEntityInterface $canvas_page): JsonResponse {
     $canvas_page->delete();
+    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
+  }
+
+  /**
+   * Unpublishes or publishes entity through auto-save.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
+   *   Entity to unpublish or publish.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Response.
+   */
+  public function patch(ContentEntityInterface $canvas_page, Request $request): JsonResponse {
+    $content = $request->getContent();
+    $body = json_decode($content, TRUE);
+
+    \assert($canvas_page instanceof EntityPublishedInterface);
+    $entity_type = $canvas_page->getEntityType();
+    $published_key = $entity_type->getKey('published');
+    \assert(\is_string($published_key), 'Entity type must have a `published` key');
+
+    // Validate that only supported fields are present in the request body.
+    $allowed_fields = [$published_key, 'clientInstanceId'];
+    $unexpected_fields = array_diff(\array_keys($body), $allowed_fields);
+    if (!empty($unexpected_fields)) {
+      return new JsonResponse(
+        data: ['error' => 'Unexpected fields in request body: ' . implode(', ', $unexpected_fields)],
+        status: Response::HTTP_BAD_REQUEST
+      );
+    }
+
+    // Check if this is an unpublish operation or publish operation.
+    if (!isset($body[$published_key])) {
+      return new JsonResponse(
+        data: ['error' => "Missing required field: {$published_key}"],
+        status: Response::HTTP_BAD_REQUEST
+      );
+    }
+
+    // Get the auto-saved version if available, otherwise use the original
+    // entity.
+    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($canvas_page);
+    $entity_to_update = $autoSaveData->isEmpty()
+      ? $canvas_page
+      : $autoSaveData->entity;
+    \assert($entity_to_update instanceof EntityPublishedInterface);
+
+    // Set the entity status based on the request.
+    \assert(\is_bool($body[$published_key]));
+    if ($body[$published_key] === FALSE) {
+      // Prevent unpublishing the homepage.
+      if ($canvas_page->isPublished() && $this->isHomepage($canvas_page)) {
+        return new JsonResponse(
+          data: ['error' => 'Cannot unpublish the homepage. Please set a different page as the homepage first.'],
+          status: Response::HTTP_FORBIDDEN
+        );
+      }
+      $entity_to_update->setUnpublished();
+    }
+    else {
+      $entity_to_update->setPublished();
+    }
+
+    // Save through auto-save instead of directly saving.
+    $clientInstanceId = $body['clientInstanceId'] ?? NULL;
+    $this->autoSaveManager->saveEntity($entity_to_update, $clientInstanceId);
+
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
@@ -199,9 +272,21 @@ final class ApiContentControllers {
     $generated_url = $content_entity->toUrl()->toString(TRUE);
 
     $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($content_entity);
-    // Expose available entity operations.
-    $linkCollection = $this->getEntityOperations($content_entity);
     $autoSaveEntity = $autoSaveData->isEmpty() ? NULL : $autoSaveData->entity;
+
+    $publishableAutoSaveEntity = ($autoSaveEntity instanceof EntityPublishedInterface)
+      ? $autoSaveEntity
+      : NULL;
+    // Expose available entity operations. Pass both original and auto-save
+    // entities to allow reverting unpublish/publish actions when auto-save has
+    // opposite status.
+    $linkCollection = $this->getEntityOperations($content_entity, $publishableAutoSaveEntity);
+
+    // Determine the effective published status: use auto-save status if
+    // available, otherwise use original.
+    $effective_status = ($autoSaveEntity instanceof EntityPublishedInterface)
+      ? $autoSaveEntity->isPublished()
+      : $content_entity->isPublished();
 
     // @todo Dynamically use the entity 'path' key to determine which field is
     //   the path in https://drupal.org/i/3503446.
@@ -210,14 +295,29 @@ final class ApiContentControllers {
       $autoSavePath = $autoSaveEntity->get('path')->first()?->getValue()['alias'] ?? \sprintf('/%s', \ltrim($autoSaveEntity->toUrl()->getInternalPath(), '/'));
     }
 
+    // Determine if there's an unsaved status change.
+    // This happens when auto-save exists with a different published status
+    // than the original entity.
+    $has_unsaved_status_change = FALSE;
+    if ($autoSaveEntity instanceof EntityPublishedInterface) {
+      $has_unsaved_status_change = $autoSaveEntity->isPublished() !== $content_entity->isPublished();
+    }
+
     $url_cacheability->addCacheableDependency($generated_url)
       ->addCacheableDependency($linkCollection)
       ->addCacheableDependency($autoSaveData);
 
+    \assert($content_entity instanceof ContentEntityInterface);
     return [
       'id' => (int) $content_entity->id(),
       'title' => $content_entity->label(),
-      'status' => $content_entity->isPublished(),
+      // Return the effective status (autosaved if exists, otherwise original).
+      'status' => $effective_status,
+      // Indicates if this is a new (draft) page that has never been published.
+      'isNew' => AutoSaveManager::entityIsConsideredNew($content_entity),
+      // Indicates if there's an unsaved status change
+      // (unpublish/publish in auto-save).
+      'hasUnsavedStatusChange' => $has_unsaved_status_change,
       // The processed path, which has gone through outbound path processors. It
       // may not be the same as the entity's canonical link template.
       'path' => $generated_url->getGeneratedUrl(),
@@ -380,8 +480,24 @@ final class ApiContentControllers {
     return new TranslatableMarkup('Untitled @singular_entity_type_label', ['@singular_entity_type_label' => $entity_type->getSingularLabel()]);
   }
 
-  public function getEntityOperations(EntityPublishedInterface $content_entity): CanvasResourceLinkCollection {
+  public function getEntityOperations(EntityPublishedInterface $content_entity, ?EntityPublishedInterface $autoSaveEntity = NULL): CanvasResourceLinkCollection {
     $links = new CanvasResourceLinkCollection([]);
+
+    // Add auto-save entity as cache dependency if it exists, so cache
+    // invalidates when auto-save changes.
+    if ($autoSaveEntity) {
+      $links->addCacheableDependency($autoSaveEntity);
+    }
+
+    // Helper to create forbidden access result with auto-save cache dependency.
+    $createForbiddenAccess = function (string $reason) use ($autoSaveEntity): AccessResult {
+      $access = AccessResult::forbidden($reason);
+      if ($autoSaveEntity) {
+        $access->addCacheableDependency($autoSaveEntity);
+      }
+      return $access;
+    };
+
     // Link relation type => route name.
     $possible_operations = [
       CanvasUriDefinitions::LINK_REL_DELETE => ['route_name' => 'canvas.api.content.delete', 'op' => 'delete'],
@@ -392,13 +508,81 @@ final class ApiContentControllers {
       // Conceptually, this is an operation on the content entity, so expose it
       // as a non-standard link operation.
       CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => ['route_name' => 'canvas.boot.entity', 'op' => 'update'],
-      CanvasUriDefinitions::LINK_REL_DUPLICATE => ['route_name' => 'canvas.api.content.create', 'op' => 'create'],
+      CanvasUriDefinitions::LINK_REL_DUPLICATE => [
+        'route_name' => 'canvas.api.content.create',
+        'op' => 'create',
+      ],
+      CanvasUriDefinitions::LINK_REL_UNPUBLISH => [
+        'route_name' => 'canvas.api.content.patch',
+        'op' => 'update',
+      ],
+      CanvasUriDefinitions::LINK_REL_PUBLISH => [
+        'route_name' => 'canvas.api.content.patch',
+        'op' => 'update',
+      ],
     ];
+    // Determine which status-based action (unpublish/publish) should be shown.
+    // Only one should be shown at a time, based on the effective status
+    // and revert capability.
+    $original_is_published = $content_entity->isPublished();
+    $auto_save_is_published = $autoSaveEntity?->isPublished() ?? NULL;
+
+    // Determine effective status: use auto-save if it exists,
+    // otherwise use original.
+    $effective_is_published = $auto_save_is_published ?? $original_is_published;
+
+    // Check if this is a draft (never been published).
+    \assert($content_entity instanceof ContentEntityInterface);
+    $is_draft = AutoSaveManager::entityIsConsideredNew($content_entity);
+
+    // Determine which actions to show based on state.
+    // Drafts use the main Publish button, not unpublish/publish actions.
+    if ($is_draft) {
+      $should_show_unpublish = FALSE;
+      $should_show_publish = FALSE;
+    }
+    // Auto-save has opposite status: show revert action.
+    elseif ($auto_save_is_published !== NULL && $auto_save_is_published !== $original_is_published) {
+      $should_show_unpublish = $auto_save_is_published;
+      $should_show_publish = !$auto_save_is_published;
+    }
+    // No auto-save or auto-save matches original: show normal action.
+    else {
+      $should_show_unpublish = $effective_is_published;
+      $should_show_publish = !$effective_is_published;
+    }
+
+    // Don't show unpublish link if this page is the homepage (current or
+    // staged).
+    $should_show_unpublish = $should_show_unpublish && !$this->isHomepage($content_entity);
+
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
-      $access = $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
-      if ($entity_operation === 'create') {
-        $access = $this->entityTypeManager->getAccessControlHandler($content_entity->getEntityTypeId())
-          ->createAccess(entity_bundle: $content_entity->bundle(), return_as_object: TRUE);
+      // Special handling for set as homepage operation: don't show for
+      // unpublished pages (but allow for draft pages).
+      if ($link_rel === CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE) {
+        $access = (!$effective_is_published && !$is_draft)
+          ? $createForbiddenAccess('Set as homepage action not available for unpublished pages.')
+          : $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
+      }
+      // Special handling for unpublish operation: only show if determined
+      // above.
+      elseif ($link_rel === CanvasUriDefinitions::LINK_REL_UNPUBLISH) {
+        $access = !$should_show_unpublish
+          ? $createForbiddenAccess('Unpublish action not available for this page state.')
+          : $content_entity->access(operation: 'update', account: $this->currentUser, return_as_object: TRUE);
+      }
+      // Special handling for publish operation: only show if determined above.
+      elseif ($link_rel === CanvasUriDefinitions::LINK_REL_PUBLISH) {
+        $access = !$should_show_publish
+          ? $createForbiddenAccess('Publish action not available for this page state.')
+          : $content_entity->access(operation: 'update', account: $this->currentUser, return_as_object: TRUE);
+      }
+      else {
+        $access = $content_entity->access(operation: $entity_operation, return_as_object: TRUE);
+        if ($entity_operation === 'create') {
+          $access = $this->entityTypeManager->getAccessControlHandler($content_entity->getEntityTypeId())
+            ->createAccess(entity_bundle: $content_entity->bundle(), return_as_object: TRUE);
+        }
       }
       \assert($access instanceof AccessResult);
       if ($access->isAllowed()) {
@@ -415,6 +599,56 @@ final class ApiContentControllers {
   }
 
   /**
+   * Checks if the given entity's path is set as the homepage.
+   *
+   * Checks both the current homepage configuration and any staged homepage
+   * configuration changes.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity to check.
+   *
+   * @return bool
+   *   TRUE if the entity's path is the homepage (current or staged), FALSE
+   *   otherwise.
+   */
+  private function isHomepage(FieldableEntityInterface $entity): bool {
+    try {
+      $url = $entity->toUrl('canonical');
+      $path_alias = $url->toString();
+      $internal_path = '/' . $url->getInternalPath();
+      $paths = array_unique([$path_alias, $internal_path]);
+    }
+    catch (\Exception) {
+      return FALSE;
+    }
+
+    // Check current homepage configuration.
+    $system_config = $this->configFactory->get('system.site');
+    $current_homepage = $system_config->get('page.front');
+    if (in_array($current_homepage, $paths, TRUE)) {
+      return TRUE;
+    }
+
+    // Check staged homepage configuration.
+    $staged_homepage_config = $this->entityTypeManager
+      ->getStorage('staged_config_update')
+      ->load('canvas_set_homepage');
+    if ($staged_homepage_config instanceof StagedConfigUpdate) {
+      $actions = $staged_homepage_config->getActions();
+      foreach ($actions as $action) {
+        if (isset($action['input']['page.front'])) {
+          $staged_homepage = $action['input']['page.front'];
+          if (in_array($staged_homepage, $paths, TRUE)) {
+            return TRUE;
+          }
+        }
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Gets the url for an operation route given the content entity.
    *
    * Ideally, we would have standardized routes, and we wouldn't need a helper,
@@ -428,7 +662,7 @@ final class ApiContentControllers {
       'entity_type' => $content_entity->getEntityTypeId(),
       'entity' => $content_entity->id(),
       $content_entity->getEntityTypeId() => $content_entity->id(),
-      default => throw new InvalidArgumentException('We cannot map this route parameter'),
+      default => throw new \InvalidArgumentException('We cannot map this route parameter'),
     };
     $route = $this->routeProvider->getRouteByName($route_name);
     $route_parameters = $route->compile()->getVariables();

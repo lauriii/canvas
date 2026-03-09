@@ -66,9 +66,9 @@ export class Drupal {
     );
   }
 
-  async createCanvasPage(title: string, alias: string) {
+  async createCanvasPage(title: string, alias: string, status: boolean = true) {
     await this.drush(
-      `php-eval "Drupal\\canvas\\Entity\\Page::create(['title' => '${title}', 'type' => 'canvas_page', 'path' => ['alias' => '${alias}', 'langcode' => 'en']])->save();"`,
+      `php-eval "Drupal\\canvas\\Entity\\Page::create(['title' => '${title}', 'type' => 'canvas_page', 'status' => ${status ? 'TRUE' : 'FALSE'}, 'path' => ['alias' => '${alias}', 'langcode' => 'en']])->save();"`,
     );
   }
 

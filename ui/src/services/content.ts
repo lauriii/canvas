@@ -1,7 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
-import { baseQuery } from '@/services/baseQuery';
+import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { pendingChangesApi } from '@/services/pendingChangesApi';
 
 import type { StagedConfig } from '@/types/Config';
 import type { ContentStub } from '@/types/Content';
@@ -25,6 +26,12 @@ export interface CreateContentRequest {
   entity_type: string;
 }
 
+export interface UpdateContentRequest {
+  entityType: string;
+  entityId: string;
+  status?: boolean;
+}
+
 export interface ContentListParams {
   entityType: string;
   search?: string;
@@ -32,8 +39,8 @@ export interface ContentListParams {
 
 export const contentApi = createApi({
   reducerPath: 'contentApi',
-  baseQuery,
-  tagTypes: ['Content', 'StagedConfig'],
+  baseQuery: baseQueryWithAutoSaves,
+  tagTypes: ['Content', 'StagedConfig', 'PendingChanges'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentStub[], ContentListParams>({
       query: ({ entityType, search }) => {
@@ -70,6 +77,88 @@ export const contentApi = createApi({
       }),
       invalidatesTags: [{ type: 'Content', id: 'LIST' }],
     }),
+    updateContent: builder.mutation<void, UpdateContentRequest>({
+      query: ({ entityType, entityId, status }) => ({
+        url: `/canvas/api/v0/content/${entityType}/${entityId}`,
+        method: 'PATCH',
+        body: status !== undefined ? { status } : {},
+      }),
+      invalidatesTags: [
+        { type: 'Content', id: 'LIST' },
+        { type: 'PendingChanges', id: 'LIST' },
+      ],
+      async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
+        const { entityType, entityId, status } = arg;
+        if (status === undefined) {
+          return;
+        }
+
+        const unpublishLinkRel = 'disable';
+        const publishLinkRel = 'enable';
+
+        // Update function to apply to matching queries
+        const updatePageData = (draft: ContentStub[]) => {
+          const page = draft.find(
+            (item) => String(item.id) === String(entityId),
+          );
+          if (!page) {
+            return;
+          }
+
+          page.status = status;
+          page.hasUnsavedStatusChange = true;
+
+          // Swap links: both unpublish and publish use the same PATCH endpoint
+          const fromLink = status === false ? unpublishLinkRel : publishLinkRel;
+          const toLink = status === false ? publishLinkRel : unpublishLinkRel;
+          const existingUrl = page.links[fromLink];
+          delete page.links[fromLink];
+          if (existingUrl) {
+            page.links[toLink] = existingUrl;
+          }
+        };
+
+        // Optimistically update all cached queries for this entity type
+        const patchResults: Array<{ undo: () => void }> = [];
+        const state = getState() as any;
+        const queryCache = state[contentApi.reducerPath]?.queries;
+
+        if (queryCache) {
+          Object.keys(queryCache).forEach((queryKey) => {
+            const query = queryCache[queryKey];
+            if (
+              query?.endpointName === 'getContentList' &&
+              query?.originalArgs?.entityType === entityType
+            ) {
+              try {
+                const patchResult = dispatch(
+                  contentApi.util.updateQueryData(
+                    'getContentList',
+                    query.originalArgs,
+                    updatePageData,
+                  ),
+                );
+                patchResults.push(patchResult);
+              } catch {
+                // Query might not exist in cache, which is fine
+              }
+            }
+          });
+        }
+
+        try {
+          await queryFulfilled;
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+        } catch {
+          // Revert optimistic updates on error
+          patchResults.forEach((result) => result.undo());
+        }
+      },
+    }),
     getStagedConfig: builder.query<StagedConfig, string>({
       query: (entityId) => ({
         url: `/canvas/api/v0/config/auto-save/staged_config_update/${entityId}`,
@@ -99,6 +188,7 @@ export const {
   useGetContentListQuery,
   useDeleteContentMutation,
   useCreateContentMutation,
+  useUpdateContentMutation,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
 } = contentApi;

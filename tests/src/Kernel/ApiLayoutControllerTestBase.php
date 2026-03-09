@@ -67,7 +67,7 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
    */
   protected function filterLayoutForPost(string $content): string {
     $json = \json_decode($content, TRUE);
-    unset($json['isNew'], $json['isPublished'], $json['html']);
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange']);
     $json += ['clientInstanceId' => $this->randomString(100)];
     return \json_encode($json, JSON_THROW_ON_ERROR);
   }

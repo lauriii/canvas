@@ -1075,7 +1075,7 @@ paths:
         '204':
           description: Deleted individual Personalization Segment
   '/canvas/api/v0/content/canvas_page/{entityId}':
-    description: Endpoint for deleting content entities.
+    description: Endpoint for managing content entities.
     delete:
       summary: Deletes a content entity.
       parameters:
@@ -1083,6 +1083,66 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
+    patch:
+      summary: Updates a content entity.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        description: Updates a content entity.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: boolean
+                  description: The published status of the entity
+                clientInstanceId:
+                  type: string
+                  description: Client instance ID for concurrency control
+            examples:
+              publishPage:
+                summary: Publish a page
+                value:
+                  status: true
+                  clientInstanceId: "client-123"
+              unpublishPage:
+                summary: Unpublish a page
+                value:
+                  status: false
+                  clientInstanceId: "client-456"
+      responses:
+        '204':
+          description: Content updated successfully
+        '400':
+          description: Bad request - unexpected fields or missing required field
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              examples:
+                unexpectedFields:
+                  value:
+                    error: "Unexpected fields in request body: title, body"
+                missingStatus:
+                  value:
+                    error: "Missing required field: status"
+        '403':
+          description: Forbidden - cannot unpublish the homepage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              examples:
+                cannotUnpublishHomepage:
+                  value:
+                    error: "Cannot unpublish the homepage. Please set a different page as the homepage first."
   '/canvas/api/v0/content/{entity_type}':
     get:
       summary: Provides api for page listing.
@@ -1408,8 +1468,8 @@ paths:
                     $ref: '#/components/schemas/Model'
                   isNew:
                     type: boolean
-                    # @see \Drupal\canvas\Controller\ApiLayoutController::contentEntityIsConsideredNew()
-                    # @see https://www.drupal.org/project/canvas/issues/3505118#comment-15982801
+                    # @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
+                    # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is considered new.
         '401':
           description: Unauthorized (unauthenticated) response.
@@ -1627,13 +1687,13 @@ paths:
                     description: Entity field values that the user has edit access to.
                   isNew:
                     type: boolean
-                    # @see \Drupal\canvas\Controller\ApiLayoutController::contentEntityIsConsideredNew()
-                    # @see https://www.drupal.org/project/canvas/issues/3505118#comment-15982801
+                    # @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
+                    # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is considered new.
                   isPublished:
                     type: boolean
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
-                    # @see https://www.drupal.org/project/canvas/issues/3505118#comment-15982801
+                    # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
         '401':
           description: Unauthorized (unauthenticated) response.

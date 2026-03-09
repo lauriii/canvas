@@ -29,6 +29,7 @@ type LayoutApiResponse = RootLayoutModel & {
   entity_form_fields: Record<string, any>;
   isNew: boolean;
   isPublished: boolean;
+  hasUnsavedStatusChange?: boolean;
   html: string;
   autoSaves: AutoSavesHash;
 };

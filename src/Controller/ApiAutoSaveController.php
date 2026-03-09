@@ -267,7 +267,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
         \assert($entity_definition instanceof ContentEntityTypeInterface);
         \assert(!\is_null($entity->id()));
         $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
-        \assert($original_entity instanceof FieldableEntityInterface);
+        \assert($original_entity instanceof ContentEntityInterface);
         foreach ($fields as $field_name => $field) {
           $field_access = $entity->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
           $original_field = $original_entity->get($field_name);
@@ -294,15 +294,19 @@ final class ApiAutoSaveController extends ApiControllerBase {
             );
           }
         }
-        $use_existing_revision_id = AutoSaveManager::entityIsConsideredNew($entity);
+        $is_draft = AutoSaveManager::entityIsConsideredNew($original_entity);
 
-        if ($entity instanceof EntityPublishedInterface) {
+        // For draft entities automatically publish them when publishing
+        // changes.
+        // For non-draft unpublished entities, preserve the published status
+        // from the autosaved entity to allow unpublishing to work correctly.
+        if ($is_draft && $entity instanceof EntityPublishedInterface) {
           $entity->setPublished();
         }
         // If the entity is new, the autosaved data is considered to be part
         // of the first revision. Therefore, do not create a new revision
         // for new entities.
-        if ($use_existing_revision_id) {
+        if ($is_draft) {
           $entity->setNewRevision(FALSE);
         }
         else {
@@ -312,11 +316,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
           \assert(\is_string($revision_id_key));
           $entity->set($revision_id_key, NULL);
         }
+        $entity->isDefaultRevision(TRUE);
         // Always set the revision user to the current user. Even though we
         // might not be creating a new revision, this would only be in the case
         // where this entity should be considered new, which means it has never
         // published before in Drupal Canvas.
-        // @see \Drupal\canvas\AutoSave\AutoSaveManager::contentEntityIsConsideredNew()
+        // @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
         if ($revision_user = $entity_definition->getRevisionMetadataKey('revision_user')) {
           \assert(\is_string($revision_user));
           $entity->set($revision_user, $this->currentUser->id());

@@ -256,6 +256,20 @@ canvas.api.content.list:
   methods: [GET]
   options:
     _format: 'json'
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+canvas.api.content.patch:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patch'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+  methods: ['PATCH']
 
 canvas.api.extension.list:
   path: '/canvas/api/v0/extensions'

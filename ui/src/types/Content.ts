@@ -4,6 +4,8 @@ export interface ContentStub {
   internalPath: string;
   id: number | string;
   status: boolean;
+  isNew?: boolean;
+  hasUnsavedStatusChange?: boolean;
   autoSaveLabel: string | null;
   autoSavePath: string;
   links: {
@@ -11,5 +13,7 @@ export interface ContentStub {
     'edit-form'?: string;
     'https://drupal.org/project/canvas#link-rel-duplicate'?: string;
     'https://drupal.org/project/canvas#link-rel-set-as-homepage'?: string;
+    disable?: string;
+    enable?: string;
   };
 }

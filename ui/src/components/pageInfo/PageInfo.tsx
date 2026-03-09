@@ -42,12 +42,14 @@ import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
   useGetContentListQuery,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
+  useUpdateContentMutation,
 } from '@/services/content';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { getCanvasSettings } from '@/utils/drupal-globals';
@@ -169,6 +171,8 @@ const PageInfo = () => {
 
   const [deleteContent, { error: deleteContentError }] =
     useDeleteContentMutation();
+  const [updateContent, { error: updateContentError }] =
+    useUpdateContentMutation();
   const [setHomepage, { error: setHomepageError }] =
     useSetStagedConfigMutation();
 
@@ -195,6 +199,34 @@ const PageInfo = () => {
       entity_id: String(item.id),
     });
     setPopoverOpen(false);
+  }
+
+  async function handleUnpublishPage(item: ContentStub) {
+    const pageToUnpublishId = String(item.id);
+    await updateContent({
+      entityType: 'canvas_page',
+      entityId: pageToUnpublishId,
+      status: false,
+    });
+
+    // If the current page is being unpublished, invalidate the layout cache to refetch with updated hasUnsavedStatusChange
+    if (entityType === 'canvas_page' && entityId === pageToUnpublishId) {
+      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    }
+  }
+
+  async function handlePublishPage(item: ContentStub) {
+    const pageToPublishId = String(item.id);
+    await updateContent({
+      entityType: 'canvas_page',
+      entityId: pageToPublishId,
+      status: true,
+    });
+
+    // If the current page is being published, invalidate the layout cache to refetch with updated hasUnsavedStatusChange
+    if (entityType === 'canvas_page' && entityId === pageToPublishId) {
+      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    }
   }
 
   function handleSetHomepage(item: ContentStub) {
@@ -245,6 +277,12 @@ const PageInfo = () => {
       showBoundary(setHomepageError);
     }
   }, [setHomepageError, showBoundary]);
+
+  useEffect(() => {
+    if (updateContentError) {
+      showBoundary(updateContentError);
+    }
+  }, [updateContentError, showBoundary]);
 
   return (
     <Flex gap="2" align="center">
@@ -326,6 +364,8 @@ const PageInfo = () => {
                   onSelect={() => setPopoverOpen(false)}
                   onDuplicate={handleDuplication}
                   onSetHomepage={handleSetHomepage}
+                  onUnpublish={handleUnpublishPage}
+                  onPublish={handlePublishPage}
                   onDelete={handleDeletePage}
                 />
               )}

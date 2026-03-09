@@ -65,8 +65,9 @@ test.describe('Canvas UI Permissions', () => {
     });
     await expect(contextMenu).toBeVisible();
 
-    // Ensure "Duplicate page" and "Delete page" options appear in the context menu
+    // Ensure "Duplicate page", "Unpublish page", and "Delete page" options appear in the context menu
     await expect(contextMenu.getByText('Duplicate page')).toBeVisible();
+    await expect(contextMenu.getByText('Unpublish page')).toBeVisible();
     await expect(contextMenu.getByText('Delete page')).toBeVisible();
 
     await page.locator('body').click(); // Dismiss the context menu
