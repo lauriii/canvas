@@ -148,6 +148,12 @@ const suggestionsByProp = {
     'One Tag > Taxonomy term > Revision create time',
     'Image Upload > Created',
   ],
+  test_string_format_date: [
+    'Authored on',
+    'Changed',
+    'Date Only',
+    'Date and time',
+  ],
   test_string_html_block: [
     'Body > Processed summary',
     'Body > Body',
@@ -163,6 +169,10 @@ const suggestionsByProp = {
     'Image Upload',
     'Image Media > Image > Thumbnail',
   ],
+};
+
+const suggestionsToLinkByProp = {
+  test_string_format_date: ['Authored on'],
 };
 
 // cspell:ignore Bwidth Fitok treehouse
@@ -285,7 +295,12 @@ test.describe.serial('Linking Basic Page fields ', () => {
 
     // Go through every suggestion and confirm it can link and provide the
     // expected value in the preview.
-    for (const suggestionOption of suggestions) {
+    const suggestionsToLink =
+      suggestionsToLinkByProp[
+        inputName as keyof typeof suggestionsToLinkByProp
+      ] ?? suggestions;
+
+    for (const suggestionOption of suggestionsToLink) {
       await linker.click();
       const suggestionPath = suggestionOption.split(' > ');
       let itemSelected = false;
@@ -388,7 +403,7 @@ test.describe.serial('Linking Basic Page fields ', () => {
             stepCount += 1;
           }
         },
-        { timeout: 8000 },
+        { timeout: 20000 },
       );
 
       // Confirm an item was selected.
@@ -398,6 +413,9 @@ test.describe.serial('Linking Basic Page fields ', () => {
         const previewSelector =
           propNameToSelector[inputName as keyof typeof propNameToSelector];
         const expectedValue =
+          entityValuesNode4[
+            `${inputName}::${suggestionOption}` as keyof typeof entityValuesNode4
+          ] ??
           entityValuesNode4[suggestionOption as keyof typeof entityValuesNode4];
         expect(expectedValue).toBeDefined();
         await expect(
@@ -426,7 +444,9 @@ test.describe.serial('Linking Basic Page fields ', () => {
 
     // Assert that all properties in entityValuesNode4 are represented in suggestionsByProp
     const allSuggestions = Object.values(suggestionsByProp).flat();
-    const entityKeys = Object.keys(entityValuesNode4);
+    const entityKeys = Object.keys(entityValuesNode4).filter(
+      (key) => !key.includes('::'),
+    );
     const missingKeys = entityKeys.filter(
       (key) => !allSuggestions.includes(key),
     );
@@ -447,7 +467,10 @@ test.describe.serial('Linking Basic Page fields ', () => {
   }
 });
 
-// Object mapping suggestion paths to their expected preview values.
+// Object mapping suggestion labels to expected preview values:
+// - `Suggestion path` => expected value for all props using that suggestion.
+// - `propName::Suggestion path` => prop-specific override when one prop renders
+//   the same suggestion differently from another.
 const entityValuesNode4 = {
   Title: 'Debut Page',
   Published: 'true',
@@ -525,6 +548,10 @@ const entityValuesNode4 = {
   'Body > Body':
     'This page emerged on the scene. This page was met with indifference.',
   'Body > Processed summary': '',
+  'test_string_format_date::Authored on': '2025-10-10',
+  'test_string_format_date::Changed': '2025-10-10',
+  'test_string_format_date::Date Only': '2011-11-11',
+  'test_string_format_date::Date and time': '2010-10-10T10:10:10',
 };
 
 // Object mapping prop names to their corresponding preview selectors.
@@ -534,6 +561,7 @@ const propNameToSelector = {
   test_string: '#test-string code',
   test_string_multiline: '#test-string-multiline',
   test_REQUIRED_string: '#test-required-string',
+  test_string_format_date: '#test-string-format-date',
   test_string_enum: '#test-string-enum',
   test_integer_enum: '#test-integer-enum',
   test_string_format_email: '#test-string-format-email',

@@ -845,9 +845,10 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       $element['#label_attributes']['prop_link_data'] = $propLinkData;
     }
 
-    // Make the prop link data available to fieldsets.
+    // Make the prop link data available to wrappers that render their own
+    // label UI instead of the standard form element label template.
     $wrappers = $element['#theme_wrappers'] ?? [];
-    if (!empty($propLinkData) && in_array('fieldset', $wrappers, TRUE)) {
+    if (!empty($propLinkData) && (in_array('fieldset', $wrappers, TRUE) || in_array('datetime_wrapper', $wrappers, TRUE))) {
       $element['#prop_link_data'] = $propLinkData;
     }
 
