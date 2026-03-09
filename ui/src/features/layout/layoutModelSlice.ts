@@ -2,7 +2,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
-import { getPropsValues } from '@/components/form/formUtil';
 import { syncPropSourcesToResolvedValues } from '@/components/form/InputBehaviorsComponentPropsForm';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
@@ -25,6 +24,7 @@ import {
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import type { AppThunk, RootState } from '@/app/store';
+import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type {
   CanvasComponent,
   ComponentsList,
@@ -723,14 +723,13 @@ export const updateExistingComponentValues =
     }
   };
 
-// @todo this is very similar to updateExistingComponentValues, but it
-// eliminates the step of temporarily clearing the selection while updates
-// occur.
-// Ideally, updateExistingComponentValues could use this approach as well, but
-// it does not fully work in non prop-linking scenarios.
-// @see https://drupal.org/i/3549318
-export const _updateExistingComponentValuesForLinking =
-  (payload: any): AppThunk =>
+export const _linkPropToEntityValue =
+  (payload: {
+    propName: string;
+    componentToUpdateId: string;
+    newSource: PropSource;
+    inputUIData: InputUIData;
+  }): AppThunk =>
   async (dispatch, getState) => {
     const state = getState();
     const components: ComponentsList | undefined = state?.componentAndLayoutApi
@@ -742,76 +741,50 @@ export const _updateExistingComponentValuesForLinking =
       return;
     }
 
-    const { values, componentToUpdateId, sources = {} } = payload;
-
-    const layout = selectLayout(state);
+    const { propName, componentToUpdateId, newSource, inputUIData } = payload;
+    const { selectedComponentType, version } = inputUIData;
     const model = selectModel(state)[componentToUpdateId];
-    const node = findComponentByUuid(layout, componentToUpdateId);
-    const [selectedComponentType, version] = (
-      node ? (node.type as string) : 'noop'
-    ).split('@');
     const componentMetadata = components[selectedComponentType];
     // Exit early if attempting to update a prop that does not exist.
-    Object.keys(values).forEach((key) => {
-      if (!(componentMetadata as PropSourceComponent)?.propSources?.[key]) {
-        console.warn(
-          `Component ${selectedComponentType} does not have a prop named ${key}. Update cancelled.`,
-        );
-        return;
-      }
-    });
-
-    const formValues = state.formState['component_instance_form'].values;
-    const { propsValues } = getPropsValues(
-      formValues,
-      {
-        selectedComponent: componentToUpdateId,
-        selectedComponentType,
-        model: { [componentToUpdateId]: model },
-        components,
-      } as InputUIData,
-      window._canvasTransforms[selectedComponentType],
-    );
-
-    // Resolved will be updated in all cases.
-    const resolved = {
-      ...model.resolved,
-      ...propsValues,
-      ...values,
-    };
-
-    const type = selectEditorFrameContext(state);
-    const valuePayload = {
-      type,
-      componentInstanceUuid: componentToUpdateId,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        ...model,
-        resolved,
-      },
-    };
-
-    // If the model includes source data, the model value needs to be processed
-    // to account for that.
-    if (isEvaluatedComponentModel(model) && componentMetadata) {
-      const updatedSource = {
-        ...model.source,
-        ...sources,
-      };
-      valuePayload.model = {
-        source: syncPropSourcesToResolvedValues(
-          updatedSource,
-          componentMetadata,
-          resolved,
-        ),
-        resolved,
-      };
+    if (
+      !(componentMetadata as PropSourceComponent)?.propSources?.[propName] ||
+      !model
+    ) {
+      console.warn(
+        `Component ${selectedComponentType} does not have a prop named ${propName}. Update cancelled.`,
+      );
+      return;
     }
-    await dispatch(
-      previewApi.endpoints.updateComponent.initiate(valuePayload, {
-        fixedCacheKey: componentToUpdateId,
-      }),
-    );
+
+    // Only components with an evaluated model have a source to be updated.
+    if (isEvaluatedComponentModel(model) && componentMetadata) {
+      const source = {
+        ...model.source,
+        [propName]: newSource,
+      };
+      const resolved = {
+        ...model.resolved,
+      };
+      // Do not provide a resolved value with the newly linked prop.
+      delete resolved[propName];
+
+      const valuePayload = {
+        type: 'template' as EditorFrameContext,
+        componentInstanceUuid: componentToUpdateId,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          ...model,
+          resolved,
+          source,
+        },
+      };
+
+      await dispatch(
+        previewApi.endpoints.updateComponent.initiate(valuePayload, {
+          fixedCacheKey: componentToUpdateId,
+        }),
+      );
+    }
   };
 
 export const addNewPatternToLayout =

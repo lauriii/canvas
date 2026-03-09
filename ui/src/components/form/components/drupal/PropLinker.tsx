@@ -3,13 +3,12 @@ import clsx from 'clsx';
 import { CheckIcon, Link1Icon, LinkNone1Icon } from '@radix-ui/react-icons';
 import { DropdownMenu, Separator } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch } from '@/app/hooks';
 import {
-  _updateExistingComponentValuesForLinking,
+  _linkPropToEntityValue,
   isEvaluatedComponentModel,
-  selectModel,
 } from '@/features/layout/layoutModelSlice';
-import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
+import useInputUIData from '@/hooks/useInputUIData';
 
 import type {
   BasePropSource,
@@ -48,23 +47,22 @@ export interface PropLinkerProps {
  *     prop resolving to the linked field's value.
  */
 const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
-  const model = useAppSelector(selectModel);
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
+  const inputUIData = useInputUIData();
+  const { model, selectedComponent: selectedComponentId } = inputUIData;
   const dispatch = useAppDispatch();
-  const selectedComponentId: string = selectedComponent || 'noop';
-  const selectedModel: ComponentModel | EvaluatedComponentModel =
-    model[selectedComponentId] || {};
+  const selectedModel: ComponentModel | EvaluatedComponentModel | boolean =
+    model?.[selectedComponentId] || false;
+  if (!selectedModel) {
+    return null;
+  }
   const [linkerOpen, setLinkerOpen] = useState(false);
   const handleFieldClick = (value: LinkSuggestion) => {
     dispatch(
-      _updateExistingComponentValuesForLinking({
+      _linkPropToEntityValue({
         componentToUpdateId: selectedComponentId,
-        values: {
-          [propName]: 'noop',
-        },
-        sources: {
-          [propName]: value.source,
-        },
+        propName,
+        newSource: value.source,
+        inputUIData,
       }),
     );
   };
