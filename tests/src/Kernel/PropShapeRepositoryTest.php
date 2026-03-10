@@ -925,7 +925,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // If the module is already installed during ::setUp(), then this test is
     // still worth running, but only needs to test the "not resolving" part.
     $module_to_install = 'canvas_test_storable_prop_shape_alter';
-    $module_is_already_installed = in_array($module_to_install, static::$modules, TRUE);
+    $module_is_already_installed = \in_array($module_to_install, static::$modules, TRUE);
 
     \Drupal::service(ComponentSourceManager::class)->generateComponents();
 

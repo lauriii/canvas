@@ -167,7 +167,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     if ($property_definition['type'] !== 'string') {
       return FALSE;
     }
-    return in_array($property_definition['format'] ?? '', [
+    return \in_array($property_definition['format'] ?? '', [
       JsonSchemaStringFormat::Uri->value,
       JsonSchemaStringFormat::UriReference->value,
       JsonSchemaStringFormat::Iri->value,

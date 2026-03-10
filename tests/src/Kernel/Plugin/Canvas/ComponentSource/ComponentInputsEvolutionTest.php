@@ -608,7 +608,7 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
       default => "88c370526c14d185",
     };
     foreach ($raw_component_tree as $key => $component_instance) {
-      if (in_array($component_instance['uuid'], $pattern_component_instances_to_update, TRUE)) {
+      if (\in_array($component_instance['uuid'], $pattern_component_instances_to_update, TRUE)) {
         $raw_component_tree[$key]['inputs'] = self::blockUpdatePathSampleForCoreIssue3521221($component_instance['inputs']);
         $raw_component_tree[$key]['component_version'] = $active_version;
       }

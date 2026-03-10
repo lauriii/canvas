@@ -507,7 +507,7 @@ class CanvasAiPageBuilderHelper {
         ];
 
         // Mark required props.
-        if (isset($sdc_definition['props']['required']) && in_array($prop_name, $sdc_definition['props']['required'], TRUE)) {
+        if (isset($sdc_definition['props']['required']) && \in_array($prop_name, $sdc_definition['props']['required'], TRUE)) {
           $output[$source_id]['components'][$component_id]['props'][$prop_name]['required'] = TRUE;
         }
         if (isset($prop_details['enum'])) {

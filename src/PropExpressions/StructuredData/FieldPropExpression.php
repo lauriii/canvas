@@ -158,7 +158,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     \assert(\is_string($this->propName));
     $field_definitions = $this->entityType->getPropertyDefinitions();
     if (!isset($field_definitions[$this->fieldName])) {
-      throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist.", $this->fieldName, (string) $this, __CLASS__));
+      throw new \LogicException(\sprintf("%s field referenced in %s %s does not exist. %d fields available: `%s`.", $this->fieldName, (string) $this, __CLASS__, count($field_definitions), implode('`, `', \array_keys($field_definitions))));
     }
     // Determine the bundle to use during dependency calculation:
     $bundle = match (TRUE) {
@@ -285,7 +285,7 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
       throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
     }
     $expected_bundles = $this->entityType->getBundles();
-    if ($expected_bundles !== NULL && !in_array($entity->bundle(), $expected_bundles, TRUE)) {
+    if ($expected_bundles !== NULL && !\in_array($entity->bundle(), $expected_bundles, TRUE)) {
       throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
     }
     // @todo validate that the field exists?

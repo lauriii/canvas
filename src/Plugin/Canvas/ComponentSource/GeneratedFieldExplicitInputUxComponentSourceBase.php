@@ -725,7 +725,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // @see ::getDefaultExplicitInput()
       // @see ::clientModelToInput()
       // @see https://www.drupal.org/i/3529788
-      \assert(\array_key_exists($sdc_prop_name, $inputValues) || !in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
+      \assert(\array_key_exists($sdc_prop_name, $inputValues) || !\in_array($sdc_prop_name, $this->getExplicitInputDefinitions()['required'], TRUE));
       $source = $this->uncollapse($inputValues[$sdc_prop_name] ?? NULL, $sdc_prop_name);
       // Any component instance with props populated with a StaticPropSource
       // MUST use the StaticPropSource shape stored in the Component version. If
@@ -848,7 +848,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     // Make the prop link data available to wrappers that render their own
     // label UI instead of the standard form element label template.
     $wrappers = $element['#theme_wrappers'] ?? [];
-    if (!empty($propLinkData) && (in_array('fieldset', $wrappers, TRUE) || in_array('datetime_wrapper', $wrappers, TRUE))) {
+    if (!empty($propLinkData) && (\in_array('fieldset', $wrappers, TRUE) || \in_array('datetime_wrapper', $wrappers, TRUE))) {
       $element['#prop_link_data'] = $propLinkData;
     }
 
@@ -958,7 +958,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       // generate a form.
       // @see \Drupal\canvas\Form\ComponentInstanceForm
       $field_data[$prop_name] = [
-        'required' => in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
+        'required' => \in_array($prop_name, $this->getMetadata()->schema['required'] ?? [], TRUE),
         'jsonSchema' => array_diff_key($prop_shape->resolvedSchema, array_flip(['meta:enum', 'x-translation-context'])),
       ] + \array_diff_key($default_static_prop_source->toArray(), \array_flip(['value']));
       if ($default_resolved->value !== NULL) {
@@ -1046,7 +1046,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
       $schema = $component_plugin->metadata->schema ?? [];
       $props[$cpe->propName] = [
-        'required' => isset($schema['required']) && in_array($cpe->propName, $schema['required'], TRUE),
+        'required' => isset($schema['required']) && \in_array($cpe->propName, $schema['required'], TRUE),
         'field_type' => $storable_prop_shape->fieldTypeProp->getFieldType(),
         'field_widget' => $storable_prop_shape->fieldWidget,
         'expression' => (string) $storable_prop_shape->fieldTypeProp,
@@ -1074,7 +1074,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     \assert(\is_array($sdc_metadata->schema));
     // @see https://json-schema.org/understanding-json-schema/reference/object#required
     // @see https://json-schema.org/learn/getting-started-step-by-step#required
-    $is_required = in_array($sdc_prop_name, $sdc_metadata->schema['required'] ?? [], TRUE);
+    $is_required = \in_array($sdc_prop_name, $sdc_metadata->schema['required'] ?? [], TRUE);
 
     // @see `type: canvas.component.*`
     \assert(\array_key_exists('properties', $sdc_metadata->schema));
@@ -1184,7 +1184,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
 
     $required_props = $this->getExplicitInputDefinitions()['required'];
     foreach (($client_model['source'] ?? []) as $prop => $prop_source) {
-      $is_required_prop = in_array($prop, $required_props, TRUE);
+      $is_required_prop = \in_array($prop, $required_props, TRUE);
       // The client should always provide a resolved value when providing a
       // corresponding source but may not.
       $prop_value = $client_model['resolved'][$prop] ?? NULL;

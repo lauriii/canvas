@@ -67,9 +67,9 @@ final class JsonSchemaObject extends Mapping {
       }
       if ($detail['type'] === 'string' && \array_key_exists('format', $detail)) {
         // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::toDataTypeShapeRequirements()
-        if (in_array($detail['format'], [JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value], TRUE)) {
+        if (\in_array($detail['format'], [JsonSchemaStringFormat::Iri->value, JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::Uri->value, JsonSchemaStringFormat::UriReference->value], TRUE)) {
           $definition['mapping'][$property_name]['constraints'][UriConstraint::PLUGIN_ID] = [
-            'allowReferences' => in_array($detail['format'], [JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::UriReference->value], TRUE),
+            'allowReferences' => \in_array($detail['format'], [JsonSchemaStringFormat::IriReference->value, JsonSchemaStringFormat::UriReference->value], TRUE),
           ];
           if (\array_key_exists('x-allowed-schemes', $detail)) {
             $definition['mapping'][$property_name]['constraints'][UriSchemeConstraint::PLUGIN_ID] = [

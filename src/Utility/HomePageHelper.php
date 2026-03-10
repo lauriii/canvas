@@ -38,7 +38,7 @@ final class HomePageHelper {
     // Check current homepage configuration.
     $system_config = $this->configFactory->get('system.site');
     $current_homepage = $system_config->get('page.front');
-    if (in_array($current_homepage, $paths, TRUE)) {
+    if (\in_array($current_homepage, $paths, TRUE)) {
       return TRUE;
     }
 
@@ -51,7 +51,7 @@ final class HomePageHelper {
       foreach ($actions as $action) {
         if (isset($action['input']['page.front'])) {
           $staged_homepage = $action['input']['page.front'];
-          if (in_array($staged_homepage, $paths, TRUE)) {
+          if (\in_array($staged_homepage, $paths, TRUE)) {
             return TRUE;
           }
         }

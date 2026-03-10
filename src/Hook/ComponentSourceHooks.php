@@ -121,38 +121,38 @@ readonly final class ComponentSourceHooks {
     $request = $this->requestStack->getCurrentRequest();
     \assert($request instanceof Request);
 
-    $all = in_array('canvas/canvasData.v0', $all_attached_asset_libraries, TRUE);
-    if ($all || in_array('canvas/canvasData.v0.baseUrl', $all_attached_asset_libraries, TRUE)) {
+    $all = \in_array('canvas/canvasData.v0', $all_attached_asset_libraries, TRUE);
+    if ($all || \in_array('canvas/canvasData.v0.baseUrl', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'baseUrl']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.baseUrl'));
       }
     }
-    if ($all || in_array('canvas/canvasData.v0.branding', $all_attached_asset_libraries, TRUE)) {
+    if ($all || \in_array('canvas/canvasData.v0.branding', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'branding', 'homeUrl']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.branding'));
       }
     }
-    if ($all || in_array('canvas/canvasData.v0.breadcrumbs', $all_attached_asset_libraries, TRUE)) {
+    if ($all || \in_array('canvas/canvasData.v0.breadcrumbs', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'breadcrumbs']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.breadcrumbs'));
       }
     }
-    if ($all || in_array('canvas/canvasData.v0.pageTitle', $all_attached_asset_libraries, TRUE)) {
+    if ($all || \in_array('canvas/canvasData.v0.pageTitle', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'pageTitle']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.pageTitle'));
       }
     }
-    if ($all || in_array('canvas/canvasData.v0.mainEntity', $all_attached_asset_libraries, TRUE)) {
+    if ($all || \in_array('canvas/canvasData.v0.mainEntity', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'mainEntity']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.mainEntity'));
       }
     }
-    if ($all || in_array('canvas/canvasData.v0.jsonapiSettings', $all_attached_asset_libraries, TRUE)) {
+    if ($all || \in_array('canvas/canvasData.v0.jsonapiSettings', $all_attached_asset_libraries, TRUE)) {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'jsonapiSettings']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.jsonapiSettings'));

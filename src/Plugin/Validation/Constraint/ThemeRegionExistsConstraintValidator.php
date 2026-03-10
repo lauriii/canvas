@@ -67,7 +67,7 @@ final class ThemeRegionExistsConstraintValidator extends ConstraintValidator imp
     $active_theme = $this->themeInitialization->getActiveTheme($theme);
     $valid_regions = $active_theme->getRegions();
 
-    if (!in_array($region, $valid_regions, TRUE)) {
+    if (!\in_array($region, $valid_regions, TRUE)) {
       $this->context->buildViolation($constraint->message)
         ->setParameter('@region', $region)
         ->setParameter('@theme', $theme_name)

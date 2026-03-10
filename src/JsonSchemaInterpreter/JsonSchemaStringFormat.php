@@ -113,7 +113,7 @@ enum JsonSchemaStringFormat: string {
         // Custom: the targeted resource has `contentMediaType: image/*` or
         // `contentMediaType: video/*`.
         // @see https://github.com/json-schema-org/json-schema-spec/issues/1557
-        \array_key_exists('contentMediaType', $schema) && in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
+        \array_key_exists('contentMediaType', $schema) && \in_array($schema['contentMediaType'], ['image/*', 'video/*'], TRUE) => new DataTypeShapeRequirements([
           new DataTypeShapeRequirement(UriTargetMediaTypeConstraint::PLUGIN_ID, ['mimeType' => $schema['contentMediaType']]),
           new DataTypeShapeRequirement(UriConstraint::PLUGIN_ID, [
             'allowReferences' => $this === static::IriReference || $this === static::UriReference,
@@ -228,7 +228,7 @@ enum JsonSchemaStringFormat: string {
 
           // Stream wrapper image URIs. Can only be `format: uri|iri`.
           // @see json-schema-definitions://canvas.module/stream-wrapper-image-uri
-          in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
+          \in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
           && ($this == static::Uri || $this == static::Iri) => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new ReferenceFieldTypePropExpression(
@@ -245,7 +245,7 @@ enum JsonSchemaStringFormat: string {
         // Stream wrapper file URIs (non-image). Can only be `format: uri|iri`.
         // @see json-schema-definitions://canvas.module/stream-wrapper-uri
         !\array_key_exists('contentMediaType', $shape->schema)
-        && in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
+        && \in_array('public', $shape->schema['x-allowed-schemes'] ?? [], TRUE)
         && ($this == static::Uri || $this == static::Iri) => new StorablePropShape(
           shape: $shape,
           fieldTypeProp: new ReferenceFieldTypePropExpression(

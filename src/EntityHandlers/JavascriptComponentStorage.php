@@ -40,7 +40,7 @@ final class JavascriptComponentStorage extends CanvasAssetStorage {
     // syncing when installing modules, but not when installing configuration.
     // Even though it is listed under `import`, and that should hence match the
     // behavior of the /admin/config/development/configuration/single/import UI.
-    if (in_array('installRecipeConfig', array_column(debug_backtrace(), 'function'), TRUE)) {
+    if (\in_array('installRecipeConfig', array_column(debug_backtrace(), 'function'), TRUE)) {
       // Assert the bug is still present. This will start failing as soon as the
       // upstream bug is fixed.
       \assert(!$this->configInstaller->isSyncing());

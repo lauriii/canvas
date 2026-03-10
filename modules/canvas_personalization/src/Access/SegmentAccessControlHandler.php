@@ -24,7 +24,7 @@ final class SegmentAccessControlHandler extends CanvasConfigEntityAccessControlH
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
     \assert($entity instanceof SegmentInterface);
-    if (in_array($operation, ['update', 'delete'], TRUE) && $entity->id() === Segment::DEFAULT_ID) {
+    if (\in_array($operation, ['update', 'delete'], TRUE) && $entity->id() === Segment::DEFAULT_ID) {
       return AccessResult::forbidden('The default segment cannot be deleted or updated.');
     }
 

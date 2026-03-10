@@ -110,7 +110,7 @@ final readonly class ComponentTreeInputExtractor {
       return FALSE;
     }
     // Skip props that are configured to be ignored.
-    if (in_array($prop_name, $ignored_prop_names, TRUE)) {
+    if (\in_array($prop_name, $ignored_prop_names, TRUE)) {
       return FALSE;
     }
     return TRUE;

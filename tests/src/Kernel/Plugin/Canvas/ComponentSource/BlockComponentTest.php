@@ -76,7 +76,7 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     $components = Component::loadMultiple();
     foreach ($components as $component) {
       if ($component->getComponentSource() instanceof BlockComponent) {
-        self::assertSame(in_array($component->get('source_local_id'), BlockComponentDiscovery::BLOCKS_TO_KEEP_ENABLED, TRUE), $component->status());
+        self::assertSame(\in_array($component->get('source_local_id'), BlockComponentDiscovery::BLOCKS_TO_KEEP_ENABLED, TRUE), $component->status());
       }
     }
 

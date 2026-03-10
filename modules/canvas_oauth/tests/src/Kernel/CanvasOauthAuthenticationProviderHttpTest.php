@@ -281,7 +281,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       $method,
       content: json_encode($data) ?: NULL,
     );
-    if (in_array($method, ['POST', 'PATCH'], TRUE)) {
+    if (\in_array($method, ['POST', 'PATCH'], TRUE)) {
       $request->headers->set('Content-Type', 'application/json');
     }
     return $request;

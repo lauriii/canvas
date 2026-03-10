@@ -41,7 +41,7 @@ final class CanvasWrapperNode extends Node {
       ->raw('\array_key_exists(')
       ->string('canvas_slot_ids')
       ->raw(', $context) && ')
-      ->raw('in_array(')
+      ->raw('\in_array(')
       ->string($this->getAttribute('name'))
       ->raw(', $context[')
       ->string('canvas_slot_ids')

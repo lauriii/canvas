@@ -36,7 +36,7 @@ final class ContentTemplateRoutes {
    *   TRUE if content template logic applies, FALSE otherwise.
    */
   public static function applies(string $route_name): bool {
-    return in_array($route_name, self::VIEW_MODE_ROUTES, TRUE);
+    return \in_array($route_name, self::VIEW_MODE_ROUTES, TRUE);
   }
 
 }

@@ -665,7 +665,7 @@ class ComponentTreeItem extends FieldItemBase {
     // It will be triggered with config schema validation instead.
     // @see \Drupal\canvas\Entity\Component::save()
     $version = $this->get('component_version')->getValue();
-    if ($version && in_array($version, $component?->getVersions() ?? [], TRUE)) {
+    if ($version && \in_array($version, $component?->getVersions() ?? [], TRUE)) {
       $component?->loadVersion($version);
     }
     $source = $component?->getComponentSource();

@@ -53,12 +53,12 @@ final class ComponentMetadataRequirementsChecker {
     // Check fundamentals.
     $validator = new Validator();
     foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
-      if (in_array(Attribute::class, $prop['type'], TRUE)) {
+      if (\in_array(Attribute::class, $prop['type'], TRUE)) {
         continue;
       }
 
       // Enums must not have empty values.
-      if (\array_key_exists('enum', $prop) && in_array('', $prop['enum'], TRUE)) {
+      if (\array_key_exists('enum', $prop) && \in_array('', $prop['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value.', $prop_name);
         continue;
       }
@@ -69,7 +69,7 @@ final class ComponentMetadataRequirementsChecker {
       }
 
       // Required props must have examples.
-      if (in_array($prop_name, $required_props, TRUE) && !isset($prop['examples'][0])) {
+      if (\in_array($prop_name, $required_props, TRUE) && !isset($prop['examples'][0])) {
         $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);
       }
 
@@ -113,7 +113,7 @@ final class ComponentMetadataRequirementsChecker {
       // JSON Schema.
       // @see docs/shape-matching-into-field-types.md#3.2
       if (\array_key_exists('contentMediaType', $prop) && $prop['contentMediaType'] === 'text/html' && isset($prop['x-formatting-context'])) {
-        if (!in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
+        if (!\in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
           $messages[] = \sprintf('Invalid value "%s" for "x-formatting-context". Valid values are "inline" and "block".', $prop['x-formatting-context']);
           continue;
         }

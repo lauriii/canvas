@@ -291,7 +291,7 @@ final class Labeler {
     \assert(count($used_props) >= 1);
 
     // Easy case: if the main property is used directly.
-    if (in_array($main_property, $used_props, TRUE)) {
+    if (\in_array($main_property, $used_props, TRUE)) {
       return TRUE;
     }
 
@@ -299,7 +299,7 @@ final class Labeler {
     // that depends on the main one.
     $main_property_definition = $field_item_definition->getPropertyDefinition($main_property);
     \assert($main_property_definition instanceof DataDefinitionInterface);
-    if (in_array($main_property_definition->getSetting('is source for'), $used_props, TRUE)) {
+    if (\in_array($main_property_definition->getSetting('is source for'), $used_props, TRUE)) {
       return TRUE;
     }
 

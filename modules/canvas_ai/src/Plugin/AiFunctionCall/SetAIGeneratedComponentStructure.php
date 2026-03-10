@@ -124,14 +124,14 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     $errors = [];
     $errorKey = 'Operation ' . $index;
 
-    if (!isset($operation['placement']) || !in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
+    if (!isset($operation['placement']) || !\in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
       $errors[$errorKey][] = 'The placement key is missing or invalid in the operation.';
       return $errors;
     }
 
     $placement = $operation['placement'];
     // If placement is 'above' or 'below', `reference_uuid` must be provided.
-    if (in_array($placement, ['above', 'below'], TRUE) && empty($operation['reference_uuid'])) {
+    if (\in_array($placement, ['above', 'below'], TRUE) && empty($operation['reference_uuid'])) {
       $errors[$errorKey][] = 'The reference_uuid must be provided for above/below placement.';
     }
 

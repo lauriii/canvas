@@ -147,7 +147,7 @@ final class ComponentInputs extends TypedData implements ContentAwareDependentIn
   public function getPropSourcesWithDependency(string $type, string $name, ?FieldableEntityInterface $host_entity = NULL): iterable {
     foreach ($this->getPropSources() as $key => $prop_source) {
       $dependencies = $prop_source->calculateDependencies($host_entity);
-      if (in_array($name, $dependencies[$type] ?? [], TRUE)) {
+      if (\in_array($name, $dependencies[$type] ?? [], TRUE)) {
         yield $key => $prop_source;
       }
     }

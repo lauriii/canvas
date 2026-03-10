@@ -232,7 +232,7 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
       throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, but the provided entity is of type `%s`.", (string) $this, $expected_entity_type_id, $entity->getEntityTypeId()));
     }
     $expected_bundles = $this->referencer->entityType->getBundles();
-    if ($expected_bundles !== NULL && !in_array($entity->bundle(), $expected_bundles, TRUE)) {
+    if ($expected_bundles !== NULL && !\in_array($entity->bundle(), $expected_bundles, TRUE)) {
       throw new \DomainException(\sprintf("`%s` is an expression for entity type `%s`, bundle(s) `%s`, but the provided entity is of the bundle `%s`.", (string) $this, $expected_entity_type_id, implode(', ', $expected_bundles), $entity->bundle()));
     }
     // @todo validate that the field exists?

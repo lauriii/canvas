@@ -153,12 +153,12 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
       // Do not try to set immutable properties to NULL: their immutability is
       // already tested.
       // @see ::testImmutableProperties()
-      if (in_array($property, $immutable_properties, TRUE)) {
+      if (\in_array($property, $immutable_properties, TRUE)) {
         continue;
       }
 
       // Do not try to set plugin collection properties to NULL.
-      if (in_array($property, $plugin_collection_properties, TRUE)) {
+      if (\in_array($property, $plugin_collection_properties, TRUE)) {
         continue;
       }
 
@@ -173,7 +173,7 @@ class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBas
         continue;
       }
       // End overrides of core 👈️.
-      $expected_validation_errors = in_array($property, $properties_with_optional_values, TRUE)
+      $expected_validation_errors = \in_array($property, $properties_with_optional_values, TRUE)
         ? []
         : [$property => 'This value should not be null.'];
 

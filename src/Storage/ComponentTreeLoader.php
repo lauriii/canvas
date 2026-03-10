@@ -65,7 +65,7 @@ final class ComponentTreeLoader {
     $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
 
     foreach ($map[$entity->getEntityTypeId()] ?? [] as $field_name => $info) {
-      if (in_array($entity->bundle(), $info['bundles'], TRUE)) {
+      if (\in_array($entity->bundle(), $info['bundles'], TRUE)) {
         return $field_name;
       }
     }

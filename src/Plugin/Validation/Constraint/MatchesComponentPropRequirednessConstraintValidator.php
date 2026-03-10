@@ -41,7 +41,7 @@ final class MatchesComponentPropRequirednessConstraintValidator extends Constrai
     /** @phpstan-ignore method.nonObject */
     $context_parent = $this->context->getObject()->getParent();
     $prop_name = $context_parent->getName();
-    $expected = in_array($prop_name, $component_schema['required'] ?? [], TRUE);
+    $expected = \in_array($prop_name, $component_schema['required'] ?? [], TRUE);
 
     if ($value !== $expected) {
       $this->context->buildViolation($constraint->message)

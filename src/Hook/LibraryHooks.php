@@ -217,7 +217,7 @@ final class LibraryHooks {
 
   private function buildDependencyChain(array &$all_dependencies, array $all_libraries, array $dependencies_to_check, string $admin_theme_name): void {
     foreach ($dependencies_to_check as $dependency) {
-      if (str_starts_with($dependency, $admin_theme_name . '/') && !in_array($dependency, $all_dependencies, TRUE)) {
+      if (str_starts_with($dependency, $admin_theme_name . '/') && !\in_array($dependency, $all_dependencies, TRUE)) {
         $all_dependencies[] = $dependency;
         /** @var string $internal_dependency_name */
         $internal_dependency_name = str_replace($admin_theme_name . '/', '', $dependency);
@@ -358,7 +358,7 @@ final class LibraryHooks {
         continue;
       }
       foreach ($library['dependencies'] as $key => $dependency) {
-        if (isset($canvas_replacing_cores[$dependency]) && !in_array($dependency, $dependencies_already_added, TRUE)) {
+        if (isset($canvas_replacing_cores[$dependency]) && !\in_array($dependency, $dependencies_already_added, TRUE)) {
           $dependencies_already_added[] = $dependency;
           $library['dependencies'][$key] = 'canvas/' . $canvas_replacing_cores[$dependency];
         }
@@ -474,7 +474,7 @@ final class LibraryHooks {
     $overrides = $active_admin_theme->getLibrariesOverride();
     foreach ($overrides as $theme_overrides) {
       foreach ($theme_overrides as $library_name => $override) {
-        if (in_array($library_name, $libraries['canvas.drupal.dialog']['dependencies'], TRUE)) {
+        if (\in_array($library_name, $libraries['canvas.drupal.dialog']['dependencies'], TRUE)) {
           [$library_source, $library_id] = explode('/', $library_name);
           // Build an admin-theme-overridden version of the dependency.
           $this->themeManager->setActiveTheme($active_admin_theme);

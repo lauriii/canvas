@@ -178,7 +178,7 @@ final class JsonSchemaFieldInstanceMatcher {
       yield $prop_name => [
         // @see https://json-schema.org/understanding-json-schema/reference/object#required
         // @see https://json-schema.org/learn/getting-started-step-by-step#required
-        'required' => in_array($prop_name, $schema['required'] ?? [], TRUE),
+        'required' => \in_array($prop_name, $schema['required'] ?? [], TRUE),
         'schema' => self::resolveSchemaReferences($prop_schema),
       ];
     }
@@ -300,7 +300,7 @@ final class JsonSchemaFieldInstanceMatcher {
         // their values are identical). Storing them as strings would solve that
         // but would prevent the instanceof checks below.
         // @phpstan-ignore function.strict
-        if (in_array($field_prop_expr, $inverted[$field_name] ?? [], FALSE)) {
+        if (\in_array($field_prop_expr, $inverted[$field_name] ?? [], FALSE)) {
           continue;
         }
 
@@ -512,7 +512,7 @@ final class JsonSchemaFieldInstanceMatcher {
       foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'exceptions' => $allowed_schemas]) {
         // DO NOT ignore the field type if it's one of a carefully selected set
         // of exceptions.
-        if (in_array($schema, $allowed_schemas, TRUE)) {
+        if (\in_array($schema, $allowed_schemas, TRUE)) {
           continue;
         }
         if (is_a($field_definition->getItemDefinition()->getClass(), $field_type_class, TRUE)) {
@@ -627,7 +627,7 @@ final class JsonSchemaFieldInstanceMatcher {
                 // logic just before this ">1 target bundles" conditional.
                 foreach ($referenced_matches as $referenced_match) {
                   $field_name = $referenced_match->getFieldName();
-                  if (!in_array($field_name, $base_field_names, TRUE)) {
+                  if (!\in_array($field_name, $base_field_names, TRUE)) {
                     $matches[] = new ReferenceFieldPropExpression($current_entity_field_prop, $referenced_match);
                   }
                 }
@@ -838,7 +838,7 @@ final class JsonSchemaFieldInstanceMatcher {
     };
 
     // If the primitive type does not match, this is not a candidate.
-    if (!in_array($json_schema_primitive_type, $field_primitive_types, TRUE)) {
+    if (!\in_array($json_schema_primitive_type, $field_primitive_types, TRUE)) {
       return FALSE;
     }
 
@@ -986,7 +986,7 @@ final class JsonSchemaFieldInstanceMatcher {
     // configuration is identical). Until upstream Symfony adds a mechanism to
     // compare constraints by value, we must ignore strictness here.
     // @phpstan-ignore function.strict
-    $constraint_found = in_array($required_constraint, $constraints, FALSE);
+    $constraint_found = \in_array($required_constraint, $constraints, FALSE);
     // 1.b Some constraints target a subset. For example: `uri-reference` also
     // allows absolute URLs.
     // @todo Generalize this ::isSupersetOf(). Find more needs first.

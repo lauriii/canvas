@@ -27,7 +27,7 @@ final class SegmentationRulesHooks {
     ];
     $valid_providers = ['canvas', 'canvas_personalization'];
     foreach ($definitions as $key => $definition) {
-      if (!in_array($key, $allowlist, TRUE) && !in_array($definition['provider'], $valid_providers, TRUE)) {
+      if (!\in_array($key, $allowlist, TRUE) && !\in_array($definition['provider'], $valid_providers, TRUE)) {
         unset($definitions[$key]);
       }
     }

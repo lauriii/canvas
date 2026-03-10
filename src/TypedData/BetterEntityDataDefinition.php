@@ -72,7 +72,7 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
         // Return an empty array for entities that are not content entities.
         $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
         $entity_type_class = $entity_type->getClass();
-        if (!in_array('Drupal\Core\Entity\FieldableEntityInterface', class_implements($entity_type_class))) {
+        if (!\in_array('Drupal\Core\Entity\FieldableEntityInterface', class_implements($entity_type_class))) {
           $this->propertyDefinitions = [];
         }
         else {

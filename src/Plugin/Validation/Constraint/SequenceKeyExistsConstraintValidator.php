@@ -29,7 +29,7 @@ final class SequenceKeyExistsConstraintValidator extends SequenceDependentConstr
 
     $existing_sequence_keys = $this->getSequenceKeys($constraint);
 
-    if (!in_array($value, $existing_sequence_keys, TRUE)) {
+    if (!\in_array($value, $existing_sequence_keys, TRUE)) {
       $this->context->addViolation($constraint->message, [
         '@value' => $value,
         '@property_path' => $constraint->propertyPathToSequence,

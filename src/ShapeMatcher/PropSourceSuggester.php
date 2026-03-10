@@ -89,7 +89,7 @@ final class PropSourceSuggester {
     // Node-specific heuristics:
     // 1. never suggest `promote` base field
     // 2. never suggest `sticky` base field
-    if ($entity_type_id === 'node' && in_array($expression_field_name, ['promote', 'sticky'], TRUE)) {
+    if ($entity_type_id === 'node' && \in_array($expression_field_name, ['promote', 'sticky'], TRUE)) {
       return TRUE;
     }
 
@@ -105,7 +105,7 @@ final class PropSourceSuggester {
     // 3. never suggest `revision_default` base field
     $content_entity_type_definition = $this->entityTypeManager->getDefinition($entity_type_id);
     \assert($content_entity_type_definition instanceof ContentEntityTypeInterface);
-    $is_irrelevant = in_array($expression_field_name, [
+    $is_irrelevant = \in_array($expression_field_name, [
       $content_entity_type_definition->getKey('default_langcode'),
       $content_entity_type_definition->getRevisionMetadataKey('revision_default'),
       $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
@@ -190,7 +190,7 @@ final class PropSourceSuggester {
       $prop_name = ComponentPropExpression::fromString($cpe)->propName;
       /** @var array<string, mixed> $schema */
       $schema = $component_metadata->schema;
-      $suggestions[$cpe]['required'] = in_array($prop_name, $schema['required'] ?? [], TRUE);
+      $suggestions[$cpe]['required'] = \in_array($prop_name, $schema['required'] ?? [], TRUE);
 
       // Field instances.
       $suggestions[$cpe]['instances'] = [];
@@ -238,7 +238,7 @@ final class PropSourceSuggester {
       $cpe = ComponentPropExpression::fromString($cpe_string);
       // @see https://json-schema.org/understanding-json-schema/reference/object#required
       // @see https://json-schema.org/learn/getting-started-step-by-step#required
-      $is_required = in_array($cpe->propName, $component_metadata->schema['required'] ?? [], TRUE);
+      $is_required = \in_array($cpe->propName, $component_metadata->schema['required'] ?? [], TRUE);
       $schema = $prop_shape->resolvedSchema;
 
       $primitive_type = JsonSchemaType::from($schema['type']);
@@ -292,10 +292,10 @@ final class PropSourceSuggester {
 
     // HostEntityUrlPropSources can only populate URI prop shapes (and its
     // supersets).
-    if (!in_array($string_format, $allowed_string_formats, TRUE)) {
+    if (!\in_array($string_format, $allowed_string_formats, TRUE)) {
       return NULL;
     }
-    $supports_only_absolute_urls = in_array($string_format, [JsonSchemaStringFormat::Uri, JsonSchemaStringFormat::Iri], TRUE);
+    $supports_only_absolute_urls = \in_array($string_format, [JsonSchemaStringFormat::Uri, JsonSchemaStringFormat::Iri], TRUE);
 
     // If an `x-allowed-schemes` shape restriction is present, and it doesn't
     // allow HTTP nor HTTPS, then no viable HostEntityUrlPropSource can exist.

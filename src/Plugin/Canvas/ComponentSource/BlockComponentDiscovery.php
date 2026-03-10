@@ -86,7 +86,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
    * {@inheritdoc}
    */
   public function checkRequirements(string $source_specific_id): void {
-    \assert(in_array($source_specific_id, self::EXPLICITLY_IGNORED_BLOCKS, TRUE) || \array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
+    \assert(\in_array($source_specific_id, self::EXPLICITLY_IGNORED_BLOCKS, TRUE) || \array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
 
     // @todo is this not going to become a performance bottleneck on BlockPlugin heavy sites?
     $block = $this->blockManager->createInstance($source_specific_id);
@@ -173,7 +173,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     // By default, disable blocks provided by core, unless specifically named.
     $status = TRUE;
     $definition = $this->blockManager->getDefinition($source_specific_id);
-    if (in_array($definition['provider'], ['core', ...$all_installed_core_extensions], TRUE) && !in_array($source_specific_id, self::BLOCKS_TO_KEEP_ENABLED, TRUE)) {
+    if (\in_array($definition['provider'], ['core', ...$all_installed_core_extensions], TRUE) && !\in_array($source_specific_id, self::BLOCKS_TO_KEEP_ENABLED, TRUE)) {
       $status = FALSE;
       // Special case for view blocks that are tagged with "default" are
       // disabled as they are likely created by core.
@@ -184,7 +184,7 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
             $config_id = substr($dependency, strlen('views.view.'));
             $view = View::load($config_id);
             \assert(!\is_null($view));
-            $status = !in_array('default', \array_map('trim', explode(',', $view->get('tag'))), TRUE);
+            $status = !\in_array('default', \array_map('trim', explode(',', $view->get('tag'))), TRUE);
           }
         }
       }

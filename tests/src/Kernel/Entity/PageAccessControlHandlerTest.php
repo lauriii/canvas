@@ -51,7 +51,7 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
     $account = $this->createMock(AccountInterface::class);
     $account->expects($this->atLeastOnce())
       ->method('hasPermission')
-      ->willReturnCallback(fn ($permission) => in_array($permission, $permissions, TRUE));
+      ->willReturnCallback(fn ($permission) => \in_array($permission, $permissions, TRUE));
 
     if ($op === 'create') {
       $result = $access_handler->createAccess(NULL, $account);
@@ -141,7 +141,7 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
     $account = $this->createMock(AccountInterface::class);
     $account->expects($this->atLeastOnce())
       ->method('hasPermission')
-      ->willReturnCallback(fn ($permission) => in_array($permission, $permissions, TRUE));
+      ->willReturnCallback(fn ($permission) => \in_array($permission, $permissions, TRUE));
 
     \assert($non_default_revision instanceof EntityInterface);
     $result = $access_handler->access($non_default_revision, $op, $account);

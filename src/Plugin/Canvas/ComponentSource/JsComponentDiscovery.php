@@ -56,7 +56,7 @@ final class JsComponentDiscovery implements ComponentCandidatesDiscoveryInterfac
       fn (JavaScriptComponent $js_component): bool =>
         // Any code component that has once been exposed, must continue to be
         // discovered, even if its `status` changes to FALSE.
-        in_array($config_prefix . $js_component->id(), $already_exposed_js_components, TRUE)
+        \in_array($config_prefix . $js_component->id(), $already_exposed_js_components, TRUE)
         // Before exposing a JavaScriptComponent as a Canvas Component for the
         // first time it must be flagged as being added to Canvas's component
         // library.

@@ -88,7 +88,7 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
   public function inputIsRequired(string $input): bool {
     \assert(\is_array($this->getPluginDefinition()));
     \assert(\array_key_exists('requiredInputs', $this->getPluginDefinition()));
-    return in_array($input, $this->getPluginDefinition()['requiredInputs'], TRUE);
+    return \in_array($input, $this->getPluginDefinition()['requiredInputs'], TRUE);
   }
 
 }

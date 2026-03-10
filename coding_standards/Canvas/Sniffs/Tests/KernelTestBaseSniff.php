@@ -89,13 +89,13 @@ class KernelTestBaseSniff implements Sniff {
     // Trim the leading backslash.
     $baseClassFqcn = ltrim($baseClassFqcn, '\\');
     $extendsCanvasKernelTestBase = $baseClassFqcn === CanvasKernelTestBase::class
-      || in_array($baseClassFqcn, self::KNOWN_SUBCLASSES, TRUE);
+      || \in_array($baseClassFqcn, self::KNOWN_SUBCLASSES, TRUE);
 
     if (!$extendsCanvasKernelTestBase) {
       // Some other base classes are allowed; typically because they are from
       // core or contrib for testing a complex set of functionality in a generic
       // way.
-      if (!in_array($baseClassFqcn, self::ALLOWED_OTHER_BASE_CLASSES, TRUE)) {
+      if (!\in_array($baseClassFqcn, self::ALLOWED_OTHER_BASE_CLASSES, TRUE)) {
         $php_as_string = file_get_contents($phpcsFile->getFilename());
         // Detect kernel tests that have a documented reason for not extending
         // CanvasKernelTestBase — such as a Recipe that installs the Canvas module.

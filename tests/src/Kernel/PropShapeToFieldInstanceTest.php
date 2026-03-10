@@ -217,7 +217,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
       ])->save();
     }
 
-    if (in_array('options', $modules, TRUE)) {
+    if (\in_array('options', $modules, TRUE)) {
       FieldStorageConfig::create([
         'field_name' => 'one_from_an_integer_list',
         'entity_type' => 'node',
@@ -328,7 +328,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
         $cpe = ComponentPropExpression::fromString($cpe_string);
         // @see https://json-schema.org/understanding-json-schema/reference/object#required
         // @see https://json-schema.org/learn/getting-started-step-by-step#required
-        $is_required = in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
+        $is_required = \in_array($cpe->propName, $component->metadata->schema['required'] ?? [], TRUE);
 
         $unique_match_key = \sprintf('%s, %s',
           $is_required ? 'REQUIRED' : 'optional',

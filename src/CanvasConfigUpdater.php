@@ -274,7 +274,7 @@ class CanvasConfigUpdater {
     $active_version_updated = FALSE;
     foreach ($settings['prop_field_definitions'] as $prop_name => &$prop_field_definition) {
       if (!isset($prop_field_definition['required'])) {
-        $prop_field_definition['required'] = in_array($prop_name, $required_props, TRUE);
+        $prop_field_definition['required'] = \in_array($prop_name, $required_props, TRUE);
         $active_version_updated = TRUE;
         $updated_versions[] = $component->getActiveVersion();
       }
@@ -312,7 +312,7 @@ class CanvasConfigUpdater {
       \assert(\array_key_exists('prop_field_definitions', $settings));
       foreach ($settings['prop_field_definitions'] as $prop_name => &$prop_field_definition) {
         if (!isset($prop_field_definition['required'])) {
-          $prop_field_definition['required'] = in_array($prop_name, $required_props, TRUE);
+          $prop_field_definition['required'] = \in_array($prop_name, $required_props, TRUE);
           $past_version_updated = TRUE;
           $updated_versions[] = $version;
         }

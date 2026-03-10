@@ -52,7 +52,7 @@ final class ParametrizedImageStyleConverter implements ParamConverterInterface {
 
     // @todo Read this from third-party settings - https://drupal.org/i/3533563
     // @see config/install/image.style.canvas_parametrized_width.yml
-    if (!in_array((int) $width, self::ALLOWED_WIDTHS, TRUE)) {
+    if (!\in_array((int) $width, self::ALLOWED_WIDTHS, TRUE)) {
       // Return a 404 (Page Not Found) rather than a 403 (Access Denied) as the
       // image token is for DDoS protection rather than access checking. 404s
       // are more likely to be cached (e.g. at a proxy) which enhances

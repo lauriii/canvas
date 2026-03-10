@@ -100,7 +100,7 @@ final class PageHooks {
         // path.
         return AccessResult::neutral();
       }
-      if (in_array($homepage, $paths, TRUE)) {
+      if (\in_array($homepage, $paths, TRUE)) {
         return AccessResult::forbidden()
           ->addCacheableDependency($system_config)
           ->addCacheableDependency($entity)

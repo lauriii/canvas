@@ -400,7 +400,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     }
 
     // 2. Is the component provided by a module?
-    if (in_array($this->provider, $installed_modules, TRUE)) {
+    if (\in_array($this->provider, $installed_modules, TRUE)) {
       return $this->provider === 'canvas'
         // 2.B Is the providing module Canvas?
         ? LibraryEnum::Elements
@@ -408,7 +408,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     }
 
     // 3. Is the component provided by the default theme (or its base theme)?
-    if (in_array($this->provider, $theme_with_ancestors, TRUE)) {
+    if (\in_array($this->provider, $theme_with_ancestors, TRUE)) {
       return LibraryEnum::PrimaryComponents;
     }
 
@@ -619,7 +619,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       }
       // If a version was created and immediately deleted, it doesn't need any
       // fallback metadata.
-      if (!in_array($new_version, $this->getVersions(), TRUE)) {
+      if (!\in_array($new_version, $this->getVersions(), TRUE)) {
         continue;
       }
       $this->versioned_properties[$new_version]['fallback_metadata'] = $this->versioned_properties[VersionedConfigEntityBase::ACTIVE_VERSION]['fallback_metadata'];

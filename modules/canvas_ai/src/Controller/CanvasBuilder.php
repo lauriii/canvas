@@ -114,7 +114,7 @@ final class CanvasBuilder extends ControllerBase {
       $allowed_image_types = ['image/jpeg', 'image/png'];
       $mime_type = $file->getClientMimeType();
 
-      if (!in_array($mime_type, $allowed_image_types, TRUE)) {
+      if (!\in_array($mime_type, $allowed_image_types, TRUE)) {
         return new JsonResponse([
           'status' => FALSE,
           'message' => 'Only image files are allowed (jpeg, png, jpg).',
@@ -260,7 +260,7 @@ final class CanvasBuilder extends ControllerBase {
           if ($tool instanceof BuilderResponseFunctionCallInterface) {
             $response = array_merge($response, $tool->getStructuredOutput());
           }
-          if (in_array($tool->getPluginId(), ['ai_agents::ai_agent::canvas_page_builder_agent', 'ai_agents::ai_agent::canvas_template_builder_agent'], TRUE)) {
+          if (\in_array($tool->getPluginId(), ['ai_agents::ai_agent::canvas_page_builder_agent', 'ai_agents::ai_agent::canvas_template_builder_agent'], TRUE)) {
             $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
           }
         }

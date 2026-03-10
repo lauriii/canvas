@@ -159,7 +159,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
         $template_id = "$entity_type_id.$bundle.$view_mode";
         $data[$entity_type_id][$bundle][$view_mode] = [
           'label' => $view_mode_label,
-          'hasTemplate' => in_array($template_id, $template_keys, TRUE),
+          'hasTemplate' => \in_array($template_id, $template_keys, TRUE),
         ];
       }
     }

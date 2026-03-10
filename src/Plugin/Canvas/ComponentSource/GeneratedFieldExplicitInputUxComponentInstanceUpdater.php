@@ -165,7 +165,7 @@ final class GeneratedFieldExplicitInputUxComponentInstanceUpdater implements Com
       $component_uuid = $component_instance->getUuid();
       $component_tree_list->filter(static function (ComponentTreeItem $item) use ($component_uuid, $removed_slot_names): bool {
         $slot = $item->getSlot();
-        return !($slot !== NULL && $item->getParentUuid() === $component_uuid && in_array($slot, $removed_slot_names, TRUE));
+        return !($slot !== NULL && $item->getParentUuid() === $component_uuid && \in_array($slot, $removed_slot_names, TRUE));
       });
     }
 

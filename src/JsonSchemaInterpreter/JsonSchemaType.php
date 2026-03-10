@@ -306,7 +306,7 @@ enum JsonSchemaType: string {
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,
-        \array_key_exists('enum', $schema) => match(in_array('', $schema['enum'], TRUE)) {
+        \array_key_exists('enum', $schema) => match(\in_array('', $schema['enum'], TRUE)) {
           // The empty string is not a sensible enum value. To indicate
           // optionality, the prop should be made optional.
           TRUE => NULL,

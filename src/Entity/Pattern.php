@@ -98,7 +98,7 @@ final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpA
 
     $query = \Drupal::entityTypeManager()->getStorage('pattern')->getQuery()->accessCheck(FALSE);
     $ids = $query->execute();
-    $id_exists = in_array($id, $ids, TRUE);
+    $id_exists = \in_array($id, $ids, TRUE);
     if ($id_exists) {
       $id = $id . '_' . (new Random())->machineName(8);
     }

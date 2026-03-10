@@ -26,7 +26,7 @@ final class LinkUrl extends StringData implements UriInterface {
     if (empty($uri)) {
       return $uri;
     }
-    if (in_array($uri, ['<nolink>', '<none>', '<button>'], TRUE)) {
+    if (\in_array($uri, ['<nolink>', '<none>', '<button>'], TRUE)) {
       $uri = 'route:' . $uri;
       $item->set('uri', $uri);
     }

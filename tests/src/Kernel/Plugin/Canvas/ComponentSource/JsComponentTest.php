@@ -1195,7 +1195,7 @@ final class JsComponentTest extends GeneratedFieldExplicitInputUxComponentSource
   #[TestWith([TRUE, TRUE, FALSE, "draft"])]
   #[TestWith([TRUE, TRUE, TRUE, "draft"])]
   public function testImportMaps(bool $preview, bool $create_auto_save, bool $create_dependency_auto_save, string $dependencies_expected_result): void {
-    \assert(in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
+    \assert(\in_array($dependencies_expected_result, ['draft', 'live'], TRUE));
     $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
     \assert($file_generator instanceof FileUrlGeneratorInterface);
 

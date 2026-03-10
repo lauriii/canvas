@@ -290,7 +290,7 @@ final class JsComponent extends GeneratedFieldExplicitInputUxComponentSourceBase
       self::EXAMPLE_VIDEO_HORIZONTAL,
       self::EXAMPLE_VIDEO_VERTICAL,
     ];
-    if (in_array($url, $example_videos, TRUE)) {
+    if (\in_array($url, $example_videos, TRUE)) {
       $file_path = $this->extensionPathResolver->getPath('module', 'canvas') . $url;
       return Url::fromUri('base:/' . $file_path)->toString(TRUE);
     }

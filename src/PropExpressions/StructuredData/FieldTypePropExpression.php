@@ -46,7 +46,7 @@ final class FieldTypePropExpression implements FieldTypeBasedPropExpressionInter
 
     $dependencies = [];
     // Core-provided field types need no modules to be installed.
-    if (!in_array($provider, [NULL, 'core'], TRUE)) {
+    if (!\in_array($provider, [NULL, 'core'], TRUE)) {
       $dependencies['module'][] = $provider;
     }
 
