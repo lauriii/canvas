@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Utility\HomePageHelper;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -31,7 +31,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\CanvasUriDefinitions;
@@ -66,7 +65,7 @@ final class ApiContentControllers {
     private readonly AccountProxyInterface $currentUser,
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly HomePageHelper $homePageHelper,
   ) {}
 
   public function post(Request $request, string $entity_type): JsonResponse {
@@ -119,75 +118,6 @@ final class ApiContentControllers {
    */
   public function delete(ContentEntityInterface $canvas_page): JsonResponse {
     $canvas_page->delete();
-    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
-  }
-
-  /**
-   * Unpublishes or publishes entity through auto-save.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
-   *   Entity to unpublish or publish.
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   Response.
-   */
-  public function patch(ContentEntityInterface $canvas_page, Request $request): JsonResponse {
-    $content = $request->getContent();
-    $body = json_decode($content, TRUE);
-
-    \assert($canvas_page instanceof EntityPublishedInterface);
-    $entity_type = $canvas_page->getEntityType();
-    $published_key = $entity_type->getKey('published');
-    \assert(\is_string($published_key), 'Entity type must have a `published` key');
-
-    // Validate that only supported fields are present in the request body.
-    $allowed_fields = [$published_key, 'clientInstanceId'];
-    $unexpected_fields = array_diff(\array_keys($body), $allowed_fields);
-    if (!empty($unexpected_fields)) {
-      return new JsonResponse(
-        data: ['error' => 'Unexpected fields in request body: ' . implode(', ', $unexpected_fields)],
-        status: Response::HTTP_BAD_REQUEST
-      );
-    }
-
-    // Check if this is an unpublish operation or publish operation.
-    if (!isset($body[$published_key])) {
-      return new JsonResponse(
-        data: ['error' => "Missing required field: {$published_key}"],
-        status: Response::HTTP_BAD_REQUEST
-      );
-    }
-
-    // Get the auto-saved version if available, otherwise use the original
-    // entity.
-    $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($canvas_page);
-    $entity_to_update = $autoSaveData->isEmpty()
-      ? $canvas_page
-      : $autoSaveData->entity;
-    \assert($entity_to_update instanceof EntityPublishedInterface);
-
-    // Set the entity status based on the request.
-    \assert(\is_bool($body[$published_key]));
-    if ($body[$published_key] === FALSE) {
-      // Prevent unpublishing the homepage.
-      if ($canvas_page->isPublished() && $this->isHomepage($canvas_page)) {
-        return new JsonResponse(
-          data: ['error' => 'Cannot unpublish the homepage. Please set a different page as the homepage first.'],
-          status: Response::HTTP_FORBIDDEN
-        );
-      }
-      $entity_to_update->setUnpublished();
-    }
-    else {
-      $entity_to_update->setPublished();
-    }
-
-    // Save through auto-save instead of directly saving.
-    $clientInstanceId = $body['clientInstanceId'] ?? NULL;
-    $this->autoSaveManager->saveEntity($entity_to_update, $clientInstanceId);
-
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
@@ -513,11 +443,11 @@ final class ApiContentControllers {
         'op' => 'create',
       ],
       CanvasUriDefinitions::LINK_REL_UNPUBLISH => [
-        'route_name' => 'canvas.api.content.patch',
+        'route_name' => 'canvas.api.content.auto-save.patch',
         'op' => 'update',
       ],
       CanvasUriDefinitions::LINK_REL_PUBLISH => [
-        'route_name' => 'canvas.api.content.patch',
+        'route_name' => 'canvas.api.content.auto-save.patch',
         'op' => 'update',
       ],
     ];
@@ -554,7 +484,7 @@ final class ApiContentControllers {
 
     // Don't show unpublish link if this page is the homepage (current or
     // staged).
-    $should_show_unpublish = $should_show_unpublish && !$this->isHomepage($content_entity);
+    $should_show_unpublish = $should_show_unpublish && !$this->homePageHelper->isHomepage($content_entity);
 
     foreach ($possible_operations as $link_rel => ['route_name' => $route_name, 'op' => $entity_operation]) {
       // Special handling for set as homepage operation: don't show for
@@ -596,56 +526,6 @@ final class ApiContentControllers {
       }
     }
     return $links;
-  }
-
-  /**
-   * Checks if the given entity's path is set as the homepage.
-   *
-   * Checks both the current homepage configuration and any staged homepage
-   * configuration changes.
-   *
-   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
-   *   The entity to check.
-   *
-   * @return bool
-   *   TRUE if the entity's path is the homepage (current or staged), FALSE
-   *   otherwise.
-   */
-  private function isHomepage(FieldableEntityInterface $entity): bool {
-    try {
-      $url = $entity->toUrl('canonical');
-      $path_alias = $url->toString();
-      $internal_path = '/' . $url->getInternalPath();
-      $paths = array_unique([$path_alias, $internal_path]);
-    }
-    catch (\Exception) {
-      return FALSE;
-    }
-
-    // Check current homepage configuration.
-    $system_config = $this->configFactory->get('system.site');
-    $current_homepage = $system_config->get('page.front');
-    if (in_array($current_homepage, $paths, TRUE)) {
-      return TRUE;
-    }
-
-    // Check staged homepage configuration.
-    $staged_homepage_config = $this->entityTypeManager
-      ->getStorage('staged_config_update')
-      ->load('canvas_set_homepage');
-    if ($staged_homepage_config instanceof StagedConfigUpdate) {
-      $actions = $staged_homepage_config->getActions();
-      foreach ($actions as $action) {
-        if (isset($action['input']['page.front'])) {
-          $staged_homepage = $action['input']['page.front'];
-          if (in_array($staged_homepage, $paths, TRUE)) {
-            return TRUE;
-          }
-        }
-      }
-    }
-
-    return FALSE;
   }
 
   /**

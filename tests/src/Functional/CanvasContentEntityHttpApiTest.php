@@ -123,7 +123,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/canvas_page/1')->toString(),
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
         ],
         'internalPath' => '/page/1',
       ],
@@ -157,7 +157,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
           // @todo https://www.drupal.org/i/3498525 should standardize arguments.
           CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/canvas_page/3')->toString(),
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/3')->toString(),
         ],
         'internalPath' => '/page/3',
       ],
@@ -189,7 +189,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
             // @todo https://www.drupal.org/i/3498525 should remove the hardcoded `canvas_page` from these.
             CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
             CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
-            CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/canvas_page/1')->toString(),
+            CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
           ],
           'internalPath' => '/page/1',
         ],
@@ -296,7 +296,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         [
           CanvasUriDefinitions::LINK_REL_EDIT => 'base:/canvas/editor/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/canvas/editor/canvas_page/1',
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/canvas_page/1',
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
         ],
       ],
       'can edit and delete' => [
@@ -304,7 +304,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         [
           CanvasUriDefinitions::LINK_REL_EDIT => 'base:/canvas/editor/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/canvas/editor/canvas_page/1',
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/canvas_page/1',
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_DELETE => 'base:/canvas/api/v0/content/canvas_page/1',
         ],
       ],
@@ -313,7 +313,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         [
           CanvasUriDefinitions::LINK_REL_EDIT => 'base:/canvas/editor/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/canvas/editor/canvas_page/1',
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/canvas_page/1',
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => 'base:/canvas/api/v0/content/canvas_page',
           CanvasUriDefinitions::LINK_REL_DELETE => 'base:/canvas/api/v0/content/canvas_page/1',
         ],
@@ -323,7 +323,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
         [
           CanvasUriDefinitions::LINK_REL_EDIT => 'base:/canvas/editor/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => 'base:/canvas/editor/canvas_page/1',
-          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/canvas_page/1',
+          CanvasUriDefinitions::LINK_REL_UNPUBLISH => 'base:/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => 'base:/canvas/api/v0/content/canvas_page',
         ],
         ['headers:X-Something'],
@@ -390,7 +390,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
         CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/1')->toString(),
-        CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/canvas_page/1')->toString(),
+        CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1')->toString(),
         CanvasUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/canvas/api/v0/content/canvas_page/1')->toString(),
       ],
       $body['1']['links'],
@@ -401,7 +401,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     $this->assertEquals(
       [
         CanvasUriDefinitions::LINK_REL_EDIT => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
-        CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/canvas_page/3')->toString(),
+        CanvasUriDefinitions::LINK_REL_UNPUBLISH => Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/3')->toString(),
         CanvasUriDefinitions::LINK_REL_DELETE => Url::fromUri('base:/canvas/api/v0/content/canvas_page/3')->toString(),
         CanvasUriDefinitions::LINK_REL_SET_AS_HOMEPAGE => Url::fromUri('base:/canvas/editor/canvas_page/3')->toString(),
       ],
@@ -506,7 +506,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     ];
 
     // Test unpublishing a published page.
-    $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page/1');
+    $url = Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/1');
 
     // Test authentication and authorization for PATCH.
     $this->assertAuthenticationAndAuthorization($url, 'PATCH');
@@ -562,7 +562,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     \assert($page_2 instanceof Page);
     $page_2->setPublished()->save();
 
-    $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page/2');
+    $url = Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/2');
     $request_options[RequestOptions::JSON] = ['status' => FALSE];
     $response = $this->makeApiRequest('PATCH', $url, $request_options);
     $this->assertSame(403, $response->getStatusCode());
@@ -572,7 +572,7 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
     );
 
     // Verify that unpublish/publish operations work correctly with clientInstanceId.
-    $url = Url::fromUri('base:/canvas/api/v0/content/canvas_page/3');
+    $url = Url::fromUri('base:/canvas/api/v0/content/auto-save/canvas_page/3');
     $request_options[RequestOptions::JSON] = [
       'status' => FALSE,
       'clientInstanceId' => 'test-client-123',

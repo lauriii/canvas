@@ -79,7 +79,7 @@ export const contentApi = createApi({
     }),
     updateContent: builder.mutation<void, UpdateContentRequest>({
       query: ({ entityType, entityId, status }) => ({
-        url: `/canvas/api/v0/content/${entityType}/${entityId}`,
+        url: `/canvas/api/v0/content/auto-save/${entityType}/${entityId}`,
         method: 'PATCH',
         body: status !== undefined ? { status } : {},
       }),

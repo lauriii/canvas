@@ -55,6 +55,7 @@ services:
     public: true
   # Utilities.
   Drupal\canvas\AssetRenderer: {}
+  Drupal\canvas\Utility\HomePageHelper: {}
   logger.channel.canvas:
     parent: logger.channel_base
     arguments: ['canvas']
@@ -155,6 +156,7 @@ services:
   # Controllers.
   Drupal\canvas\Controller\ApiConfigControllers: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
+  Drupal\canvas\Controller\ApiContentAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiExtensionControllers: ~
   Drupal\canvas\Controller\ApiLayoutController: {}
   Drupal\canvas\Controller\ApiLogController: {}

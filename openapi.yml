@@ -1074,21 +1074,14 @@ paths:
       responses:
         '204':
           description: Deleted individual Personalization Segment
-  '/canvas/api/v0/content/canvas_page/{entityId}':
-    description: Endpoint for managing content entities.
-    delete:
-      summary: Deletes a content entity.
-      parameters:
-        - $ref: '#/components/parameters/entityId'
-      responses:
-        '204':
-          description: Content deleted successfully
+  '/canvas/api/v0/content/auto-save/canvas_page/{entityId}':
+    description: Endpoint for managing content entities in auto-save storage.
     patch:
       summary: Updates a content entity.
       parameters:
         - $ref: '#/components/parameters/entityId'
       requestBody:
-        description: Updates a content entity.
+        description: Updates a content entity in auto-save storage.
         content:
           application/json:
             schema:
@@ -1143,6 +1136,15 @@ paths:
                 cannotUnpublishHomepage:
                   value:
                     error: "Cannot unpublish the homepage. Please set a different page as the homepage first."
+  '/canvas/api/v0/content/canvas_page/{entityId}':
+    description: Endpoint for managing content entities.
+    delete:
+      summary: Deletes a content entity.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Content deleted successfully
   '/canvas/api/v0/content/{entity_type}':
     get:
       summary: Provides api for page listing.
