@@ -63,6 +63,11 @@ final class ComponentMetadataRequirementsChecker {
         continue;
       }
 
+      // For array types, also check enum in items.
+      if (\in_array('array', $prop['type'], TRUE) && isset($prop['items']['enum']) && \in_array('', $prop['items']['enum'], TRUE)) {
+        $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
+      }
+
       // Required props must have examples.
       if (in_array($prop_name, $required_props, TRUE) && !isset($prop['examples'][0])) {
         $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);
@@ -118,8 +123,12 @@ final class ComponentMetadataRequirementsChecker {
       if (!isset($prop['title'])) {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
       }
-      if (isset($prop['enum'], $prop['meta:enum']) && !empty($forbidden_key_characters)) {
-        foreach ($prop['meta:enum'] as $meta_key => $meta_value) {
+
+      $enum_container = \in_array('array', $prop['type'], TRUE) ?
+        $prop['items'] ?? [] :
+        $prop;
+      if (isset($enum_container['enum'], $enum_container['meta:enum']) && !empty($forbidden_key_characters)) {
+        foreach ($enum_container['meta:enum'] as $meta_key => $meta_value) {
           $meta_key_with_replacements = str_replace(
             \array_keys($forbidden_key_characters),
             array_values($forbidden_key_characters),
@@ -135,8 +144,8 @@ final class ComponentMetadataRequirementsChecker {
           \array_keys($forbidden_key_characters),
           array_values($forbidden_key_characters),
           (string) $key,
-        ), $prop['enum']);
-        $enum_keys_diff = \array_diff($meta_enum_valid_keys, \array_keys($prop['meta:enum']));
+        ), $enum_container['enum']);
+        $enum_keys_diff = \array_diff($meta_enum_valid_keys, \array_keys($enum_container['meta:enum']));
         if (!empty($enum_keys_diff)) {
           $messages[] = \sprintf('The values for the "%s" prop enum must be defined in "meta:enum". Missing keys: "%s"', $prop_name, \implode(', ', $enum_keys_diff));
         }

@@ -700,6 +700,54 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
     }
   }
 
+  /**
+   * Tests unmatched enum and meta enum for array items.
+   *
+   * @legacy-covers \Drupal\canvas\ComponentMetadataRequirementsChecker::check
+   */
+  public function testUnmatchedEnumAndMetaEnumForArrayItems(): void {
+    // In an SDC, periods are valid `meta:enum` keys.
+    $component = Component::load('sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items');
+    self::assertNotNull($component);
+    $this->entity = $component;
+    $this->assertValidationErrors([]);
+
+    // Create a code component that has the same schema, where this is NOT
+    // allowed, due to config (schema) limitations.
+    $sdc_yaml = Yaml::parseFile($this->root . self::getCiModulePath() . '/tests/modules/canvas_test_sdc/components/component-mismatch-meta-enum-array-items/component-mismatch-meta-enum-array-items.component.yml');
+    $component = Component::load('js.component-mismatch-meta-enum-array-items');
+    self::assertNull($component);
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'component-mismatch-meta-enum-array-items',
+      'name' => $this->getRandomGenerator()->sentences(5),
+      'status' => FALSE,
+      'props' => $sdc_yaml['props']['properties'],
+      'required' => $sdc_yaml['props']['required'] ?? [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ]);
+    $this->entity = $code_component;
+    try {
+      $this->assertValidationErrors([
+        '' => [
+          'The "meta:enum" keys for the "colors" prop enum cannot contain a dot. Offending key: "green.light"',
+          'The values for the "colors" prop enum must be defined in "meta:enum". Missing keys: "green_light"',
+        ],
+      ]);
+    }
+    catch (\InvalidArgumentException $e) {
+      // The ::assertValidationErrors() call above did in fact confirm that the
+      // listed validation errors occurred. However, it then checks whether the
+      // config schema checker finds additional problems. And in this case, it
+      // does, precisely because it is using dots in keys, which is not allowed
+      // by the config (schema) system.
+      // In other words: this demonstrates exactly why we need to special-case
+      // code components' metadata!
+      self::assertSame("The configuration property green doesn't exist.", $e->getMessage());
+    }
+  }
+
   public function testInvalidPropFieldDefinition(): void {
     \assert($this->entity instanceof Component);
     $settings = $this->entity->getSettings();

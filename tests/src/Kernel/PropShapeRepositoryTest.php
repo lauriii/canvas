@@ -155,6 +155,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 1]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'string']]),
+      PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['red', 'blue', 'green_light', 'yellow'], 'meta:enum' => ['red' => 'Red', 'blue' => 'Blue', 'green.light' => 'Light Green', 'yellow' => 'Yellow']]]),
       new PropShape(['type' => 'boolean']),
       new PropShape(['type' => 'integer']),
       new PropShape(['type' => 'integer', '$ref' => 'json-schema-definitions://canvas.module/column-width']),
@@ -193,6 +194,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'string', 'enum' => ['prefix', 'suffix']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'secondary']]),
       new PropShape(['type' => 'string', 'enum' => ['primary', 'success', 'neutral', 'warning', 'danger']]),
+      PropShape::normalize(['type' => 'string', 'enum' => ['red', 'blue', 'green_light', 'yellow'], 'meta:enum' => ['red' => 'Red', 'blue' => 'Blue', 'green.light' => 'Light Green', 'yellow' => 'Yellow']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'big', 'huge', 'contains.dots']]),
       new PropShape(['type' => 'string', 'enum' => ['small', 'medium', 'large']]),
@@ -452,6 +454,14 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ],
       ),
+      'type=string&enum[0]=red&enum[1]=blue&enum[2]=green_light&enum[3]=yellow' => new StorablePropShape(
+        shape: PropShape::normalize(['type' => 'string', 'enum' => ['red', 'blue', 'green_light', 'yellow'], 'meta:enum' => ['red' => 'Red', 'blue' => 'Blue', 'green.light' => 'Light Green', 'yellow' => 'Yellow']]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+        ],
+      ),
       'type=string&enum[0]=small&enum[1]=medium&enum[2]=large' => new StorablePropShape(
         shape: new PropShape([
           'type' => 'string',
@@ -664,6 +674,15 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldWidget: 'string_textfield',
       ),
+      'type=array&items[type]=string&items[enum][0]=red&items[enum][1]=blue&items[enum][2]=green_light&items[enum][3]=yellow&items[meta:enum][red]=Red&items[meta:enum][blue]=Blue&items[meta:enum][green.light]=Light Green&items[meta:enum][yellow]=Yellow' => new StorablePropShape(
+        shape: PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['red', 'blue', 'green_light', 'yellow'], 'meta:enum' => ['red' => 'Red', 'blue' => 'Blue', 'green.light' => 'Light Green', 'yellow' => 'Yellow']]]),
+        fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+        cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+        fieldWidget: 'options_select',
+        fieldStorageSettings: [
+          'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+        ],
+      ),
       'type=string&enum[0]=7&enum[1]=3.14' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'enum' => ['7', '3.14']]),
         fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
@@ -827,6 +846,13 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       // which will include https://drupal.org/i/3493070.
       if (isset($storable_prop_shape->shape->schema['enum'])) {
         $randomized_prop_source = $prop_source->withValue($storable_prop_shape->shape->schema['enum'][0]);
+      }
+      // For array shapes whose items have an enum (e.g. list_string with
+      // CARDINALITY_UNLIMITED), generateSampleItems() cannot produce values
+      // because the allowed_values_function requires a Component entity.
+      // Use a single valid item value instead.
+      elseif (isset($storable_prop_shape->shape->schema['items']['enum'])) {
+        $randomized_prop_source = $prop_source->withValue([['value' => $storable_prop_shape->shape->schema['items']['enum'][0]]]);
       }
 
       $random_value = $randomized_prop_source->getValue();

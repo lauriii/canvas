@@ -1,0 +1,20 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Component mismatch meta:enum for array items
+props:
+  type: object
+  properties:
+    colors:
+      type: array
+      title: Colors
+      description: Array of color choices
+      items:
+        type: string
+        enum: ['red', 'blue', 'green_light', 'yellow']
+        meta:enum:
+          red: Red
+          blue: Blue
+          green.light: Light Green
+          yellow: Yellow
+      examples:
+        - ['red', 'blue']
+
