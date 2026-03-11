@@ -72,6 +72,7 @@ export default defineConfig({
           items: [
             { label: 'Introduction', slug: 'apis' },
             { label: 'Customizing forms', slug: 'apis/customizing-forms' },
+            { label: 'Theme settings', slug: 'apis/theme-settings' },
           ],
         }
       ],
