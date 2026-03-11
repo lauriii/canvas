@@ -232,6 +232,7 @@ final class SingleDirectoryComponentTest extends GeneratedFieldExplicitInputUxCo
       'sdc.canvas_test_sdc.image-optional-without-example',
       'sdc.canvas_test_sdc.image-required-with-example',
       'sdc.canvas_test_sdc.image-without-ref',
+      'sdc.canvas_test_sdc.mixed-images-with-example',
       'sdc.canvas_test_sdc.my-cta',
       'sdc.canvas_test_sdc.my-hero',
       'sdc.canvas_test_sdc.my-section',
@@ -1046,6 +1047,16 @@ HTML
           'library' => [
             'core/components.canvas_test_sdc--image-without-ref',
             'core/components.canvas_test_sdc--image-without-ref',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.mixed-images-with-example' => [
+        'html' => '<img class="primary" src="https://example.com/cat.jpg" alt="Primary default image" /><img class="secondary" src="https://example.com/cat.jpg" alt="Secondary default image" /><img class="required" src="https://example.com/cat.jpg" alt="Required default image" />',
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--mixed-images-with-example',
+            'core/components.canvas_test_sdc--mixed-images-with-example',
           ],
         ],
       ],
@@ -2153,6 +2164,43 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.mixed-images-with-example' => [
+        'prop_field_definitions' => [
+          'primary_image' => [
+            'required' => FALSE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'secondary_image' => [
+            'required' => FALSE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+          'required_image' => [
+            'required' => TRUE,
+            'field_type' => 'image',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'image_image',
+            // ⚠️ Empty default value.
+            // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::exampleValueRequiresEntity()
+            'default_value' => [],
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.my-cta' => [
         'prop_field_definitions' => [
           'text' => [
@@ -2840,6 +2888,16 @@ HTML
         ],
       ],
       'sdc.canvas_test_sdc.image-without-ref' => [
+        'config' => [
+          'image.style.canvas_parametrized_width',
+        ],
+        'module' => [
+          'file',
+          'image',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.mixed-images-with-example' => [
         'config' => [
           'image.style.canvas_parametrized_width',
         ],
@@ -4478,6 +4536,117 @@ HTML
                 'alt' => 'Alternative text',
                 'width' => 800,
                 'height' => 600,
+              ],
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.mixed-images-with-example' => [
+        'expected_output_selectors' => [
+          'img.primary[src="https://example.com/cat.jpg"]',
+          'img.secondary[src="https://example.com/cat.jpg"]',
+          'img.required[src="https://example.com/cat.jpg"]',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'primary_image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'image',
+              'required' => ['src'],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'image/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                  'id' => 'json-schema-definitions://canvas.module/image-uri',
+                ],
+                'alt' => ['title' => 'Alternative text', 'type' => 'string'],
+                'width' => ['title' => 'Image width', 'type' => 'integer'],
+                'height' => ['title' => 'Image height', 'type' => 'integer'],
+              ],
+              'id' => 'json-schema-definitions://canvas.module/image',
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/cat.jpg',
+                'alt' => 'Primary default image',
+                'width' => 600,
+                'height' => 400,
+              ],
+            ],
+          ],
+          'secondary_image' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'image',
+              'required' => ['src'],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'image/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                  'id' => 'json-schema-definitions://canvas.module/image-uri',
+                ],
+                'alt' => ['title' => 'Alternative text', 'type' => 'string'],
+                'width' => ['title' => 'Image width', 'type' => 'integer'],
+                'height' => ['title' => 'Image height', 'type' => 'integer'],
+              ],
+              'id' => 'json-schema-definitions://canvas.module/image',
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/cat.jpg',
+                'alt' => 'Secondary default image',
+                'width' => 600,
+                'height' => 400,
+              ],
+            ],
+          ],
+          'required_image' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'image',
+              'required' => ['src'],
+              'properties' => [
+                'src' => [
+                  'title' => 'Image URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'image/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                  'id' => 'json-schema-definitions://canvas.module/image-uri',
+                ],
+                'alt' => ['title' => 'Alternative text', 'type' => 'string'],
+                'width' => ['title' => 'Image width', 'type' => 'integer'],
+                'height' => ['title' => 'Image height', 'type' => 'integer'],
+              ],
+              'id' => 'json-schema-definitions://canvas.module/image',
+            ],
+            'sourceType' => 'static:field_item:image',
+            'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/cat.jpg',
+                'alt' => 'Required default image',
+                'width' => 600,
+                'height' => 400,
               ],
             ],
           ],

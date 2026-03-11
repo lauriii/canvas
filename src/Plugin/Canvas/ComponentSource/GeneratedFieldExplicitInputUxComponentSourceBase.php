@@ -477,12 +477,17 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)
           ->toArray();
       }
-      // Don't duplicate value if the resolved value matches the static value.
+      // Remove 'value' from source when it matches resolved value, unless NULL.
+      // NULL values must be preserved to indicate explicit user deletion.
       // TRICKY: it's thanks to the condition in this if-branch NOT being met
       // that it's possible for the preview ('resolved') to not match the input
       // ('source'): the source will retain its own value, even if that is the
       // empty array in for example the case of a default image.
-      if (\array_key_exists('value', $model['source'][$prop_name]) && $evaluation_result->value === $model['source'][$prop_name]['value']) {
+      if (
+        \array_key_exists('value', $model['source'][$prop_name]) &&
+        $evaluation_result->value === $model['source'][$prop_name]['value'] &&
+        $evaluation_result->value !== NULL
+      ) {
         unset($model['source'][$prop_name]['value']);
       }
     }
@@ -517,6 +522,13 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
    */
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
     $violations = new ConstraintViolationList();
+    $prop_field_definitions = $this->configuration['prop_field_definitions'];
+    // Derive required props directly from prop_field_definitions to avoid
+    // calling getExplicitInputDefinitions() which internally calls
+    // getMetadata() → getComponentPlugin(), which throws a
+    // ComponentNotFoundException when the component plugin is missing/broken.
+    // @see ::getExplicitInputDefinitions()
+    $required_props = \array_keys(\array_filter($prop_field_definitions, static fn (array $definition) => $definition['required'] ?? FALSE));
     foreach ($inputValues as $component_prop_name => $raw_prop_source) {
       $raw_prop_source = $this->uncollapse($raw_prop_source, $component_prop_name)->toArray();
       // Store the expanded prop source with all the values populated from the
@@ -589,6 +601,16 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
     }
 
     try {
+      // Omit optional props whose value evaluated to NULL before validation.
+      // Otherwise, ComponentValidator will throw an error like "NULL value
+      // found, but an object is required" for optional object props.
+      // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+      foreach ($resolvedInputValues as $prop => $resolved_value) {
+        if ($resolved_value === NULL && !\in_array($prop, $required_props, TRUE)) {
+          unset($resolvedInputValues[$prop]);
+        }
+      }
+
       $this->componentValidator->validateProps($resolvedInputValues, $this->getComponentPlugin());
     }
     catch (ComponentNotFoundException) {
@@ -1202,7 +1224,9 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         // - the component is freshly instantiated; no value was specified yet
         // - the prop's field widget has had its value erased by the Content
         //   Creator (e.g. removed the image picked from the media library)
-        // In these cases, fall back to `DefaultRelativeUrlPropSource`.
+        // In the first case, fall back to `DefaultRelativeUrlPropSource`.
+        // In the second case (user explicitly removed the value), respect user
+        // intent and do NOT fall back to the default for optional props.
         // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
         // @see ::exampleValueRequiresEntity()
         if ($default_source_value === [] && $is_static_prop_source) {
@@ -1219,7 +1243,26 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
             // @see ::getClientSideInfo()
             $client_side_info = $this->getClientSideInfo($component);
             \assert(isset($client_side_info['propSources'][$prop]['jsonSchema']));
-            if (empty($prop_value) || $prop_value == $client_side_info['propSources'][$prop]['default_values']['resolved']) {
+            // When the client sends an explicit `value` key in the prop source
+            // that does not match the default `source` value in the client-side
+            // info,it indicates user intent (either setting or removing a
+            // value).
+            // If the value is empty AND the prop is optional AND the client
+            // explicitly sent a value key, respect the user's deletion intent
+            // and do NOT fall back to the default example value.
+            $user_explicitly_set_value = \array_key_exists('value', $prop_source) && $prop_source['value'] !== $client_side_info['propSources'][$prop]['default_values']['resolved'];
+            if ($user_explicitly_set_value && (!$is_required_prop) && empty($prop_value)) {
+              // User explicitly removed the value from an optional prop.
+              // Store the empty StaticPropSource value to persist the user's
+              // deletion intent across page reloads. This ensures the default
+              // image doesn't reappear after refresh/publish.
+              $empty_static_prop_source = $this->getDefaultStaticPropSource($prop, FALSE);
+              \assert($empty_static_prop_source->fieldItemList->isEmpty());
+              $props[$prop] = $this->collapse($empty_static_prop_source, $prop);
+              \assert($props[$prop] === NULL);
+              continue;
+            }
+            elseif (empty($prop_value) || $prop_value == $client_side_info['propSources'][$prop]['default_values']['resolved']) {
               $props[$prop] = $this->getDefaultRelativeUrlPropSource($component->id(), $prop)->toArray();
               continue;
             }

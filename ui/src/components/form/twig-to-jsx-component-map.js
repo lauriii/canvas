@@ -1,5 +1,6 @@
 import CanvasBox from '@/components/form/canvas-components/CanvasBox';
 import CanvasText from '@/components/form/canvas-components/CanvasText';
+import DefaultImagePreview from '@/components/form/components/DefaultImagePreview';
 import {
   DrupalContainerTextFormatFilterGuidelines,
   DrupalContainerTextFormatFilterHelp,
@@ -48,6 +49,7 @@ const twigToJSXComponentMap = {
   'canvas-drupal-label': DrupalFormElementLabel,
   'drupal-canvas-linked-field-box': LinkedFieldBox,
   'drupal-canvas-prop-linker': PropLinker,
+  'canvas-default-image-preview': DefaultImagePreview,
 };
 
 export default twigToJSXComponentMap;

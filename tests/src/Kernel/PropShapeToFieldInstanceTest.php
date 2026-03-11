@@ -519,6 +519,7 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
             '⿲canvas_test_sdc:image␟image',
             '⿲canvas_test_sdc:image-srcset-candidate-template-uri␟image',
             '⿲canvas_test_sdc:image-without-ref␟image',
+            '⿲canvas_test_sdc:mixed-images-with-example␟required_image',
           ],
           'static prop source' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
           'instances' => [
@@ -1171,6 +1172,8 @@ class PropShapeToFieldInstanceTest extends CanvasKernelTestBase {
         'optional, type=object&$ref=json-schema-definitions://canvas.module/image' => [
           'SDC props' => [
             '⿲canvas_test_sdc:banner␟image',
+            '⿲canvas_test_sdc:mixed-images-with-example␟primary_image',
+            '⿲canvas_test_sdc:mixed-images-with-example␟secondary_image',
             '⿲sdc_test_all_props:all-props␟test_object_drupal_image',
           ],
           'static prop source' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',

@@ -22,6 +22,8 @@
  * - children: The rendered child elements of the <fieldset>.
  * - prefix: The content to add before the <fieldset> children.
  * - suffix: The content to add after the <fieldset> children.
+ * - component_prop_name: The name of the component prop this media library widget is for.
+ *   Only set when rendered inside the ComponentInstanceForm; absent otherwise.
  *
  * @see template_preprocess_fieldset()
  *
@@ -63,6 +65,17 @@
       <div>
         {{ errors }}
       </div>
+    {% endif %}
+    {#
+      Only render default image preview when component_prop_name is set.
+      While this template is used for all media library widgets (including those
+      in regular entity forms), component_prop_name is only passed to the template
+      during Canvas component editing. This ensures the Canvas-specific default
+      image preview functionality only appears in the appropriate context.
+      @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter()
+    #}
+    {% if component_prop_name %}
+      <canvas-default-image-preview prop_name="{{ component_prop_name }}"></canvas-default-image-preview>
     {% endif %}
 
     {% if suffix %}

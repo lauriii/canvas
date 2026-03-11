@@ -95,12 +95,21 @@ describe('Media Library', () => {
     cy.waitForElementNotInIframe(
       '.layout-content img[alt="Example image placeholder"]',
     );
+    cy.intercept('PATCH', '**/canvas/api/v0/layout/**').as('updatePreview');
     cy.findByLabelText('text').type('{selectall}{del}A new value');
+    cy.wait('@updatePreview');
     cy.findByLabelText('text').should('have.value', 'A new value');
     cy.waitForElementContentInIframe('p', 'A new value');
     cy.get('[class*="contextualPanel"]')
       .findByLabelText('Remove The bones are their money')
       .click();
+
+    // Add a hard coded wait so to provide time for the placeholder
+    // image to potentially reappear. It isn't supposed to reappear, but
+    // since it does not happen immediately, we need the wait in order
+    // to be certain it does not.
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(2000);
 
     // Confirms the removed optional image prop is not rendered at all, vs the
     // example/default value reappearing.

@@ -11,7 +11,7 @@ describe('📸️ Code image component', () => {
   });
 
   it(
-    'Removing an optional image falls back to the default',
+    'Removing an optional image does not show the default',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
       cy.drupalLogin('canvasUser', 'canvasUser');
@@ -70,13 +70,9 @@ describe('📸️ Code image component', () => {
       // Wait for the preview to finish loading.
       cy.findByLabelText('Loading Preview').should('not.exist');
 
-      // Removing the media item should fall back to the default because the
-      // image is optional
-      cy.waitForElementInIframe(
-        'img[src*="https://placehold.co/1200x900@2x.png"]',
-        iframeSelector,
-        10000,
-      );
+      // Confirms the removed optional image prop is not rendered at all, vs the
+      // default value reappearing.
+      cy.waitForElementNotInIframe('.layout-content img', iframeSelector);
     },
   );
 });

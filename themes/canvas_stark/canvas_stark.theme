@@ -222,11 +222,25 @@ function canvas_stark_preprocess_form_element(array &$variables): void {
   $variables['description_attributes'] = $variables['description']['attributes'] ?? [];
 }
 
+/**
+ * Implements hook_preprocess_fieldset__media_library_widget().
+ *
+ * Passes prop linking data to the label component and component_prop_name to
+ * the template. The component_prop_name is used by the DefaultImagePreview
+ * component to identify which prop it should manage, enabling the "Remove
+ * default" functionality for optional image props with example values.
+ *
+ * @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter()
+ * @see ui/src/components/form/components/DefaultImagePreview.tsx
+ */
 function canvas_stark_preprocess_fieldset__media_library_widget(array &$variables): void {
   // Prop link data is passed to the media library widget differently, as the
   // label is the fieldset legend, not a label element.
   if (isset($variables['element']['#prop_link_data'])) {
     $variables['prop_link_data'] = Json::encode($variables['element']['#prop_link_data']);
+  }
+  if (isset($variables['element']['#component_prop_name'])) {
+    $variables['component_prop_name'] = $variables['element']['#component_prop_name'];
   }
 }
 

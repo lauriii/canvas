@@ -177,6 +177,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'items' => [
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
+        'sdc.canvas_test_sdc.mixed-images-with-example',
         'sdc.canvas_test_sdc.my-cta',
         'sdc.canvas_test_sdc.component-mismatch-meta-enum',
         'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',

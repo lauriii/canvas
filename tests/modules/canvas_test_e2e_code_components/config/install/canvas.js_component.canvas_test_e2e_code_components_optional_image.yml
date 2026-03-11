@@ -22,8 +22,54 @@ props:
       - 'Some text'
 slots: { }
 js:
-  original: "const Image = ({  image,  text,}) => {  return ( <div>   <img {...image} \/>   <p>{text}<\/p> <\/div>  );};\n\nexport default Image;"
-  compiled: "function _define_property(obj, key, value) { if (key in obj) {     Object.defineProperty(obj, key, {         value: value,         enumerable: true,         configurable: true,         writable: true     }); } else {     obj[key] = value; } return obj;}function _object_spread(target) { for(var i = 1; i < arguments.length; i++){     var source = arguments[i] != null ? arguments[i] : {};     var ownKeys = Object.keys(source);     if (typeof Object.getOwnPropertySymbols === \"function\") {         ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {             return Object.getOwnPropertyDescriptor(source, sym).enumerable;         }));     }     ownKeys.forEach(function(key) {         _define_property(target, key, source[key]);     }); } return target;}import { jsx as _jsx, jsxs as _jsxs } from \"react\/jsx-runtime\";const Image = ({ image, text })=>{ return \/*#__PURE__*\/ _jsxs(\"div\", {     children: [         \/*#__PURE__*\/ _jsx(\"img\", _object_spread({}, image)),         \/*#__PURE__*\/ _jsx(\"p\", {             children: text         })     ] });};export default Image;"
+  original: |-
+    const Image = ({  image,  text,}) => {  return ( <div>   {image?.src && <img {...image} />}   <p>{text}</p> </div>  );};
+
+    export default Image;
+  compiled: |
+    function _define_property(obj, key, value) {
+        if (key in obj) {
+            Object.defineProperty(obj, key, {
+                value: value,
+                enumerable: true,
+                configurable: true,
+                writable: true
+            });
+        } else {
+            obj[key] = value;
+        }
+        return obj;
+    }
+    function _object_spread(target) {
+        for(var i = 1; i < arguments.length; i++){
+            var source = arguments[i] != null ? arguments[i] : {};
+            var ownKeys = Object.keys(source);
+            if (typeof Object.getOwnPropertySymbols === "function") {
+                ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
+                    return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+                }));
+            }
+            ownKeys.forEach(function(key) {
+                _define_property(target, key, source[key]);
+            });
+        }
+        return target;
+    }
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    const Image = ({ image, text })=>{
+        return /*#__PURE__*/ _jsxs("div", {
+            children: [
+                "   ",
+                (image === null || image === void 0 ? void 0 : image.src) && /*#__PURE__*/ _jsx("img", _object_spread({}, image)),
+                "   ",
+                /*#__PURE__*/ _jsx("p", {
+                    children: text
+                }),
+                " "
+            ]
+        });
+    };
+    export default Image;
 css:
   original: ''
   compiled: ''

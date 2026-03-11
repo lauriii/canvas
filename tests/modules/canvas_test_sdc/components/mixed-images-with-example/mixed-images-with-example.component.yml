@@ -1,0 +1,36 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC with mixed optional and required images, all with examples
+description: Component with two optional and one required image prop, each with a default example value. Used to test that DefaultImagePreview correctly scopes each widget to its own prop when multiple media library widgets appear in the same component form, and that required images cannot have their default removed.
+props:
+  type: object
+  required:
+    - required_image
+  properties:
+    primary_image:
+      $ref: json-schema-definitions://canvas.module/image
+      type: object
+      title: 'Primary Image'
+      examples:
+        - src: https://example.com/cat.jpg
+          alt: 'Primary default image'
+          width: 600
+          height: 400
+    secondary_image:
+      $ref: json-schema-definitions://canvas.module/image
+      type: object
+      title: 'Secondary Image'
+      examples:
+        - src: https://example.com/cat.jpg
+          alt: 'Secondary default image'
+          width: 600
+          height: 400
+    required_image:
+      $ref: json-schema-definitions://canvas.module/image
+      type: object
+      title: 'Required Image'
+      examples:
+        - src: https://example.com/cat.jpg
+          alt: 'Required default image'
+          width: 600
+          height: 400
+

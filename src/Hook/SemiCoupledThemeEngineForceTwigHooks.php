@@ -16,7 +16,7 @@ use Drupal\Core\Render\Element;
  * Identifies templates that should be Twig rendered.
  *
  * @see themes/canvas_stark/templates/process_as_regular_twig
- * @see \Drupal\canvas\Hook\SemiCoupledThemeEngineHooks
+ * @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks
  * @see https://git.drupalcode.org/project/canvas/-/commit/c5b5d93d79cb7260ec5160fa22014a1f755b40cf
  */
 class SemiCoupledThemeEngineForceTwigHooks {

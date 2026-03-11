@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -17,6 +18,7 @@ use Drupal\canvas\PropSource\PropSource;
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase.
  */
 #[CoversClass(GeneratedFieldExplicitInputUxComponentSourceBase::class)]
+#[CoversMethod(GeneratedFieldExplicitInputUxComponentSourceBase::class, 'clientModelToInput')]
 abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends ComponentSourceTestBase {
 
   /**
@@ -197,6 +199,76 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBaseTestBase extends 
     $violation_messages = \array_map(fn($v) => $v->getMessage(), iterator_to_array($violations));
     $this->assertContains("Component `$uuid`: the `textUnwanted` prop is not defined.", $violation_messages);
     $this->assertContains("Component `$uuid`: the `anotherBadProp` prop is not defined.", $violation_messages);
+  }
+
+  /**
+   * Tests that explicitly removing an optional image prop value is preserved.
+   *
+   * When a user removes an optional image prop that has a default example
+   * value,the deletion intent should be preserved and NOT fall back to the
+   * default. This is achieved by the client sending an explicit `value` key
+   * with an empty array.
+   *
+   * Works for both SDC and code component sources via
+   * $this->componentWithOptionalImageProp.
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::getValue()
+   */
+  public function testClientModelToInputExplicitOptionalImageDeletion(): void {
+    $this->generateComponentConfig();
+    // @phpstan-ignore-next-line property.notFound
+    $component = Component::load($this->componentWithOptionalImageProp);
+    self::assertInstanceOf(Component::class, $component);
+
+    $prop_field_definitions = $component->getSettings()['prop_field_definitions'];
+
+    // Build the full candidate client model. Only `image` is the prop being
+    // tested; `heading` is included for components that require it (e.g. SDC),
+    // but filtered out for components that don't define it (e.g. code
+    // components). This mirrors the pattern used in
+    // ::testHydrationAndRenderingEdgeCases().
+    $candidate_source = [
+      'heading' => [
+        'sourceType' => 'static:field_item:string',
+        'expression' => 'ℹ︎string␟value',
+        'value' => 'Test heading',
+      ],
+      'image' => [
+        'sourceType' => 'static:field_item:image',
+        'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+        // Explicit empty value indicates user removed the default image.
+        'value' => [],
+      ],
+    ];
+    $candidate_resolved = [
+      'heading' => 'Test heading',
+      // Empty resolved value for the explicitly removed image.
+      'image' => [],
+    ];
+
+    // Filter to only the props this component actually defines.
+    $clientModel = [
+      'source' => array_intersect_key($candidate_source, $prop_field_definitions),
+      'resolved' => array_intersect_key($candidate_resolved, $prop_field_definitions),
+    ];
+
+    $input = $component->getComponentSource()->clientModelToInput(
+      'a-uuid-for-testing',
+      $component,
+      $clientModel,
+      NULL
+    );
+
+    // The image prop should be stored as NULL (empty StaticPropSource for
+    // single-cardinality field), NOT fall back to the default example value.
+    // This preserves the user's deletion intent across page reloads.
+    self::assertArrayHasKey('image', $input);
+    self::assertNull($input['image']);
+
+    // If the component has a heading prop, verify it is stored normally too.
+    if (\array_key_exists('heading', $prop_field_definitions)) {
+      self::assertSame('Test heading', $input['heading']);
+    }
   }
 
 }

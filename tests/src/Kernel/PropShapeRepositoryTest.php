@@ -34,6 +34,7 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\link\LinkItemInterface;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use JsonSchema\Constraints\Constraint;
@@ -826,6 +827,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       // @see \Drupal\Core\Field\WidgetBase::form()
       $form = ['#parents' => [$this->randomMachineName()]];
       $form_state = new FormState();
+      $form_object = new StubForm('some_id', $form);
+      $form_state->setFormObject($form_object);
       $form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'some-prop-name', FALSE, User::create([]), $form, $form_state);
 
       // Finally, prove the total compatibility of the StaticPropSource
