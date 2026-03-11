@@ -751,14 +751,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
         $source = $default_static_source;
       }
 
-      // 1. If the given static prop source matches the *current* field type
-      // configuration, use the configured widget.
-      // 2. Worst case: fall back to the default widget for this field type.
-      // @todo Implement 2. in https://www.drupal.org/project/canvas/issues/3463996
-      $field_widget_plugin_id = NULL;
-      if ($source->getSourceType() === 'static:field_item:' . $static_prop_source_field_definition['field_type']) {
-        $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
-      }
+      $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
       $label = $component_schema['properties'][$sdc_prop_name]['title'] ?? Unicode::ucfirst($sdc_prop_name);
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
@@ -978,15 +971,7 @@ abstract class GeneratedFieldExplicitInputUxComponentSourceBase extends Componen
       }
 
       // Build transforms from widget metadata.
-      $field_widget_plugin_id = NULL;
-      $static_prop_source = $storable_prop_shape->toStaticPropSource();
-      $prop_field_definition = $prop_field_definitions[$prop_name];
-      if ($static_prop_source->getSourceType() === 'static:field_item:' . $prop_field_definition['field_type']) {
-        $field_widget_plugin_id = $prop_field_definition['field_widget'];
-      }
-      if ($field_widget_plugin_id === NULL) {
-        continue;
-      }
+      $field_widget_plugin_id = $prop_field_definitions[$prop_name]['field_widget'];
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($field_widget_plugin_id);
       if (!(\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas']))) {
         throw new \LogicException(\sprintf(
